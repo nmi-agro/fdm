@@ -15,12 +15,12 @@
   "tsconfig": "../tsconfig.typedoc.json",
   "githubPages": false,
   "hideGenerator": true,
-  "skipErrorChecking": true,
   "externalSymbolLinkMappings": {
     "@nmi-agro/fdm-core": {
       "createFdmServer": "#",
       "Cultivation": "#",
       "Measure": "#",
+      "MeasureCatalogue": "#",
       "SoilAnalysis": "#",
       "syncFertilizerCatalogueArray": "#"
     }

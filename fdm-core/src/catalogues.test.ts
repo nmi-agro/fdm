@@ -631,6 +631,48 @@ describe("Catalogues syncing", () => {
     expect(options?.length).toBeGreaterThan(0)
     expect(options?.every((s: string) => typeof s === "string" && s.trim().length > 0)).toBe(true)
   })
+
+  it("should sync cultivation catalogue with availability years", async () => {
+    await syncCatalogues(fdm)
+
+    const catalogueWithVarietyOptions = await fdm
+      .select()
+      .from(schema.cultivationsCatalogue)
+      .where(isNotNull(schema.cultivationsCatalogue.b_lu_ya))
+      .limit(1)
+
+    expect(catalogueWithVarietyOptions.length).toBeGreaterThan(0)
+    const options = catalogueWithVarietyOptions[0].b_lu_ya
+    expect(Array.isArray(options)).toBe(true)
+    expect(options?.length).toBeGreaterThan(0)
+    expect(options?.every((s: number) => typeof s === "number")).toBe(true)
+  })
+
+  it("should sync availability years when they change", async () => {
+    await syncCatalogues(fdm)
+
+    const B_LU_CATALOGUE = "nl_2014" // aardappelen, consumptie
+    await fdm
+      .update(schema.cultivationsCatalogue)
+      .set({
+        hash: "123456",
+        b_lu_ya: [1999],
+      })
+      .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, B_LU_CATALOGUE))
+
+    await syncCatalogues(fdm)
+
+    const catalogueWithVarietyOptions = await fdm
+      .select()
+      .from(schema.cultivationsCatalogue)
+      .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, B_LU_CATALOGUE))
+      .limit(1)
+
+    expect(catalogueWithVarietyOptions.length).toBeGreaterThan(0)
+    const options = catalogueWithVarietyOptions[0].b_lu_ya
+    expect(options).not.toBeNull()
+    expect(options).not.toContain(1999)
+  })
 })
 
 describe("Measures Catalogue Sync", () => {

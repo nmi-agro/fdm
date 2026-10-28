@@ -1,7 +1,7 @@
-import type { Cultivation } from "@nmi-agro/fdm-core"
-import type { FieldValues, Resolver, UseFormReturn } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { type Cultivation } from "@nmi-agro/fdm-core"
+import { useEffect, useState } from "react"
+import { useWatch, type FieldValues, type Resolver, type UseFormReturn } from "react-hook-form"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
@@ -17,7 +17,12 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { cn } from "~/lib/utils"
+import {
+  CultivationAvailabilityWarning,
+  getCultivationAvailabilityMessage,
+} from "./availability-warning"
 import { CultivationDetailsFormSchema, type CultivationDetailsFormSchemaType } from "./schema"
 
 function toDate(value: Date | string | null | undefined) {
@@ -30,20 +35,26 @@ function toDate(value: Date | string | null | undefined) {
 export function CultivationDetailsCard({
   cultivation,
   b_lu_variety_options,
+  b_lu_ya,
+  lastCultivationAvailabilityYear,
   editable = true,
 }: {
   cultivation: Cultivation
   b_lu_variety_options: { value: string; label: string }[]
+  b_lu_ya: number[] | null
+  lastCultivationAvailabilityYear?: number
   editable?: boolean
 }) {
   const fetcher = useFetcher()
+  // Computed once, not on every render: used only as the default when there's no start date yet.
+  const [today] = useState(() => new Date())
   const form = useRemixForm<CultivationDetailsFormSchemaType>({
     resolver: zodResolver(
       CultivationDetailsFormSchema,
     ) as Resolver<CultivationDetailsFormSchemaType>,
     mode: "onTouched",
     defaultValues: {
-      b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+      b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
         cultivation.b_lu_croprotation === "cereal"
@@ -56,9 +67,10 @@ export function CultivationDetailsCard({
   const { pathname } = useLocation()
   const isCreateWizard = pathname.includes("/farm/create/")
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
-      b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+    formReset({
+      b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
         cultivation.b_lu_croprotation === "cereal"
@@ -66,11 +78,23 @@ export function CultivationDetailsCard({
           : undefined,
       b_lu_variety: cultivation.b_lu_variety ?? undefined,
     })
-  }, [cultivation, form.reset])
+  }, [formReset, cultivation, today])
 
   const handleDeleteCultivation = () => {
     return fetcher.submit(null, { method: "delete" })
   }
+
+  const current_b_lu_start = useWatch({ control: form.control, name: "b_lu_start" })
+  const current_b_lu_end = useWatch({ control: form.control, name: "b_lu_end" })
+  const isCultivationUnavailable = isCultivationUnavailableInPeriod(
+    { b_lu_start: current_b_lu_start, b_lu_end: current_b_lu_end },
+    b_lu_ya,
+    lastCultivationAvailabilityYear,
+  )
+  const formCultivationAvailabilityWarning =
+    isCultivationUnavailable && form.formState.isDirty
+      ? getCultivationAvailabilityMessage(isCultivationUnavailable)
+      : null
 
   return (
     <Card>
@@ -96,13 +120,19 @@ export function CultivationDetailsCard({
         ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Cultivation warning is show according to the last saved values because the user could think that the values are already saved whenever the warning changes. */}
+        <CultivationAvailabilityWarning
+          period={{ b_lu_start: cultivation.b_lu_start, b_lu_end: cultivation.b_lu_end }}
+          b_lu_ya={b_lu_ya}
+          lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+        />
         <RemixFormProvider {...form}>
           <Form onSubmit={form.handleSubmit} method="post">
             <fieldset
               disabled={!editable || form.formState.isSubmitting || fetcher.state !== "idle"}
               className="space-y-4"
             >
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-x-4 gap-y-2 lg:grid-cols-2">
                 <DatePicker
                   form={form as unknown as UseFormReturn<FieldValues>}
                   name="b_lu_start"
@@ -117,6 +147,11 @@ export function CultivationDetailsCard({
                   description=""
                   disabled={!editable}
                 />
+                {formCultivationAvailabilityWarning && (
+                  <span className="text-destructive text-sm lg:col-span-2">
+                    {formCultivationAvailabilityWarning}
+                  </span>
+                )}
               </div>
               <div className="grid items-end gap-4 lg:grid-cols-2">
                 <FormField

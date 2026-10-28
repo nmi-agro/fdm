@@ -15,6 +15,7 @@ import { AtlasControlGroup, AtlasControls } from "./atlas-controls"
 const mapLayers = [
   "fields",
   "soil-analysis",
+  "nutrient-advice",
   "elevation",
   "soil",
   "indicators",
@@ -74,6 +75,17 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     url(params) {
       const calendar = getCalendarWithFallback(params)
       return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/soil-analysis`
+    },
+  },
+  "nutrient-advice": {
+    context: "farm",
+    routeId: "routes/farm.$b_id_farm.$calendar.atlas.nutrient-advice._index",
+    nameNL: "Bemestingsadvies",
+    // The advice is calculated per field of a farm, so the layer is hidden without a farm.
+    requiresFarm: true,
+    url(params) {
+      const calendar = getCalendarWithFallback(params)
+      return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/nutrient-advice`
     },
   },
   indicators: {

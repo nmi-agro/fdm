@@ -175,16 +175,16 @@ export function GerritLoading({
   initialMessage?: string
 }) {
   const [elapsed, setElapsed] = useState(0)
-  const startRef = useRef(Date.now())
+  const startRef = useRef<number>(undefined)
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const id = setInterval(
-      () => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)),
-      1000,
-    )
+    const id = setInterval(() => {
+      if (typeof startRef.current === "undefined") startRef.current = Date.now()
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
+    }, 1000)
     return () => clearInterval(id)
   }, [])
 

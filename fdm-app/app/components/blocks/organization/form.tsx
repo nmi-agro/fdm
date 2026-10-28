@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Building, X } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { useFetcher, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
@@ -27,6 +27,20 @@ import { Textarea } from "~/components/ui/textarea"
 import { OrganizationInfoSchema } from "./schema"
 
 const FormSchema = OrganizationInfoSchema.extend({ intent: z.literal("update_organization_info") })
+
+/**
+ * Builds a slug from the organization's name. It removes non-alphanumeric characters,
+ * replacing the rest with -. Sequences of more than one - are collapsed to one - too.
+ * @param name Name of the organization as filled-in by the user.
+ */
+export function convertOrganizationNameToSlug(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-") // Replace non-alphanumeric with -
+    .replace(/--+/g, "-") // Replace multiple - with single -
+    .replace(/^-|-$/g, "") // Trim - from start and end
+}
+
 export function OrganizationSettingsForm({
   className,
   organization,
@@ -75,36 +89,30 @@ export function OrganizationSettingsForm({
     },
   })
 
-  // Function to convert text to a slug
-  const convertToSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9-]+/g, "-") // Replace non-alphanumeric with -
-      .replace(/--+/g, "-") // Replace multiple - with single -
-      .replace(/^-|-$/g, "") // Trim - from start and end
-  }
-
-  // Reset the form when the organization changes
+  // Update slug when name changes.
+  // Unless editing an organization, then always set to the organization's current slug.
+  const formOrganizationName = useWatch({ control: form.control, name: "name" })
+  const formOrganizationSlug = useWatch({ control: form.control, name: "slug" })
+  const currentOrganizationSlug = organization?.slug
+  const formSetValue = form.setValue
   useEffect(() => {
-    form.reset({
-      intent: "update_organization_info" as const,
-      name: organization?.name,
-      slug: organization?.slug,
-      description: organization?.metadata?.data?.description,
-    })
-    setProfilePictureFiles([])
-  }, [form.reset, !!organization, organization?.slug])
-
-  // Update slug when name changes
-  const organizationName = form.getValues("name")
-
-  useEffect(() => {
-    if (!organizationName) return
-    const newSlug = convertToSlug(organizationName)
-    if (form.getValues("slug") !== newSlug) {
-      form.setValue("slug", newSlug)
+    // If editing an organization and it has a slug defined do not submit a slug
+    if (typeof currentOrganizationSlug === "string") {
+      if (formOrganizationSlug !== currentOrganizationSlug) {
+        formSetValue("slug", currentOrganizationSlug)
+      }
+      return
     }
-  }, [organizationName, form.getValues, form.setValue])
+
+    // Can't do anything if the organization name is not filled in
+    if (!formOrganizationName) return
+
+    // Update the slug based on the name the user has inputted
+    const newSlug = convertOrganizationNameToSlug(formOrganizationName)
+    if (formOrganizationSlug !== newSlug) {
+      formSetValue("slug", newSlug)
+    }
+  }, [formSetValue, currentOrganizationSlug, formOrganizationName, formOrganizationSlug])
 
   const isSubmitting = isProcessingForm || fetcher.state !== "idle"
   const disabled = !canModify || isSubmitting

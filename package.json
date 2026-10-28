@@ -13,7 +13,7 @@
     "dev": "turbo run dev",
     "watch": "turbo run watch",
     "changeset": "changeset",
-    "check-schema": "node .github/skills/fdm-schema/scripts/check-schema-conventions.mjs",
+    "check-schema": "node .claude/skills/fdm-schema/scripts/check-schema-conventions.mjs",
     "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents && changeset publish ",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix",
@@ -24,10 +24,10 @@
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "^3.0.3",
-    "oxfmt": "^0.71.0",
-    "oxlint": "^1.86.0",
-    "oxlint-tsgolint": "^7.0.2003",
-    "turbo": "^2.11.6"
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.90.0",
+    "oxlint-tsgolint": "^7.0.2005",
+    "turbo": "^2.11.10"
   },
   "packageManager": "pnpm@12.8.1"
 }

@@ -19,6 +19,7 @@ interface Harvest {
 
 export function CultivationListCard({
   cultivationsCatalogueOptions,
+  lastCultivationAvailabilityYear,
   cultivations,
   harvests,
   editable = true,
@@ -26,6 +27,7 @@ export function CultivationListCard({
   onSuggestionDialogClose,
 }: {
   cultivationsCatalogueOptions: CultivationOption[]
+  lastCultivationAvailabilityYear?: number
   cultivations: Cultivation[]
   harvests: Harvest[]
   editable?: boolean
@@ -42,6 +44,7 @@ export function CultivationListCard({
         {cultivations.length !== 0 && editable ? (
           <CultivationAddFormDialog
             options={cultivationsCatalogueOptions}
+            lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
             defaultValues={defaultValues}
             onClose={onSuggestionDialogClose}
           />
@@ -66,6 +69,7 @@ export function CultivationListCard({
               <EmptyContent>
                 <CultivationAddFormDialog
                   options={cultivationsCatalogueOptions}
+                  lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
                   defaultValues={defaultValues}
                   onClose={onSuggestionDialogClose}
                 />

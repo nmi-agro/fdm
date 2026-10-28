@@ -64,9 +64,8 @@ async function getModifiableHarvestingIds(
  *
  * @throws {Response} If any required URL parameter is missing or if the specified cultivation is not found.
  */
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request, params, url }: Route.LoaderArgs) {
   try {
-    const url = new URL(request.url)
     // Get the farm id
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -225,9 +224,8 @@ export default function ModifyHarvestingDialog() {
  *
  * @throws {Error} When any required parameter is missing or if an error occurs during form processing.
  */
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, url }: Route.ActionArgs) {
   try {
-    const url = new URL(request.url)
     // Get the farm ID
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {

@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { Input } from "~/components/ui/input"
+import { Spinner } from "~/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -36,7 +37,16 @@ import { overviewTableFeatures } from "./overview-table-features"
 const MAX_ERROR_FIELDS_LISTED = 4
 
 interface NutrientAdviceOverviewTableProps {
+  /** One row per field; rows whose advice is still loading have `pending` set. */
   data: FieldNutrientRow[]
+  /** How many fields' advice has arrived (`settled`) out of `total`. */
+  progress: { settled: number; total: number }
+  /** `true` when loading the advice failed (network/transport error), not "no advice". */
+  loadFailed?: boolean
+  /** Called by the retry button shown when `loadFailed` is `true`. */
+  onRetry?: () => void
+  /** Disables the retry button while a retry is running. */
+  isRetrying?: boolean
   nutrients: NutrientDescription[]
   b_id_farm: string
   calendar: string
@@ -44,10 +54,15 @@ interface NutrientAdviceOverviewTableProps {
 
 export function NutrientAdviceOverviewTable({
   data,
+  progress,
+  loadFailed,
+  onRetry,
+  isRetrying,
   nutrients,
   b_id_farm,
   calendar,
 }: NutrientAdviceOverviewTableProps) {
+  const complete = progress.settled >= progress.total
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const [search, setSearch] = useState("")
@@ -77,8 +92,8 @@ export function NutrientAdviceOverviewTable({
   }, [isMobile, nutrients, hasCustomColumnVisibility, applyDefaultColumnVisibility])
 
   const columns = useMemo<ColumnDef<typeof overviewTableFeatures, FieldNutrientRow>[]>(
-    () => buildOverviewColumns(nutrients, unitMode, b_id_farm, calendar),
-    [nutrients, unitMode, b_id_farm, calendar],
+    () => buildOverviewColumns(nutrients, unitMode, b_id_farm, calendar, complete),
+    [nutrients, unitMode, b_id_farm, calendar, complete],
   )
 
   const filteredData = useMemo(() => {
@@ -151,6 +166,32 @@ export function NutrientAdviceOverviewTable({
 
   return (
     <div className="flex h-full w-full flex-col gap-4">
+      {loadFailed ? (
+        <Alert variant="destructive" className="flex items-center gap-3">
+          <TriangleAlert className="h-4 w-4" />
+          <AlertDescription className="flex grow flex-wrap items-center justify-between gap-2">
+            Het bemestingsadvies kon niet voor alle percelen worden geladen.
+            {onRetry ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? <Spinner className="size-3" /> : null}
+                Opnieuw proberen
+              </Button>
+            ) : null}
+          </AlertDescription>
+        </Alert>
+      ) : !complete ? (
+        <p className="text-muted-foreground flex items-center gap-2 text-sm" role="status">
+          <Spinner className="size-3.5" />
+          Advies berekend voor {progress.settled} van {progress.total}{" "}
+          {progress.total === 1 ? "perceel" : "percelen"}…
+        </p>
+      ) : null}
       {erroredFields.length > 0 ? (
         <Alert className="border-amber-200 bg-amber-50 text-amber-800">
           <TriangleAlert className="h-4 w-4 text-amber-800!" />

@@ -56,19 +56,21 @@ export default function FieldDetailsDialog({
     },
   })
 
+  const formIsSubmitSuccessful = form.formState.isSubmitSuccessful
+  const formReset = form.reset
   useEffect(() => {
-    if (form.formState.isSubmitSuccessful || !open) {
-      form.reset()
+    if (formIsSubmitSuccessful || !open) {
+      formReset()
     }
-  }, [form.formState, form.reset, open])
+  }, [formIsSubmitSuccessful, formReset, open])
 
   // Effect to update form values when the 'field' prop changes
   useEffect(() => {
-    form.reset({
+    formReset({
       b_name: fieldNameDefault,
       b_lu_catalogue: b_lu_catalogue,
     })
-  }, [fieldNameDefault, b_lu_catalogue, form.reset])
+  }, [formReset, fieldNameDefault, b_lu_catalogue, form.reset])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

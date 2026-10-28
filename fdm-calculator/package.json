@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-calculator",
-  "version": "0.19.3",
+  "version": "0.20.0",
   "private": false,
   "description": "Calculate various insights based on the Farm Data Model",
   "homepage": "https://github.com/nmi-agro/fdm",
@@ -23,6 +23,12 @@
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
+      }
+    },
+    "./browser": {
+      "import": {
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
       }
     }
   },

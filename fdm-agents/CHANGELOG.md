@@ -1,5 +1,14 @@
 # @nmi-agro/fdm-agents
 
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies [[`2d9da29`](https://github.com/nmi-agro/fdm/commit/2d9da29dcf294ad8817ce8095fe02a178f49ea67), [`05fcc10`](https://github.com/nmi-agro/fdm/commit/05fcc106e6bf1c5018c436c0d33f296a75f137ba), [`cc8a891`](https://github.com/nmi-agro/fdm/commit/cc8a89101cb6a573a3822be02ced6d17224d54fa), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`cf1fb25`](https://github.com/nmi-agro/fdm/commit/cf1fb25994f3d8485410e826fc4220143acd4050), [`2e0ab65`](https://github.com/nmi-agro/fdm/commit/2e0ab65ac95fac055d38d494ee08aac366a11eeb), [`1970cef`](https://github.com/nmi-agro/fdm/commit/1970cef75abba6dd5c831a7a70b71c27d043689b), [`0faf07a`](https://github.com/nmi-agro/fdm/commit/0faf07a43c60272aa59ee51eabc4ac49c1168102), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`d8b1b60`](https://github.com/nmi-agro/fdm/commit/d8b1b602987a3d10448b94dbc3bd66805ef192bd), [`fdad56f`](https://github.com/nmi-agro/fdm/commit/fdad56f8f24e47a68322272c0e201780dbd59a57), [`8498cbc`](https://github.com/nmi-agro/fdm/commit/8498cbce7096b00e466225cbd8b9a2c57bb702e9), [`fa57acb`](https://github.com/nmi-agro/fdm/commit/fa57acb13cb01e8e896661d01cbe3099f150552e), [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196), [`0e9b593`](https://github.com/nmi-agro/fdm/commit/0e9b593b0080553b243d23f68bf56d972d651eda), [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc), [`f7c4ff2`](https://github.com/nmi-agro/fdm/commit/f7c4ff2f57048bb0d5e88a90c2e7d85294ab9d7b)]:
+  - @nmi-agro/fdm-calculator@0.20.0
+  - @nmi-agro/fdm-core@0.39.0
+  - @nmi-agro/fdm-data@0.24.0
+
 ## 0.6.0
 
 ### Minor Changes

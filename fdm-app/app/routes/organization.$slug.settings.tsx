@@ -125,6 +125,7 @@ export default function OrganizationSettingsBlock() {
           </CardContent>
         </Card>
         <OrganizationSettingsForm
+          key={loaderData.organization?.id}
           className="grow"
           organization={loaderData.organization}
           canModify={loaderData.organizationEditPermission}
@@ -286,7 +287,6 @@ export async function action({ params, request }: Route.ActionArgs) {
       const formValues = actionSchemaResult.data
 
       const name = formValues.name
-      const slug = formValues.slug
       const description = formValues.description || ""
 
       // Update the organization
@@ -296,7 +296,6 @@ export async function action({ params, request }: Route.ActionArgs) {
           organizationId: currentOrganization.id,
           data: {
             name,
-            slug,
             metadata: {
               description,
             },
@@ -304,7 +303,8 @@ export async function action({ params, request }: Route.ActionArgs) {
         },
       })
 
-      return redirectWithSuccess(`/organization/${slug}/settings`, {
+      // Slug is NOT changed, so this redirect should succeed.
+      return redirectWithSuccess(`/organization/${params.slug}/settings`, {
         message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
       })
     }

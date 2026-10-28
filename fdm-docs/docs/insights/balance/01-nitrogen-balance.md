@@ -61,6 +61,7 @@ Accurate N balance calculation relies on comprehensive input data that captures 
     - Ammonium content (`p_nh4_rt`, g N/ kg)
     - Sulfur content (`p_s_rt`, g SO3 / kg)
     - Type flag: `p_type` ("manure", "mineral", "compost" or `null`).
+    - Nitrogen working coefficient (`p_n_wc`, fraction 0-1). Only used with `useEffectiveNitrogen`.
   - `CultivationCatalogue` (`CultivationDetail`):
     - Default yield (`b_lu_yield`, kg / ha).
     - Default N content of harvestable product (`b_lu_n_harvestable`, g N / kg).
@@ -87,6 +88,10 @@ Fertilizers are a primary and often controlled source of nitrogen input in agric
   - **Manure:** Organic fertilizers derived from animal feces, providing both readily available and slowly mineralizing nitrogen.
   - **Compost:** Stabilized organic matter, releasing nitrogen slowly over time as it decomposes.
   - **Other Fertilizers:** Any other types of fertilizers not classified as mineral, manure, or compost.
+
+- **Effective nitrogen (optional):** With `useEffectiveNitrogen: true` in the input, the supply by fertilizers is calculated with effective nitrogen, using the nitrogen working coefficient of the fertilizer (`p_n_wc`, fraction 0-1). If `p_n_wc` is missing, it is treated as 1.
+  `N_supplied (kg N / ha) = Amount_applied (kg / ha) * Total_N_content (g N / kg) * p_n_wc / 1000`
+  In this mode, soil mineralization is calculated with the MINIP model (Section 3.1.4) instead of the default values. Nitrate leaching (Section 3.3.1) is calculated from the surplus of the balance with total nitrogen, so it is the same in both modes. The target value is meant for the balance with total nitrogen; in the app, the target and status are therefore not shown for the balance with effective nitrogen. Note that the working coefficient already accounts for part of the ammonia loss after application, while ammonia emission is still subtracted. In the app, this option is available with the switch "Totale stikstof / Werkzame stikstof" on the nitrogen balance pages.
 
 #### 3.1.2. Biological Fixation
 
@@ -125,6 +130,8 @@ Soil mineralization is a crucial biological process where organic nitrogen (N) c
 
     4.  The annual mineralization rate is then pro-rated for the number of days the field is active within the `TimeFrame` for that year:
         `Mineralization_period (kg N / ha) = Annual_N_Min (kg N / ha / year) * Days_in_TimeFrame_for_the_year / 365`
+
+- **MINIP (balance with effective nitrogen only):** With `useEffectiveNitrogen: true`, the annual mineralization is calculated with the MINIP model from the organic carbon content (`a_c_of`), the C/N ratio (`a_cn_fr`) and the bulk density (`a_density_sa`) of the soil analysis, for a topsoil of 20 cm and an average yearly temperature of 10.6 °C. It is pro-rated for the time frame in the same way. If one of these parameters is missing and cannot be estimated, the balance of the field cannot be calculated.
 
 ### 3.2. Nitrogen Removal (kg N / ha)
 

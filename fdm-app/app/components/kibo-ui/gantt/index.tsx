@@ -518,7 +518,6 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
       key={feature.id}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      // biome-ignore lint/a11y/useSemanticElements: "This is a clickable item"
       role="button"
       style={{
         height: "var(--gantt-row-height)",
@@ -641,8 +640,6 @@ export const GanttColumn: FC<GanttColumnProps> = ({ index, isColumnSecondary }) 
   )
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: "This is a clickable column"
-    // biome-ignore lint/nursery/noNoninteractiveElementInteractions: "This is a clickable column"
     <div
       className={cn(
         "group relative h-full overflow-hidden",

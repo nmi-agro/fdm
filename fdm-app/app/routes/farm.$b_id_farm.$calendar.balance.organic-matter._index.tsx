@@ -9,7 +9,7 @@ import {
   CircleCheck,
   CircleX,
 } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
+import { Suspense, use, useEffect, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -131,7 +131,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
       calendar: params.calendar,
       balance_type: "organic_matter",
     })
-  }, [])
+  }, [capture, params.b_id_farm, params.calendar])
 
   return (
     <div className="space-y-4">
@@ -151,6 +151,8 @@ function FarmBalanceOrganicMatterOverview({
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { organicMatterBalanceResult } = use(asyncData)
+  // Computed once, not on every render: only shown in the error branch's debug dump below.
+  const [errorTimestamp] = useState(() => new Date())
 
   const cultivationsMap = new Map(cultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
@@ -177,7 +179,7 @@ function FarmBalanceOrganicMatterOverview({
                   {JSON.stringify(
                     {
                       message: organicMatterBalanceResult.errorMessage,
-                      timestamp: new Date(),
+                      timestamp: errorTimestamp,
                     },
                     null,
                     2,

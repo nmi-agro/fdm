@@ -1,5 +1,15 @@
 # fdm-data
 
+## 0.24.0
+
+### Minor Changes
+
+- [#863](https://github.com/nmi-agro/fdm/pull/863) [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Each catalogue cultivation has gotten a new field `b_lu_ya` which is the array of years the catalogue code is available in the RVO Basisregistratie Percelen. It encompasses 2009 through 2026, and a catalogue cultivation has b_lu_ya set to null if it is available in all of these years.
+
+### Patch Changes
+
+- [#861](https://github.com/nmi-agro/fdm/pull/861) [`0faf07a`](https://github.com/nmi-agro/fdm/commit/0faf07a43c60272aa59ee51eabc4ac49c1168102) Thanks [@SvenVw](https://github.com/SvenVw)! - Allowed multiple harvests for `Bladgewassen overig` (`nl_2791`, `nl_2792`) and `Kruiden` (`nl_2743`, `nl_2744`) by setting `b_lu_harvestable` to `multiple`.
+
 ## 0.23.1
 
 ### Patch Changes

@@ -74,7 +74,7 @@ function getBcsPath(params: ActionFunctionArgs["params"]) {
   return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const { b_id } = getRouteParams(params)
     const session = await getSession(request)
@@ -88,7 +88,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const soilAnalyses = await getSoilAnalyses(fdm, session.principal_id, b_id)
     const bcsAnalyses = soilAnalyses.filter((analysis) => isBcsAnalysis(analysis))
-    const pathname = new URL(request.url).pathname
+    const pathname = url.pathname
     const fieldWritePermission = await checkPermission(
       fdm,
       "field",
@@ -132,7 +132,7 @@ export default function FieldBcsOverviewRoute() {
 
   useEffect(() => {
     capture("bcs_viewed", { b_id_farm: params.b_id_farm, b_id: params.b_id })
-  }, [])
+  }, [capture, params.b_id_farm, params.b_id])
 
   return (
     <div className="space-y-6">

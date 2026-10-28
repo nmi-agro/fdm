@@ -100,6 +100,42 @@ This schema holds the primary data related to farm operations.
 | **created** | `timestamp with time zone` | Not Null                                            | Timestamp when this record was created (default: now()).                                                                                                             |
 | **updated** | `timestamp with time zone` |                                                     | Timestamp when this record was last updated.                                                                                                                         |
 
+#### **`farmGroups`**
+
+**Purpose**: A named grouping of farms within an organization. Groups organize overviews and act as a saved farm selection; they do not grant access to farms.
+
+| Column                | Type                       | Constraints | Description                                                                                            |
+| --------------------- | -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| **b_id_group**        | `text`                     | Primary Key | Unique identifier of the group.                                                                        |
+| **b_id_organization** | `text`                     | Not Null    | Identifier of the organization the group belongs to. Plain text, without a foreign key to `fdm-authn`. |
+| **b_name_group**      | `text`                     | Not Null    | Name of the group, unique within the organization (case-insensitive, enforced by `fdm-core`).          |
+| **created**           | `timestamp with time zone` | Not Null    | Timestamp when this record was created (default: now()).                                               |
+| **updated**           | `timestamp with time zone` |             | Timestamp when this record was last updated.                                                           |
+
+#### **`farmGroupJoining`**
+
+**Purpose**: Records the date from which a farm is part of a group. The date is chosen by the user and is not the moment the record was made; it can lie in the past or the future. The farms that are part of a group are derived from the joining and leaving events and are never stored.
+
+| Column             | Type                       | Constraints                                                   | Description                                              |
+| ------------------ | -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| **b_id_group**     | `text`                     | Primary Key, Foreign Key (references `farmGroups.b_id_group`) | Identifier of the group.                                 |
+| **b_id_farm**      | `text`                     | Primary Key, Foreign Key (references `farms.b_id_farm`)       | Identifier of the farm.                                  |
+| **b_group_joined** | `timestamp with time zone` | Primary Key, Not Null                                         | Date from which the farm is part of the group.           |
+| **created**        | `timestamp with time zone` | Not Null                                                      | Timestamp when this record was created (default: now()). |
+| **updated**        | `timestamp with time zone` |                                                               | Timestamp when this record was last updated.             |
+
+#### **`farmGroupLeaving`**
+
+**Purpose**: Records the date until which a farm is part of a group. The date is chosen by the user and is not the moment the record was made. A period starts at a joining and ends at the first later leaving, or has no end date. Because the date is part of the key, a farm can be part of a group in several periods.
+
+| Column             | Type                       | Constraints                                                   | Description                                              |
+| ------------------ | -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| **b_id_group**     | `text`                     | Primary Key, Foreign Key (references `farmGroups.b_id_group`) | Identifier of the group.                                 |
+| **b_id_farm**      | `text`                     | Primary Key, Foreign Key (references `farms.b_id_farm`)       | Identifier of the farm.                                  |
+| **b_group_leaved** | `timestamp with time zone` | Primary Key, Not Null                                         | Date until which the farm is part of the group.          |
+| **created**        | `timestamp with time zone` | Not Null                                                      | Timestamp when this record was created (default: now()). |
+| **updated**        | `timestamp with time zone` |                                                               | Timestamp when this record was last updated.             |
+
 ---
 
 ### Cultivations
@@ -444,8 +480,8 @@ This schema holds the primary data related to farm operations.
 | **a_date**         | `timestamp with time zone` |             | Timestamp indicating when the analysis was performed or reported. |
 | **a_source**       | `soilAnalysisSourceEnum`   |             | Laboratory that performed the analysis.                           |
 | **a_al_ox**        | `numeric` (custom)         |             | Aluminum extracted with oxalate (mmol Al/kg).                     |
-| **a_c_of**         | `numeric` (custom)         |             | Organic carbon content (g C/g).                                   |
-| **a_ca_co**        | `numeric` (custom)         |             | Calcium, total soil reserve (mmol+/kg).                           |
+| **a_c_of**         | `numeric` (custom)         |             | Organic carbon content (g C/kg).                                  |
+| **a_ca_co**        | `numeric` (custom)         |             | Calcium, exchangeable, extracted with cohex (mmol+/kg).           |
 | **a_ca_co_po**     | `numeric` (custom)         |             | Calcium saturation degree (%).                                    |
 | **a_caco3_if**     | `numeric` (custom)         |             | Carbonate lime (%).                                               |
 | **a_cec_co**       | `numeric` (custom)         |             | Cation Exchange Capacity (mmol+/kg).                              |
@@ -456,13 +492,13 @@ This schema holds the primary data related to farm operations.
 | **a_density_sa**   | `numeric` (custom)         |             | Bulk density (g/cm³).                                             |
 | **a_fe_ox**        | `numeric` (custom)         |             | Iron extracted with oxalate (mmol Fe/kg).                         |
 | **a_k_cc**         | `numeric` (custom)         |             | Potassium, plant available (mg K/kg).                             |
-| **a_k_co**         | `numeric` (custom)         |             | Potassium, total soil reserve (mmol+/kg).                         |
+| **a_k_co**         | `numeric` (custom)         |             | Potassium, exchangeable, extracted with cohex (mmol+/kg).         |
 | **a_k_co_po**      | `numeric` (custom)         |             | Potassium saturation degree (%).                                  |
 | **a_mg_cc**        | `numeric` (custom)         |             | Magnesium, plant available (mg Mg/kg).                            |
-| **a_mg_co**        | `numeric` (custom)         |             | Magnesium, total soil reserve (mmol+ Mg/kg).                      |
+| **a_mg_co**        | `numeric` (custom)         |             | Magnesium, exchangeable, extracted with cohex (mmol+/kg).         |
 | **a_mg_co_po**     | `numeric` (custom)         |             | Magnesium saturation degree (%).                                  |
 | **a_n_pmn**        | `numeric` (custom)         |             | Potentially mineralizable Nitrogen (mg N/kg).                     |
-| **a_n_rt**         | `numeric` (custom)         |             | Nitrogen, total soil reserve (mg N/g).                            |
+| **a_n_rt**         | `numeric` (custom)         |             | Nitrogen, total soil reserve (mg N/kg).                           |
 | **a_nh4_cc**       | `numeric` (custom)         |             | Ammonium (NH4-N) (mg N/l).                                        |
 | **a_nmin_cc**      | `numeric` (custom)         |             | Available nitrogen reserve (kg N/ha).                             |
 | **a_no3_cc**       | `numeric` (custom)         |             | Nitrate (NO3-N) (mg N/l).                                         |

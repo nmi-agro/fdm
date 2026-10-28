@@ -228,7 +228,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
@@ -262,7 +262,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 /**
  * Handles action requests for the farm dashboard, such as batch-accepting BRP cultivation suggestions in a single step.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -277,7 +277,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     if (!farmWritePermission) {
@@ -492,13 +492,12 @@ export default function FarmDashboardIndex() {
   )
   const suggestedFieldsCount = suggestedFields.length
 
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-    suggestedFields.map((f) => f.b_id),
+  // Pruned against the current suggestedFields during render, instead of via an effect, so a
+  // field that drops out of the list (e.g. after a revalidation) can't linger as "selected".
+  const [rawSelectedFieldIds, setSelectedFieldIds] = useState<string[]>([])
+  const selectedFieldIds = rawSelectedFieldIds.filter((id) =>
+    suggestedFields.some((f) => f.b_id === id),
   )
-
-  useEffect(() => {
-    setSelectedFieldIds((prev) => prev.filter((id) => suggestedFields.some((f) => f.b_id === id)))
-  }, [suggestedFields])
 
   const toggleFieldSelection = (b_id: string) => {
     setSelectedFieldIds((prev) =>

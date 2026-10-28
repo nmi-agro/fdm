@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
@@ -86,8 +87,10 @@ export function DataTable<TData extends RotationExtended>({
 }: DataTableProps<TData>) {
   const fieldFilter = useFieldFilterStore()
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(
-    isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
+  const [columnVisibility, setColumnVisibility] = useKeyedState<boolean, ColumnVisibilityState>(
+    isMobile,
+    (mobile): ColumnVisibilityState =>
+      mobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
   )
   const location = useLocation()
 
@@ -128,10 +131,6 @@ export function DataTable<TData extends RotationExtended>({
   const setSelection = useRotationSelectionStore((state) => state.setSelection)
   const syncFarm = useRotationSelectionStore((state) => state.syncFarm)
   const fieldFilterSyncFarm = fieldFilter.syncFarm
-
-  useEffect(() => {
-    setColumnVisibility(isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {})
-  }, [isMobile])
 
   const params = useParams()
   const b_id_farm = params.b_id_farm
@@ -266,27 +265,18 @@ export function DataTable<TData extends RotationExtended>({
     },
   })
 
-  const selectedCultivations = useMemo(() => {
-    return table
-      .getFilteredRowModel()
-      .rows.filter(
-        (row) => row.original.type === "crop" && (row.getIsSelected() || row.getIsSomeSelected()),
-      )
-      .map((row) => row.original)
-    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
-  }, [table, rowSelection])
+  const selectedCultivations = table
+    .getFilteredRowModel()
+    .rows.filter(
+      (row) => row.original.type === "crop" && (row.getIsSelected() || row.getIsSomeSelected()),
+    )
+    .map((row) => row.original)
 
-  const selectedFields = useMemo(() => {
-    return table
-      .getFilteredSelectedRowModel()
-      .flatRows.map((row) => row.original)
-      .filter(isMemoizedFieldRow)
-    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
-  }, [table, rowSelection])
+  const selectedFields = table
+    .getFilteredSelectedRowModel()
+    .flatRows.map((row) => row.original)
+    .filter(isMemoizedFieldRow)
 
-  const selectedCultivationIds = selectedCultivations.map(
-    (cultivation) => cultivation.b_lu_catalogue,
-  )
   const selectedFieldIds = selectedFields.map((field) => field.b_id)
 
   const isFertilizerButtonDisabled = selectedFieldIds.length === 0
@@ -295,7 +285,7 @@ export function DataTable<TData extends RotationExtended>({
     : "Bemesting toevoegen aan geselecteerd gewas"
 
   const isHarvestButtonDisabled =
-    selectedCultivationIds.length !== 1 || selectedCultivations[0].b_lu_harvestable === "none"
+    selectedCultivations.length !== 1 || selectedCultivations[0].b_lu_harvestable === "none"
   const harvestErrorMessage =
     selectedCultivations.length > 0
       ? selectedCultivations[0].b_lu_harvestable === "none"
@@ -303,7 +293,7 @@ export function DataTable<TData extends RotationExtended>({
         : null
       : null
   const harvestTooltipContent =
-    selectedCultivationIds.length !== 1
+    selectedCultivations.length !== 1
       ? "Selecteer één gewas om oogst/snede toe te voegen"
       : harvestErrorMessage
         ? harvestErrorMessage
@@ -311,7 +301,10 @@ export function DataTable<TData extends RotationExtended>({
 
   function makeWizardUrl(url: string) {
     return modifySearchParams(url, (searchParams) => {
-      searchParams.set("cultivationIds", selectedCultivationIds.join(","))
+      searchParams.set(
+        "cultivationIds",
+        selectedCultivations.map((cultivation) => cultivation.b_lu_catalogue).join(","),
+      )
       searchParams.set("fieldIds", selectedFieldIds.join(","))
       if (location.pathname.toLowerCase().startsWith("/farm/create")) searchParams.set("create", "")
     })

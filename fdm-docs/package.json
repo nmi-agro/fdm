@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-docs",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
@@ -25,17 +25,23 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.49.0",
+    "lucide-react": "^1.62.0",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
+    "@nmi-agro/fdm-agents": "workspace:*",
+    "@nmi-agro/fdm-api": "workspace:*",
+    "@nmi-agro/fdm-calculator": "workspace:*",
+    "@nmi-agro/fdm-core": "workspace:*",
+    "@nmi-agro/fdm-data": "workspace:*",
+    "@nmi-agro/fdm-rvo": "workspace:*",
     "typedoc": "catalog:",
-    "typedoc-plugin-markdown": "^4.13.1",
+    "typedoc-plugin-markdown": "^4.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@^7.0.2"
   },

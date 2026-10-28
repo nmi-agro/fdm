@@ -94,9 +94,13 @@ export const serverConfig: ServerConfig = {
         process.env.PUBLIC_MAPTILER_API_KEY ?? process.env.MAPTILER_API_KEY ?? "",
       ),
     },
-    nmi: {
-      api_key: String(process.env.NMI_API_KEY),
-    },
+    ...(process.env.NMI_API_KEY?.trim()
+      ? {
+          nmi: {
+            api_key: process.env.NMI_API_KEY.trim(),
+          },
+        }
+      : {}),
     rvo: {
       clientId: String(process.env.RVO_CLIENT_ID),
       redirectUri: String(process.env.RVO_REDIRECT_URI),
@@ -109,6 +113,14 @@ export const serverConfig: ServerConfig = {
           gemini: {
             api_key: process.env.GEMINI_API_KEY,
             model: process.env.GEMINI_MODEL,
+          },
+        }
+      : {}),
+    ...(process.env.KVK_API_KEY?.trim()
+      ? {
+          kvk: {
+            api_key: process.env.KVK_API_KEY.trim(),
+            base_url: process.env.KVK_API_BASE_URL?.trim() || "https://api.kvk.nl/test/api",
           },
         }
       : {}),

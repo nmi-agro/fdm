@@ -71,6 +71,14 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
                     december) die nog niet worden opgeslagen in de applicatie.
                   </li>
                   <li>
+                    <span className="text-foreground font-medium">
+                      Consumptieaardappel, vroeg en Pootaardappelen, uitgroeiteelt (loofvernietiging
+                      na 15 augustus):
+                    </span>{" "}
+                    De datum van loofvernietiging wordt nog niet vastgelegd in de applicatie. Er
+                    wordt daarom niet gecontroleerd of het loof na 15 augustus is vernietigd.
+                  </li>
+                  <li>
                     <span className="text-foreground font-medium">Mengteelten:</span> Gecombineerde
                     teelten op hetzelfde perceel.
                   </li>
@@ -85,6 +93,14 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
                       Tweejarige winterteelt budgetsplitsing (voetnoot 5/18):
                     </span>{" "}
                     Uitsplitsing van de stikstofruimte over zaai- en oogstjaar.
+                  </li>
+                  <li>
+                    <span className="text-foreground font-medium">
+                      Kruiden (wortel- en zaadgewassen):
+                    </span>{" "}
+                    Voor de algemene BRP-codes voor kruiden wordt de norm voor bladgewassen
+                    gebruikt; aparte normen voor wortel- en zaadgewassen worden hiervoor (nog) niet
+                    toegepast.
                   </li>
                 </ul>
               </div>

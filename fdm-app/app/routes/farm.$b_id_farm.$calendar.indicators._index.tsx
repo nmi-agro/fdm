@@ -29,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import {
   type FarmMeasureRecommendationsResult,
   type FieldBln3Score,
@@ -80,7 +81,7 @@ async function getFarmMeasureRecommendations({
     b_ids.map((b_id) => [b_id, new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id))]),
   )
 
-  const { opportunities, adviceAvailable } = await getFarmMeasureOpportunities({
+  const { opportunities, candidates, adviceAvailable } = await getFarmMeasureOpportunities({
     principal_id,
     b_ids,
     b_year,
@@ -90,9 +91,8 @@ async function getFarmMeasureRecommendations({
     measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
   })
 
-  return {
-    adviceAvailable,
-    recommendations: opportunities.flatMap((opportunity) =>
+  const toRecommendations = (items: typeof opportunities) =>
+    items.flatMap((opportunity) =>
       opportunity.indicatorImpacts.map((impact) => ({
         b_id: opportunity.b_id,
         indicator_id: impact.indicator_id,
@@ -100,7 +100,12 @@ async function getFarmMeasureRecommendations({
         m_name: opportunity.m_name,
         measure_impact: impact.measure_impact,
       })),
-    ),
+    )
+
+  return {
+    adviceAvailable,
+    recommendations: toRecommendations(opportunities),
+    candidates: toRecommendations(candidates),
   }
 }
 
@@ -159,7 +164,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldScores,
     }).catch((error) => {
       reportError(error, { page: "farm indicators recommendations" })
-      return { recommendations: [], adviceAvailable: false }
+      return { recommendations: [], candidates: [], adviceAvailable: false }
     })
 
     return {
@@ -188,23 +193,22 @@ export default function IndicatorsFarmIndex() {
 
   useEffect(() => {
     capture("indicators_viewed", { b_id_farm, calendar })
-  }, [])
+  }, [capture, b_id_farm, calendar])
 
   const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
   const [withMeasures, setWithMeasures] = useState(true)
   const [fieldSearch, setFieldSearch] = useState("")
   const [isPending, startTransition] = useTransition()
 
-  // Debounce the pending indicator to avoid flickering on fast transitions
-  const [showPending, setShowPending] = useState(false)
+  // Debounce the pending indicator to avoid flickering on fast transitions. Keyed on isPending so
+  // it resets for each new pending episode without a synchronous setState in the effect.
+  const [pendingDelayElapsed, setPendingDelayElapsed] = useKeyedState(isPending, () => false)
   useEffect(() => {
-    if (!isPending) {
-      setShowPending(false)
-      return
-    }
-    const id = setTimeout(() => setShowPending(true), 150)
+    if (!isPending) return
+    const id = setTimeout(() => setPendingDelayElapsed(true), 150)
     return () => clearTimeout(id)
-  }, [isPending])
+  }, [isPending, setPendingDelayElapsed])
+  const showPending = isPending && pendingDelayElapsed
 
   const showIndex = !withMeasures
 

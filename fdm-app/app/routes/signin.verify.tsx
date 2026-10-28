@@ -37,9 +37,8 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   try {
-    const url = new URL(request.url)
     const code = url.searchParams.get("code") || ""
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
 
@@ -77,17 +76,19 @@ export default function Verify() {
 
   // Capture code failure when actionData signals an error, and move focus
   // back to the code field so the failure and its recovery link are announced.
+  const formSetFocus = form.setFocus
   useEffect(() => {
     if (actionData?.errors?.code) {
       const reason = actionData.errors.code.includes("Te veel") ? "rate_limited" : "invalid_code"
       capture("signin_code_failed", { reason })
-      form.setFocus("code")
+      formSetFocus("code")
     }
-  }, [actionData, capture, form])
+  }, [formSetFocus, actionData, capture])
 
   // Reveal the emailed code character by character so the user sees it was
   // received and is about to be verified, rather than jumping straight to a
   // spinner. Fills instantly when the user prefers reduced motion.
+  const formSetValue = form.setValue
   useEffect(() => {
     if (!(code && code.length === 6 && !hasAnimated.current)) {
       return
@@ -96,7 +97,7 @@ export default function Verify() {
     const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
 
     if (prefersReducedMotion) {
-      form.setValue("code", code)
+      formSetValue("code", code)
       return
     }
 
@@ -107,7 +108,7 @@ export default function Verify() {
     const timeoutIds = chars.map((char, index) =>
       setTimeout(() => {
         current += char
-        form.setValue("code", current)
+        formSetValue("code", current)
       }, index * 75),
     ) // 75ms delay between keystrokes
 
@@ -116,7 +117,7 @@ export default function Verify() {
         clearTimeout(id)
       }
     }
-  }, [code, form])
+  }, [formSetValue, code])
 
   const requestNewCodeUrl = modifySearchParams("/signin/check-your-email", (params) => {
     params.set("redirectTo", redirectTo || "/farm")

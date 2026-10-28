@@ -1,6 +1,5 @@
 import {
   checkPermission,
-  getCultivations,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getCurrentSoilDataForFarm,
@@ -11,6 +10,7 @@ import {
   getHarvestsForFarm,
   updateCultivation,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -29,6 +29,7 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -126,8 +127,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
       getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
       getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm),
-      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm),
+      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
       checkPermission(
         fdm,
         "farm",
@@ -186,6 +187,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
     })
 
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
+
     const rotationExtended = cultivationsInRotation.map((b_lu_catalogue) => {
       const catalogueItem = cultivationCatalogue.find(
         (cat) => cat.b_lu_catalogue === b_lu_catalogue,
@@ -214,8 +217,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           (cultivation) => harvestsForFarm.get(cultivation.b_lu) ?? [],
         )
 
+        // First period in which the RVO crop code is unavailable, if any.
+        const availabilityWarning =
+          cultivationsForCatalogue
+            .map((cultivation) =>
+              isCultivationUnavailableInPeriod(
+                cultivation,
+                catalogueItem.b_lu_ya,
+                lastCultivationAvailabilityYear,
+              ),
+            )
+            .find((result) => result !== null) ?? null
+
         return {
           type: "field",
+          availabilityWarning: availabilityWarning,
           canModify: farmWritePermission,
           b_id: field.b_id,
           b_name: field.b_name,
@@ -271,6 +287,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
       return {
         type: "crop",
+        availabilityWarning:
+          fieldRows.find((fieldRow) => fieldRow.availabilityWarning !== null)
+            ?.availabilityWarning ?? null,
         canModify: farmWritePermission,
         b_lu_catalogue: b_lu_catalogue,
         b_lu_name: b_lu_name ?? "",
@@ -322,7 +341,7 @@ export default function FarmRotationIndex() {
 
   useEffect(() => {
     capture("rotation_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.calendar])
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
@@ -403,13 +422,13 @@ export default function FarmRotationIndex() {
   )
 }
 
-export async function action({ params, request }: Route.ActionArgs) {
+export async function action({ params, request, url }: Route.ActionArgs) {
   try {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
     const b_id_farm = params.b_id_farm
 
-    const searchParams = new URL(request.url).searchParams
+    const searchParams = url.searchParams
 
     const fieldIdsParam = searchParams.get("fieldIds") ?? ""
     const cultivationIdsParam = searchParams.get("cultivationIds") ?? ""
@@ -438,28 +457,35 @@ export async function action({ params, request }: Route.ActionArgs) {
       const fields = (await getFields(fdm, session.principal_id, b_id_farm, timeframe)).filter(
         (field) => fieldIds.has(field.b_id),
       )
-      await Promise.all(
-        fields.map(async (field) => {
-          const cultivations = (
-            await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
-          ).filter((cultivation) => cultivationIds.has(cultivation.b_lu_catalogue))
-
-          return Promise.all(
-            cultivations.map((cultivation) => {
-              return updateCultivation(
-                fdm,
-                session.principal_id,
-                cultivation.b_lu,
-                undefined,
-                cultivationUpdates.b_lu_start,
-                cultivationUpdates.b_lu_end,
-                cultivationUpdates.m_cropresidue,
-                cultivationUpdates.b_lu_variety,
-              )
-            }),
-          )
-        }),
-      )
+      await fdm.transaction(async (tx) => {
+        const cultivationsForFarm = await getCultivationsForFarm(
+          tx,
+          session.principal_id,
+          b_id_farm,
+          timeframe,
+        )
+        await Promise.all(
+          fields.map(async (field) => {
+            const cultivations = (cultivationsForFarm.get(field.b_id) ?? []).filter((cultivation) =>
+              cultivationIds.has(cultivation.b_lu_catalogue),
+            )
+            return Promise.all(
+              cultivations.map((cultivation) => {
+                return updateCultivation(
+                  tx,
+                  session.principal_id,
+                  cultivation.b_lu,
+                  undefined,
+                  cultivationUpdates.b_lu_start,
+                  cultivationUpdates.b_lu_end,
+                  cultivationUpdates.m_cropresidue,
+                  cultivationUpdates.b_lu_variety,
+                )
+              }),
+            )
+          }),
+        )
+      })
     }
 
     return dataWithSuccess(null, {

@@ -367,7 +367,10 @@ describe("collectInputForBln3Score", () => {
 
     await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
 
-    expect(mockedGetSoilAnalyses).toHaveBeenCalledWith(mockFdm, principal_id, b_id, timeframe)
+    expect(mockedGetSoilAnalyses).toHaveBeenCalledWith(mockFdm, principal_id, b_id, {
+      start: undefined,
+      end: timeframe.end,
+    })
     // Cultivations are fetched without timeframe to get the full history
     expect(mockedGetCultivations).toHaveBeenCalledWith(mockFdm, principal_id, b_id)
     expect(mockedGetMeasures).toHaveBeenCalledWith(mockFdm, principal_id, b_id, timeframe)

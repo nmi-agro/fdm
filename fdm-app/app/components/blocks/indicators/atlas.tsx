@@ -9,7 +9,7 @@
 import type { FeatureCollection, GeoJsonProperties } from "geojson"
 import type { MapGeoJSONFeature, StyleSpecification } from "maplibre-gl"
 import { LayoutList } from "lucide-react"
-import { type Dispatch, type SetStateAction, useMemo, useRef } from "react"
+import { type Dispatch, type ReactNode, type SetStateAction, useMemo, useRef } from "react"
 import { Layer, type MapRef } from "react-map-gl/maplibre"
 import { Link, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
@@ -222,10 +222,13 @@ export function ScoreSelect({
   selectedProperty,
   setSelectedProperty,
   detailPath,
+  children,
 }: {
   selectedProperty: string
   setSelectedProperty: Dispatch<SetStateAction<string>>
   detailPath: string
+  /** Optional extra controls, shown below the indicator selector (e.g. a group picker). */
+  children?: ReactNode
 }) {
   {
     /* Floating indicator selector + info banner */
@@ -248,7 +251,7 @@ export function ScoreSelect({
                 <SelectItem value="S_WAT">Water</SelectItem>
                 <SelectItem value="S_NUT">Nutriëntenkringloop</SelectItem>
                 <SelectItem value="S_CLIM">Klimaat</SelectItem>
-                <SelectItem value="S_PROD_T">Productie (OBI)</SelectItem>
+                <SelectItem value="S_PROD">Productie (OBI)</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
@@ -315,6 +318,7 @@ export function ScoreSelect({
             </Link>
           </Button>
         </div>
+        {children}
         <Bln3BetaBanner />
       </CardContent>
     </Card>

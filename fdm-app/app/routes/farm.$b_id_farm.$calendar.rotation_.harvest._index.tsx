@@ -11,7 +11,7 @@ import {
   removeHarvest,
 } from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -60,6 +60,7 @@ import { Label } from "~/components/ui/label"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -84,7 +85,27 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+/**
+ * Page to return to after saving or cancelling, when another page (such as Mineralisatie) opened
+ * this form. The value is resolved against the app's origin and only its normalized path, search
+ * and hash are returned, so backslashes or control characters cannot lead to another site.
+ */
+function getReturnUrl(url: URL): string | null {
+  const returnUrl = url.searchParams.get("returnUrl")
+  if (!returnUrl?.startsWith("/")) return null
+  let resolved: URL
+  try {
+    resolved = new URL(returnUrl, url.origin)
+  } catch {
+    return null
+  }
+  if (resolved.origin !== url.origin) return null
+  const relative = `${resolved.pathname}${resolved.search}${resolved.hash}`
+  // A normalized path such as "/.//example.com" becomes "//example.com", which is protocol-relative
+  return relative.startsWith("//") ? null : relative
+}
+
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the active farm
     const b_id_farm = params.b_id_farm
@@ -96,7 +117,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     // Get cultivationIds from search params
-    const url = new URL(request.url)
     const cultivationIds = url.searchParams.get("cultivationIds")?.split(",").filter(Boolean) ?? []
 
     if (cultivationIds.length === 0) {
@@ -316,6 +336,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_lu_end: b_lu_end,
       b_date_harvest_default: b_date_harvest_default,
       create: url.searchParams.has("create"),
+      returnUrl: getReturnUrl(url),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -328,14 +349,11 @@ export default function FarmRotationHarvestAddIndex() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-    loaderData.selectedFields.map((field) => field.b_id!),
+  const [selectedFieldIds, setSelectedFieldIds] = useKeyedState(
+    loaderData.selectedFields,
+    (fields) => fields.map((field) => field.b_id!),
   )
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false)
-
-  useEffect(() => {
-    setSelectedFieldIds(loaderData.selectedFields.map((field) => field.b_id!))
-  }, [loaderData.selectedFields])
 
   const isSubmitting = navigation.state === "submitting" && Boolean(navigation.formData)
 
@@ -383,14 +401,10 @@ export default function FarmRotationHarvestAddIndex() {
 
   const isHarvestUpdate = loaderData.harvestApplication.b_lu_harvest_date
   const canBatchAdd = !isHarvestUpdate && loaderData.b_lu_harvestable === "multiple"
-  const [isBatchAdd, setIsBatchAdd] = useState(false)
-
-  // Switch back to the single harvest form if the conditions for batch harvest no longer hold
-  useEffect(() => {
-    if (!canBatchAdd && isBatchAdd) {
-      setIsBatchAdd(false)
-    }
-  }, [canBatchAdd, isBatchAdd])
+  const [isBatchAddRequested, setIsBatchAddRequested] = useState(false)
+  // Falls back to the single harvest form the moment the conditions for batch harvest no
+  // longer hold, with no extra render pass.
+  const isBatchAdd = canBatchAdd && isBatchAddRequested
 
   function handleSelectionDialogOpenChange(open: boolean) {
     if (!open) {
@@ -449,15 +463,18 @@ export default function FarmRotationHarvestAddIndex() {
     setShowOverwriteWarning(false)
   }
 
-  const backlink = loaderData.create
-    ? `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`
-    : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`
+  const backlink =
+    loaderData.returnUrl ??
+    (loaderData.create
+      ? `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`
+      : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`)
+  const backlinkLabel = loaderData.returnUrl ? "Terug" : "Terug naar bouwplan"
   return (
     <SidebarInset>
       <Header
         action={{
           to: backlink,
-          label: "Terug naar bouwplan",
+          label: backlinkLabel,
           disabled: false,
         }}
       >
@@ -538,7 +555,7 @@ export default function FarmRotationHarvestAddIndex() {
                         filtermogelijkheden.
                       </p>
                       <Button asChild variant="link" className="mt-4">
-                        <NavLink to={backlink}>Terug naar bouwplan</NavLink>
+                        <NavLink to={backlink}>{backlinkLabel}</NavLink>
                       </Button>
                     </div>
                   )}
@@ -622,7 +639,7 @@ export default function FarmRotationHarvestAddIndex() {
                         calendar={loaderData.calendar}
                         b_lu_croprotation={loaderData.cultivation.b_lu_croprotation}
                         b_lu_harvestable={loaderData.b_lu_harvestable}
-                        onBack={() => setIsBatchAdd(false)}
+                        onBack={() => setIsBatchAddRequested(false)}
                         b_lu_start={loaderData.b_lu_start ?? null}
                         b_lu_end={loaderData.b_lu_end ?? null}
                         harvestParameters={loaderData.harvestParameters}
@@ -635,7 +652,7 @@ export default function FarmRotationHarvestAddIndex() {
                       <HarvestForm
                         key={selectedFieldIds.join(",")}
                         allowBatch={canBatchAdd}
-                        onBatchClick={() => setIsBatchAdd(true)}
+                        onBatchClick={() => setIsBatchAddRequested(true)}
                         b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
                         harvestParameters={loaderData.harvestParameters}
                         b_lu_harvest_date={loaderData.harvestApplication.b_lu_harvest_date}
@@ -714,7 +731,7 @@ const ActionSchema = z.discriminatedUnion("intent", [
   FormSchema.extend({ intent: z.literal("single_harvest") }),
   BatchFormSchema.extend({ intent: z.literal("batch_harvest") }),
 ])
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   try {
     const { b_id_farm, calendar = "all" } = params
     if (!b_id_farm) {
@@ -722,7 +739,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const session = await getSession(request)
-    const url = new URL(request.url)
     const timeframe = getTimeframe(params)
 
     const fieldIds = url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
@@ -760,9 +776,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
       return dataWithError(null, "Dit gewas is niet oogstbaar.")
     }
 
-    const redirectURL = url.searchParams.has("create")
-      ? `/farm/create/${b_id_farm}/${calendar}/rotation`
-      : `/farm/${b_id_farm}/${calendar}/rotation`
+    const redirectURL =
+      getReturnUrl(url) ??
+      (url.searchParams.has("create")
+        ? `/farm/create/${b_id_farm}/${calendar}/rotation`
+        : `/farm/${b_id_farm}/${calendar}/rotation`)
 
     const termCapitalizedSingular = getHarvestTerm(
       targetCultivation.b_lu_croprotation,

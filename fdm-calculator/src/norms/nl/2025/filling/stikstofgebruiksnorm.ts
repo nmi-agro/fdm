@@ -1,11 +1,9 @@
-import { type Cultivation, withCalculationCache } from "@nmi-agro/fdm-core"
+import type { Cultivation } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type { NormFilling } from "../../types"
 import type { RegionKey } from "../value/types"
 import type { NL2025NormsFillingInput, WorkingCoefficientDetails } from "./types"
-import pkg from "../../../../package"
 import { nonBouwlandCodes } from "../../constant"
-import { getRegion } from "../value/stikstofgebruiksnorm"
 import { table9 } from "./table-9"
 import { table11Mestcodes } from "./table-11-mestcodes"
 
@@ -15,18 +13,20 @@ import { table11Mestcodes } from "./table-11-mestcodes"
  * fertilizer type, nitrogen content, working coefficients, soil type, grazing intention,
  * and land use (bouwland/arable land).
  *
+ * The soil region is passed in, so this function is pure and can also run in the browser.
+ *
  * @param {NL2025NormsFillingInput} input - The standardized input object containing all necessary data.
- * @returns {Promise<NormFilling>} An object containing the total norm filling and details for each application.
+ * @param soilType - The soil region of the field, as returned by `getRegion`.
+ * @returns {NormFilling} An object containing the total norm filling and details for each application.
  */
-export async function calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm(
+export function calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNormWithRegion(
   input: NL2025NormsFillingInput,
-): Promise<NormFilling> {
-  const { applications, fertilizers, b_centroid, has_grazing_intention, cultivations } = input
+  soilType: RegionKey,
+): NormFilling {
+  const { applications, fertilizers, has_grazing_intention, cultivations } = input
 
   const applicationFillings: NormFilling["applicationFilling"] = []
   let totalNormFilling = new Decimal(0)
-
-  const soilType = await getRegion(b_centroid)
 
   for (const application of applications) {
     const fertilizer = fertilizers.find((f) => f.p_id_catalogue === application.p_id_catalogue)
@@ -205,18 +205,3 @@ export function getWorkingCoefficient(
 
   return defaultDetails // If no specific rule is found, return the default 100% (1.0)
 }
-
-/**
- * Memoized version of {@link calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm}.
- *
- * This function is wrapped with `withCalculationCache` to optimize performance by caching
- * results based on the input and the current calculator version.
- *
- * @param {NL2025NormsFillingInput} input - The standardized input object containing all necessary data.
- * @returns {Promise<NormFilling>} An object containing the total norm filling and details for each application.
- */
-export const getNL2025FertilizerApplicationFillingForStikstofGebruiksNorm = withCalculationCache(
-  calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
-  "calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm",
-  pkg.calculatorVersion,
-)

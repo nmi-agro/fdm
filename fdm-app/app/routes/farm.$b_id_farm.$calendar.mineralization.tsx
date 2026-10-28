@@ -1,4 +1,5 @@
-import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getFieldExclusionReason, getMainCultivation } from "@nmi-agro/fdm-calculator"
+import { getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { Bubbles } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import {
@@ -7,7 +8,6 @@ import {
   type MetaFunction,
   Outlet,
   useLoaderData,
-  useLocation,
   useParams,
 } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -15,14 +15,21 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderMineralization } from "~/components/blocks/header/mineralization"
+import { MineralizationExperimentalNote } from "~/components/blocks/mineralization/experimental-note"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { SidebarInset } from "~/components/ui/sidebar"
+import {
+  getMineralizationTimeframe,
+  getMineralizationYear,
+} from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
+
+/** Calculations stream in with their own loading states; the global loader is not needed. */
+export const handle = { hideNavigationProgress: true }
 
 export const meta: MetaFunction = () => {
   return [
@@ -55,7 +62,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })
       )?.isEnabled("mineralization") ?? true
 
-    const timeframe = getTimeframe(params)
+    const year = getMineralizationYear(params.calendar)
+    const timeframe = getMineralizationTimeframe(year)
 
     const farm = await getFarm(fdm, session.principal_id, b_id_farm)
     if (!farm) {
@@ -78,9 +86,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_name_farm: f.b_name_farm,
     }))
 
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    const [fields, cultivations] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+    // Buffer strips, nature and landscape elements are not calculated, so they are not offered
     const fieldOptions = fields
-      .filter((field) => !field.b_bufferstrip)
+      .filter((field) => {
+        const main = getMainCultivation(cultivations.get(field.b_id) ?? [], year)
+        return (
+          getFieldExclusionReason({
+            b_bufferstrip: field.b_bufferstrip,
+            b_lu_croprotation: main?.b_lu_croprotation,
+            b_lu_catalogue: main?.b_lu_catalogue,
+          }) === null
+        )
+      })
       .map((field) => {
         if (!field?.b_id) throw new Error("Invalid field data")
         return {
@@ -103,9 +124,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+export { shouldRevalidateMineralization as shouldRevalidate } from "~/lib/mineralization"
+
 export default function MineralizationLayout() {
   const loaderData = useLoaderData<typeof loader>()
-  const location = useLocation()
   const { b_id } = useParams() // Get the field ID from child routes
 
   // Prefer the server-evaluated flag (avoids flicker on initial render and
@@ -114,16 +136,13 @@ export default function MineralizationLayout() {
   const clientFlagEnabled = useFeatureFlagEnabled("mineralization")
   const isMineralizationEnabled = loaderData.isMineralizationEnabled ?? clientFlagEnabled ?? true
 
-  const isField = !!b_id
-  const isDyna = location.pathname.endsWith("/dyna")
-
-  const title = isField ? (isDyna ? "DYNA" : "Bodem N-levering") : "Mineralisatie"
-
-  const description = isField
-    ? isDyna
-      ? "Gedetailleerde N-beschikbaarheid op basis van bodem, gewas en bemesting."
-      : "Schatting van N-levering uit bodemorganische stof."
-    : "Stikstofmineralisatie per perceel en bedrijf."
+  const fieldName = b_id
+    ? (loaderData.fieldOptions.find((f) => f.b_id === b_id)?.b_name ?? "Perceel")
+    : null
+  const title = fieldName ? `Mineralisatie – ${fieldName}` : "Mineralisatie"
+  const description = fieldName
+    ? "Stikstofaanbod, opname door het gewas en uitspoeling door het seizoen heen."
+    : "Hoeveel stikstof komt er beschikbaar voor je gewassen, en welke percelen vragen aandacht?"
 
   const { calendar } = useParams()
   const action = b_id
@@ -173,7 +192,16 @@ export default function MineralizationLayout() {
         />
       </Header>
       <main>
-        <FarmTitle title={title} description={description} />
+        <FarmTitle
+          title={title}
+          description={description}
+          descriptionNode={
+            <div className="space-y-2">
+              <p className="text-muted-foreground wrap-break-word">{description}</p>
+              <MineralizationExperimentalNote b_id_farm={loaderData.b_id_farm} />
+            </div>
+          }
+        />
         <FarmContent>
           <Outlet />
         </FarmContent>

@@ -97,29 +97,6 @@ export function Layout() {
   const runtimeEnv = loaderData?.runtimeEnv // Get runtimeEnv from loader data
   const location = useLocation()
 
-  // Initialize PostHog
-  useEffect(() => {
-    const posthogConfig = clientConfig.analytics.posthog
-    if (posthogConfig) {
-      try {
-        posthog.init(posthogConfig.key, {
-          api_host: "/ingest",
-          ui_host: posthogConfig.host,
-          person_profiles: "always",
-          bootstrap: {
-            featureFlags: {
-              gerrit: false,
-              mineralization: false,
-            },
-          },
-          loaded: () => {},
-        })
-      } catch (error) {
-        console.error("Failed to initialize PostHog:", error)
-      }
-    }
-  }, [])
-
   // Capture pageviews if PostHog is configured
   useEffect(() => {
     if (clientConfig.analytics.posthog && typeof window !== "undefined") {

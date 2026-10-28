@@ -47,7 +47,7 @@ export function FarmSelectDialog({
         <DialogHeader>
           <DialogTitle>Wijzig selectie van bedrijven</DialogTitle>
           <DialogDescription>
-            De geselecteerde bedrijven zijn uitgesloten in de berekening.
+            Alleen de geselecteerde bedrijven worden meegenomen in de berekening.
           </DialogDescription>
         </DialogHeader>
         <form ref={formRef} className="max-h-50 space-y-4 overflow-y-scroll">

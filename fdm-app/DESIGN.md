@@ -221,9 +221,13 @@ Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwin
 
 The default rules above describe the authenticated interior. Some surfaces warrant a different visual weight because their job is different.
 
+### In-app reading pages
+
+`/about` and `/about/whats-new` sit behind sign-in and are **Read** surfaces inside the app shell, not marketing. They follow the interior defaults: display-scale page title (1.875rem/600), body text in full foreground at a 65–75ch measure, no marketing spacing or emoji in headings. The changelog keeps one release expanded (plus any release that is new since the user's previous visit) and collapses the rest, so the page stays scannable as it grows.
+
 ### Unauthenticated pages
 
-The authenticated app is the primary surface and sets the defaults above: it is an **Operate** surface, where the visitor is completing a task and the interface gets out of the way. The public, unauthenticated pages — sign-in, welcome, `/about` and `/about/whats-new`, `/privacy`, error pages, and any future public routes — double as fdm-app's marketing and are therefore **Persuade**: they are the product's first impression and must earn the decision to sign in, so they may lean expressive when worked on specifically. They should feel modern, advanced, and trustworthy — advanced enough that a farmer or advisor immediately senses this is serious, well-built software with a scientific foundation.
+The authenticated app is the primary surface and sets the defaults above: it is an **Operate** surface, where the visitor is completing a task and the interface gets out of the way. The public, unauthenticated pages — sign-in, welcome, `/privacy`, error pages, and any future public routes — double as fdm-app's marketing and are therefore **Persuade**: they are the product's first impression and must earn the decision to sign in, so they may lean expressive when worked on specifically. They should feel modern, advanced, and trustworthy — advanced enough that a farmer or advisor immediately senses this is serious, well-built software with a scientific foundation.
 
 **What is permitted beyond the interior defaults:**
 

@@ -1,8 +1,6 @@
-import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type { NormFilling } from "../../types"
 import type { NL2026NormsFillingInput } from "./types"
-import pkg from "../../../../package"
 import { table11Mestcodes } from "./table-11-mestcodes"
 
 /**
@@ -105,19 +103,3 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
     applicationFilling,
   }
 }
-
-/**
- * Memoized version of {@link calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm}.
- *
- * This function is wrapped with `withCalculationCache` to optimize performance by caching
- * results based on the input and the current calculator version.
- *
- * @param {NL2026NormsFillingInput} input - The standardized input object containing all necessary data.
- * @returns {NormFilling} An object containing the total nitrogen usage (`normFilling`) and a detailed breakdown per application (`applicationFilling`).
- */
-export const getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm =
-  withCalculationCache(
-    calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-    "calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm",
-    pkg.calculatorVersion,
-  )

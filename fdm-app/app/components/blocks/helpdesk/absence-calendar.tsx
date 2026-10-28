@@ -1,6 +1,6 @@
 import { format, getDay, parse, startOfWeek } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Calendar, dateFnsLocalizer, type SlotInfo } from "react-big-calendar"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import { getAgentColor } from "./absence-colors"
@@ -51,6 +51,9 @@ export function AbsenceCalendar({
   onSelectAbsence: (absence: AbsenceCalendarItem) => void
   onSelectSlot: (range: { start: Date; end: Date }) => void
 }) {
+  // Control the visible date explicitly so the Vorige/Volgende/Vandaag buttons always update it.
+  const [date, setDate] = useState(() => new Date())
+
   const events = useMemo<AbsenceCalendarEvent[]>(
     () =>
       absences.map((absence) => ({
@@ -85,6 +88,8 @@ export function AbsenceCalendar({
       titleAccessor="title"
       views={["month"]}
       defaultView="month"
+      date={date}
+      onNavigate={setDate}
       selectable
       popup
       style={{ height: 720 }}

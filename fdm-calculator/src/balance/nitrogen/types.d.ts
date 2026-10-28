@@ -524,7 +524,8 @@ export type FertilizerDetail = Pick<
   | "p_ef_nh3" // Ammonia emission factor
   | "p_type"
   // | "p_inhibitor" // TODO: implement inhibitor types
->
+> &
+  Partial<Pick<Fertilizer, "p_n_wc">> // Nitrogen working coefficient (-); used with `useEffectiveNitrogen`
 
 /**
  * Represents the overall input structure required for nitrogen balance calculation for an entire farm.
@@ -537,6 +538,13 @@ export type NitrogenBalanceInput = {
     start: Date
     end: Date
   }
+  /**
+   * When `true`, the nitrogen supply by fertilizers is calculated with effective nitrogen
+   * (`p_n_rt * p_n_wc`) instead of total nitrogen (`p_n_rt`), and the soil mineralization with the
+   * MINIP model. Nitrate leaching is still based on the surplus of the balance with total nitrogen.
+   * Defaults to `false`.
+   */
+  useEffectiveNitrogen?: boolean
 }
 
 /**
@@ -550,6 +558,13 @@ export type NitrogenBalanceFieldInput = {
     start: Date
     end: Date
   }
+  /**
+   * When `true`, the nitrogen supply by fertilizers is calculated with effective nitrogen
+   * (`p_n_rt * p_n_wc`) instead of total nitrogen (`p_n_rt`), and the soil mineralization with the
+   * MINIP model. Nitrate leaching is still based on the surplus of the balance with total nitrogen.
+   * Defaults to `false`.
+   */
+  useEffectiveNitrogen?: boolean
 }
 
 // Numeric version of NitrogenSupplyFertilizers

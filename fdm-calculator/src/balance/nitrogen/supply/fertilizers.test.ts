@@ -127,6 +127,75 @@ describe("calculateNitrogenSupplyByFertilizers", () => {
     expect(result.other.total.equals(new Decimal(1))).toBe(true)
   })
 
+  it("should use effective nitrogen (p_n_rt * p_n_wc) when useEffectiveNitrogen is true", () => {
+    const fertilizerApplications: FieldInput["fertilizerApplications"] = [
+      {
+        p_id_catalogue: "manure1",
+        p_app_amount: 30000,
+        p_app_id: "app1",
+        p_id: "manure1",
+        p_name_nl: null,
+        p_app_method: null,
+        p_app_date: new Date("2025-03-15"),
+      },
+      {
+        p_id_catalogue: "mineral1",
+        p_app_amount: 100,
+        p_app_id: "app2",
+        p_id: "mineral1",
+        p_name_nl: null,
+        p_app_method: null,
+        p_app_date: new Date("2025-03-15"),
+      },
+    ]
+
+    const fertilizerDetailsMap = new Map<string, FertilizerDetail>([
+      [
+        "manure1",
+        {
+          p_id_catalogue: "manure1",
+          p_n_rt: 4,
+          p_n_wc: 0.6,
+          p_no3_rt: 0,
+          p_nh4_rt: 2,
+          p_s_rt: 0,
+          p_ef_nh3: null,
+          p_type: "manure",
+        },
+      ],
+      [
+        "mineral1",
+        {
+          p_id_catalogue: "mineral1",
+          p_n_rt: 270,
+          p_n_wc: null, // Missing working coefficient is treated as 1
+          p_no3_rt: 135,
+          p_nh4_rt: 135,
+          p_s_rt: 0,
+          p_ef_nh3: null,
+          p_type: "mineral",
+        },
+      ],
+    ])
+
+    const totalResult = calculateNitrogenSupplyByFertilizers(
+      fertilizerApplications,
+      fertilizerDetailsMap,
+    )
+    expect(totalResult.manure.total.toNumber()).toBe(120)
+    expect(totalResult.mineral.total.toNumber()).toBe(27)
+
+    const effectiveResult = calculateNitrogenSupplyByFertilizers(
+      fertilizerApplications,
+      fertilizerDetailsMap,
+      true,
+    )
+    expect(effectiveResult.manure.total.toNumber()).toBe(72)
+    expect(effectiveResult.manure.applications[0].value.toNumber()).toBe(72)
+    expect(effectiveResult.mineral.total.toNumber()).toBe(27)
+    expect(effectiveResult.total.toNumber()).toBe(99)
+  })
+
   it("should handle missing fertilizer details gracefully", () => {
     const fertilizerApplications: FieldInput["fertilizerApplications"] = [
       {

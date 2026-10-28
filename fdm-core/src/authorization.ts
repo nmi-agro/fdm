@@ -30,6 +30,7 @@ export const resources: Resource[] = [
   "soil_analysis",
   "soil_image",
   "harvesting",
+  "farm_group",
 ] as const
 export const roles: Role[] = ["owner", "advisor", "researcher"] as const
 export const actions: Action[] = ["read", "write", "list", "share"] as const
@@ -107,6 +108,21 @@ export const permissions: Permission[] = [
   },
   {
     resource: "soil_analysis",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "farm_group",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "farm_group",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "farm_group",
     role: "researcher",
     action: ["read"],
   },
@@ -1061,6 +1077,17 @@ async function getResourceChain(
         return []
       }
       chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "farm_group") {
+      // A farm group is its own top-level resource; it is not nested under a farm.
+      const result = await fdm
+        .select({ b_id_group: schema.farmGroups.b_id_group })
+        .from(schema.farmGroups)
+        .where(eq(schema.farmGroups.b_id_group, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        return []
+      }
+      chain.push({ resource: "farm_group", resource_id: resource_id })
     } else {
       throw new Error("Resource is not known")
     }

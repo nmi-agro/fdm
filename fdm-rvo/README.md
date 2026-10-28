@@ -48,9 +48,9 @@ To ensure security, sensitive credentials like `RVO_PKIO_PRIVATE_KEY` and the `e
 Create a server route (e.g., `app/routes/auth.rvo.tsx`) that initiates the redirect to RVO.
 
 ```typescript
+import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo"
 // app/routes/auth.rvo.tsx (Server-side)
 import { redirect, type LoaderFunctionArgs } from "react-router"
-import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo"
 import { getEnv } from "~/lib/env.server" // Your server-side env helper
 import { getSession, commitSession } from "~/lib/session.server"
 
@@ -84,9 +84,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 Create a callback route (matching your `RVO_REDIRECT_URI`) to exchange the code for an access token.
 
 ```typescript
+import { createRvoClient, exchangeToken } from "@nmi-agro/fdm-rvo"
 // app/routes/auth.rvo.callback.tsx (Server-side)
 import { redirect, type LoaderFunctionArgs } from "react-router"
-import { createRvoClient, exchangeToken } from "@nmi-agro/fdm-rvo"
 import { commitSession, getSession } from "~/lib/session.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {

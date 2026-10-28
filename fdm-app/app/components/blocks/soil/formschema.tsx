@@ -63,8 +63,8 @@ export const FormSchema = z
       (val) => (val === "" ? undefined : val),
       z.coerce
         .number()
-        .gte(0.1, "Waarde moet groter of gelijk aan 0.1 zijn")
-        .lte(500, "Waarde moet kleiner of gelijk aan 500 zijn")
+        .gte(1, "Waarde moet groter of gelijk aan 1 zijn")
+        .lte(100, "Waarde moet kleiner of gelijk aan 100 zijn")
         .optional(),
     ),
     a_caco3_if: z.preprocess(

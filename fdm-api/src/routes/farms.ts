@@ -1,9 +1,15 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type {
   addFarm,
+  addFertilizer,
+  enableCultivationCatalogue,
+  enableFertilizerCatalogue,
+  enableMeasureCatalogue,
   FdmType,
   getFarm,
+  getFarmGroup,
   getFarms,
+  getFertilizersFromCatalogue,
   removeFarm,
   updateFarm,
 } from "@nmi-agro/fdm-core"
@@ -31,10 +37,22 @@ export interface FarmServices {
   getFarm: typeof getFarm
   /** Creates a new farm owned by the authenticated principal. */
   addFarm: typeof addFarm
+  /** Enables a fertilizer catalogue for the farm. */
+  enableFertilizerCatalogue: typeof enableFertilizerCatalogue
+  /** Enables a cultivation catalogue for the farm. */
+  enableCultivationCatalogue: typeof enableCultivationCatalogue
+  /** Enables a field measure catalogue for the farm. */
+  enableMeasureCatalogue: typeof enableMeasureCatalogue
+  /** Lists the fertilizers in the catalogues enabled on a farm. */
+  getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
+  /** Adds a catalogue fertilizer to the farm's fertilizer list. */
+  addFertilizer: typeof addFertilizer
   /** Updates the metadata of an existing farm. */
   updateFarm: typeof updateFarm
   /** Permanently deletes a farm and all its associated resources. */
   removeFarm: typeof removeFarm
+  /** Returns a farm group, used to filter farms by group. */
+  getFarmGroup: typeof getFarmGroup
 }
 
 const FarmSchema = z
@@ -81,6 +99,13 @@ const UpdateFarmBodySchema = z
   })
   .openapi("UpdateFarm")
 
+const ListFarmsQuerySchema = PaginationQuerySchema.extend({
+  b_id_group: z
+    .string()
+    .optional()
+    .describe("Only list the farms that are a member of this group."),
+})
+
 const listFarmsRoute = createRoute({
   method: "get",
   path: "/farms",
@@ -88,7 +113,7 @@ const listFarmsRoute = createRoute({
   summary: "List all farms",
   description: "Returns all farms accessible by the authenticated API key.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { query: PaginationQuerySchema },
+  request: { query: ListFarmsQuerySchema },
   responses: {
     200: {
       description: "A paginated list of farms.",
@@ -122,7 +147,8 @@ const createFarmRoute = createRoute({
   path: "/farms",
   tags: ["Farms"],
   summary: "Create a farm",
-  description: "Creates a new farm. The authenticated API key's owner becomes the farm owner.",
+  description:
+    "Creates a new farm. The authenticated API key's owner becomes the farm owner. Default fertilizer, cultivation, and field measure catalogues are enabled.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     body: {
@@ -222,8 +248,15 @@ export function registerFarmRoutes(
   const listFarmsHandler: RouteHandler<typeof listFarmsRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const farms = await services.getFarms(fdm, principal.effectivePrincipalId)
+    const { limit, offset, b_id_group } = c.req.valid("query") as z.infer<
+      typeof ListFarmsQuerySchema
+    >
+    let farms = await services.getFarms(fdm, principal.effectivePrincipalId)
+    if (b_id_group) {
+      const group = await services.getFarmGroup(fdm, principal.effectivePrincipalId, b_id_group)
+      const members = new Set(group.b_id_farms)
+      farms = farms.filter((farm) => members.has(farm.b_id_farm))
+    }
     return c.json(paginatedResponse(farms.map(serialiseFarm), limit, offset), 200)
   }
 
@@ -242,19 +275,71 @@ export function registerFarmRoutes(
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateFarmBodySchema>
-    const b_id_farm = await services.addFarm(
-      fdm,
-      principal.effectivePrincipalId,
-      body.b_name_farm ?? null,
-      body.b_businessid_farm ?? null,
-      body.b_address_farm ?? null,
-      body.b_postalcode_farm ?? null,
-    )
-    const farm = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
-    if (!farm?.b_id_farm) {
-      throw new ApiError(500, "internal-error", "Farm created but could not be retrieved.")
-    }
-    c.header("Location", `${new URL(c.req.url).origin}/farms/${b_id_farm}`)
+    const farm = await fdm.transaction(async (tx) => {
+      // Add the farm.
+      const b_id_farm = await services.addFarm(
+        tx,
+        principal.effectivePrincipalId,
+        body.b_name_farm ?? null,
+        body.b_businessid_farm ?? null,
+        body.b_address_farm ?? null,
+        body.b_postalcode_farm ?? null,
+      )
+      // Enable default catalogues.
+      const fertilizerCatalogueEnablement = ["baat", b_id_farm].map((p_source) =>
+        services.enableFertilizerCatalogue(tx, principal.effectivePrincipalId, b_id_farm, p_source),
+      )
+      const cultivationCatalogueEnablement = ["brp"].map((b_lu_source) =>
+        services.enableCultivationCatalogue(
+          tx,
+          principal.effectivePrincipalId,
+          b_id_farm,
+          b_lu_source,
+        ),
+      )
+      const measureCatalogueEnablement = ["bln"].map((m_source) =>
+        services.enableMeasureCatalogue(tx, principal.effectivePrincipalId, b_id_farm, m_source),
+      )
+      const catEnablementResult = await Promise.allSettled([
+        ...fertilizerCatalogueEnablement,
+        ...cultivationCatalogueEnablement,
+        ...measureCatalogueEnablement,
+      ])
+      for (const result of catEnablementResult) {
+        if (result.status === "rejected") {
+          throw result.reason
+        }
+      }
+      // Add the catalogue fertilizers to the farm's fertilizer list.
+      const fertilizers = await services.getFertilizersFromCatalogue(
+        tx,
+        principal.effectivePrincipalId,
+        b_id_farm,
+      )
+      const addFertilizerResults = await Promise.allSettled(
+        fertilizers.map((fertilizer) =>
+          services.addFertilizer(
+            tx,
+            principal.effectivePrincipalId,
+            fertilizer.p_id_catalogue,
+            b_id_farm,
+            null,
+            null,
+          ),
+        ),
+      )
+      const rejectedAddFertilizer = addFertilizerResults.find((r) => r.status === "rejected")
+      if (rejectedAddFertilizer) {
+        throw rejectedAddFertilizer.reason
+      }
+      // Get the newly created farm.
+      const farm = await services.getFarm(tx, principal.effectivePrincipalId, b_id_farm)
+      if (!farm?.b_id_farm) {
+        throw new ApiError(500, "internal-error", "Farm created but could not be retrieved.")
+      }
+      return farm
+    })
+    c.header("Location", `${new URL(c.req.url).origin}/farms/${farm.b_id_farm}`)
     return c.json(serialiseFarm(farm), 201)
   }
 

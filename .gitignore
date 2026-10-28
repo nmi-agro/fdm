@@ -3,3 +3,4 @@
 .agents/
 .gemini/
 gemini.md
+.claude/settings.local.json

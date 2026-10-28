@@ -32,6 +32,7 @@ export class ApiError extends Error {
    * @param slug - Machine-readable problem type slug appended to the configured application URL.
    * @param message - Human-readable problem detail included in the response payload.
    * @param extras - Optional RFC 9457 extension members to merge into the problem document.
+   * @param errorId - Optional error identifier to return, e.g. one already used to log the cause.
    */
   constructor(
     /** HTTP status code returned to the client. */
@@ -41,6 +42,8 @@ export class ApiError extends Error {
     message: string,
     /** Optional extension members included in the problem document. */
     public readonly extras?: Record<string, unknown>,
+    /** Optional error identifier returned as `error_id`; generated when omitted. */
+    public readonly errorId?: string,
   ) {
     super(message)
     this.name = "ApiError"
@@ -124,7 +127,7 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
       )
     }
     if (err instanceof ApiError) {
-      return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras)
+      return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras, err.errorId)
     }
     if (isPermissionDenied(err)) {
       return problemResponse(

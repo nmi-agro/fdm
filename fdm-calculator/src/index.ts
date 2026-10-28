@@ -74,7 +74,11 @@ export {
 } from "./bcs/index"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
 export { calcPhDelta } from "./bcs/ph-delta"
+export type { FarmIndicators, FieldIndicators, FieldMeasureOptions } from "./bln3"
 export {
+  getFarmIndicators,
+  getFieldIndicators,
+  getFieldMeasureOptions,
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
   getBln3MeasureAdvice,
@@ -100,34 +104,63 @@ export type {
   Bln3ScoreCollectedInputs,
   Bln3ScoreInputs,
 } from "./bln3/types"
+export { IndicatorsUnavailableError } from "./bln3/errors"
+export * from "./bln3/postprocessing"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"
 export { NormNotApplicableError } from "./error"
 export type {
-  DataCompleteness,
-  DynaComputeInput,
-  DynaDailyPoint,
-  DynaFertilizerAdvice,
-  DynaNitrogenBalance,
-  DynaResult,
-  NSupplyComputeInput,
-  NSupplyDataPoint,
-  NSupplyMethod,
-  NSupplyResult,
+  DynaV2ApplicationMethod,
+  DynaV2ComputeInput,
+  DynaV2DailyPoint,
+  DynaV2NitrogenBalance,
+  DynaV2Request,
+  DynaV2Result,
+  HarvestParameterValues,
+  MineralizationApplication,
+  MineralizationCultivation,
+  MineralizationEvent,
+  MineralizationFertilizer,
+  MineralizationFieldData,
+  MineralizationHarvest,
+  MineralizationInsights,
+  MineralizationKpis,
+  MineralizationPreparation,
+  MineralizationScenario,
+  MineralizationSignal,
+  MineralizationSoilItem,
+  MineralizationUsedInput,
+  ScenarioDiff,
+  ScenarioFertilizer,
+  ScenarioFertilizerApplication,
+  ScenarioHarvest,
+  SeasonPhase,
+  WeatherForecast,
+  WeatherForecastDay,
+  WeatherForecastInput,
 } from "./mineralization"
 export {
-  assessDataCompleteness,
-  buildDynaRequest,
-  buildNSupplyRequest,
-  dynaResponseDataSchema,
-  getDyna,
   getMainCultivation,
-  getNSupply,
-  methodRequirements,
   NmiApiError,
-  requestDyna,
-  requestNSupply,
+  applyScenarioToRequest,
+  deriveMineralizationInsights,
+  determineSeasonPhase,
+  diffScenario,
+  DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
+  DYNA_V2_SOIL_PARAMETERS,
+  getDynaV2,
+  getMineralizationScenarioSchema,
+  getWeatherForecast,
+  HARVEST_PARAMETER_KEYS,
+  isSameHarvestParameters,
+  MINERALIZATION_THRESHOLDS,
+  mapApplicationMethod,
+  prepareMineralizationInput,
+  requestDynaV2,
+  requestWeatherForecast,
+  restrictToMainCultivation,
+  roundCoordinate,
 } from "./mineralization"
 export {
   createFunctionsForFertilizerApplicationFilling,
@@ -141,14 +174,26 @@ export type {
   InputAggregateNormsToFarmLevel,
 } from "./norms/farm"
 export { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./norms/farm"
+export type {
+  FertilizerApplicationFillingInputByYear,
+  FertilizerApplicationFillings,
+} from "./norms/filling"
+export { calculateFertilizerApplicationFillingsWithRegion } from "./norms/filling"
 export {
   isFieldInGWGBGebied,
   isFieldInNatura2000Gebied,
 } from "./norms/nl/2025/value/dierlijke-mest-gebruiksnorm"
 export { getRegion, isFieldInNVGebied } from "./norms/nl/2025/value/stikstofgebruiksnorm"
-export type { NL2025NormsInput } from "./norms/nl/2025/value/types"
+export type { NL2025NormsInput, RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"
+export type {
+  AggregatedNutrientAdvice,
+  InputAggregateNutrientAdviceToFarmLevel,
+  NutrientAdviceAggregationMode,
+  NutrientDoseAndAdvice,
+} from "./nutrient-advice/aggregate"
+export { aggregateNutrientAdviceToFarmLevel } from "./nutrient-advice/aggregate"
 export type {
   NutrientAdvice,
   NutrientAdviceCut,
@@ -165,3 +210,5 @@ export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
+export type { FieldExclusionReason } from "./shared/field-exclusion"
+export { getFieldExclusionReason, LANDSCAPE_ELEMENT_BRP_CODES } from "./shared/field-exclusion"

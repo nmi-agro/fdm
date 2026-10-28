@@ -19,6 +19,7 @@ import { AuthLayout } from "~/components/blocks/auth/auth-layout"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -65,7 +66,6 @@ export default function SignIn() {
   const formRef = useRef<HTMLFormElement>(null)
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false)
   const resendFetcher = useFetcher<typeof action>()
-  const [cooldown, setCooldown] = useState(0)
   const loaderData = useLoaderData<typeof loader>()
   const email = loaderData.email
   const { capture } = useAnalytics()
@@ -78,6 +78,15 @@ export default function SignIn() {
   // so the auto-submit never overrides an intentional change.
   const pendingCodeRef = useRef<string | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Resets to a fresh cooldown whenever a new resend completes (keyed on the
+  // fetcher's data identity); the interval below then owns counting it down.
+  const [resendCooldown, setResendCooldown] = useKeyedState<typeof resendFetcher.data, number>(
+    resendFetcher.data,
+    (data) => (data && "success" in data ? RESEND_COOLDOWN_SECONDS : 0),
+  )
+
+  // Clean-up when the component unmounts
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -87,14 +96,15 @@ export default function SignIn() {
   }, [])
 
   useEffect(() => {
-    if (cooldown <= 0) return
-    const interval = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    if (resendCooldown <= 0) return
+    const interval = setInterval(() => {
+      setResendCooldown((current) => Math.max(0, current - 1))
+    }, 1000)
     return () => clearInterval(interval)
-  }, [cooldown])
+  }, [resendCooldown, setResendCooldown])
 
   useEffect(() => {
     if (resendFetcher.state === "idle" && resendFetcher.data && "success" in resendFetcher.data) {
-      setCooldown(RESEND_COOLDOWN_SECONDS)
       capture("signin_code_resend_succeeded")
     }
     if (resendFetcher.state === "idle" && resendFetcher.data && "error" in resendFetcher.data) {
@@ -202,10 +212,10 @@ export default function SignIn() {
                 variant="link"
                 size="sm"
                 className="text-muted-foreground h-auto p-0 text-xs"
-                disabled={resendFetcher.state !== "idle" || cooldown > 0}
+                disabled={resendFetcher.state !== "idle" || resendCooldown > 0}
               >
-                {cooldown > 0
-                  ? `Nieuwe code opnieuw versturen (${cooldown}s)`
+                {resendCooldown > 0
+                  ? `Nieuwe code opnieuw versturen (${resendCooldown}s)`
                   : resendFetcher.state !== "idle"
                     ? "Code versturen..."
                     : "Geen code ontvangen? Opnieuw versturen"}

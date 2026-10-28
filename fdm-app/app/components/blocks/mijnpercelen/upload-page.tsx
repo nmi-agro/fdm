@@ -1,23 +1,26 @@
 import type { Field } from "@nmi-agro/fdm-core"
-import type {
-  ImportReviewAction,
-  RvoImportReviewItem,
-  UserChoiceMap,
-} from "@nmi-agro/fdm-rvo/types"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Form, useActionData, useLocation, useNavigation } from "react-router"
+import { Form, useActionData, useLoaderData, useLocation, useNavigation } from "react-router"
 import { toast } from "sonner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { MijnPercelenUploadForm } from "~/components/blocks/mijnpercelen/form-upload"
-import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import { ImportIssuesAlert } from "~/components/blocks/rvo/import-review-summary"
+import {
+  CustomValueButtonsToggle,
+  RvoImportReviewTable,
+  useRvoImportForm,
+} from "~/components/blocks/rvo/import-review-table"
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
-import type { genericAction } from "./loader-and-action.server"
+import type { genericAction, loader } from "./loader-and-action.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
+
+const emptyReviewData: ReviewItem[] = []
+const mijnPercelenReviewFlags = { b_bufferstrip_info_available: false }
 
 /**
  * Renders a single-page wizard that handles MijnPercelen shapefile uploads.
@@ -32,90 +35,44 @@ export function UploadMijnPercelenPage({
   b_id_farm,
   calendar,
   backUrl,
+  isFarmCreateWizard,
 }: {
   b_id_farm: string
   calendar: string
   backUrl: string
+  isFarmCreateWizard: boolean
 }) {
+  const { cultivationOptions } = useLoaderData<typeof loader>()
+  type ActionData = Exclude<Awaited<ReturnType<typeof genericAction>>, Response>
+  const actionData = useActionData<ActionData>()
   const navigation = useNavigation()
   const location = useLocation()
 
-  const [rvoImportReviewData, setRvoImportReviewData] = useState<ReviewItem[] | null>()
-  const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
-  const [canUnloadSafely, setCanUnloadSafely] = useState(true)
-
-  const actionData = useActionData<typeof genericAction>()
-
-  const handleItemChange = (id: string, item: ReviewItem) => {
-    // Note: there is the assumption that getItemId will keep returning the same id.
-    // Therefore, make sure that `item` doesn't have a different rvoField id and localField id.
-    if (getItemId(item) !== id) {
-      console.warn(
-        `Mismatched item id in handleItemChange: expected ${id}, got ${getItemId(item)}. Ignoring update.`,
-      )
-      return
-    }
-    setRvoImportReviewData((data) => {
-      if (!data) return data
-      const index = data.findIndex((originalItem) => getItemId(originalItem) === id)
-      if (index === -1) {
-        console.warn(`Item with id ${id} not found so nothing is modified.`)
-        return data
-      }
-      const newData = [...data]
-      newData[index] = item
-      return newData
-    })
-  }
-
-  const handleChoiceChange = (id: string, action: ImportReviewAction) => {
-    setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
-  }
-
   const actionRvoImportReviewData = actionData?.RvoImportReviewData
+  const [rvoImportReviewData, setRvoImportReviewData] = useState<ReviewItem[] | null>()
+
+  // Update rvoImportReviewData whenever actionRvoImportReviewData is available and is different than the last one recorded.
+  const [lastResetRvoImportReviewData, setLastResetRvoImportReviewData] = useState<
+    typeof actionRvoImportReviewData | undefined
+  >(undefined)
+  if (actionRvoImportReviewData && lastResetRvoImportReviewData !== actionRvoImportReviewData) {
+    setRvoImportReviewData(actionRvoImportReviewData)
+    setLastResetRvoImportReviewData(actionRvoImportReviewData)
+  }
 
   const isSaving =
-    navigation.state !== "idle" && navigation.formData?.get("intent") === "save_fields"
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "save_fields"
 
-  useEffect(() => {
-    if (actionRvoImportReviewData) {
-      setRvoImportReviewData((oldData) => {
-        if (!oldData) {
-          window.location.hash = "#review"
-        }
-        return actionRvoImportReviewData
-      })
-
-      // Initialize user choices with defaults
-      const initialChoices: UserChoiceMap = {}
-      actionRvoImportReviewData.forEach((item) => {
-        const id = getItemId(item)
-        let defaultAction: ImportReviewAction
-
-        switch (item.status) {
-          case "CONFLICT":
-            defaultAction = "UPDATE_FROM_REMOTE"
-            break
-          case "NEW_REMOTE":
-            defaultAction = "ADD_REMOTE"
-            break
-          case "NEW_LOCAL":
-            defaultAction = "KEEP_LOCAL"
-            break
-          case "EXPIRED_LOCAL":
-            defaultAction = "CLOSE_LOCAL"
-            break
-          // In creation wizard, other statuses are unlikely but good to handle defaults
-          default:
-            defaultAction = "NO_ACTION"
-            break
-        }
-        initialChoices[id] = defaultAction
-      })
-      setCanUnloadSafely(false)
-      setUserChoices(initialChoices)
-    }
-  }, [actionRvoImportReviewData])
+  const [canUnloadSafely, setCanUnloadSafely] = useState(true)
+  const { formValues, issues, changeSummaryAgainstRvo } = useRvoImportForm(
+    rvoImportReviewData ?? emptyReviewData,
+    {
+      calendar,
+      flags: mijnPercelenReviewFlags,
+    },
+  )
+  const hasIssues = issues.length > 0
+  const hasFieldsToAdd = formValues.fieldsToAdd.length > 0
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -141,19 +98,15 @@ export function UploadMijnPercelenPage({
     }
   }, [actionData])
 
-  // Mark unload as not safe if action data changes to unsuccessful
-  useEffect(() => {
-    if (!actionData?.success && rvoImportReviewData?.length) {
-      setCanUnloadSafely(false)
-    }
-  }, [actionData?.success, rvoImportReviewData])
+  // A failed save re-arms the guard even if the user had just disarmed it to submit.
+  const effectiveCanUnloadSafely = canUnloadSafely && actionData?.success !== false
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
     if (rvoImportReviewData && rvoImportReviewData.length > 0) {
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
         // If this redirect should have been initiated by the route action, do nothing
-        if (canUnloadSafely) {
+        if (effectiveCanUnloadSafely) {
           return
         }
         e.preventDefault()
@@ -170,7 +123,7 @@ export function UploadMijnPercelenPage({
       window.addEventListener("beforeunload", handleBeforeUnload)
       return () => window.removeEventListener("beforeunload", handleBeforeUnload)
     }
-  }, [canUnloadSafely, rvoImportReviewData])
+  }, [effectiveCanUnloadSafely, rvoImportReviewData])
 
   return (
     <main className="flex-1 overflow-auto">
@@ -191,15 +144,26 @@ export function UploadMijnPercelenPage({
           />
           <FarmContent>
             <div className="flex flex-col space-y-4 pb-10">
-              <Form method="post">
-                <div className="flex justify-end gap-2">
+              <Form method="post" className="bg-background sticky top-0 z-20 border-b py-3">
+                <div className="flex items-center justify-end gap-2">
                   <input type="hidden" name="intent" value="save_fields" />
-                  <input type="hidden" name="userChoices" value={JSON.stringify(userChoices)} />
                   <input
                     type="hidden"
-                    name="RvoImportReviewDataJson"
-                    value={JSON.stringify(rvoImportReviewData)}
+                    name="fieldsToAdd"
+                    value={JSON.stringify(formValues.fieldsToAdd)}
                   />
+                  <input
+                    type="hidden"
+                    name="fieldsToRemove"
+                    value={JSON.stringify(formValues.fieldsToRemove)}
+                  />
+                  <input
+                    type="hidden"
+                    name="fieldsToUpdate"
+                    value={JSON.stringify(formValues.fieldsToUpdate)}
+                  />
+
+                  <CustomValueButtonsToggle />
 
                   <Button asChild variant="outline" className={cn(isSaving && "opacity-50")}>
                     {/* Vanilla anchor triggers refresh behavior */}
@@ -215,7 +179,7 @@ export function UploadMijnPercelenPage({
 
                   <Button
                     type="submit"
-                    disabled={isSaving}
+                    disabled={isSaving || hasIssues}
                     onClick={() => setCanUnloadSafely(true)}
                   >
                     {isSaving ? (
@@ -223,22 +187,22 @@ export function UploadMijnPercelenPage({
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Opslaan...
                       </>
-                    ) : (
+                    ) : !isFarmCreateWizard || hasFieldsToAdd ? (
                       "Opslaan en verder"
+                    ) : (
+                      "Doorgaan zonder percelen"
                     )}
                   </Button>
                 </div>
               </Form>
+              <ImportIssuesAlert issues={issues} />
               <div className="w-full">
                 <RvoImportReviewTable
                   data={rvoImportReviewData}
                   calendar={calendar}
-                  userChoices={userChoices}
-                  flags={{
-                    b_bufferstrip_info_available: false,
-                  }}
-                  onItemChange={handleItemChange}
-                  onChoiceChange={handleChoiceChange}
+                  cultivationOptions={cultivationOptions}
+                  flags={mijnPercelenReviewFlags}
+                  changeSummaryAgainstRvo={changeSummaryAgainstRvo}
                 />
               </div>
             </div>

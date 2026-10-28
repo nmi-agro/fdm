@@ -26,7 +26,7 @@ import { Route } from "./+types/api.$object_type.download.$a_id[.]pdf"
  * Pass `?disposition=inline` to render the PDF in place (used by the
  * in-app viewer); the default is `attachment` (saves to disk).
  */
-export async function loader({ params, request }: Route.LoaderArgs) {
+export async function loader({ params, request, url }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
 
@@ -72,8 +72,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       return data("Not Found", { status: 404 })
     }
 
-    const disposition =
-      new URL(request.url).searchParams.get("disposition") === "inline" ? "inline" : "attachment"
+    const disposition = url.searchParams.get("disposition") === "inline" ? "inline" : "attachment"
 
     try {
       const { stream, contentType, size } = await getObjectStream(filePath)

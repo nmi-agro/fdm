@@ -1,8 +1,7 @@
 import { FlexRender, type Row, RowSelectionState, useTable } from "@tanstack/react-table"
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
-import { useRef } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
@@ -25,6 +24,7 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
 import type { buildColumns, FieldExtended } from "./columns"
@@ -42,8 +42,10 @@ export function DataTable<TData extends FieldExtended>({
   canAddItem,
 }: DataTableProps<TData>) {
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(
-    isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
+  const [columnVisibility, setColumnVisibility] = useKeyedState<boolean, Record<string, boolean>>(
+    isMobile,
+    (mobile): Record<string, boolean> =>
+      mobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
   )
   const fieldIds = useFieldSelectionStore((state) => state.fieldIds)
   const setFieldIds = useFieldSelectionStore((state) => state.setFieldIds)
@@ -59,16 +61,13 @@ export function DataTable<TData extends FieldExtended>({
   const b_id_farm = params.b_id_farm
   const calendar = params.calendar
 
+  const fieldFilterSyncFarm = fieldFilter.syncFarm
   useEffect(() => {
     if (b_id_farm) {
       syncFarm(b_id_farm)
-      fieldFilter.syncFarm(b_id_farm)
+      fieldFilterSyncFarm(b_id_farm)
     }
-  }, [b_id_farm, syncFarm, fieldFilter.syncFarm])
-
-  useEffect(() => {
-    setColumnVisibility(isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {})
-  }, [isMobile])
+  }, [b_id_farm, syncFarm, fieldFilterSyncFarm])
 
   const handleRowClick = (
     row: Row<typeof fieldsTableFeatures, FieldExtended>,
@@ -132,14 +131,9 @@ export function DataTable<TData extends FieldExtended>({
     },
   })
 
-  const selectedFields = useMemo(() => {
-    return table.getFilteredSelectedRowModel().rows.map((row) => row.original)
-    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
-  }, [table, rowSelection])
+  const selectedFieldIds = table.getFilteredSelectedRowModel().rows.map((row) => row.original.b_id)
 
-  const selectedFieldIds = selectedFields.map((field) => field.b_id)
-
-  const isFertilizerButtonDisabled = selectedFields.length === 0
+  const isFertilizerButtonDisabled = selectedFieldIds.length === 0
   const fertilizerTooltipContent = isFertilizerButtonDisabled
     ? "Selecteer één of meerdere percelen om bemesting toe te voegen"
     : "Bemesting toevoegen aan geselecteerde percelen"
@@ -154,7 +148,6 @@ export function DataTable<TData extends FieldExtended>({
   useEffect(() => {
     const table = tableScrollContainerRef.current?.querySelector("table")
     const scroller = table?.parentElement
-    console.log(scroller, table)
     if (!table || !scroller) return
 
     const update = () => {

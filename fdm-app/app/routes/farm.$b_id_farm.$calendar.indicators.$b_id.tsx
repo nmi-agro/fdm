@@ -62,7 +62,9 @@ import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import {
   type Ecosysteemdienst,
+  getBestVariantIds,
   getBln3ExclusionMessage,
+  getMeasureFamilyId,
   INDICATORS,
   scoreToDisplay,
 } from "~/lib/indicators"
@@ -84,7 +86,7 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
       { value: "S_WAT", label: "Water" },
       { value: "S_NUT", label: "Nutriëntenkringloop" },
       { value: "S_CLIM", label: "Klimaat" },
-      { value: "S_PROD_T", label: "Productie (OBI)" },
+      { value: "S_PROD", label: "Productie (OBI)" },
     ],
   },
   {
@@ -425,11 +427,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Build per-indicator recommended measures: raw advice, cross-referenced
     // against a fresh applicability check and already-active measures (the
     // advice endpoint's own list is never trusted to be pre-filtered), keyed
-    // by indicator ID, top 3 per indicator, with catalogue names resolved.
+    // by indicator ID, top 3 per indicator with at most one variant per measure
+    // family, with catalogue names resolved.
     // `advice` is null when the NMI fetch failed — signal unavailability with
     // null so cards hide the section instead of showing a false empty state.
     const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
-    const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
+    const activeFamilyIds = new Set(fieldMeasures.map((m) => getMeasureFamilyId(m.m_id)))
     const adviceUnavailable = applicabilityMap === null || advice === null
     const indicatorAdvice: Record<
       string,
@@ -437,12 +440,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     > | null = adviceUnavailable ? null : {}
     if (applicabilityMap !== null && advice !== null && indicatorAdvice !== null) {
       for (const entry of advice?.indicator_advice ?? []) {
-        const recommendations = entry.measures
-          .filter(
-            (measure) =>
-              applicabilityMap[measure.m_id]?.applicability === "applicable" &&
-              !activeMeasureIds.has(measure.m_id),
-          )
+        // At most one variant per measure family, and none when a variant of
+        // that family is already active on the field.
+        const candidates = entry.measures.filter(
+          (measure) =>
+            applicabilityMap[measure.m_id]?.applicability === "applicable" &&
+            !activeFamilyIds.has(getMeasureFamilyId(measure.m_id)),
+        )
+        const bestVariantIds = getBestVariantIds(
+          new Map(candidates.map((measure) => [measure.m_id, measure.measure_impact])),
+        )
+        const recommendations = candidates
+          .filter((measure) => bestVariantIds.has(measure.m_id))
           .sort((a, b) => b.measure_impact - a.measure_impact)
           .slice(0, 3)
           .map((measure) => ({
@@ -558,16 +567,17 @@ export default function IndicatorsFieldDetail() {
   const indicatorId = deepLinkIndicator?.id
 
   // If a deep-linked indicator is specified and the current category filter
-  // excludes its category, select/retain that category so it remains visible
-  useEffect(() => {
-    if (!deepLinkIndicator) return
-    setActiveCategories((prev) => {
-      if (prev.length > 0 && !prev.includes(deepLinkIndicator.ecosysteemdienst)) {
-        return [...prev, deepLinkIndicator.ecosysteemdienst]
-      }
-      return prev
-    })
-  }, [deepLinkIndicator])
+  // excludes its category, include that category so it remains visible — without
+  // persisting it to the user's actual filter selection.
+  const effectiveCategories = useMemo(
+    () =>
+      deepLinkIndicator &&
+      activeCategories.length > 0 &&
+      !activeCategories.includes(deepLinkIndicator.ecosysteemdienst)
+        ? [...activeCategories, deepLinkIndicator.ecosysteemdienst]
+        : activeCategories,
+    [deepLinkIndicator, activeCategories],
+  )
 
   useEffect(() => {
     if (!indicatorId) return
@@ -589,14 +599,14 @@ export default function IndicatorsFieldDetail() {
   // Filter indicators by active ecosystem service, while ensuring a deep-linked indicator remains visible
   const visibleIndicatorInfos = useMemo(
     () =>
-      activeCategories.length === 0
+      effectiveCategories.length === 0
         ? INDICATORS
         : INDICATORS.filter(
             (i) =>
-              activeCategories.includes(i.ecosysteemdienst) ||
+              effectiveCategories.includes(i.ecosysteemdienst) ||
               (indicatorId && i.id === indicatorId),
           ),
-    [activeCategories, indicatorId],
+    [effectiveCategories, indicatorId],
   )
 
   // Sort indicator results: red (< 40) → yellow (40–69) → green (≥ 70), then alphabetical

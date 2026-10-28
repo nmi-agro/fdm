@@ -42,7 +42,7 @@ import { createId } from "./id"
  * @throws {Error} If the principal lacks write permission, the farm does not
  *   exist, the verification method is not yet supported, the KvK snapshot does
  *   not match the farm, or the transaction fails. Errors are returned as
- *   `BaseError` instances through {@link handleError}.
+ *   `BaseError` instances through `handleError`.
  *
  * @alpha
  */
@@ -134,7 +134,7 @@ export async function addFarmVerification(
  *   used for that principal's verification status.
  * @throws {Error} If the principal lacks read permission or the database query
  *   fails. Errors are returned as `BaseError` instances through
- *   {@link handleError}.
+ *   `handleError`.
  *
  * @alpha
  */
@@ -178,7 +178,7 @@ export async function getFarmVerifications(
  *   each principal, ordered newest first.
  * @throws {Error} If the principal lacks read permission or the database query
  *   fails. Errors are returned as `BaseError` instances through
- *   {@link handleError}.
+ *   `handleError`.
  *
  * @alpha
  */
@@ -244,7 +244,7 @@ export async function getActiveFarmVerifications(
  *   or `null` when no such result exists.
  * @throws {Error} If the principal lacks read permission or the database query
  *   fails. Errors are returned as `BaseError` instances through
- *   {@link handleError}.
+ *   `handleError`.
  *
  * @alpha
  */
@@ -303,7 +303,7 @@ export async function getLatestFarmVerification(
  *   latest non-revoked result is `verified`, otherwise `false`.
  * @throws {Error} If the principal lacks read permission or the database query
  *   fails. Errors are returned as `BaseError` instances through
- *   {@link handleError}.
+ *   `handleError`.
  *
  * @alpha
  */
@@ -372,7 +372,7 @@ export async function isFarmVerifiedForPrincipal(
  * @returns A promise that resolves when the verification has been soft-revoked.
  * @throws {Error} If the verification does not exist, is already revoked, the
  *   principal lacks write permission, or the transaction fails. Errors are
- *   returned as `BaseError` instances through {@link handleError}.
+ *   returned as `BaseError` instances through `handleError`.
  *
  * @alpha
  */

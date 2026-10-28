@@ -24,10 +24,10 @@ import {
   updateHarvest,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { ApplicationMethods } from "@nmi-agro/fdm-data"
+import { ApplicationMethods, getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
 import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
 import z from "zod"
@@ -67,7 +67,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
-import { useCalendarJump } from "~/store/calendar"
+import { useCalendarJump, useCalendarStore } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
 
 // The years the timeline can ever request must stay within the app's supported Calendar range
@@ -136,7 +136,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     // TIMELINE_START_YEAR/END_YEAR in gantt-view.tsx), so it fetches that same full range up
     // front rather than just the single selected year — otherwise scrolling into any other year
     // always looked empty, even when it genuinely had data.
-    const [timelineFields, fertilizers, cultivationCatalogue] = await Promise.all([
+    const [timelineFields, fertilizers, cultivationsCatalogue] = await Promise.all([
       fetchTimelineFields(
         session.principal_id,
         b_id_farm,
@@ -178,17 +178,27 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       p_app_amount_unit: fertilizer.p_app_amount_unit,
     }))
 
+    // Map catalogue cultivations to options for the add-cultivation combobox
+    const cultivationOptions = cultivationsCatalogue.map((cultivation) => {
+      const catalogueCode = cultivation.b_lu_catalogue.split("_")[1]
+      return {
+        value: cultivation.b_lu_catalogue,
+        label: catalogueCode
+          ? `${cultivation.b_lu_name} (${catalogueCode})`
+          : cultivation.b_lu_name,
+        b_lu_ya: cultivation.b_lu_ya,
+      }
+    })
+
     return {
       b_id_farm,
       calendar,
+      lastCultivationAvailabilityYear: await getLastCultivationAvailabilityYear(),
       farmWritePermission,
       farmOptions,
       fields: timelineFields,
       fertilizerOptions: fertilizerOptions,
-      cultivationOptions: cultivationCatalogue.map((c) => ({
-        value: c.b_lu_catalogue,
-        label: c.b_lu_name,
-      })),
+      cultivationOptions: cultivationOptions,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -652,27 +662,57 @@ export async function action({ request, params }: Route.LoaderArgs) {
   }
 }
 
+/**
+ * CSS media query that is assumed to match when the device is landscape.
+ */
+const LANDSCAPE_QUERY = "(max-width: 1024px) and (orientation: landscape)"
+
+/**
+ * Starts listening to window.matchMedia(<landscape CSS query>) if it is available, and calls the passed function
+ * whenever the match state changes. Also returns a function that lets the caller stop the
+ * listening.
+ * @param onChange Callback to call with updates.
+ * @returns a function that stops the listening.
+ */
+function subscribeToLandscapeQuery(onChange: () => void) {
+  if (typeof window === "undefined" || !window.matchMedia) return () => {}
+  const mql = window.matchMedia(LANDSCAPE_QUERY)
+  mql.addEventListener("change", onChange)
+  return () => mql.removeEventListener("change", onChange)
+}
+
+/**
+ * Runs the landscape CSS media query in the browser.
+ * @returns whether the query matches.
+ */
+function getLandscapeQuerySnapshot() {
+  return window.matchMedia(LANDSCAPE_QUERY).matches
+}
+
+/**
+ * "Runs" the landscape CSS media query if this is not the browser.
+ * @returns just false, since don't have a device that could be landscape.
+ */
+function getLandscapeQueryServerSnapshot() {
+  return false
+}
+
 export default function TimelinePage() {
   const loaderData = useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const isMobile = useIsMobile()
-  const [isLandscape, setIsLandscape] = useState(false)
   const { capture } = useAnalytics()
   const actionData = useActionData()
-  const lastActionData = useRef<unknown>(undefined)
+  const storedCalendar = useCalendarStore((store) => store.calendar)
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) {
-      return
-    }
-    const mql = window.matchMedia("(max-width: 1024px) and (orientation: landscape)")
-    const onChange = (e: MediaQueryListEvent) => {
-      setIsLandscape(e.matches)
-    }
-    mql.addEventListener("change", onChange)
-    setIsLandscape(mql.matches)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+  // We don't have access to the screen on the server and assume the device is not landscape.
+  // We use useSyncExternalStore to also render client-side once with this placeholder value
+  // so we don't get hydration errors.
+  const isLandscape = useSyncExternalStore(
+    subscribeToLandscapeQuery,
+    getLandscapeQuerySnapshot,
+    getLandscapeQueryServerSnapshot,
+  )
 
   const showMobileView = isMobile || isLandscape
   const showMobileViewRef = useRef(showMobileView)
@@ -690,7 +730,7 @@ export default function TimelinePage() {
       })
     })
     return () => window.cancelAnimationFrame(id)
-  }, [])
+  }, [capture, loaderData.b_id_farm, calendar])
 
   const ganttRef = useRef<TimelineGanttViewHandle>(null)
   const registerJumpToYear = useCalendarJump((state) => state.registerJumpToYear)
@@ -705,7 +745,11 @@ export default function TimelinePage() {
     showFutureEvents: false,
   })
 
-  const [sheetRequest, setSheetRequest] = useState<AddEventSheetRequest>()
+  // The sheet request, tagged with the actionData it was opened under. Closed by the user
+  // (setSheetState(undefined)) or by a *newer* actionData reporting closeSheet (see sheetRequest below).
+  const [sheetState, setSheetState] = useState<
+    { request: AddEventSheetRequest; openedWithActionData: unknown } | undefined
+  >()
   const [undo, setUndo] = useState<{ run: () => void } | null>(null)
   const handleUndoChange = useCallback(
     (run: (() => void) | null) => setUndo(run ? { run } : null),
@@ -716,10 +760,10 @@ export default function TimelinePage() {
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
     ""
 
-  const calendarYear = useMemo(() => {
-    const parsed = Number(calendar)
-    return Number.isNaN(parsed) ? new Date().getFullYear() : parsed
-  }, [calendar])
+  const parsedCalendarParam = Number(calendar)
+  const calendarYear = Number.isNaN(parsedCalendarParam)
+    ? Number(storedCalendar)
+    : parsedCalendarParam
 
   const fertilizerTypeById = useMemo(
     () => new Map(loaderData.fertilizerOptions.map((f) => [f.value, f])),
@@ -743,18 +787,20 @@ export default function TimelinePage() {
     })
   }, [registerJumpToYear])
 
-  // Close the sheet if the action succeeds.
-  useEffect(() => {
-    if (lastActionData.current === actionData) {
-      return
-    }
+  // Close the sheet once the action that was submitted while it was open succeeds.
+  if (
+    sheetState &&
+    actionData !== sheetState.openedWithActionData &&
+    (actionData as { closeSheet?: boolean } | undefined)?.closeSheet
+  ) {
+    setSheetState(undefined)
+  }
 
-    if ((actionData as any)?.closeSheet) {
-      setSheetRequest(undefined)
-    }
+  const sheetRequest = sheetState?.request
 
-    lastActionData.current = actionData
-  }, [actionData])
+  function setSheetRequest(request: AddEventSheetRequest | undefined) {
+    setSheetState(request ? { request, openedWithActionData: actionData } : undefined)
+  }
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,
@@ -825,6 +871,7 @@ export default function TimelinePage() {
       <AddEventSheet
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}
+        lastCultivationAvailabilityYear={loaderData.lastCultivationAvailabilityYear}
         canModify={loaderData.farmWritePermission}
         fertilizerOptions={loaderData.fertilizerOptions}
         cultivationOptions={loaderData.cultivationOptions}
