@@ -305,7 +305,7 @@ export async function getFarmGroup(
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal requesting the groups. Must be a member of the organization.
  * @param b_id_organization - The identifier of the organization.
- * @returns The groups of the organization; an empty array when there are none. See {@link getFarmGroup} for `b_id_farms` and `memberships`.
+ * @returns The groups of the organization; an empty array when there are none. See `getFarmGroup` for `b_id_farms` and `memberships`.
  *
  * @throws {Error} If the principal is not a member of the organization.
  *
@@ -785,7 +785,7 @@ export async function updateFarmGroupMembership(
  * Deletes a period in which a farm is part of a group, as if the farm never was part of the group
  * in that period.
  *
- * Unlike {@link removeFarmFromGroup}, which records an end date and keeps the history, this deletes
+ * Unlike `removeFarmFromGroup`, which records an end date and keeps the history, this deletes
  * the joining event and, when present, the leaving event of the period. Use it to correct a period
  * that was recorded by mistake. Other periods of the farm in the group are kept.
  *

@@ -72,7 +72,8 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
                   </li>
                   <li>
                     <span className="text-foreground font-medium">
-                      Consumptieaardappel, vroeg en Pootaardappelen, uitgroeiteelt (loofvernietiging na 15 augustus):
+                      Consumptieaardappel, vroeg en Pootaardappelen, uitgroeiteelt (loofvernietiging
+                      na 15 augustus):
                     </span>{" "}
                     De datum van loofvernietiging wordt nog niet vastgelegd in de applicatie. Er
                     wordt daarom niet gecontroleerd of het loof na 15 augustus is vernietigd.
