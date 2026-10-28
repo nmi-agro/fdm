@@ -20,6 +20,29 @@ export const meta: MetaFunction = () => {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    version: "v0.39.0",
+    date: "28 oktober 2026",
+    title:
+      "Effect van een bemesting zien vóór het opslaan, bedrijfsgroepen en bemestingsadvies op de kaart",
+    description:
+      "Bij het invoeren van een bemesting ziet u nu vóór het opslaan wat die betekent voor de gebruiksruimte, het bemestingsadvies en de stikstofbalans. In de Atlas kunt u het bemestingsadvies per perceel op de kaart bekijken, en organisaties kunnen hun bedrijven in groepen indelen. Daarnaast kunt u bij het importeren van percelen per kolom kiezen welke waarde u overneemt.",
+    items: [
+      "Effect van een bemesting vooraf zien: Bij het toevoegen of wijzigen van een bemesting ziet u tijdens het invullen wat deze betekent voor de gebruiksruimte, het N-, P₂O₅- en K₂O-advies en de stikstofbalans, per perceel en voor het hele bedrijf. Een overschrijding van een norm geeft een waarschuwing, maar opslaan blijft mogelijk. Dit geldt voor een bemesting op meerdere percelen, op één perceel en voor het aanpassen van meerdere bemestingen met dezelfde meststof tegelijk. De formulieren staan nu op een eigen pagina in plaats van in een venster.",
+      "Bemestingsadvies op de kaart: In de Atlas is de kaartlaag 'Bemestingsadvies' toegevoegd. Elk perceel krijgt een kleur op basis van wat er voor het gekozen nutriënt nog gegeven kan worden, welk deel van het advies al is gegeven of het advies zelf. Het advies verschijnt per perceel zodra het is berekend. Op de kaart, in de tabel en in de samenvattingen worden nu dezelfde kleuren gebruikt: oranje onder 90% van het advies, groen tussen 90% en 110% en rood daarboven.",
+      "Bedrijfsgroepen voor organisaties: Organisaties kunnen hun bedrijven indelen in groepen, bijvoorbeeld per project of studiegroep. Per bedrijf legt u vast vanaf wanneer, en eventueel tot wanneer, het bij een groep hoort. Op de organisatiepagina's voor de balansen, indicatoren, maatregelen en de indicatorenkaart kunt u een groep kiezen en ziet u alleen de bedrijven die in het gekozen jaar tot die groep behoorden.",
+      "Stikstofbalans met werkzame stikstof: U kunt de stikstofbalans nu ook berekenen met werkzame stikstof in plaats van totale stikstof. De streefwaarde geldt alleen voor de berekening met totale stikstof en wordt daarom alleen daar getoond.",
+      "Gebruiksnormen gecorrigeerd en aangevuld: Voor tijdelijk grasland wordt de periode uit tabel 2 van RVO nu nauwkeuriger bepaald, onder meer bij laat gezaaid gras en bij grasland dat in het voorjaar wordt gescheurd voor een andere teelt. Voor gras voor industriële verwerking telt de zaaidatum mee. In 2026 gelden de kortingen voor graslandvernieuwing en -vernietiging alleen op zand en löss; in de vorige versie werden ze ook op klei en veen toegepast. De norm voor 'Bladgewassen overig' en 'Kruiden' wordt nu berekend. In de toelichting bij de normen staan twee situaties die niet worden ondersteund: aparte normen voor wortel- en zaadkruiden, en uitgroeiteelt van aardappelen met loofvernietiging na 15 augustus.",
+      "Percelen importeren: keuze per kolom: Bij het vergelijken van uw percelen met die van RVO of een shapefile kiest u nu per kolom of u de waarde van RVO overneemt, de huidige waarde houdt of zelf een waarde invult. Standaard volgt elk perceel RVO. Voordat de wijzigingen worden doorgevoerd, ziet u welke percelen worden toegevoegd, bijgewerkt, beëindigd of verwijderd.",
+      "Teeltcodes per jaar: U kunt alleen nog gewascodes kiezen die RVO in het betreffende jaar accepteert. Bestaande teelten blijven ongewijzigd; is hun code niet meer geldig, dan ziet u een waarschuwing.",
+      "Aanbevolen maatregelen: Van maatregelen met varianten, zoals 'Hoger stuwpeil in hoofdwatergang' met 20 cm of 35 cm, wordt alleen nog de variant met het meeste effect aanbevolen. Voor de indicatoren worden nu alle bodemanalyses tot en met het gekozen jaar gebruikt, zodat vaker met gemeten waarden wordt gerekend.",
+      "Bedrijfsgegevens uit het KvK Handelsregister: Bij het aanmaken van een bedrijf worden de naam en het adres opgehaald aan de hand van het KvK-nummer. Op de instellingenpagina van een bedrijf kunt u dit later ook doen.",
+      "Gegevens beschikbaar via de API: De BLN3-indicatoren, de aanbevolen maatregelen en de bedrijfsgroepen zijn nu ook op te vragen via de API, zodat andere systemen met dezelfde scores en aanbevelingen kunnen werken. Meer informatie vindt u in de documentatie van de API.",
+      "Kalenderjaar en einddatum van percelen: Een perceel dat op 31 december of 1 januari is beëindigd, verschijnt niet meer in het volgende jaar. Opent u een perceel voor een jaar waarin het niet in gebruik is, dan ziet u een melding met een link naar het juiste jaar.",
+      "Percelen ophalen bij RVO met uw eigen eHerkenning: Voordat u verbinding maakt met RVO, kiest u of u inlogt met de eHerkenning van het bedrijf zelf of met die van uw organisatie met een machtiging. Boeren die met hun eigen eHerkenning inloggen, krijgen niet langer de melding 'Toegang geweigerd'. De geverifieerde status van bedrijven wordt voorlopig niet getoond.",
+      "Kleine verbeteringen: De BLN3-indicatoren konden voor sommige percelen niet worden berekend; dat is opgelost. Het webadres van een organisatie blijft gelijk wanneer u de naam wijzigt. De eenheden en namen van enkele bodemparameters zijn in lijn gebracht met de definities van het NMI. Een BodemConditieScore heeft in de Tijdlijn een eigen pictogram, en geselecteerde rijen in de percelentabel zijn groen gemarkeerd.",
+    ],
+  },
+  {
     version: "v0.37.0",
     date: "2 oktober 2026",
     title: "Bewerken in de Tijdlijn en AI-bemestingsassistent beschikbaar voor iedereen",
