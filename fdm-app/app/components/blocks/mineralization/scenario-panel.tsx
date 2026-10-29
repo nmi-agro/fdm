@@ -639,9 +639,11 @@ export function ScenarioPanel({
                   </Label>
                   <Select
                     value={app.p_app_method}
-                    onValueChange={(p_app_method) =>
-                      dispatch({ type: "update_application", index, patch: { p_app_method } })
-                    }
+                    onValueChange={(p_app_method) => {
+                      if (typeof p_app_method === "string") {
+                        dispatch({ type: "update_application", index, patch: { p_app_method } })
+                      }
+                    }}
                   >
                     <SelectTrigger id={`${rowId}-method`} className="w-full text-base sm:text-sm">
                       <SelectValue />

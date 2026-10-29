@@ -183,7 +183,11 @@ const MatchCell = memo(
       <Select
         value={matchId}
         disabled={!isDateValid}
-        onValueChange={(value) => onFieldChange(analysisId, value)}
+        onValueChange={(value) => {
+          if (typeof value === "string") {
+            onFieldChange(analysisId, value)
+          }
+        }}
       >
         <SelectTrigger className="h-8 w-[250px] text-xs">
           <SelectValue placeholder="Selecteer perceel..." />

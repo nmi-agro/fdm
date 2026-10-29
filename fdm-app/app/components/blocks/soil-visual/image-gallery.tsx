@@ -870,7 +870,14 @@ export function ImageGallery({
               <label className="text-sm font-medium" htmlFor="annotation-indicator">
                 Indicator
               </label>
-              <Select value={annotationIndicator} onValueChange={setAnnotationIndicator}>
+              <Select
+                value={annotationIndicator}
+                onValueChange={(value) => {
+                  if (typeof value === "string") {
+                    setAnnotationIndicator(value)
+                  }
+                }}
+              >
                 <SelectTrigger id="annotation-indicator">
                   <SelectValue placeholder="Kies een indicator" />
                 </SelectTrigger>

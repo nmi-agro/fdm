@@ -244,6 +244,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
                 roles={roles}
                 value={principal.role}
                 onValueChange={(value) => {
+                  if (typeof value !== "string") return
                   const formData = new FormData()
                   formData.append("intent", "update_agent_role")
                   formData.append("principal_id", principal.principal_id)

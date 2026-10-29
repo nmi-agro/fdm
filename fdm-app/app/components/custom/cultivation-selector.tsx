@@ -79,7 +79,14 @@ export function CultivationSelector({
     )
 
   return (
-    <Select value={selectedCultivationId} onValueChange={handleValueChange}>
+    <Select
+      value={selectedCultivationId}
+      onValueChange={(value) => {
+        if (typeof value === "string") {
+          handleValueChange(value)
+        }
+      }}
+    >
       <SelectTrigger className="text-foreground h-auto w-auto gap-2 border-none bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0 [&>span]:line-clamp-1 [&>svg]:hidden">
         {triggerContent}
       </SelectTrigger>

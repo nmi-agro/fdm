@@ -317,6 +317,9 @@ export function FieldImpactTable({
           <Select
             value={`${sort.key}:${sort.desc ? "desc" : "asc"}`}
             onValueChange={(value) => {
+              if (typeof value !== "string") {
+                return
+              }
               const [key, direction] = value.split(":") as [SortKey, string]
               setSort({ key, desc: direction === "desc" })
             }}

@@ -119,6 +119,7 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
           <Select
             value={tag.color ?? undefined}
             onValueChange={(value) => {
+              if (typeof value !== "string") return
               const formData = new FormData()
               formData.append("intent", "update_tag")
               formData.append("tag_id", tag.tag_id)

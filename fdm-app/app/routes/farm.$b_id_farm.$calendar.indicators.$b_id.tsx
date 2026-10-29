@@ -830,7 +830,14 @@ export default function IndicatorsFieldDetail() {
             <div className="relative h-64 overflow-hidden rounded-lg border sm:h-80 lg:sticky lg:top-4 lg:h-[560px]">
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
-                <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
+                <Select
+                  value={mapScoreKey}
+                  onValueChange={(value) => {
+                    if (typeof value === "string") {
+                      setMapScoreKey(value)
+                    }
+                  }}
+                >
                   <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>

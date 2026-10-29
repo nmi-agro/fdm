@@ -143,6 +143,7 @@ export const PrincipalRow = ({
               value={selectedRole}
               name="role"
               onValueChange={(value) => {
+                if (typeof value !== "string") return
                 const formData = new FormData()
                 formData.append("intent", "update_role")
                 formData.append("username", username)

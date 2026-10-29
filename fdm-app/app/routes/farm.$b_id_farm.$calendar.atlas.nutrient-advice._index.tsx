@@ -306,7 +306,14 @@ export default function FarmAtlasNutrientAdviceBlock() {
           controls grow to a 40 px target. */}
       <Card className="absolute top-3 right-14 left-3 z-10 shadow-md md:right-auto md:w-72">
         <CardContent className="flex flex-col gap-2 p-2">
-          <Select value={nutrient} onValueChange={setNutrient}>
+          <Select
+            value={nutrient}
+            onValueChange={(value) => {
+              if (typeof value === "string") {
+                setNutrient(value)
+              }
+            }}
+          >
             <SelectTrigger
               className="h-8 w-full text-xs pointer-coarse:h-10"
               aria-label="Kies een nutriënt"

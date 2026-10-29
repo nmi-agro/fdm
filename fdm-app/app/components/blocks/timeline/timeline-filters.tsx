@@ -87,7 +87,11 @@ export function TimelineFiltersPopover({
               )}
             </div>
             <Select
-              onValueChange={(value) => period.onChange(value === ALL_PERIOD_VALUE ? "" : value)}
+              onValueChange={(value) => {
+                if (typeof value === "string") {
+                  period.onChange(value === ALL_PERIOD_VALUE ? "" : value)
+                }
+              }}
               value={period.value === "" ? ALL_PERIOD_VALUE : period.value}
             >
               <SelectTrigger className="w-full">

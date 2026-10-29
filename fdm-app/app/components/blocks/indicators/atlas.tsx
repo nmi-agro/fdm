@@ -237,7 +237,14 @@ export function ScoreSelect({
     <Card className="absolute top-3 left-3 z-10 w-64 shadow-md">
       <CardContent className="space-y-2 p-2">
         <div className="flex items-center gap-2">
-          <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+          <Select
+            value={selectedProperty}
+            onValueChange={(value) => {
+              if (typeof value === "string") {
+                setSelectedProperty(value)
+              }
+            }}
+          >
             <SelectTrigger className="h-8 flex-1 text-xs">
               <SelectValue />
             </SelectTrigger>

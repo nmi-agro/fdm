@@ -244,7 +244,16 @@ const MemberAction = ({
     <fetcher.Form method="post" className="flex items-center space-x-4">
       <Spinner className={cn(fetcher.state !== "submitting" && "invisible")} />
       <input type="hidden" name="memberId" value={member.id} />
-      <Select name="role" value={role} onValueChange={submitRoleChange} disabled={disabled}>
+      <Select
+        name="role"
+        value={role}
+        onValueChange={(value) => {
+          if (typeof value === "string") {
+            submitRoleChange(value)
+          }
+        }}
+        disabled={disabled}
+      >
         <SelectTrigger className="ml-auto w-27.5">
           <SelectValue placeholder="Select" />
         </SelectTrigger>

@@ -449,7 +449,16 @@ function AddFarmForm({
               <Label htmlFor="add-farm" className="text-sm">
                 Bedrijf
               </Label>
-              <Select name="b_id_farm" value={farm} onValueChange={setFarm} required>
+              <Select
+                name="b_id_farm"
+                value={farm}
+                onValueChange={(value) => {
+                  if (typeof value === "string") {
+                    setFarm(value)
+                  }
+                }}
+                required
+              >
                 <SelectTrigger id="add-farm">
                   <SelectValue placeholder="Kies een bedrijf" />
                 </SelectTrigger>
