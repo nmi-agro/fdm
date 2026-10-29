@@ -76,12 +76,17 @@ export default function AtlasSoilAnalysisFieldDetailLayout() {
       <main className="p-6">
         <Outlet />
         <div className="fixed right-6 bottom-6 z-50">
-          <Button asChild size="lg" className="rounded-full shadow-lg">
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}>
-              <MapIcon className="mr-2 h-4 w-4" />
-              Terug naar kaart
-            </NavLink>
-          </Button>
+          <Button
+            size="lg"
+            className="rounded-full shadow-lg"
+            nativeButton={false}
+            render={
+              <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}>
+                <MapIcon className="mr-2 h-4 w-4" />
+                Terug naar kaart
+              </NavLink>
+            }
+          />
         </div>
       </main>
     </SidebarInset>

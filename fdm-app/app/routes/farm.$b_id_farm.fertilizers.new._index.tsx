@@ -114,17 +114,22 @@ export default function NewFertilizerIndexPage() {
                   <div className="bg-background mb-6 flex h-16 w-16 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-110">
                     <Plus className="text-primary h-8 w-8" />
                   </div>
-                  <Button asChild size="lg" className="w-full font-bold shadow-sm">
-                    <Link
-                      to={
-                        searchParams.has("returnUrl")
-                          ? `custom?returnUrl=${encodeURIComponent(stripDataSuffixFromAddress(searchParams.get("returnUrl") ?? ""))}`
-                          : "custom"
-                      }
-                    >
-                      Start leeg formulier
-                    </Link>
-                  </Button>
+                  <Button
+                    size="lg"
+                    className="w-full font-bold shadow-sm"
+                    nativeButton={false}
+                    render={
+                      <Link
+                        to={
+                          searchParams.has("returnUrl")
+                            ? `custom?returnUrl=${encodeURIComponent(stripDataSuffixFromAddress(searchParams.get("returnUrl") ?? ""))}`
+                            : "custom"
+                        }
+                      >
+                        Start leeg formulier
+                      </Link>
+                    }
+                  />
                 </Card>
               </div>
 

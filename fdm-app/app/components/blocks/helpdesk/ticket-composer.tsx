@@ -141,9 +141,11 @@ export function TicketComposer({
               }}
             />
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button variant="outline" asChild>
-                <NavLink to="/support">Annuleren</NavLink>
-              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<NavLink to="/support">Annuleren</NavLink>}
+              />
               <Button type="submit">Verzenden</Button>
             </div>
           </CardContent>

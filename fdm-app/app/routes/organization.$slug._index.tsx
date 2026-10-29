@@ -304,11 +304,15 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to="./settings" className={cn(!loaderData.canModify && "invisible")}>
-                      Instellingen
-                    </NavLink>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={
+                      <NavLink to="./settings" className={cn(!loaderData.canModify && "invisible")}>
+                        Instellingen
+                      </NavLink>
+                    }
+                  />
                 </div>
                 <Card>
                   <CardContent className="space-y-4 pt-6">
@@ -364,9 +368,11 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Groepen</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to={`./${loaderData.calendar}/groups`}>Beheer</NavLink>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<NavLink to={`./${loaderData.calendar}/groups`}>Beheer</NavLink>}
+                  />
                 </div>
                 <Card>
                   <CardContent className="pt-6">
@@ -408,11 +414,15 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Leden</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to="./members" className={cn(!loaderData.canModify && "invisible")}>
-                      Beheer
-                    </NavLink>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={
+                      <NavLink to="./members" className={cn(!loaderData.canModify && "invisible")}>
+                        Beheer
+                      </NavLink>
+                    }
+                  />
                 </div>
                 <Card>
                   <CardContent className="pt-6">

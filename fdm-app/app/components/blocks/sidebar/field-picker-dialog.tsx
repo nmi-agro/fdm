@@ -87,6 +87,7 @@ export function FieldPickerDialog({
           <div className="flex flex-col gap-4 p-6 pt-2">
             <Button
               className="w-full"
+              nativeButton={false}
               render={
                 <NavLink to={createFieldLink}>
                   <Plus />

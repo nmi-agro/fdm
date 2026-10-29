@@ -154,9 +154,7 @@ export function AddBlockedEmailForm() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild onClick={resetForm}>
-        <Button>Nieuw toevoegen</Button>
-      </DialogTrigger>
+      <DialogTrigger onClick={resetForm} render={<Button>Nieuw toevoegen</Button>} />
       <DialogContent>
         <RemixFormProvider {...form}>
           <Form
@@ -213,11 +211,13 @@ export function AddBlockedEmailForm() {
               />
             </fieldset>
             <DialogFooter className="gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Sluiten
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Sluiten
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={isSubmitting}>
                 Toevoegen{isSubmitting && <Spinner />}
               </Button>

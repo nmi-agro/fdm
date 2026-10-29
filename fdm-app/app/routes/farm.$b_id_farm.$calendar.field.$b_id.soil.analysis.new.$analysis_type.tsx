@@ -122,12 +122,15 @@ export default function FarmFieldSoilOverviewBlock() {
           </h3>
           <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
         </div>
-        <Button asChild>
-          <NavLink to="../soil/analysis/new">
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <Button
+          nativeButton={false}
+          render={
+            <NavLink to="../soil/analysis/new">
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          }
+        />
       </div>
       <Separator />
       <SoilAnalysisForm

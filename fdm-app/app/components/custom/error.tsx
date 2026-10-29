@@ -64,16 +64,26 @@ export function ClientErrorPage({ status }: { status?: number | null } = {}) {
             <ArrowLeft className="mr-2 size-4" /> Terug naar vorige pagina
           </Button>
           <div className="flex items-center gap-6">
-            <Button variant="link" className="text-muted-foreground h-auto p-0" asChild>
-              <NavLink to="/farm">
-                <Home className="mr-1.5 size-3.5" /> Mijn bedrijven
-              </NavLink>
-            </Button>
-            <Button variant="link" className="text-muted-foreground h-auto p-0" asChild>
-              <NavLink to="/support/new">
-                <LifeBuoy className="mr-1.5 size-3.5" /> Ondersteuning
-              </NavLink>
-            </Button>
+            <Button
+              variant="link"
+              className="text-muted-foreground h-auto p-0"
+              nativeButton={false}
+              render={
+                <NavLink to="/farm">
+                  <Home className="mr-1.5 size-3.5" /> Mijn bedrijven
+                </NavLink>
+              }
+            />
+            <Button
+              variant="link"
+              className="text-muted-foreground h-auto p-0"
+              nativeButton={false}
+              render={
+                <NavLink to="/support/new">
+                  <LifeBuoy className="mr-1.5 size-3.5" /> Ondersteuning
+                </NavLink>
+              }
+            />
           </div>
         </div>
       </div>
@@ -170,11 +180,14 @@ export function UnexpectedErrorPage({
       </p>
 
       <div className="flex flex-col gap-4 sm:flex-row">
-        <Button asChild>
-          <NavLink to="/">
-            <Home className="mr-2 h-4 w-4" /> Terug naar de hoofdpagina
-          </NavLink>
-        </Button>
+        <Button
+          nativeButton={false}
+          render={
+            <NavLink to="/">
+              <Home className="mr-2 h-4 w-4" /> Terug naar de hoofdpagina
+            </NavLink>
+          }
+        />
         <Button variant="outline" onClick={copyStackTrace}>
           <Copy className="mr-2 h-4 w-4" />
           {copyState === "copied"

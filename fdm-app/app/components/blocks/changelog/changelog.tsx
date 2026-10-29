@@ -116,22 +116,24 @@ function ReleaseSection({
         >
           {release.title}
         </h2>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="link"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground mt-1 h-auto px-0 py-1"
-            aria-controls={contentId}
-          >
-            {isOpen
-              ? "Verberg wijzigingen"
-              : `Toon ${pluralize(release.items.length, "wijziging", "wijzigingen")}`}
-            <ChevronDown
-              aria-hidden="true"
-              className={cn("transition-transform", isOpen && "rotate-180")}
-            />
-          </Button>
-        </CollapsibleTrigger>
+        <CollapsibleTrigger
+          render={
+            <Button
+              variant="link"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground mt-1 h-auto px-0 py-1"
+              aria-controls={contentId}
+            >
+              {isOpen
+                ? "Verberg wijzigingen"
+                : `Toon ${pluralize(release.items.length, "wijziging", "wijzigingen")}`}
+              <ChevronDown
+                aria-hidden="true"
+                className={cn("transition-transform", isOpen && "rotate-180")}
+              />
+            </Button>
+          }
+        />
         <CollapsibleContent id={contentId}>
           <p className="mt-3 leading-7 text-pretty">{release.description}</p>
           <ul className="mt-6 space-y-6">

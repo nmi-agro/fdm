@@ -55,18 +55,20 @@ export function TicketPrioritySelector({
   return (
     <DropdownMenu>
       <div className="flex flex-row items-center gap-2">
-        <DropdownMenuTrigger asChild>
-          <Button
-            id={triggerId}
-            variant="outline"
-            size="sm"
-            className="gap-2 font-medium"
-            disabled={!canModify || fetcher.state !== "idle"}
-          >
-            {priorityInfo.label}
-            <ChevronDown className="ms-1 size-3 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              id={triggerId}
+              variant="outline"
+              size="sm"
+              className="gap-2 font-medium"
+              disabled={!canModify || fetcher.state !== "idle"}
+            >
+              {priorityInfo.label}
+              <ChevronDown className="ms-1 size-3 opacity-50" />
+            </Button>
+          }
+        />
         <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
       </div>
       <DropdownMenuContent align="start">

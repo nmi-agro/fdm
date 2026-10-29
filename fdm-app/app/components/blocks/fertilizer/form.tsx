@@ -269,14 +269,20 @@ export function FertilizerForm({
                   sjabloon om een eigen variant aan te maken.
                 </span>
                 {p_id && (
-                  <Button variant="outline" size="sm" className="shrink-0 font-semibold" asChild>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Gebruik als sjabloon
-                    </NavLink>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 font-semibold"
+                    nativeButton={false}
+                    render={
+                      <NavLink
+                        to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Gebruik als sjabloon
+                      </NavLink>
+                    }
+                  />
                 )}
               </AlertDescription>
             </Alert>

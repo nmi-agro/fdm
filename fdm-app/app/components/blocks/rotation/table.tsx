@@ -328,12 +328,14 @@ export function DataTable<TData extends RotationExtended>({
         />
         <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {table
                 .getAllColumns()
@@ -366,25 +368,27 @@ export function DataTable<TData extends RotationExtended>({
           <FieldFilterToggle />
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(!canAddItem ? "hidden" : "")}>
-                  {isFertilizerButtonDisabled ? (
-                    <Button disabled={isFertilizerButtonDisabled}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Bemesting
-                    </Button>
-                  ) : (
-                    <NavLink
-                      to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/fertilizer`)}
-                    >
-                      <Button>
+              <TooltipTrigger
+                render={
+                  <div className={cn(!canAddItem ? "hidden" : "")}>
+                    {isFertilizerButtonDisabled ? (
+                      <Button disabled={isFertilizerButtonDisabled}>
                         <Plus className="mr-2 h-4 w-4" />
                         Bemesting
                       </Button>
-                    </NavLink>
-                  )}
-                </div>
-              </TooltipTrigger>
+                    ) : (
+                      <NavLink
+                        to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/fertilizer`)}
+                      >
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Bemesting
+                        </Button>
+                      </NavLink>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent>
                 <p>{fertilizerTooltipContent}</p>
               </TooltipContent>
@@ -392,37 +396,11 @@ export function DataTable<TData extends RotationExtended>({
           </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(!canAddItem ? "hidden" : "")}>
-                  {isHarvestButtonDisabled ? (
-                    <Button disabled={isHarvestButtonDisabled}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      {selectedCultivations.length === 1
-                        ? getHarvestTerm(
-                            selectedCultivations[0].b_lu_croprotation,
-                            false,
-                            selectedCultivations[0].b_lu_harvestable,
-                            true,
-                          )
-                        : "Oogst"}{" "}
-                      toevoegen
-                    </Button>
-                  ) : harvestErrorMessage ? (
-                    <Button onClick={() => notify.error(harvestErrorMessage)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      {selectedCultivations.length === 1
-                        ? getHarvestTerm(
-                            selectedCultivations[0].b_lu_croprotation,
-                            false,
-                            selectedCultivations[0].b_lu_harvestable,
-                            true,
-                          )
-                        : "Oogst"}{" "}
-                      toevoegen
-                    </Button>
-                  ) : (
-                    <NavLink to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/harvest`)}>
-                      <Button>
+              <TooltipTrigger
+                render={
+                  <div className={cn(!canAddItem ? "hidden" : "")}>
+                    {isHarvestButtonDisabled ? (
+                      <Button disabled={isHarvestButtonDisabled}>
                         <Plus className="mr-2 h-4 w-4" />
                         {selectedCultivations.length === 1
                           ? getHarvestTerm(
@@ -434,10 +412,40 @@ export function DataTable<TData extends RotationExtended>({
                           : "Oogst"}{" "}
                         toevoegen
                       </Button>
-                    </NavLink>
-                  )}
-                </div>
-              </TooltipTrigger>
+                    ) : harvestErrorMessage ? (
+                      <Button onClick={() => notify.error(harvestErrorMessage)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        {selectedCultivations.length === 1
+                          ? getHarvestTerm(
+                              selectedCultivations[0].b_lu_croprotation,
+                              false,
+                              selectedCultivations[0].b_lu_harvestable,
+                              true,
+                            )
+                          : "Oogst"}{" "}
+                        toevoegen
+                      </Button>
+                    ) : (
+                      <NavLink
+                        to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/harvest`)}
+                      >
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          {selectedCultivations.length === 1
+                            ? getHarvestTerm(
+                                selectedCultivations[0].b_lu_croprotation,
+                                false,
+                                selectedCultivations[0].b_lu_harvestable,
+                                true,
+                              )
+                            : "Oogst"}{" "}
+                          toevoegen
+                        </Button>
+                      </NavLink>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent>
                 <p>{harvestTooltipContent}</p>
               </TooltipContent>

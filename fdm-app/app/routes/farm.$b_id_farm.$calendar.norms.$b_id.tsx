@@ -340,9 +340,9 @@ const FertilizerApplicationCard = ({
           <ItemTitle>{title}</ItemTitle>
           {details && (
             <Tooltip>
-              <TooltipTrigger asChild>
-                <ItemDescription className="max-w-xs text-xs">{details}</ItemDescription>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={<ItemDescription className="max-w-xs text-xs">{details}</ItemDescription>}
+              />
               <TooltipContent>{details}</TooltipContent>
             </Tooltip>
           )}

@@ -47,16 +47,18 @@ export function CultivationSelector({
     variant === "icon" ? (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="h-3 w-3 cursor-pointer rounded-full"
-              style={{
-                backgroundColor: getCultivationColor(
-                  selectedCultivation?.b_lu_croprotation ?? undefined,
-                ),
-              }}
-            />
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <div
+                className="h-3 w-3 cursor-pointer rounded-full"
+                style={{
+                  backgroundColor: getCultivationColor(
+                    selectedCultivation?.b_lu_croprotation ?? undefined,
+                  ),
+                }}
+              />
+            }
+          />
           <TooltipContent>
             <p>{selectedCultivation?.b_lu_name || "Selecteer gewas"}</p>
           </TooltipContent>

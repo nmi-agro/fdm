@@ -20,11 +20,13 @@ interface FarmDeleteDialogProps {
 export function FarmDeleteDialog({ farmName, isSubmitting }: FarmDeleteDialogProps) {
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="destructive" disabled={isSubmitting}>
-          Bedrijf verwijderen
-        </Button>
-      </AlertDialogTrigger>
+      <AlertDialogTrigger
+        render={
+          <Button variant="destructive" disabled={isSubmitting}>
+            Bedrijf verwijderen
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>

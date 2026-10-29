@@ -49,14 +49,12 @@ export function CarbonSequestrationCard({
           </CardTitle>
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Meer informatie over koolstofvastlegging"
-                  className="cursor-help"
-                >
-                  <HelpCircle className="text-muted-foreground h-4 w-4" />
-                </button>
+              <TooltipTrigger
+                type="button"
+                aria-label="Meer informatie over koolstofvastlegging"
+                className="cursor-help"
+              >
+                <HelpCircle className="text-muted-foreground h-4 w-4" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="text-xs">

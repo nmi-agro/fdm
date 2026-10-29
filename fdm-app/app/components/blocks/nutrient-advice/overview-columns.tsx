@@ -75,24 +75,22 @@ function NutrientColumnHeader({
   const sorted = column.getIsSorted()
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={() => column.toggleSorting(sorted === "asc")}
-          className="text-muted-foreground hover:text-foreground flex w-full flex-col items-end gap-0.5 text-right whitespace-nowrap transition-colors"
-        >
-          <span className="flex items-center gap-1 font-medium">
-            {nutrient.symbol}
-            {sorted === "asc" ? (
-              <ArrowUp className="h-3 w-3" />
-            ) : sorted === "desc" ? (
-              <ArrowDown className="h-3 w-3" />
-            ) : null}
-          </span>
-          <span className="text-xs leading-none font-normal">
-            {formatUnit(nutrient.unit, unitMode)}
-          </span>
-        </button>
+      <TooltipTrigger
+        type="button"
+        onClick={() => column.toggleSorting(sorted === "asc")}
+        className="text-muted-foreground hover:text-foreground flex w-full flex-col items-end gap-0.5 text-right whitespace-nowrap transition-colors"
+      >
+        <span className="flex items-center gap-1 font-medium">
+          {nutrient.symbol}
+          {sorted === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : sorted === "desc" ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : null}
+        </span>
+        <span className="text-xs leading-none font-normal">
+          {formatUnit(nutrient.unit, unitMode)}
+        </span>
       </TooltipTrigger>
       <TooltipContent>
         <p className="font-medium">{nutrient.name}</p>
@@ -126,9 +124,9 @@ function NutrientCell({
   if (row.errorMessage || !value) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="text-muted-foreground block text-right">–</span>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={<span className="text-muted-foreground block text-right">–</span>}
+        />
         <TooltipContent>
           <p className="font-medium">Advies niet beschikbaar</p>
           <p className="text-xs">
@@ -251,13 +249,11 @@ function FarmSummaryLabel({ unitMode }: { unitMode: UnitMode }) {
   const isTotal = unitMode === "total"
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button type="button" className="flex flex-col items-start gap-0.5 text-left">
-          <span className="font-medium">{isTotal ? "Bedrijfstotaal" : "Bedrijfsgemiddelde"}</span>
-          <span className="text-muted-foreground text-xs leading-none font-normal">
-            {isTotal ? "alle percelen samen" : "gewogen per ha"}
-          </span>
-        </button>
+      <TooltipTrigger type="button" className="flex flex-col items-start gap-0.5 text-left">
+        <span className="font-medium">{isTotal ? "Bedrijfstotaal" : "Bedrijfsgemiddelde"}</span>
+        <span className="text-muted-foreground text-xs leading-none font-normal">
+          {isTotal ? "alle percelen samen" : "gewogen per ha"}
+        </span>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs">
         <p className="text-xs">

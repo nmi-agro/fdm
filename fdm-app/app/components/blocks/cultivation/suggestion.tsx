@@ -79,11 +79,15 @@ export function CultivationSuggestionBanner({
             Voorstel toevoegen
           </Button>
         ) : (
-          <Button size="sm" asChild>
-            <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
-              Voorstel toevoegen
-            </NavLink>
-          </Button>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={
+              <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
+                Voorstel toevoegen
+              </NavLink>
+            }
+          />
         )}
       </div>
     </div>
@@ -108,20 +112,22 @@ export function CultivationSuggestionBadge({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink
-            to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
-            className="max-w-[10rem]"
-          >
-            <Badge
-              variant="secondary"
-              className="hover:bg-secondary/70 flex min-w-0 items-center gap-1"
+        <TooltipTrigger
+          render={
+            <NavLink
+              to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
+              className="max-w-[10rem]"
             >
-              <Sparkles className="h-3 w-3 shrink-0" />
-              <span className="min-w-0 truncate">BRP: {suggestion.b_lu_name}</span>
-            </Badge>
-          </NavLink>
-        </TooltipTrigger>
+              <Badge
+                variant="secondary"
+                className="hover:bg-secondary/70 flex min-w-0 items-center gap-1"
+              >
+                <Sparkles className="h-3 w-3 shrink-0" />
+                <span className="min-w-0 truncate">BRP: {suggestion.b_lu_name}</span>
+              </Badge>
+            </NavLink>
+          }
+        />
         <TooltipContent>
           <p>
             BRP-schatting: {suggestion.b_lu_name} ({calendar}). Klik om toe te voegen als

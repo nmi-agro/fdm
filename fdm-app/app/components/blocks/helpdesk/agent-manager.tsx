@@ -224,14 +224,19 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       {canModify ? (
         <>
           <TableCell>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
-              <NavLink
-                to={`/support/settings/agents/${principal.principal_id}`}
-                aria-label={`Bewerk medewerker ${principal.displayUserName}`}
-              >
-                <Pencil />
-              </NavLink>
-            </Button>
+            <Button
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground"
+              nativeButton={false}
+              render={
+                <NavLink
+                  to={`/support/settings/agents/${principal.principal_id}`}
+                  aria-label={`Bewerk medewerker ${principal.displayUserName}`}
+                >
+                  <Pencil />
+                </NavLink>
+              }
+            />
           </TableCell>
           <TableCell className="align-middle">
             {principal.isActive ? (

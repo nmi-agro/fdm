@@ -13,9 +13,10 @@ export function SoilAnalysisFormSelection() {
           <CardDescription>Analyseformulier uploaden en inlezen</CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-between">
-          <Button asChild>
-            <NavLink to={`./upload${location.search}`}>Kies</NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={<NavLink to={`./upload${location.search}`}>Kies</NavLink>}
+          />
         </CardFooter>
       </Card>
       <Card className="w-auto">
@@ -24,9 +25,10 @@ export function SoilAnalysisFormSelection() {
           <CardDescription>Analyseformulier voor een standaard bodemanalyse</CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-between">
-          <Button asChild>
-            <NavLink to={`./standard${location.search}`}>Kies</NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={<NavLink to={`./standard${location.search}`}>Kies</NavLink>}
+          />
         </CardFooter>
       </Card>
       <Card className="w-auto">
@@ -35,9 +37,10 @@ export function SoilAnalysisFormSelection() {
           <CardDescription>Analyseformulier voor een Nmin bemonstering</CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-between">
-          <Button asChild>
-            <NavLink to={`./nmin${location.search}`}>Kies</NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={<NavLink to={`./nmin${location.search}`}>Kies</NavLink>}
+          />
         </CardFooter>
       </Card>
       <Card className="w-auto">
@@ -46,9 +49,10 @@ export function SoilAnalysisFormSelection() {
           <CardDescription>Analyseformulier met parameters benodigd voor derogatie</CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-between">
-          <Button asChild>
-            <NavLink to={`./derogation${location.search}`}>Kies</NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={<NavLink to={`./derogation${location.search}`}>Kies</NavLink>}
+          />
         </CardFooter>
       </Card>
       <Card className="w-auto">
@@ -57,9 +61,10 @@ export function SoilAnalysisFormSelection() {
           <CardDescription>Analyseformulier met alle bodemparameters beschikbaar</CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-between">
-          <Button asChild>
-            <NavLink to={`./all${location.search}`}>Kies</NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={<NavLink to={`./all${location.search}`}>Kies</NavLink>}
+          />
         </CardFooter>
       </Card>
     </div>

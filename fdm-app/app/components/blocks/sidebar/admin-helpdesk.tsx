@@ -113,14 +113,14 @@ export function SidebarAdminHelpdesk({
             </SidebarMenuItem>
             {/* <SidebarMenuItem>
                         <SidebarMenuButton
-                            asChild
                             isActive={currentHelpdeskPage === "saved_replies"}
-                        >
-                            <NavLink to={"/support/settings/saved-replies"}>
-                                <Bookmark />
-                                <span>Opgeslagen reacties</span>
-                            </NavLink>
-                        </SidebarMenuButton>
+                            render={
+                                <NavLink to={"/support/settings/saved-replies"}>
+                                    <Bookmark />
+                                    <span>Opgeslagen reacties</span>
+                                </NavLink>
+                            }
+                        />
                     </SidebarMenuItem> */}
           </SidebarMenu>
         </SidebarGroupContent>

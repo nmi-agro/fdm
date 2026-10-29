@@ -257,6 +257,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
                 }
               }
             }}
+            nativeButton={false}
             render={
               <div
                 className={cn(

@@ -144,12 +144,16 @@ export default function FieldBcsOverviewRoute() {
           </p>
         </div>
         {loaderData.fieldWritePermission ? (
-          <Button asChild size="lg">
-            <Link to="./new">
-              <Plus className="size-4" />
-              Nieuwe meting toevoegen
-            </Link>
-          </Button>
+          <Button
+            size="lg"
+            nativeButton={false}
+            render={
+              <Link to="./new">
+                <Plus className="size-4" />
+                Nieuwe meting toevoegen
+              </Link>
+            }
+          />
         ) : null}
       </div>
 
@@ -163,9 +167,11 @@ export default function FieldBcsOverviewRoute() {
           </CardHeader>
           {loaderData.fieldWritePermission ? (
             <CardContent>
-              <Button asChild size="lg">
-                <Link to="./new">Eerste beoordeling toevoegen</Link>
-              </Button>
+              <Button
+                size="lg"
+                nativeButton={false}
+                render={<Link to="./new">Eerste beoordeling toevoegen</Link>}
+              />
             </CardContent>
           ) : null}
         </Card>
@@ -206,12 +212,14 @@ export default function FieldBcsOverviewRoute() {
                   </Link>
                   {loaderData.fieldWritePermission ? (
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button type="button" variant="destructive" disabled={isDeleting}>
-                          <Trash2 className="size-4" />
-                          {isDeleting ? "Verwijderen..." : "Verwijderen"}
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger
+                        render={
+                          <Button type="button" variant="destructive" disabled={isDeleting}>
+                            <Trash2 className="size-4" />
+                            {isDeleting ? "Verwijderen..." : "Verwijderen"}
+                          </Button>
+                        }
+                      />
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>BodemConditieScore verwijderen?</AlertDialogTitle>

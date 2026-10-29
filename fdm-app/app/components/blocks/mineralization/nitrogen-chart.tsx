@@ -605,30 +605,28 @@ export function NitrogenChart({
                   aria-hidden
                 />
                 <UiTooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        "bg-background text-foreground focus-visible:ring-ring relative flex size-6 items-center justify-center rounded-full border focus-visible:ring-2 focus-visible:outline-none",
-                        // Invisible 40 px hit area, so the small icon can be tapped
-                        "after:absolute after:-inset-2 after:content-['']",
-                        event.planned && "border-dashed",
-                        scenario && "border-foreground border-2 border-dotted",
-                      )}
-                      aria-label={`${formatShortDate(event.date)}: ${description}${
-                        rain ? ", regen verwacht" : ""
-                      }`}
-                    >
-                      <EventIcon event={event} />
-                      {rain ? (
-                        <span
-                          className="bg-background absolute -top-1.5 -right-1.5 flex size-3.5 items-center justify-center rounded-full border"
-                          aria-hidden
-                        >
-                          <CloudRain className="size-2.5" />
-                        </span>
-                      ) : null}
-                    </button>
+                  <TooltipTrigger
+                    type="button"
+                    className={cn(
+                      "bg-background text-foreground focus-visible:ring-ring relative flex size-6 items-center justify-center rounded-full border focus-visible:ring-2 focus-visible:outline-none",
+                      // Invisible 40 px hit area, so the small icon can be tapped
+                      "after:absolute after:-inset-2 after:content-['']",
+                      event.planned && "border-dashed",
+                      scenario && "border-foreground border-2 border-dotted",
+                    )}
+                    aria-label={`${formatShortDate(event.date)}: ${description}${
+                      rain ? ", regen verwacht" : ""
+                    }`}
+                  >
+                    <EventIcon event={event} />
+                    {rain ? (
+                      <span
+                        className="bg-background absolute -top-1.5 -right-1.5 flex size-3.5 items-center justify-center rounded-full border"
+                        aria-hidden
+                      >
+                        <CloudRain className="size-2.5" />
+                      </span>
+                    ) : null}
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="font-medium">{formatLongDate(event.date)}</p>
@@ -776,15 +774,17 @@ function SeriesTable({ rows }: { rows: ChartRow[] }) {
   const shown = rows.filter((_, i) => i % step === 0 || i === rows.length - 1)
   return (
     <Collapsible>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
-          <ChevronDown
-            className="transition-transform group-data-[state=open]:rotate-180"
-            aria-hidden
-          />
-          Toon als tabel
-        </Button>
-      </CollapsibleTrigger>
+      <CollapsibleTrigger
+        render={
+          <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
+            <ChevronDown
+              className="transition-transform group-data-[state=open]:rotate-180"
+              aria-hidden
+            />
+            Toon als tabel
+          </Button>
+        }
+      />
       <CollapsibleContent>
         <div className="max-h-80 overflow-y-auto">
           <Table>

@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react"
+import { type ReactElement, type ReactNode, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 
 /**
@@ -13,7 +13,7 @@ export function InfoTip({
   content,
   className,
 }: {
-  children: ReactNode
+  children: ReactElement
   content: ReactNode
   className?: string
 }) {
@@ -21,19 +21,17 @@ export function InfoTip({
   return (
     <Tooltip open={open} onOpenChange={setOpen}>
       <TooltipTrigger
-        asChild
+        render={children}
         onClick={(event) => {
           // A tap toggles the tooltip; on hover devices this keeps it open after a click
           event.preventDefault()
           setOpen((prev) => !prev)
         }}
         onPointerDown={(event) => {
-          // Radix closes a tooltip on pointer down; keep that from undoing the tap
+          // Close-on-pointer-down would undo the tap on touch devices; prevent it
           if (event.pointerType !== "mouse") event.preventDefault()
         }}
-      >
-        {children}
-      </TooltipTrigger>
+      />
       <TooltipContent className={className} onPointerDownOutside={() => setOpen(false)}>
         {content}
       </TooltipContent>

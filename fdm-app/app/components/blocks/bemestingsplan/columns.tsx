@@ -100,13 +100,17 @@ export const columns = [
         </>
       )
       return (
-        <Button variant="link" className="h-auto p-0 text-left font-medium" asChild>
-          {isDeleting ? (
-            <span>{contents}</span>
-          ) : (
-            <NavLink to={`./${row.original.p_id_plan}`}>{contents}</NavLink>
-          )}
-        </Button>
+        <Button
+          variant="link"
+          className="h-auto p-0 text-left font-medium"
+          render={
+            isDeleting ? (
+              <span>{contents}</span>
+            ) : (
+              <NavLink to={`./${row.original.p_id_plan}`}>{contents}</NavLink>
+            )
+          }
+        />
       )
     },
   },
@@ -123,30 +127,33 @@ export const columns = [
       return (
         <div className="flex items-center justify-end gap-1">
           <Tooltip>
-            <TooltipTrigger asChild>
-              {isDeleting ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  disabled
-                  aria-label="PDF downloaden"
-                >
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  asChild
-                >
-                  <a href={downloadUrl} download aria-label="PDF downloaden">
+            <TooltipTrigger
+              render={
+                isDeleting ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                    disabled
+                    aria-label="PDF downloaden"
+                  >
                     <Download className="h-4 w-4" aria-hidden="true" />
-                  </a>
-                </Button>
-              )}
-            </TooltipTrigger>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground h-8 w-8"
+                    nativeButton={false}
+                    render={
+                      <a href={downloadUrl} download aria-label="PDF downloaden">
+                        <Download className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                    }
+                  />
+                )
+              }
+            />
             <TooltipContent>PDF direct downloaden</TooltipContent>
           </Tooltip>
 
@@ -155,20 +162,24 @@ export const columns = [
               {isDeleting && <Spinner className="text-muted-foreground mr-1 h-4 w-4" />}
               <AlertDialog>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        type="button"
-                        disabled={disabled}
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive h-8 w-8"
-                        aria-label="Verwijderen"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            type="button"
+                            disabled={disabled}
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive h-8 w-8"
+                            aria-label="Verwijderen"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                    }
+                  />
                   <TooltipContent>Verwijderen</TooltipContent>
                 </Tooltip>
 
@@ -251,27 +262,29 @@ function StatusDisplay({
       </Badge>
       {canModify && (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              disabled={disabled || isSubmitting}
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                void reestablishFetcher.submit(
-                  new URLSearchParams([
-                    ["intent", "establish_plan"],
-                    ["year", String(year)],
-                  ]),
-                  {
-                    method: "POST",
-                  },
-                )
-              }}
-            >
-              Actualiseren
-              {isSubmitting && <Spinner className="ml-1.5 h-3.5 w-3.5" />}
-            </Button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <Button
+                disabled={disabled || isSubmitting}
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void reestablishFetcher.submit(
+                    new URLSearchParams([
+                      ["intent", "establish_plan"],
+                      ["year", String(year)],
+                    ]),
+                    {
+                      method: "POST",
+                    },
+                  )
+                }}
+              >
+                Actualiseren
+                {isSubmitting && <Spinner className="ml-1.5 h-3.5 w-3.5" />}
+              </Button>
+            }
+          />
           <TooltipContent>Een nieuw bemestingsplan voor teeltjaar {year} genereren</TooltipContent>
         </Tooltip>
       )}

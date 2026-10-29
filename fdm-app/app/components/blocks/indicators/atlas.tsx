@@ -307,16 +307,17 @@ export function ScoreSelect({
             </SelectContent>
           </Select>
           <Button
-            asChild
             variant="outline"
             size="icon"
             className="h-8 w-8 shrink-0"
             title="Tabelweergave"
-          >
-            <Link to={detailPath}>
-              <LayoutList className="h-4 w-4" />
-            </Link>
-          </Button>
+            nativeButton={false}
+            render={
+              <Link to={detailPath}>
+                <LayoutList className="h-4 w-4" />
+              </Link>
+            }
+          />
         </div>
         {children}
         <Bln3BetaBanner />

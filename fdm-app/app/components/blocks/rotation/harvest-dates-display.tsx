@@ -88,17 +88,18 @@ function HarvestDatesDisplayButton({
   const formId = `harvest_${record.id}`
   return (
     <Button
-      asChild
       variant="link"
       className="text-muted-foreground whitespace-nowrap"
       onClick={() => setActiveForm(formId)}
-    >
-      <Link
-        to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
-      >
-        {children}
-      </Link>
-    </Button>
+      nativeButton={false}
+      render={
+        <Link
+          to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
+        >
+          {children}
+        </Link>
+      }
+    />
   )
 }
 

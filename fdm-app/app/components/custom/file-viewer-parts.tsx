@@ -23,12 +23,18 @@ export function FileViewerDialogHeader({
   return (
     <DialogHeader className="flex-row items-center justify-between space-y-0 pr-8">
       <DialogTitle className="truncate">{title}</DialogTitle>
-      <Button variant="ghost" size="sm" asChild onClick={() => toast(downloadingMessage)}>
-        <a href={downloadUrl} download={filename} rel="noopener noreferrer">
-          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-          Downloaden
-        </a>
-      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        nativeButton={false}
+        onClick={() => toast(downloadingMessage)}
+        render={
+          <a href={downloadUrl} download={filename} rel="noopener noreferrer">
+            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+            Downloaden
+          </a>
+        }
+      />
     </DialogHeader>
   )
 }
@@ -52,12 +58,17 @@ export function FileViewerFallbackPanel({
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
       <p className="text-muted-foreground text-sm">{message}</p>
-      <Button variant="outline" size="sm" asChild>
-        <a href={downloadUrl} download={filename} rel="noopener noreferrer">
-          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-          {downloadLabel}
-        </a>
-      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        nativeButton={false}
+        render={
+          <a href={downloadUrl} download={filename} rel="noopener noreferrer">
+            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+            {downloadLabel}
+          </a>
+        }
+      />
     </div>
   )
 }

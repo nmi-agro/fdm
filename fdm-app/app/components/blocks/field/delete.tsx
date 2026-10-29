@@ -42,11 +42,13 @@ export function FieldDeleteDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="destructive" disabled={isSubmitting} type="button">
-          {buttonText ?? "Perceel verwijderen"}
-        </Button>
-      </AlertDialogTrigger>
+      <AlertDialogTrigger
+        render={
+          <Button variant="destructive" disabled={isSubmitting} type="button">
+            {buttonText ?? "Perceel verwijderen"}
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>

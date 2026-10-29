@@ -353,12 +353,16 @@ export function FieldsPanelSelection({
               <CardContent className="grid gap-4" />
               <CardFooter>
                 {numFieldsSaved > 0 ? (
-                  <Button asChild className="w-full">
-                    <NavLink to={continueTo} className="flex items-center gap-2">
-                      <Check />
-                      <span>Doorgaan</span>
-                    </NavLink>
-                  </Button>
+                  <Button
+                    className="w-full"
+                    nativeButton={false}
+                    render={
+                      <NavLink to={continueTo} className="flex items-center gap-2">
+                        <Check />
+                        <span>Doorgaan</span>
+                      </NavLink>
+                    }
+                  />
                 ) : (
                   <Button className="w-full" disabled>
                     <Check /> Sla geselecteerde percelen op

@@ -1133,9 +1133,7 @@ export function AddMeasureDialog({
                             return (
                               <TooltipProvider key={f.b_id}>
                                 <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div>{rowContent}</div>
-                                  </TooltipTrigger>
+                                  <TooltipTrigger render={<div>{rowContent}</div>} />
                                   <TooltipContent className="max-w-xs text-xs">
                                     {fieldAppInfo.message}
                                   </TooltipContent>

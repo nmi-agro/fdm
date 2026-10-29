@@ -2,9 +2,11 @@ import { cn } from "cn"
 import { motion } from "framer-motion"
 import {
   type ButtonHTMLAttributes,
+  cloneElement,
   createContext,
   type Dispatch,
   type HTMLAttributes,
+  type ReactElement,
   type ReactNode,
   type SetStateAction,
   useContext,
@@ -43,18 +45,19 @@ export function Expandable({ children }: { children: ReactNode }) {
   )
 }
 
-type ExpandableTriggerProps =
-  | ({ asChild?: false } & ButtonHTMLAttributes<HTMLButtonElement>)
-  | { asChild: true; children: ReactNode }
-export function ExpandableTrigger(props: ExpandableTriggerProps) {
+type ExpandableTriggerProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  /** Custom element to render as the trigger instead of the default button. */
+  render?: ReactElement<HTMLAttributes<HTMLElement>>
+}
+export function ExpandableTrigger({ render }: ExpandableTriggerProps) {
   const { expanded, setExpanded, isOverflowing } = useContext(ctx)
-  const myProps = {
-    onClick() {
-      setExpanded(!expanded)
-    },
-  }
-  return props.asChild ? (
-    <SlotPrimitive.Slot {...props} {...myProps} />
+  return render ? (
+    cloneElement(render, {
+      onClick(event) {
+        render.props.onClick?.(event)
+        setExpanded(!expanded)
+      },
+    })
   ) : (
     <Button
       variant="link"

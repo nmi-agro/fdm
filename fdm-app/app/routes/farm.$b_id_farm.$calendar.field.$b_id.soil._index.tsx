@@ -160,12 +160,16 @@ export default function FarmFieldSoilOverviewBlock() {
           </p>
         </div>
         <div className="ml-auto">
-          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-            <NavLink to="./analysis/new">
-              <Plus />
-              Bodemanalyse toevoegen
-            </NavLink>
-          </Button>
+          <Button
+            className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}
+            nativeButton={false}
+            render={
+              <NavLink to="./analysis/new">
+                <Plus />
+                Bodemanalyse toevoegen
+              </NavLink>
+            }
+          />
         </div>
       </div>
       <Separator />
@@ -179,9 +183,11 @@ export default function FarmFieldSoilOverviewBlock() {
               Voeg een analyse toe om gegevens over de bodem bij te houden
             </p>
           </div>
-          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-            <NavLink to="./analysis/new">Bodemanalyse toevoegen</NavLink>
-          </Button>
+          <Button
+            className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}
+            nativeButton={false}
+            render={<NavLink to="./analysis/new">Bodemanalyse toevoegen</NavLink>}
+          />
         </div>
       ) : (
         <div className="flex flex-col-reverse gap-6 lg:flex-row lg:items-start">

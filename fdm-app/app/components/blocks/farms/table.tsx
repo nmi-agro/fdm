@@ -142,12 +142,14 @@ export function DataTable<TData extends FarmExtended>({
           )}
           {hasGroups && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  Groep{groupFilter.length > 0 ? ` (${groupFilter.length})` : ""}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline">
+                    Groep{groupFilter.length > 0 ? ` (${groupFilter.length})` : ""}
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end">
                 {groups.map((group) => (
                   <DropdownMenuCheckboxItem
@@ -168,12 +170,14 @@ export function DataTable<TData extends FarmExtended>({
             </DropdownMenu>
           )}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {table
                 .getAllColumns()

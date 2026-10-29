@@ -96,11 +96,13 @@ export function CultivationAvailabilityWarningIcon(props: CultivationAvailabilit
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={cn("inline-flex", props.className)} role="img" aria-label={message}>
-            <AlertTriangle className="size-3.5" aria-hidden="true" />
-          </span>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <span className={cn("inline-flex", props.className)} role="img" aria-label={message}>
+              <AlertTriangle className="size-3.5" aria-hidden="true" />
+            </span>
+          }
+        />
         <TooltipContent>{message}</TooltipContent>
       </Tooltip>
     </TooltipProvider>

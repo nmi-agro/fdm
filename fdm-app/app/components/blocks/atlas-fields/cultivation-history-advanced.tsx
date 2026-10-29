@@ -102,21 +102,23 @@ function YearRow({
             key={`${field.b_lu_name}-${field.overlap_pct_of_selected}-${field.b_area_overlap}`}
           >
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className="flex h-full shrink-0 cursor-help items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
-                  style={{
-                    width: `${field.overlap_pct_of_selected * 100}%`,
-                    backgroundColor: getCultivationColor(field.b_lu_croprotation),
-                  }}
-                >
-                  {field.overlap_pct_of_selected >= 0.12 && (
-                    <span className="truncate px-1.5 text-[10px] font-semibold text-white drop-shadow-sm select-none">
-                      {field.b_lu_name}
-                    </span>
-                  )}
-                </div>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <div
+                    className="flex h-full shrink-0 cursor-help items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
+                    style={{
+                      width: `${field.overlap_pct_of_selected * 100}%`,
+                      backgroundColor: getCultivationColor(field.b_lu_croprotation),
+                    }}
+                  >
+                    {field.overlap_pct_of_selected >= 0.12 && (
+                      <span className="truncate px-1.5 text-[10px] font-semibold text-white drop-shadow-sm select-none">
+                        {field.b_lu_name}
+                      </span>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent className="space-y-0.5">
                 <p className="text-sm font-semibold">{field.b_lu_name}</p>
                 <p className="text-xs">

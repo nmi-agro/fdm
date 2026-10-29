@@ -376,16 +376,16 @@ export function BcsEditForm({
       <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-20 -mx-1 border-t px-1 py-3 backdrop-blur lg:col-span-2">
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
-            asChild
-            type="button"
+            nativeButton={false}
             variant="outline"
             size="lg"
             className="h-12 w-full px-8 text-base sm:w-auto"
-          >
-            <NavLink to=".." relative="path">
-              Annuleren
-            </NavLink>
-          </Button>
+            render={
+              <NavLink to=".." relative="path">
+                Annuleren
+              </NavLink>
+            }
+          />
           <Button
             type="button"
             size="lg"

@@ -164,16 +164,18 @@ export const PrincipalRow = ({
           {/* Button to trigger removal */}
           {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm{isLastVerificationProvider ? (
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="shrink-0"
-                  disabled={fetcher.state !== "idle"}
-                >
-                  Verwijder
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="shrink-0"
+                    disabled={fetcher.state !== "idle"}
+                  >
+                    Verwijder
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>

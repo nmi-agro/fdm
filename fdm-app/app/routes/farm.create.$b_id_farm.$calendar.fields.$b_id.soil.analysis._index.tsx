@@ -76,13 +76,16 @@ export default function FarmFieldSoilOverviewBlock() {
             Kies het type bodemanalyse voor uw formulier
           </p>
         </div>
-        <Button asChild>
-          {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
-          <NavLink to={`../${location.search}`}>
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
+        <Button
+          nativeButton={false}
+          render={
+            <NavLink to={`../${location.search}`}>
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          }
+        />
       </div>
       <Separator />
       <SoilAnalysisFormSelection />

@@ -262,12 +262,14 @@ export function ProfilePictureManager({
         ) : currentPicture ? (
           <>
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="destructive" disabled={isDeleting}>
-                  Verwijderen
-                  {isDeleting ? <Spinner /> : undefined}
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button type="button" variant="destructive" disabled={isDeleting}>
+                    Verwijderen
+                    {isDeleting ? <Spinner /> : undefined}
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
@@ -290,9 +292,12 @@ export function ProfilePictureManager({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button type="button" variant="outline" asChild>
-              <label htmlFor={fileInputId}>Kies één nieuwe</label>
-            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              nativeButton={false}
+              render={<label htmlFor={fileInputId}>Kies één nieuwe</label>}
+            />
           </>
         ) : (
           <Button type="submit" disabled>

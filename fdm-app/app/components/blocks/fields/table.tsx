@@ -181,12 +181,14 @@ export function DataTable<TData extends FieldExtended>({
         />
         <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {table
                 .getAllColumns()
@@ -218,25 +220,27 @@ export function DataTable<TData extends FieldExtended>({
           <FieldFilterToggle />
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(!canAddItem ? "hidden" : "")}>
-                  {isFertilizerButtonDisabled ? (
-                    <Button disabled={isFertilizerButtonDisabled}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Bemesting
-                    </Button>
-                  ) : (
-                    <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/field/fertilizer?fieldIds=${selectedFieldIds.map(encodeURIComponent).join(",")}`}
-                    >
-                      <Button>
+              <TooltipTrigger
+                render={
+                  <div className={cn(!canAddItem ? "hidden" : "")}>
+                    {isFertilizerButtonDisabled ? (
+                      <Button disabled={isFertilizerButtonDisabled}>
                         <Plus className="mr-2 h-4 w-4" />
                         Bemesting
                       </Button>
-                    </NavLink>
-                  )}
-                </div>
-              </TooltipTrigger>
+                    ) : (
+                      <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/field/fertilizer?fieldIds=${selectedFieldIds.map(encodeURIComponent).join(",")}`}
+                      >
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Bemesting
+                        </Button>
+                      </NavLink>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent>
                 <p>{fertilizerTooltipContent}</p>
               </TooltipContent>
@@ -245,14 +249,16 @@ export function DataTable<TData extends FieldExtended>({
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <NavLink to={"./new"} className={cn(!canAddItem ? "hidden" : "")}>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nieuw perceel
-                  </Button>
-                </NavLink>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <NavLink to={"./new"} className={cn(!canAddItem ? "hidden" : "")}>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Nieuw perceel
+                    </Button>
+                  </NavLink>
+                }
+              />
               <TooltipContent>
                 <p>Voeg een nieuw perceel toe</p>
               </TooltipContent>

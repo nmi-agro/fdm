@@ -155,13 +155,15 @@ function FieldsDisplayCell({
     return (
       cultivation.type === "crop" && (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost">
-              <p className="text-muted-foreground">
-                {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
-              </p>
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost">
+                <p className="text-muted-foreground">
+                  {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
+                </p>
+              </Button>
+            }
+          />
           <DropdownMenuContent>
             <ScrollArea className={fieldsSorted.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}>
               <div className="grid grid-cols-1 gap-2">

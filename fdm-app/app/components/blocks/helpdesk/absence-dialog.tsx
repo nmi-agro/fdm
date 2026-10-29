@@ -290,11 +290,13 @@ export function AbsenceDialog({
                   Verwijderen
                 </Button>
               )}
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  {canEdit ? "Annuleren" : "Sluiten"}
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    {canEdit ? "Annuleren" : "Sluiten"}
+                  </Button>
+                }
+              />
               {canEdit && (
                 <Button type="submit" form={formId} disabled={isSubmitting}>
                   Opslaan

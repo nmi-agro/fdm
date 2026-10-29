@@ -442,32 +442,34 @@ function GerritReasoning({
             <div className="space-y-1 group-data-[state=open]:hidden">
               <span className="line-clamp-2">{plain[firstLineIndex]}</span>
               <div className="flex items-center gap-1.5 text-xs">
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="link"
-                    className="h-auto p-0 text-xs leading-none font-medium"
-                    onClick={() => {
-                      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-                      timeoutRef.current = setTimeout(() => {
-                        const element = bottomRef.current
-                        const scrollElement = scrollRef.current
+                <CollapsibleTrigger
+                  render={
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-xs leading-none font-medium"
+                      onClick={() => {
+                        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+                        timeoutRef.current = setTimeout(() => {
+                          const element = bottomRef.current
+                          const scrollElement = scrollRef.current
 
-                        if (element && scrollElement) {
-                          const containerBottom = scrollElement.getBoundingClientRect().bottom
-                          const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
-                          if (
-                            myBottom > containerBottom &&
-                            containerBottom + AUTO_SCROLL_THRESHOLD > myTop
-                          ) {
-                            element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                          if (element && scrollElement) {
+                            const containerBottom = scrollElement.getBoundingClientRect().bottom
+                            const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
+                            if (
+                              myBottom > containerBottom &&
+                              containerBottom + AUTO_SCROLL_THRESHOLD > myTop
+                            ) {
+                              element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                            }
                           }
-                        }
-                      }, 50)
-                    }}
-                  >
-                    Toon meer
-                  </Button>
-                </CollapsibleTrigger>
+                        }, 50)
+                      }}
+                    >
+                      Toon meer
+                    </Button>
+                  }
+                />
                 {statusNode}
               </div>
             </div>
@@ -480,11 +482,13 @@ function GerritReasoning({
                 </p>
               ))}
               <div className="flex items-center gap-1.5 pt-1 text-xs">
-                <CollapsibleTrigger asChild>
-                  <Button variant="link" className="h-auto p-0 text-xs leading-none font-medium">
-                    Toon minder
-                  </Button>
-                </CollapsibleTrigger>
+                <CollapsibleTrigger
+                  render={
+                    <Button variant="link" className="h-auto p-0 text-xs leading-none font-medium">
+                      Toon minder
+                    </Button>
+                  }
+                />
                 {statusNode}
               </div>
             </CollapsibleContent>

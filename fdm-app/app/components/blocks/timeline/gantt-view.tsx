@@ -880,17 +880,15 @@ function EventOverlay({
       <TimelineContextMenu sections={sections}>
         <span {...triggerProps} onMouseDown={(event_) => event_.stopPropagation()}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
-                onClick={(event_) => {
-                  event_.stopPropagation()
-                  openMenuFromClick(event_)
-                }}
-                type="button"
-              >
-                <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
-              </button>
+            <TooltipTrigger
+              className="bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
+              onClick={(event_) => {
+                event_.stopPropagation()
+                openMenuFromClick(event_)
+              }}
+              type="button"
+            >
+              <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
             </TooltipTrigger>
             <TooltipContent className="whitespace-pre-line">
               {event.label}
@@ -914,11 +912,13 @@ function EventOverlay({
       <TimelineContextMenu sections={sections}>
         <span {...triggerProps}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="flex">
-                <DraggableEventIcon event={event} />
-              </span>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <span className="flex">
+                  <DraggableEventIcon event={event} />
+                </span>
+              }
+            />
             <TooltipContent className="whitespace-pre-line">
               {event.label}
               {"\n"}
@@ -1087,29 +1087,31 @@ function FeatureContent({
     const bar = (
       <div className="relative h-full min-w-0 flex-1">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="absolute inset-0 flex cursor-pointer items-start"
-              onClick={(event) => {
-                captureClickDate(event)
-                openMenuFromClick(event)
-              }}
-              onKeyDown={openMenuFromKeyboard}
-              role="button"
-              tabIndex={0}
-            >
-              <p
-                className="truncate px-1.5 pt-0.5 text-xs"
-                style={
-                  firstEventPercent !== null
-                    ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
-                    : undefined
-                }
+          <TooltipTrigger
+            render={
+              <div
+                className="absolute inset-0 flex cursor-pointer items-start"
+                onClick={(event) => {
+                  captureClickDate(event)
+                  openMenuFromClick(event)
+                }}
+                onKeyDown={openMenuFromKeyboard}
+                role="button"
+                tabIndex={0}
               >
-                {feature.name}
-              </p>
-            </div>
-          </TooltipTrigger>
+                <p
+                  className="truncate px-1.5 pt-0.5 text-xs"
+                  style={
+                    firstEventPercent !== null
+                      ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
+                      : undefined
+                  }
+                >
+                  {feature.name}
+                </p>
+              </div>
+            }
+          />
           <TooltipContent className="whitespace-pre-line">
             {feature.label}
             {"\n"}
@@ -1155,19 +1157,17 @@ function FeatureContent({
         onMouseLeave={() => editing.setHoveredEntityId(null)}
       >
         <Tooltip>
-          <TooltipTrigger asChild>
-            {/* Class "gantt-bar-hide-shadow" is needed to trigger the CSS rule defined in TimelineGanttView. */}
-            <button
-              className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
-              onClick={openMenuFromClick}
-              type="button"
-            >
-              <EventIcon
-                kind={feature.kind}
-                p_type={feature.p_type}
-                p_type_rvo={feature.p_type_rvo}
-              />
-            </button>
+          {/* Class "gantt-bar-hide-shadow" is needed to trigger the CSS rule defined in TimelineGanttView. */}
+          <TooltipTrigger
+            className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
+            onClick={openMenuFromClick}
+            type="button"
+          >
+            <EventIcon
+              kind={feature.kind}
+              p_type={feature.p_type}
+              p_type_rvo={feature.p_type_rvo}
+            />
           </TooltipTrigger>
           <TooltipContent className="whitespace-pre-line">
             {feature.label}

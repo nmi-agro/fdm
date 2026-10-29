@@ -121,9 +121,7 @@ export default function FarmFieldSoilOverviewBlock() {
         </div>
         {loaderData.soilAnalysis.a_file_path && (
           <Dialog>
-            <DialogTrigger asChild>
-              <ViewPdfButton />
-            </DialogTrigger>
+            <DialogTrigger render={<ViewPdfButton />} />
             <PdfViewerDialogContent
               downloadUrl={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
               filename={getSoilAnalysisDownloadName(

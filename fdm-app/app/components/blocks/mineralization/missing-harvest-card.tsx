@@ -74,12 +74,15 @@ export function MissingHarvestCard({
       </CardHeader>
       <CardContent>
         {multiple ? (
-          <Button asChild>
-            <NavLink to={bulkHarvestHref}>
-              Sneden invullen
-              <ArrowRight aria-hidden />
-            </NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={
+              <NavLink to={bulkHarvestHref}>
+                Sneden invullen
+                <ArrowRight aria-hidden />
+              </NavLink>
+            }
+          />
         ) : (
           <fetcher.Form method="post" className="space-y-4">
             <input type="hidden" name="intent" value="save_harvest" />

@@ -58,12 +58,17 @@ export default function PrivacyPage() {
             </div>
             <span className="text-sm font-semibold">{clientConfig.name}</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/signin">
-              <ArrowLeft className="size-4" />
-              Terug naar aanmelden
-            </Link>
-          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={
+              <Link to="/signin">
+                <ArrowLeft className="size-4" />
+                Terug naar aanmelden
+              </Link>
+            }
+          />
         </div>
       </header>
 

@@ -39,6 +39,7 @@ export function SidebarHelpdesk({ numUnreadRequested }: { numUnreadRequested: nu
               <Button
                 variant="default"
                 className="w-full justify-start"
+                nativeButton={false}
                 render={
                   <NavLink to="/farm">
                     <ArrowLeft className="" />

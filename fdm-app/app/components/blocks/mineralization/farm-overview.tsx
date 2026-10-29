@@ -256,16 +256,17 @@ export function FarmAttentionList({ fields, outcomes, fieldHref, harvestHref }: 
                   </Button>
                 ) : (
                   <Button
-                    asChild
                     variant="outline"
                     size="sm"
                     className="w-full sm:w-auto sm:self-center pointer-coarse:h-10"
-                  >
-                    <NavLink to={fieldHref(field.b_id)}>
-                      Bekijk perceel
-                      <ArrowRight aria-hidden />
-                    </NavLink>
-                  </Button>
+                    nativeButton={false}
+                    render={
+                      <NavLink to={fieldHref(field.b_id)}>
+                        Bekijk perceel
+                        <ArrowRight aria-hidden />
+                      </NavLink>
+                    }
+                  />
                 )}
               </li>
             ))}
@@ -309,21 +310,22 @@ export function FarmAttentionList({ fields, outcomes, fieldHref, harvestHref }: 
                       </p>
                     </div>
                     <Button
-                      asChild
                       variant="outline"
                       size="sm"
                       className="w-full sm:w-auto sm:self-center pointer-coarse:h-10"
-                    >
-                      <NavLink
-                        to={harvestHref(
-                          mainCultivation.b_lu_catalogue,
-                          groupFields.map((f) => f.b_id),
-                        )}
-                      >
-                        {term} invullen
-                        <ArrowRight aria-hidden />
-                      </NavLink>
-                    </Button>
+                      nativeButton={false}
+                      render={
+                        <NavLink
+                          to={harvestHref(
+                            mainCultivation.b_lu_catalogue,
+                            groupFields.map((f) => f.b_id),
+                          )}
+                        >
+                          {term} invullen
+                          <ArrowRight aria-hidden />
+                        </NavLink>
+                      }
+                    />
                   </li>
                 )
               })}
@@ -687,15 +689,17 @@ function NotCalculatedFields({
     // Remounts when `open` changes, so it follows the table once the outcomes are in
     <CardFooter key={String(open)} className="block border-t pt-4">
       <Collapsible defaultOpen={open}>
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
-            <ChevronDown
-              className="transition-transform group-data-[state=open]:rotate-180"
-              aria-hidden
-            />
-            Niet berekend ({rows.length})
-          </Button>
-        </CollapsibleTrigger>
+        <CollapsibleTrigger
+          render={
+            <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
+              <ChevronDown
+                className="transition-transform group-data-[state=open]:rotate-180"
+                aria-hidden
+              />
+              Niet berekend ({rows.length})
+            </Button>
+          }
+        />
         <CollapsibleContent>
           <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
             {rows.map(({ field, reason }) => (

@@ -50,17 +50,17 @@ export function HeaderMineralization({
                 {fieldOptions.map((option) => (
                   <DropdownMenuItem
                     key={option.b_id}
-                    asChild
                     className={cn(
                       "flex cursor-pointer items-center justify-between gap-2",
                       b_id === option.b_id && "bg-accent text-accent-foreground",
                     )}
-                  >
-                    <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${option.b_id}`}>
-                      <span className="truncate">{option.b_name}</span>
-                      {b_id === option.b_id && <Check className="h-4 w-4 shrink-0" />}
-                    </NavLink>
-                  </DropdownMenuItem>
+                    render={
+                      <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${option.b_id}`}>
+                        <span className="truncate">{option.b_name}</span>
+                        {b_id === option.b_id && <Check className="h-4 w-4 shrink-0" />}
+                      </NavLink>
+                    }
+                  />
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>

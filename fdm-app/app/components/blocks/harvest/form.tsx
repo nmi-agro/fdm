@@ -595,14 +595,16 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                   ) : null}
                   Verwijderen
                 </Button>
-                <DialogClose asChild>
-                  <Button
-                    variant="outline"
-                    disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
-                  >
-                    Sluiten
-                  </Button>
-                </DialogClose>
+                <DialogClose
+                  render={
+                    <Button
+                      variant="outline"
+                      disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+                    >
+                      Sluiten
+                    </Button>
+                  }
+                />
                 <Button
                   type="submit"
                   form="formHarvest"

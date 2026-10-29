@@ -104,11 +104,13 @@ function SoilDataCard({
         <div className="flex min-w-0 items-center gap-1.5">
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <CardTitle className="decoration-muted-foreground/30 hover:decoration-muted-foreground/60 cursor-help truncate text-sm leading-tight font-semibold underline decoration-dotted underline-offset-4 transition-colors">
-                  {title}
-                </CardTitle>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <CardTitle className="decoration-muted-foreground/30 hover:decoration-muted-foreground/60 cursor-help truncate text-sm leading-tight font-semibold underline decoration-dotted underline-offset-4 transition-colors">
+                    {title}
+                  </CardTitle>
+                }
+              />
               <TooltipContent className="max-w-[250px]">{description}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -116,11 +118,13 @@ function SoilDataCard({
         {source !== "nl-other-nmi" ? (
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <NavLink to={link} className="h-4 w-4 shrink-0">
-                  <EditIcon className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
-                </NavLink>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <NavLink to={link} className="h-4 w-4 shrink-0">
+                    <EditIcon className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
+                  </NavLink>
+                }
+              />
               <TooltipContent>{isEditable ? "Bewerken" : "Bekijken"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -147,25 +151,27 @@ function SoilDataCard({
         <div className="border-border/40 flex flex-col space-y-1.5 border-t pt-1">
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    "text-muted-foreground flex items-center space-x-1.5 text-[10px]",
-                    !source ? "invisible" : "",
-                  )}
-                >
-                  {source === "calculated" ? (
-                    <Calculator className="h-3 w-3 shrink-0" />
-                  ) : source === "nl-other-nmi" ? (
-                    <Sparkles className="h-3 w-3 shrink-0" />
-                  ) : source === "other" || !source ? (
-                    <User className="h-3 w-3 shrink-0" />
-                  ) : (
-                    <Microscope className="text-primary/60 h-3 w-3 shrink-0" />
-                  )}
-                  <span className="max-w-full truncate">{sourceLabel}</span>
-                </div>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <div
+                    className={cn(
+                      "text-muted-foreground flex items-center space-x-1.5 text-[10px]",
+                      !source ? "invisible" : "",
+                    )}
+                  >
+                    {source === "calculated" ? (
+                      <Calculator className="h-3 w-3 shrink-0" />
+                    ) : source === "nl-other-nmi" ? (
+                      <Sparkles className="h-3 w-3 shrink-0" />
+                    ) : source === "other" || !source ? (
+                      <User className="h-3 w-3 shrink-0" />
+                    ) : (
+                      <Microscope className="text-primary/60 h-3 w-3 shrink-0" />
+                    )}
+                    <span className="max-w-full truncate">{sourceLabel}</span>
+                  </div>
+                }
+              />
               <TooltipContent side="bottom">
                 {source === "calculated"
                   ? "Berekend"

@@ -333,12 +333,14 @@ export function FieldImpactTable({
             </SelectContent>
           </Select>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                Kolommen
-                <ChevronDown className="size-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" size="sm">
+                  Kolommen
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Kolommen tonen</DropdownMenuLabel>
               {BASE_COLUMNS.slice(0, -1).map((key) => (

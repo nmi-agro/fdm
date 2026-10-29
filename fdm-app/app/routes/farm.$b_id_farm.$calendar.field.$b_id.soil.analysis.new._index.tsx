@@ -74,12 +74,15 @@ export default function FarmFieldSoilOverviewBlock() {
             Kies het type bodemanalyse voor uw formulier
           </p>
         </div>
-        <Button asChild>
-          <NavLink to="../soil">
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <Button
+          nativeButton={false}
+          render={
+            <NavLink to="../soil">
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          }
+        />
       </div>
       <Separator />
       <SoilAnalysisFormSelection />

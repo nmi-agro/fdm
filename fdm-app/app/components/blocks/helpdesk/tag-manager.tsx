@@ -158,11 +158,13 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
       {canModify && (
         <TableCell className="text-end align-middle">
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" disabled={isSubmitting} title="Verwijderen">
-                <Trash2 />
-              </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+              render={
+                <Button type="button" variant="ghost" disabled={isSubmitting} title="Verwijderen">
+                  <Trash2 />
+                </Button>
+              }
+            />
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>

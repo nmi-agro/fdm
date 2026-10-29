@@ -70,12 +70,14 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
           </Button>
         </Form>
         <Dialog>
-          <DialogTrigger asChild>
-            <Button type="button" size="sm" variant="outline" className="flex-1">
-              <X className="mr-1 h-3 w-3" />
-              Weigeren
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger
+            render={
+              <Button type="button" size="sm" variant="outline" className="flex-1">
+                <X className="mr-1 h-3 w-3" />
+                Weigeren
+              </Button>
+            }
+          />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Uitnodiging weigeren</DialogTitle>
@@ -96,11 +98,13 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                   >
                     Ja, weigeren
                   </Button>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline" size="sm">
-                      Nee, sluiten
-                    </Button>
-                  </DialogClose>
+                  <DialogClose
+                    render={
+                      <Button type="button" variant="outline" size="sm">
+                        Nee, sluiten
+                      </Button>
+                    }
+                  />
                 </Field>
               </Form>
             </DialogFooter>

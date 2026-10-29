@@ -252,15 +252,20 @@ export function BulkFertilizerPage({
             <p className="text-muted-foreground max-w-sm text-sm">
               Pas uw selectie aan, of ga naar het overzicht voor meer filtermogelijkheden.
             </p>
-            <Button asChild variant="link">
-              <NavLink
-                to={
-                  overviewUrl ?? (cultivationIds.length > 0 ? `${base}/rotation` : `${base}/field`)
-                }
-              >
-                {cultivationIds.length > 0 ? "Naar bouwplan" : "Naar percelenoverzicht"}
-              </NavLink>
-            </Button>
+            <Button
+              variant="link"
+              nativeButton={false}
+              render={
+                <NavLink
+                  to={
+                    overviewUrl ??
+                    (cultivationIds.length > 0 ? `${base}/rotation` : `${base}/field`)
+                  }
+                >
+                  {cultivationIds.length > 0 ? "Naar bouwplan" : "Naar percelenoverzicht"}
+                </NavLink>
+              }
+            />
           </CardContent>
         </Card>
       ) : (

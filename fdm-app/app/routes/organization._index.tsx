@@ -119,9 +119,10 @@ export default function OrganizationsIndex() {
           <Empty>
             <EmptyHeader>Het lijkt erop dat je nog geen organisatie hebt.</EmptyHeader>
             <EmptyContent>
-              <Button asChild>
-                <NavLink to="/organization/new">Maak een organisatie</NavLink>
-              </Button>
+              <Button
+                nativeButton={false}
+                render={<NavLink to="/organization/new">Maak een organisatie</NavLink>}
+              />
               <p className="text-muted-foreground text-center text-sm">
                 of je kunt organisaties vragen om je uit te nodigen.
               </p>

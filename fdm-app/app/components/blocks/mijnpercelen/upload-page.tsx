@@ -165,17 +165,22 @@ export function UploadMijnPercelenPage({
 
                   <CustomValueButtonsToggle />
 
-                  <Button asChild variant="outline" className={cn(isSaving && "opacity-50")}>
-                    {/* Vanilla anchor triggers refresh behavior */}
-                    <a
-                      href={`${location.pathname}${location.search}`}
-                      onClick={(e) => {
-                        if (isSaving) e.preventDefault()
-                      }}
-                    >
-                      Terug naar uploaden
-                    </a>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    className={cn(isSaving && "opacity-50")}
+                    nativeButton={false}
+                    render={
+                      // Vanilla anchor triggers refresh behavior
+                      <a
+                        href={`${location.pathname}${location.search}`}
+                        onClick={(e) => {
+                          if (isSaving) e.preventDefault()
+                        }}
+                      >
+                        Terug naar uploaden
+                      </a>
+                    }
+                  />
 
                   <Button
                     type="submit"

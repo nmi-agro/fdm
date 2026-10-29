@@ -129,23 +129,25 @@ export function TicketStatusSelector({
   return (
     <DropdownMenu>
       <div className="flex flex-row items-center gap-2">
-        <DropdownMenuTrigger asChild>
-          <Button
-            id={triggerId}
-            variant="outline"
-            size="sm"
-            className="gap-2 font-medium"
-            disabled={
-              !canModify || fetcher.state !== "idle" || allowedStatusTransitions.length === 0
-            }
-          >
-            <StatusIcon className="size-4 shrink-0" style={{ color: statusColor }} />
-            {statusLabel}
-            {allowedStatusTransitions.length > 0 && (
-              <ChevronDown className="ms-1 size-3 opacity-50" />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              id={triggerId}
+              variant="outline"
+              size="sm"
+              className="gap-2 font-medium"
+              disabled={
+                !canModify || fetcher.state !== "idle" || allowedStatusTransitions.length === 0
+              }
+            >
+              <StatusIcon className="size-4 shrink-0" style={{ color: statusColor }} />
+              {statusLabel}
+              {allowedStatusTransitions.length > 0 && (
+                <ChevronDown className="ms-1 size-3 opacity-50" />
+              )}
+            </Button>
+          }
+        />
         <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
       </div>
       <DropdownMenuContent align="start">

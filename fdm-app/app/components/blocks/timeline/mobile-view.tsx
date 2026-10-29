@@ -475,60 +475,58 @@ function FieldGroupedView({
                 fieldHeaderRefs.current.set(field.b_id, element)
               }}
             >
-              <CollapsibleTrigger asChild>
-                <button
-                  className="focus-visible:ring-ring/50 bg-card flex w-full items-center justify-between rounded-lg border p-3 text-left outline-none focus-visible:ring-[3px]"
-                  type="button"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="min-w-0 flex-1 truncate text-xs font-semibold tracking-wide uppercase"
-                        title={field.b_name}
-                      >
-                        {field.b_name}
-                      </span>
-                      <ChevronRight
-                        aria-hidden="true"
-                        className={`text-muted-foreground size-4 shrink-0 transition-transform ${
-                          isOpen ? "rotate-90" : ""
-                        }`}
-                      />
-                    </div>
-                    {active.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {active.map((cultivation) => {
-                          const color = getCultivationColor(
-                            cultivation.b_lu_croprotation ?? undefined,
-                          )
-                          const period = cultivation.b_lu_end
-                            ? `${format(cultivation.b_lu_start, "d MMM yyyy", { locale: nl })} - ${format(
-                                cultivation.b_lu_end,
-                                "d MMM yyyy",
-                                { locale: nl },
-                              )}`
-                            : `${format(cultivation.b_lu_start, "d MMM yyyy", { locale: nl })} - heden`
-                          return (
-                            <div
-                              className="flex min-w-0 items-center gap-1.5 text-xs"
-                              key={cultivation.b_lu}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className="inline-block h-4 w-1 shrink-0 rounded-full"
-                                style={{ backgroundColor: color }}
-                              />
-                              <span className="max-w-40 truncate font-medium">
-                                {cultivation.b_lu_name ?? "Onbekend"}
-                              </span>
-                              <span className="text-muted-foreground shrink-0">({period})</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+              <CollapsibleTrigger
+                className="focus-visible:ring-ring/50 bg-card flex w-full items-center justify-between rounded-lg border p-3 text-left outline-none focus-visible:ring-[3px]"
+                type="button"
+              >
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="min-w-0 flex-1 truncate text-xs font-semibold tracking-wide uppercase"
+                      title={field.b_name}
+                    >
+                      {field.b_name}
+                    </span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className={`text-muted-foreground size-4 shrink-0 transition-transform ${
+                        isOpen ? "rotate-90" : ""
+                      }`}
+                    />
                   </div>
-                </button>
+                  {active.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {active.map((cultivation) => {
+                        const color = getCultivationColor(
+                          cultivation.b_lu_croprotation ?? undefined,
+                        )
+                        const period = cultivation.b_lu_end
+                          ? `${format(cultivation.b_lu_start, "d MMM yyyy", { locale: nl })} - ${format(
+                              cultivation.b_lu_end,
+                              "d MMM yyyy",
+                              { locale: nl },
+                            )}`
+                          : `${format(cultivation.b_lu_start, "d MMM yyyy", { locale: nl })} - heden`
+                        return (
+                          <div
+                            className="flex min-w-0 items-center gap-1.5 text-xs"
+                            key={cultivation.b_lu}
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-4 w-1 shrink-0 rounded-full"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="max-w-40 truncate font-medium">
+                              {cultivation.b_lu_name ?? "Onbekend"}
+                            </span>
+                            <span className="text-muted-foreground shrink-0">({period})</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="pt-2">

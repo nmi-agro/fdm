@@ -66,17 +66,19 @@ function ApplicationActions({
         <Pencil className="size-4" />
       </Button>
       <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={`Gift van ${date} verwijderen`}
-            disabled={isBusy}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </AlertDialogTrigger>
+        <AlertDialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Gift van ${date} verwijderen`}
+              disabled={isBusy}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          }
+        />
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Gift verwijderen?</AlertDialogTitle>

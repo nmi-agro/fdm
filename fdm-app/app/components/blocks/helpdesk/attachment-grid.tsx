@@ -83,17 +83,19 @@ export function AttachmentGrid({
               </span>
               {canDelete ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete?.(item.object)}
-                      className="text-muted-foreground hover:text-destructive h-8 px-2 text-xs"
-                    >
-                      <Trash2 className="mr-2 h-3 w-3" />
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete?.(item.object)}
+                        className="text-muted-foreground hover:text-destructive h-8 px-2 text-xs"
+                      >
+                        <Trash2 className="mr-2 h-3 w-3" />
+                      </Button>
+                    }
+                  />
                   <TooltipContent>Bijlage verwijderen</TooltipContent>
                 </Tooltip>
               ) : undefined}
@@ -167,19 +169,21 @@ function AttachmentGridImage({
         </div>
         {canDelete && (
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete?.()
-                }}
-                className="invisible absolute top-0 right-0 size-6 translate-x-1/2 -translate-y-1/2 rounded-full group-hover:visible"
-                aria-label="Bijlage verwijderen"
-              >
-                <X />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete?.()
+                  }}
+                  className="invisible absolute top-0 right-0 size-6 translate-x-1/2 -translate-y-1/2 rounded-full group-hover:visible"
+                  aria-label="Bijlage verwijderen"
+                >
+                  <X />
+                </Button>
+              }
+            />
             <TooltipContent>Bijlage verwijderen</TooltipContent>
           </Tooltip>
         )}

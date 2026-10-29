@@ -664,9 +664,10 @@ export default function AppIndex() {
                     U hebt nog geen organisatie.
                   </h2>
                   <div className="relative flex flex-col items-center">
-                    <Button asChild>
-                      <NavLink to="/organization/new">Maak een organisatie</NavLink>
-                    </Button>
+                    <Button
+                      nativeButton={false}
+                      render={<NavLink to="/organization/new">Maak een organisatie</NavLink>}
+                    />
                   </div>
                   <p className="text-muted-foreground text-center text-sm">
                     Of vraag een organisatie om u uit te nodigen.

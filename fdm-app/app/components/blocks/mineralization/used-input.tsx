@@ -85,12 +85,18 @@ function Section({
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">{title}</h3>
         {editHref ? (
-          <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
-            <NavLink to={editHref}>
-              {editLabel}
-              <ArrowRight aria-hidden />
-            </NavLink>
-          </Button>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
+            nativeButton={false}
+            render={
+              <NavLink to={editHref}>
+                {editLabel}
+                <ArrowRight aria-hidden />
+              </NavLink>
+            }
+          />
         ) : null}
       </div>
       {children}

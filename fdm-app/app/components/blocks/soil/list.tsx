@@ -69,9 +69,7 @@ export function SoilAnalysesList({
               <div className="flex flex-wrap items-center gap-2">
                 {analysis.a_file_path && (
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <ViewPdfButton variant="outline" />
-                    </DialogTrigger>
+                    <DialogTrigger render={<ViewPdfButton variant="outline" />} />
                     <PdfViewerDialogContent
                       downloadUrl={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
                       filename={getSoilAnalysisDownloadName(
@@ -84,15 +82,16 @@ export function SoilAnalysesList({
                   </Dialog>
                 )}
                 <Button
-                  asChild
+                  nativeButton={false}
                   size="sm"
                   variant="default"
                   disabled={fetcher.state === "submitting"}
-                >
-                  <NavLink to={`./analysis/${analysis.a_id}`}>
-                    {canModifySoilAnalysis[analysis.a_id] ? "Bewerk" : "Bekijk"}
-                  </NavLink>
-                </Button>
+                  render={
+                    <NavLink to={`./analysis/${analysis.a_id}`}>
+                      {canModifySoilAnalysis[analysis.a_id] ? "Bewerk" : "Bekijk"}
+                    </NavLink>
+                  }
+                />
                 <Button
                   size="sm"
                   variant="destructive"

@@ -46,9 +46,11 @@ export function NutrientAdviceUnavailable({
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-3">
         {missingCultivation ? (
-          <Button asChild size="sm">
-            <NavLink to={cultivationTo}>Gewas registreren</NavLink>
-          </Button>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={<NavLink to={cultivationTo}>Gewas registreren</NavLink>}
+          />
         ) : notConfigured ? null : (
           <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
             <RotateCw className="mr-1.5 h-3.5 w-3.5" />

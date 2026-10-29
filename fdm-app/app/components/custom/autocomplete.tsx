@@ -203,6 +203,7 @@ export function AutoComplete<
       >
         <Command shouldFilter={false} className="w-full">
           <PopoverTrigger
+            nativeButton={false}
             render={
               <div className="relative w-full">
                 <CommandPrimitive.Input

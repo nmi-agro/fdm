@@ -295,17 +295,19 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
               <div className="shrink-0 grow-0 space-y-2">
                 <Label className="invisible">&nbsp;</Label>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ml-2"
-                      onClick={handleManageFertilizers}
-                      aria-label="Voeg een nieuwe meststof toe"
-                    >
-                      <Plus className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="ml-2"
+                        onClick={handleManageFertilizers}
+                        aria-label="Voeg een nieuwe meststof toe"
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                    }
+                  />
                   <TooltipContent>Voeg een nieuwe meststof toe</TooltipContent>
                 </Tooltip>
               </div>

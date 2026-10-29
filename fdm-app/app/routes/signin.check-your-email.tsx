@@ -233,15 +233,16 @@ export default function SignIn() {
             </resendFetcher.Form>
           )}
           <Button
-            asChild
             variant="link"
             size="sm"
             className="text-muted-foreground h-auto p-0 text-xs"
-          >
-            <NavLink to="/signin" onClick={() => capture("signin_different_email_clicked")}>
-              Ander e-mailadres gebruiken
-            </NavLink>
-          </Button>
+            nativeButton={false}
+            render={
+              <NavLink to="/signin" onClick={() => capture("signin_different_email_clicked")}>
+                Ander e-mailadres gebruiken
+              </NavLink>
+            }
+          />
         </div>
       </AuthCard>
     </AuthLayout>

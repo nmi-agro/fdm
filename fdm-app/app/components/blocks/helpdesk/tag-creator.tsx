@@ -222,11 +222,13 @@ export function TagCreator({
               }}
             />
             <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Terug
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Terug
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={fetcher.state !== "idle"}>
                 {fetcher.state !== "idle" ? (
                   <>

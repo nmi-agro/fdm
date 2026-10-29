@@ -134,6 +134,7 @@ export function RvoConnectCard({
                 <Button
                   variant="outline"
                   size="sm"
+                  nativeButton={false}
                   render={
                     <Link to="/support/new">
                       <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />

@@ -289,12 +289,17 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
                 <p className="text-muted-foreground text-xs uppercase">{harvestDateTerm}</p>
                 <p className="mt-1 text-sm font-medium">{formatDateLabel(latestHarvest.date)}</p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link to={latestHarvest.detailHref}>
-                  Bekijken
-                  <MoveRight className="size-4" />
-                </Link>
-              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                nativeButton={false}
+                render={
+                  <Link to={latestHarvest.detailHref}>
+                    Bekijken
+                    <MoveRight className="size-4" />
+                  </Link>
+                }
+              />
             </div>
             {latestHarvest.metrics.length > 0 ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -739,11 +744,13 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
               <div className="space-y-1">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
-                        {card.title}
-                      </p>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
+                          {card.title}
+                        </p>
+                      }
+                    />
                     <TooltipContent className="max-w-xs">{card.description}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -797,9 +804,9 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
           </div>
           {latestAnalysisPdf && (
             <Dialog>
-              <DialogTrigger asChild>
-                <ViewPdfButton variant="outline" size="sm" className="shrink-0" />
-              </DialogTrigger>
+              <DialogTrigger
+                render={<ViewPdfButton variant="outline" size="sm" className="shrink-0" />}
+              />
               <PdfViewerDialogContent
                 downloadUrl={`/api/soil-analysis/download/${latestAnalysisPdf.a_id}.pdf`}
                 filename={latestAnalysisPdf.filename}

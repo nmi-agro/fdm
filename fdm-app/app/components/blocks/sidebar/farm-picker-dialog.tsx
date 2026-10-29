@@ -71,12 +71,16 @@ export function FarmPickerDialog({
           </Command>
         ) : (
           <div className="flex flex-col gap-4 p-6 pt-2">
-            <Button asChild className="w-full">
-              <NavLink to="/farm/create">
-                <Plus />
-                <span>Nieuw bedrijf aanmaken</span>
-              </NavLink>
-            </Button>
+            <Button
+              nativeButton={false}
+              className="w-full"
+              render={
+                <NavLink to="/farm/create">
+                  <Plus />
+                  <span>Nieuw bedrijf aanmaken</span>
+                </NavLink>
+              }
+            />
           </div>
         )}
       </DialogContent>

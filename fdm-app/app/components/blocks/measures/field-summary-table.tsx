@@ -133,14 +133,16 @@ export function FieldSummaryTable({
           {canModify && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={cn(!hasSelection && "cursor-not-allowed")}>
-                    <Button disabled={!hasSelection} onClick={() => onAddMeasure(selectedIds)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Toevoegen
-                    </Button>
-                  </span>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <span className={cn(!hasSelection && "cursor-not-allowed")}>
+                      <Button disabled={!hasSelection} onClick={() => onAddMeasure(selectedIds)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Toevoegen
+                      </Button>
+                    </span>
+                  }
+                />
                 <TooltipContent>
                   {hasSelection
                     ? `Maatregel toevoegen aan ${selectedIds.length} perceel${selectedIds.length === 1 ? "" : "en"}`

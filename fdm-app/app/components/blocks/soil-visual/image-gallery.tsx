@@ -161,20 +161,18 @@ function AnnotationOverlay({
             onClick={(e) => e.stopPropagation()}
           >
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-full border-2 border-white text-xs font-semibold shadow transition-colors",
-                    isHovered
-                      ? "bg-yellow-400 text-yellow-900"
-                      : "bg-primary text-primary-foreground",
-                  )}
-                  onMouseEnter={() => onHoverAnnotation(index)}
-                  onMouseLeave={() => onHoverAnnotation(null)}
-                >
-                  {index + 1}
-                </button>
+              <TooltipTrigger
+                type="button"
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-full border-2 border-white text-xs font-semibold shadow transition-colors",
+                  isHovered
+                    ? "bg-yellow-400 text-yellow-900"
+                    : "bg-primary text-primary-foreground",
+                )}
+                onMouseEnter={() => onHoverAnnotation(index)}
+                onMouseLeave={() => onHoverAnnotation(null)}
+              >
+                {index + 1}
               </TooltipTrigger>
               <TooltipContent className="max-w-xs text-left">
                 <div className="space-y-1">
@@ -611,20 +609,22 @@ export function ImageGallery({
                         ] as const
                       ).map(({ type, Icon, label }) => (
                         <Tooltip key={type}>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant={activeTool === type ? "default" : "outline"}
-                              size="icon"
-                              className="size-8"
-                              onClick={() => {
-                                setActiveTool(type)
-                                setDrawingState(null)
-                              }}
-                            >
-                              <Icon className="size-3.5" />
-                            </Button>
-                          </TooltipTrigger>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant={activeTool === type ? "default" : "outline"}
+                                size="icon"
+                                className="size-8"
+                                onClick={() => {
+                                  setActiveTool(type)
+                                  setDrawingState(null)
+                                }}
+                              >
+                                <Icon className="size-3.5" />
+                              </Button>
+                            }
+                          />
                           <TooltipContent>{label}</TooltipContent>
                         </Tooltip>
                       ))}

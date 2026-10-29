@@ -532,9 +532,9 @@ export default function FarmRotationHarvestAddIndex() {
                             ) && (
                               <TooltipProvider>
                                 <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                  </TooltipTrigger>
+                                  <TooltipTrigger
+                                    render={<AlertTriangle className="h-4 w-4 text-yellow-500" />}
+                                  />
                                   <TooltipContent>
                                     <p>Dit perceel heeft het geselecteerde gewas niet</p>
                                   </TooltipContent>
@@ -554,19 +554,24 @@ export default function FarmRotationHarvestAddIndex() {
                         Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
                         filtermogelijkheden.
                       </p>
-                      <Button asChild variant="link" className="mt-4">
-                        <NavLink to={backlink}>{backlinkLabel}</NavLink>
-                      </Button>
+                      <Button
+                        variant="link"
+                        className="mt-4"
+                        nativeButton={false}
+                        render={<NavLink to={backlink}>{backlinkLabel}</NavLink>}
+                      />
                     </div>
                   )}
                 </CardContent>
                 <CardFooter>
                   <Dialog open={open} onOpenChange={handleSelectionDialogOpenChange}>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" className="w-full">
-                        Wijzig selectie
-                      </Button>
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={
+                        <Button variant="secondary" className="w-full">
+                          Wijzig selectie
+                        </Button>
+                      }
+                    />
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
                         <DialogTitle>Percelen selecteren</DialogTitle>

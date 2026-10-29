@@ -153,14 +153,19 @@ export default function Verify() {
           </Button>
 
           {actionData?.errors?.code && (
-            <Button asChild variant="link" className="w-full">
-              <Link
-                to={requestNewCodeUrl}
-                onClick={() => capture("signin_request_new_code_clicked")}
-              >
-                Nieuwe code aanvragen
-              </Link>
-            </Button>
+            <Button
+              variant="link"
+              className="w-full"
+              nativeButton={false}
+              render={
+                <Link
+                  to={requestNewCodeUrl}
+                  onClick={() => capture("signin_request_new_code_clicked")}
+                >
+                  Nieuwe code aanvragen
+                </Link>
+              }
+            />
           )}
         </Form>
       </AuthCard>

@@ -86,15 +86,17 @@ export function KeyFigures({
 export function ChartExplainer() {
   return (
     <Collapsible>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
-          <ChevronDown
-            className="transition-transform group-data-[state=open]:rotate-180"
-            aria-hidden
-          />
-          Wat zie ik?
-        </Button>
-      </CollapsibleTrigger>
+      <CollapsibleTrigger
+        render={
+          <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
+            <ChevronDown
+              className="transition-transform group-data-[state=open]:rotate-180"
+              aria-hidden
+            />
+            Wat zie ik?
+          </Button>
+        }
+      />
       <CollapsibleContent>
         <dl className="text-muted-foreground max-w-prose space-y-2 text-sm">
           <div>
@@ -284,12 +286,17 @@ export function EvaluationCard({
         )}
       </CardContent>
       <CardFooter>
-        <Button asChild variant="outline" size="sm">
-          <NavLink to={nextYearHref}>
-            Plan {nextYear}
-            <ArrowRight aria-hidden />
-          </NavLink>
-        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          nativeButton={false}
+          render={
+            <NavLink to={nextYearHref}>
+              Plan {nextYear}
+              <ArrowRight aria-hidden />
+            </NavLink>
+          }
+        />
       </CardFooter>
     </Card>
   )

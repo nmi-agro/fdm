@@ -361,16 +361,17 @@ export default function FarmAtlasNutrientAdviceBlock() {
           </p>
           {b_id_farm && b_id_farm !== "undefined" && (
             <Button
-              asChild
+              nativeButton={false}
               variant="outline"
               size="sm"
               className="h-8 w-full text-xs pointer-coarse:h-10"
-            >
-              <NavLink to={`/farm/${b_id_farm}/${calendar}/nutrient_advice`}>
-                <TableIcon className="h-3.5 w-3.5" />
-                {NUTRIENT_ADVICE_COPY.openOverview}
-              </NavLink>
-            </Button>
+              render={
+                <NavLink to={`/farm/${b_id_farm}/${calendar}/nutrient_advice`}>
+                  <TableIcon className="h-3.5 w-3.5" />
+                  {NUTRIENT_ADVICE_COPY.openOverview}
+                </NavLink>
+              }
+            />
           )}
           <p className="text-muted-foreground px-0.5 text-xs md:hidden">
             {NUTRIENT_ADVICE_COPY.desktopHint}

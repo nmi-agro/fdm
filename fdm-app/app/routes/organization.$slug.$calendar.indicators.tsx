@@ -331,12 +331,18 @@ export default function IndicatorsFarmIndex() {
                   <CardTitle className="text-base font-bold">
                     Gemiddelde score van de organisatie
                   </CardTitle>
-                  <Button asChild variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
-                    <NavLink to={`/organization/${slug}/${calendar}/atlas/indicators`}>
-                      <MapIcon className="h-3.5 w-3.5" />
-                      Kaartweergave
-                    </NavLink>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    nativeButton={false}
+                    render={
+                      <NavLink to={`/organization/${slug}/${calendar}/atlas/indicators`}>
+                        <MapIcon className="h-3.5 w-3.5" />
+                        Kaartweergave
+                      </NavLink>
+                    }
+                  />
                 </div>
                 {/* <CardDescription className="text-xs">
                                     Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 

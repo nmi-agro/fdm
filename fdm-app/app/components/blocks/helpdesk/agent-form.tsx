@@ -248,11 +248,13 @@ export function AgentFormDialog({
               <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
             </fieldset>
             <DialogFooter className="flex flex-row justify-end gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Sluiten
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Sluiten
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={isSubmitting}>
                 Opslaan{isSubmitting && <Spinner />}
               </Button>

@@ -90,13 +90,18 @@ export function FieldNotAvailableForYear({
       <EmptyContent>
         <div className="flex flex-wrap justify-center gap-2">
           {nearestYearHref && (
-            <Button asChild>
-              <NavLink to={`${nearestYearHref}${location.search}`}>Ga naar {nearestYear}</NavLink>
-            </Button>
+            <Button
+              nativeButton={false}
+              render={
+                <NavLink to={`${nearestYearHref}${location.search}`}>Ga naar {nearestYear}</NavLink>
+              }
+            />
           )}
-          <Button asChild variant={nearestYearHref ? "outline" : "default"}>
-            <NavLink to={settingsHref}>Naar eigenschappen</NavLink>
-          </Button>
+          <Button
+            variant={nearestYearHref ? "outline" : "default"}
+            nativeButton={false}
+            render={<NavLink to={settingsHref}>Naar eigenschappen</NavLink>}
+          />
         </div>
       </EmptyContent>
     </Empty>

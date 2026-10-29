@@ -166,11 +166,13 @@ export function AssignGroupsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" disabled={farms.length === 0}>
-          Groep toewijzen…
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" disabled={farms.length === 0}>
+            Groep toewijzen…
+          </Button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Groep toewijzen</DialogTitle>

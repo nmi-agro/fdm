@@ -224,12 +224,14 @@ export function NutrientAdviceOverviewTable({
             </TabsList>
           </Tabs>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end" className="max-h-96 overflow-y-auto">
               <DropdownMenuItem
                 onSelect={(event) => {

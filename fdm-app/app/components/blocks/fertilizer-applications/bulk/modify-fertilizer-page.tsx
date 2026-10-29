@@ -250,17 +250,21 @@ export function ModifyFertilizerPage({
               }
             />
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={selected.length === 0 || removeFetcher.state !== "idle" || isSubmitting}
-                >
-                  <Trash2 className="size-4" />
-                  {applicationsLabel(selected.length)} verwijderen
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={
+                      selected.length === 0 || removeFetcher.state !== "idle" || isSubmitting
+                    }
+                  >
+                    <Trash2 className="size-4" />
+                    {applicationsLabel(selected.length)} verwijderen
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>

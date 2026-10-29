@@ -42,9 +42,10 @@ export function FarmTitle({
         <div className="mt-4 ml-auto flex shrink-0 items-center gap-3 xl:mt-0">
           {rightNode && <div className="flex-shrink-0">{rightNode}</div>}
           {action && (
-            <Button asChild>
-              <NavLink to={action.to}>{action.label}</NavLink>
-            </Button>
+            <Button
+              nativeButton={false}
+              render={<NavLink to={action.to}>{action.label}</NavLink>}
+            />
           )}
         </div>
       </div>

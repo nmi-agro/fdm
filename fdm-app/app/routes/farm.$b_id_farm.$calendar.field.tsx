@@ -417,9 +417,11 @@ export default function FarmFieldIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button asChild className={cn(!loaderData.farmWritePermission ? "invisible" : "")}>
-                  <NavLink to="./new">Maak een perceel</NavLink>
-                </Button>
+                <Button
+                  className={cn(!loaderData.farmWritePermission ? "invisible" : "")}
+                  nativeButton={false}
+                  render={<NavLink to="./new">Maak een perceel</NavLink>}
+                />
               </div>
               {/* <p className="px-8 text-center text-sm text-muted-foreground">
                             </p> */}

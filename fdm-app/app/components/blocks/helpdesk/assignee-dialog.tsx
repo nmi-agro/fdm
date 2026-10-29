@@ -119,39 +119,41 @@ export function AssignmentSelector({
 
   return (
     <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
-      <DialogTrigger asChild>
-        <Button
-          id={triggerId}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          disabled={fetcher.state !== "idle"}
-        >
-          {assignees.length > 0 ? (
-            <AvatarGroup>
-              {assignees.slice(0, ASSIGNEE_DISPLAY_CUTOFF).map((assignee) => (
-                <HelpdeskUserAvatar
-                  key={assignee.agent_id}
-                  user={makeHelpdeskUser(assignee, principalLookup)}
-                  type="agent"
-                />
-              ))}
-              {assignees.length > ASSIGNEE_DISPLAY_CUTOFF ? (
-                <AvatarGroupCount>+{assignees.length - ASSIGNEE_DISPLAY_CUTOFF}</AvatarGroupCount>
-              ) : null}
-            </AvatarGroup>
-          ) : (
-            <UserPlus className="text-muted-foreground size-4" />
-          )}
-          <span>
-            {assigneeNames.length > 0
-              ? assigneeNames.length > 3
-                ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
-                : assigneeNames.join(", ")
-              : "Toewijzen"}
-          </span>
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button
+            id={triggerId}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={fetcher.state !== "idle"}
+          >
+            {assignees.length > 0 ? (
+              <AvatarGroup>
+                {assignees.slice(0, ASSIGNEE_DISPLAY_CUTOFF).map((assignee) => (
+                  <HelpdeskUserAvatar
+                    key={assignee.agent_id}
+                    user={makeHelpdeskUser(assignee, principalLookup)}
+                    type="agent"
+                  />
+                ))}
+                {assignees.length > ASSIGNEE_DISPLAY_CUTOFF ? (
+                  <AvatarGroupCount>+{assignees.length - ASSIGNEE_DISPLAY_CUTOFF}</AvatarGroupCount>
+                ) : null}
+              </AvatarGroup>
+            ) : (
+              <UserPlus className="text-muted-foreground size-4" />
+            )}
+            <span>
+              {assigneeNames.length > 0
+                ? assigneeNames.length > 3
+                  ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
+                  : assigneeNames.join(", ")
+                : "Toewijzen"}
+            </span>
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-md">
         <fetcher.Form
           id={formId}
@@ -268,18 +270,14 @@ export function AssignmentSelector({
           )}
 
           <DialogFooter className="gap-2">
-            <DialogClose asChild>
-              <Button variant="outline">Annuleren</Button>
-            </DialogClose>
+            <DialogClose render={<Button variant="outline">Annuleren</Button>} />
             {canModify ? (
               <Button type="submit" form={formId}>
                 Opslaan
                 {fetcher.state !== "idle" ? <Spinner className="ms-2" /> : null}
               </Button>
             ) : (
-              <DialogClose asChild>
-                <Button>Sluiten</Button>
-              </DialogClose>
+              <DialogClose render={<Button>Sluiten</Button>} />
             )}
           </DialogFooter>
         </fetcher.Form>
@@ -343,37 +341,39 @@ function AssigneeSelectItem({
       </Button>
 
       <Tooltip>
-        <TooltipTrigger asChild>
-          {canModify ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 hover:bg-transparent"
-              onClick={onIsPrimaryClick}
-              disabled={!isSelected}
-              aria-label={
-                isPrimary
-                  ? `${agent.display_name} is hoofdverantwoordelijke`
-                  : `Maak ${agent.display_name} hoofdverantwoordelijke`
-              }
-            >
+        <TooltipTrigger
+          render={
+            canModify ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 hover:bg-transparent"
+                onClick={onIsPrimaryClick}
+                disabled={!isSelected}
+                aria-label={
+                  isPrimary
+                    ? `${agent.display_name} is hoofdverantwoordelijke`
+                    : `Maak ${agent.display_name} hoofdverantwoordelijke`
+                }
+              >
+                <Crown
+                  className={cn(
+                    "size-4 transition-colors",
+                    isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30",
+                  )}
+                />
+              </Button>
+            ) : (
               <Crown
                 className={cn(
-                  "size-4 transition-colors",
-                  isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30",
+                  "me-2 size-4",
+                  isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20",
                 )}
               />
-            </Button>
-          ) : (
-            <Crown
-              className={cn(
-                "me-2 size-4",
-                isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20",
-              )}
-            />
-          )}
-        </TooltipTrigger>
+            )
+          }
+        />
         <TooltipContent>
           {isPrimary ? "Hoofdverantwoordelijke" : canModify ? "Hoofdverantwoordelijke maken" : null}
         </TooltipContent>

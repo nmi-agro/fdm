@@ -146,9 +146,11 @@ export function FieldDashboardTileEmpty({
         </EmptyHeader>
         {action ? (
           <EmptyContent>
-            <Button asChild variant="outline">
-              <Link to={action.href}>{action.label}</Link>
-            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link to={action.href}>{action.label}</Link>}
+            />
           </EmptyContent>
         ) : null}
       </Empty>

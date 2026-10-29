@@ -162,9 +162,12 @@ function FarmOverview({
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button asChild>
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Percelen toevoegen</NavLink>
-          </Button>
+          <Button
+            nativeButton={false}
+            render={
+              <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Percelen toevoegen</NavLink>
+            }
+          />
         </EmptyContent>
       </Empty>
     )

@@ -327,12 +327,17 @@ function FieldDetailsAtlas({ b_id_farm, calendar, asyncData }: Awaited<ReturnTyp
         groundWater={<GroundwaterCard groundwaterEstimates={groundwaterEstimates} />}
       />
       <div className="fixed right-6 bottom-6 z-50">
-        <Button asChild size="lg" className="rounded-full shadow-lg">
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
-            <MapIcon className="mr-2 h-4 w-4" />
-            Terug naar kaart
-          </NavLink>
-        </Button>
+        <Button
+          nativeButton={false}
+          size="lg"
+          className="rounded-full shadow-lg"
+          render={
+            <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
+              <MapIcon className="mr-2 h-4 w-4" />
+              Terug naar kaart
+            </NavLink>
+          }
+        />
       </div>
     </>
   )

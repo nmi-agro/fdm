@@ -393,11 +393,13 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
               <span>{balanceResult.balance}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className={`block cursor-default text-xs ${deltaClass}`}>
-                      {deltaFormatted}
-                    </span>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <span className={`block cursor-default text-xs ${deltaClass}`}>
+                        {deltaFormatted}
+                      </span>
+                    }
+                  />
                   <TooltipContent>
                     {`Verschil t.o.v. het organisatiegemiddelde (${(Math.round((orgAverage ?? 0) * 10) / 10).toFixed(1)} kg OS / ha)`}
                   </TooltipContent>

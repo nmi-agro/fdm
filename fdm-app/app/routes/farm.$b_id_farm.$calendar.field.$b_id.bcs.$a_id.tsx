@@ -108,21 +108,33 @@ export default function FieldBcsDetailRoute() {
   const measuredAt = loaderData.analysis.b_sampling_date ?? loaderData.analysis.a_date
 
   const editButton = loaderData.fieldWritePermission ? (
-    <Button asChild type="button" variant="outline">
-      <NavLink to="edit">
-        <Pencil className="size-4" />
-        Bewerken
-      </NavLink>
-    </Button>
+    <Button
+      type="button"
+      variant="outline"
+      nativeButton={false}
+      render={
+        <NavLink to="edit">
+          <Pencil className="size-4" />
+          Bewerken
+        </NavLink>
+      }
+    />
   ) : null
 
   const deleteButton = loaderData.fieldWritePermission ? (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button type="button" variant="destructive" size="icon" disabled={fetcher.state !== "idle"}>
-          <Trash2 className="size-4" />
-        </Button>
-      </AlertDialogTrigger>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            disabled={fetcher.state !== "idle"}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>BodemConditieScore verwijderen?</AlertDialogTitle>

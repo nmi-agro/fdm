@@ -74,18 +74,22 @@ export function NewFieldsSidebar({
         </CardContent>
         <CardFooter className="relative flex flex-col items-center space-y-2">
           {/* <Separator /> */}
-          <Button variant={"link"} asChild>
-            <NavLink
-              to={
-                isFarmCreateWizard
-                  ? `/farm/create/${b_id_farm}/${calendar}/atlas`
-                  : `/farm/${b_id_farm}/${calendar}/field/new`
-              }
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Terug naar kaart
-            </NavLink>
-          </Button>
+          <Button
+            variant={"link"}
+            nativeButton={false}
+            render={
+              <NavLink
+                to={
+                  isFarmCreateWizard
+                    ? `/farm/create/${b_id_farm}/${calendar}/atlas`
+                    : `/farm/${b_id_farm}/${calendar}/field/new`
+                }
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Terug naar kaart
+              </NavLink>
+            }
+          />
         </CardFooter>
       </Card>
     </aside>

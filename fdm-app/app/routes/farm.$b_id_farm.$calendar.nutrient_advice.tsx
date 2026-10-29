@@ -157,12 +157,16 @@ export default function FarmBalanceNitrogenBlock() {
               "Advies volgens Handboek Bodem en Bemesting (CBAV) en Adviesbasis Bemesting (CBGV)."
             }
             rightNode={
-              <Button asChild variant="outline">
-                <NavLink to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}>
-                  <MapIcon />
-                  Kaartweergave
-                </NavLink>
-              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <NavLink to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}>
+                    <MapIcon />
+                    Kaartweergave
+                  </NavLink>
+                }
+              />
             }
           />
         )}

@@ -72,6 +72,7 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
           <FieldLabel>{label}</FieldLabel>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger
+              nativeButton={false}
               render={
                 <FieldContent>
                   <Button

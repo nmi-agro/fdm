@@ -381,20 +381,26 @@ export default function FarmRotationIndex() {
               </div>
               <div className="relative flex flex-col items-center">
                 {loaderData.hasFields ? (
-                  <Button asChild>
-                    <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}>
-                      Naar percelen
-                    </NavLink>
-                  </Button>
+                  <Button
+                    nativeButton={false}
+                    render={
+                      <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}>
+                        Naar percelen
+                      </NavLink>
+                    }
+                  />
                 ) : (
                   <Button
-                    asChild
                     className={cn(!loaderData.farmWritePermission ? "invisible" : "")}
-                  >
-                    <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}>
-                      Maak een perceel
-                    </NavLink>
-                  </Button>
+                    nativeButton={false}
+                    render={
+                      <NavLink
+                        to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}
+                      >
+                        Maak een perceel
+                      </NavLink>
+                    }
+                  />
                 )}
               </div>
             </div>
