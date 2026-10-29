@@ -39,7 +39,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Aanvoer (Totaal): {supply.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {/* Render Fertilizers */}
             {renderFertilizersSupply(supply.fertilizers, fieldInput)}
 
@@ -67,7 +67,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Bemesting (Totaal): {fertilizers.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {/* Render Mineral Fertilizers */}
             {renderFertilizerApplications(
               fertilizers.mineral,
@@ -217,7 +217,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Afvoer (Totaal): {removal.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {/* Render Harvests */}
             {renderHarvestsRemoval(removal.harvests, fieldInput)}
 
@@ -328,7 +328,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Ammoniak (Totaal): {ammonia.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {/* Render Fertilizers */}
             {renderFertilizersEmission(ammonia.fertilizers, fieldInput)}
 
@@ -363,7 +363,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Bemesting (Totaal): {fertilizers.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {/* Render Mineral Fertilizers */}
             {renderFertilizerEmissions(
               fertilizers.mineral,
@@ -489,10 +489,10 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Emissie (Totaal): {emission.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {renderAmmoniaEmissions(emission.ammonia, fieldInput)}
           </Accordion>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {renderNitrateEmissions(emission.nitrate)}
           </Accordion>
         </AccordionContent>
@@ -502,7 +502,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
   return (
     <div>
-      <Accordion type="multiple" className="w-full">
+      <Accordion multiple className="w-full">
         {renderSupply(balanceData.supply, fieldInput)}
         {renderRemoval(balanceData.removal, fieldInput)}
         {renderEmission(balanceData.emission, fieldInput)}
