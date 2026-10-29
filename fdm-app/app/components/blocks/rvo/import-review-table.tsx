@@ -173,6 +173,7 @@ function ActionInput({
           }
         }}
         value={typeof value === "string" ? value : ""}
+        items={options}
         onValueChange={(value) => {
           onChange?.(value)
           setInputActive(false)
@@ -462,10 +463,23 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
 
   if (item.status === "CONFLICT") {
     const action = getConflictRowAction(item, ctx, userChoices)
-
     return (
       <Select
         value={action}
+        items={[
+          {
+            value: "UPDATE_FROM_REMOTE",
+            label: "Gebruik RVO",
+          },
+          {
+            value: "KEEP_LOCAL",
+            label: `Gebruik ${clientConfig.name}`,
+          },
+          {
+            value: "CUSTOM",
+            label: "Aangepast",
+          },
+        ]}
         onValueChange={(val) => {
           if (val === "KEEP_LOCAL" || val === "UPDATE_FROM_REMOTE") {
             setUserChoices(id, getRowActionValues(val, item, ctx))
@@ -502,6 +516,10 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
     return (
       <Select
         value={field_to_add ? "ADD_REMOTE" : "IGNORE"}
+        items={[
+          { value: "ADD_REMOTE", label: "Toevoegen" },
+          { value: "IGNORE", label: "Negeren" },
+        ]}
         onValueChange={(val) => {
           setFieldToAdd(id, val === "ADD_REMOTE")
         }}
@@ -529,6 +547,10 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
     return (
       <Select
         value={field_to_remove ? "REMOVE_LOCAL" : "KEEP_LOCAL"}
+        items={[
+          { value: "REMOVE_LOCAL", label: "Verwijderen" },
+          { value: "KEEP_LOCAL", label: "Behouden" },
+        ]}
         onValueChange={(val) => {
           setFieldToRemove(id, val === "REMOVE_LOCAL")
         }}

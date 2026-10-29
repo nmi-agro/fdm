@@ -124,6 +124,13 @@ export function FertilizerForm({
               <Select
                 onValueChange={field.onChange}
                 value={field.value ? String(field.value) : undefined}
+                items={param.options?.map((option) => ({
+                  value: option.value ?? "",
+                  label:
+                    param.parameter === "p_app_amount_unit"
+                      ? option.label
+                      : `${option.label} (${option.value ?? ""})`,
+                }))}
                 disabled={!editable}
               >
                 <SelectTrigger className="h-9">

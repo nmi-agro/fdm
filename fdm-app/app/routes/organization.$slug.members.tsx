@@ -217,6 +217,12 @@ const MemberRow = ({
   )
 }
 
+const ORGANIZATION_ROLES = [
+  { value: "owner", label: "Eigenaar" },
+  { value: "admin", label: "Beheerder" },
+  { value: "member", label: "Lid" },
+]
+
 const MemberAction = ({
   member,
   permissions,
@@ -247,6 +253,7 @@ const MemberAction = ({
       <Select
         name="role"
         value={role}
+        items={ORGANIZATION_ROLES}
         onValueChange={(value) => {
           if (typeof value === "string") {
             submitRoleChange(value)
@@ -258,9 +265,11 @@ const MemberAction = ({
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="owner">Eigenaar</SelectItem>
-          <SelectItem value="admin">Beheerder</SelectItem>
-          <SelectItem value="member">Lid</SelectItem>
+          {ORGANIZATION_ROLES.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       {permissions.canRemoveUser ? (

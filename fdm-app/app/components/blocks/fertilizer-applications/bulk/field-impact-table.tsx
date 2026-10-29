@@ -316,6 +316,7 @@ export function FieldImpactTable({
           {/* The cards have no column headers, so sorting gets its own control there */}
           <Select
             value={`${sort.key}:${sort.desc ? "desc" : "asc"}`}
+            items={SORT_OPTIONS}
             onValueChange={(value) => {
               if (typeof value !== "string") {
                 return

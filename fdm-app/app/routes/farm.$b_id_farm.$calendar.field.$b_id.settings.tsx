@@ -220,7 +220,11 @@ export default function FarmFieldSettingsBlock() {
                     render={({ field, fieldState }) => (
                       <Field data-invalid={fieldState.invalid} className="col-span-1">
                         <FieldLabel>Eigendom of pacht?</FieldLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          items={loaderData.acquiringMethodOptions}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Maak een keuze..." />
                           </SelectTrigger>

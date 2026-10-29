@@ -93,6 +93,7 @@ export function TimelineFiltersPopover({
                 }
               }}
               value={period.value === "" ? ALL_PERIOD_VALUE : period.value}
+              items={period.options}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />

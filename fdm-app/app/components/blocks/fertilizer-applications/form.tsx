@@ -327,6 +327,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value ?? ""}
+                    items={selectedFertilizer?.applicationMethodOptions}
                     disabled={!selectedFertilizer}
                   >
                     <SelectTrigger>

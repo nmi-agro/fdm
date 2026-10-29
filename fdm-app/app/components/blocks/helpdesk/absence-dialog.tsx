@@ -179,6 +179,10 @@ export function AbsenceDialog({
                       <FieldLabel>Medewerker</FieldLabel>
                       <Select
                         value={field.value}
+                        items={agents.map((agent) => ({
+                          value: agent.agent_id,
+                          label: agent.display_name,
+                        }))}
                         onValueChange={field.onChange}
                         disabled={isSubmitting}
                       >

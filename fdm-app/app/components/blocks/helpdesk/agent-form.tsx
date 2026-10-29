@@ -121,6 +121,7 @@ export function AgentFormFields({
             </FieldDescription>
             <Select
               value={field.value?.toString() ?? "1"}
+              items={AssignmentTierOptions}
               onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
               disabled={!isAdmin}
             >

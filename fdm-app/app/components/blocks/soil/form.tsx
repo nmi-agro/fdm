@@ -140,6 +140,7 @@ export function SoilAnalysisForm(props: {
                           <Select
                             onValueChange={field.onChange}
                             value={typeof field.value === "string" ? field.value : undefined}
+                            items={x.options}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="" />

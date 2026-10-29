@@ -41,6 +41,11 @@ const formDefaultValues = {
   attachments: [],
 } as const
 
+const senderRoleOptions = [
+  { value: "admin", label: "als medewerker" },
+  { value: "customer", label: "als gebruiker" },
+]
+
 export function MessageComposer({
   intent,
   principal,
@@ -152,6 +157,7 @@ export function MessageComposer({
                       <div data-invalid={fieldState.invalid} className="w-auto shrink-0 grow-0">
                         <Select
                           value={field.value}
+                          items={senderRoleOptions}
                           onValueChange={(value) => {
                             form.setValue("sender_role", value as "agent" | "customer")
                             if (value !== "agent") {
@@ -163,7 +169,11 @@ export function MessageComposer({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="agent">als medewerker</SelectItem>
+                            {senderRoleOptions.map((desc) => (
+                              <SelectItem key={desc.value} value={desc.value}>
+                                {desc.label}
+                              </SelectItem>
+                            ))}
                             <SelectItem value="customer">als gebruiker</SelectItem>
                           </SelectContent>
                         </Select>

@@ -832,6 +832,7 @@ export default function IndicatorsFieldDetail() {
               <div className="absolute top-2 right-2 z-10">
                 <Select
                   value={mapScoreKey}
+                  items={MAP_SCORE_OPTION_GROUPS.flatMap((group) => group.options)}
                   onValueChange={(value) => {
                     if (typeof value === "string") {
                       setMapScoreKey(value)

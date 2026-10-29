@@ -192,6 +192,7 @@ export function CultivationDetailsCard({
                       <Select
                         onValueChange={field.onChange}
                         value={field.value ?? undefined}
+                        items={b_lu_variety_options}
                         disabled={!editable || b_lu_variety_options.length === 0}
                       >
                         <FieldContent>

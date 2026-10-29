@@ -70,6 +70,7 @@ function TableVarietySelectorForm({
                 field.onChange(value)
               }}
               value={field.value ?? undefined}
+              items={b_lu_variety_options}
               disabled={field.disabled}
             >
               <SelectTrigger disabled={!row.original.canModify}>

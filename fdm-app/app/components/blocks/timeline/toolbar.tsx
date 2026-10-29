@@ -58,7 +58,14 @@ export function TimelineToolbar({
           Ongedaan maken
         </Button>
       )}
-      <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
+      <Select
+        onValueChange={(value) => onRangeChange(value as Range)}
+        value={range}
+        items={(Object.keys(rangeLabels) as Range[]).map((k) => ({
+          value: k,
+          label: rangeLabels[k],
+        }))}
+      >
         <SelectTrigger className="w-40">
           <SelectValue />
         </SelectTrigger>

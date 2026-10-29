@@ -44,8 +44,8 @@ export type HelpdeskUserExtended = HelpdeskUser & {
 }
 
 export const agentRoles = [
-  { name: "agent", label: "Medewerker" },
-  { name: "admin", label: "Beheerder" },
+  { value: "agent", label: "Medewerker" },
+  { value: "admin", label: "Beheerder" },
 ] as const
 
 type RoleDescription = (typeof agentRoles)[number]
@@ -129,7 +129,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
   const fetcher = useFetcher()
   const isSubmitting = fetcher.state !== "idle"
 
-  const defaultRole = roles[0].name
+  const defaultRole = roles[0].value
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onSubmit",
     resolver: zodResolver(FormSchema),
@@ -179,7 +179,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
                   <RoleSelect
                     defaultValue={defaultRole}
                     onValueChange={(value) =>
-                      form.setValue("role", value as RoleDescription["name"])
+                      form.setValue("role", value as RoleDescription["value"])
                     }
                     roles={roles}
                   />
@@ -279,7 +279,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       ) : (
         <>
           <TableCell>
-            {roles.find((role) => role.name === principal.role)?.label ?? "Gebruiker"}
+            {roles.find((role) => role.value === principal.role)?.label ?? "Gebruiker"}
           </TableCell>
         </>
       )}
@@ -294,13 +294,13 @@ function RoleSelect(
 ) {
   const { roles, ...selectProps } = props
   return (
-    <Select {...selectProps}>
+    <Select items={roles} {...selectProps}>
       <SelectTrigger className="min-w-50">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {roles.map((item) => (
-          <SelectItem key={item.name} value={item.name}>
+          <SelectItem key={item.value} value={item.value}>
             {item.label}
           </SelectItem>
         ))}

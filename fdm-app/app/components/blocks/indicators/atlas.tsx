@@ -239,6 +239,7 @@ export function ScoreSelect({
         <div className="flex items-center gap-2">
           <Select
             value={selectedProperty}
+            items={INDICATORS.map((item) => ({ value: item.id, label: item.name }))}
             onValueChange={(value) => {
               if (typeof value === "string") {
                 setSelectedProperty(value)
