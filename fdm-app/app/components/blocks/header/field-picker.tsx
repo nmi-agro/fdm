@@ -74,7 +74,7 @@ export function FieldPickerItem({
     >
       {option.b_lu_name ? (
         <Tooltip>
-          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipTrigger render={content} />
           <TooltipContent side="top">
             <p>{option.b_lu_name}</p>
           </TooltipContent>

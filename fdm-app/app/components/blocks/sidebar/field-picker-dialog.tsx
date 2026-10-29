@@ -85,12 +85,15 @@ export function FieldPickerDialog({
           </TooltipProvider>
         ) : (
           <div className="flex flex-col gap-4 p-6 pt-2">
-            <Button asChild className="w-full">
-              <NavLink to={createFieldLink}>
-                <Plus />
-                <span>Nieuw perceel aanmaken</span>
-              </NavLink>
-            </Button>
+            <Button
+              className="w-full"
+              render={
+                <NavLink to={createFieldLink}>
+                  <Plus />
+                  <span>Nieuw perceel aanmaken</span>
+                </NavLink>
+              }
+            />
           </div>
         )}
       </DialogContent>

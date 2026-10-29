@@ -108,18 +108,20 @@ export function getColumns(
         if (fields.length === 0) return null
         return (
           <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs">
-                {fields.length}{" "}
-                {domain === "organization"
-                  ? fields.length === 1
-                    ? "bedrijf"
-                    : "bedrijven"
-                  : fields.length === 1
-                    ? "perceel"
-                    : "percelen"}
-              </Button>
-            </PopoverTrigger>
+            <PopoverTrigger
+              render={
+                <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs">
+                  {fields.length}{" "}
+                  {domain === "organization"
+                    ? fields.length === 1
+                      ? "bedrijf"
+                      : "bedrijven"
+                    : fields.length === 1
+                      ? "perceel"
+                      : "percelen"}
+                </Button>
+              }
+            />
             <PopoverContent className="w-56 p-2" align="start">
               <ul className="space-y-1">
                 {fields.map((f) => (
@@ -171,17 +173,19 @@ export function getColumns(
             <Pencil className="h-4 w-4" />
           </Button>
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive h-8 w-8"
-                title="Verwijderen"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive h-8 w-8"
+                  title="Verwijderen"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              }
+            />
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>

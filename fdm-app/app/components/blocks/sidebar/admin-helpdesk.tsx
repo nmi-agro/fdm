@@ -53,54 +53,63 @@ export function SidebarAdminHelpdesk({
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "inbox"}>
-                <NavLink
-                  to={
-                    isTicketViewerPage
-                      ? modifySearchParams(urlWithNoFilters, (searchParams) => {
-                          searchParams.set("inbox", "")
-                        })
-                      : "/support?inbox"
-                  }
-                >
-                  <Inbox />
-                  <span>Mijn inbox</span>
-                  <NumberBadge number={numUnreadAssigned} />
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "inbox"}
+                render={
+                  <NavLink
+                    to={
+                      isTicketViewerPage
+                        ? modifySearchParams(urlWithNoFilters, (searchParams) => {
+                            searchParams.set("inbox", "")
+                          })
+                        : "/support?inbox"
+                    }
+                  >
+                    <Inbox />
+                    <span>Mijn inbox</span>
+                    <NumberBadge number={numUnreadAssigned} />
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "unassigned_tickets"}>
-                <NavLink
-                  to={
-                    isTicketViewerPage
-                      ? modifySearchParams(urlWithNoFilters, (searchParams) => {
-                          searchParams.set("unassigned", "")
-                        })
-                      : "/support?unassigned"
-                  }
-                >
-                  <Asterisk />
-                  <span>Niet toegewezen</span>
-                  <NumberBadge number={numUnassigned} />
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "unassigned_tickets"}
+                render={
+                  <NavLink
+                    to={
+                      isTicketViewerPage
+                        ? modifySearchParams(urlWithNoFilters, (searchParams) => {
+                            searchParams.set("unassigned", "")
+                          })
+                        : "/support?unassigned"
+                    }
+                  >
+                    <Asterisk />
+                    <span>Niet toegewezen</span>
+                    <NumberBadge number={numUnassigned} />
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "all_tickets"}>
-                <NavLink
-                  to={
-                    isTicketViewerPage
-                      ? modifySearchParams(urlWithNoFilters, (searchParams) => {
-                          searchParams.set("all", "")
-                        })
-                      : "/support?all"
-                  }
-                >
-                  <MessageSquareDashed />
-                  <span>Alle tickets</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "all_tickets"}
+                render={
+                  <NavLink
+                    to={
+                      isTicketViewerPage
+                        ? modifySearchParams(urlWithNoFilters, (searchParams) => {
+                            searchParams.set("all", "")
+                          })
+                        : "/support?all"
+                    }
+                  >
+                    <MessageSquareDashed />
+                    <span>Alle tickets</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             {/* <SidebarMenuItem>
                         <SidebarMenuButton
@@ -120,45 +129,60 @@ export function SidebarAdminHelpdesk({
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "profile"}>
-                <NavLink to="/support/settings/profile">
-                  <IdCardLanyard />
-                  <span>Mijn profiel</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "profile"}
+                render={
+                  <NavLink to="/support/settings/profile">
+                    <IdCardLanyard />
+                    <span>Mijn profiel</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "agents"}>
-                <NavLink to="/support/settings/agents">
-                  <Users />
-                  <span>Medewerkers</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "agents"}
+                render={
+                  <NavLink to="/support/settings/agents">
+                    <Users />
+                    <span>Medewerkers</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "absences"}>
-                <NavLink to="/support/settings/absences">
-                  <CalendarOff />
-                  <span>Afwezigheid</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "absences"}
+                render={
+                  <NavLink to="/support/settings/absences">
+                    <CalendarOff />
+                    <span>Afwezigheid</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "tags"}>
-                <NavLink to="/support/settings/tags">
-                  <Tag />
-                  <span>Tags</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "tags"}
+                render={
+                  <NavLink to="/support/settings/tags">
+                    <Tag />
+                    <span>Tags</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             {isAdmin ? (
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={currentHelpdeskPage === "blocked_emails"}>
-                  <NavLink to="/support/settings/blocked-emails">
-                    <MailX />
-                    <span>Geblokkeerde e-mailadressen</span>
-                  </NavLink>
-                </SidebarMenuButton>
+                <SidebarMenuButton
+                  isActive={currentHelpdeskPage === "blocked_emails"}
+                  render={
+                    <NavLink to="/support/settings/blocked-emails">
+                      <MailX />
+                      <span>Geblokkeerde e-mailadressen</span>
+                    </NavLink>
+                  }
+                />
               </SidebarMenuItem>
             ) : undefined}
           </SidebarMenu>

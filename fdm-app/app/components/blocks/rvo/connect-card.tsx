@@ -107,20 +107,18 @@ export function RvoConnectCard({
               Percelen ophalen bij RVO
             </CardTitle>
             <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="focus-visible:ring-ring/50 rounded-md outline-none focus-visible:ring-[3px]"
-                  aria-label="In ontwikkeling: meer informatie"
+              <PopoverTrigger
+                type="button"
+                className="focus-visible:ring-ring/50 rounded-md outline-none focus-visible:ring-[3px]"
+                aria-label="In ontwikkeling: meer informatie"
+              >
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground hover:bg-accent gap-1 font-normal"
                 >
-                  <Badge
-                    variant="outline"
-                    className="text-muted-foreground hover:bg-accent gap-1 font-normal"
-                  >
-                    In ontwikkeling
-                    <Info className="h-3 w-3" aria-hidden="true" />
-                  </Badge>
-                </button>
+                  In ontwikkeling
+                  <Info className="h-3 w-3" aria-hidden="true" />
+                </Badge>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-80 space-y-3 text-sm">
                 <p className="font-medium">Deze functie is nog in ontwikkeling</p>
@@ -133,12 +131,16 @@ export function RvoConnectCard({
                   Werkt iets niet zoals verwacht, of heeft u een idee om het te verbeteren? Laat het
                   ons weten via Ondersteuning.
                 </p>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/support/new">
-                    <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                    Contact opnemen met Ondersteuning
-                  </Link>
-                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={
+                    <Link to="/support/new">
+                      <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                      Contact opnemen met Ondersteuning
+                    </Link>
+                  }
+                />
               </PopoverContent>
             </Popover>
           </div>
@@ -255,9 +257,11 @@ export function RvoConnectCard({
               )}
             </Button>
           ) : (
-            <Button variant="outline" asChild className="w-full">
-              <Link to={kvkHref}>KvK-nummer toevoegen</Link>
-            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              render={<Link to={kvkHref}>KvK-nummer toevoegen</Link>}
+            />
           )}
           <p id={statusId} className="text-muted-foreground text-center text-xs" aria-live="polite">
             {isImporting

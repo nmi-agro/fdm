@@ -54,21 +54,23 @@ export function TimelineFiltersPopover({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button size="lg" variant="outline">
-          <Filter className="size-4" />
-          {isPeriodFiltered ? periodLabel : "Filters"}
-          {activeFilterCount > 0 && (
-            <Badge
-              className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
-              key={activeFilterCount}
-              variant="secondary"
-            >
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button size="lg" variant="outline">
+            <Filter className="size-4" />
+            {isPeriodFiltered ? periodLabel : "Filters"}
+            {activeFilterCount > 0 && (
+              <Badge
+                className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
+                key={activeFilterCount}
+                variant="secondary"
+              >
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+        }
+      />
       <PopoverContent align={align} className="w-64 space-y-4">
         {period && (
           <div className="space-y-2">

@@ -19,7 +19,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
@@ -51,30 +50,12 @@ export function SidebarUser({
       <SidebarMenu>
         <SidebarMenuItem>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              >
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={image ?? undefined} alt={name} />
-                  <AvatarFallback className="rounded-lg">{avatarInitials}</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{userName}</span>
-                  <span className="truncate text-xs">{email}</span>
-                </div>
-                <ChevronsUpDown className="ml-auto size-4" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-              side={isMobile ? "bottom" : "right"}
-              align="end"
-              sideOffset={4}
-            >
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <DropdownMenuTrigger
+              render={
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={image ?? undefined} alt={name} />
                     <AvatarFallback className="rounded-lg">{avatarInitials}</AvatarFallback>
@@ -83,72 +64,98 @@ export function SidebarUser({
                     <span className="truncate font-semibold">{userName}</span>
                     <span className="truncate text-xs">{email}</span>
                   </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              }
+            />
+            <DropdownMenuContent
+              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+              side={isMobile ? "bottom" : "right"}
+              align="end"
+              sideOffset={4}
+            >
+              <div className="flex items-center gap-2 p-0 px-1 py-1.5 text-left text-sm font-normal">
+                <Avatar className="h-8 w-8 rounded-lg">
+                  <AvatarImage src={image ?? undefined} alt={name} />
+                  <AvatarFallback className="rounded-lg">{avatarInitials}</AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{userName}</span>
+                  <span className="truncate text-xs">{email}</span>
                 </div>
-              </DropdownMenuLabel>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                  <NavLink to="/user/settings">
-                    <BadgeCheck className="mr-2 h-4 w-4" />
-                    Account
-                  </NavLink>
-                </DropdownMenuItem>
+                <DropdownMenuItem
+                  render={
+                    <NavLink to="/user/settings">
+                      <BadgeCheck className="mr-2 h-4 w-4" />
+                      Account
+                    </NavLink>
+                  }
+                />
                 <DropdownMenuItem onClick={openCookieSettings}>
                   <Cookie className="mr-2 h-4 w-4" />
                   Cookies
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  asChild
                   className="hover:text-muted-foreground active:text-muted-foreground hover:bg-transparent active:bg-transparent"
-                >
-                  <span className="text-muted-foreground flex cursor-default items-center gap-2">
-                    <Languages className="mr-2 h-4 w-4" />
-                    <span>Taal</span>
-                  </span>
-                </DropdownMenuItem>
+                  render={
+                    <span className="text-muted-foreground flex cursor-default items-center gap-2">
+                      <Languages className="mr-2 h-4 w-4" />
+                      <span>Taal</span>
+                    </span>
+                  }
+                />
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <NavLink to="/organization">
-                  <Building className="mr-2 h-4 w-4" />
-                  Organisaties
-                </NavLink>
-              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={
+                  <NavLink to="/organization">
+                    <Building className="mr-2 h-4 w-4" />
+                    Organisaties
+                  </NavLink>
+                }
+              />
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem
-                  asChild
                   className="hover:text-muted-foreground active:text-muted-foreground hover:bg-transparent active:bg-transparent"
-                >
-                  <span className="text-muted-foreground flex cursor-default items-center gap-2">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Instellingen</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <NavLink to="/about/whats-new">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Wat is er nieuw?
-                  </NavLink>
-                </DropdownMenuItem>
+                  render={
+                    <span className="text-muted-foreground flex cursor-default items-center gap-2">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Instellingen</span>
+                    </span>
+                  }
+                />
+                <DropdownMenuItem
+                  render={
+                    <NavLink to="/about/whats-new">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Wat is er nieuw?
+                    </NavLink>
+                  }
+                />
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Form method="post" action="/logout">
-                  <Button
-                    type="submit"
-                    variant="link"
-                    onClick={() => {
-                      if (clientConfig.analytics.posthog) {
-                        posthog.reset()
-                      }
-                    }}
-                  >
-                    <LogOut />
-                    Uitloggen
-                  </Button>
-                </Form>
-              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={
+                  <Form method="post" action="/logout">
+                    <Button
+                      type="submit"
+                      variant="link"
+                      onClick={() => {
+                        if (clientConfig.analytics.posthog) {
+                          posthog.reset()
+                        }
+                      }}
+                    >
+                      <LogOut />
+                      Uitloggen
+                    </Button>
+                  </Form>
+                }
+              />
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>

@@ -14,7 +14,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "~/components/ui/command"
-import { Popover, PopoverContent } from "~/components/ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
 import { AtlasControls } from "./atlas-controls"
@@ -247,12 +247,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
     <AtlasControls position={position}>
       <Popover open={isOpen}>
         <Command className="maplibregl-ctrl w-auto rounded-lg" shouldFilter={false}>
-          <PopoverAnchor
-            className={cn(
-              "transition-pe pointer-events-auto flex items-center justify-between gap-1 duration-300",
-              !effectiveCollapsed && "pe-3",
-              isOpen && "border-b",
-            )}
+          <PopoverTrigger
             onClick={(e) => {
               e.stopPropagation()
               if (effectiveCollapsed) {
@@ -262,48 +257,60 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
                 }
               }
             }}
-          >
-            <CommandInput
-              ref={inputRef}
-              className={cn(
-                "flex-1 transition-[width,margin-left] duration-300",
-                effectiveCollapsed ? "-ml-2 w-0" : "",
-              )}
-              placeholder="Zoek naar een locatie..."
-              value={displayValue}
-              onValueChange={handleInputChange}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  clearSearch()
-                }
-              }}
-              onBlur={() => {
-                if (displayValue.trim() === "" && isMobile) {
-                  setCollapsed(true)
-                }
-              }}
-            />
-            {displayValue && !isSearching && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground size-6 shrink-0"
-                onClick={clearSearch}
-                aria-label="Zoekopdracht wissen"
-              >
-                <X className="size-4" />
-              </Button>
-            )}
-            {isSearching && (
-              <span role="status" aria-label="Zoeken..." className="shrink-0">
-                <Loader className="text-primary size-4 animate-spin" aria-hidden="true" />
-              </span>
-            )}
-          </PopoverAnchor>
-          <PopoverContent
             render={
-              <CommandList className="max-h-60 overflow-y-auto p-1.5">
+              <div
+                className={cn(
+                  "transition-pe pointer-events-auto flex items-center justify-between gap-1 duration-300",
+                  !effectiveCollapsed && "pe-3",
+                  isOpen && "border-b",
+                )}
+              >
+                <CommandInput
+                  ref={inputRef}
+                  className={cn(
+                    "flex-1 transition-[width,margin-left] duration-300",
+                    effectiveCollapsed ? "-ml-2 w-0" : "",
+                  )}
+                  placeholder="Zoek naar een locatie..."
+                  value={displayValue}
+                  onValueChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      clearSearch()
+                    }
+                  }}
+                  onBlur={() => {
+                    if (displayValue.trim() === "" && isMobile) {
+                      setCollapsed(true)
+                    }
+                  }}
+                />
+                {displayValue && !isSearching && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground size-6 shrink-0"
+                    onClick={clearSearch}
+                    aria-label="Zoekopdracht wissen"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                )}
+                {isSearching && (
+                  <span role="status" aria-label="Zoeken..." className="shrink-0">
+                    <Loader className="text-primary size-4 animate-spin" aria-hidden="true" />
+                  </span>
+                )}
+              </div>
+            }
+          />
+          <PopoverContent
+            render={(props) => (
+              <CommandList
+                {...props}
+                className={cn(props.className, "max-h-60 overflow-y-auto p-1.5")}
+              >
                 {error ? (
                   <CommandEmpty className="py-6 text-center">
                     <div className="flex flex-col items-center justify-center space-y-1">
@@ -342,7 +349,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
                   </CommandGroup>
                 ) : null}
               </CommandList>
-            }
+            )}
           />
         </Command>
       </Popover>

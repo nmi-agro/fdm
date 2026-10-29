@@ -123,25 +123,29 @@ export function SidebarApps({
             >
               <SidebarMenuItem>
                 {!isCreateFarmWizard ? (
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={location.pathname.includes("/atlas/")}>
-                      <MapIcon />
-                      <span>Atlas</span>
-                      <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                      <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
+                  <CollapsibleTrigger
+                    render={
+                      <SidebarMenuButton isActive={location.pathname.includes("/atlas/")}>
+                        <MapIcon />
+                        <span>Atlas</span>
+                        <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
+                        <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                      </SidebarMenuButton>
+                    }
+                  />
                 ) : (
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        isActive={false}
-                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
-                      >
-                        <MapIcon className="text-muted-foreground" />
-                        <span className="text-muted-foreground">Atlas</span>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <SidebarMenuButton
+                          isActive={false}
+                          className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
+                        >
+                          <MapIcon className="text-muted-foreground" />
+                          <span className="text-muted-foreground">Atlas</span>
+                        </SidebarMenuButton>
+                      }
+                    />
                     <TooltipContent side="right">
                       Atlas is niet beschikbaar tijdens het aanmaken van een bedrijf
                     </TooltipContent>
@@ -154,30 +158,32 @@ export function SidebarApps({
                         return (
                           <SidebarMenuSubItem key={info.value}>
                             <Tooltip>
-                              <TooltipTrigger asChild>
-                                <SidebarMenuSubButton
-                                  className="text-muted-foreground"
-                                  onClick={() =>
-                                    openFarmPicker(
-                                      info.value === "indicators"
-                                        ? "de indicatoren"
-                                        : info.value === "soil-analysis"
-                                          ? "de bodemanalyses"
-                                          : info.value === "nutrient-advice"
-                                            ? "het bemestingsadvies"
-                                            : info.label.toLowerCase(),
-                                      (b_id_farm) =>
-                                        info.config.url({
-                                          ...params,
-                                          b_id_farm,
-                                          calendar: selectedCalendar,
-                                        }) as string,
-                                    )
-                                  }
-                                >
-                                  <span>{info.label}</span>
-                                </SidebarMenuSubButton>
-                              </TooltipTrigger>
+                              <TooltipTrigger
+                                render={
+                                  <SidebarMenuSubButton
+                                    className="text-muted-foreground"
+                                    onClick={() =>
+                                      openFarmPicker(
+                                        info.value === "indicators"
+                                          ? "de indicatoren"
+                                          : info.value === "soil-analysis"
+                                            ? "de bodemanalyses"
+                                            : info.value === "nutrient-advice"
+                                              ? "het bemestingsadvies"
+                                              : info.label.toLowerCase(),
+                                        (b_id_farm) =>
+                                          info.config.url({
+                                            ...params,
+                                            b_id_farm,
+                                            calendar: selectedCalendar,
+                                          }) as string,
+                                      )
+                                    }
+                                  >
+                                    <span>{info.label}</span>
+                                  </SidebarMenuSubButton>
+                                }
+                              />
                               <TooltipContent side="right">
                                 {info.label} is beschikbaar nadat u een bedrijf heeft geselecteerd
                               </TooltipContent>
@@ -187,11 +193,14 @@ export function SidebarApps({
                       }
                       return (
                         <SidebarMenuSubItem key={info.value}>
-                          <SidebarMenuSubButton asChild isActive={activeAtlasTab === info.value}>
-                            <NavLink to={info.url}>
-                              <span>{info.label}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
+                          <SidebarMenuSubButton
+                            isActive={activeAtlasTab === info.value}
+                            render={
+                              <NavLink to={info.url}>
+                                <span>{info.label}</span>
+                              </NavLink>
+                            }
+                          />
                         </SidebarMenuSubItem>
                       )
                     })}
@@ -202,46 +211,52 @@ export function SidebarApps({
             <Collapsible defaultOpen={!!nitrogenBalanceLink} className="group/collapsible">
               <SidebarMenuItem>
                 {nitrogenBalanceLink ? (
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton>
-                      <ArrowRightLeft />
-                      <span>Balans</span>
-                      <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                      <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                ) : canPickFarm ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        className="text-muted-foreground"
-                        onClick={() =>
-                          openFarmPicker(
-                            "de balansen",
-                            (b_id_farm) =>
-                              `/farm/${b_id_farm}/${selectedCalendar}/balance/nitrogen`,
-                          )
-                        }
-                      >
+                  <CollapsibleTrigger
+                    render={
+                      <SidebarMenuButton>
                         <ArrowRightLeft />
                         <span>Balans</span>
+                        <Plus className="visible ml-auto group-data-panel-open/collapsible:hidden" />
+                        <Minus className="ml-auto hidden group-data-panel-open/collapsible:visible" />
                       </SidebarMenuButton>
-                    </TooltipTrigger>
+                    }
+                  />
+                ) : canPickFarm ? (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <SidebarMenuButton
+                          className="text-muted-foreground"
+                          onClick={() =>
+                            openFarmPicker(
+                              "de balansen",
+                              (b_id_farm) =>
+                                `/farm/${b_id_farm}/${selectedCalendar}/balance/nitrogen`,
+                            )
+                          }
+                        >
+                          <ArrowRightLeft />
+                          <span>Balans</span>
+                        </SidebarMenuButton>
+                      }
+                    />
                     <TooltipContent side="right">
                       Selecteer een bedrijf om de balansen te raadplegen
                     </TooltipContent>
                   </Tooltip>
                 ) : (
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        isActive={false}
-                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
-                      >
-                        <ArrowRightLeft className="text-muted-foreground" />
-                        <span className="text-muted-foreground">Balans</span>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <SidebarMenuButton
+                          isActive={false}
+                          className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
+                        >
+                          <ArrowRightLeft className="text-muted-foreground" />
+                          <span className="text-muted-foreground">Balans</span>
+                        </SidebarMenuButton>
+                      }
+                    />
                     <TooltipContent side="right">
                       Selecteer een bedrijf om de balansen te raadplegen
                     </TooltipContent>
@@ -252,25 +267,25 @@ export function SidebarApps({
                     <SidebarMenuSubItem>
                       {nitrogenBalanceLink ? (
                         <SidebarMenuSubButton
-                          asChild
                           isActive={location.pathname.includes(nitrogenBalanceLink)}
-                        >
-                          <NavLink to={nitrogenBalanceLink}>
-                            <span>Stikstof</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
+                          render={
+                            <NavLink to={nitrogenBalanceLink}>
+                              <span>Stikstof</span>
+                            </NavLink>
+                          }
+                        />
                       ) : null}
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
                       {omBalanceLink ? (
                         <SidebarMenuSubButton
-                          asChild
                           isActive={location.pathname.includes(omBalanceLink)}
-                        >
-                          <NavLink to={omBalanceLink}>
-                            <span>Organische stof</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
+                          render={
+                            <NavLink to={omBalanceLink}>
+                              <span>Organische stof</span>
+                            </NavLink>
+                          }
+                        />
                       ) : null}
                     </SidebarMenuSubItem>
                   </SidebarMenuSub>
@@ -280,45 +295,49 @@ export function SidebarApps({
             <SidebarMenuItem>
               {nutrientAdviceLink ? (
                 <SidebarMenuButton
-                  asChild
                   isActive={location.pathname.includes(nutrientAdviceLink)}
-                >
-                  <NavLink to={nutrientAdviceLink}>
-                    <BookOpenText />
-                    <span>Bemestingsadvies</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : canPickFarm ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "bemestingsadvies",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/nutrient_advice`,
-                        )
-                      }
-                    >
+                  render={
+                    <NavLink to={nutrientAdviceLink}>
                       <BookOpenText />
                       <span>Bemestingsadvies</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : canPickFarm ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "bemestingsadvies",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/nutrient_advice`,
+                          )
+                        }
+                      >
+                        <BookOpenText />
+                        <span>Bemestingsadvies</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf voor bemestingsadvies
                   </TooltipContent>
                 </Tooltip>
               ) : (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      isActive={false}
-                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
-                    >
-                      <BookOpenText className="text-muted-foreground" />
-                      <span className="text-muted-foreground">Bemestingsadvies</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        isActive={false}
+                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
+                      >
+                        <BookOpenText className="text-muted-foreground" />
+                        <span className="text-muted-foreground">Bemestingsadvies</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf voor bemestingsadvies
                   </TooltipContent>
@@ -327,43 +346,50 @@ export function SidebarApps({
             </SidebarMenuItem>
             <SidebarMenuItem>
               {normsLink ? (
-                <SidebarMenuButton asChild isActive={location.pathname.includes(normsLink)}>
-                  <NavLink to={normsLink}>
-                    <Landmark />
-                    <span>Gebruiksruimte</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : canPickFarm ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "de gebruiksruimte",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/norms`,
-                        )
-                      }
-                    >
+                <SidebarMenuButton
+                  isActive={location.pathname.includes(normsLink)}
+                  render={
+                    <NavLink to={normsLink}>
                       <Landmark />
                       <span>Gebruiksruimte</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : canPickFarm ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "de gebruiksruimte",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/norms`,
+                          )
+                        }
+                      >
+                        <Landmark />
+                        <span>Gebruiksruimte</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de gebruiksruimte te berekenen
                   </TooltipContent>
                 </Tooltip>
               ) : (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      isActive={false}
-                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
-                    >
-                      <Landmark className="text-muted-foreground" />
-                      <span className="text-muted-foreground">Gebruiksruimte</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        isActive={false}
+                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
+                      >
+                        <Landmark className="text-muted-foreground" />
+                        <span className="text-muted-foreground">Gebruiksruimte</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de gebruiksruimte te berekenen
                   </TooltipContent>
@@ -373,48 +399,52 @@ export function SidebarApps({
             <SidebarMenuItem>
               {indicatorsLink ? (
                 <SidebarMenuButton
-                  asChild
                   isActive={
                     location.pathname.includes("/indicators") &&
                     !location.pathname.includes("/atlas/indicators")
                   }
-                >
-                  <NavLink to={indicatorsLink}>
-                    <Gauge />
-                    <span>Indicatoren</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : canPickFarm ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "de indicatoren",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/indicators`,
-                        )
-                      }
-                    >
+                  render={
+                    <NavLink to={indicatorsLink}>
                       <Gauge />
                       <span>Indicatoren</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : canPickFarm ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "de indicatoren",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/indicators`,
+                          )
+                        }
+                      >
+                        <Gauge />
+                        <span>Indicatoren</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de indicatoren te bekijken
                   </TooltipContent>
                 </Tooltip>
               ) : (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      isActive={false}
-                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
-                    >
-                      <Gauge className="text-muted-foreground" />
-                      <span className="text-muted-foreground">Indicatoren</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        isActive={false}
+                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
+                      >
+                        <Gauge className="text-muted-foreground" />
+                        <span className="text-muted-foreground">Indicatoren</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de indicatoren te bekijken
                   </TooltipContent>

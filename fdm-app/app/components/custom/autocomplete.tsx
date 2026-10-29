@@ -12,7 +12,7 @@ import {
   CommandList,
 } from "~/components/ui/command"
 import { Input } from "~/components/ui/input"
-import { Popover, PopoverAnchor, PopoverContent } from "~/components/ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
@@ -202,96 +202,94 @@ export function AutoComplete<
         }}
       >
         <Command shouldFilter={false} className="w-full">
-          <PopoverAnchor asChild>
-            <div className="relative w-full">
-              <CommandPrimitive.Input
-                asChild
-                value={inputValue}
-                onValueChange={handleInputChange}
-                onKeyDown={(e) => {
-                  const next = e.key !== "Escape"
-                  setOpen(next)
-                  openRef.current = next
-                }}
-                onMouseDown={() => {
-                  const next = !!inputValue || !open
-                  setOpen(next)
-                  openRef.current = next
-                }}
-                onFocus={() => {
-                  setOpen(true)
-                  openRef.current = true
-                }}
-                onBlur={handleInputBlur}
-              >
-                <Input
-                  ref={inputRef}
-                  placeholder={placeholder}
-                  className={cn("w-full", selectedValue && !allowValuesOutsideList && "pr-8")}
-                  autoComplete="off"
-                  disabled={disabled}
-                />
-              </CommandPrimitive.Input>
-              {selectedValue && !allowValuesOutsideList && (
-                <button
-                  type="button"
-                  aria-label="Wis selectie"
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    handleClear()
+          <PopoverTrigger
+            render={
+              <div className="relative w-full">
+                <CommandPrimitive.Input
+                  asChild
+                  value={inputValue}
+                  onValueChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    const next = e.key !== "Escape"
+                    setOpen(next)
+                    openRef.current = next
                   }}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                  onMouseDown={() => {
+                    const next = !!inputValue || !open
+                    setOpen(next)
+                    openRef.current = next
+                  }}
+                  onFocus={() => {
+                    setOpen(true)
+                    openRef.current = true
+                  }}
+                  onBlur={handleInputBlur}
                 >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-          </PopoverAnchor>
-          {!open && <CommandList aria-hidden="true" className="hidden" />}
+                  <Input
+                    ref={inputRef}
+                    placeholder={placeholder}
+                    className={cn("w-full", selectedValue && !allowValuesOutsideList && "pr-8")}
+                    autoComplete="off"
+                    disabled={disabled}
+                  />
+                </CommandPrimitive.Input>
+                {selectedValue && !allowValuesOutsideList && (
+                  <button
+                    type="button"
+                    aria-label="Wis selectie"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handleClear()
+                    }}
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            }
+          />
           <PopoverContent
-            asChild
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onInteractOutside={(e) => {
-              if (e.target instanceof Element && e.target.hasAttribute("cmdk-input")) {
-                e.preventDefault()
-              }
-            }}
-            className="w-(--radix-popover-trigger-width) p-0"
-          >
-            <CommandList>
-              {isLoading && (
-                <CommandPrimitive.Loading>
-                  <div className="p-1">
-                    <Spinner className="h-6 w-full" />
-                  </div>
-                </CommandPrimitive.Loading>
-              )}
-              {items.length > 0 && !isLoading ? (
-                <CommandGroup>
-                  {items.map((option) => {
-                    // Use iconMap to get the component, default to Check
-                    const IconComponent = option.icon ? (iconMap[option.icon] ?? Check) : Check
-                    return (
-                      <CommandItem
-                        key={option.value}
-                        value={option.value} // Use value for selection logic
-                        onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
-                        onSelect={() => handleSelectItem(option.value)}
-                      >
-                        <IconComponent className={"mr-2 h-4 w-4"} />
-                        {option.label}
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
-              ) : null}
-              {!isLoading && !items.length && inputValue ? ( // Show empty only if not loading and user typed something
-                <CommandEmpty>
-                  {typeof emptyMessage === "function" ? emptyMessage(inputValue) : emptyMessage}
-                </CommandEmpty>
-              ) : null}
-            </CommandList>
-          </PopoverContent>
+            render={(props) =>
+              !open ? (
+                <CommandList {...props} aria-hidden="true" className="hidden" />
+              ) : (
+                <CommandList {...props} className={cn(props.className, "w-(--anchor-width) p-0")}>
+                  {isLoading && (
+                    <CommandPrimitive.Loading>
+                      <div className="p-1">
+                        <Spinner className="h-6 w-full" />
+                      </div>
+                    </CommandPrimitive.Loading>
+                  )}
+                  {items.length > 0 && !isLoading ? (
+                    <CommandGroup>
+                      {items.map((option) => {
+                        // Use iconMap to get the component, default to Check
+                        const IconComponent = option.icon ? (iconMap[option.icon] ?? Check) : Check
+                        return (
+                          <CommandItem
+                            key={option.value}
+                            value={option.value} // Use value for selection logic
+                            onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
+                            onSelect={() => handleSelectItem(option.value)}
+                          >
+                            <IconComponent className={"mr-2 h-4 w-4"} />
+                            {option.label}
+                          </CommandItem>
+                        )
+                      })}
+                    </CommandGroup>
+                  ) : null}
+                  {!isLoading && !items.length && inputValue ? ( // Show empty only if not loading and user typed something
+                    <CommandEmpty>
+                      {typeof emptyMessage === "function" ? emptyMessage(inputValue) : emptyMessage}
+                    </CommandEmpty>
+                  ) : null}
+                </CommandList>
+              )
+            }
+          />
         </Command>
       </Popover>
       {name && <input type="hidden" name={name} value={selectedValue ?? ""} readOnly />}

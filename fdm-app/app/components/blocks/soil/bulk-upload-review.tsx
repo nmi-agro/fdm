@@ -115,15 +115,17 @@ const DateCell = memo(function DateCell({
         }}
       />
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            className="absolute top-1/2 right-1 size-6 h-6 w-6 -translate-y-1/2 p-0"
-          >
-            <CalendarIcon className="size-3" />
-            <span className="sr-only">Kies een datum</span>
-          </Button>
-        </PopoverTrigger>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="absolute top-1/2 right-1 size-6 h-6 w-6 -translate-y-1/2 p-0"
+            >
+              <CalendarIcon className="size-3" />
+              <span className="sr-only">Kies een datum</span>
+            </Button>
+          }
+        />
         <PopoverContent className="w-auto overflow-hidden p-0" align="end">
           <Calendar
             mode="single"
@@ -229,12 +231,14 @@ const StatusCell = memo(
 
       return (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex cursor-help items-center text-green-600">
-              <Check className="mr-1 h-4 w-4" />
-              <span className="text-xs">Gekoppeld</span>
-            </div>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <div className="flex cursor-help items-center text-green-600">
+                <Check className="mr-1 h-4 w-4" />
+                <span className="text-xs">Gekoppeld</span>
+              </div>
+            }
+          />
           <TooltipContent>
             <p>{tooltipText}</p>
           </TooltipContent>
