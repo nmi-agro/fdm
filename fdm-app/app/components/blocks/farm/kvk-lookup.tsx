@@ -32,18 +32,25 @@ export function useKvkLookup(
 ) {
   const fetcher = useFetcher<KvkLookupResponse>()
 
+  // Callers pass an inline callback; keep the latest one without re-running the effect below
+  const onResultRef = useRef(onResult)
+  useEffect(() => {
+    onResultRef.current = onResult
+  })
+
   // Runs once per response; a response that no longer matches the entered number is dropped
   const lastReportedDataRef = useRef<unknown>(undefined)
   useEffect(() => {
     if (
       fetcher.state === "idle" &&
       fetcher.data &&
+      fetcher.data !== lastReportedDataRef.current &&
       matchesKvkNumber(fetcher.data, currentKvkNumber)
     ) {
-      onResult?.(fetcher.data)
       lastReportedDataRef.current = fetcher.data
+      onResultRef.current?.(fetcher.data)
     }
-  }, [currentKvkNumber, onResult, fetcher.state, fetcher.data])
+  }, [currentKvkNumber, fetcher.state, fetcher.data])
 
   const lookup = (kvkNumber: string) => {
     const kvk = kvkNumber.trim()
