@@ -1,5 +1,5 @@
 import { getFarm, getField } from "@nmi-agro/fdm-core"
-import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react"
+import { ArrowDownToLine, ArrowRightLeft, ArrowUpFromLine, TriangleAlert } from "lucide-react"
 import { Suspense, use, useState } from "react"
 import {
   data,
@@ -13,7 +13,6 @@ import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-war
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import { PhosphateBalanceDetails } from "~/components/blocks/balance/phosphate-details"
 import { formatNumberNl, PHOSPHATE_UNIT } from "~/components/blocks/balance/phosphate-format"
-import { PhosphateFrameCard } from "~/components/blocks/balance/phosphate-frame"
 import {
   PhosphateSaturationCard,
   PhosphateStockCard,
@@ -235,10 +234,17 @@ function PhosphateBalance({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="md:col-span-2">
-          <PhosphateFrameCard balance={result} />
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo (Perceel)</CardTitle>
+            <ArrowRightLeft className="text-muted-foreground text-xs" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatNumberNl(result.balance)}</div>
+            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
@@ -260,6 +266,12 @@ function PhosphateBalance({
           </CardContent>
         </Card>
       </div>
+      {(result.warnings ?? []).map((warning) => (
+        <p key={warning} className="text-muted-foreground flex items-start gap-2 text-sm">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-hidden />
+          {warning}
+        </p>
+      ))}
       <div className="grid gap-4 md:grid-cols-2">
         <PhosphateStockCard balance={result} />
         <PhosphateSaturationCard balance={result} />
@@ -269,9 +281,8 @@ function PhosphateBalance({
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De fosfaatbalans voor {field.b_name} van {farm.b_name_farm}: de aanvoer met bemesting
-              min de afvoer met oogst en afgevoerde gewasresten. Alle meststoffen tellen voor 100%
-              mee.
+              De fosfaatbalans voor {field.b_name} van {farm.b_name_farm}: aanvoer met bemesting min
+              afvoer met oogst en gewasresten.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">

@@ -13,20 +13,24 @@ export interface NmiCultivationPhosphate {
 }
 
 interface NmiApiCultivation {
-  b_lu_brp?: number | null
-  b_p_harvestable?: unknown
-  b_p_residue?: unknown
+  b_lu_brp?: unknown
+  b_lu_p_harvestable?: unknown
+  b_lu_p_residue?: unknown
 }
 
+/** Accepts numbers and numeric strings (e.g. "4.5"); anything else becomes `null`. */
 function toNumberOrNull(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null
+  const number =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN
+  return Number.isFinite(number) && number >= 0 && value !== "" ? number : null
 }
 
 /**
  * Fetches the phosphate contents of Dutch cultivations from the NMI API lookup.
  *
- * The NMI API (`GET /lookup/cultivations`) returns per BRP code the phosphate content of the
- * harvestable product (`b_p_harvestable`) and of the crop residue (`b_p_residue`) in g P2O5 / kg dry matter.
+ * The NMI API (`GET /lookup/cultivations`) returns per BRP code (`b_lu_brp`) the phosphate content of the
+ * harvestable product (`b_lu_p_harvestable`) and of the crop residue (`b_lu_p_residue`) in g P2O5 / kg dry
+ * matter, next to the nitrogen and potassium contents. The field names are the same as in FDM.
  * The result is keyed by the BRP cultivation code, so it can be joined to the BRP catalogue.
  *
  * @param nmiApiKey - Bearer token for the NMI API.
@@ -60,10 +64,11 @@ export async function getNmiCultivationPhosphate(
 
   const phosphate = new Map<number, NmiCultivationPhosphate>()
   for (const cultivation of json.data.cultivations as NmiApiCultivation[]) {
-    if (typeof cultivation.b_lu_brp !== "number") continue
-    phosphate.set(cultivation.b_lu_brp, {
-      b_lu_p_harvestable: toNumberOrNull(cultivation.b_p_harvestable),
-      b_lu_p_residue: toNumberOrNull(cultivation.b_p_residue),
+    const b_lu_brp = toNumberOrNull(cultivation.b_lu_brp)
+    if (b_lu_brp === null || !Number.isInteger(b_lu_brp)) continue
+    phosphate.set(b_lu_brp, {
+      b_lu_p_harvestable: toNumberOrNull(cultivation.b_lu_p_harvestable),
+      b_lu_p_residue: toNumberOrNull(cultivation.b_lu_p_residue),
     })
   }
   return phosphate

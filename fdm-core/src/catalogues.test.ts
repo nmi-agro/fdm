@@ -836,7 +836,7 @@ describe("Measures Catalogue Sync", () => {
         ? new Response(
             JSON.stringify({
               data: {
-                cultivations: [{ b_lu_brp: 265, b_p_harvestable: 9.8, b_p_residue: 0 }],
+                cultivations: [{ b_lu_brp: 265, b_lu_p_harvestable: 9.8, b_lu_p_residue: 0 }],
               },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } },
@@ -858,13 +858,29 @@ describe("Measures Catalogue Sync", () => {
         .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
       expect(rows[0]).toEqual({ b_lu_p_harvestable: 9.8, b_lu_p_residue: 0 })
 
-      // Without a key the phosphate contents are not available and are reset to null
+      // Without a key the phosphate contents are unknown: the stored values are kept
       await syncCatalogues(fdm)
       const rowsWithoutKey = await fdm
         .select({ b_lu_p_harvestable: schema.cultivationsCatalogue.b_lu_p_harvestable })
         .from(schema.cultivationsCatalogue)
         .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
-      expect(rowsWithoutKey[0].b_lu_p_harvestable).toBeNull()
+      expect(rowsWithoutKey[0].b_lu_p_harvestable).toBe(9.8)
+
+      // Rows whose phosphate contents were lost while the hash stayed the same are repaired
+      await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+      await fdm
+        .update(schema.cultivationsCatalogue)
+        .set({ b_lu_p_harvestable: null, b_lu_p_residue: null })
+        .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
+      await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+      const repaired = await fdm
+        .select({
+          b_lu_p_harvestable: schema.cultivationsCatalogue.b_lu_p_harvestable,
+          b_lu_p_residue: schema.cultivationsCatalogue.b_lu_p_residue,
+        })
+        .from(schema.cultivationsCatalogue)
+        .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
+      expect(repaired[0]).toEqual({ b_lu_p_harvestable: 9.8, b_lu_p_residue: 0 })
     } finally {
       vi.unstubAllGlobals()
     }

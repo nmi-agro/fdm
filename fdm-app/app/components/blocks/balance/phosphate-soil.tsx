@@ -1,14 +1,52 @@
-import type { PhosphateBalanceField, ValueWithRange } from "@nmi-agro/fdm-calculator"
+import type { PhosphateBalanceField } from "@nmi-agro/fdm-calculator"
 import type { ReactNode } from "react"
-import { TriangleAlert } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { CircleAlert, CircleCheck, CircleX } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { cn } from "~/lib/utils"
 import {
   formatNumberNl,
-  formatSaturationSource,
-  formatYearsClass,
-  getPhosphateSaturationOutlook,
-  PHOSPHATE_UNIT,
+  getPhosphateSaturationStatus,
+  getPhosphateYearsToThreshold,
+  type PhosphateSaturationStatus,
 } from "./phosphate-format"
+
+/**
+ * Status icon of a field, as in the nitrogen balance: a green check when the PSD is at or below
+ * the threshold, a red cross when it is above, an orange alert when it is unknown.
+ *
+ * @param status - The saturation status.
+ * @param className - Extra classes (size).
+ */
+export function PhosphateStatusIcon({
+  status,
+  className,
+}: {
+  status: PhosphateSaturationStatus
+  className?: string
+}) {
+  if (status === "ok") {
+    return (
+      <CircleCheck
+        aria-label="Fosfaatverzadiging onder de grenswaarde"
+        className={cn("shrink-0 rounded-full bg-green-100 p-0 text-green-500", className)}
+      />
+    )
+  }
+  if (status === "exceeded") {
+    return (
+      <CircleX
+        aria-label="Fosfaatverzadiging boven de grenswaarde"
+        className={cn("shrink-0 rounded-full bg-red-100 p-0 text-red-500", className)}
+      />
+    )
+  }
+  return (
+    <CircleAlert
+      aria-label="Fosfaatverzadiging onbekend"
+      className={cn("shrink-0 rounded-full bg-orange-100 p-0 text-orange-500", className)}
+    />
+  )
+}
 
 /** A label-value row. */
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -20,72 +58,28 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** Formats a value with its range, e.g. "1,2 (0,9 – 1,5)"; the range is omitted when there is none. */
-function formatRange(value: ValueWithRange, decimals = 0): string {
-  const main = formatNumberNl(value.value, decimals)
-  if (value.min === value.max) return main
-  return `${main} (${formatNumberNl(value.min, decimals)} – ${formatNumberNl(value.max, decimals)})`
-}
-
-/** List of warnings, each with an icon. */
-function Warnings({ warnings }: { warnings: string[] }) {
-  const unique = [...new Set(warnings)]
-  if (unique.length === 0) return null
-  return (
-    <ul className="space-y-1.5 pt-2">
-      {unique.map((warning) => (
-        <li key={warning} className="text-muted-foreground flex gap-2 text-xs">
-          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-500" aria-hidden />
-          <span>{warning}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 /**
- * Soil phosphate stock (P-AL): current value, change per year at the current balance and the
- * time until the lower bound of the frame is reached, with the assumptions stated inline.
+ * Soil phosphate stock: P-AL now and its change per year at the current balance.
  *
  * @param balance - The phosphate balance of the field.
  */
 export function PhosphateStockCard({ balance }: { balance: PhosphateBalanceField }) {
-  const projection = balance.projection
-  const pAl = projection?.p_al ?? null
-
+  const pAl = balance.projection?.p_al ?? null
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Bodemvoorraad (P-AL)</CardTitle>
-        <CardDescription>
-          Wat het saldo betekent voor de fosfaatvoorraad in de bouwvoor, als het saldo van dit jaar
-          elk jaar zo blijft.
-        </CardDescription>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Bodemvoorraad (P-AL)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {!projection || !pAl ? (
-          <p className="text-muted-foreground text-sm">
-            Geen P-AL bekend: de ontwikkeling van de voorraad kan niet worden berekend.
-          </p>
-        ) : (
+        {pAl ? (
           <>
-            <Row label="P-AL nu">{formatNumberNl(pAl.current)} mg P₂O₅ / 100 g</Row>
-            <Row label="Saldo min vastlegging">
-              {formatNumberNl(projection.balance_effective_per_year)} {PHOSPHATE_UNIT} / jaar
+            <Row label="Nu">{formatNumberNl(pAl.current)} mg P₂O₅ / 100 g</Row>
+            <Row label="Verandering bij dit saldo">
+              {formatNumberNl(pAl.delta_per_year.value, 1)} per jaar
             </Row>
-            <Row label="Verandering P-AL">{formatRange(pAl.delta_per_year, 1)} per jaar</Row>
-            {pAl.floor !== null ? (
-              <Row label={`Tijd tot P-AL ${pAl.floor}`}>
-                {pAl.years ? formatYearsClass(pAl.years_class) : "daalt niet bij dit saldo"}
-              </Row>
-            ) : null}
-            <p className="text-muted-foreground pt-2 text-xs">
-              Aannames: vastlegging {formatNumberNl(projection.fixation)} {PHOSPHATE_UNIT} / jaar;{" "}
-              {formatRange(pAl.buffer)} kg P₂O₅ / ha per eenheid P-AL voor een laag van{" "}
-              {formatNumberNl(projection.depth.value * 100)} cm. Indicatief: één jaar zegt weinig,
-              een verandering van één klasse is pas na meerdere jaren meetbaar.
-            </p>
           </>
+        ) : (
+          <p className="text-muted-foreground text-sm">Geen P-AL bekend.</p>
         )}
       </CardContent>
     </Card>
@@ -93,95 +87,45 @@ export function PhosphateStockCard({ balance }: { balance: PhosphateBalanceField
 }
 
 /**
- * Phosphorus saturation degree (PSD) of the topsoil compared with the field-specific threshold
- * (van Doorn 2026), and the time until the threshold is crossed at the current balance.
+ * Phosphorus saturation degree (PSD): now, the field-specific threshold, the change per year and
+ * the years until the threshold is crossed (the key figure).
  *
  * @param balance - The phosphate balance of the field.
  */
 export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalanceField }) {
-  const { saturation } = balance
-  const psdProjection = balance.projection?.psd ?? null
-  const threshold = psdProjection?.threshold ?? null
-  const warnings = [...saturation.warnings, ...(threshold?.warnings ?? [])]
-
-  const outlook = getPhosphateSaturationOutlook(balance)
-
+  const psd = balance.projection?.psd ?? null
+  const status = getPhosphateSaturationStatus(balance)
+  const years = getPhosphateYearsToThreshold(balance)
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Fosfaatverzadiging (milieu)</CardTitle>
-        <CardDescription>
-          De fosfaatverzadigingsgraad (PSD) geeft aan hoeveel van de fosfaatbindingscapaciteit van
-          de bodem al gevuld is. Boven de grenswaarde neemt het risico op uit- en afspoeling toe.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Fosfaatverzadiging (PSD)</CardTitle>
+        <PhosphateStatusIcon status={status} className="h-5 w-5" />
       </CardHeader>
       <CardContent className="space-y-2">
-        {!saturation.psd ? (
-          <p className="text-muted-foreground text-sm">
-            Onvoldoende gegevens om de fosfaatverzadigingsgraad te bepalen.
-          </p>
-        ) : (
+        {psd ? (
           <>
-            <Row label="PSD nu">{formatRange(saturation.psd)} %</Row>
-            <Row label="Bron">{formatSaturationSource(saturation.source)}</Row>
-            {saturation.psc !== null ? (
-              <Row label="Bindingscapaciteit (PSC)">{formatNumberNl(saturation.psc)} mmol / kg</Row>
+            {years ? (
+              <div>
+                <div className="text-2xl font-bold">{years.value}</div>
+                <p className="text-muted-foreground text-xs">{years.label}</p>
+              </div>
             ) : null}
-            {threshold?.value != null ? (
-              <Row label="Grenswaarde">
-                {formatNumberNl(threshold.value)} %
-                {threshold.source === "default_25" ? " (standaard)" : " (perceel)"}
-              </Row>
-            ) : null}
-            {psdProjection ? (
-              <Row label="Verandering PSD">
-                {formatNumberNl(psdProjection.delta_per_year, 1)} %-punt per jaar
-              </Row>
-            ) : null}
-            {outlook ? <Row label="Vooruitzicht">{outlook.text}</Row> : null}
-            {threshold?.source === "field" ? (
-              <p className="text-muted-foreground pt-2 text-xs">
-                Grenswaarde per perceel (van Doorn, 2026): de laagste van de milieugrens (
-                {formatNumberNl(threshold.psd_env)} %, bij een grondwaterstand van{" "}
-                {formatNumberNl(threshold.ghg)} cm) en de PSD bij het landbouwkundige streefniveau (
-                {formatNumberNl(threshold.psd_agronomic)} %).
-              </p>
+            <Row label="Nu">{formatNumberNl(psd.current.value)} %</Row>
+            <Row label="Grenswaarde">{formatNumberNl(psd.threshold.value)} %</Row>
+            <Row label="Verandering bij dit saldo">
+              {formatNumberNl(psd.delta_per_year, 1)} %-punt per jaar
+            </Row>
+            {balance.saturation.source === "estimated_from_p_al" ? (
+              <p className="text-muted-foreground text-xs">Geschat uit P-AL: indicatief.</p>
             ) : null}
           </>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Onvoldoende bodemgegevens voor de fosfaatverzadiging.
+          </p>
         )}
-        <Warnings warnings={warnings} />
       </CardContent>
     </Card>
-  )
-}
-
-/**
- * One-line summary for field lists: PSD, threshold and outlook, plus a note when data for the
- * balance is missing.
- *
- * @param balance - The phosphate balance of the field.
- */
-export function PhosphateFieldSummary({ balance }: { balance: PhosphateBalanceField }) {
-  const psd = balance.saturation.psd
-  const threshold = balance.projection?.psd?.threshold.value ?? null
-  const outlook = getPhosphateSaturationOutlook(balance)
-  const incomplete = (balance.warnings ?? []).length > 0
-  if (!psd && !incomplete) return null
-  return (
-    <div className="text-muted-foreground space-y-0.5 text-xs">
-      {psd ? (
-        <p>
-          PSD {formatNumberNl(psd.value)} %
-          {threshold !== null ? ` · grens ${formatNumberNl(threshold)} %` : ""}
-          {outlook ? ` · ${outlook.text.charAt(0).toLowerCase()}${outlook.text.slice(1)}` : ""}
-        </p>
-      ) : null}
-      {incomplete ? (
-        <p className="flex items-center gap-1">
-          <TriangleAlert className="h-3 w-3 shrink-0 text-orange-500" aria-hidden />
-          Gegevens voor de afvoer ontbreken
-        </p>
-      ) : null}
-    </div>
   )
 }

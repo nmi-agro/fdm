@@ -22,14 +22,10 @@ import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultiv
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import {
   formatNumberNl,
-  getPhosphateFrameStatus,
+  getPhosphateSaturationStatus,
   PHOSPHATE_UNIT,
 } from "~/components/blocks/balance/phosphate-format"
-import {
-  PhosphateConformanceIcon,
-  PhosphateFrameLabel,
-} from "~/components/blocks/balance/phosphate-frame"
-import { PhosphateFieldSummary } from "~/components/blocks/balance/phosphate-soil"
+import { PhosphateStatusIcon } from "~/components/blocks/balance/phosphate-soil"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
@@ -216,17 +212,6 @@ function FarmBalancePhosphateOverview({
     (fieldResult) => (fieldResult.balance?.warnings ?? []).length > 0,
   ).length
 
-  // Number of fields per frame, as the farm-level summary of the frame
-  const frameCounts = filteredFields.reduce(
-    (counts, fieldResult) => {
-      if (!fieldResult.balance) return counts
-      const label = getPhosphateFrameStatus(fieldResult.balance).label
-      counts[label] = (counts[label] ?? 0) + 1
-      return counts
-    },
-    {} as Record<string, number>,
-  )
-
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -272,9 +257,8 @@ function FarmBalancePhosphateOverview({
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De fosfaatbalans voor alle percelen van {farm.b_name_farm}: de aanvoer met bemesting
-              min de afvoer met oogst en gewasresten. Of een overschot of tekort gewenst is, hangt
-              per perceel af van de P-AL (opbouwen, onderhouden of afbouwen).
+              De fosfaatbalans voor alle percelen van {farm.b_name_farm}: aanvoer met bemesting min
+              afvoer met oogst en gewasresten.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pl-2">
@@ -290,14 +274,6 @@ function FarmBalancePhosphateOverview({
                 de afvoer (oogst of fosfaatgehalte). Open het perceel voor details.
               </p>
             ) : null}
-            {Object.keys(frameCounts).length > 0 ? (
-              <p className="text-muted-foreground pl-4 text-sm">
-                Percelen per doel:{" "}
-                {Object.entries(frameCounts)
-                  .map(([label, count]) => `${label} ${count}`)
-                  .join(" · ")}
-              </p>
-            ) : null}
           </CardContent>
         </Card>
         <Card className="col-span-3">
@@ -307,8 +283,7 @@ function FarmBalancePhosphateOverview({
               <BufferStripInfo />
             </CardTitle>
             <CardDescription>
-              Het icoon geeft aan of het saldo past bij het doel van het perceel. Klik op een
-              perceel voor de bodemvoorraad (P-AL) en de fosfaatverzadiging.
+              ✓ fosfaatverzadiging onder de grenswaarde, ✗ erboven. Saldo in {PHOSPHATE_UNIT}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -318,8 +293,8 @@ function FarmBalancePhosphateOverview({
                 return (
                   <div className="flex items-center" key={fieldResult.b_id}>
                     {fieldResult.balance ? (
-                      <PhosphateConformanceIcon
-                        conformance={getPhosphateFrameStatus(fieldResult.balance).conformance}
+                      <PhosphateStatusIcon
+                        status={getPhosphateSaturationStatus(fieldResult.balance)}
                         className="h-6 w-6"
                       />
                     ) : (
@@ -335,12 +310,6 @@ function FarmBalancePhosphateOverview({
                         </NavLink>
                         <p className="text-muted-foreground text-xs">{fieldData?.b_area} ha</p>
                       </div>
-                      {fieldResult.balance ? (
-                        <>
-                          <PhosphateFrameLabel balance={fieldResult.balance} />
-                          <PhosphateFieldSummary balance={fieldResult.balance} />
-                        </>
-                      ) : null}
                       <FieldCultivationsBadge
                         cultivations={cultivationsMap.get(fieldResult.b_id) ?? []}
                         mainCultivation={mainCultivationMap.get(fieldResult.b_id)}

@@ -179,8 +179,8 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
   it("should add the phosphate contents per BRP code when a key is provided", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       nmiResponse([
-        { b_lu: "NL_265", b_lu_brp: 265, b_p_harvestable: 9.8, b_p_residue: 0 },
-        { b_lu: "FAO_1-01b", b_lu_brp: null, b_p_harvestable: 8 },
+        { b_lu: "NL_265", b_lu_brp: 265, b_lu_p_harvestable: 9.8, b_lu_p_residue: 0 },
+        { b_lu: "FAO_1-01b", b_lu_brp: null, b_lu_p_harvestable: 8 },
       ]),
     )
     vi.stubGlobal("fetch", fetchMock)
@@ -203,13 +203,30 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
     expect(other?.b_lu_p_residue).toBeNull()
   })
 
+  it("should accept BRP codes and phosphate contents sent as numeric strings", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          nmiResponse([{ b_lu_brp: "265", b_lu_p_harvestable: "9.8", b_lu_p_residue: "2.1" }]),
+        ),
+    )
+
+    const catalogue = await getBrp({ nmiApiKey: "test-key" })
+    const grassland = catalogue.find((item) => item.b_lu_catalogue === "nl_265")
+
+    expect(grassland?.b_lu_p_harvestable).toBe(9.8)
+    expect(grassland?.b_lu_p_residue).toBe(2.1)
+  })
+
   it("should use null for missing or invalid phosphate contents", async () => {
     vi.stubGlobal(
       "fetch",
       vi
         .fn()
         .mockResolvedValue(
-          nmiResponse([{ b_lu_brp: 265, b_p_harvestable: "unknown", b_p_residue: -1 }]),
+          nmiResponse([{ b_lu_brp: 265, b_lu_p_harvestable: "unknown", b_lu_p_residue: -1 }]),
         ),
     )
 
