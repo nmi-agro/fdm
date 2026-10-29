@@ -22,7 +22,7 @@ import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultiv
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import {
   formatNumberNl,
-  getPhosphateSaturationStatus,
+  getPhosphateTrendStatus,
   PHOSPHATE_UNIT,
 } from "~/components/blocks/balance/phosphate-format"
 import { PhosphateStatusIcon } from "~/components/blocks/balance/phosphate-soil"
@@ -282,9 +282,7 @@ function FarmBalancePhosphateOverview({
               <p>Percelen</p>
               <BufferStripInfo />
             </CardTitle>
-            <CardDescription>
-              ✓ fosfaatverzadiging onder de grenswaarde, ✗ erboven. Saldo in {PHOSPHATE_UNIT}.
-            </CardDescription>
+            <CardDescription />
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
@@ -294,11 +292,11 @@ function FarmBalancePhosphateOverview({
                   <div className="flex items-center" key={fieldResult.b_id}>
                     {fieldResult.balance ? (
                       <PhosphateStatusIcon
-                        status={getPhosphateSaturationStatus(fieldResult.balance)}
-                        className="h-6 w-6"
+                        status={getPhosphateTrendStatus(fieldResult.balance)}
+                        className="h-8 w-8"
                       />
                     ) : (
-                      <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
+                      <CircleAlert className="h-8 w-8 rounded-full bg-orange-100 p-0 text-orange-500" />
                     )}
 
                     <div className="ml-4 space-y-1">

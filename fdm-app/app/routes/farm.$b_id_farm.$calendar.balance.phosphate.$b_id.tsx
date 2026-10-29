@@ -273,8 +273,8 @@ function PhosphateBalance({
         </p>
       ))}
       <div className="grid gap-4 md:grid-cols-2">
-        <PhosphateStockCard balance={result} />
         <PhosphateSaturationCard balance={result} />
+        <PhosphateStockCard balance={result} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
