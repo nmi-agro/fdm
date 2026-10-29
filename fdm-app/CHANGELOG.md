@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.39.1
+
+### Patch Changes
+
+- [#895](https://github.com/nmi-agro/fdm/pull/895) [`8ab6b11`](https://github.com/nmi-agro/fdm/commit/8ab6b11b488043b6fa8b2f7f0d71d59840b9999b) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed the KvK lookup reporting the same result on every render. When creating a farm, "Wijzigen" after a lookup now returns to the KvK step instead of freezing the page, and on the farm settings page fields filled in from KvK can be edited again.
+
 ## 0.39.0
 
 ### Minor Changes
