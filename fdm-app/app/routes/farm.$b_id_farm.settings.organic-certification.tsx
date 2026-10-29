@@ -10,6 +10,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ScrollText, Trash2 } from "lucide-react"
 import { useId } from "react"
+import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
   Form,
@@ -50,13 +51,12 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty"
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { getSession } from "~/lib/auth.server"
@@ -234,12 +234,14 @@ export default function OrganicCertificationSettings() {
           </CardContent>
           <CardFooter className="flex justify-end">
             <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Verwijderen
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger
+                render={
+                  <Button variant="outline" size="sm">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Verwijderen
+                  </Button>
+                }
+              />
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Weet u het zeker?</DialogTitle>
@@ -249,9 +251,7 @@ export default function OrganicCertificationSettings() {
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Annuleren</Button>
-                  </DialogClose>
+                  <DialogClose render={<Button variant="outline">Annuleren</Button>} />
                   <Form method="delete">
                     <input
                       type="hidden"
@@ -289,9 +289,11 @@ export default function OrganicCertificationSettings() {
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <DialogTrigger asChild>
-                <Button className={cn(!farmWritePermission ? "invisible" : "")}>Voeg toe</Button>
-              </DialogTrigger>
+              <DialogTrigger
+                render={
+                  <Button className={cn(!farmWritePermission ? "invisible" : "")}>Voeg toe</Button>
+                }
+              />
             </EmptyContent>
           </Empty>
           <DialogContent>
@@ -316,40 +318,42 @@ export default function OrganicCertificationSettings() {
                     label="Einddatum"
                     description="De datum waarop het certificaat verloopt."
                   />
-                  <FormField
+                  <Controller
                     name="b_organic_traces"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>TRACES-nummer</FormLabel>
-                        <FormControl>
+                    render={({ field, fieldState }) => (
+                      <Field>
+                        <FieldLabel>TRACES-nummer</FieldLabel>
+                        <FieldContent>
                           <Input {...field} />
-                        </FormControl>
-                        <FormDescription>
+                        </FieldContent>
+                        <FieldDescription>
                           Het volledige documentnummer volgens de EU Traces-database.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                        </FieldDescription>
+                        <FieldError errors={[fieldState.error]} />
+                      </Field>
                     )}
                   />
-                  <FormField
+                  <Controller
                     name="b_organic_skal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SKAL-nummer</FormLabel>
-                        <FormControl>
+                    render={({ field, fieldState }) => (
+                      <Field>
+                        <FieldLabel>SKAL-nummer</FieldLabel>
+                        <FieldContent>
                           <Input {...field} />
-                        </FormControl>
-                        <FormDescription>Het SKAL-nummer van de certificering.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                        </FieldContent>
+                        <FieldDescription>Het SKAL-nummer van de certificering.</FieldDescription>
+                        <FieldError errors={[fieldState.error]} />
+                      </Field>
                     )}
                   />
                   <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button" variant="secondary">
-                        Sluiten
-                      </Button>
-                    </DialogClose>
+                    <DialogClose
+                      render={
+                        <Button type="button" variant="secondary">
+                          Sluiten
+                        </Button>
+                      }
+                    />
                     <Button type="submit" variant="default">
                       {form.formState.isSubmitting ? (
                         <div className="flex items-center space-x-2">

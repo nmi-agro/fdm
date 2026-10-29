@@ -1,9 +1,9 @@
 import type { Tag } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { Trash2 } from "lucide-react"
 import { type SetStateAction, useEffect, useState } from "react"
 import { Form, useFetcher } from "react-router"
 import { toast } from "sonner"
-import { cn } from "@/app/lib/utils"
 import {
   AlertDialog,
   AlertDialogCancel,

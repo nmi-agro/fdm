@@ -1,8 +1,8 @@
 import type { AgentAvailabilityStatus } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleCheck, CircleArrowLeft } from "lucide-react"
-import { cn } from "@/app/lib/utils"
 
 const ABSENCE_MESSAGE = {
   holiday: "Op vakantie",

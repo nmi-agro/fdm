@@ -1,4 +1,5 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import {
   ChevronDown,
   CircleCheck,
@@ -9,7 +10,6 @@ import {
   CircleX,
 } from "lucide-react"
 import { useFetcher } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,

@@ -2,6 +2,7 @@ import type { Feature, Polygon } from "geojson"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
+import { Controller } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Combobox } from "~/components/custom/combobox"
@@ -14,14 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+import { Field, FieldContent, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { FormSchema } from "./schema"
@@ -83,23 +77,21 @@ export default function FieldDetailsDialog({
                 <DialogDescription>Vul de details van dit perceel in</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Naam</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel>Naam</FieldLabel>
+                      <FieldContent>
                         <Input
                           {...field}
                           type="text"
                           required
                           disabled={form.formState.isSubmitting}
                         />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
                 <Combobox

@@ -1,8 +1,8 @@
 import type { Row } from "@tanstack/react-table"
+import { cn } from "cn"
 import { Controller, useForm } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { Button } from "~/components/ui/button"
 import {

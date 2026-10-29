@@ -6,7 +6,6 @@ import {
   useAvailableAtlasLayers,
   useCurrentAtlasLayer,
 } from "~/components/blocks/atlas/atlas-layer"
-import { DropdownMenuCheckedRadioItem } from "~/components/custom/dropdown-menu"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import {
   DropdownMenu,
@@ -16,6 +15,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuRadioItem,
 } from "~/components/ui/dropdown-menu"
 
 export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
@@ -29,11 +29,12 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
 
   function makeOption(info: AvailableAtlasLayerInfo) {
     return (
-      <DropdownMenuCheckedRadioItem value={info.value} className="cursor-pointer" asChild>
+      <DropdownMenuRadioItem value={info.value} className="cursor-pointer">
         <NavLink key={info.value} to={info.url} className="w-full">
+          <></>
           {info.label}
         </NavLink>
-      </DropdownMenuCheckedRadioItem>
+      </DropdownMenuRadioItem>
     )
   }
 

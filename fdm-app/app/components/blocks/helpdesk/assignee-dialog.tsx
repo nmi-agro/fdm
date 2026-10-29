@@ -3,10 +3,10 @@ import type {
   AgentAvailabilityStatus,
   TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
 import { type MouseEventHandler, useId, useState } from "react"
 import { useFetcher } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { AvatarGroup, AvatarGroupCount } from "~/components/blocks/farms/user-display"
 import { Button } from "~/components/ui/button"
 import {

@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { AlertCircle, CheckCircle, FileUp, Upload } from "lucide-react"
 import { useEffect, useMemo } from "react"
-import { useWatch } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, useActionData, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
-import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
 import { Button } from "~/components/ui/button"
 import {
@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { FormDescription, FormField, FormItem, FormMessage } from "~/components/ui/form"
+import { Field, FieldError } from "~/components/ui/field"
 import { Progress } from "~/components/ui/progress"
 import { Spinner } from "~/components/ui/spinner"
 import { useKeyedState } from "~/hooks/use-keyed-state"
@@ -92,11 +92,10 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
               <fieldset disabled={isSubmitting || disabled}>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4">
-                    <FormField
-                      control={form.control}
+                    <Controller
                       name="soilAnalysisFile"
-                      render={({ field: { name, onBlur, ref } }) => (
-                        <FormItem>
+                      render={({ field: { name, onBlur, ref }, fieldState }) => (
+                        <Field>
                           <div>Bodemanalyse</div>
                           <Dropzone
                             ref={ref}
@@ -157,9 +156,8 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
                               )}
                             </div>
                           </Dropzone>
-                          <FormDescription />
-                          <FormMessage />
-                        </FormItem>
+                          <FieldError errors={[fieldState.error]} />
+                        </Field>
                       )}
                     />
                     <Button

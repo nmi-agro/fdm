@@ -5,12 +5,12 @@ import {
   getFields,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Square, UserGroup, Users } from "lucide-react"
 import { useRef } from "react"
 import { useEffect } from "react"
 import { data, NavLink, redirect, useLoaderData, useSearchParams } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
-import { cn } from "@/app/lib/utils"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"

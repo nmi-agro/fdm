@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { cn } from "@/app/lib/utils"
+import { cn } from "cn"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   DropdownMenu,

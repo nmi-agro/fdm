@@ -1,6 +1,13 @@
-import type { Control, FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { type ReactNode, useMemo, useState } from "react"
+import {
+  Controller,
+  type Control,
+  type FieldPathValue,
+  type FieldValues,
+  type Path,
+  type UseFormSetValue,
+} from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import {
   Command,
@@ -10,14 +17,7 @@ import {
   CommandItem,
   CommandList,
 } from "~/components/ui/command"
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+import { Field, FieldContent, FieldError, FieldLabel } from "~/components/ui/field"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { cn } from "~/lib/utils"
 
@@ -64,32 +64,34 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
   )
 
   return (
-    <FormField
+    <Controller
       control={form.control as Control<FieldValues, any, any>}
       name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
+      render={({ field, fieldState }) => (
+        <Field>
+          <FieldLabel>{label}</FieldLabel>
           <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  name={name}
-                  disabled={disabled}
-                  className="w-full justify-between truncate focus-visible:ring-2"
-                  aria-controls="combobox-options"
-                  aria-haspopup="listbox"
-                >
-                  {options.find((option) => option.value === field.value)?.label ||
-                    defaultLabel ||
-                    "Begin met typen..."}
-                  <ChevronsUpDown className="opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
+            <PopoverTrigger
+              render={
+                <FieldContent>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    name={name}
+                    disabled={disabled}
+                    className="w-full justify-between truncate focus-visible:ring-2"
+                    aria-controls="combobox-options"
+                    aria-haspopup="listbox"
+                  >
+                    {options.find((option) => option.value === field.value)?.label ||
+                      defaultLabel ||
+                      "Begin met typen..."}
+                    <ChevronsUpDown className="opacity-50" />
+                  </Button>
+                </FieldContent>
+              }
+            />
             <PopoverContent id="combobox-options" className="w-full p-0">
               <Command>
                 <CommandInput placeholder="Begin met typen..." className="h-9" />
@@ -106,7 +108,7 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
                           setOpen(false)
                         }}
                       >
-                        <p className="w-[350px] text-pretty">{option.label}</p>
+                        <p className="w-87.5 text-pretty">{option.label}</p>
                         <Check
                           className={cn(
                             "ml-auto",
@@ -120,9 +122,8 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
               </Command>
             </PopoverContent>
           </Popover>
-          <FormDescription />
-          <FormMessage />
-        </FormItem>
+          <FieldError errors={[fieldState.error]} />
+        </Field>
       )}
     />
   )

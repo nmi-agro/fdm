@@ -1,5 +1,5 @@
+import { cn } from "cn"
 import { motion } from "framer-motion"
-import { Slot as SlotPrimitive } from "radix-ui"
 import {
   type ButtonHTMLAttributes,
   createContext,
@@ -12,7 +12,6 @@ import {
   useRef,
   useState,
 } from "react"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 
 interface ExpandableContext {

@@ -1,7 +1,7 @@
 import type { Harvest, HarvestParameters } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { NavLink } from "react-router"
 import type { HarvestableType } from "~/components/blocks/harvest/types"
-import { cn } from "@/app/lib/utils"
 import { HarvestsList } from "~/components/blocks/harvest/list"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"

@@ -1,5 +1,5 @@
+import { cn } from "cn"
 import { Headset, User } from "lucide-react"
-import { cn } from "@/app/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import type { HelpdeskUser } from "./types"
 

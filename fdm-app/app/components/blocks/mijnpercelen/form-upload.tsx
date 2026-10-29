@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { AlertCircle, Calendar as CalendarIcon, CheckCircle, Circle, FileUp } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { useWatch } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useActionData, useLocation, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
-import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
 import {
   Accordion,
@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { FormDescription, FormField, FormItem, FormMessage } from "~/components/ui/form"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
 import { MijnPercelenUploadAnimation } from "./upload-animation"
 
@@ -134,7 +134,7 @@ export function MijnPercelenUploadForm({
           Selecteer de bestanden van uw RVO Mijn Percelen export. Zorg ervoor dat u alle
           bijbehorende bestanden selecteert (.shp, .shx, .dbf, .prj).
         </CardDescription>
-        <Accordion type="single" collapsible>
+        <Accordion>
           <AccordionItem value="item-1">
             <AccordionTrigger>Hoe download ik een shapefile van mijn.rvo.nl?</AccordionTrigger>
             <AccordionContent>
@@ -223,12 +223,12 @@ export function MijnPercelenUploadForm({
                   <input name="intent" type="hidden" value="upload" />
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4">
-                      <FormField
+                      <Controller
                         control={form.control}
                         name="shapefile"
-                        render={({ field: { name, value, onBlur, ref } }) => (
-                          <FormItem>
-                            <div>Shapefile</div>
+                        render={({ field: { name, value, onBlur, ref }, fieldState }) => (
+                          <Field>
+                            <FieldLabel>Shapefile</FieldLabel>
                             <Dropzone
                               ref={ref}
                               name={name}
@@ -279,9 +279,8 @@ export function MijnPercelenUploadForm({
                                 </>
                               )}
                             </Dropzone>
-                            <FormDescription />
-                            <FormMessage />
-                          </FormItem>
+                            <FieldError errors={[fieldState.error]} />
+                          </Field>
                         )}
                       />
                       <Button
@@ -345,18 +344,26 @@ function YearSwitcher({ calendar, pathname }: { calendar: string; pathname: stri
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="mt-2 w-full">
-          Kies een ander jaar
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {years.map((year) => (
-          <DropdownMenuItem key={year} asChild>
-            <NavLink to={pathname.replace(`/${calendar}/`, `/${year}/`)}>{year}</NavLink>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="outline" size="sm" className="mt-2 w-full">
+            Kies een ander jaar
+          </Button>
+        }
+      />
+
+      <DropdownMenuContent
+        align="start"
+        render={
+          <>
+            {years.map((year) => (
+              <DropdownMenuItem key={year}>
+                <NavLink to={pathname.replace(`/${calendar}/`, `/${year}/`)}>{year}</NavLink>
+              </DropdownMenuItem>
+            ))}
+          </>
+        }
+      />
     </DropdownMenu>
   )
 }

@@ -1,7 +1,7 @@
 import type { PriorityString } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { ChevronDown } from "lucide-react"
 import { useFetcher } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,

@@ -4,10 +4,10 @@
  * Always includes a link to the full indicators page.
  */
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
+import { cn } from "cn"
 import { BarChart2, CheckCircle2, ChevronDown, ChevronUp, Plus } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { Button } from "~/components/ui/button"
 import {

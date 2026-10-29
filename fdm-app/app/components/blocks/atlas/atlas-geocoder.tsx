@@ -14,7 +14,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "~/components/ui/command"
-import { Popover, PopoverAnchor, PopoverContent } from "~/components/ui/popover"
+import { Popover, PopoverContent } from "~/components/ui/popover"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
 import { AtlasControls } from "./atlas-controls"
@@ -301,52 +301,49 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
               </span>
             )}
           </PopoverAnchor>
-
           <PopoverContent
-            asChild
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onCloseAutoFocus={(e) => e.preventDefault()}
-          >
-            <CommandList className="max-h-60 overflow-y-auto p-1.5">
-              {error ? (
-                <CommandEmpty className="py-6 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-1">
-                    <p className="text-destructive text-sm font-medium">Er is iets misgegaan.</p>
-                    <p className="text-muted-foreground text-xs">{error}</p>
-                  </div>
-                </CommandEmpty>
-              ) : showEmptyState ? (
-                <CommandEmpty className="py-6 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-1">
-                    <p className="text-sm font-medium">Geen locaties gevonden</p>
-                    <p className="text-muted-foreground text-xs">Probeer een andere zoekterm</p>
-                  </div>
-                </CommandEmpty>
-              ) : hasResults ? (
-                <CommandGroup>
-                  {results.map((location) => (
-                    <CommandItem
-                      key={location.id}
-                      value={location.id}
-                      onSelect={() => handleSelect(location)}
-                      className="hover:bg-accent flex cursor-pointer items-center rounded-md px-1 py-1"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <div className="bg-primary/10 shrink-0 rounded-full p-1">
-                          <MapPin className="text-primary h-3 w-3" />
+            render={
+              <CommandList className="max-h-60 overflow-y-auto p-1.5">
+                {error ? (
+                  <CommandEmpty className="py-6 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-1">
+                      <p className="text-destructive text-sm font-medium">Er is iets misgegaan.</p>
+                      <p className="text-muted-foreground text-xs">{error}</p>
+                    </div>
+                  </CommandEmpty>
+                ) : showEmptyState ? (
+                  <CommandEmpty className="py-6 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-1">
+                      <p className="text-sm font-medium">Geen locaties gevonden</p>
+                      <p className="text-muted-foreground text-xs">Probeer een andere zoekterm</p>
+                    </div>
+                  </CommandEmpty>
+                ) : hasResults ? (
+                  <CommandGroup>
+                    {results.map((location) => (
+                      <CommandItem
+                        key={location.id}
+                        value={location.id}
+                        onSelect={() => handleSelect(location)}
+                        className="hover:bg-accent flex cursor-pointer items-center rounded-md px-1 py-1"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <div className="bg-primary/10 shrink-0 rounded-full p-1">
+                            <MapPin className="text-primary h-3 w-3" />
+                          </div>
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate text-sm font-medium">
+                              {location.place_name ?? location.text}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-sm font-medium">
-                            {location.place_name ?? location.text}
-                          </span>
-                        </div>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ) : null}
-            </CommandList>
-          </PopoverContent>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : null}
+              </CommandList>
+            }
+          />
         </Command>
       </Popover>
     </AtlasControls>

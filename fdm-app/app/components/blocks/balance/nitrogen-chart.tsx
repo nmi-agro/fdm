@@ -4,10 +4,10 @@ import type {
   NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { nl } from "@daypicker/react/locale"
+import { cn } from "cn"
 import { format } from "date-fns/format"
 import { useId, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
-import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { ChartContainer, ChartLegend, ChartTooltip } from "~/components/ui/chart"

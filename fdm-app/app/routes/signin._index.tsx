@@ -39,7 +39,7 @@ import {
   Users,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { useWatch, type Resolver } from "react-hook-form"
+import { Controller, useWatch, type Resolver } from "react-hook-form"
 import { Form, Link, redirect, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
@@ -62,7 +62,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
+import { Field, FieldContent, FieldLabel, FieldError } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
@@ -251,7 +251,7 @@ export default function SignIn() {
     <MotionConfig reducedMotion="user">
       <div className="relative">
         <StickyHeader />
-        <div className="relative w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
+        <div className="relative w-full lg:grid lg:min-h-150 lg:grid-cols-2 xl:min-h-200">
           {/* Mobile Background Image */}
           <div className="absolute inset-0 z-0 bg-[#122023] lg:hidden">
             <img
@@ -440,24 +440,22 @@ export default function SignIn() {
                         <fieldset disabled={form.formState.isSubmitting}>
                           <div className="grid w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5">
-                              <FormField
-                                control={form.control}
+                              <Controller
                                 name="timeZone"
                                 render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
+                                  <Field>
+                                    <FieldContent>
                                       <Input type="hidden" {...field} />
-                                    </FormControl>
-                                  </FormItem>
+                                    </FieldContent>
+                                  </Field>
                                 )}
                               />
-                              <FormField
-                                control={form.control}
+                              <Controller
                                 name="email"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>E-mailadres</FormLabel>
-                                    <FormControl>
+                                render={({ field, fieldState }) => (
+                                  <Field>
+                                    <FieldLabel>E-mailadres</FieldLabel>
+                                    <FieldContent>
                                       <div className="relative">
                                         <Input
                                           type="email"
@@ -483,9 +481,9 @@ export default function SignIn() {
                                           )}
                                         </AnimatePresence>
                                       </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
+                                    </FieldContent>
+                                    <FieldError errors={[fieldState.error]} />
+                                  </Field>
                                 )}
                               />
                             </div>
@@ -864,7 +862,7 @@ export default function SignIn() {
                       tot 2009.
                     </p>
                   </CardHeader>
-                  <div className="bg-muted/10 relative flex min-h-[400px] w-full flex-1 items-start justify-center border-t p-4">
+                  <div className="bg-muted/10 relative flex min-h-100 w-full flex-1 items-start justify-center border-t p-4">
                     <img
                       src="/fdm-screenshot-atlas-cultivation-history.png"
                       alt="Gewashistorie screenshot"
@@ -987,7 +985,7 @@ export default function SignIn() {
                 </div>
 
                 {/* Right: Emphasize Importance */}
-                <Card className="border-primary/20 bg-primary/[0.03] dark:bg-muted/20 h-full shadow-sm">
+                <Card className="border-primary/20 bg-primary/3 dark:bg-muted/20 h-full shadow-sm">
                   <CardHeader className="pb-3">
                     <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                       Meerwaarde
@@ -1455,7 +1453,7 @@ export default function SignIn() {
                 </p>
               </div>
 
-              <Accordion type="single" collapsible className="w-full space-y-4">
+              <Accordion className="w-full space-y-4">
                 <AccordionItem
                   value="item-1"
                   className="bg-background rounded-lg border-none px-6 shadow-sm"
