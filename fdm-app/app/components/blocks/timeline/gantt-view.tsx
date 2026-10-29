@@ -1658,7 +1658,7 @@ export const TimelineGanttView = forwardRef<
     Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 
   return (
-    <TooltipProvider delayDuration={150}>
+    <TooltipProvider delay={150}>
       <div className="timeline-gantt-view relative" ref={containerRef}>
         <style
           dangerouslySetInnerHTML={{

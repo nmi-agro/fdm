@@ -474,7 +474,8 @@ export function FieldImpactTable({
                 <TableHead className="w-10">
                   <Checkbox
                     aria-label="Alle percelen meenemen"
-                    checked={allIncluded ? true : someIncluded ? "indeterminate" : false}
+                    checked={allIncluded}
+                    indeterminate={!allIncluded && someIncluded}
                     disabled={disabled}
                     onCheckedChange={(checked) =>
                       onSetIncluded?.(

@@ -40,14 +40,6 @@ export function CropResidueCheckbox({
       ? "none"
       : "some"
 
-  const checkedState = (
-    {
-      all: true,
-      some: "indeterminate",
-      none: false,
-    } as const
-  )[m_cropresidue]
-
   return fetcher.state !== "idle" ? (
     <Spinner />
   ) : (
@@ -55,11 +47,17 @@ export function CropResidueCheckbox({
       {row.original.canModify ? (
         <Checkbox
           id={inputId}
-          checked={checkedState}
+          checked={m_cropresidue === "all"}
+          indeterminate={m_cropresidue === "some"}
           onCheckedChange={(value) => submit(!!value)}
         />
       ) : (
-        <Checkbox id={inputId} checked={checkedState} disabled={true} />
+        <Checkbox
+          id={inputId}
+          checked={m_cropresidue === "all"}
+          indeterminate={m_cropresidue === "some"}
+          disabled={true}
+        />
       )}
       <label htmlFor={inputId}>
         {" "}

@@ -175,13 +175,8 @@ export const selectColumn: ColumnDef<typeof farmTableFeatures, FarmExtended> = {
   enableHiding: false,
   header: ({ table }) => (
     <Checkbox
-      checked={
-        table.getIsAllRowsSelected()
-          ? true
-          : table.getIsSomeRowsSelected()
-            ? "indeterminate"
-            : false
-      }
+      checked={table.getIsAllRowsSelected()}
+      indeterminate={table.getIsSomeRowsSelected()}
       onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
       aria-label="Selecteer alle bedrijven"
     />

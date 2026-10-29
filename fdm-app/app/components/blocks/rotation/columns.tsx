@@ -216,13 +216,8 @@ export const columns = columnHelper.columns([
       return (
         <div className="pe-4">
           <Checkbox
-            checked={
-              table.getIsAllRowsSelected()
-                ? true
-                : table.getIsSomeRowsSelected()
-                  ? "indeterminate"
-                  : false
-            }
+            checked={table.getIsAllRowsSelected()}
+            indeterminate={table.getIsSomeRowsSelected()}
             onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
             aria-label="Selecteer alle rijen"
           />
@@ -232,7 +227,8 @@ export const columns = columnHelper.columns([
     cell: ({ row, table }) => (
       <div className={cn(row.original.type === "field" ? "ps-4" : "pe-4")}>
         <Checkbox
-          checked={row.getIsSelected() ? true : row.getIsSomeSelected() ? "indeterminate" : false}
+          checked={row.getIsSelected()}
+          indeterminate={row.getIsSomeSelected()}
           // Do not use row.getToggleSelectedHandler() here since it doesn't have the exact child-parent selection behavior we want.
           // It selects all children of the last crop row, while we want to only select until the last clicked field row.
           onClick={(event) => handleRowSelection(row, table, event)}

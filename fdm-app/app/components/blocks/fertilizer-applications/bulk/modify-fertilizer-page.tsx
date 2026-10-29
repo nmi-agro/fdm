@@ -306,7 +306,8 @@ export function ModifyFertilizerPage({
               <label className="flex items-center gap-3 text-sm @3xl/apps:hidden">
                 <Checkbox
                   className="size-5"
-                  checked={allSelected ? true : selected.length > 0 ? "indeterminate" : false}
+                  checked={allSelected}
+                  indeterminate={!allSelected && selected.length > 0}
                   onCheckedChange={(checked) => setAll(checked === true)}
                 />
                 Alle giften selecteren
@@ -353,9 +354,8 @@ export function ModifyFertilizerPage({
                       <TableHead className="w-10">
                         <Checkbox
                           aria-label="Alle giften selecteren"
-                          checked={
-                            allSelected ? true : selected.length > 0 ? "indeterminate" : false
-                          }
+                          checked={allSelected}
+                          indeterminate={!allSelected && selected.length > 0}
                           onCheckedChange={(checked) => setAll(checked === true)}
                         />
                       </TableHead>

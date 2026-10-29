@@ -226,7 +226,8 @@ export function AssignGroupsDialog({
                     <Checkbox
                       id={`group-${group.b_id_group}`}
                       className="mt-0.5"
-                      checked={current}
+                      checked={current === true}
+                      indeterminate={current === "indeterminate"}
                       aria-describedby={status ? statusId : undefined}
                       onCheckedChange={() =>
                         setState((previous) => ({

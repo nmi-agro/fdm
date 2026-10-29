@@ -118,8 +118,8 @@ function FlowStep({
   if (!detail) return card
 
   return (
-    <HoverCard openDelay={100} closeDelay={100}>
-      <HoverCardTrigger render={card} />
+    <HoverCard>
+      <HoverCardTrigger render={card} delay={100} closeDelay={100} />
       <HoverCardContent className="w-80">
         <div className="flex items-center gap-2">
           <div className="bg-primary/10 text-primary flex h-7 w-7 items-center justify-center rounded-md">

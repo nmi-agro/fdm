@@ -19,7 +19,15 @@ export function InfoTip({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <Tooltip open={open} onOpenChange={setOpen}>
+    <Tooltip
+      open={open}
+      onOpenChange={(value, e) => {
+        // Do not hide the tooltip for just moving the pointer out
+        if (value || e.reason === "outside-press" || e.reason === "escape-key") {
+          setOpen(value)
+        }
+      }}
+    >
       <TooltipTrigger
         render={children}
         onClick={(event) => {
@@ -27,14 +35,8 @@ export function InfoTip({
           event.preventDefault()
           setOpen((prev) => !prev)
         }}
-        onPointerDown={(event) => {
-          // Close-on-pointer-down would undo the tap on touch devices; prevent it
-          if (event.pointerType !== "mouse") event.preventDefault()
-        }}
       />
-      <TooltipContent className={className} onPointerDownOutside={() => setOpen(false)}>
-        {content}
-      </TooltipContent>
+      <TooltipContent className={className}>{content}</TooltipContent>
     </Tooltip>
   )
 }
