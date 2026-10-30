@@ -10,6 +10,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, OrganicCertificationIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -33,9 +34,15 @@ export interface OrganicCertificationServices {
 
 const OrganicCertificationSchema = z
   .object({
-    b_id_organic: z.string(),
-    b_organic_traces: z.string().nullable(),
-    b_organic_skal: z.string().nullable(),
+    b_id_organic: OrganicCertificationIdSchema,
+    b_organic_traces: z
+      .string()
+      .nullable()
+      .describe("TRACES number of the organic certificate. `null` when not set."),
+    b_organic_skal: z
+      .string()
+      .nullable()
+      .describe("SKAL number of the organic certificate. `null` when not set."),
     b_organic_issued: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     b_organic_expires: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
   })
@@ -58,7 +65,7 @@ const listOrganicCertificationsRoute = createRoute({
   description: "Returns all organic certifications for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -82,7 +89,7 @@ const createOrganicCertificationRoute = createRoute({
   description: "Creates a new organic certification on the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
       content: {
         "application/json": {
@@ -110,7 +117,7 @@ const getOrganicCertificationRoute = createRoute({
   summary: "Get an organic certification",
   description: "Returns a single organic certification by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_organic: z.string() }) },
+  request: { params: z.object({ b_id_organic: OrganicCertificationIdSchema }) },
   responses: {
     200: {
       description: "The requested organic certification.",
@@ -129,7 +136,7 @@ const deleteOrganicCertificationRoute = createRoute({
   summary: "Delete an organic certification",
   description: "Permanently deletes an organic certification.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_organic: z.string() }) },
+  request: { params: z.object({ b_id_organic: OrganicCertificationIdSchema }) },
   responses: {
     204: { description: "Organic certification deleted." },
     ...commonErrorResponses,

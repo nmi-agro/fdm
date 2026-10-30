@@ -12,6 +12,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, FertilizerIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -82,10 +83,13 @@ export interface FertilizerServices {
 
 const FertilizerSchema = z
   .object({
-    p_id: z.string(),
+    p_id: FertilizerIdSchema,
     p_date_acquiring: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     p_picking_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    p_app_amount: z.number().nullable(),
+    p_app_amount: z
+      .number()
+      .nullable()
+      .describe("Amount of the product acquired by the farm (kg). `null` when unknown."),
     ...FertilizerCatalogueSchema.shape,
   })
   .openapi("Fertilizer")
@@ -106,7 +110,7 @@ const listFertilizersRoute = createRoute({
   description: "Returns all fertilizers acquired for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -130,7 +134,7 @@ const createFertilizerRoute = createRoute({
   description: "Creates a fertilizer acquisition for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateFertilizerBodySchema },
@@ -154,7 +158,7 @@ const getFertilizerRoute = createRoute({
   summary: "Get a fertilizer",
   description: "Returns a single fertilizer by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_id: z.string() }) },
+  request: { params: z.object({ p_id: FertilizerIdSchema }) },
   responses: {
     200: {
       description: "The requested fertilizer.",
@@ -171,7 +175,7 @@ const deleteFertilizerRoute = createRoute({
   summary: "Delete a fertilizer",
   description: "Permanently deletes a fertilizer.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_id: z.string() }) },
+  request: { params: z.object({ p_id: FertilizerIdSchema }) },
   responses: {
     204: { description: "Fertilizer deleted." },
     ...commonErrorResponses,
