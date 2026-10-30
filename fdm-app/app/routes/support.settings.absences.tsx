@@ -135,7 +135,7 @@ export async function action({ request }: Route.ActionArgs) {
       }
     }
 
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

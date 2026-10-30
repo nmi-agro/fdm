@@ -393,7 +393,7 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
 
     throw data("Ongeldige actie", { status: 400 })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 
