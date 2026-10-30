@@ -171,9 +171,7 @@ export function CultivationSuggestionBadge({
   )
 
   if (!canWrite) {
-    return (
-      <ReadOnlySuggestionBadge badge={badge} calendar={calendar} suggestion={suggestion} />
-    )
+    return <ReadOnlySuggestionBadge badge={badge} calendar={calendar} suggestion={suggestion} />
   }
 
   return (
