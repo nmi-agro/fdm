@@ -54,13 +54,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  *
  * better-auth's `getInvitation` throws an `APIError` instead of returning `null` when the
  * invitation does not exist, is no longer pending, has expired, or is addressed to someone else.
- * All of these are turned into a 404 so that the route's error boundary shows the "invitation
- * not available" message instead of the generic error page.
+ * These are turned into a 410 when the user's own invitation has expired, and into a 404
+ * otherwise, so that the route's error boundary shows a matching message instead of the generic
+ * error page.
  *
  * @param invitationId - The id of the invitation from the route params.
  * @param headers - The request headers, used by better-auth to resolve the session.
  * @returns The invitation.
- * @throws {Response} A 404 when the invitation is not available to the signed-in user.
+ * @throws {Response} A 410 when the invitation has expired, or a 404 when it is not available to
+ *   the signed-in user for another reason.
  */
 async function getPendingInvitation(invitationId: string, headers: Headers) {
   try {
@@ -74,10 +76,36 @@ async function getPendingInvitation(invitationId: string, headers: Headers) {
   } catch (error) {
     if (!isAPIError(error)) throw error
   }
+  if (await isExpiredInvitation(invitationId, headers)) {
+    throw data("Uitnodiging verlopen", {
+      status: 410,
+      statusText: "Invitation expired",
+    })
+  }
   throw data("Uitnodiging niet gevonden", {
     status: 404,
     statusText: "Invitation not found",
   })
+}
+
+/**
+ * Checks whether the invitation is a pending invitation of the signed-in user whose expiry date
+ * has passed. `listUserInvitations` only returns invitations addressed to the signed-in user, so
+ * this does not reveal anything about invitations meant for someone else.
+ *
+ * @param invitationId - The id of the invitation from the route params.
+ * @param headers - The request headers, used by better-auth to resolve the session.
+ * @returns `true` when the invitation has expired, otherwise `false`.
+ */
+async function isExpiredInvitation(invitationId: string, headers: Headers) {
+  try {
+    const invitations = await auth.api.listUserInvitations({ headers })
+    const invitation = invitations.find((item) => item.id === invitationId)
+    return invitation !== undefined && new Date(invitation.expiresAt) < new Date()
+  } catch (error) {
+    if (!isAPIError(error)) throw error
+    return false
+  }
 }
 
 export default function Respond() {
@@ -215,18 +243,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
   const error = props.error
   if (isRouteErrorResponse(error)) {
-    if (error.status === 404) {
+    if (error.status === 404 || error.status === 410) {
+      const isExpired = error.status === 410
       return (
         <div className="mx-auto my-4 max-w-3xl px-4">
           <Card>
             <CardHeader>
-              <CardTitle>Uitnodiging niet beschikbaar</CardTitle>
+              <CardTitle>
+                {isExpired ? "Uitnodiging verlopen" : "Uitnodiging niet beschikbaar"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Separator />
               <p className="my-1">
-                Helaas, deze uitnodiging is niet langer geldig of bestaat niet. Neem eventueel
-                contact op met degene die je heeft uitgenodigd voor een nieuwe uitnodiging.
+                {isExpired
+                  ? "Deze uitnodiging is verlopen. Vraag degene die je heeft uitgenodigd om je opnieuw uit te nodigen."
+                  : "Helaas, deze uitnodiging is niet langer geldig of bestaat niet. Neem eventueel contact op met degene die je heeft uitgenodigd voor een nieuwe uitnodiging."}
               </p>
             </CardContent>
             <CardFooter>
