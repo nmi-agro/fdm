@@ -593,7 +593,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                       <Spinner />
                     </div>
                   ) : null}
-                  Verwijderen
+                  <span>Verwijderen</span>
                 </Button>
                 <DialogClose asChild>
                   <Button
@@ -615,9 +615,9 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                       <p>Opslaan...</p>
                     </div>
                   ) : isHarvestUpdate ? (
-                    "Bijwerken"
+                    <span key="update">Bijwerken</span>
                   ) : (
-                    "Toevoegen"
+                    <span key="add">Toevoegen</span>
                   )}
                 </Button>
               </Field>
@@ -677,7 +677,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     <Spinner />
                   </div>
                 ) : null}
-                Verwijderen
+                <span>Verwijderen</span>
               </Button>
               <Button
                 type="submit"
@@ -690,9 +690,9 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     <span>Opslaan...</span>
                   </div>
                 ) : isHarvestUpdate ? (
-                  "Bijwerken"
+                  <span key="update">Bijwerken</span>
                 ) : (
-                  "Toevoegen"
+                  <span key="add">Toevoegen</span>
                 )}
               </Button>
             </div>

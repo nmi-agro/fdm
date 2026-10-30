@@ -129,7 +129,7 @@ function SoilDataCard({
       <CardContent className="mt-auto space-y-3 pt-0">
         <div className="flex items-baseline space-x-1.5">
           {value === null ? (
-            "Onbekend"
+            <span>Onbekend</span>
           ) : type === "enum" ? (
             <div className="text-xl leading-tight font-bold">
               {label && type === "enum" ? label : value}

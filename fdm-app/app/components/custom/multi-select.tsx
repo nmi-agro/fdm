@@ -231,7 +231,9 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
                         animationDuration: `${animation}s`,
                       }}
                     >
-                      {`+ ${selectedValues.length - maxCount} meer`}
+                      <span key={selectedValues.length}>
+                        {`+ ${selectedValues.length - maxCount} meer`}
+                      </span>
                       <XCircle
                         className="ml-2 h-4 w-4 cursor-pointer"
                         onClick={(event) => {

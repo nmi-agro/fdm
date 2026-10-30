@@ -230,11 +230,11 @@ export function TagCreator({
               <Button type="submit" disabled={fetcher.state !== "idle"}>
                 {fetcher.state !== "idle" ? (
                   <>
-                    Opslaan...
+                    <span>Opslaan...</span>
                     <Spinner />
                   </>
                 ) : (
-                  "Opslaan"
+                  <span>Opslaan</span>
                 )}
               </Button>
             </DialogFooter>

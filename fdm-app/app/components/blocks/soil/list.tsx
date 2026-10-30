@@ -108,7 +108,7 @@ export function SoilAnalysesList({
                       <span>Verwijderen...</span>
                     </div>
                   ) : (
-                    "Verwijder"
+                    <span>Verwijder</span>
                   )}
                 </Button>
               </div>

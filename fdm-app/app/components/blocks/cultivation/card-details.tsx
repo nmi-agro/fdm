@@ -114,7 +114,7 @@ export function CultivationDetailsCard({
                   <Spinner />
                 </div>
               ) : null}
-              Verwijderen
+              <span>Verwijderen</span>
             </Button>
           </div>
         ) : null}
@@ -226,7 +226,7 @@ export function CultivationDetailsCard({
                       <Spinner /> <p>Bijwerken...</p>
                     </div>
                   ) : (
-                    "Bijwerken"
+                    <span>Bijwerken</span>
                   )}
                 </Button>
               </div>

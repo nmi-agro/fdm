@@ -115,12 +115,12 @@ export function CultivationHistoryTimeline({
             {isExpanded ? (
               <>
                 <ChevronUp className="mr-2 h-4 w-4" />
-                Minder jaren tonen
+                <span key="less">Minder jaren tonen</span>
               </>
             ) : (
               <>
                 <ChevronDown className="mr-2 h-4 w-4" />
-                Meer jaren tonen ({cultivationHistory.length - mobileLimit})
+                <span key="more">Meer jaren tonen ({cultivationHistory.length - mobileLimit})</span>
               </>
             )}
           </Button>

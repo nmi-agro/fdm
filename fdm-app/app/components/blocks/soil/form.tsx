@@ -210,7 +210,7 @@ export function SoilAnalysisForm(props: {
                     <span>Opslaan...</span>
                   </div>
                 ) : (
-                  "Opslaan"
+                  <span>Opslaan</span>
                 )}
               </Button>
             </div>

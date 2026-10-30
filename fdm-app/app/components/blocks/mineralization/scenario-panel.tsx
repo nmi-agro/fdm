@@ -841,19 +841,19 @@ export function ScenarioPanel({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 flex-1 space-y-1" aria-live="polite">
               {!dirty ? (
-                <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                <p key="idle" className="text-muted-foreground flex items-center gap-2 text-sm">
                   <LineChart className="size-4 shrink-0" aria-hidden />
                   Pas een gift of de oogst aan: de grafiek rekent direct mee.
                 </p>
               ) : pending ? (
-                <p className="flex items-center gap-2 text-sm">
+                <p key="pending" className="flex items-center gap-2 text-sm">
                   <Spinner className="shrink-0" />
                   De grafiek rekent je scenario door…
                 </p>
               ) : error ? (
-                <p className="text-destructive flex items-center gap-2 text-sm">
+                <p key="error" className="text-destructive flex items-center gap-2 text-sm">
                   <CircleAlert className="size-4 shrink-0" aria-hidden />
-                  {error}
+                  <span key={error}>{error}</span>
                 </p>
               ) : result ? (
                 <>
@@ -908,7 +908,7 @@ export function ScenarioPanel({
                 }
               >
                 {saving ? <Spinner /> : null}
-                Opslaan in bemestingsplan
+                <span>Opslaan in bemestingsplan</span>
               </Button>
             </div>
           </div>

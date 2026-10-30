@@ -345,9 +345,11 @@ export function FieldsPanelSelection({
               <CardHeader>
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>
-                  {numFieldsSaved > 0
-                    ? "Je hebt geen nieuwe percelen geselecteerd"
-                    : "Je hebt geen percelen geselecteerd"}
+                  <span key={numFieldsSaved > 0 ? "saved" : "empty"}>
+                    {numFieldsSaved > 0
+                      ? "Je hebt geen nieuwe percelen geselecteerd"
+                      : "Je hebt geen percelen geselecteerd"}
+                  </span>
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4" />
@@ -361,7 +363,8 @@ export function FieldsPanelSelection({
                   </Button>
                 ) : (
                   <Button className="w-full" disabled>
-                    <Check /> Sla geselecteerde percelen op
+                    <Check />
+                    <span>Sla geselecteerde percelen op</span>
                   </Button>
                 )}
               </CardFooter>

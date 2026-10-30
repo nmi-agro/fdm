@@ -278,15 +278,15 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                 <AtlasTooltipContent>
                   <p className="text-muted-foreground">{parameterDescription?.name}</p>
                   {typeof feature.properties[selectedParameter] === "undefined" ? (
-                    <p>Geen data</p>
+                    <p key="no-data">Geen data</p>
                   ) : parameterDescription?.type === "date" ? (
-                    <p>
+                    <p key="date">
                       {formatDate(feature.properties[selectedParameter], "PP", {
                         locale: nl,
                       })}
                     </p>
                   ) : selectedParameter === "b_soiltype_agr" ? (
-                    <p>
+                    <p key={`soiltype-${feature.properties[selectedParameter]}`}>
                       <span
                         className="me-0.5 inline-block size-2.5 rounded align-middle"
                         style={{
@@ -301,7 +301,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                       )?.label ?? feature.properties[selectedParameter]}
                     </p>
                   ) : (
-                    <p>
+                    <p key="value">
                       {feature.properties[selectedParameter]} {parameterDescription?.unit}
                     </p>
                   )}

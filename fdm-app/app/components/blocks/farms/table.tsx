@@ -144,7 +144,7 @@ export function DataTable<TData extends FarmExtended>({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
-                  Groep{groupFilter.length > 0 ? ` (${groupFilter.length})` : ""}
+                  <span>{groupFilter.length > 0 ? `Groep (${groupFilter.length})` : "Groep"}</span>
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>

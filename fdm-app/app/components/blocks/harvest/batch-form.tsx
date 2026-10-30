@@ -678,7 +678,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                       <span>Opslaan...</span>
                     </>
                   ) : (
-                    "Toevoegen"
+                    <span>Toevoegen</span>
                   )}
                 </Button>
               </DialogFooter>
@@ -734,7 +734,7 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
                     <span>Opslaan...</span>
                   </>
                 ) : (
-                  "Toevoegen"
+                  <span>Toevoegen</span>
                 )}
               </Button>
             </div>

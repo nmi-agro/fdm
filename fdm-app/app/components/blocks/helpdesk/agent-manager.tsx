@@ -188,7 +188,8 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
             )}
           />
           <Button type="submit" disabled={isSubmitting}>
-            Toevoegen{isSubmitting && <Spinner />}
+            <span>Toevoegen</span>
+            {isSubmitting && <Spinner />}
           </Button>
         </fieldset>
       </fetcher.Form>

@@ -219,7 +219,8 @@ export function AddBlockedEmailForm() {
                 </Button>
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
-                Toevoegen{isSubmitting && <Spinner />}
+                <span>Toevoegen</span>
+                {isSubmitting && <Spinner />}
               </Button>
             </DialogFooter>
           </Form>

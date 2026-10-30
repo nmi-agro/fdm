@@ -173,7 +173,7 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
                           <span>Uploaden...</span>
                         </div>
                       ) : (
-                        "Upload analyse"
+                        <span>Upload analyse</span>
                       )}
                     </Button>
                   </div>
