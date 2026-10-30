@@ -5,7 +5,16 @@ import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { AlertTriangle, CalendarIcon, Check, Microscope, Save, Shovel, X } from "lucide-react"
-import { memo, useCallback, useMemo, useState } from "react"
+import {
+  FocusEventHandler,
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
@@ -36,6 +45,22 @@ import {
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth } from "~/lib/calendar"
+import { Field, FieldError, FieldLabel } from "../../ui/field"
+
+const isValidDepth = (depth: {
+  a_depth_lower: number | undefined
+  a_depth_upper: number | undefined
+}): depth is { a_depth_lower: number; a_depth_upper: number } => {
+  return !!(
+    typeof depth.a_depth_lower === "number" &&
+    typeof depth.a_depth_upper === "number" &&
+    Number.isFinite(depth.a_depth_lower) &&
+    Number.isFinite(depth.a_depth_upper) &&
+    depth.a_depth_lower >= 0 &&
+    depth.a_depth_upper >= 0 &&
+    depth.a_depth_lower > depth.a_depth_upper
+  )
+}
 
 const isValidDate = (dateStr: string | undefined | null): boolean => {
   if (!dateStr) return false
@@ -251,7 +276,166 @@ const StatusCell = memo(
   },
 )
 
-const bulkSoilAnalysisTableFeatures = tableFeatures({})
+const bulkSoilAnalysisTableFeatures = tableFeatures({
+  tableMeta: {} as {
+    depths: Record<string, { a_depth_lower: number | undefined; a_depth_upper: number | undefined }>
+    handleDepthChange: (
+      analysisId: string,
+      depth: { a_depth_lower: number | undefined; a_depth_upper: number | undefined },
+    ) => void
+    dates: Record<string, string>
+    handleDateChange: (analysisId: string, date: string) => void
+  },
+})
+
+function DepthCell({
+  depth,
+  setDepth,
+}: {
+  depth: { a_depth_lower: number | undefined; a_depth_upper: number | undefined }
+  setDepth: (depth: { a_depth_lower: number; a_depth_upper: number }) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const lowerId = useId()
+  const upperId = useId()
+  const lowerRef = useRef<HTMLInputElement>(null)
+  const upperRef = useRef<HTMLInputElement>(null)
+  const [formLower, setFormLower] = useState(
+    typeof depth.a_depth_lower === "number" && Number.isFinite(depth.a_depth_lower)
+      ? depth.a_depth_lower.toString()
+      : "0",
+  )
+  const [formUpper, setFormUpper] = useState(
+    typeof depth.a_depth_upper === "number" && Number.isFinite(depth.a_depth_upper)
+      ? depth.a_depth_upper.toString()
+      : "0",
+  )
+
+  const formLowerNum = Number.parseFloat(formLower)
+  const formUpperNum = Number.parseFloat(formUpper)
+
+  const upperError = !Number.isFinite(formUpperNum)
+    ? "Bovenkant laag moet een getal zijn."
+    : formUpperNum < 0
+      ? "Bovenkant laag moet niet negatief zijn."
+      : null
+  const lowerError = !Number.isFinite(formLowerNum)
+    ? "OnderKant laag moet een getal zijn."
+    : formLowerNum < 0
+      ? "Onderkant laag moet niet negatief zijn."
+      : null
+  const overallError =
+    upperError || lowerError
+      ? upperError
+      : formUpperNum > formLowerNum
+        ? "Onderkant moet lager zijn dan de bovenkant."
+        : null
+
+  const focusFirstFieldTimeoutRef = useRef<any>(null)
+  const blurTimeoutRef = useRef<any>(null)
+
+  // Clean up the timeouts on unmount
+  useEffect(
+    () => () => {
+      if (focusFirstFieldTimeoutRef.current !== null) {
+        clearTimeout(focusFirstFieldTimeoutRef.current)
+      }
+      if (blurTimeoutRef.current !== null) {
+        clearTimeout(blurTimeoutRef.current)
+      }
+    },
+    [],
+  )
+
+  const handleOpen = () => {
+    if (focusFirstFieldTimeoutRef.current) {
+      clearTimeout(focusFirstFieldTimeoutRef.current)
+      focusFirstFieldTimeoutRef.current = null
+    }
+
+    setOpen(true)
+
+    focusFirstFieldTimeoutRef.current = setTimeout(() => {
+      if (upperError && upperRef.current) {
+        upperRef.current.focus()
+      }
+
+      if (lowerError && lowerRef.current) {
+        lowerRef.current.focus()
+      }
+
+      if (upperRef.current) {
+        upperRef.current.focus()
+      }
+    }, 100)
+  }
+
+  /**
+   * When an input is blurred, save changes if the focus has moved outside of the box
+   * @param e
+   */
+  const onFieldBlur: FocusEventHandler<HTMLInputElement> = () => {
+    if (blurTimeoutRef.current !== null) {
+      clearTimeout(blurTimeoutRef.current)
+      blurTimeoutRef.current = null
+    }
+
+    // Update the choice immediately.
+    if (lowerError === null && upperError === null && overallError === null) {
+      setDepth({ a_depth_lower: formLowerNum, a_depth_upper: formUpperNum })
+
+      // Blur the input with a slight delay.
+      blurTimeoutRef.current = setTimeout(() => {
+        if (
+          document.activeElement !== lowerRef.current &&
+          document.activeElement !== upperRef.current
+        ) {
+          setOpen(false)
+        }
+      }, 100)
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button type="button" variant="link" onClick={handleOpen}>
+        <Shovel className="mr-1 h-3 w-3" />
+        {!Number.isFinite(depth.a_depth_lower)
+          ? "Geen bemonsteringslaag is gespecifieerd. Klik om te bewerken."
+          : !Number.isFinite(depth.a_depth_upper) || depth.a_depth_upper === 0
+            ? `Onderkant: ${depth.a_depth_lower} cm`
+            : `${depth.a_depth_upper} - ${depth.a_depth_lower} cm`}
+      </Button>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <Field className="gap-1" data-invalid={upperError !== null} onBlur={onFieldBlur}>
+        <FieldLabel htmlFor={upperId}>Bovenkant (cm)</FieldLabel>
+        <Input
+          ref={upperRef}
+          id={upperId}
+          type="number"
+          value={formUpper}
+          onChange={(e) => setFormUpper(e.target.value)}
+        />
+        {overallError && <FieldError>{overallError}</FieldError>}
+      </Field>
+      <Field className="gap-1" data-invalid={lowerError !== null} onBlur={onFieldBlur}>
+        <FieldLabel htmlFor={lowerId}>Onderkant (cm)</FieldLabel>
+        <Input
+          ref={lowerRef}
+          id={lowerId}
+          type="number"
+          value={formLower}
+          onChange={(e) => setFormLower(e.target.value)}
+        />
+        {lowerError && <FieldError>{lowerError}</FieldError>}
+      </Field>
+    </div>
+  )
+}
 
 export function BulkSoilAnalysisReview({
   analyses,
@@ -272,6 +456,16 @@ export function BulkSoilAnalysisReview({
   const [matches, setMatches] = useState<Record<string, string>>(
     Object.fromEntries(analyses.map((a) => [a.id, a.matchedFieldId || ""])),
   )
+  const [depths, setDepths] = useState<
+    Record<string, { a_depth_lower: number | undefined; a_depth_upper: number | undefined }>
+  >(
+    Object.fromEntries(
+      analyses.map((a) => [
+        a.id,
+        { a_depth_lower: a.a_depth_lower, a_depth_upper: a.a_depth_upper },
+      ]),
+    ),
+  )
   const [dates, setDates] = useState<Record<string, string>>(
     Object.fromEntries(
       analyses.map((a) => {
@@ -286,6 +480,13 @@ export function BulkSoilAnalysisReview({
     setMatches((prev) => ({ ...prev, [analysisId]: fieldId }))
   }, [])
 
+  const handleDepthChange = useCallback(
+    (analysisId: string, depth: { a_depth_lower: number; a_depth_upper: number }) => {
+      setDepths((prev) => ({ ...prev, [analysisId]: depth }))
+    },
+    [],
+  )
+
   const handleDateChange = useCallback((analysisId: string, date: string) => {
     setDates((prev) => ({ ...prev, [analysisId]: date }))
   }, [])
@@ -295,20 +496,22 @@ export function BulkSoilAnalysisReview({
       Object.entries(matches)
         .filter(([analysisId, fieldId]) => {
           if (fieldId === "" || fieldId === "none") return false
+          const depth = depths[analysisId]
           const date = dates[analysisId]
-          return isValidDate(date)
+          return isValidDepth(depth) && isValidDate(date)
         })
         .map(([analysisId, fieldId]) => ({
           analysisId,
           fieldId,
           filename: analyses.find((a) => a.id === analysisId)?.filename.toLowerCase(),
         })),
-    [analyses, matches, dates],
+    [analyses, matches, depths, dates],
   )
 
   const handleSave = () => {
     const updatedAnalyses = analyses.map((a) => ({
       ...a,
+      ...depths[a.id],
       b_sampling_date: dates[a.id],
     }))
     onSave(validMatches, updatedAnalyses)
@@ -342,7 +545,7 @@ export function BulkSoilAnalysisReview({
       {
         accessorKey: "filename",
         header: "Bestand / Lab",
-        cell: ({ row }) => {
+        cell: ({ row, table }) => {
           const sourceLabel =
             sourceLabelMap[row.original.a_source] || row.original.a_source || "Onbekend"
 
@@ -357,11 +560,12 @@ export function BulkSoilAnalysisReview({
                 {(row.original.a_depth_upper !== undefined ||
                   row.original.a_depth_lower !== undefined) && (
                   <div className="flex items-center ">
-                    <Shovel className="mr-1 h-3 w-3" />
-                    <span>
-                      Diepte: {row.original.a_depth_upper ?? 0} -{" "}
-                      {row.original.a_depth_lower ?? "?"} cm
-                    </span>
+                    <DepthCell
+                      depth={table.options.meta!.depths[row.original.id]}
+                      setDepth={(depth) =>
+                        table.options.meta!.handleDepthChange(row.original.id, depth)
+                      }
+                    />
                   </div>
                 )}
               </div>
@@ -373,7 +577,7 @@ export function BulkSoilAnalysisReview({
         accessorKey: "b_sampling_date",
         header: "Datum",
         cell: ({ row, table }) => {
-          const meta = table.options.meta as any
+          const meta = table.options.meta!
           return (
             <DateCell
               analysisId={row.original.id}
@@ -452,8 +656,10 @@ export function BulkSoilAnalysisReview({
     meta: {
       matches,
       dates,
+      depths,
       handleFieldChange,
       handleDateChange,
+      handleDepthChange,
       fieldOptions,
     } as any,
   })
