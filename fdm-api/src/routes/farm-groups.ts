@@ -14,6 +14,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmGroupIdSchema, FarmIdSchema, OrganizationIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -53,7 +54,7 @@ export interface FarmGroupServices {
 
 const FarmGroupMembershipSchema = z
   .object({
-    b_id_farm: z.string(),
+    b_id_farm: FarmIdSchema,
     b_group_joined: DateStringSchema.describe("Date from which the farm is part of the group."),
     b_group_leaved: DateStringSchema.nullable().describe(
       "Date until which the farm is part of the group, or null when there is no end date.",
@@ -63,9 +64,11 @@ const FarmGroupMembershipSchema = z
 
 const FarmGroupSchema = z
   .object({
-    b_id_group: z.string(),
-    b_id_organization: z.string(),
-    b_name_group: z.string(),
+    b_id_group: FarmGroupIdSchema,
+    b_id_organization: OrganizationIdSchema.describe(
+      "Unique identifier of the organization that owns the group.",
+    ),
+    b_name_group: z.string().describe("Name of the group, unique within the organization."),
     b_id_farms: z
       .array(z.string())
       .describe("Identifiers of the farms that are part of the group today."),
@@ -133,7 +136,7 @@ const listFarmGroupsRoute = createRoute({
     "Returns the farm groups of an organization, ordered by name. The API key's owner must be a member of the organization.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ organization_id: z.string() }),
+    params: z.object({ organization_id: OrganizationIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -154,7 +157,7 @@ const createFarmGroupRoute = createRoute({
     "Creates a farm group within an organization. The API key's owner must be a member of the organization.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ organization_id: z.string() }),
+    params: z.object({ organization_id: OrganizationIdSchema }),
     body: {
       content: { "application/json": { schema: CreateFarmGroupBodySchema } },
       required: true,
@@ -176,7 +179,7 @@ const getFarmGroupRoute = createRoute({
   summary: "Get a farm group",
   description: "Returns a farm group, including the identifiers of its current member farms.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_group: z.string() }) },
+  request: { params: z.object({ b_id_group: FarmGroupIdSchema }) },
   responses: {
     200: {
       description: "The requested farm group.",
@@ -194,7 +197,7 @@ const updateFarmGroupRoute = createRoute({
   description: "Renames a farm group.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_group: z.string() }),
+    params: z.object({ b_id_group: FarmGroupIdSchema }),
     body: {
       content: { "application/json": { schema: UpdateFarmGroupBodySchema } },
       required: true,
@@ -217,7 +220,7 @@ const deleteFarmGroupRoute = createRoute({
   description:
     "Permanently deletes a farm group and its membership history. The farms themselves are not affected.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_group: z.string() }) },
+  request: { params: z.object({ b_id_group: FarmGroupIdSchema }) },
   responses: {
     204: { description: "Farm group deleted." },
     ...commonErrorResponses,
@@ -233,7 +236,7 @@ const addFarmToGroupRoute = createRoute({
     "Records that a farm is part of the group from a date, and optionally until a date. The dates are chosen by the caller and can lie in the past or the future. The farm must belong to the organization of the group. The start and end date are stored together, so either the whole period is recorded or nothing is. Adding a farm that already is part of the group on the start date has no effect, unless an end date is given; that is rejected with a conflict.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_group: z.string() }),
+    params: z.object({ b_id_group: FarmGroupIdSchema }),
     body: {
       content: { "application/json": { schema: AddFarmToGroupBodySchema } },
       required: true,
@@ -257,7 +260,7 @@ const removeFarmFromGroupRoute = createRoute({
     "Records the date until which a farm is part of the group (default: today). The membership history is kept. Removing a farm that is not part of the group on that date has no effect. A planned end date later than the given date (default: today) is moved forward to it. Without a date, a membership that starts in the future is rejected with a conflict.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_group: z.string(), b_id_farm: z.string() }),
+    params: z.object({ b_id_group: FarmGroupIdSchema, b_id_farm: FarmIdSchema }),
     query: RemoveFarmFromGroupQuerySchema,
   },
   responses: {
@@ -276,8 +279,8 @@ const updateGroupMembershipRoute = createRoute({
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({
-      b_id_group: z.string(),
-      b_id_farm: z.string(),
+      b_id_group: FarmGroupIdSchema,
+      b_id_farm: FarmIdSchema,
       b_group_joined: DateStringSchema.describe(
         "Current join date of the period (YYYY-MM-DD). It identifies the period to change.",
       ),
@@ -306,8 +309,8 @@ const deleteGroupMembershipRoute = createRoute({
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({
-      b_id_group: z.string(),
-      b_id_farm: z.string(),
+      b_id_group: FarmGroupIdSchema,
+      b_id_farm: FarmIdSchema,
       b_group_joined: DateStringSchema.describe(
         "Join date of the period (YYYY-MM-DD). It identifies the period to delete.",
       ),

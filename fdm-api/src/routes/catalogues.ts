@@ -12,6 +12,12 @@ import {
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import {
+  CultivationHcat3NameSchema,
+  CultivationHcat3Schema,
+  FarmIdSchema,
+  fertilizerCompositionDescriptions,
+} from "../fields"
+import {
   commonErrorResponses,
   PaginationQuerySchema,
   paginatedResponse,
@@ -20,18 +26,20 @@ import {
 
 const CatalogueSourcesSchema = z.record(
   z.enum(["cultivation", "fertilizer", "measure"]),
-  z.array(
-    z.object({
-      source: z.string().openapi({
-        title: "Catalogue source code",
-        description: "Code to call other catalogue endpoints with.",
+  z
+    .array(
+      z.object({
+        source: z.string().openapi({
+          title: "Catalogue source code",
+          description: "Code to call other catalogue endpoints with.",
+        }),
+        title: z.string().openapi({
+          title: "Catalogue source title",
+          description: "Full name of the source of the catalogue data so you can look it up.",
+        }),
       }),
-      title: z.string().openapi({
-        title: "Catalogue source title",
-        description: "Full name of the source of the catalogue data so you can look it up.",
-      }),
-    }),
-  ),
+    )
+    .describe("Available catalogues of this type: cultivation, fertilizer or measure."),
 )
 
 const CultivationCatalogueSchema = z
@@ -77,8 +85,8 @@ const CultivationCatalogueSchema = z
         description:
           "Harvest category mainly used to determine the interesting harvest analysis parameters for a harvest event. HC020 for grass, HC031 for maize, HC040 for root crops, HC041 for sugar beet, HC042 for potatoes, and HC050 for cereals.",
       }),
-    b_lu_hcat3: z.string().nullable(),
-    b_lu_hcat3_name: z.string().nullable(),
+    b_lu_hcat3: CultivationHcat3Schema,
+    b_lu_hcat3_name: CultivationHcat3NameSchema,
     b_lu_croprotation: z
       .enum([
         "other",
@@ -211,8 +219,8 @@ export const FertilizerCatalogueSchema = z
       .number()
       .nullable()
       .openapi({ title: "Organic matter", description: "Organic matter content in g per kg." }),
-    p_a: z.number().nullable(),
-    p_hc: z.number().nullable(),
+    p_a: z.number().nullable().describe(fertilizerCompositionDescriptions.p_a),
+    p_hc: z.number().nullable().describe(fertilizerCompositionDescriptions.p_hc),
     p_eom: z.number().nullable().openapi({
       title: "Effective organic matter",
       description: "Effective organic matter content in g per kg.",
@@ -221,17 +229,17 @@ export const FertilizerCatalogueSchema = z
       title: "Effective organic carbon",
       description: "Effective organic carbon content in g per kg.",
     }),
-    p_c_rt: z.number().nullable(),
-    p_c_of: z.number().nullable(),
-    p_c_if: z.number().nullable(),
-    p_c_fr: z.number().nullable(),
-    p_cn_of: z.number().nullable(),
+    p_c_rt: z.number().nullable().describe(fertilizerCompositionDescriptions.p_c_rt),
+    p_c_of: z.number().nullable().describe(fertilizerCompositionDescriptions.p_c_of),
+    p_c_if: z.number().nullable().describe(fertilizerCompositionDescriptions.p_c_if),
+    p_c_fr: z.number().nullable().describe(fertilizerCompositionDescriptions.p_c_fr),
+    p_cn_of: z.number().nullable().describe(fertilizerCompositionDescriptions.p_cn_of),
     p_n_rt: z
       .number()
       .nullable()
       .openapi({ title: "Total nitrogen", description: "Total nitrogen content in g N per kg." }),
-    p_n_if: z.number().nullable(),
-    p_n_of: z.number().nullable(),
+    p_n_if: z.number().nullable().describe(fertilizerCompositionDescriptions.p_n_if),
+    p_n_of: z.number().nullable().describe(fertilizerCompositionDescriptions.p_n_of),
     p_n_wc: z.number().nullable().openapi({
       title: "Nitrogen working coefficient",
       description: "Nitrogen working coefficient as a fraction (0–1) of the total nitrogen.",
@@ -261,7 +269,7 @@ export const FertilizerCatalogueSchema = z
       .number()
       .nullable()
       .openapi({ title: "Calcium", description: "Total calcium content in g CaO per kg." }),
-    p_ne: z.number().nullable(),
+    p_ne: z.number().nullable().describe(fertilizerCompositionDescriptions.p_ne),
     p_s_rt: z
       .number()
       .nullable()
@@ -339,7 +347,7 @@ export const FertilizerCatalogueSchema = z
       .number()
       .nullable()
       .openapi({ title: "Chloride", description: "Total chlorine content in g Cl per kg." }),
-    p_ef_nh3: z.number().nullable(),
+    p_ef_nh3: z.number().nullable().describe(fertilizerCompositionDescriptions.p_ef_nh3),
   })
   .openapi("FertilizerCatalogue")
 
@@ -408,7 +416,7 @@ export const CATALOGUE_SOURCES: CatalogueSources = {
 }
 
 const ListEnabledCataloguesParamsSchema = z.object({
-  b_id_farm: z.string(),
+  b_id_farm: FarmIdSchema,
 })
 
 const ListCatalogueItemsQuerySchema = PaginationQuerySchema.extend({

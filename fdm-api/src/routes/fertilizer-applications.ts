@@ -11,6 +11,12 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import {
+  FertilizerAppAmountSchema,
+  FertilizerApplicationIdSchema,
+  FertilizerIdSchema,
+  FieldIdSchema,
+} from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -36,15 +42,32 @@ export interface FertilizerApplicationServices {
 
 const FertilizerApplicationSchema = z
   .object({
-    p_id: z.string(),
-    p_id_catalogue: z.string(),
-    p_name_nl: z.string().nullable(),
-    p_app_amount: z.number().nullable(),
-    p_app_amount_unit: z.string(),
-    p_app_amount_display: z.number().nullable(),
-    p_app_method: z.string().nullable(),
+    p_id: FertilizerIdSchema.describe(
+      "Unique identifier of the applied fertilizer product on the farm.",
+    ),
+    p_id_catalogue: z.string().describe("Identifier of the applied fertilizer in its catalogue."),
+    p_name_nl: z
+      .string()
+      .nullable()
+      .describe("Dutch name of the applied fertilizer. `null` when unknown."),
+    p_app_amount: FertilizerAppAmountSchema.nullable().describe(
+      "Applied amount of the product (kg/ha). `null` when unknown.",
+    ),
+    p_app_amount_unit: z
+      .enum(["kg/ha", "l/ha", "m3/ha", "ton/ha"])
+      .describe("Unit in which the applied amount is entered and displayed."),
+    p_app_amount_display: z
+      .number()
+      .nullable()
+      .describe("Applied amount expressed in `p_app_amount_unit`. `null` when unknown."),
+    p_app_method: z
+      .string()
+      .nullable()
+      .describe(
+        "Method of application, one of 'slotted coulter', 'incorporation', 'incorporation 2 tracks', 'injection', 'shallow injection', 'spraying', 'broadcasting', 'spoke wheel', 'pocket placement' or 'narrowband'. `null` when unknown.",
+      ),
     p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    p_app_id: z.string(),
+    p_app_id: FertilizerApplicationIdSchema,
   })
   .openapi("FertilizerApplication")
 
@@ -78,7 +101,7 @@ const listFertilizerApplicationsRoute = createRoute({
   description: "Returns all fertilizer applications for the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -102,7 +125,7 @@ const createFertilizerApplicationRoute = createRoute({
   description: "Creates a new fertilizer application on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     body: {
       content: {
         "application/json": {
@@ -130,7 +153,7 @@ const getFertilizerApplicationRoute = createRoute({
   summary: "Get a fertilizer application",
   description: "Returns a single fertilizer application by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_app_id: z.string() }) },
+  request: { params: z.object({ p_app_id: FertilizerApplicationIdSchema }) },
   responses: {
     200: {
       description: "The requested fertilizer application.",
@@ -150,7 +173,7 @@ const updateFertilizerApplicationRoute = createRoute({
   description: "Partially updates an existing fertilizer application.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ p_app_id: z.string() }),
+    params: z.object({ p_app_id: FertilizerApplicationIdSchema }),
     body: {
       content: {
         "application/json": {
@@ -178,7 +201,7 @@ const deleteFertilizerApplicationRoute = createRoute({
   summary: "Delete a fertilizer application",
   description: "Permanently deletes a fertilizer application.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_app_id: z.string() }) },
+  request: { params: z.object({ p_app_id: FertilizerApplicationIdSchema }) },
   responses: {
     204: { description: "Fertilizer application deleted." },
     ...commonErrorResponses,

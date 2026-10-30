@@ -21,6 +21,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import { commonErrorResponses, DateStringSchema } from "../schemas"
 
@@ -93,9 +94,19 @@ const NitrogenBalanceQuerySchema = z
   .refine(isTimeframeOrdered, timeframeOrderError)
 
 const ApplicationValueSchema = z.object({
-  id: z.string(),
-  value: z.number(),
+  id: z
+    .string()
+    .describe(
+      "Identifier of the source of the amount: a fertilizer application (`p_app_id`), cultivation (`b_lu`) or harvest (`b_id_harvesting`).",
+    ),
+  value: z.number().describe("Nitrogen amount from this source (kg N/ha)."),
 })
+
+/** Describes a nitrogen total of a balance term (kg N/ha). */
+const nitrogenTotal = (meaning: string) => z.number().describe(`${meaning} (kg N/ha).`)
+/** Describes a nitrogen loss term, which is reported as a negative number (kg N/ha). */
+const nitrogenLoss = (meaning: string) =>
+  z.number().describe(`${meaning}, as a negative number (kg N/ha).`)
 
 // ---------------------------------------------------------------------------
 // Dose schema
@@ -126,119 +137,174 @@ const DoseSchema = z
 // ---------------------------------------------------------------------------
 
 const NitrogenFertilizersGroupSchema = z.object({
-  total: z.number(),
-  applications: z.array(ApplicationValueSchema),
+  total: nitrogenTotal("Nitrogen supplied by fertilizers of this type"),
+  applications: z
+    .array(ApplicationValueSchema)
+    .describe("Nitrogen supplied per fertilizer application."),
 })
 
 const NitrogenSupplyFertilizersSchema = z.object({
-  total: z.number(),
-  mineral: NitrogenFertilizersGroupSchema,
-  manure: NitrogenFertilizersGroupSchema,
-  compost: NitrogenFertilizersGroupSchema,
-  other: NitrogenFertilizersGroupSchema,
+  total: nitrogenTotal("Nitrogen supplied by all fertilizers"),
+  mineral: NitrogenFertilizersGroupSchema.describe("Nitrogen supplied by mineral fertilizers."),
+  manure: NitrogenFertilizersGroupSchema.describe("Nitrogen supplied by animal manure."),
+  compost: NitrogenFertilizersGroupSchema.describe("Nitrogen supplied by compost."),
+  other: NitrogenFertilizersGroupSchema.describe("Nitrogen supplied by other fertilizers."),
 })
 
 const NitrogenSupplyFieldSchema = z.object({
-  total: z.number(),
-  fertilizers: NitrogenSupplyFertilizersSchema,
-  fixation: z.object({
-    total: z.number(),
-    cultivations: z.array(ApplicationValueSchema),
-  }),
-  deposition: z.object({ total: z.number() }),
-  mineralisation: z.object({
-    total: z.number(),
-  }),
+  total: nitrogenTotal("Total nitrogen supply"),
+  fertilizers: NitrogenSupplyFertilizersSchema.describe("Nitrogen supplied by fertilizers."),
+  fixation: z
+    .object({
+      total: nitrogenTotal("Nitrogen fixed biologically by the cultivations"),
+      cultivations: z
+        .array(ApplicationValueSchema)
+        .describe("Biological nitrogen fixation per cultivation."),
+    })
+    .describe("Biological nitrogen fixation, for example by clover or other legumes."),
+  deposition: z
+    .object({ total: nitrogenTotal("Nitrogen supplied by atmospheric deposition") })
+    .describe("Atmospheric nitrogen deposition."),
+  mineralisation: z
+    .object({ total: nitrogenTotal("Nitrogen released by mineralisation of soil organic matter") })
+    .describe("Nitrogen released by mineralisation of soil organic matter."),
 })
 
 const NitrogenRemovalFieldSchema = z.object({
-  total: z.number(),
-  harvests: z.object({
-    total: z.number(),
-    harvests: z.array(ApplicationValueSchema),
-  }),
-  residues: z.object({
-    total: z.number(),
-    cultivations: z.array(ApplicationValueSchema),
-  }),
+  total: nitrogenLoss("Total nitrogen removal"),
+  harvests: z
+    .object({
+      total: nitrogenLoss("Nitrogen removed with the harvested products"),
+      harvests: z.array(ApplicationValueSchema).describe("Nitrogen removed per harvest."),
+    })
+    .describe("Nitrogen removed with the harvested products."),
+  residues: z
+    .object({
+      total: nitrogenLoss("Nitrogen removed with crop residues taken off the field"),
+      cultivations: z
+        .array(ApplicationValueSchema)
+        .describe("Nitrogen removed with crop residues per cultivation."),
+    })
+    .describe("Nitrogen removed with crop residues taken off the field."),
 })
 
+const AmmoniaFertilizersSchema = z
+  .record(z.string(), z.unknown())
+  .describe(
+    "Ammonia emission from fertilizers, split by fertilizer type (`total`, `mineral`, `manure`, `compost`, `other`), as negative numbers (kg N/ha).",
+  )
+
 const NitrogenEmissionAmmoniaSchema = z.object({
-  total: z.number(),
-  fertilizers: z.record(z.string(), z.unknown()),
-  residues: z.object({
-    total: z.number(),
-    cultivations: z.array(ApplicationValueSchema),
-  }),
+  total: nitrogenLoss("Total nitrogen emitted as ammonia"),
+  fertilizers: AmmoniaFertilizersSchema,
+  residues: z
+    .object({
+      total: nitrogenLoss("Nitrogen emitted as ammonia from crop residues"),
+      cultivations: z
+        .array(ApplicationValueSchema)
+        .describe("Ammonia emission from crop residues per cultivation."),
+    })
+    .describe("Ammonia emission from crop residues left on the field."),
 })
 
 const NitrogenEmissionFieldSchema = z.object({
-  total: z.number(),
-  ammonia: NitrogenEmissionAmmoniaSchema,
-  nitrate: z.object({ total: z.number() }),
+  total: nitrogenLoss("Total nitrogen emission"),
+  ammonia: NitrogenEmissionAmmoniaSchema.describe("Nitrogen emitted as ammonia (NH3)."),
+  nitrate: z
+    .object({ total: nitrogenLoss("Nitrogen leached as nitrate") })
+    .describe("Nitrogen leached as nitrate (NO3)."),
 })
+
+const BalanceAreaSchema = z.number().describe("Area of the field (ha).")
+const BalanceBufferstripSchema = z
+  .boolean()
+  .optional()
+  .describe("Whether the field is a buffer strip. Buffer strips are left out of the farm averages.")
+const BalanceErrorMessageSchema = z
+  .string()
+  .optional()
+  .describe("Reason the balance could not be calculated for this field. Omitted on success.")
 
 const NitrogenBalanceFieldResultSchema = z
   .object({
-    b_id: z.string(),
-    b_area: z.number(),
-    b_bufferstrip: z.boolean().optional(),
+    b_id: FieldIdSchema,
+    b_area: BalanceAreaSchema,
+    b_bufferstrip: BalanceBufferstripSchema,
     balance: z
       .object({
-        b_id: z.string(),
-        balance: z.number().describe("kg N/ha"),
-        supply: NitrogenSupplyFieldSchema,
-        removal: NitrogenRemovalFieldSchema,
-        emission: NitrogenEmissionFieldSchema,
+        b_id: FieldIdSchema,
+        balance: z
+          .number()
+          .describe("Nitrogen balance of the field: supply plus removal plus emission (kg N/ha)."),
+        supply: NitrogenSupplyFieldSchema.describe("Nitrogen supplied to the field."),
+        removal: NitrogenRemovalFieldSchema.describe("Nitrogen removed from the field."),
+        emission: NitrogenEmissionFieldSchema.describe("Nitrogen lost to the environment."),
         target: z
           .number()
           .optional()
           .describe("Target nitrogen balance in kg N/ha. Omitted when `effective_nitrogen=true`."),
       })
-      .optional(),
-    errorMessage: z.string().optional(),
+      .optional()
+      .describe("Nitrogen balance of the field. Omitted when the calculation failed."),
+    errorMessage: BalanceErrorMessageSchema,
   })
   .openapi("NitrogenBalanceFieldResult")
 
 const NitrogenBalanceSchema = z
   .object({
     balance: z.number().describe("Weighted average nitrogen balance across all fields in kg N/ha"),
-    supply: z.object({
-      total: z.number(),
-      deposition: z.number(),
-      fixation: z.number(),
-      mineralisation: z.number(),
-      fertilizers: z.object({
-        total: z.number(),
-        mineral: z.number(),
-        manure: z.number(),
-        compost: z.number(),
-        other: z.number(),
-      }),
-    }),
-    removal: z.object({
-      total: z.number(),
-      harvests: z.number(),
-      residues: z.number(),
-    }),
-    emission: z.object({
-      total: z.number(),
-      ammonia: z.object({
-        total: z.number(),
-        fertilizers: z.record(z.string(), z.unknown()),
-        residues: z.number(),
-      }),
-      nitrate: z.number(),
-    }),
+    supply: z
+      .object({
+        total: nitrogenTotal("Weighted average total nitrogen supply"),
+        deposition: nitrogenTotal("Weighted average nitrogen supply by atmospheric deposition"),
+        fixation: nitrogenTotal("Weighted average biological nitrogen fixation"),
+        mineralisation: nitrogenTotal(
+          "Weighted average nitrogen released by mineralisation of soil organic matter",
+        ),
+        fertilizers: z
+          .object({
+            total: nitrogenTotal("Weighted average nitrogen supply by all fertilizers"),
+            mineral: nitrogenTotal("Weighted average nitrogen supply by mineral fertilizers"),
+            manure: nitrogenTotal("Weighted average nitrogen supply by animal manure"),
+            compost: nitrogenTotal("Weighted average nitrogen supply by compost"),
+            other: nitrogenTotal("Weighted average nitrogen supply by other fertilizers"),
+          })
+          .describe("Weighted average nitrogen supply by fertilizers."),
+      })
+      .describe("Weighted average nitrogen supply across all fields."),
+    removal: z
+      .object({
+        total: nitrogenLoss("Weighted average total nitrogen removal"),
+        harvests: nitrogenLoss("Weighted average nitrogen removal with harvested products"),
+        residues: nitrogenLoss("Weighted average nitrogen removal with crop residues"),
+      })
+      .describe("Weighted average nitrogen removal across all fields."),
+    emission: z
+      .object({
+        total: nitrogenLoss("Weighted average total nitrogen emission"),
+        ammonia: z
+          .object({
+            total: nitrogenLoss("Weighted average nitrogen emission as ammonia"),
+            fertilizers: AmmoniaFertilizersSchema,
+            residues: nitrogenLoss("Weighted average ammonia emission from crop residues"),
+          })
+          .describe("Weighted average nitrogen emission as ammonia (NH3)."),
+        nitrate: nitrogenLoss("Weighted average nitrogen leaching as nitrate"),
+      })
+      .describe("Weighted average nitrogen emission across all fields."),
     target: z
       .number()
       .optional()
       .describe(
         "Weighted average target nitrogen balance in kg N/ha. Omitted when `effective_nitrogen=true`.",
       ),
-    fields: z.array(NitrogenBalanceFieldResultSchema),
-    hasErrors: z.boolean(),
-    fieldErrorMessages: z.array(z.string()),
+    fields: z.array(NitrogenBalanceFieldResultSchema).describe("Nitrogen balance per field."),
+    hasErrors: z
+      .boolean()
+      .describe("`true` when the balance could not be calculated for one or more fields."),
+    fieldErrorMessages: z
+      .array(z.string())
+      .describe("Error messages of the fields for which the calculation failed."),
   })
   .openapi("NitrogenBalance")
 
@@ -247,49 +313,90 @@ const NitrogenBalanceSchema = z
 // ---------------------------------------------------------------------------
 
 const OrganicMatterApplicationValueSchema = z.object({
-  id: z.string(),
-  value: z.number(),
+  id: z
+    .string()
+    .describe(
+      "Identifier of the source of the amount: a fertilizer application (`p_app_id`) or cultivation (`b_lu`).",
+    ),
+  value: z.number().describe("Effective organic matter from this source (kg EOM/ha/year)."),
 })
+
+/** Describes an effective organic matter supply term (kg EOM/ha/year). */
+const eomSupply = (meaning: string) => z.number().describe(`${meaning} (kg EOM/ha/year).`)
+
+/** Describes an organic matter supply term per fertilizer application. */
+const organicMatterApplicationsGroup = (meaning: string) =>
+  z
+    .object({
+      total: eomSupply(meaning),
+      applications: z
+        .array(OrganicMatterApplicationValueSchema)
+        .describe(`${meaning}, per fertilizer application.`),
+    })
+    .describe(`${meaning}.`)
+
+/** Describes an organic matter supply term per cultivation. */
+const organicMatterCultivationsGroup = (meaning: string) =>
+  z
+    .object({
+      total: eomSupply(meaning),
+      cultivations: z
+        .array(OrganicMatterApplicationValueSchema)
+        .describe(`${meaning}, per cultivation.`),
+    })
+    .describe(`${meaning}.`)
 
 const OrganicMatterBalanceFieldResultSchema = z
   .object({
-    b_id: z.string(),
-    b_area: z.number(),
-    b_bufferstrip: z.boolean().optional(),
+    b_id: FieldIdSchema,
+    b_area: BalanceAreaSchema,
+    b_bufferstrip: BalanceBufferstripSchema,
     balance: z
       .object({
-        b_id: z.string(),
-        balance: z.number().describe("kg EOM/ha/year"),
-        supply: z.object({
-          total: z.number(),
-          fertilizers: z.object({
-            total: z.number(),
-            manure: z.object({
-              total: z.number(),
-              applications: z.array(OrganicMatterApplicationValueSchema),
-            }),
-            compost: z.object({
-              total: z.number(),
-              applications: z.array(OrganicMatterApplicationValueSchema),
-            }),
-            other: z.object({
-              total: z.number(),
-              applications: z.array(OrganicMatterApplicationValueSchema),
-            }),
-          }),
-          cultivations: z.object({
-            total: z.number(),
-            cultivations: z.array(OrganicMatterApplicationValueSchema),
-          }),
-          residues: z.object({
-            total: z.number(),
-            cultivations: z.array(OrganicMatterApplicationValueSchema),
-          }),
-        }),
-        degradation: z.object({ total: z.number() }),
+        b_id: FieldIdSchema,
+        balance: z
+          .number()
+          .describe(
+            "Organic matter balance of the field: supply plus degradation (kg EOM/ha/year).",
+          ),
+        supply: z
+          .object({
+            total: eomSupply("Total effective organic matter supply"),
+            fertilizers: z
+              .object({
+                total: eomSupply("Effective organic matter supplied by all fertilizers"),
+                manure: organicMatterApplicationsGroup(
+                  "Effective organic matter supplied by animal manure",
+                ),
+                compost: organicMatterApplicationsGroup(
+                  "Effective organic matter supplied by compost",
+                ),
+                other: organicMatterApplicationsGroup(
+                  "Effective organic matter supplied by other fertilizers",
+                ),
+              })
+              .describe("Effective organic matter supplied by fertilizers."),
+            cultivations: organicMatterCultivationsGroup(
+              "Effective organic matter supplied by the cultivations, such as roots and stubble",
+            ),
+            residues: organicMatterCultivationsGroup(
+              "Effective organic matter supplied by crop residues left on the field",
+            ),
+          })
+          .describe("Effective organic matter supplied to the field."),
+        degradation: z
+          .object({
+            total: z
+              .number()
+              .describe(
+                "Soil organic matter degraded in a year, as a negative number (kg EOM/ha/year).",
+              ),
+          })
+          .describe("Degradation of soil organic matter."),
       })
-      .optional(),
-    errorMessage: z.string().optional(),
+      .optional()
+      .describe("Organic matter balance of the field. Omitted when the calculation failed."),
+    errorMessage: BalanceErrorMessageSchema,
   })
   .openapi("OrganicMatterBalanceFieldResult")
 
@@ -300,9 +407,15 @@ const OrganicMatterBalanceSchema = z
       .describe("Weighted average organic matter balance across all fields in kg EOM/ha/year"),
     supply: z.number().describe("Weighted average EOM supply in kg EOM/ha/year"),
     degradation: z.number().describe("Weighted average SOM degradation in kg EOM/ha/year"),
-    fields: z.array(OrganicMatterBalanceFieldResultSchema),
-    hasErrors: z.boolean(),
-    fieldErrorMessages: z.array(z.string()),
+    fields: z
+      .array(OrganicMatterBalanceFieldResultSchema)
+      .describe("Organic matter balance per field."),
+    hasErrors: z
+      .boolean()
+      .describe("`true` when the balance could not be calculated for one or more fields."),
+    fieldErrorMessages: z
+      .array(z.string())
+      .describe("Error messages of the fields for which the calculation failed."),
   })
   .openapi("OrganicMatterBalance")
 
@@ -315,28 +428,37 @@ const NormResultSchema = z.object({
   normSource: z.string().describe("Source or category used to determine the norm"),
 })
 
+const NitrogenNormSchema = NormResultSchema.nullable().describe("Nitrogen usage norm (kg N/ha)")
+const ManureNormSchema = NormResultSchema.nullable().describe(
+  "Manure usage norm (kg N/ha from animal manure)",
+)
+const PhosphateNormSchema = NormResultSchema.nullable().describe(
+  "Phosphate usage norm (kg P2O5/ha)",
+)
+const NormYearSchema = z.number().int().describe("Calendar year the norms apply to.")
+
 const FieldNormsSchema = z
   .object({
-    b_id: z.string(),
-    year: z.number().int(),
-    nitrogen: NormResultSchema.nullable().describe("Nitrogen usage norm (kg N/ha)"),
-    manure: NormResultSchema.nullable().describe("Manure usage norm (kg N/ha from animal manure)"),
-    phosphate: NormResultSchema.nullable().describe("Phosphate usage norm (kg P2O5/ha)"),
+    b_id: FieldIdSchema,
+    year: NormYearSchema,
+    nitrogen: NitrogenNormSchema,
+    manure: ManureNormSchema,
+    phosphate: PhosphateNormSchema,
   })
   .openapi("FieldNorms")
 
 const FarmNormsFieldSchema = z.object({
-  b_id: z.string(),
-  nitrogen: NormResultSchema.nullable(),
-  manure: NormResultSchema.nullable(),
-  phosphate: NormResultSchema.nullable(),
+  b_id: FieldIdSchema,
+  nitrogen: NitrogenNormSchema,
+  manure: ManureNormSchema,
+  phosphate: PhosphateNormSchema,
 })
 
 const FarmNormsSchema = z
   .object({
-    b_id_farm: z.string(),
-    year: z.number().int(),
-    fields: z.array(FarmNormsFieldSchema),
+    b_id_farm: FarmIdSchema,
+    year: NormYearSchema,
+    fields: z.array(FarmNormsFieldSchema).describe("Usage norms per field of the farm."),
   })
   .openapi("FarmNorms")
 
@@ -409,7 +531,7 @@ const farmNitrogenBalanceRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: NitrogenBalanceQuerySchema,
   },
   responses: {
@@ -430,7 +552,7 @@ const farmOrganicMatterBalanceRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: TimeframeQuerySchema,
   },
   responses: {
@@ -453,7 +575,7 @@ const fieldNitrogenBalanceRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: NitrogenBalanceQuerySchema,
   },
   responses: {
@@ -478,7 +600,7 @@ const fieldOrganicMatterBalanceRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: TimeframeQuerySchema,
   },
   responses: {
@@ -503,7 +625,7 @@ const fieldDoseRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
   },
   responses: {
     200: {
@@ -530,7 +652,7 @@ const farmNormsRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: YearQuerySchema,
   },
   responses: {
@@ -551,7 +673,7 @@ const fieldNormsRoute = createRoute({
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: YearQuerySchema,
   },
   responses: {
@@ -573,7 +695,7 @@ const fieldNormsRoute = createRoute({
 //     tags: ["Calculations"],
 //     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
 //     request: {
-//         params: z.object({ b_id: z.string() }),
+//         params: z.object({ b_id: FieldIdSchema }),
 //     },
 //     responses: {
 //         200: {

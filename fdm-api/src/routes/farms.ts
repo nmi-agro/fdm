@@ -16,6 +16,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -57,11 +58,20 @@ export interface FarmServices {
 
 const FarmSchema = z
   .object({
-    b_id_farm: z.string(),
-    b_name_farm: z.string().nullable(),
-    b_businessid_farm: z.string().nullable(),
-    b_address_farm: z.string().nullable(),
-    b_postalcode_farm: z.string().nullable(),
+    b_id_farm: FarmIdSchema,
+    b_name_farm: z.string().nullable().describe("Farm display name. `null` when not set."),
+    b_businessid_farm: z
+      .string()
+      .nullable()
+      .describe("Chamber of commerce or business registration number. `null` when not set."),
+    b_address_farm: z
+      .string()
+      .nullable()
+      .describe("Street address of the farm. `null` when not set."),
+    b_postalcode_farm: z
+      .string()
+      .nullable()
+      .describe("Postal code of the farm address. `null` when not set."),
   })
   .openapi("Farm")
 
@@ -132,7 +142,7 @@ const getFarmRoute = createRoute({
   summary: "Get a farm",
   description: "Returns a single farm by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: z.string() }) },
+  request: { params: z.object({ b_id_farm: FarmIdSchema }) },
   responses: {
     200: {
       description: "The requested farm.",
@@ -174,7 +184,7 @@ const updateFarmRoute = createRoute({
     "Partially updates the metadata of an existing farm. Only supplied fields are changed.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
       content: { "application/json": { schema: UpdateFarmBodySchema } },
       required: true,
@@ -197,7 +207,7 @@ const deleteFarmRoute = createRoute({
   description:
     "Permanently deletes a farm and all its associated fields, cultivations, and soil analyses.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: z.string() }) },
+  request: { params: z.object({ b_id_farm: FarmIdSchema }) },
   responses: {
     204: { description: "Farm deleted." },
     ...commonErrorResponses,
