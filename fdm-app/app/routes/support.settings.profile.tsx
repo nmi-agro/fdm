@@ -15,7 +15,7 @@ import { UpdateAgentSchema } from "~/components/blocks/helpdesk/agent-schema"
 import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.settings.profile"
@@ -117,6 +117,8 @@ export async function action({ request }: Route.ActionArgs) {
       message: "Gegevens succesvol bijgewerkt.",
     })
   } catch (err) {
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
     return handleActionError(err)
   }
 }

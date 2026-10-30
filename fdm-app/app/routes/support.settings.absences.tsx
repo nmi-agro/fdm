@@ -27,7 +27,7 @@ import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.settings.absences"
@@ -126,15 +126,8 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
   } catch (err) {
-    // extractFormValuesFromRequest calls handleActionError itself, so if that is detected to be the case,
-    // return the response returned from it directly.
-    if (err instanceof Promise) {
-      const awaited = await (err as Promise<any>).catch(() => {})
-      if (awaited?.type === "DataWithResponseInit") {
-        return awaited
-      }
-    }
-
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
     return handleActionError(err)
   }
 }

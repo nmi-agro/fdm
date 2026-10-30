@@ -1,6 +1,12 @@
 import * as Sentry from "@sentry/react-router"
 import { customAlphabet } from "nanoid"
-import { data, type ErrorResponse, isRouteErrorResponse, redirect } from "react-router"
+import {
+  data,
+  type ErrorResponse,
+  isRouteErrorResponse,
+  redirect,
+  type UNSAFE_DataWithResponseInit,
+} from "react-router"
 import { dataWithError, dataWithWarning } from "remix-toast"
 
 const customErrorAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // No lookalikes (0, 1, I, O, S, Z)
@@ -265,6 +271,42 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
   if (!(error instanceof Error)) return false
   if (error.message.includes(message)) return true
   return containsErrorMessage(error.cause, message)
+}
+
+/**
+ * Checks whether a caught value is a `remix-toast` response that already carries a toast, rather
+ * than an error.
+ *
+ * `extractFormValuesFromRequest` throws the already-resolved result of `handleActionError` when
+ * form validation fails. An action's outer `catch` should return such a response as-is instead of
+ * passing it to `handleActionError` again, which would report it a second time and replace its
+ * toast with a generic one.
+ *
+ * Plain `data(message, { status })` responses thrown on purpose have no toast cookie and return
+ * `false`, so they still go through `handleActionError` and get a user-facing toast.
+ *
+ * @param error - The value caught in a route action.
+ * @returns `true` if the value is a `DataWithResponseInit` that sets the toast session cookie.
+ */
+export function isToastResponse(error: unknown): error is UNSAFE_DataWithResponseInit<unknown> {
+  if (
+    typeof error !== "object" ||
+    error === null ||
+    !("type" in error) ||
+    error.type !== "DataWithResponseInit" ||
+    !("init" in error) ||
+    typeof error.init !== "object" ||
+    error.init === null ||
+    !("headers" in error.init)
+  ) {
+    return false
+  }
+  try {
+    const headers = new Headers(error.init.headers as HeadersInit)
+    return headers.getSetCookie().some((cookie) => cookie.startsWith("toast-session="))
+  } catch {
+    return false
+  }
 }
 
 /**

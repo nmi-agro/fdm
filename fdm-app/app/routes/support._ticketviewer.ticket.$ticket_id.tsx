@@ -40,7 +40,7 @@ import {
   TicketSubjectSchema,
 } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { checkRateLimit } from "~/lib/rate-limit.server"
 import {
@@ -554,20 +554,8 @@ export async function action({ params, request }: Args) {
       )
     }
   } catch (err) {
-    // extractFormValuesFromRequest awaits handleActionError before throwing (see
-    // fdm-app/app/lib/form.ts), so `err` here is already a resolved `DataWithResponseInit`
-    // toast-bearing response, not an Error. Return it directly instead of re-classifying it
-    // through handleActionError, which would overwrite its specific validation message with a
-    // generic one.
-    if (
-      typeof err === "object" &&
-      err !== null &&
-      "type" in err &&
-      (err as { type: unknown }).type === "DataWithResponseInit"
-    ) {
-      return err
-    }
-
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
     return handleActionError(err)
   }
 }

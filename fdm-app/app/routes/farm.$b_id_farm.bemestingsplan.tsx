@@ -38,7 +38,7 @@ import {
   getBemestingsplanInputHash,
 } from "~/lib/bemestingsplan.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Route } from "./+types/farm.$b_id_farm.bemestingsplan"
@@ -220,6 +220,8 @@ export async function action({ params, request }: Route.ActionArgs) {
       )
     }
   } catch (err) {
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
     return handleActionError(err)
   }
 }

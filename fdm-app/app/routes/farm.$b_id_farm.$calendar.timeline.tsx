@@ -63,7 +63,7 @@ import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
@@ -658,6 +658,8 @@ export async function action({ request, params }: Route.LoaderArgs) {
       return dataWithSuccess({ closeSheet: true }, { message: "Bemesting is verwijderd." })
     }
   } catch (err) {
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
     return handleActionError(err)
   }
 }
