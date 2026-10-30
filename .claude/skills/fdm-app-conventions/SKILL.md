@@ -122,6 +122,7 @@ Users translate the Dutch UI with the browser (Chrome, Edge). The translator rep
 - Give conditional text its own keyed element, so React replaces it instead of patching a translated node: `<span key={isLoading ? "loading" : "idle"}>{isLoading ? "Ophalen..." : "Ophalen uit KvK"}</span>`.
 - In a ternary or fragment, never let a branch be bare text next to (or instead of) an element: `{isSubmitting ? <Spinner /> : <span>Opslaan</span>}`.
 - Text that appears or disappears goes in an element that mounts and unmounts as a whole.
+- Radix Select portals the selected item's text into the trigger. `ui/select.tsx` therefore wraps the item text and the placeholder in a `<span>`; keep that when regenerating the shadcn component. A custom picker trigger (such as `custom/combobox.tsx`) shows its value in a `<span>` keyed by the value.
 
 ## State
 
