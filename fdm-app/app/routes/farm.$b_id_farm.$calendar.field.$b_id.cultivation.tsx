@@ -178,11 +178,7 @@ export default function FarmFieldsOverviewBlock() {
   if ("warning" in loaderData) {
     return (
       <div className="space-y-6">
-        <p className="text-muted-foreground text-sm">
-          {loaderData.warning instanceof Error
-            ? loaderData.warning.message
-            : String(loaderData.warning)}
-        </p>
+        <p className="text-muted-foreground text-sm">{loaderData.warning}</p>
       </div>
     )
   }
