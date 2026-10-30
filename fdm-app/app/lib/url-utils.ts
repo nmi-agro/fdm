@@ -53,7 +53,13 @@ export function getSearchParams(href: string) {
  * Handles:
  * - FDM nanoid IDs (16 chars from the custom read-safe alphabet) → `:id`
  * - Pure numeric segments (years, numeric IDs) → `:year`
+ * - Long opaque tokens, such as invitation tokens and other better-auth IDs
+ *   (20+ URL-safe chars including a digit or an uppercase letter) → `:token`
  * - Coordinate-like segments (digits mixed with dots or commas) → `:centroid`
+ * - Organization slugs (the segment after `/organization/`) → `:slug`
+ *
+ * Tokens can grant access (e.g. an invitation link), so they must never end up
+ * in analytics or error tracking.
  *
  * @param page - The raw pathname string (e.g. from `location.pathname`).
  * @returns The normalised route pattern (e.g. `/farm/:id/:year/atlas/fields/:centroid`).
@@ -63,7 +69,7 @@ export function normalizePage(page: string): string {
   const path = page.split("?")[0].split("#")[0]
   return path
     .split("/")
-    .map((segment) => {
+    .map((segment, index, segments) => {
       if (!segment) return segment
       // FDM nanoid IDs: exactly 16 chars from the custom read-safe alphabet
       if (/^[6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwza]{16}$/.test(segment)) {
@@ -72,6 +78,15 @@ export function normalizePage(page: string): string {
       // Pure numeric segments (years, numeric IDs)
       if (/^\d+$/.test(segment)) {
         return ":year"
+      }
+      // Long opaque tokens. Static route segments of this length are lowercase
+      // words joined by `-` or `_`, so they never contain a digit or uppercase letter
+      if (/^[\w-]{20,}$/.test(segment) && /[\dA-Z]/.test(segment)) {
+        return ":token"
+      }
+      // Organization slugs are chosen by users and may contain names
+      if (segments[index - 1] === "organization" && !["new", "invitations"].includes(segment)) {
+        return ":slug"
       }
       // Coordinate-like segments: mix of digits with dots or commas
       if (/[,.]/.test(segment) && /\d/.test(segment)) {
