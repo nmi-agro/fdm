@@ -12,7 +12,7 @@ import {
 import { renderToStream } from "@react-pdf/renderer"
 import { AlertCircle } from "lucide-react"
 import { MetaFunction, Outlet, useLoaderData } from "react-router"
-import { redirectWithSuccess } from "remix-toast"
+import { redirectWithSuccess, redirectWithWarning } from "remix-toast"
 import { dataWithError } from "remix-toast"
 import z from "zod"
 import { columns } from "@/app/components/blocks/bemestingsplan/columns"
@@ -38,7 +38,7 @@ import {
   getBemestingsplanInputHash,
 } from "~/lib/bemestingsplan.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Route } from "./+types/farm.$b_id_farm.bemestingsplan"
@@ -211,7 +211,16 @@ export async function action({ params, request }: Route.ActionArgs) {
       const plan = await getFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
       await removeFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
       if (plan.p_plan_file_path) {
-        await deleteObject(plan.p_plan_file_path)
+        try {
+          await deleteObject(plan.p_plan_file_path)
+        } catch (deleteError) {
+          // The plan itself is gone; redirect anyway so the list refreshes, and report the orphaned file
+          const errorId = reportError(deleteError, { scope: "action" })
+          return redirectWithWarning(
+            `/farm/${b_id_farm}/bemestingsplan`,
+            `Bemestingsplan voor teeltjaar ${plan.p_plan_year} is verwijderd, maar het bijbehorende PDF-bestand kon niet worden opgeruimd. Neem contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`,
+          )
+        }
       }
 
       return redirectWithSuccess(
