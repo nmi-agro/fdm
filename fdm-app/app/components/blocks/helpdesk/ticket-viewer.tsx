@@ -293,7 +293,7 @@ export function TicketViewer({
           <DialogPrimitive.Portal data-slot="sheet-portal" container={container}>
             <DialogPrimitive.Popup
               aria-label="Tickets"
-              className="bg-background border-sidebar-border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left absolute inset-y-0 top-0 left-0 z-50 flex h-full w-full flex-col border-r transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500"
+              className="bg-background border-sidebar-border data-open:animate-in data-closed:animate-out data-closed:slide-out-to-left data-open:slide-in-from-left absolute inset-y-0 top-0 left-0 z-50 flex h-full w-full flex-col border-r transition ease-in-out data-closed:duration-300 data-open:duration-500"
             >
               <DialogPrimitive.Close
                 render={
