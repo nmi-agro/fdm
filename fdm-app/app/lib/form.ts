@@ -1,5 +1,5 @@
 import type { z } from "zod"
-import { handleActionError } from "./error"
+import { FormValidationError, handleActionError } from "./error"
 
 /**
  * Extracts, validates, and transforms form data from a request using a Zod schema.
@@ -7,12 +7,13 @@ import { handleActionError } from "./error"
  * This function is designed to simplify the process of handling form data in Remix
  * action functions. It extracts the form data from the request, validates it against
  * the provided Zod schema, and returns the parsed data. If validation fails, it throws
- * an error with detailed information about the validation errors.
+ * the toast response from `handleActionError`, whose data carries the field issues as
+ * `validationErrors`.
  *
  * @param request - The HTTP request object.
  * @param schema - The Zod schema to validate the form data against.
  * @returns The parsed and validated form data.
- * @throws {Response} If the form data fails validation, includes error details.
+ * @throws {DataWithResponseInit} If the form data fails validation, with the issues in `data.validationErrors`.
  */
 export async function extractFormValuesFromRequest<T extends z.ZodType<unknown>>(
   request: Request,
@@ -67,7 +68,7 @@ export async function extractFormValuesFromRequest<T extends z.ZodType<unknown>>
         message: err.message,
       }))
 
-      throw new Error(JSON.stringify(errors))
+      throw new FormValidationError(errors)
     }
 
     return parsedData.data

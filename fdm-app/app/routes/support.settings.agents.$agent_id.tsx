@@ -13,7 +13,7 @@ import { AgentFormDialog } from "~/components/blocks/helpdesk/agent-form"
 import { UpdateAgentSchema } from "~/components/blocks/helpdesk/agent-schema"
 import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { getSession } from "~/lib/auth.server"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.settings.agents.$agent_id"
@@ -100,7 +100,9 @@ export async function action({ params, request }: Route.ActionArgs) {
       message: "Gegevens succesvol bijgewerkt.",
     })
   } catch (err) {
-    throw handleActionError(err)
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
+    return handleActionError(err)
   }
 }
 
