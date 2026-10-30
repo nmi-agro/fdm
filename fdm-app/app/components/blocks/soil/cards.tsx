@@ -234,14 +234,18 @@ function SoilDataCard({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex cursor-help items-center space-x-1.5 text-[10px] text-amber-700">
+                  <NavLink
+                    to={link}
+                    className="flex cursor-pointer items-center space-x-1.5 text-[10px] text-amber-700 hover:underline"
+                  >
                     <TriangleAlert className="h-3 w-3 shrink-0" />
                     <span>Dekt {Math.round(coverage * 100)}% van perceel</span>
-                  </div>
+                  </NavLink>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[260px]">
                   De bemonsterde zones dekken {Math.round(coverage * 100)}% van het perceel. De
-                  waarde geldt alleen voor het bemonsterde deel.
+                  waarde geldt alleen voor het bemonsterde deel. Klik om de bemonstering op de kaart
+                  te bekijken.
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

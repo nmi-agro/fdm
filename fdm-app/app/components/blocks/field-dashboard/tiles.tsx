@@ -770,10 +770,14 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
                 </div>
               )}
               {card.hasCoverageWarning && card.coverage !== null && (
-                <div className="mt-1 flex items-center gap-2 text-xs text-amber-700">
+                <Link
+                  to={`${tile.detailHref}/analysis/${card.a_id}`}
+                  className="mt-1 flex items-center gap-2 text-xs text-amber-700 hover:underline"
+                  title="Bekijk de bemonstering op de kaart"
+                >
                   <TriangleAlert className="size-3.5" />
                   <span>Dekt {Math.round(card.coverage * 100)}% van perceel</span>
-                </div>
+                </Link>
               )}
             </div>
           )

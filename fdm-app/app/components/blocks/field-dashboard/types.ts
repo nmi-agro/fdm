@@ -61,6 +61,8 @@ export interface FieldDashboardSoilParameterCard {
   source: string | null
   sourceLabel: string
   link: string
+  /** The newest soil analysis that contributes to the value. */
+  a_id: string
   /** Number of sampling zones the value combines; 1 when it comes from a single analysis. */
   zoneCount: number
   /** Share of the field area that the value represents (0–1), or `null` when unknown. */
