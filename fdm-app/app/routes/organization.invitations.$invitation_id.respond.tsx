@@ -1,3 +1,4 @@
+import { isAPIError } from "better-auth/api"
 import { useEffect } from "react"
 import {
   type ActionFunctionArgs,
@@ -10,7 +11,7 @@ import {
   useSearchParams,
   useSubmit,
 } from "react-router"
-import { dataWithError, redirectWithSuccess } from "remix-toast"
+import { redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
@@ -45,21 +46,38 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       statusText: "Invitation not found",
     })
   }
-  const invitation = await auth.api.getInvitation({
-    query: {
-      id: invitationId,
-    },
-    headers: request.headers,
-  })
+  return getPendingInvitation(invitationId, request.headers)
+}
 
-  if (!invitation) {
-    throw data("Uitnodiging niet gevonden", {
-      status: 404,
-      statusText: "Invitation not found",
+/**
+ * Fetches a pending invitation addressed to the signed-in user.
+ *
+ * better-auth's `getInvitation` throws an `APIError` instead of returning `null` when the
+ * invitation does not exist, is no longer pending, has expired, or is addressed to someone else.
+ * All of these are turned into a 404 so that the route's error boundary shows the "invitation
+ * not available" message instead of the generic error page.
+ *
+ * @param invitationId - The id of the invitation from the route params.
+ * @param headers - The request headers, used by better-auth to resolve the session.
+ * @returns The invitation.
+ * @throws {Response} A 404 when the invitation is not available to the signed-in user.
+ */
+async function getPendingInvitation(invitationId: string, headers: Headers) {
+  try {
+    const invitation = await auth.api.getInvitation({
+      query: {
+        id: invitationId,
+      },
+      headers,
     })
+    if (invitation) return invitation
+  } catch (error) {
+    if (!isAPIError(error)) throw error
   }
-
-  return invitation
+  throw data("Uitnodiging niet gevonden", {
+    status: 404,
+    statusText: "Invitation not found",
+  })
 }
 
 export default function Respond() {
@@ -144,18 +162,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       statusText: "Invitation not found",
     })
   }
-  const invitation = await auth.api.getInvitation({
-    query: {
-      id: invitationId,
-    },
-    headers: request.headers,
-  })
-
-  if (!invitation) {
-    throw dataWithError("Invitation not found", {
-      message: "Uitnodiging niet gevonden",
-    })
-  }
+  const invitation = await getPendingInvitation(invitationId, request.headers)
 
   if (formValues.intent === "accept") {
     try {
