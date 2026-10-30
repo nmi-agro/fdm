@@ -1,5 +1,18 @@
 import type * as GeoJSON from "geojson"
-import { and, eq, gte, inArray, isNull, lte, or, type SQL, sql } from "drizzle-orm"
+import {
+  type AnyColumn,
+  and,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm"
+import { alias } from "drizzle-orm/pg-core"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type {
@@ -733,22 +746,22 @@ function toAggregationAnalyses(rows: CurrentSoilDataRow[]): AggregationAnalysis[
 }
 
 /**
- * SQL for the sampling zones of the given fields, clipped to the field boundary.
- * Yields the columns `b_id`, `a_id` and `geom`.
+ * SQL expression for a sampling zone clipped to the field boundary. Without a field geometry the
+ * zone is used as is.
+ *
+ * @param zone - The sampling zone column.
+ * @param fieldGeometry - The field geometry column of the same field.
  */
-function clippedZonesSql(b_ids: string[]): SQL {
-  return sql`
-    SELECT s.b_id, s.a_id,
-      CASE WHEN f.b_geometry IS NULL THEN ST_MakeValid(s.b_sampling_geometry_zone)
-        ELSE ST_Intersection(ST_MakeValid(s.b_sampling_geometry_zone), ST_MakeValid(f.b_geometry))
-      END AS geom
-    FROM "fdm"."soil_sampling" s
-    INNER JOIN "fdm"."fields" f ON f.b_id = s.b_id
-    WHERE s.b_sampling_geometry_zone IS NOT NULL
-      AND s.b_id IN (${sql.join(
-        b_ids.map((b_id) => sql`${b_id}`),
-        sql`, `,
-      )})`
+function clippedZone(zone: AnyColumn, fieldGeometry: AnyColumn): SQL {
+  return sql`CASE WHEN ${fieldGeometry} IS NULL THEN ST_MakeValid(${zone})
+    ELSE ST_Intersection(ST_MakeValid(${zone}), ST_MakeValid(${fieldGeometry})) END`
+}
+
+/**
+ * SQL expression for the area (m²) of a geometry, calculated on the spheroid.
+ */
+function geographyArea(geometry: SQL): SQL<number> {
+  return sql<number>`ST_Area((${geometry})::geography)`.mapWith(Number)
 }
 
 /**
@@ -774,16 +787,40 @@ async function getZoneAreas(fdm: FdmType, b_ids: string[]): Promise<Map<string, 
     .from(schema.fields)
     .where(inArray(schema.fields.b_id, b_ids))
 
-  const pairRows = (await fdm.execute(sql`
-    WITH z AS (${clippedZonesSql(b_ids)})
-    SELECT z1.b_id, z1.a_id AS a_id_1, z2.a_id AS a_id_2,
-      ST_Area(
-        CASE WHEN z1.a_id = z2.a_id THEN z1.geom ELSE ST_Intersection(z1.geom, z2.geom) END::geography
-      ) AS area
-    FROM z z1
-    INNER JOIN z z2 ON z1.b_id = z2.b_id AND z1.a_id <= z2.a_id
-    WHERE z1.a_id = z2.a_id OR ST_Intersects(z1.geom, z2.geom)
-  `)) as unknown as { b_id: string; a_id_1: string; a_id_2: string; area: number | string | null }[]
+  // Every pair of zones on the same field, including each zone with itself for its own area
+  const pairSampling = alias(schema.soilSampling, "pair_sampling")
+  const zone = clippedZone(schema.soilSampling.b_sampling_geometry_zone, schema.fields.b_geometry)
+  const pairZone = clippedZone(pairSampling.b_sampling_geometry_zone, schema.fields.b_geometry)
+  const pairRows = await fdm
+    .select({
+      b_id: schema.soilSampling.b_id,
+      a_id_1: schema.soilSampling.a_id,
+      a_id_2: pairSampling.a_id,
+      area: geographyArea(
+        sql`CASE WHEN ${schema.soilSampling.a_id} = ${pairSampling.a_id} THEN ${zone}
+          ELSE ST_Intersection(${zone}, ${pairZone}) END`,
+      ),
+    })
+    .from(schema.soilSampling)
+    .innerJoin(schema.fields, eq(schema.fields.b_id, schema.soilSampling.b_id))
+    .innerJoin(
+      pairSampling,
+      and(
+        eq(pairSampling.b_id, schema.soilSampling.b_id),
+        lte(schema.soilSampling.a_id, pairSampling.a_id),
+      ),
+    )
+    .where(
+      and(
+        inArray(schema.soilSampling.b_id, b_ids),
+        isNotNull(schema.soilSampling.b_sampling_geometry_zone),
+        isNotNull(pairSampling.b_sampling_geometry_zone),
+        or(
+          eq(schema.soilSampling.a_id, pairSampling.a_id),
+          sql`ST_Intersects(${zone}, ${pairZone})`,
+        ),
+      ),
+    )
 
   const intersections = new Map<string, Map<string, number>>()
   for (const field of fieldRows) {
@@ -892,6 +929,7 @@ function differenceKey(b_id: string, a_id: string, newer: string[]): string {
 
 /**
  * Calculates the area of each requested zone that is not covered by the given newer zones.
+ * Requests without newer zones are skipped: their effective area is the clipped zone area.
  *
  * @param fdm - The FDM instance.
  * @param requests - The zones and, per zone, the newer zones to subtract.
@@ -904,29 +942,52 @@ async function getEffectiveZoneAreas(
   const result = new Map<string, number>()
   if (requests.length === 0) return result
 
-  const b_ids = [...new Set(requests.map((request) => request.b_id))]
-  const rows = (await fdm.execute(sql`
-    WITH z AS (${clippedZonesSql(b_ids)}),
-    r AS (
-      SELECT * FROM jsonb_to_recordset(${JSON.stringify(requests)}::jsonb)
-        AS r(b_id text, a_id text, newer text[])
-    )
-    SELECT r.b_id, r.a_id, r.newer,
-      ST_Area(
-        CASE WHEN cardinality(r.newer) = 0 THEN z.geom
-          ELSE ST_Difference(
-            z.geom,
-            (SELECT ST_Union(z2.geom) FROM z z2 WHERE z2.b_id = r.b_id AND z2.a_id = ANY(r.newer))
-          )
-        END::geography
-      ) AS area
-    FROM r
-    INNER JOIN z ON z.b_id = r.b_id AND z.a_id = r.a_id
-  `)) as unknown as { b_id: string; a_id: string; newer: string[]; area: number | string | null }[]
-
-  for (const row of rows) {
-    result.set(differenceKey(row.b_id, row.a_id, row.newer), Number(row.area ?? 0))
+  // Group the zones that share the same newer zones, so that each group needs one query
+  const groups = new Map<string, { b_id: string; newer: string[]; a_ids: string[] }>()
+  for (const request of requests) {
+    if (request.newer.length === 0) continue
+    const key = `${request.b_id}|${request.newer.join(",")}`
+    const group = groups.get(key) ?? { b_id: request.b_id, newer: request.newer, a_ids: [] }
+    group.a_ids.push(request.a_id)
+    groups.set(key, group)
   }
+
+  const newerSampling = alias(schema.soilSampling, "newer_sampling")
+  await Promise.all(
+    [...groups.values()].map(async ({ b_id, newer, a_ids }) => {
+      // Union of the newer zones; it refers to the field of the outer query
+      const newerZones = fdm
+        .select({
+          geom: sql`ST_Union(${clippedZone(newerSampling.b_sampling_geometry_zone, schema.fields.b_geometry)})`,
+        })
+        .from(newerSampling)
+        .where(and(eq(newerSampling.b_id, b_id), inArray(newerSampling.a_id, newer)))
+
+      const rows = await fdm
+        .select({
+          a_id: schema.soilSampling.a_id,
+          area: geographyArea(
+            sql`ST_Difference(
+              ${clippedZone(schema.soilSampling.b_sampling_geometry_zone, schema.fields.b_geometry)},
+              COALESCE((${newerZones}), 'SRID=4326;GEOMETRYCOLLECTION EMPTY'::geometry)
+            )`,
+          ),
+        })
+        .from(schema.soilSampling)
+        .innerJoin(schema.fields, eq(schema.fields.b_id, schema.soilSampling.b_id))
+        .where(
+          and(
+            eq(schema.soilSampling.b_id, b_id),
+            inArray(schema.soilSampling.a_id, a_ids),
+            isNotNull(schema.soilSampling.b_sampling_geometry_zone),
+          ),
+        )
+
+      for (const row of rows) {
+        result.set(differenceKey(b_id, row.a_id, newer), row.area)
+      }
+    }),
+  )
   return result
 }
 
@@ -1204,17 +1265,28 @@ export async function getCurrentSoilDataPerZone(
       .map((zone) => zone.members[0].a_id)
     const geometries = new Map<string, GeoJSON.MultiPolygon | null>()
     if (zoneIds.length > 0) {
-      const geometryRows = (await fdm.execute(sql`
-        WITH z AS (${clippedZonesSql([b_id])})
-        SELECT a_id, ST_AsGeoJSON(ST_Multi(ST_CollectionExtract(geom, 3))) AS geometry
-        FROM z
-        WHERE a_id IN (${sql.join(
-          zoneIds.map((a_id) => sql`${a_id}`),
-          sql`, `,
-        )})
-      `)) as unknown as { a_id: string; geometry: string | null }[]
+      const geometryRows = await fdm
+        .select({
+          a_id: schema.soilSampling.a_id,
+          // Keep only the polygon parts of the clipped zone
+          geometry: sql<
+            string | null
+          >`ST_AsGeoJSON(ST_Multi(ST_CollectionExtract(${clippedZone(schema.soilSampling.b_sampling_geometry_zone, schema.fields.b_geometry)}, 3)))`,
+        })
+        .from(schema.soilSampling)
+        .innerJoin(schema.fields, eq(schema.fields.b_id, schema.soilSampling.b_id))
+        .where(
+          and(
+            eq(schema.soilSampling.b_id, b_id),
+            inArray(schema.soilSampling.a_id, zoneIds),
+            isNotNull(schema.soilSampling.b_sampling_geometry_zone),
+          ),
+        )
       for (const row of geometryRows) {
-        geometries.set(row.a_id, row.geometry ? JSON.parse(row.geometry) : null)
+        geometries.set(
+          row.a_id,
+          row.geometry ? (JSON.parse(row.geometry) as GeoJSON.MultiPolygon) : null,
+        )
       }
     }
 
