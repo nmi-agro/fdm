@@ -4,13 +4,14 @@ import type { MetaFunction } from "react-router"
 import {
   getCurrentSoilDataForFarm,
   getFields,
+  getSoilAnalysesForFarm,
   getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useEffect, useMemo, useState } from "react"
-import { Layer, type LayerProps } from "react-map-gl/maplibre"
+import { Layer, type LayerProps, Source } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, useLoaderData, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -32,6 +33,7 @@ import {
   AtlasTooltipHeader,
 } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { SAMPLING_POINT_COLOR } from "~/components/blocks/soil/soil-sampling-colors"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "~/components/ui/select"
@@ -84,15 +86,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Get the fields of the farm
     let fieldsData: FeatureCollection | undefined
+    let samplingData: FeatureCollection | undefined
     if (b_id_farm && b_id_farm !== "undefined") {
-      const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+      const [fields, currentSoilDataForFarm, soilAnalysesForFarm] = await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm, {
+          start: null,
+          end: timeframe.end,
+        }),
+      ])
 
-      const currentSoilDataForFarm = await getCurrentSoilDataForFarm(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-        timeframe,
-      )
+      // Sampling zones and points of the analyses that determine the current values, with the
+      // parameters they contribute to, so that the map can show those of the selected parameter
+      const samplingFeatures: FeatureCollection["features"] = []
 
       const features = fields.map((field) => {
         const fieldCurrentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
@@ -104,6 +111,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           },
           {} as Record<string, string | number>,
         )
+
+        const parametersById = new Map<string, string[]>()
+        for (const item of fieldEnrichedSoilData) {
+          for (const source of item.sources) {
+            const parameters = parametersById.get(source.a_id) ?? []
+            parameters.push(item.parameter)
+            parametersById.set(source.a_id, parameters)
+          }
+        }
+        for (const analysis of soilAnalysesForFarm.get(field.b_id) ?? []) {
+          const parameters = parametersById.get(analysis.a_id)
+          if (!parameters) continue
+          const properties = { a_id: analysis.a_id, b_id: field.b_id, parameters }
+          if (analysis.b_sampling_geometry_zone) {
+            samplingFeatures.push({
+              type: "Feature",
+              geometry: analysis.b_sampling_geometry_zone,
+              properties: { ...properties, kind: "zone" },
+            })
+          }
+          if (analysis.b_sampling_geometry) {
+            samplingFeatures.push({
+              type: "Feature",
+              geometry: analysis.b_sampling_geometry,
+              properties: { ...properties, kind: "points" },
+            })
+          }
+        }
 
         const feature = {
           type: "Feature" as const,
@@ -127,6 +162,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         type: "FeatureCollection",
         features: features,
       }
+      samplingData = {
+        type: "FeatureCollection",
+        features: samplingFeatures,
+      }
     }
 
     // Get Map Style
@@ -139,6 +178,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       calendar: calendar,
       b_id_farm: b_id_farm,
       fieldsData: fieldsData,
+      samplingData: samplingData,
       mapStyle: mapStyle,
       soilParametersDescriptions: soilParametersDescriptions,
     }
@@ -154,7 +194,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * It integrates geolocation and navigation controls, wraps the field layer in a non-interactive source, and includes a panel for displaying additional field details on hover.
  */
 export default function FarmAtlasFieldSoilAnalysisBlock() {
-  const { calendar, b_id_farm, fieldsData, soilParametersDescriptions } =
+  const { calendar, b_id_farm, fieldsData, samplingData, soilParametersDescriptions } =
     useLoaderData<typeof loader>()
   const navigate = useNavigate()
   const { capture } = useAnalytics()
@@ -222,6 +262,19 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   const initialViewState = getViewState(fieldsData)
 
   const [showFields, setShowFields] = useState(true)
+  const [showSampling, setShowSampling] = useState(false)
+
+  // Zones and points of the analyses that determine the value of the selected parameter
+  const selectedSamplingData = useMemo<FeatureCollection>(
+    () => ({
+      type: "FeatureCollection",
+      features: (samplingData?.features ?? []).filter((feature) =>
+        (feature.properties?.parameters as string[] | undefined)?.includes(selectedParameter),
+      ),
+    }),
+    [samplingData, selectedParameter],
+  )
+  const hasSamplingData = (samplingData?.features.length ?? 0) > 0
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
   const heatmapOutlineLayer = {
     ...heatmapLayerOutlineStyle,
@@ -248,6 +301,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
           initialViewState={initialViewState}
           showFields={showFields}
           onToggleFields={() => setShowFields(!showFields)}
+          showSampling={hasSamplingData ? showSampling : undefined}
+          onToggleSampling={() => setShowSampling(!showSampling)}
         />
 
         <MapTilerAttribution />
@@ -257,6 +312,27 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
             <Layer id={heatmapLayerId} {...heatmapLayerStyle} layout={layerLayout} />
             <Layer id={heatmapOutlineLayerId} {...heatmapOutlineLayer} />
           </FieldsSourceNotClickable>
+        )}
+        {showSampling && (
+          <Source id="soil-sampling" type="geojson" data={selectedSamplingData}>
+            <Layer
+              id="soil-sampling-zone-outline"
+              type="line"
+              filter={["==", ["get", "kind"], "zone"]}
+              paint={{ "line-color": "#ffffff", "line-width": 2, "line-dasharray": [2, 1] }}
+            />
+            <Layer
+              id="soil-sampling-points"
+              type="circle"
+              filter={["==", ["get", "kind"], "points"]}
+              paint={{
+                "circle-radius": 4,
+                "circle-color": SAMPLING_POINT_COLOR,
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 1.5,
+              }}
+            />
+          </Source>
         )}
         <AtlasTooltip
           layers={[heatmapLayerId]}

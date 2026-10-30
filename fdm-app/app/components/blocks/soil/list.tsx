@@ -16,12 +16,21 @@ export function SoilAnalysesList({
   fetcher,
   canModifySoilAnalysis = {},
   fieldName,
+  colorById = {},
+  highlightedId = null,
+  onHighlight,
 }: {
   soilAnalyses: SoilAnalysis[]
   soilParameterDescription: SoilParameterDescription
   fetcher: ReturnType<typeof useFetcher>
   canModifySoilAnalysis?: Record<string, boolean>
   fieldName: string
+  /** Map colour per analysis; analyses without a colour are not on the map. */
+  colorById?: Record<string, string>
+  /** The analysis that is highlighted on the map. */
+  highlightedId?: string | null
+  /** Called when the pointer enters (`a_id`) or leaves (`null`) an analysis in the list. */
+  onHighlight?: (a_id: string | null) => void
 }) {
   const handleDelete = (a_id: string) => {
     if (fetcher.state !== "idle") return
@@ -44,10 +53,28 @@ export function SoilAnalysesList({
           fetcher.state !== "idle" && fetcher.formData?.get("a_id") === analysis.a_id
         const isEstimated = analysis.a_source === "nl-other-nmi"
 
+        const color = colorById[analysis.a_id]
+
         return (
-          <div className={cn("space-y-3", index > 0 && "pt-2")} key={analysis.a_id}>
+          <div
+            className={cn(
+              "-mx-2 space-y-3 rounded-md px-2 transition-colors",
+              index > 0 && "pt-2",
+              color && highlightedId === analysis.a_id && "bg-muted/60",
+            )}
+            key={analysis.a_id}
+            onMouseEnter={color ? () => onHighlight?.(analysis.a_id) : undefined}
+            onMouseLeave={color ? () => onHighlight?.(null) : undefined}
+          >
             <div>
-              <p className="text-sm leading-none font-medium">
+              <p className="flex items-center gap-2 text-sm leading-none font-medium">
+                {color && (
+                  <span
+                    className="inline-block size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: color }}
+                    aria-hidden
+                  />
+                )}
                 {isEstimated
                   ? ""
                   : analysis.b_sampling_date

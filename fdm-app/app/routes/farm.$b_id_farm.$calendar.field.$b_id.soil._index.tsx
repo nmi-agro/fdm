@@ -18,7 +18,7 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
-import { SoilAnalysesList } from "~/components/blocks/soil/list"
+import { SoilAnalysesOverview } from "~/components/blocks/soil/soil-analyses-overview"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { deleteObject } from "~/integrations/gcs.server"
@@ -196,8 +196,9 @@ export default function FarmFieldSoilOverviewBlock() {
             <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase">
               Bodemanalyses
             </h4>
-            <SoilAnalysesList
+            <SoilAnalysesOverview
               soilAnalyses={loaderData.soilAnalyses}
+              fieldGeometry={loaderData.field.b_geometry}
               soilParameterDescription={loaderData.soilParameterDescription}
               fetcher={fetcher}
               canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
