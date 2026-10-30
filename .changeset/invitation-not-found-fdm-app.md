@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": patch
 ---
 
-Opening a link to an organization invitation that is no longer valid now shows a clear message instead of the error page. An expired invitation shows "Uitnodiging verlopen" with the advice to ask for a new invitation; an invitation that was already accepted or rejected, was cancelled, or is meant for another account shows "Uitnodiging niet beschikbaar".
+Opening a link to an organization invitation that can no longer be used now explains why, instead of showing the error page: the invitation has expired, was already accepted, was rejected earlier, or was cancelled by the organization. Invitations that do not exist or are meant for another account show "Uitnodiging niet beschikbaar". The "Terug naar mijn organisaties" button on these messages now works as well.

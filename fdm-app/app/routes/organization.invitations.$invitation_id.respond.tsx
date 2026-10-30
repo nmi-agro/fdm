@@ -36,7 +36,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  await getSession(request)
+  const session = await getSession(request)
 
   // Check for valid invitation id
   const invitationId = params.invitation_id
@@ -46,25 +46,28 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       statusText: "Invitation not found",
     })
   }
-  return getPendingInvitation(invitationId, request.headers)
+  return getPendingInvitation(invitationId, request.headers, session.user.email)
 }
+
+/** Why an invitation link can no longer be used, shown to the user by the error boundary. */
+type InvitationUnavailableReason = "expired" | "accepted" | "rejected" | "canceled" | "not_found"
 
 /**
  * Fetches a pending invitation addressed to the signed-in user.
  *
  * better-auth's `getInvitation` throws an `APIError` instead of returning `null` when the
  * invitation does not exist, is no longer pending, has expired, or is addressed to someone else.
- * These are turned into a 410 when the user's own invitation has expired, and into a 404
- * otherwise, so that the route's error boundary shows a matching message instead of the generic
- * error page.
+ * In that case the invitation is looked up to tell the user why it can no longer be used, so that
+ * the route's error boundary shows a matching message instead of the generic error page.
  *
  * @param invitationId - The id of the invitation from the route params.
  * @param headers - The request headers, used by better-auth to resolve the session.
+ * @param email - The e-mail address of the signed-in user.
  * @returns The invitation.
- * @throws {Response} A 410 when the invitation has expired, or a 404 when it is not available to
- *   the signed-in user for another reason.
+ * @throws {Response} A 410 with the reason as data when the user's invitation was accepted,
+ *   rejected, cancelled or has expired, or a 404 when it is not available to the signed-in user.
  */
-async function getPendingInvitation(invitationId: string, headers: Headers) {
+async function getPendingInvitation(invitationId: string, headers: Headers, email: string) {
   try {
     const invitation = await auth.api.getInvitation({
       query: {
@@ -76,11 +79,9 @@ async function getPendingInvitation(invitationId: string, headers: Headers) {
   } catch (error) {
     if (!isAPIError(error)) throw error
   }
-  if (await isExpiredInvitation(invitationId, headers)) {
-    throw data("Uitnodiging verlopen", {
-      status: 410,
-      statusText: "Invitation expired",
-    })
+  const reason = await getInvitationUnavailableReason(invitationId, email)
+  if (reason !== "not_found") {
+    throw data({ reason }, { status: 410, statusText: "Invitation no longer valid" })
   }
   throw data("Uitnodiging niet gevonden", {
     status: 404,
@@ -89,23 +90,85 @@ async function getPendingInvitation(invitationId: string, headers: Headers) {
 }
 
 /**
- * Checks whether the invitation is a pending invitation of the signed-in user whose expiry date
- * has passed. `listUserInvitations` only returns invitations addressed to the signed-in user, so
- * this does not reveal anything about invitations meant for someone else.
+ * Determines why an invitation can no longer be used. Invitations addressed to another e-mail
+ * address are reported as `not_found`, so this does not reveal anything about them.
  *
  * @param invitationId - The id of the invitation from the route params.
- * @param headers - The request headers, used by better-auth to resolve the session.
- * @returns `true` when the invitation has expired, otherwise `false`.
+ * @param email - The e-mail address of the signed-in user.
+ * @returns The reason the invitation is unavailable.
  */
-async function isExpiredInvitation(invitationId: string, headers: Headers) {
-  try {
-    const invitations = await auth.api.listUserInvitations({ headers })
-    const invitation = invitations.find((item) => item.id === invitationId)
-    return invitation !== undefined && new Date(invitation.expiresAt) < new Date()
-  } catch (error) {
-    if (!isAPIError(error)) throw error
-    return false
+async function getInvitationUnavailableReason(
+  invitationId: string,
+  email: string,
+): Promise<InvitationUnavailableReason> {
+  const { adapter } = await auth.$context
+  const invitation = await adapter.findOne<{ email: string; status: string; expiresAt: Date }>({
+    model: "invitation",
+    where: [{ field: "id", value: invitationId }],
+  })
+  if (!invitation || invitation.email.toLowerCase() !== email.toLowerCase()) {
+    return "not_found"
   }
+  if (
+    invitation.status === "accepted" ||
+    invitation.status === "rejected" ||
+    invitation.status === "canceled"
+  ) {
+    return invitation.status
+  }
+  if (new Date(invitation.expiresAt) < new Date()) return "expired"
+  return "not_found"
+}
+
+/**
+ * Reads the reason from the data of a 410 error response; any other data means `not_found`.
+ *
+ * @param errorData - The `data` of the route error response.
+ * @returns The reason the invitation is unavailable.
+ */
+function getInvitationUnavailableReasonFromError(errorData: unknown): InvitationUnavailableReason {
+  if (
+    typeof errorData === "object" &&
+    errorData !== null &&
+    "reason" in errorData &&
+    typeof errorData.reason === "string" &&
+    Object.hasOwn(invitationUnavailableMessages, errorData.reason)
+  ) {
+    return errorData.reason as InvitationUnavailableReason
+  }
+  return "not_found"
+}
+
+/** Title and explanation shown for each reason an invitation can no longer be used. */
+const invitationUnavailableMessages: Record<
+  InvitationUnavailableReason,
+  { title: string; description: string }
+> = {
+  expired: {
+    title: "Uitnodiging verlopen",
+    description:
+      "Deze uitnodiging is verlopen. Vraag degene die je heeft uitgenodigd om je opnieuw uit te nodigen.",
+  },
+  accepted: {
+    title: "Uitnodiging al geaccepteerd",
+    description:
+      "Je hebt deze uitnodiging al geaccepteerd. Je vindt de organisatie bij je organisaties.",
+  },
+  rejected: {
+    title: "Uitnodiging afgewezen",
+    description:
+      "Je hebt deze uitnodiging eerder afgewezen. Wil je toch lid worden? Vraag dan degene die je heeft uitgenodigd om een nieuwe uitnodiging.",
+  },
+  canceled: {
+    title: "Uitnodiging ingetrokken",
+    description:
+      "Deze uitnodiging is ingetrokken door de organisatie. Neem contact op met degene die je heeft uitgenodigd als je denkt dat dit niet klopt.",
+  },
+  not_found: {
+    title: "Uitnodiging niet beschikbaar",
+    description:
+      "Helaas, deze uitnodiging is niet langer geldig of bestaat niet. Neem eventueel contact op met degene die je heeft uitgenodigd voor een nieuwe uitnodiging.",
+  },
 }
 
 export default function Respond() {
@@ -181,7 +244,13 @@ const FormSchema = z.object({
 export async function action({ request, params }: ActionFunctionArgs) {
   const formValues = await extractFormValuesFromRequest(request, FormSchema)
 
-  await getSession(request)
+  const session = await getSession(request)
+
+  // Leaving the page does not need the invitation, so it also works when the invitation is no
+  // longer valid (the button on the error card uses this intent).
+  if (formValues.intent === "do_nothing") {
+    return redirect("/organization")
+  }
 
   const invitationId = params.invitation_id
   if (!invitationId) {
@@ -190,7 +259,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       statusText: "Invitation not found",
     })
   }
-  const invitation = await getPendingInvitation(invitationId, request.headers)
+  const invitation = await getPendingInvitation(invitationId, request.headers, session.user.email)
 
   if (formValues.intent === "accept") {
     try {
@@ -233,10 +302,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     })
   }
 
-  if (formValues.intent === "do_nothing") {
-    return redirect("/organization")
-  }
-
   throw new Error("invalid intent")
 }
 
@@ -244,22 +309,17 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
   const error = props.error
   if (isRouteErrorResponse(error)) {
     if (error.status === 404 || error.status === 410) {
-      const isExpired = error.status === 410
+      const reason = getInvitationUnavailableReasonFromError(error.data)
+      const message = invitationUnavailableMessages[reason]
       return (
         <div className="mx-auto my-4 max-w-3xl px-4">
           <Card>
             <CardHeader>
-              <CardTitle>
-                {isExpired ? "Uitnodiging verlopen" : "Uitnodiging niet beschikbaar"}
-              </CardTitle>
+              <CardTitle>{message.title}</CardTitle>
             </CardHeader>
             <CardContent>
               <Separator />
-              <p className="my-1">
-                {isExpired
-                  ? "Deze uitnodiging is verlopen. Vraag degene die je heeft uitgenodigd om je opnieuw uit te nodigen."
-                  : "Helaas, deze uitnodiging is niet langer geldig of bestaat niet. Neem eventueel contact op met degene die je heeft uitgenodigd voor een nieuwe uitnodiging."}
-              </p>
+              <p className="my-1">{message.description}</p>
             </CardContent>
             <CardFooter>
               <Form method="post" className="flex flex-row gap-2">
