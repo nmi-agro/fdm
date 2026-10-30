@@ -266,7 +266,9 @@ export default function FarmSettingsPropertiesBlock() {
                             </AlertDialog>
                           </span>
                         ) : (
-                          "Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven"
+                          <span>
+                            Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven
+                          </span>
                         )}
                       </FormDescription>
                       <FormMessage />
@@ -332,7 +334,7 @@ Wageningen"
               className={cn("m-auto", cn(!loaderData.farmWritePermission ? "invisible" : ""))}
             >
               {form.formState.isSubmitting && <Spinner />}
-              Bijwerken
+              <span>Bijwerken</span>
             </Button>
           </div>
         </Form>

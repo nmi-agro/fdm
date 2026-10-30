@@ -497,12 +497,12 @@ export default function RvoImportReviewPage() {
                         {isApplying ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Verwerken...
+                            <span>Verwerken...</span>
                           </>
                         ) : hasChanges ? (
-                          "Wijzigingen toepassen"
+                          <span key="apply">Wijzigingen toepassen</span>
                         ) : (
-                          "Doorgaan"
+                          <span key="continue">Doorgaan</span>
                         )}
                       </Button>
                     </DialogTrigger>
@@ -549,7 +549,9 @@ export default function RvoImportReviewPage() {
                             disabled={isApplying || hasIssues}
                             onClick={() => setCanUnloadSafely(true)}
                           >
-                            {removesFields ? "Bevestigen en verwijderen" : "Bevestigen"}
+                            <span key={removesFields ? "remove" : "confirm"}>
+                              {removesFields ? "Bevestigen en verwijderen" : "Bevestigen"}
+                            </span>
                           </Button>
                         </Form>
                       </DialogFooter>

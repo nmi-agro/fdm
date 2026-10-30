@@ -294,7 +294,7 @@ export default function FarmFieldSettingsBlock() {
                   className={cn(!loaderData.fieldWritePermission && "invisible")}
                 >
                   {form.formState.isSubmitting && <Spinner />}
-                  Bijwerken
+                  <span>Bijwerken</span>
                 </Button>
               </div>
             </Form>

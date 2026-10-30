@@ -1051,11 +1051,13 @@ function RvoImportReviewTableComponent({
                       ) : (
                         <ChevronDown aria-hidden="true" />
                       )}
-                      {showMatches
-                        ? "Verberg de percelen die gelijk zijn aan RVO"
-                        : matchCount === 1
-                          ? "Toon 1 perceel dat gelijk is aan RVO"
-                          : `Toon ${matchCount} percelen die gelijk zijn aan RVO`}
+                      <span key={showMatches ? "hide" : `show-${matchCount}`}>
+                        {showMatches
+                          ? "Verberg de percelen die gelijk zijn aan RVO"
+                          : matchCount === 1
+                            ? "Toon 1 perceel dat gelijk is aan RVO"
+                            : `Toon ${matchCount} percelen die gelijk zijn aan RVO`}
+                      </span>
                     </Button>
                   </TableCell>
                 </TableRow>

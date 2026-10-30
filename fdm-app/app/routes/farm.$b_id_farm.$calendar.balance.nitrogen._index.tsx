@@ -385,9 +385,11 @@ function FarmBalanceNitrogenOverview({
                     <div className="ml-auto font-medium">
                       {fieldResult.balance ? (
                         useEffectiveNitrogen ? (
-                          `${fieldResult.balance.balance}`
+                          <span key="effective">{`${fieldResult.balance.balance}`}</span>
                         ) : (
-                          `${fieldResult.balance.balance} / ${fieldResult.balance.target}`
+                          <span key="target">
+                            {`${fieldResult.balance.balance} / ${fieldResult.balance.target}`}
+                          </span>
                         )
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}${search}`}>

@@ -298,6 +298,16 @@ export function DataTable<TData extends RotationExtended>({
       : harvestErrorMessage
         ? harvestErrorMessage
         : `${getHarvestTerm(selectedCultivations[0].b_lu_croprotation, false, selectedCultivations[0].b_lu_harvestable, true)} toevoegen aan geselecteerd gewas`
+  const harvestButtonLabel = `${
+    selectedCultivations.length === 1
+      ? getHarvestTerm(
+          selectedCultivations[0].b_lu_croprotation,
+          false,
+          selectedCultivations[0].b_lu_harvestable,
+          true,
+        )
+      : "Oogst"
+  } toevoegen`
 
   function makeWizardUrl(url: string) {
     return modifySearchParams(url, (searchParams) => {
@@ -397,42 +407,18 @@ export function DataTable<TData extends RotationExtended>({
                   {isHarvestButtonDisabled ? (
                     <Button disabled={isHarvestButtonDisabled}>
                       <Plus className="mr-2 h-4 w-4" />
-                      {selectedCultivations.length === 1
-                        ? getHarvestTerm(
-                            selectedCultivations[0].b_lu_croprotation,
-                            false,
-                            selectedCultivations[0].b_lu_harvestable,
-                            true,
-                          )
-                        : "Oogst"}{" "}
-                      toevoegen
+                      <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
                     </Button>
                   ) : harvestErrorMessage ? (
                     <Button onClick={() => notify.error(harvestErrorMessage)}>
                       <Plus className="mr-2 h-4 w-4" />
-                      {selectedCultivations.length === 1
-                        ? getHarvestTerm(
-                            selectedCultivations[0].b_lu_croprotation,
-                            false,
-                            selectedCultivations[0].b_lu_harvestable,
-                            true,
-                          )
-                        : "Oogst"}{" "}
-                      toevoegen
+                      <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
                     </Button>
                   ) : (
                     <NavLink to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/harvest`)}>
                       <Button>
                         <Plus className="mr-2 h-4 w-4" />
-                        {selectedCultivations.length === 1
-                          ? getHarvestTerm(
-                              selectedCultivations[0].b_lu_croprotation,
-                              false,
-                              selectedCultivations[0].b_lu_harvestable,
-                              true,
-                            )
-                          : "Oogst"}{" "}
-                        toevoegen
+                        <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
                       </Button>
                     </NavLink>
                   )}
