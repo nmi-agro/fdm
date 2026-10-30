@@ -73,9 +73,11 @@ export async function requestNutrientAdvice({
   for (const item of currentSoilData as CurrentSoilData) {
     // Exclude 'a_nmin_cc' from soilData as it's handled separately
     if (item.parameter === "a_nmin_cc") {
-      if ((item.a_depth_lower ?? 0) <= 30) {
+      // The sampling depth of the newest contributing analysis decides the layer
+      const a_depth_lower = item.sources[0]?.a_depth_lower ?? 0
+      if (a_depth_lower <= 30) {
         a_nmin_cc_d30 = item.value as number
-      } else if ((item.a_depth_lower ?? 0) <= 60) {
+      } else if (a_depth_lower <= 60) {
         a_nmin_cc_d60 = item.value as number
       }
       continue // Skip adding a_nmin_cc to soilData

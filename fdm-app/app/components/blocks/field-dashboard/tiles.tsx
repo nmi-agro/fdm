@@ -5,10 +5,12 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  Layers,
   Microscope,
   MoveRight,
   Sparkles,
   Sprout,
+  TriangleAlert,
   User,
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
@@ -732,7 +734,7 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
               ? "Onbekend"
               : card.type === "enum"
                 ? (card.label ?? String(card.value))
-                : `${card.value}${card.unit ? ` ${card.unit}` : ""}`
+                : `${typeof card.value === "number" ? Math.round(card.value * 10) / 10 : card.value}${card.unit ? ` ${card.unit}` : ""}`
 
           return (
             <div key={card.parameter} className="rounded-lg border p-4">
@@ -761,6 +763,18 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
                         : "Onbekende bron"}
                 </span>
               </div>
+              {card.zoneCount > 1 && (
+                <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                  <Layers className="size-3.5" />
+                  <span>Gemiddelde van {card.zoneCount} zones</span>
+                </div>
+              )}
+              {card.hasCoverageWarning && card.coverage !== null && (
+                <div className="mt-1 flex items-center gap-2 text-xs text-amber-700">
+                  <TriangleAlert className="size-3.5" />
+                  <span>Dekt {Math.round(card.coverage * 100)}% van perceel</span>
+                </div>
+              )}
             </div>
           )
         })}

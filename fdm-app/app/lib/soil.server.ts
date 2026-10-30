@@ -38,11 +38,14 @@ export function enrichCurrentSoilDataWithNlv(currentSoilData: CurrentSoilData): 
       data.push({
         parameter: "d_n_supply_base",
         value: nlvVal,
-        a_id: somItem.a_id,
-        b_sampling_date: somItem.b_sampling_date,
-        a_depth_upper: somItem.a_depth_upper,
-        a_depth_lower: somItem.a_depth_lower,
-        a_source: "calculated",
+        is_aggregated: somItem.is_aggregated,
+        coverage: somItem.coverage,
+        has_coverage_warning: somItem.has_coverage_warning,
+        sources: somItem.sources.map((source) => ({
+          ...source,
+          a_source: "calculated",
+          value: nlvVal,
+        })),
       })
     }
   }

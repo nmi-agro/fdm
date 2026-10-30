@@ -4,25 +4,31 @@ import type {
   CurrentSoilData,
   FdmType,
   getCurrentSoilData,
+  getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
   removeSoilAnalysis,
   SoilAnalysis,
+  SoilZone,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { assertGeoJsonCoordinates } from "../guards"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
   DateStringSchema,
+  GeoJsonMultiPointSchema,
+  GeoJsonMultiPolygonSchema,
   PaginationQuerySchema,
   PaginationTimeframeQuerySchema,
   paginatedResponse,
   paginatedSchema,
   parseTimeframeQuery,
+  SamplingZoneGeometrySchema,
   SoilAnalysisDataSchema,
   serializeDate,
   writeErrorResponses,
@@ -40,6 +46,8 @@ export interface SoilAnalysisServices {
   getSoilAnalysesForFarm: typeof getSoilAnalysesForFarm
   /** Returns current soil data for a field visible to the authenticated principal. */
   getCurrentSoilData: typeof getCurrentSoilData
+  /** Returns current soil data per sampling zone for a field visible to the authenticated principal. */
+  getCurrentSoilDataPerZone: typeof getCurrentSoilDataPerZone
   /** Returns a single soil analysis visible to the authenticated principal. */
   getSoilAnalysis: typeof getSoilAnalysis
   /** Creates a new soil analysis on an existing field. */
@@ -96,20 +104,72 @@ const SoilAnalysisSchema = z
     a_zn_cc: z.number().nullable(),
     b_gwl_class: z.string().nullable(),
     b_soiltype_agr: z.string().nullable(),
+    b_sampling_geometry: GeoJsonMultiPointSchema.nullable().describe(
+      "Locations of the subsamples (WGS84).",
+    ),
+    b_sampling_geometry_zone: GeoJsonMultiPolygonSchema.nullable().describe(
+      "Area the analysis represents (WGS84); null when it represents the whole field.",
+    ),
   })
   .openapi("SoilAnalysis")
+
+const CurrentSoilDataSourceSchema = z
+  .object({
+    a_id: z.string(),
+    a_source: z.string(),
+    b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
+    a_depth_upper: z.number().nullable(),
+    a_depth_lower: z.number().nullable(),
+    value: z.union([z.number(), z.string(), z.null()]),
+    area_fraction: z
+      .number()
+      .describe("Share of the area with a value that this analysis represents (0-1)."),
+  })
+  .openapi("CurrentSoilDataSource")
 
 const CurrentSoilDataItemSchema = z
   .object({
     parameter: z.string(),
-    value: z.union([z.number(), z.string(), z.null()]),
-    a_id: z.string(),
-    b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    a_depth_upper: z.number().nullable(),
-    a_depth_lower: z.number().nullable(),
-    a_source: z.string(),
+    value: z
+      .union([z.number(), z.string(), z.null()])
+      .describe(
+        "Area-weighted mean for numeric parameters; the value with the largest area for categorical parameters.",
+      ),
+    is_aggregated: z.boolean().describe("True when the value combines several sampling zones."),
+    coverage: z
+      .number()
+      .nullable()
+      .describe("Share of the field area that the sources represent (0-1)."),
+    has_coverage_warning: z
+      .boolean()
+      .describe("True when the sampling zones cover less than 95% of the field."),
+    sources: z
+      .array(CurrentSoilDataSourceSchema)
+      .describe("Contributing soil analyses, newest first."),
   })
   .openapi("CurrentSoilDataItem")
+
+const SoilZoneSchema = z
+  .object({
+    b_sampling_geometry_zone: GeoJsonMultiPolygonSchema.nullable().describe(
+      "The zone clipped to the field boundary; null when the zone is the whole field.",
+    ),
+    b_area: z.number().nullable().describe("Area of the zone in ha."),
+    a_ids: z.array(z.string()).describe("Soil analyses in this zone, newest first."),
+    data: z.array(CurrentSoilDataItemSchema),
+  })
+  .openapi("SoilZone")
+
+const SamplingGeometriesBodySchema = z.object({
+  b_sampling_geometry: GeoJsonMultiPointSchema.nullable()
+    .optional()
+    .describe("Locations of the subsamples (GeoJSON MultiPoint, WGS84)."),
+  b_sampling_geometry_zone: SamplingZoneGeometrySchema.nullable()
+    .optional()
+    .describe(
+      "Area the analysis represents (GeoJSON Polygon or MultiPolygon, WGS84). Omit or null for the whole field.",
+    ),
+})
 
 const CreateSoilAnalysisBodySchema = z
   .object({
@@ -120,6 +180,7 @@ const CreateSoilAnalysisBodySchema = z
     a_depth_upper: z.number().optional().describe("Upper sampling depth in cm (default 0)."),
   })
   .merge(SoilAnalysisDataSchema)
+  .merge(SamplingGeometriesBodySchema)
   .openapi("CreateSoilAnalysis")
 
 const UpdateSoilAnalysisBodySchema = z
@@ -128,6 +189,7 @@ const UpdateSoilAnalysisBodySchema = z
     a_source: z.string().optional().describe("Identifying source or lab."),
   })
   .merge(SoilAnalysisDataSchema)
+  .merge(SamplingGeometriesBodySchema)
   .openapi("UpdateSoilAnalysis")
 
 const listSoilAnalysesRoute = createRoute({
@@ -184,7 +246,7 @@ const currentSoilDataRoute = createRoute({
   tags: ["Soil Analyses"],
   summary: "Get current soil data for a field",
   description:
-    "Returns the most recent known value for each soil parameter on the specified field.",
+    "Returns the current value of each soil parameter on the specified field. When the most recent analysis for a parameter covers a sampling zone, the zones sampled within one month are combined by area; `sources` lists the contributing analyses.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: { params: z.object({ b_id: z.string() }) },
   responses: {
@@ -193,6 +255,31 @@ const currentSoilDataRoute = createRoute({
       content: {
         "application/json": {
           schema: z.array(CurrentSoilDataItemSchema),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+})
+
+const NEW_BADGE = { name: "New", color: "#16a34a" }
+
+const currentSoilDataZonesRoute = createRoute({
+  method: "get",
+  path: "/fields/{b_id}/current-soil-data/zones",
+  tags: ["Soil Analyses"],
+  "x-badges": [NEW_BADGE],
+  summary: "Get current soil data per sampling zone",
+  description:
+    "Returns the current soil data of the specified field per sampling zone, with the zone geometry clipped to the field.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  request: { params: z.object({ b_id: z.string() }) },
+  responses: {
+    200: {
+      description: "Current soil data per sampling zone.",
+      content: {
+        "application/json": {
+          schema: z.array(SoilZoneSchema),
         },
       },
     },
@@ -327,6 +414,8 @@ function serialiseSoilAnalysis(sa: SoilAnalysis) {
     a_zn_cc: sa.a_zn_cc ?? null,
     b_gwl_class: sa.b_gwl_class ?? null,
     b_soiltype_agr: sa.b_soiltype_agr ?? null,
+    b_sampling_geometry: sa.b_sampling_geometry ?? null,
+    b_sampling_geometry_zone: sa.b_sampling_geometry_zone ?? null,
   }
 }
 
@@ -334,12 +423,39 @@ function serialiseCurrentSoilData(currentSoilData: CurrentSoilData) {
   return currentSoilData.map((item) => ({
     parameter: item.parameter,
     value: item.value ?? null,
-    a_id: item.a_id,
-    b_sampling_date: serializeDate(item.b_sampling_date),
-    a_depth_upper: item.a_depth_upper ?? null,
-    a_depth_lower: item.a_depth_lower ?? null,
-    a_source: item.a_source,
+    is_aggregated: item.is_aggregated,
+    coverage: item.coverage,
+    has_coverage_warning: item.has_coverage_warning,
+    sources: item.sources.map((source) => ({
+      a_id: source.a_id,
+      a_source: source.a_source,
+      b_sampling_date: serializeDate(source.b_sampling_date),
+      a_depth_upper: source.a_depth_upper ?? null,
+      a_depth_lower: source.a_depth_lower ?? null,
+      value: source.value ?? null,
+      area_fraction: source.area_fraction,
+    })),
   }))
+}
+
+function serialiseSoilZones(zones: SoilZone[]) {
+  return zones.map((zone) => ({
+    b_sampling_geometry_zone: zone.b_sampling_geometry_zone,
+    b_area: zone.b_area,
+    a_ids: zone.a_ids,
+    data: serialiseCurrentSoilData(zone.data),
+  }))
+}
+
+/**
+ * Checks the coordinate count of the sampling geometries in a request body.
+ */
+function assertSamplingGeometries(body: {
+  b_sampling_geometry?: unknown
+  b_sampling_geometry_zone?: unknown
+}): void {
+  if (body.b_sampling_geometry) assertGeoJsonCoordinates(body.b_sampling_geometry)
+  if (body.b_sampling_geometry_zone) assertGeoJsonCoordinates(body.b_sampling_geometry_zone)
 }
 
 /**
@@ -423,12 +539,30 @@ export function registerSoilAnalysisRoutes(
     return c.json(serialiseCurrentSoilData(currentSoilData), 200)
   }
 
+  const getCurrentSoilDataZonesHandler: RouteHandler<typeof currentSoilDataZonesRoute> = async (
+    c,
+  ) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id } = c.req.valid("param") as { b_id: string }
+    const zones = await services.getCurrentSoilDataPerZone(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id,
+    )
+    if (zones.length === 0) {
+      throw new ApiError(404, "not-found", `Current soil data for field '${b_id}' not found.`)
+    }
+    return c.json(serialiseSoilZones(zones), 200)
+  }
+
   const createSoilAnalysisHandler: RouteHandler<typeof createSoilAnalysisRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { b_id } = c.req.valid("param") as { b_id: string }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateSoilAnalysisBodySchema>
+    assertSamplingGeometries(body)
     const { a_date, a_source, a_depth_lower, b_sampling_date, a_depth_upper, ...soilAnalysisData } =
       body
     const a_id = await services.addSoilAnalysis(
@@ -439,7 +573,7 @@ export function registerSoilAnalysisRoutes(
       b_id,
       a_depth_lower,
       b_sampling_date ? new Date(b_sampling_date) : null,
-      soilAnalysisData,
+      soilAnalysisData as Parameters<typeof addSoilAnalysis>[7],
       a_depth_upper,
     )
     const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
@@ -467,6 +601,7 @@ export function registerSoilAnalysisRoutes(
     const { a_id } = c.req.valid("param") as { a_id: string }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof UpdateSoilAnalysisBodySchema>
+    assertSamplingGeometries(body)
     const definedFields = Object.fromEntries(
       Object.entries(body).filter(([, value]) => value !== undefined),
     )
@@ -501,6 +636,7 @@ export function registerSoilAnalysisRoutes(
   app.openapi(listSoilAnalysesRoute, listSoilAnalysesHandler)
   app.openapi(listFarmSoilAnalysesRoute, listFarmSoilAnalysesHandler)
   app.openapi(currentSoilDataRoute, getCurrentSoilDataHandler)
+  app.openapi(currentSoilDataZonesRoute, getCurrentSoilDataZonesHandler)
   app.openapi(createSoilAnalysisRoute, createSoilAnalysisHandler)
   app.openapi(getSoilAnalysisRoute, getSoilAnalysisHandler)
   app.openapi(updateSoilAnalysisRoute, updateSoilAnalysisHandler)

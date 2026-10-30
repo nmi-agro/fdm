@@ -1,4 +1,5 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
+import type { MultiPoint, MultiPolygon, Polygon } from "geojson"
 import type React from "react"
 import { type ColumnDef, FlexRender, tableFeatures, useTable } from "@tanstack/react-table"
 import * as chrono from "chrono-node"
@@ -156,6 +157,10 @@ export type ProcessedAnalysis = {
   matchedFieldId?: string
   matchReason?: "geometry" | "name" | "both"
   data: Record<string, unknown> // Raw parsed data
+  /** Locations of the subsamples (WGS84), when provided by the soil analysis reader */
+  b_sampling_geometry?: MultiPoint | null
+  /** Area the analysis represents (WGS84), when provided by the soil analysis reader */
+  b_sampling_geometry_zone?: Polygon | MultiPolygon | null
 }
 
 type Field = {

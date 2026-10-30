@@ -38,6 +38,7 @@ import {
   getCultivationsForFarm,
   getCultivationsFromCatalogues,
   getCurrentSoilData,
+  getCurrentSoilDataPerZone,
   getEnabledCultivationCatalogues,
   getEnabledFertilizerCatalogues,
   getEnabledMeasureCatalogues,
@@ -203,6 +204,7 @@ export interface FdmApiServices {
   getSoilAnalyses: typeof getSoilAnalyses
   getSoilAnalysesForFarm: typeof getSoilAnalysesForFarm
   getCurrentSoilData: typeof getCurrentSoilData
+  getCurrentSoilDataPerZone: typeof getCurrentSoilDataPerZone
   getSoilAnalysis: typeof getSoilAnalysis
   addSoilAnalysis: typeof addSoilAnalysis
   updateSoilAnalysis: typeof updateSoilAnalysis
@@ -293,6 +295,7 @@ const defaultServices: FdmApiServices = {
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getCurrentSoilData,
+  getCurrentSoilDataPerZone,
   getSoilAnalysis,
   addSoilAnalysis,
   updateSoilAnalysis,

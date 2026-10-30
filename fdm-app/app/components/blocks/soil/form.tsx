@@ -45,7 +45,12 @@ export function SoilAnalysisForm(props: {
   } = {}
   for (const x of soilParameterDescription) {
     let defaultValue = soilAnalysis
-      ? soilAnalysis[x.parameter as keyof Omit<SoilAnalysis, "b_sampling_geometry">]
+      ? soilAnalysis[
+          x.parameter as keyof Omit<
+            SoilAnalysis,
+            "b_sampling_geometry" | "b_sampling_geometry_zone"
+          >
+        ]
       : undefined
 
     if (defaultValue === undefined && (x.type === "text" || x.type === "numeric")) {

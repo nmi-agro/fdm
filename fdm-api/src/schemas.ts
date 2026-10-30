@@ -227,15 +227,38 @@ export const SoilAnalysisDataSchema = z.object({
 
 const GeoJsonPositionSchema = z.tuple([z.number(), z.number()])
 
-const GeoJsonPolygonSchema = z.object({
+/**
+ * Validates a GeoJSON Polygon.
+ */
+export const GeoJsonPolygonSchema = z.object({
   type: z.literal("Polygon"),
   coordinates: z.array(z.array(GeoJsonPositionSchema)),
 })
 
-const GeoJsonMultiPolygonSchema = z.object({
+/**
+ * Validates a GeoJSON MultiPolygon.
+ */
+export const GeoJsonMultiPolygonSchema = z.object({
   type: z.literal("MultiPolygon"),
   coordinates: z.array(z.array(z.array(GeoJsonPositionSchema))),
 })
+
+/**
+ * Validates a GeoJSON MultiPoint, used for the locations of soil subsamples.
+ */
+export const GeoJsonMultiPointSchema = z
+  .object({
+    type: z.literal("MultiPoint"),
+    coordinates: z.array(GeoJsonPositionSchema),
+  })
+  .openapi("GeoJsonMultiPoint")
+
+/**
+ * Validates the area a soil analysis represents: a Polygon or MultiPolygon.
+ */
+export const SamplingZoneGeometrySchema = z
+  .union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema])
+  .openapi("SamplingZoneGeometry")
 
 /**
  * Validates the GeoJSON geometry shapes accepted by field endpoints.

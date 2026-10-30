@@ -1,3 +1,4 @@
+import type * as GeoJSON from "geojson"
 import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
@@ -11,6 +12,7 @@ import {
   addSoilAnalysis,
   getCurrentSoilData,
   getCurrentSoilDataForFarm,
+  getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
@@ -554,15 +556,15 @@ describe("Soil Analysis Functions", () => {
 
     const somLoiData = currentData.find((item) => item.parameter === "a_som_loi")
     expect(somLoiData?.value).toEqual(a_som_loi_new)
-    expect(somLoiData?.b_sampling_date).toEqual(b_sampling_date_new)
+    expect(somLoiData?.sources[0].b_sampling_date).toEqual(b_sampling_date_new)
 
     const pAlData = currentData.find((item) => item.parameter === "a_p_al")
     expect(pAlData?.value).toEqual(a_p_al_new)
-    expect(pAlData?.b_sampling_date).toEqual(b_sampling_date_new)
+    expect(pAlData?.sources[0].b_sampling_date).toEqual(b_sampling_date_new)
 
     const gwlClassData = currentData.find((item) => item.parameter === "b_gwl_class")
     expect(gwlClassData?.value).toEqual(b_gwl_class_new)
-    expect(gwlClassData?.b_sampling_date).toEqual(b_sampling_date_new)
+    expect(gwlClassData?.sources[0].b_sampling_date).toEqual(b_sampling_date_new)
   })
 
   it("should get current soil data within a timeframe", async () => {
@@ -619,11 +621,11 @@ describe("Soil Analysis Functions", () => {
 
     const somLoiData = currentData.find((item) => item.parameter === "a_som_loi")
     expect(somLoiData?.value).toEqual(a_som_loi_old)
-    expect(somLoiData?.b_sampling_date).toEqual(b_sampling_date_old)
+    expect(somLoiData?.sources[0].b_sampling_date).toEqual(b_sampling_date_old)
 
     const pAlData = currentData.find((item) => item.parameter === "a_p_al")
     expect(pAlData?.value).toEqual(a_p_al_old)
-    expect(pAlData?.b_sampling_date).toEqual(b_sampling_date_old)
+    expect(pAlData?.sources[0].b_sampling_date).toEqual(b_sampling_date_old)
 
     const gwlClassData = currentData.find((item) => item.parameter === "b_gwl_class")
     expect(gwlClassData).toBeUndefined()
@@ -643,15 +645,15 @@ describe("Soil Analysis Functions", () => {
 
     const somLoiData2 = currentData2.find((item) => item.parameter === "a_som_loi")
     expect(somLoiData2?.value).toEqual(a_som_loi_new)
-    expect(somLoiData2?.b_sampling_date).toEqual(b_sampling_date_new)
+    expect(somLoiData2?.sources[0].b_sampling_date).toEqual(b_sampling_date_new)
 
     const pAlData2 = currentData2.find((item) => item.parameter === "a_p_al")
     expect(pAlData2?.value).toEqual(a_p_al_new)
-    expect(pAlData2?.b_sampling_date).toEqual(b_sampling_date_new)
+    expect(pAlData2?.sources[0].b_sampling_date).toEqual(b_sampling_date_new)
 
     const gwlClassData2 = currentData2.find((item) => item.parameter === "b_gwl_class")
     expect(gwlClassData2?.value).toEqual(b_gwl_class_new)
-    expect(gwlClassData2?.b_sampling_date).toEqual(b_sampling_date_new)
+    expect(gwlClassData2?.sources[0].b_sampling_date).toEqual(b_sampling_date_new)
   })
 
   it("should return empty array if no soil data is present within timeframe", async () => {
@@ -1195,5 +1197,208 @@ describe("getCurrentSoilDataForFarm", () => {
     await expect(
       getCurrentSoilDataForFarm(fdm, unauthorized_principal, b_id_farm),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
+  })
+})
+
+describe("Soil sampling zones", () => {
+  let fdm: FdmServerType
+  let b_id_farm: string
+  let b_id: string
+  let principal_id: string
+
+  // Synthetic rectangular field split into a west and an east half
+  const west = 5.0
+  const middle = 5.005
+  const east = 5.01
+  const south = 52.0
+  const north = 52.005
+  const rectangle = (x1: number, x2: number): GeoJSON.Polygon => ({
+    type: "Polygon",
+    coordinates: [
+      [
+        [x1, south],
+        [x2, south],
+        [x2, north],
+        [x1, north],
+        [x1, south],
+      ],
+    ],
+  })
+  const westZone = rectangle(west, middle)
+  const eastZone = rectangle(middle, east)
+  const samplingPoints: GeoJSON.MultiPoint = {
+    type: "MultiPoint",
+    coordinates: [
+      [5.002, 52.002],
+      [5.003, 52.003],
+    ],
+  }
+
+  const add = (date: string, data: Parameters<typeof addSoilAnalysis>[7]): Promise<string> =>
+    addSoilAnalysis(fdm, principal_id, null, "other", b_id, 30, new Date(date), data)
+
+  beforeEach(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    principal_id = createId()
+    b_id_farm = await addFarm(fdm, principal_id, "Zone Farm", "654321", "Zone Lane 1", "1234 AB")
+    b_id = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Zone Field",
+      "zone-field",
+      rectangle(west, east),
+      new Date("2020-01-01"),
+      "nl_01",
+    )
+  })
+
+  it("stores and returns the sampling geometries", async () => {
+    const a_id = await add("2024-03-01", {
+      a_p_al: 30,
+      b_sampling_geometry: samplingPoints,
+      b_sampling_geometry_zone: westZone,
+    })
+    const analysis = await getSoilAnalysis(fdm, principal_id, a_id)
+    expect(analysis.b_sampling_geometry).toEqual(samplingPoints)
+    expect(analysis.b_sampling_geometry_zone).toEqual({
+      type: "MultiPolygon",
+      coordinates: [westZone.coordinates],
+    })
+
+    const analyses = await getSoilAnalyses(fdm, principal_id, b_id)
+    expect(analyses[0].b_sampling_geometry_zone?.type).toBe("MultiPolygon")
+    const analysesForFarm = await getSoilAnalysesForFarm(fdm, principal_id, b_id_farm)
+    expect(analysesForFarm.get(b_id)?.[0].b_sampling_geometry).toEqual(samplingPoints)
+
+    await updateSoilAnalysis(fdm, principal_id, a_id, {
+      b_sampling_geometry: null,
+      b_sampling_geometry_zone: eastZone,
+    })
+    const updated = await getSoilAnalysis(fdm, principal_id, a_id)
+    expect(updated.b_sampling_geometry).toBeNull()
+    expect(updated.b_sampling_geometry_zone?.coordinates).toEqual([eastZone.coordinates])
+  })
+
+  it("returns null geometries for analyses without them", async () => {
+    const a_id = await add("2024-03-01", { a_p_al: 30 })
+    const analysis = await getSoilAnalysis(fdm, principal_id, a_id)
+    expect(analysis.b_sampling_geometry).toBeNull()
+    expect(analysis.b_sampling_geometry_zone).toBeNull()
+  })
+
+  it("rejects invalid geometry types", async () => {
+    await expect(
+      add("2024-03-01", {
+        b_sampling_geometry: westZone as unknown as GeoJSON.MultiPoint,
+      }),
+    ).rejects.toThrowError("Exception for addSoilAnalysis")
+    await expect(
+      add("2024-03-01", {
+        b_sampling_geometry_zone: samplingPoints as unknown as GeoJSON.Polygon,
+      }),
+    ).rejects.toThrowError("Exception for addSoilAnalysis")
+    const a_id = await add("2024-03-01", { a_p_al: 30 })
+    await expect(
+      updateSoilAnalysis(fdm, principal_id, a_id, {
+        b_sampling_geometry_zone: rectangle(155000, 156000),
+      }),
+    ).rejects.toThrowError("Exception for updateSoilAnalysis")
+  })
+
+  it("combines two zones by area without mixing parameters across zones", async () => {
+    const a_id_west = await add("2024-03-20", {
+      a_p_al: 40,
+      a_som_loi: 4,
+      b_soiltype_agr: "dekzand",
+      b_sampling_geometry_zone: westZone,
+    })
+    const a_id_east = await add("2024-03-01", {
+      a_p_al: 20,
+      b_soiltype_agr: "zeeklei",
+      b_sampling_geometry_zone: eastZone,
+    })
+
+    const current = await getCurrentSoilData(fdm, principal_id, b_id)
+    const p = current.find((item) => item.parameter === "a_p_al")
+    expect(p?.value).toBeCloseTo(30, 1)
+    expect(p?.is_aggregated).toBe(true)
+    expect(p?.has_coverage_warning).toBe(false)
+    expect(p?.coverage).toBeCloseTo(1, 3)
+    expect(p?.sources.map((s) => s.a_id)).toEqual([a_id_west, a_id_east])
+    expect(p?.sources[0].area_fraction).toBeCloseTo(0.5, 2)
+
+    // SOM is only known in the west zone
+    const som = current.find((item) => item.parameter === "a_som_loi")
+    expect(som?.value).toBe(4)
+    expect(som?.is_aggregated).toBe(false)
+    expect(som?.has_coverage_warning).toBe(true)
+    expect(som?.coverage).toBeCloseTo(0.5, 2)
+
+    const soilType = current.find((item) => item.parameter === "b_soiltype_agr")
+    expect(soilType?.is_aggregated).toBe(true)
+
+    const forFarm = await getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm)
+    expect(forFarm.get(b_id)?.find((item) => item.parameter === "a_p_al")?.value).toBeCloseTo(30, 1)
+  })
+
+  it("uses only the remaining area of an older zone that overlaps a newer zone", async () => {
+    // A newer west zone and an older zone that covers the whole field
+    await add("2024-03-20", { a_p_al: 40, b_sampling_geometry_zone: westZone })
+    await add("2024-03-01", {
+      a_p_al: 20,
+      b_sampling_geometry_zone: rectangle(west, east),
+    })
+
+    const current = await getCurrentSoilData(fdm, principal_id, b_id)
+    const p = current.find((item) => item.parameter === "a_p_al")
+    expect(p?.value).toBeCloseTo(30, 1)
+    expect(p?.coverage).toBeCloseTo(1, 3)
+  })
+
+  it("gives the same values as before for analyses without zones", async () => {
+    await add("2024-03-01", { a_p_al: 20, a_som_loi: 3 })
+    await add("2025-03-01", { a_p_al: 25 })
+
+    const current = await getCurrentSoilData(fdm, principal_id, b_id)
+    const p = current.find((item) => item.parameter === "a_p_al")
+    expect(p?.value).toBe(25)
+    expect(p?.is_aggregated).toBe(false)
+    expect(p?.coverage).toBe(1)
+    expect(p?.sources).toHaveLength(1)
+    expect(current.find((item) => item.parameter === "a_som_loi")?.value).toBe(3)
+  })
+
+  it("returns the current soil data per zone", async () => {
+    const a_id_west = await add("2024-03-20", {
+      a_p_al: 40,
+      b_sampling_geometry_zone: westZone,
+    })
+    const a_id_east = await add("2024-03-01", {
+      a_p_al: 20,
+      b_sampling_geometry_zone: eastZone,
+    })
+    const a_id_field = await add("2025-02-01", { a_nmin_cc: 40 })
+
+    const zones = await getCurrentSoilDataPerZone(fdm, principal_id, b_id)
+    expect(zones).toHaveLength(3)
+
+    const wholeField = zones.find((zone) => zone.a_ids.includes(a_id_field))
+    expect(wholeField?.b_sampling_geometry_zone).toBeNull()
+    expect(wholeField?.data.map((item) => item.parameter)).toEqual(["a_nmin_cc"])
+
+    const westResult = zones.find((zone) => zone.a_ids.includes(a_id_west))
+    expect(westResult?.b_sampling_geometry_zone?.type).toBe("MultiPolygon")
+    expect(westResult?.data.find((item) => item.parameter === "a_p_al")?.value).toBe(40)
+    expect(westResult?.b_area).toBeGreaterThan(0)
+
+    const eastResult = zones.find((zone) => zone.a_ids.includes(a_id_east))
+    expect(eastResult?.data.find((item) => item.parameter === "a_p_al")?.value).toBe(20)
   })
 })

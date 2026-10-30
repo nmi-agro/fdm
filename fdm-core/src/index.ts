@@ -229,6 +229,7 @@ export {
   addSoilAnalysis,
   getCurrentSoilData,
   getCurrentSoilDataForFarm,
+  getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
@@ -238,10 +239,21 @@ export {
 } from "./soil"
 export type {
   CurrentSoilData,
+  CurrentSoilDataItem,
+  CurrentSoilDataSource,
   SoilAnalysis,
   SoilParameterDescription,
   SoilParameters,
+  SoilSamplingGeometries,
+  SoilZone,
 } from "./soil.types"
+export {
+  CATEGORICAL_SOIL_PARAMETERS,
+  SOIL_ZONE_COVERED_FRACTION,
+  SOIL_ZONE_MAX_DATE_SPAN_MONTHS,
+  SOIL_ZONE_MIN_COVERAGE,
+  SOIL_ZONE_SAME_IOU,
+} from "./soil-aggregation"
 export {
   addFarmVerification,
   getActiveFarmVerifications,

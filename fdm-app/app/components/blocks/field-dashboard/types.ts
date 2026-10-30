@@ -61,6 +61,12 @@ export interface FieldDashboardSoilParameterCard {
   source: string | null
   sourceLabel: string
   link: string
+  /** Number of sampling zones the value combines; 1 when it comes from a single analysis. */
+  zoneCount: number
+  /** Share of the field area that the value represents (0–1), or `null` when unknown. */
+  coverage: number | null
+  /** `true` when the sampling zones cover too little of the field. */
+  hasCoverageWarning: boolean
 }
 
 export interface FieldDashboardLatestAnalysisPdf {

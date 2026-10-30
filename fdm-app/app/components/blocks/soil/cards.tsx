@@ -5,9 +5,11 @@ import {
   Calculator,
   Calendar,
   ExternalLink,
+  Layers,
   Microscope,
   Pencil,
   Sparkles,
+  TriangleAlert,
   User,
 } from "lucide-react"
 import { NavLink } from "react-router"
@@ -83,6 +85,9 @@ function SoilDataCard({
   source,
   sourceLabel,
   canModify,
+  zones,
+  coverage,
+  hasCoverageWarning,
 }: {
   title: string
   description: string
@@ -95,7 +100,12 @@ function SoilDataCard({
   source: string | null
   sourceLabel: string
   canModify: boolean
+  zones: SoilDataCardZone[]
+  coverage: number | null
+  hasCoverageWarning: boolean
 }) {
+  const isAggregated = zones.length > 1
+  const oldestDate = isAggregated ? zones[zones.length - 1].date : null
   const isEditable = canModify && source !== "calculated"
   const EditIcon = isEditable ? Pencil : ExternalLink
   return (
@@ -181,8 +191,60 @@ function SoilDataCard({
           {!(!date || source === "nl-other-nmi") && (
             <div className="text-muted-foreground flex items-center space-x-1.5 text-[10px]">
               <Calendar className="h-3 w-3 shrink-0 opacity-60" />
-              <span>{format(date, "P", { locale: nl })}</span>
+              <span>
+                {oldestDate && oldestDate.getTime() !== date.getTime()
+                  ? `${format(oldestDate, "P", { locale: nl })} – ${format(date, "P", { locale: nl })}`
+                  : format(date, "P", { locale: nl })}
+              </span>
             </div>
+          )}
+
+          {isAggregated && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="text-muted-foreground flex cursor-help items-center space-x-1.5 text-[10px]">
+                    <Layers className="h-3 w-3 shrink-0 opacity-60" />
+                    <span>Gemiddelde van {zones.length} zones</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[260px]">
+                  <p className="mb-1">
+                    {type === "enum"
+                      ? "Waarde met het grootste oppervlak over de bemonsterde zones:"
+                      : "Naar oppervlak gewogen gemiddelde van de bemonsterde zones:"}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {zones.map((zone, index) => (
+                      <li key={`${zone.a_id}-${index}`}>
+                        {zone.date ? format(zone.date, "P", { locale: nl }) : "Onbekende datum"}:{" "}
+                        {typeof zone.value === "number"
+                          ? `${Math.round(zone.value * 10) / 10} ${unit}`
+                          : (zone.label ?? zone.value ?? "Onbekend")}{" "}
+                        ({Math.round(zone.area_fraction * 100)}%)
+                      </li>
+                    ))}
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {hasCoverageWarning && coverage !== null && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex cursor-help items-center space-x-1.5 text-[10px] text-amber-700">
+                    <TriangleAlert className="h-3 w-3 shrink-0" />
+                    <span>Dekt {Math.round(coverage * 100)}% van perceel</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[260px]">
+                  De bemonsterde zones dekken {Math.round(coverage * 100)}% van het perceel. De
+                  waarde geldt alleen voor het bemonsterde deel.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </CardContent>
@@ -245,6 +307,9 @@ export function SoilDataCards({
                     source={card.source}
                     sourceLabel={sourceLabel}
                     canModify={canModifyAllSoilAnalyses || canModifySoilAnalysis[card.a_id]}
+                    zones={card.zones}
+                    coverage={card.coverage}
+                    hasCoverageWarning={card.has_coverage_warning}
                   />
                 )
               })}
@@ -256,6 +321,25 @@ export function SoilDataCards({
   )
 }
 
+/**
+ * A soil analysis that contributes to the value on a soil data card.
+ */
+export interface SoilDataCardZone {
+  a_id: string
+  date: Date | null
+  value: number | string | null
+  /** Option label for enum parameters. */
+  label: string | undefined
+  /** Share of the area with a value (0–1). */
+  area_fraction: number
+}
+
+/**
+ * Builds the soil data cards from the current soil data.
+ *
+ * The date, source and link of a card refer to the newest contributing analysis. When the value
+ * combines several sampling zones, `zones` lists every contributing analysis.
+ */
 export function constructSoilDataCards(
   currentSoilData: CurrentSoilData,
   soilParameterDescription: SoilParameterDescription,
@@ -282,6 +366,19 @@ export function constructSoilDataCards(
       )?.label
     }
 
+    const newest = item.sources[0]
+    const zones: SoilDataCardZone[] = item.sources.map((source) => ({
+      a_id: source.a_id,
+      date: source.b_sampling_date,
+      value: source.value,
+      label:
+        description.type === "enum"
+          ? description.options?.find((option: { value: string }) => option.value === source.value)
+              ?.label
+          : undefined,
+      area_fraction: source.area_fraction,
+    }))
+
     return {
       parameter: item.parameter,
       title: description.name,
@@ -290,10 +387,13 @@ export function constructSoilDataCards(
       label: label,
       unit: description.unit,
       type: description.type,
-      a_id: item.a_id,
-      link: `./analysis/${item.a_id}`,
-      date: item.b_sampling_date,
-      source: item.a_source,
+      a_id: newest.a_id,
+      link: `./analysis/${newest.a_id}`,
+      date: newest.b_sampling_date,
+      source: newest.a_source,
+      zones,
+      coverage: item.coverage,
+      has_coverage_warning: item.has_coverage_warning,
     }
   })
   return cardValues.filter((x) => x !== null)

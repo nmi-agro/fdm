@@ -116,7 +116,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Check if the current soil data is an estimate
     const isEstimated =
-      currentSoilData.length > 0 && currentSoilData.every((i) => i.a_source === "nl-other-nmi")
+      currentSoilData.length > 0 &&
+      currentSoilData.every((i) => i.sources.every((s) => s.a_source === "nl-other-nmi"))
 
     // Get the cultivation
     const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
