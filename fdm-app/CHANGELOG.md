@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.39.3
+
+### Patch Changes
+
+- [#903](https://github.com/nmi-agro/fdm/pull/903) [`931a0f0`](https://github.com/nmi-agro/fdm/commit/931a0f014742d4011fe274accb3d11190ddb43ef) Thanks [@SvenVw](https://github.com/SvenVw)! - Pages no longer crash with an error page when the browser translates the app, for example on the KvK lookup and when selecting fields on the map. Choosing a value in a dropdown no longer crashes the page, and the cultivation picker shows the chosen cultivation again. Labels next to icons and spinners now also update correctly in a translated page.
+
 ## 0.39.2
 
 ### Patch Changes
