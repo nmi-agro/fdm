@@ -268,13 +268,11 @@ export async function action({ request, params }: Route.LoaderArgs) {
     try {
       formValues = await extractFormValuesFromRequest(request, ActionSchema)
     } catch (err) {
-      const warnings = ((err as any)?.data as any)?.warning
-      if (typeof warnings === "string") {
-        try {
-          const zodErrors = JSON.parse(warnings)
-          return dataWithError({ errors: zodErrors }, "De invoer is ongeldig")
-          // oxlint-disable-next-line no-unused-vars We go the default error handling route if we were weong by assuming the warning contains the stringified Zod errors.
-        } catch (_warningParseError) {}
+      const validationErrors = isToastResponse(err)
+        ? (err.data as { validationErrors?: unknown } | null)?.validationErrors
+        : undefined
+      if (Array.isArray(validationErrors)) {
+        return dataWithError({ errors: validationErrors }, "De invoer is ongeldig")
       }
       throw err
     }

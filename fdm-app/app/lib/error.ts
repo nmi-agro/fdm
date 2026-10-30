@@ -41,6 +41,30 @@ export function isInternalRouterNoise(error: unknown): error is ErrorResponse {
   )
 }
 
+/** A single form field that failed schema validation. */
+export interface FormValidationIssue {
+  /** Dot-separated path of the field, e.g. `"b_lu_start"`. */
+  path: string
+  /** Validation message for the field. */
+  message: string
+}
+
+/**
+ * Thrown by `extractFormValuesFromRequest` when the submitted form does not match its schema.
+ *
+ * `handleActionError` returns the `issues` as `validationErrors` in the action data so a route can
+ * show them next to the fields. Other errors never expose their message to the browser.
+ */
+export class FormValidationError extends Error {
+  readonly issues: FormValidationIssue[]
+
+  constructor(issues: FormValidationIssue[]) {
+    super(JSON.stringify(issues))
+    this.name = "FormValidationError"
+    this.issues = issues
+  }
+}
+
 /**
  * Extracts `{ status, statusText }` from a thrown/returned route error, if it has one.
  *
@@ -176,6 +200,7 @@ export function handleLoaderError(error: unknown) {
 
     // Customize the user-facing message based on the status code
     let userMessage: string
+    let errorId: string | undefined
     switch (status) {
       case 400:
         userMessage = statusText ?? "Ongeldige waarde"
@@ -190,14 +215,15 @@ export function handleLoaderError(error: unknown) {
         break
       // case 500:
       default: {
-        const errorId = reportError(error, { scope: "loader" })
+        errorId = reportError(error, { scope: "loader" })
         userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
         break
       }
     }
     return data(
       {
-        warning: error,
+        warning: userMessage,
+        errorId,
       },
       { status, statusText: userMessage },
     )
@@ -206,15 +232,8 @@ export function handleLoaderError(error: unknown) {
   // Permission denied error
   if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
-    return data(
-      {
-        warning: error instanceof Error ? error.message : error,
-      },
-      {
-        status: 403,
-        statusText: "U heeft helaas geen rechten om dit te doen.",
-      },
-    )
+    const userMessage = "U heeft helaas geen rechten om dit te doen."
+    return data({ warning: userMessage }, { status: 403, statusText: userMessage })
   }
 
   // Missing or invalid parameters errors
@@ -223,28 +242,14 @@ export function handleLoaderError(error: unknown) {
     (error.message.startsWith("missing: ") || error.message.startsWith("invalid: "))
   ) {
     console.warn(error.message, error)
-    return data(
-      {
-        warning: error,
-      },
-      {
-        status: 400,
-        statusText: "Ongeldige waarde",
-      },
-    )
+    const userMessage = "Ongeldige waarde"
+    return data({ warning: userMessage }, { status: 400, statusText: userMessage })
   }
   // Not found errors
   if (error instanceof Error && error.message.startsWith("not found")) {
     console.warn(error.message, error)
-    return data(
-      {
-        warning: error,
-      },
-      {
-        status: 404,
-        statusText: "Pagina is niet gevonden",
-      },
-    )
+    const userMessage = "Pagina is niet gevonden"
+    return data({ warning: userMessage }, { status: 404, statusText: userMessage })
   }
 
   // All other errors — reportError handles logging and Sentry capture
@@ -252,13 +257,15 @@ export function handleLoaderError(error: unknown) {
     scope: "loader",
   })
 
+  const userMessage = `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
   return data(
     {
-      warning: error instanceof Error ? error.message : "Unknown error",
+      warning: userMessage,
+      errorId,
     },
     {
       status: 500,
-      statusText: `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
+      statusText: userMessage,
     },
   )
 }
@@ -391,33 +398,16 @@ export async function handleActionError(error: unknown) {
       }
     }
     if (dataStatus === "warning") {
-      return dataWithWarning(
-        {
-          warning: error,
-        },
-        userMessage,
-        { status },
-      )
+      return dataWithWarning({ warning: userMessage }, userMessage, { status })
     }
-    return dataWithError(
-      {
-        warning: error,
-        errorId,
-      },
-      userMessage,
-      { status },
-    )
+    return dataWithError({ warning: userMessage, errorId }, userMessage, { status })
   }
 
   // Permission denied error
   if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
-    return dataWithWarning(
-      {
-        warning: error,
-      },
-      { message: "U heeft helaas geen rechten om dit te doen.", status: 403 },
-    )
+    const userMessage = "U heeft helaas geen rechten om dit te doen."
+    return dataWithWarning({ warning: userMessage }, { message: userMessage, status: 403 })
   }
 
   if (
@@ -426,25 +416,27 @@ export async function handleActionError(error: unknown) {
   ) {
     console.warn(error.message, error)
     const errorId = reportError(error, { scope: "action" })
+    const userMessage = `Er is helaas iets misgegaan. Vernieuw de pagina en probeer het opnieuw. Blijft dit gebeuren, neem dan contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`
     return dataWithError(
-      {
-        warning: error,
-      },
-      {
-        message: `Er is helaas iets misgegaan. Vernieuw de pagina en probeer het opnieuw. Blijft dit gebeuren, neem dan contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`,
-        status: 400,
-        errorId,
-      },
+      { warning: userMessage, errorId },
+      { message: userMessage, status: 400, errorId },
     )
   }
 
-  // All other errors — reportError handles logging and Sentry capture
+  // All other errors — reportError handles logging and Sentry capture. The error message stays
+  // server-side (logs and Sentry, findable by the error code); only form validation issues are
+  // returned to the browser so the route can show them next to the fields.
   const errorId = reportError(error, {
     scope: "action",
   })
+  const userMessage = `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
   return dataWithError(
-    { warning: error instanceof Error ? error.message : "Unknown error", errorId },
-    `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
+    {
+      warning: userMessage,
+      errorId,
+      validationErrors: error instanceof FormValidationError ? error.issues : undefined,
+    },
+    userMessage,
     { status: 500 },
   )
 }
