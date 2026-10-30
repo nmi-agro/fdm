@@ -1,5 +1,14 @@
 Notable changes to the REST API, newest first. Operations that were added recently carry a **New** badge in this reference.
 
+## 0.3.1
+
+### Every field documented
+
+Every field in request bodies and responses, and every path and query parameter, now has a description in this reference. Each description states what the field means and, where relevant, its unit (for example kg N/ha or mg/kg), its allowed values or typical range, and what `null` means. Requests and responses are unchanged.
+
+- Removal, emission and degradation in the nitrogen and organic matter balances are documented as negative numbers, which is how they are returned.
+- `b_lu_croprotation` and `b_lu_harvestable` of a cultivation were documented as booleans. They are now documented with the string values the API returns, for example `"grass"` and `"once"`.
+
 ## 0.3.0
 
 ### Breaking: fertilizer catalogue endpoint removed
