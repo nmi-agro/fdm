@@ -136,7 +136,7 @@ export function startFarmNutrientAdviceRows(
   ).catch((err) => {
     // Assume there is farm write permission if the permission check fails.
     handleLoaderError(err)
-    return true
+    return false
   })
 
   // Fetch farm-wide data in a handful of batched queries instead of N queries per field. If this
