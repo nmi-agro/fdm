@@ -14,6 +14,7 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { handleLoaderError } from "./error"
 
 /**
  * Cap on simultaneous `getNutrientAdvice` calls per farm, so farms with many fields don't overload
@@ -122,18 +123,6 @@ export function startFarmNutrientAdviceRows(
   const nutrientsDescription = getNutrientsDescription()
   const nmiApiKey = getNmiApiKey()
 
-  // Researchers have read-only access: the BRP suggestion is shown to them with an explanation
-  // instead of the accept flow. Checked once per farm, and never throws.
-  const farmWritePermission = checkPermission(
-    fdm,
-    "farm",
-    "write",
-    b_id_farm,
-    principal_id,
-    "nutrient-advice",
-    false,
-  )
-
   // Fetch farm-wide data in a handful of batched queries instead of N queries per field. If this
   // batch fails, every field gets an error row instead of the route error boundary.
   const farmData = Promise.all([
@@ -187,7 +176,21 @@ export function startFarmNutrientAdviceRows(
         b_area,
         mainCultivation: null,
         cultivationSuggestion,
-        has_write_permission: cultivationSuggestion ? await farmWritePermission : undefined,
+        has_write_permission: cultivationSuggestion
+          ? await checkPermission(
+              fdm,
+              "farm",
+              "write",
+              b_id_farm,
+              principal_id,
+              "nutrient-advice",
+              false,
+            ).catch((err) => {
+              // Assume farm write permission if this fails.
+              handleLoaderError(err)
+              return true
+            })
+          : undefined,
         errorMessage: "Geen hoofdteelt bepaald voor dit jaar.",
         values: {},
       }
