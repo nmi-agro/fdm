@@ -34,7 +34,7 @@ function TableDateSelectorForm({
     },
   })
   return (
-    <div className="absolute flex w-50 flex-row items-center">
+    <div className="absolute top-1/2 left-1/2 flex w-50 -translate-1/2 flex-row items-center">
       <RemixFormProvider {...form}>
         <Controller
           name={name as string}
@@ -103,16 +103,23 @@ export function TableDateSelector({
           .sort((d1, d2) => d1.getTime() - d2.getTime())
 
   const showForm = fetcher.state !== "idle" || activeTableFormStore.activeForm === cellId
+
   return (
-    <Button
-      variant="link"
-      className="relative px-0"
-      onClick={(e) => {
-        e.stopPropagation()
-        activeTableFormStore.setActiveForm(cellId)
-      }}
-    >
-      <DateRangeDisplay range={value} emptyContent="Geen" className={cn(showForm && "invisible")} />
+    <div className="relative">
+      <Button
+        variant="link"
+        className={cn("relative px-0", showForm && "invisible")}
+        onClick={(e) => {
+          e.stopPropagation()
+          activeTableFormStore.setActiveForm(cellId)
+        }}
+      >
+        <DateRangeDisplay
+          range={value}
+          emptyContent="Geen"
+          className={cn(showForm && "invisible")}
+        />
+      </Button>
       {showForm && (
         <TableDateSelectorForm
           fetcher={fetcher}
@@ -126,6 +133,6 @@ export function TableDateSelector({
           }}
         />
       )}
-    </Button>
+    </div>
   )
 }

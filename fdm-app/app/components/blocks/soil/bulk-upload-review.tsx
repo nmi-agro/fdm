@@ -1,5 +1,4 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
-import type React from "react"
 import { type ColumnDef, FlexRender, tableFeatures, useTable } from "@tanstack/react-table"
 import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
@@ -171,16 +170,17 @@ const MatchCell = memo(
     matchId,
     isDateValid,
     onFieldChange,
-    fieldOptions,
+    fieldItems,
   }: {
     analysisId: string
     matchId: string
     isDateValid: boolean
     onFieldChange: (analysisId: string, fieldId: string) => void
-    fieldOptions: React.ReactNode
+    fieldItems: { value: string; label: string }[]
   }) => {
     return (
       <Select
+        items={fieldItems}
         value={matchId}
         disabled={!isDateValid}
         onValueChange={(value) => {
@@ -192,7 +192,13 @@ const MatchCell = memo(
         <SelectTrigger className="h-8 w-[250px] text-xs">
           <SelectValue placeholder="Selecteer perceel..." />
         </SelectTrigger>
-        <SelectContent>{fieldOptions}</SelectContent>
+        <SelectContent>
+          {fieldItems.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
     )
   },
@@ -322,17 +328,11 @@ export function BulkSoilAnalysisReview({
     onSave(validMatches, updatedAnalyses)
   }
 
-  const fieldOptions = useMemo(
-    () => (
-      <>
-        <SelectItem value="none">-- Geen perceel --</SelectItem>
-        {fields.map((field) => (
-          <SelectItem key={field.b_id} value={field.b_id}>
-            {field.b_name}
-          </SelectItem>
-        ))}
-      </>
-    ),
+  const fieldItems = useMemo(
+    () => [
+      { value: "none", label: "-- Geen perceel --" },
+      ...fields.map((field) => ({ value: field.b_id, label: field.b_name })),
+    ],
     [fields],
   )
 
@@ -428,7 +428,7 @@ export function BulkSoilAnalysisReview({
               matchId={meta.matches[row.original.id]}
               isDateValid={isValidDate(meta.dates[row.original.id])}
               onFieldChange={meta.handleFieldChange}
-              fieldOptions={meta.fieldOptions}
+              fieldItems={meta.fieldItems}
             />
           )
         },
@@ -462,7 +462,7 @@ export function BulkSoilAnalysisReview({
       dates,
       handleFieldChange,
       handleDateChange,
-      fieldOptions,
+      fieldItems,
     } as any,
   })
 
