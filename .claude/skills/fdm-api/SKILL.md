@@ -32,6 +32,7 @@ fdm-api/src/
   error.ts        ApiError, problemResponse(), createErrorHandler(), createNotFoundHandler()
   rate-limit.ts   rate limiting middleware
   schemas.ts      pagination, timeframe, date and problem-details schemas; response envelopes
+  fields.ts       described field schemas shared by requests and responses (IDs, soil, harvest, fertilizer)
   types.ts        ApiEnv, ApiPrincipalContext
   routes/<resource>.ts   one file per resource, exporting register<Resource>Routes()
   tests/<resource>.test.ts
@@ -64,8 +65,8 @@ Each resource file follows the same order: Zod schemas → `createRoute` definit
 ```ts
 const FarmSchema = z
   .object({
-    b_id_farm: z.string(),
-    b_name_farm: z.string().nullable(),
+    b_id_farm: FarmIdSchema,
+    b_name_farm: z.string().nullable().describe("Farm display name. `null` when not set."),
   })
   .openapi("Farm")
 
@@ -76,7 +77,7 @@ const getFarmRoute = createRoute({
   summary: "Get a farm",
   description: "Returns a single farm by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: z.string() }) },
+  request: { params: z.object({ b_id_farm: FarmIdSchema }) },
   responses: {
     200: {
       description: "The requested farm.",
