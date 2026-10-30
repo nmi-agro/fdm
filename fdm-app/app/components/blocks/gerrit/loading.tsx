@@ -439,7 +439,7 @@ function GerritReasoning({
         <MarkerContent className="min-w-0 flex-1">
           <Collapsible className="group italic">
             {/* Collapsed view: Line 1 + Toon meer + statusNode */}
-            <div className="space-y-1 group-data-[state=open]:hidden">
+            <div className="space-y-1 group-data-open:hidden">
               <span className="line-clamp-2">{plain[firstLineIndex]}</span>
               <div className="flex items-center gap-1.5 text-xs">
                 <CollapsibleTrigger

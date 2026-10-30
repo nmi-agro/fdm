@@ -111,6 +111,14 @@ export function SidebarApps({
     indicatorsLink = undefined
   }
 
+  // The collapsibles are always controlled: the open state follows the current route/farm until
+  // the user toggles it. A changing `defaultOpen` would trigger Base UI's uncontrolled warning.
+  const [atlasOpenOverride, setAtlasOpenOverride] = useState<boolean | undefined>()
+  const [balanceOpenOverride, setBalanceOpenOverride] = useState<boolean | undefined>()
+  const isAtlasOpen =
+    atlasOpenOverride ?? (!!atlasLinks.length && location.pathname.includes("/atlas/"))
+  const isBalanceOpen = balanceOpenOverride ?? !!nitrogenBalanceLink
+
   return (
     <TooltipProvider>
       <SidebarGroup>
@@ -118,7 +126,8 @@ export function SidebarApps({
         <SidebarGroupContent>
           <SidebarMenu>
             <Collapsible
-              defaultOpen={!!atlasLinks.length && location.pathname.includes("/atlas/")}
+              open={isAtlasOpen}
+              onOpenChange={setAtlasOpenOverride}
               className="group/collapsible"
             >
               <SidebarMenuItem>
@@ -128,8 +137,8 @@ export function SidebarApps({
                       <SidebarMenuButton isActive={location.pathname.includes("/atlas/")}>
                         <MapIcon />
                         <span>Atlas</span>
-                        <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                        <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                        <Plus className="ml-auto group-data-open/collapsible:hidden" />
+                        <Minus className="ml-auto hidden group-data-open/collapsible:block" />
                       </SidebarMenuButton>
                     }
                   />
@@ -208,7 +217,11 @@ export function SidebarApps({
                 </CollapsibleContent>
               </SidebarMenuItem>
             </Collapsible>
-            <Collapsible defaultOpen={!!nitrogenBalanceLink} className="group/collapsible">
+            <Collapsible
+              open={isBalanceOpen}
+              onOpenChange={setBalanceOpenOverride}
+              className="group/collapsible"
+            >
               <SidebarMenuItem>
                 {nitrogenBalanceLink ? (
                   <CollapsibleTrigger
@@ -216,8 +229,8 @@ export function SidebarApps({
                       <SidebarMenuButton>
                         <ArrowRightLeft />
                         <span>Balans</span>
-                        <Plus className="visible ml-auto group-data-panel-open/collapsible:hidden" />
-                        <Minus className="ml-auto hidden group-data-panel-open/collapsible:visible" />
+                        <Plus className="ml-auto group-data-open/collapsible:hidden" />
+                        <Minus className="ml-auto hidden group-data-open/collapsible:block" />
                       </SidebarMenuButton>
                     }
                   />

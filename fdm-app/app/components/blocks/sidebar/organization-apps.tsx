@@ -48,8 +48,8 @@ export function SidebarOrganizationApps() {
                   <SidebarMenuButton isActive={location.pathname.includes("/atlas")}>
                     <MapIcon />
                     <span>Atlas</span>
-                    <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                    <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                    <Plus className="ml-auto group-data-open/collapsible:hidden" />
+                    <Minus className="ml-auto hidden group-data-open/collapsible:block" />
                   </SidebarMenuButton>
                 }
               />
@@ -78,8 +78,8 @@ export function SidebarOrganizationApps() {
                     <SidebarMenuButton>
                       <ArrowRightLeft />
                       <span>Balans</span>
-                      <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                      <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
+                      <Plus className="ml-auto group-data-open/collapsible:hidden" />
+                      <Minus className="ml-auto hidden group-data-open/collapsible:block" />
                     </SidebarMenuButton>
                   }
                 />

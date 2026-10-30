@@ -209,12 +209,12 @@ function CoverageFooter({
         : "Dit perceel kon niet worden meegenomen"
       : `${counted} van ${total} percelen meegenomen`
   return (
-    <Collapsible>
+    <Collapsible className="group/collapsible">
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex items-center gap-1 text-xs">
         {summary}
         {issues.length > 0 && (
           <ChevronDown
-            className="size-3 transition-transform group-data-[state=open]:rotate-180"
+            className="size-3 transition-transform group-data-open/collapsible:rotate-180"
             aria-hidden="true"
           />
         )}

@@ -778,7 +778,7 @@ function SeriesTable({ rows }: { rows: ChartRow[] }) {
         render={
           <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
             <ChevronDown
-              className="transition-transform group-data-[state=open]:rotate-180"
+              className="transition-transform group-data-panel-open:rotate-180"
               aria-hidden
             />
             Toon als tabel

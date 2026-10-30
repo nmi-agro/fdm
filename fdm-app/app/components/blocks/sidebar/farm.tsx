@@ -291,7 +291,7 @@ export function SidebarFarm({
                               {selectedCalendar === "all" ? "Alle jaren" : selectedCalendar}
                             </Badge>
                           )}
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
                         </SidebarMenuButton>
                       }
                     />
@@ -601,7 +601,7 @@ export function SidebarFarm({
                       <CollapsibleTrigger
                         type="button"
                         aria-label="Perceel sectie in- of uitklappen"
-                        className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                        className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-open/collapsible:rotate-90"
                       >
                         <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
                       </CollapsibleTrigger>

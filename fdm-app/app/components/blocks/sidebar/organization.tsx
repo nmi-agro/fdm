@@ -155,7 +155,7 @@ export function SidebarOrganization({
                             {selectedCalendar === "all" ? "Alle jaren" : selectedCalendar}
                           </Badge>
                         )}
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     }
                   />
