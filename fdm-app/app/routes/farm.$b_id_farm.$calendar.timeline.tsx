@@ -658,7 +658,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
       return dataWithSuccess({ closeSheet: true }, { message: "Bemesting is verwijderd." })
     }
   } catch (err) {
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

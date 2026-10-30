@@ -117,7 +117,7 @@ export async function action({ request }: Route.ActionArgs) {
       message: "Gegevens succesvol bijgewerkt.",
     })
   } catch (err) {
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

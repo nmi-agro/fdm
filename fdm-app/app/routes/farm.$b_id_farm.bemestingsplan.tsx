@@ -220,7 +220,7 @@ export async function action({ params, request }: Route.ActionArgs) {
       )
     }
   } catch (err) {
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 
