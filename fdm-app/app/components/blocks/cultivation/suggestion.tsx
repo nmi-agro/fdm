@@ -130,11 +130,14 @@ function ReadOnlySuggestionBadge({
         <TooltipTrigger
           onClick={(e) => {
             e.stopPropagation()
+            e.preventDefault()
             setOpen(true)
           }}
           asChild
         >
-          <div className="max-w-[10rem] cursor-pointer">{badge}</div>
+          <button type="button" className="max-w-[10rem] cursor-pointer">
+            {badge}
+          </button>
         </TooltipTrigger>
         <TooltipContent>
           <p>
