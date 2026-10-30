@@ -287,9 +287,11 @@ export default function AddFarmPage() {
                     <CardHeader>
                       <CardTitle>Bedrijf toevoegen</CardTitle>
                       <CardDescription>
-                        {step === "kvk"
-                          ? "Begin met je KvK-nummer. We halen de bedrijfsnaam en het adres op uit het Handelsregister."
-                          : "Voer de basisgegevens van je bedrijf in."}
+                        <span key={step}>
+                          {step === "kvk"
+                            ? "Begin met je KvK-nummer. We halen de bedrijfsnaam en het adres op uit het Handelsregister."
+                            : "Voer de basisgegevens van je bedrijf in."}
+                        </span>
                       </CardDescription>
                     </CardHeader>
                     {step === "kvk" ? (
@@ -658,7 +660,7 @@ export default function AddFarmPage() {
                             <span>Opslaan...</span>
                           </div>
                         ) : (
-                          "Volgende"
+                          <span>Volgende</span>
                         )}
                       </Button>
                     </CardFooter>

@@ -58,7 +58,9 @@ export function CultivationSelector({
             />
           </TooltipTrigger>
           <TooltipContent>
-            <p>{selectedCultivation?.b_lu_name || "Selecteer gewas"}</p>
+            <p key={selectedCultivation?.b_lu ?? ""}>
+              {selectedCultivation?.b_lu_name || "Selecteer gewas"}
+            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -70,7 +72,7 @@ export function CultivationSelector({
         className="px-3 py-1 text-sm text-white hover:opacity-90"
         variant="default"
       >
-        {selectedCultivation.b_lu_name}
+        <span key={selectedCultivation.b_lu}>{selectedCultivation.b_lu_name}</span>
       </Badge>
     ) : (
       <span className="text-muted-foreground italic">Selecteer gewas</span>

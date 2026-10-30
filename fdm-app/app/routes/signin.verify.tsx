@@ -148,7 +148,7 @@ export default function Verify() {
                 <span>Verifiëren...</span>
               </div>
             ) : (
-              "Verifiëren en aanmelden"
+              <span>Verifiëren en aanmelden</span>
             )}
           </Button>
 

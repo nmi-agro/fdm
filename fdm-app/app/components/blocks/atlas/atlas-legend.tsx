@@ -574,7 +574,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
               disabled={isRetrying}
             >
               {isRetrying && <Spinner className="size-3" />}
-              {NUTRIENT_ADVICE_COPY.retry}
+              <span>{NUTRIENT_ADVICE_COPY.retry}</span>
             </Button>
           )}
         </CardContent>

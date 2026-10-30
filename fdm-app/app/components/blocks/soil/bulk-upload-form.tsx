@@ -268,7 +268,10 @@ export function BulkSoilAnalysisUploadForm({
               {isUploading && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground max-w-[200px] truncate">
+                    <span
+                      key={uploadProgress >= 100 ? "done" : (currentFile ?? "start")}
+                      className="text-muted-foreground max-w-[200px] truncate"
+                    >
                       {uploadProgress >= 100
                         ? "Voltooien..."
                         : currentFile
@@ -290,12 +293,12 @@ export function BulkSoilAnalysisUploadForm({
                   {isUploading ? (
                     <>
                       <Spinner className="mr-2 h-4 w-4 animate-spin" />
-                      Verwerken...
+                      <span>Verwerken...</span>
                     </>
                   ) : (
                     <>
                       <FileUp className="mr-2 h-4 w-4" />
-                      Upload analyses
+                      <span>Upload analyses</span>
                     </>
                   )}
                 </Button>

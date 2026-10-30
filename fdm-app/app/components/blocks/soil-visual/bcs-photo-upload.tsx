@@ -100,7 +100,7 @@ export function PhotoUploadButton({
           onClick={() => galleryRef.current?.click()}
         >
           <Upload className="size-4" />
-          {isUploading ? "Uploaden..." : label}
+          <span key={isUploading ? "uploading" : label}>{isUploading ? "Uploaden..." : label}</span>
           {isUploading && <Spinner />}
         </Button>
       </div>

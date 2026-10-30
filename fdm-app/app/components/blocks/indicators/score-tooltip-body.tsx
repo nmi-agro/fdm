@@ -40,9 +40,12 @@ export function ScoreTooltipBody({
       {layout === "row" ? (
         label ? (
           <AtlasTooltipContent>
-            <span className="text-muted-foreground truncate">{label}</span>
+            <span key={label} className="text-muted-foreground truncate">
+              {label}
+            </span>
             {score != null ? (
               <span
+                key={score}
                 className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
                 style={{ backgroundColor: getScoreColor(score) }}
               >
@@ -55,24 +58,29 @@ export function ScoreTooltipBody({
         ) : (
           <p className="text-muted-foreground mt-0.5">
             {score != null ? (
-              <>
+              <span key={score}>
                 Score:{" "}
                 <span className="font-semibold" style={{ color: getScoreColor(score) }}>
                   {score}
                 </span>
                 {" – "}
                 {getScoreVerdict(score)}
-              </>
+              </span>
             ) : (
-              "Geen data"
+              <span key="empty">Geen data</span>
             )}
           </p>
         )
       ) : (
         <>
-          {label && <p className="text-muted-foreground text-[10px]">{label}</p>}
+          {label && (
+            <p key={label} className="text-muted-foreground text-[10px]">
+              {label}
+            </p>
+          )}
           {score !== null && (
             <span
+              key={score}
               className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
               style={{ backgroundColor: getScoreColor(score) }}
             >
