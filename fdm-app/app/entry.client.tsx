@@ -12,7 +12,9 @@ import { PostHogProvider } from "posthog-js/react"
 import { StrictMode, startTransition } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { HydratedRouter } from "react-router/dom"
+import { maskPostHogSecrets, maskSentrySecrets } from "~/lib/analytics-privacy"
 import { clientConfig } from "~/lib/config"
+import { maskSecretsDeep } from "~/lib/url-utils"
 import { useCookieConsentStore } from "~/store/cookie-consent"
 
 setWorkerUrl(workerUrl)
@@ -26,7 +28,7 @@ if (clientConfig.analytics.sentry) {
     ignoreErrors: [/BodyStreamBuffer was aborted/],
     integrations: [
       Sentry.reactRouterTracingIntegration(),
-      Sentry.replayIntegration(),
+      Sentry.replayIntegration({ beforeAddRecordingEvent: maskSecretsDeep }),
       Sentry.feedbackIntegration({
         autoInject: false,
         colorScheme: "system",
@@ -84,6 +86,7 @@ if (clientConfig.analytics.sentry) {
       graphQL: { document: false, variables: false },
     },
   })
+  maskSentrySecrets()
 }
 
 // Initialize PostHog before hydration so that child effects (identify, group, capture) always
@@ -97,6 +100,7 @@ if (posthogConfig) {
       person_profiles: "always",
       persistence:
         useCookieConsentStore.getState().consent === "yes" ? "localStorage+cookie" : "memory",
+      before_send: maskPostHogSecrets,
       bootstrap: {
         featureFlags: {
           gerrit: false,

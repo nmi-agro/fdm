@@ -46,6 +46,62 @@ export function getSearchParams(href: string) {
 }
 
 /**
+ * Checks whether a URL segment is a long opaque token, such as an invitation
+ * token or another better-auth ID. Static route segments of this length are
+ * lowercase words joined by `-` or `_`, so they never contain a digit or an
+ * uppercase letter.
+ *
+ * @param segment - A single path segment, without slashes.
+ * @returns Whether the segment should be treated as a secret.
+ */
+function isOpaqueToken(segment: string): boolean {
+  return /^[\w-]{20,}$/.test(segment) && /[\dA-Z]/.test(segment)
+}
+
+/**
+ * Masks secrets in any text that contains URLs or paths, such as a full URL,
+ * a pathname or a breadcrumb message, while leaving the rest readable:
+ * - long opaque path segments (see `normalizePage`) → `:token`
+ * - values of the `code`, `token` and `secret` query parameters → `:token`
+ *
+ * @param text - Text that may contain URLs or paths.
+ * @returns The text with secrets replaced.
+ */
+export function maskUrlSecrets(text: string): string {
+  return (
+    text
+      // A segment ends at anything but a word character, `-` or a file extension;
+      // React Router's `.data` suffix is not a file extension
+      .replace(/(?<=\/)[\w-]{20,}(?![\w-]|\.(?!data\b))/g, (segment) =>
+        isOpaqueToken(segment) ? ":token" : segment,
+      )
+      .replace(/(?<=(?:^|[?&])(?:code|token|secret)=)[^&#\s"'`]+/gi, ":token")
+  )
+}
+
+/**
+ * Applies {@link maskUrlSecrets} to every string inside a JSON-like value, for
+ * use on analytics and error-tracking payloads before they leave the app.
+ * Only arrays and plain objects are traversed; other values are returned as is.
+ *
+ * @param value - The payload to scrub.
+ * @returns A copy of the payload with secrets in URLs and paths replaced.
+ */
+export function maskSecretsDeep<T>(value: T): T {
+  const scrub = (item: unknown, depth: number): unknown => {
+    if (typeof item === "string") return maskUrlSecrets(item)
+    if (depth > 32 || item === null || typeof item !== "object") return item
+    if (Array.isArray(item)) return item.map((child) => scrub(child, depth + 1))
+    const prototype = Object.getPrototypeOf(item)
+    if (prototype !== Object.prototype && prototype !== null) return item
+    return Object.fromEntries(
+      Object.entries(item).map(([key, child]) => [key, scrub(child, depth + 1)]),
+    )
+  }
+  return scrub(value, 0) as T
+}
+
+/**
  * Normalises a pathname for use as a low-cardinality Sentry tag.
  * Replaces dynamic segments with typed placeholders so the tag value
  * represents the route shape rather than a specific resource.
@@ -79,9 +135,7 @@ export function normalizePage(page: string): string {
       if (/^\d+$/.test(segment)) {
         return ":year"
       }
-      // Long opaque tokens. Static route segments of this length are lowercase
-      // words joined by `-` or `_`, so they never contain a digit or uppercase letter
-      if (/^[\w-]{20,}$/.test(segment) && /[\dA-Z]/.test(segment)) {
+      if (isOpaqueToken(segment)) {
         return ":token"
       }
       // Organization slugs are chosen by users and may contain names
