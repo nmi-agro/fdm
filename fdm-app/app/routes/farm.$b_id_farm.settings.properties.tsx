@@ -225,7 +225,10 @@ export default function FarmSettingsPropertiesBlock() {
                       </div>
                       <FormDescription>
                         {loaderData.farmVerification.isVerified ? (
-                          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                          <span
+                            key="kvk-verified"
+                            className="flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                          >
                             Het KvK-nummer is vergrendeld omdat dit bedrijf hierop is geverifieerd.
                             Wijzig het nummer alleen als het onjuist is.
                             <AlertDialog>
@@ -266,7 +269,7 @@ export default function FarmSettingsPropertiesBlock() {
                             </AlertDialog>
                           </span>
                         ) : (
-                          <span>
+                          <span key="kvk-unlocked">
                             Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven
                           </span>
                         )}

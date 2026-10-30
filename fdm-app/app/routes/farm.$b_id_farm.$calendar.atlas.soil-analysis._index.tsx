@@ -286,7 +286,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                       })}
                     </p>
                   ) : selectedParameter === "b_soiltype_agr" ? (
-                    <p key="soiltype">
+                    <p key={`soiltype-${feature.properties[selectedParameter]}`}>
                       <span
                         className="me-0.5 inline-block size-2.5 rounded align-middle"
                         style={{
