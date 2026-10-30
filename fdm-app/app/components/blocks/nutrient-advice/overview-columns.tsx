@@ -333,6 +333,7 @@ export function buildFieldColumn(
                 calendar={calendar}
                 b_id={field.b_id}
                 suggestion={field.cultivationSuggestion}
+                canWrite={field.has_write_permission ?? true}
               />
             </div>
           )}

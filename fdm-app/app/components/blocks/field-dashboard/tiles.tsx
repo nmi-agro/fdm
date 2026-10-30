@@ -212,6 +212,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
             calendar={dashboard.calendar}
             b_id={dashboard.b_id}
             result={result}
+            canWrite={dashboard.fieldWritePermission}
           />
         )}
       </Await>

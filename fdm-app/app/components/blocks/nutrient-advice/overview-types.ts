@@ -23,6 +23,11 @@ export type FieldNutrientRow = {
    * the active year) and an NMI-estimate-based suggestion is available for the field.
    */
   cultivationSuggestion?: CultivationSuggestion
+  /**
+   * Whether the user may add a cultivation to the farm. Set together with `cultivationSuggestion`;
+   * when `false` the suggestion only explains that the role is read-only.
+   */
+  has_write_permission?: boolean
   /** Set when the advice could not be calculated for this field (e.g. missing cultivation or soil data). */
   errorMessage?: string
   /** Nutrient values keyed by nutrient symbol (e.g. "N", "P", "EOC"). */

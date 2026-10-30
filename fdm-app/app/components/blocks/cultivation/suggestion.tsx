@@ -1,5 +1,6 @@
 import { format } from "date-fns"
 import { CircleHelp, Sparkles } from "lucide-react"
+import { type ReactNode, useState } from "react"
 import { NavLink } from "react-router"
 import type {
   CultivationSuggestion,
@@ -8,6 +9,13 @@ import type {
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+
+/** Explanation shown instead of the accept flow to users who may only read the farm. */
+export const CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION = (
+  <>
+    Vraag de <i>Eigenaar</i> om dit gewas toe te voegen.
+  </>
+)
 
 /**
  * Builds the URL to the field's cultivation page with the suggestion pre-filled as query
@@ -40,6 +48,11 @@ type CultivationSuggestionProps = {
   suggestion: CultivationSuggestion | undefined
   /** Optional callback to open a 1-step review dialog instead of navigating to the field page. */
   onAccept?: () => void
+  /**
+   * Whether the user may add a cultivation. When `false` the suggestion stays visible, but the
+   * action shows an explanation instead of opening a dialog or navigating. Defaults to `true`.
+   */
+  canWrite?: boolean
 }
 
 /**
@@ -58,6 +71,7 @@ export function CultivationSuggestionBanner({
   b_name,
   suggestion,
   onAccept,
+  canWrite = true,
 }: CultivationSuggestionProps) {
   if (!suggestion) {
     return null
@@ -72,9 +86,14 @@ export function CultivationSuggestionBanner({
             BRP-schatting
           </Badge>
           We denken dat hier <span className="font-medium">{suggestion.b_lu_name}</span> geteeld
-          werd in {calendar}. Toevoegen als hoofdteelt?
+          werd in {calendar}.{" "}
+          {!canWrite ? (
+            <span key="read-only">{CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION}</span>
+          ) : (
+            <span key="can-write">Toevoegen als hoofdteelt?</span>
+          )}
         </p>
-        {onAccept ? (
+        {!canWrite ? null : onAccept ? (
           <Button size="sm" type="button" onClick={onAccept}>
             Voorstel toevoegen
           </Button>
@@ -91,6 +110,47 @@ export function CultivationSuggestionBanner({
 }
 
 /**
+ * Badge for users who may only read the farm. The tooltip is controlled so that it also opens
+ * on click (and tap), not just on hover/focus, since the badge has no other action.
+ */
+function ReadOnlySuggestionBadge({
+  badge,
+  calendar,
+  suggestion,
+}: {
+  badge: ReactNode
+  calendar: string
+  suggestion: CultivationSuggestion
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <TooltipProvider>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            setOpen(true)
+          }}
+          asChild
+        >
+          <button type="button" className="max-w-[10rem] cursor-pointer">
+            {badge}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>
+            BRP-schatting: {suggestion.b_lu_name} ({calendar}).{" "}
+            {CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION}
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+/**
  * Compact variant of {@link CultivationSuggestionBanner} for dense contexts (e.g. a table cell).
  * Renders `null` when there is no suggestion. Truncated to a fixed max-width so a long crop
  * name never sprawls a table row; the full name is always available via the tooltip.
@@ -100,9 +160,21 @@ export function CultivationSuggestionBadge({
   calendar,
   b_id,
   suggestion,
+  canWrite = true,
 }: CultivationSuggestionProps) {
   if (!suggestion) {
     return null
+  }
+
+  const badge = (
+    <Badge variant="secondary" className="hover:bg-secondary/70 flex min-w-0 items-center gap-1">
+      <Sparkles className="h-3 w-3 shrink-0" />
+      <span className="min-w-0 truncate">BRP: {suggestion.b_lu_name}</span>
+    </Badge>
+  )
+
+  if (!canWrite) {
+    return <ReadOnlySuggestionBadge badge={badge} calendar={calendar} suggestion={suggestion} />
   }
 
   return (
@@ -113,13 +185,7 @@ export function CultivationSuggestionBadge({
             to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
             className="max-w-[10rem]"
           >
-            <Badge
-              variant="secondary"
-              className="hover:bg-secondary/70 flex min-w-0 items-center gap-1"
-            >
-              <Sparkles className="h-3 w-3 shrink-0" />
-              <span className="min-w-0 truncate">BRP: {suggestion.b_lu_name}</span>
-            </Badge>
+            {badge}
           </NavLink>
         </TooltipTrigger>
         <TooltipContent>
@@ -140,6 +206,7 @@ type CultivationSuggestionStatusProps = {
   b_name?: string
   result: CultivationSuggestionResult
   onAccept?: () => void
+  canWrite?: boolean
 }
 
 /**
@@ -156,6 +223,7 @@ export function CultivationSuggestionStatusBanner({
   b_name,
   result,
   onAccept,
+  canWrite = true,
 }: CultivationSuggestionStatusProps) {
   if (result.status === "not_configured") {
     return null
@@ -170,6 +238,7 @@ export function CultivationSuggestionStatusBanner({
         b_name={b_name}
         suggestion={result.suggestion}
         onAccept={onAccept}
+        canWrite={canWrite}
       />
     )
   }

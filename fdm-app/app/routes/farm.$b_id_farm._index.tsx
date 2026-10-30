@@ -874,7 +874,12 @@ export default function FarmDashboardIndex() {
                                   b_id={field.b_id}
                                   b_name={field.b_name}
                                   result={field.result}
-                                  onAccept={() => handleOpenReviewForSingleField(field.b_id)}
+                                  onAccept={
+                                    loaderData.farmWritePermission
+                                      ? () => handleOpenReviewForSingleField(field.b_id)
+                                      : undefined
+                                  }
+                                  canWrite={loaderData.farmWritePermission}
                                 />
                                 {field.result.status !== "suggested" && (
                                   <NavLink

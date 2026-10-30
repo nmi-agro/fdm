@@ -8,6 +8,7 @@ import {
   removeCultivation,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { AlertTriangle } from "lucide-react"
 import {
   type ActionFunctionArgs,
   data,
@@ -20,6 +21,8 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
+import { CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION } from "~/components/blocks/cultivation/suggestion"
+import { Alert } from "~/components/ui/alert"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -190,8 +193,9 @@ export default function FarmFieldsOverviewBlock() {
   const suggestedCatalogue = searchParams.get("suggest_b_lu_catalogue")
   const suggestedStart = parseValidDate(searchParams.get("suggest_start"))
   const suggestedEnd = parseValidDate(searchParams.get("suggest_end"))
+  const hasSuggestionParams = Boolean(suggestedCatalogue && suggestedStart)
   const defaultValues =
-    suggestedCatalogue && suggestedStart
+    loaderData.fieldWritePermission && suggestedCatalogue && suggestedStart
       ? {
           b_lu_catalogue: suggestedCatalogue,
           b_lu_start: suggestedStart,
@@ -217,6 +221,15 @@ export default function FarmFieldsOverviewBlock() {
 
   return (
     <div className="space-y-6">
+      {hasSuggestionParams && !loaderData.fieldWritePermission && (
+        <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <AlertTriangle
+            className="size-4 text-amber-700! dark:text-amber-400!"
+            aria-hidden="true"
+          />
+          <p>{CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION}</p>
+        </Alert>
+      )}
       <div className="grid gap-4 2xl:grid-cols-2">
         <CultivationListCard
           cultivationsCatalogueOptions={loaderData.cultivationsCatalogueOptions}
