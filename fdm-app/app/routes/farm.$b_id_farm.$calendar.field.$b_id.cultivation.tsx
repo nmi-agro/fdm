@@ -20,6 +20,7 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
+import { CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION } from "~/components/blocks/cultivation/suggestion"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -190,8 +191,9 @@ export default function FarmFieldsOverviewBlock() {
   const suggestedCatalogue = searchParams.get("suggest_b_lu_catalogue")
   const suggestedStart = parseValidDate(searchParams.get("suggest_start"))
   const suggestedEnd = parseValidDate(searchParams.get("suggest_end"))
+  const hasSuggestionParams = Boolean(suggestedCatalogue && suggestedStart)
   const defaultValues =
-    suggestedCatalogue && suggestedStart
+    loaderData.fieldWritePermission && suggestedCatalogue && suggestedStart
       ? {
           b_lu_catalogue: suggestedCatalogue,
           b_lu_start: suggestedStart,
@@ -217,6 +219,11 @@ export default function FarmFieldsOverviewBlock() {
 
   return (
     <div className="space-y-6">
+      {hasSuggestionParams && !loaderData.fieldWritePermission && (
+        <div className="bg-muted/40 rounded-lg border p-3">
+          {CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION}
+        </div>
+      )}
       <div className="grid gap-4 2xl:grid-cols-2">
         <CultivationListCard
           cultivationsCatalogueOptions={loaderData.cultivationsCatalogueOptions}
