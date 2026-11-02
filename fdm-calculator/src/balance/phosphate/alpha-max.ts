@@ -86,14 +86,14 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
     ...PEATY,
     p_al_buffer: [65, 60, 70],
     p_al_target_grassland: 31,
-    note: "Dalgrond: een deel van het ijzer en aluminium is organisch gebonden, de fosfaatbindingscapaciteit kan overschat zijn.",
+    note: "Dalgrond (voormalig veen): oxalaat lost ook organisch gebonden ijzer en aluminium op en de kaartschatting van Fe-ox en Al-ox is hier het minst zeker; de fosfaatverzadigingsgraad is waarschijnlijk onderschat.",
   },
   moerige_klei: {
     ...MINERAL,
     ...PEATY,
     p_al_buffer: [50, 50, 50],
     p_al_target_grassland: 31,
-    note: "Moerige klei: een deel van het ijzer en aluminium is organisch gebonden, de fosfaatbindingscapaciteit kan overschat zijn.",
+    note: "Moerige klei: oxalaat lost ook organisch gebonden ijzer en aluminium op; de fosfaatverzadigingsgraad is waarschijnlijk onderschat.",
   },
   zeeklei: {
     ...MINERAL,

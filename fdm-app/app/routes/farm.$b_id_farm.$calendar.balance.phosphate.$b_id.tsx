@@ -34,7 +34,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { getPhosphateBalanceForField } from "~/integrations/calculator"
+import { getPhosphateBalanceAverage, getPhosphateBalanceForField } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -90,7 +90,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
-    const phosphateBalanceResult = getPhosphateBalanceForField({
+    const year = Number(params.calendar)
+    const averagePromise = Number.isInteger(year)
+      ? getPhosphateBalanceAverage({
+          fdm,
+          principal_id: session.principal_id,
+          b_id_farm,
+          b_id,
+          year,
+        }).catch(() => null)
+      : Promise.resolve(null)
+
+    const balancePromise = getPhosphateBalanceForField({
       fdm,
       principal_id: session.principal_id,
       b_id_farm,
@@ -116,6 +127,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
       return { fieldResult: { ...fieldResult, errorId }, fieldInput }
     })
+    const phosphateBalanceResult = Promise.all([balancePromise, averagePromise]).then(
+      ([result, average]) => ({ ...result, average }),
+    )
 
     return {
       phosphateBalanceResult,
@@ -167,7 +181,7 @@ function PhosphateBalance({
 }: Awaited<ReturnType<typeof loader>> & {
   phosphateBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["phosphateBalanceResult"]>
 }) {
-  const { fieldResult, fieldInput } = use(phosphateBalanceResult)
+  const { fieldResult, fieldInput, average } = use(phosphateBalanceResult)
   const location = useLocation()
   const page = location.pathname
   const calendar = useCalendarStore((state) => state.calendar)
@@ -249,6 +263,14 @@ function PhosphateBalance({
           <CardContent>
             <div className="text-2xl font-bold">{formatNumberNl(result.balance)}</div>
             <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
+            {average ? (
+              <p className="text-muted-foreground mt-1 text-xs">
+                Gemiddeld {average.startYear}–{average.endYear}:{" "}
+                <span className="text-foreground font-medium">
+                  {formatNumberNl(average.balance)}
+                </span>
+              </p>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
@@ -292,7 +314,11 @@ function PhosphateBalance({
       ))}
       <div className="grid gap-4 md:grid-cols-2">
         <PhosphateSaturationCard balance={result} />
-        <PhosphateStockCard balance={result} />
+        <PhosphateStockCard
+          balance={result}
+          soilAnalyses={fieldInput.soilAnalyses}
+          calendarYear={Number(calendar)}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">

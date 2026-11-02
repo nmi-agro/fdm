@@ -1,4 +1,4 @@
-import type { PhosphateBalanceField } from "@nmi-agro/fdm-calculator"
+import type { PhosphateBalanceField, PhosphateFieldInput } from "@nmi-agro/fdm-calculator"
 import type { ReactNode } from "react"
 import { ChevronDown, CircleAlert, CircleCheck, CircleX } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -123,15 +123,60 @@ function formatSources(sources: string[]): string {
   return sources.map((source) => SOIL_SOURCE_LABELS[source] ?? source).join("; ")
 }
 
+/** Measurements older than this (years before the selected year) are not shown in the chart. */
+const MEASUREMENT_HISTORY_YEARS = 15
+
+/**
+ * Dated laboratory measurements of P-AL as points for the trend chart, in years relative to the start
+ * of the selected calendar year. NMI estimates (`nl-other-nmi`) are not measurements and are left out.
+ *
+ * @param soilAnalyses - The soil analyses of the field.
+ * @param calendarYear - The selected calendar year ("nu" in the chart).
+ * @returns The points, oldest first.
+ */
+function getMeasuredPAl(
+  soilAnalyses: PhosphateFieldInput["soilAnalyses"],
+  calendarYear: number,
+): { year: number; value: number }[] {
+  if (!Number.isInteger(calendarYear)) return []
+  const reference = new Date(calendarYear, 0, 1).getTime()
+  return soilAnalyses
+    .filter(
+      (a) =>
+        a.a_p_al !== null &&
+        a.a_p_al !== undefined &&
+        a.b_sampling_date &&
+        a.a_source !== "nl-other-nmi",
+    )
+    .map((a) => ({
+      year:
+        (new Date(a.b_sampling_date as Date).getTime() - reference) / (365.25 * 24 * 3600 * 1000),
+      value: a.a_p_al as number,
+    }))
+    .filter((m) => m.year >= -MEASUREMENT_HISTORY_YEARS && m.year <= 1)
+    .sort((a, b) => a.year - b.year)
+}
+
 /**
  * Soil phosphate stock: P-AL now, its level and its change per year at the current balance, with
- * an illustrative trend and details for advisors.
+ * an illustrative trend (plus the dated lab measurements as points) and details for advisors.
  *
  * @param balance - The phosphate balance of the field.
+ * @param soilAnalyses - The soil analyses of the field (for the measured points).
+ * @param calendarYear - The selected calendar year.
  */
-export function PhosphateStockCard({ balance }: { balance: PhosphateBalanceField }) {
+export function PhosphateStockCard({
+  balance,
+  soilAnalyses = [],
+  calendarYear,
+}: {
+  balance: PhosphateBalanceField
+  soilAnalyses?: PhosphateFieldInput["soilAnalyses"]
+  calendarYear?: number
+}) {
   const projection = balance.projection
   const pAl = projection?.p_al ?? null
+  const measurements = calendarYear ? getMeasuredPAl(soilAnalyses, calendarYear) : []
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -155,8 +200,14 @@ export function PhosphateStockCard({ balance }: { balance: PhosphateBalanceField
               ]}
               band={{ from: P_AL_LOW, to: P_AL_HIGH }}
               unit=""
+              measurements={measurements}
             />
-            <p className="text-muted-foreground text-xs">{ILLUSTRATIVE_NOTE}</p>
+            <p className="text-muted-foreground text-xs">
+              {ILLUSTRATIVE_NOTE}
+              {measurements.length > 0
+                ? " Punten: gemeten P-AL uit bodemanalyses van een laboratorium."
+                : ""}
+            </p>
             <MoreDetails>
               <Detail title="Gegevens">
                 P-AL: fosfaat uit ammoniumlactaat-extractie (mg P₂O₅/100 g), uit de meest recente
@@ -257,6 +308,9 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
                 ? " De PSD is geschat uit P-AL en daarom indicatief."
                 : ""}
             </p>
+            {balance.saturation.soil_note ? (
+              <p className="text-muted-foreground text-xs">{balance.saturation.soil_note}</p>
+            ) : null}
             <MoreDetails>
               <Detail title="Gegevens">
                 {formatSaturationSource(balance.saturation.source)} (

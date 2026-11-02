@@ -110,6 +110,8 @@ export type PhosphateSaturation = {
   a_p_al: number | null
   /** Whether the oxalate-based PSD is meaningful for this soil type (shown with a warning when not) */
   psd_valid: boolean
+  /** Soil-type note on the reliability of the PSD (e.g. peat, dalgrond), or `null` (Dutch, for display) */
+  soil_note: string | null
   warnings: string[]
 }
 

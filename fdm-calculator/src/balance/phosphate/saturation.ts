@@ -80,6 +80,7 @@ export function calculatePhosphateSaturation(
     a_p_ox,
     a_p_al: p_al?.value ?? null,
     psd_valid: params.psd_valid,
+    soil_note: params.note,
     warnings,
   })
 

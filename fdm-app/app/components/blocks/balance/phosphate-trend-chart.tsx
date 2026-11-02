@@ -1,10 +1,11 @@
 import type { JSX } from "react"
 import {
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ReferenceArea,
   ReferenceLine,
+  Scatter,
   XAxis,
   YAxis,
 } from "recharts"
@@ -30,6 +31,8 @@ const YEAR_CLASSES = [
  * @param unit - Unit for the tooltip-free labels (e.g. "%").
  * @param min - Lower limit of the indicator (values are clamped).
  * @param max - Upper limit of the indicator (values are clamped).
+ * @param measurements - Optional measured values in the past, as years before "nu" (negative) and
+ *   value; shown as points, with the time axis extended backwards.
  */
 export function PhosphateTrendChart({
   current,
@@ -39,6 +42,7 @@ export function PhosphateTrendChart({
   unit,
   min = 0,
   max = Number.POSITIVE_INFINITY,
+  measurements = [],
 }: {
   current: number
   deltaPerYear: number
@@ -47,22 +51,38 @@ export function PhosphateTrendChart({
   unit: string
   min?: number
   max?: number
+  measurements?: { year: number; value: number }[]
 }): JSX.Element {
   const data = Array.from({ length: PHOSPHATE_HORIZON_YEARS + 1 }, (_, year) => ({
     year,
     value: Math.min(max, Math.max(min, current + deltaPerYear * year)),
   }))
-  const values = [...data.map((d) => d.value), ...bounds.map((b) => b.value)]
+  const values = [
+    ...data.map((d) => d.value),
+    ...bounds.map((b) => b.value),
+    ...measurements.map((m) => m.value),
+  ]
+  // Extend the time axis backwards to the oldest measurement (whole 5-year steps)
+  const xMin =
+    measurements.length > 0 ? Math.floor(Math.min(...measurements.map((m) => m.year)) / 5) * 5 : 0
+  const ticks = [
+    ...(xMin < 0 ? Array.from({ length: -xMin / 5 }, (_, i) => xMin + i * 5) : []),
+    0,
+    5,
+    10,
+    20,
+  ]
   const yMin = Math.max(min, Math.floor(Math.min(...values) * 0.8))
   const yMax = Math.ceil(Math.max(...values) * 1.15)
 
   const chartConfig = {
     value: { label: "Verloop bij dit saldo", color: "var(--chart-2)" },
+    measured: { label: "Gemeten", color: "var(--foreground)" },
   } satisfies ChartConfig
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-44 w-full">
-      <LineChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+      <ComposedChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         {YEAR_CLASSES.map((yc, i) => (
           <ReferenceArea
@@ -86,9 +106,11 @@ export function PhosphateTrendChart({
         <XAxis
           dataKey="year"
           type="number"
-          domain={[0, PHOSPHATE_HORIZON_YEARS]}
-          ticks={[0, 5, 10, 20]}
-          tickFormatter={(year: number) => (year === 0 ? "nu" : `+${year} jr`)}
+          domain={[xMin, PHOSPHATE_HORIZON_YEARS]}
+          ticks={ticks}
+          tickFormatter={(year: number) =>
+            year === 0 ? "nu" : year > 0 ? `+${year} jr` : `${year} jr`
+          }
           tickLine={false}
           axisLine={false}
           fontSize={11}
@@ -122,7 +144,15 @@ export function PhosphateTrendChart({
           dot={false}
           isAnimationActive={false}
         />
-      </LineChart>
+        {measurements.length > 0 ? (
+          <Scatter
+            data={measurements.map((m) => ({ year: m.year, value: m.value }))}
+            dataKey="value"
+            fill="var(--color-measured)"
+            isAnimationActive={false}
+          />
+        ) : null}
+      </ComposedChart>
     </ChartContainer>
   )
 }

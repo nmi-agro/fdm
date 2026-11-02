@@ -30,7 +30,7 @@ import { PhosphateStatusIcon } from "~/components/blocks/balance/phosphate-soil"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getPhosphateBalanceForFarm } from "~/integrations/calculator"
+import { getPhosphateBalanceAverage, getPhosphateBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -82,13 +82,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
     ])
 
+    const year = Number(params.calendar)
     const asyncData = (async () => {
-      const phosphateBalanceResult = await getPhosphateBalanceForFarm({
-        fdm,
-        principal_id: session.principal_id,
-        b_id_farm,
-        timeframe,
-      })
+      const [phosphateBalanceResult, average] = await Promise.all([
+        getPhosphateBalanceForFarm({
+          fdm,
+          principal_id: session.principal_id,
+          b_id_farm,
+          timeframe,
+        }),
+        Number.isInteger(year)
+          ? getPhosphateBalanceAverage({
+              fdm,
+              principal_id: session.principal_id,
+              b_id_farm,
+              year,
+            }).catch(() => null)
+          : Promise.resolve(null),
+      ])
 
       if (phosphateBalanceResult.hasErrors) {
         reportError(
@@ -105,7 +116,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
       }
 
-      return { phosphateBalanceResult }
+      return { phosphateBalanceResult, average }
     })()
 
     const calendar = getCalendar(params)
@@ -158,7 +169,7 @@ function FarmBalancePhosphateOverview({
   mainCultivationEntries,
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
-  const { phosphateBalanceResult } = use(asyncData)
+  const { phosphateBalanceResult, average } = use(asyncData)
   // Computed once, not on every render: only shown in the error branch's debug dump below.
   const [errorTimestamp] = useState(() => new Date())
 
@@ -226,6 +237,14 @@ function FarmBalancePhosphateOverview({
               {formatNumberNl(phosphateBalanceResult.balance)}
             </div>
             <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
+            {average ? (
+              <p className="text-muted-foreground mt-1 text-xs">
+                Gemiddeld {average.startYear}–{average.endYear}:{" "}
+                <span className="text-foreground font-medium">
+                  {formatNumberNl(average.balance)}
+                </span>
+              </p>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
