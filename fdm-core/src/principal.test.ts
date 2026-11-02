@@ -303,8 +303,25 @@ describe("Principals", () => {
     )
 
     it("should find organizations by partial name containing a space", async () => {
-      const results = await lookupPrincipal(fdm, "Test Organ")
-      expect(results.some((r) => r.id === organization_id)).toBe(true)
+      // Use a unique name: the database is shared with other test files and results are limited
+      const uniqueId = createId()
+      const spacedOrganizationId = createId()
+      await fdm.insert(authNSchema.organization).values({
+        id: spacedOrganizationId,
+        name: `Zoek Organisatie ${uniqueId}`,
+        slug: `zoek-organisatie-${uniqueId}`.toLowerCase(),
+        createdAt: new Date(),
+        metadata: JSON.stringify({ isVerified: false }),
+      })
+
+      try {
+        const results = await lookupPrincipal(fdm, `Organisatie ${uniqueId}`)
+        expect(results.some((r) => r.id === spacedOrganizationId)).toBe(true)
+      } finally {
+        await fdm
+          .delete(authNSchema.organization)
+          .where(eq(authNSchema.organization.id, spacedOrganizationId))
+      }
     })
 
     it("should find users by partial name with includeUserNameSearch", async () => {
