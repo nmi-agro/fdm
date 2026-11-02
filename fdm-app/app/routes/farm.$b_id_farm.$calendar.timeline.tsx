@@ -63,7 +63,7 @@ import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
@@ -268,13 +268,11 @@ export async function action({ request, params }: Route.LoaderArgs) {
     try {
       formValues = await extractFormValuesFromRequest(request, ActionSchema)
     } catch (err) {
-      const warnings = ((err as any)?.data as any)?.warning
-      if (typeof warnings === "string") {
-        try {
-          const zodErrors = JSON.parse(warnings)
-          return dataWithError({ errors: zodErrors }, "De invoer is ongeldig")
-          // oxlint-disable-next-line no-unused-vars We go the default error handling route if we were weong by assuming the warning contains the stringified Zod errors.
-        } catch (_warningParseError) {}
+      const validationErrors = isToastResponse(err)
+        ? (err.data as { validationErrors?: unknown } | null)?.validationErrors
+        : undefined
+      if (Array.isArray(validationErrors)) {
+        return dataWithError({ errors: validationErrors }, "De invoer is ongeldig")
       }
       throw err
     }
@@ -658,7 +656,9 @@ export async function action({ request, params }: Route.LoaderArgs) {
       return dataWithSuccess({ closeSheet: true }, { message: "Bemesting is verwijderd." })
     }
   } catch (err) {
-    throw handleActionError(err)
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
+    return handleActionError(err)
   }
 }
 

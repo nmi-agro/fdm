@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.39.2
+
+### Patch Changes
+
+- [#899](https://github.com/nmi-agro/fdm/pull/899) [`8fc4883`](https://github.com/nmi-agro/fdm/commit/8fc4883b4863acfce072e766c3c51af86e437351) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed several forms showing the full-page error screen instead of a warning toast when an action fails, for example accepting all BRP main-cultivation suggestions on the farm dashboard, deleting a fertilizer application on the timeline, removing a fertilization plan and saving profile settings. Warning and error toasts from a failed action now also appear right away, instead of only after the next page navigation. Validation errors from these forms are no longer reported twice with a second error code. Deleting a fertilization plan now refreshes the list even when its PDF file could not be removed from storage. Error responses sent to the browser no longer include the underlying error message, only a user-facing message and the error code that support can look up.
+
 ## 0.39.1
 
 ### Patch Changes

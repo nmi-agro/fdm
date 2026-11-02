@@ -1,4 +1,4 @@
-import type { LinksFunction, LoaderFunctionArgs } from "react-router"
+import type { LinksFunction, LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from "react-router"
 import { withAuditContext } from "@nmi-agro/fdm-core"
 import mapLibreStyle from "maplibre-gl/dist/maplibre-gl.css?url"
 import posthog from "posthog-js"
@@ -89,6 +89,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
     return data({ toast: null, runtimeEnv: runtimeEnvFallback }, {})
   }
+}
+
+/**
+ * Always reloads the root loader after a form or fetcher submission.
+ *
+ * React Router skips revalidation when an action returns a 4xx/5xx status, but the toast that
+ * `handleActionError` sets for such a response is only read here, by the root loader. Without
+ * this, a failed action would show no feedback at all until the next navigation.
+ */
+export function shouldRevalidate({
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  if (formMethod && formMethod.toUpperCase() !== "GET") return true
+  return defaultShouldRevalidate
 }
 
 export function Layout() {
