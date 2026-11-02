@@ -23,9 +23,11 @@ import {
   getSoilAnalysisLayerStyle,
   SHADED_SOIL_TYPES,
   type ShadedSoilParameters,
+  SOIL_ANALYSIS_NO_DATA_COLOR,
+  SOIL_SAMPLING_COPY,
 } from "~/components/blocks/atlas/atlas-soil-analysis"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
-import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { getDottedFieldOutlineStyle } from "~/components/blocks/atlas/atlas-styles"
 import {
   AtlasTooltip,
   AtlasTooltipContent,
@@ -97,9 +99,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }),
       ])
 
-      // Sampling zones and points of the analyses that determine the current values, with the
-      // parameters they contribute to, so that the map can show those of the selected parameter
+      // Sampling zones and points of the analyses that determine the current values. Each feature
+      // carries, per parameter it contributes to, its own value (under the parameter name) and its
+      // area share (`share_<parameter>`), so that the map can colour the zones by their own value.
+      // The properties are flat, because MapLibre turns nested objects into strings.
       const samplingFeatures: FeatureCollection["features"] = []
+      const sourceOptions =
+        getSoilParametersDescription().find((item) => item.parameter === "a_source")?.options ?? []
 
       const features = fields.map((field) => {
         const fieldCurrentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
@@ -112,18 +118,32 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           {} as Record<string, string | number>,
         )
 
-        const parametersById = new Map<string, string[]>()
+        // Number of zones behind each aggregated value, for the field tooltip
+        const zoneCounts: Record<string, number> = {}
+        const valuesById = new Map<string, Record<string, string | number>>()
         for (const item of fieldEnrichedSoilData) {
+          if (item.sources.length > 1) zoneCounts[`zones_${item.parameter}`] = item.sources.length
           for (const source of item.sources) {
-            const parameters = parametersById.get(source.a_id) ?? []
-            parameters.push(item.parameter)
-            parametersById.set(source.a_id, parameters)
+            if (source.value === null) continue
+            const values = valuesById.get(source.a_id) ?? {}
+            values[item.parameter] = source.value
+            values[`share_${item.parameter}`] = source.area_fraction
+            valuesById.set(source.a_id, values)
           }
         }
         for (const analysis of soilAnalysesForFarm.get(field.b_id) ?? []) {
-          const parameters = parametersById.get(analysis.a_id)
-          if (!parameters) continue
-          const properties = { a_id: analysis.a_id, b_id: field.b_id, parameters }
+          const values = valuesById.get(analysis.a_id)
+          if (!values) continue
+          const properties = {
+            ...values,
+            a_id: analysis.a_id,
+            b_id: field.b_id,
+            b_name: field.b_name,
+            b_sampling_date: analysis.b_sampling_date?.toISOString() ?? null,
+            a_source:
+              sourceOptions.find((option) => option.value === analysis.a_source)?.label ??
+              analysis.a_source,
+          }
           if (analysis.b_sampling_geometry_zone) {
             samplingFeatures.push({
               type: "Feature",
@@ -144,6 +164,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           type: "Feature" as const,
           properties: {
             ...soilProps,
+            ...zoneCounts,
             b_id: field.b_id,
             b_name: field.b_name,
             b_area: Math.round((field.b_area ?? 0) * 10) / 10,
@@ -201,6 +222,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
 
   const heatmapLayerId = "fieldsSavedHeatmap"
   const heatmapOutlineLayerId = "fieldsSavedHeatmapOutline"
+  const samplingZoneLayerId = "soil-sampling-zone-fill"
+  const samplingPointLayerId = "soil-sampling-points"
   const selectedParameter = useSelectedAtlasSoilParameterStore((store) => store.selectedParameter)
   const setSelectedParameter = useSelectedAtlasSoilParameterStore(
     (store) => store.setSelectedParameter,
@@ -215,6 +238,20 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
     })
   }, [b_id_farm, calendar, selectedParameter, capture])
 
+  const [showSampling, setShowSampling] = useState(false)
+
+  // Zones and points of the analyses that determine the value of the selected parameter
+  const selectedSamplingData = useMemo<FeatureCollection>(
+    () => ({
+      type: "FeatureCollection",
+      features: (samplingData?.features ?? []).filter(
+        (feature) => feature.properties && selectedParameter in feature.properties,
+      ),
+    }),
+    [samplingData, selectedParameter],
+  )
+  const hasSamplingData = (samplingData?.features.length ?? 0) > 0
+
   const [min, max] = useMemo(() => {
     if (!fieldsData || fieldsData?.features.length === 0) {
       return [0, 1]
@@ -226,7 +263,11 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
     const parameterMapper = getShadingParameterMapper(selectedParameter)
     let min: number | null = null
     let max: number | null = null
-    for (const field of fieldsData.features) {
+    // While the zones are shown, their own values are part of the scale, so that they do not saturate
+    const zoneFeatures = showSampling
+      ? selectedSamplingData.features.filter((feature) => feature.properties?.kind === "zone")
+      : []
+    for (const field of [...fieldsData.features, ...zoneFeatures]) {
       if (!field.properties) continue
       const parameterValue = field.properties[selectedParameter]
       if (typeof parameterValue !== "undefined") {
@@ -240,7 +281,13 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
     return defaultedMin === defaultedMax
       ? [defaultedMin - 0.01, defaultedMin + 0.01]
       : [defaultedMin, defaultedMax]
-  }, [selectedParameter, fieldsData, soilParametersDescriptions])
+  }, [
+    selectedParameter,
+    fieldsData,
+    soilParametersDescriptions,
+    showSampling,
+    selectedSamplingData,
+  ])
 
   // Parameter shading config
   const shadingConfig = Object.fromEntries(
@@ -257,36 +304,63 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   )
 
   const heatmapLayerStyle = getSoilAnalysisLayerStyle(selectedParameter, min, max)
-  const heatmapLayerOutlineStyle = getFieldsStyle(heatmapOutlineLayerId)
+  // Zones use the same colour scale with their own value, a little more opaque than the fields
+  const samplingZoneStyle = {
+    ...heatmapLayerStyle,
+    paint: { ...heatmapLayerStyle.paint, "fill-opacity": 0.85 },
+  }
+  const heatmapLayerOutlineStyle = getDottedFieldOutlineStyle()
 
   const initialViewState = getViewState(fieldsData)
 
   const [showFields, setShowFields] = useState(true)
-  const [showSampling, setShowSampling] = useState(false)
-
-  // Zones and points of the analyses that determine the value of the selected parameter
-  const selectedSamplingData = useMemo<FeatureCollection>(
-    () => ({
-      type: "FeatureCollection",
-      features: (samplingData?.features ?? []).filter((feature) =>
-        (feature.properties?.parameters as string[] | undefined)?.includes(selectedParameter),
-      ),
-    }),
-    [samplingData, selectedParameter],
-  )
-  const hasSamplingData = (samplingData?.features.length ?? 0) > 0
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
+  // White dotted outline around every field; keep its round caps and add the visibility toggle
   const heatmapOutlineLayer = {
     ...heatmapLayerOutlineStyle,
-    layout: layerLayout,
+    layout: { ...heatmapLayerOutlineStyle.layout, ...layerLayout },
   } as LayerProps
 
-  function onFieldClick(feature: MapGeoJSONFeature) {
-    if (feature.properties.b_id) {
-      void navigate(
-        `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
+  /** Opens the soil page of the clicked field, or the analysis of the clicked zone or point. */
+  function onFeatureClick(feature: MapGeoJSONFeature) {
+    const b_id = feature.properties.b_id as string | undefined
+    if (!b_id) return
+    const a_id = feature.properties.a_id as string | undefined
+    const isSampling = feature.layer.id !== heatmapLayerId
+    void navigate(
+      isSampling && a_id
+        ? `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${b_id}/soil/analysis/${a_id}`
+        : `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${b_id}/soil`,
+    )
+  }
+
+  /** Formats a value of the selected parameter for the tooltip. */
+  function renderValue(property: unknown) {
+    const value = property as string | number | null | undefined
+    if (value === undefined || value === null) return <p>Geen data</p>
+    if (parameterDescription?.type === "date") {
+      return <p>{formatDate(value as string, "PP", { locale: nl })}</p>
+    }
+    if (selectedParameter === "b_soiltype_agr") {
+      const soilType = SHADED_SOIL_TYPES.find((item) => item.value === value)
+      return (
+        <p>
+          <span
+            className="me-0.5 inline-block size-2.5 rounded align-middle"
+            style={{ backgroundColor: soilType?.fill ?? SOIL_ANALYSIS_NO_DATA_COLOR }}
+          />
+          {soilType?.label ?? String(value)}
+        </p>
       )
     }
+    return (
+      <p>
+        {typeof value === "number"
+          ? value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
+          : String(value)}{" "}
+        {parameterDescription?.unit}
+      </p>
+    )
   }
 
   return (
@@ -294,7 +368,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
       <Atlas
         initialViewState={initialViewState}
         interactive={true}
-        interactiveLayerIds={[heatmapLayerId]}
+        interactiveLayerIds={[heatmapLayerId, samplingZoneLayerId, samplingPointLayerId]}
       >
         <Controls
           showFlyToFields={fieldsData && fieldsData.features.length > 0}
@@ -316,13 +390,18 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         {showSampling && (
           <Source id="soil-sampling" type="geojson" data={selectedSamplingData}>
             <Layer
+              id={samplingZoneLayerId}
+              {...samplingZoneStyle}
+              filter={["==", ["get", "kind"], "zone"]}
+            />
+            <Layer
               id="soil-sampling-zone-outline"
               type="line"
               filter={["==", ["get", "kind"], "zone"]}
-              paint={{ "line-color": "#ffffff", "line-width": 2, "line-dasharray": [2, 1] }}
+              paint={{ "line-color": "#ffffff", "line-width": 1.5, "line-dasharray": [2, 1] }}
             />
             <Layer
-              id="soil-sampling-points"
+              id={samplingPointLayerId}
               type="circle"
               filter={["==", ["get", "kind"], "points"]}
               paint={{
@@ -335,11 +414,65 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
           </Source>
         )}
         <AtlasTooltip
-          layers={[heatmapLayerId]}
-          onFeatureClicked={onFieldClick}
+          layers={[samplingPointLayerId, samplingZoneLayerId, heatmapLayerId]}
+          onFeatureClicked={onFeatureClick}
           render={({ features, mode }) => {
             if (features.length === 0) return null
             const feature = features[0]
+
+            // A sampling zone or point: show the analysis it belongs to
+            if (feature.layer.id !== heatmapLayerId) {
+              const isPoint = feature.layer.id === samplingPointLayerId
+              const samplingDate = feature.properties.b_sampling_date as string | null
+              const share = feature.properties[`share_${selectedParameter}`] as number | undefined
+              return (
+                <>
+                  <AtlasTooltipHeader>
+                    <p className="text-foreground font-semibold">
+                      {SOIL_SAMPLING_COPY.analysis}{" "}
+                      {samplingDate
+                        ? formatDate(samplingDate, "PP", { locale: nl })
+                        : SOIL_SAMPLING_COPY.unknownDate}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5">
+                      {feature.properties.b_name}
+                      {` · ${isPoint ? SOIL_SAMPLING_COPY.point : SOIL_SAMPLING_COPY.zone}`}
+                    </p>
+                  </AtlasTooltipHeader>
+                  <AtlasTooltipContent className="block space-y-1">
+                    <p className="text-muted-foreground">
+                      {SOIL_SAMPLING_COPY.source}: {feature.properties.a_source}
+                    </p>
+                    <div>
+                      <p className="text-muted-foreground">{parameterDescription?.name}</p>
+                      {renderValue(feature.properties[selectedParameter])}
+                    </div>
+                    {share !== undefined && share < 1 && (
+                      <p className="text-muted-foreground">
+                        {SOIL_SAMPLING_COPY.share(Math.round(share * 100))}
+                      </p>
+                    )}
+                  </AtlasTooltipContent>
+                  <AtlasTooltipFooter className="border-t pt-1.5">
+                    {mode === "popup" ? (
+                      <Button
+                        type="button"
+                        onClick={() => onFeatureClick(feature)}
+                        className="grow"
+                      >
+                        {SOIL_SAMPLING_COPY.openAnalysis}
+                      </Button>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">
+                        {SOIL_SAMPLING_COPY.clickHint}
+                      </p>
+                    )}
+                  </AtlasTooltipFooter>
+                </>
+              )
+            }
+
+            const zoneCount = feature.properties[`zones_${selectedParameter}`] as number | undefined
 
             return (
               <>
@@ -351,40 +484,20 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                     </p>
                   )}
                 </AtlasTooltipHeader>
-                <AtlasTooltipContent>
-                  <p className="text-muted-foreground">{parameterDescription?.name}</p>
-                  {typeof feature.properties[selectedParameter] === "undefined" ? (
-                    <p>Geen data</p>
-                  ) : parameterDescription?.type === "date" ? (
-                    <p>
-                      {formatDate(feature.properties[selectedParameter], "PP", {
-                        locale: nl,
-                      })}
-                    </p>
-                  ) : selectedParameter === "b_soiltype_agr" ? (
-                    <p>
-                      <span
-                        className="me-0.5 inline-block size-2.5 rounded align-middle"
-                        style={{
-                          backgroundColor:
-                            SHADED_SOIL_TYPES.find(
-                              (item) => item.value === feature.properties[selectedParameter],
-                            )?.fill ?? "#777777",
-                        }}
-                      />
-                      {SHADED_SOIL_TYPES.find(
-                        (item) => item.value === feature.properties[selectedParameter],
-                      )?.label ?? feature.properties[selectedParameter]}
-                    </p>
-                  ) : (
-                    <p>
-                      {feature.properties[selectedParameter]} {parameterDescription?.unit}
+                <AtlasTooltipContent className="block space-y-1">
+                  <div>
+                    <p className="text-muted-foreground">{parameterDescription?.name}</p>
+                    {renderValue(feature.properties[selectedParameter])}
+                  </div>
+                  {zoneCount !== undefined && (
+                    <p className="text-muted-foreground">
+                      {SOIL_SAMPLING_COPY.aggregated(zoneCount)}
                     </p>
                   )}
                 </AtlasTooltipContent>
                 {mode === "popup" && (
                   <AtlasTooltipFooter>
-                    <Button type="button" onClick={() => onFieldClick(feature)} className="grow">
+                    <Button type="button" onClick={() => onFeatureClick(feature)} className="grow">
                       Bekijk analyse
                     </Button>
                   </AtlasTooltipFooter>
@@ -428,6 +541,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
           soilParametersDescriptions={soilParametersDescriptions}
           min={min}
           max={max}
+          showSampling={showSampling}
         />
       </div>
     </div>
