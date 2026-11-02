@@ -224,7 +224,7 @@ const StatusCell = memo(
       return (
         <div className="text-destructive flex items-center">
           <AlertTriangle className="mr-1 h-4 w-4" />
-          <span className="text-xs">Diepte ontbreekt</span>
+          <span className="text-xs">Diepte ongeldig</span>
         </div>
       )
     }
@@ -312,15 +312,15 @@ function DepthCell({
       ? "Bovenkant laag moet niet negatief zijn."
       : null
   const lowerError = !Number.isFinite(formLowerNum)
-    ? "OnderKant laag moet een getal zijn."
+    ? "Onderkant laag moet een getal zijn."
     : formLowerNum < 0
       ? "Onderkant laag moet niet negatief zijn."
       : null
   const overallError =
     upperError || lowerError
       ? upperError
-      : formUpperNum > formLowerNum
-        ? "Onderkant moet lager zijn dan de bovenkant."
+      : formUpperNum >= formLowerNum
+        ? "Onderkant moet dieper zijn dan de bovenkant."
         : null
 
   // Clean up the timeouts on unmount
