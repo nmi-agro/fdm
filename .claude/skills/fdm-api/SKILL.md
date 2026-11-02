@@ -32,6 +32,7 @@ fdm-api/src/
   error.ts        ApiError, problemResponse(), createErrorHandler(), createNotFoundHandler()
   rate-limit.ts   rate limiting middleware
   schemas.ts      pagination, timeframe, date and problem-details schemas; response envelopes
+  fields.ts       described field schemas shared by requests and responses (IDs, soil, harvest, fertilizer)
   types.ts        ApiEnv, ApiPrincipalContext
   routes/<resource>.ts   one file per resource, exporting register<Resource>Routes()
   tests/<resource>.test.ts
@@ -64,8 +65,8 @@ Each resource file follows the same order: Zod schemas → `createRoute` definit
 ```ts
 const FarmSchema = z
   .object({
-    b_id_farm: z.string(),
-    b_name_farm: z.string().nullable(),
+    b_id_farm: FarmIdSchema,
+    b_name_farm: z.string().nullable().describe("Farm display name. `null` when not set."),
   })
   .openapi("Farm")
 
@@ -76,7 +77,7 @@ const getFarmRoute = createRoute({
   summary: "Get a farm",
   description: "Returns a single farm by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: z.string() }) },
+  request: { params: z.object({ b_id_farm: FarmIdSchema }) },
   responses: {
     200: {
       description: "The requested farm.",
@@ -90,7 +91,12 @@ const getFarmRoute = createRoute({
 Requirements:
 
 - **Named schemas.** Response schemas call `.openapi("Name")` so the generated document has a reusable component rather than an inline blob. Body schemas are named too (`CreateFarm`, `UpdateFarm`).
-- **`.describe()` on body fields.** These become the public field documentation.
+- **`.describe()` on every field.** Every field in request bodies, response schemas, query parameters and path parameters has a `.describe()`, including nested objects and array items. These become the public field documentation, so an external developer must be able to understand each field without reading the source. A good description states:
+  - what the field means;
+  - its **unit** for numeric quantities (e.g. `kg N/ha`, `g/kg`, `mg/kg`, `%`);
+  - the allowed values or value range;
+  - what `null` (or an omitted value) means, when it has a specific meaning.
+- **Reuse described field schemas.** Identifiers (`FarmIdSchema`, `FieldIdSchema`, ...), soil parameters (`soilParameterShape`), harvest analysis fields (`harvestAnalysisShape`) and fertilizer composition (`fertilizerCompositionDescriptions`) live in `src/fields.ts`. Use them in path parameters, request bodies and responses so request and response stay in sync. Call `.describe()` last: a modifier such as `.nullable()` or `.optional()` applied after it can drop the description.
 - **Every route declares `tags`, `summary`, `description` and `security`.** The tag must exist in the `tags` array in `app.ts`.
 - **Spread the shared error responses**: `...commonErrorResponses` on reads, `...writeErrorResponses` on writes. Never enumerate error codes by hand.
 - **Column names are the payload field names.** The API exposes `b_id_farm` and `p_app_amount` as-is; it does not rename schema columns to camelCase. See the `fdm-schema` skill for what those names mean.
@@ -156,7 +162,7 @@ const res = await app.request("/farms", { headers: { "x-api-key": "k" } })
 expect(res.status).toBe(200)
 ```
 
-A new endpoint is expected to cover: the success path, 401 without a key, 404 for a missing resource, and validation failure for a bad body. Assert on `res.status`, the `application/problem+json` content type and the `type` slug for errors, not on prose. `tests/openapi.test.ts` guards the generated document — run it after changing any route definition.
+A new endpoint is expected to cover: the success path, 401 without a key, 404 for a missing resource, and validation failure for a bad body. Assert on `res.status`, the `application/problem+json` content type and the `type` slug for errors, not on prose. `tests/openapi.test.ts` guards the generated document — run it after changing any route definition. It validates the document and fails when a schema property, path parameter or query parameter has no `description`, listing every gap.
 
 Run with `cd fdm-api && pnpm test`.
 
@@ -179,6 +185,8 @@ Run with `cd fdm-api && pnpm test`.
 | `c.req.param("b_id")` or manual `await c.req.json()` | `c.req.valid("param")` / `c.req.valid("json")` |
 | Renaming `b_id_farm` to `farmId` in a payload | Expose the schema column names unchanged |
 | Inline response schema with no `.openapi("Name")` | Name every schema so the document has components |
+| Response schema property without `.describe()` | Describe every property, including nested objects and array items, with its unit |
+| Path parameter without a description (`z.object({ b_id: z.string() })`) | Use the described identifier schemas from `src/fields.ts` |
 | Listing error responses by hand per route | `...commonErrorResponses` / `...writeErrorResponses` |
 | Returning a raw `Date` or ISO timestamp | `serializeDate(...)` → `YYYY-MM-DD` |
 | Reading a principal id from the body or query | `c.get("principal").effectivePrincipalId` |

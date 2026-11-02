@@ -12,6 +12,13 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import {
+  CultivationHcat3NameSchema,
+  CultivationHcat3Schema,
+  CultivationIdSchema,
+  FarmIdSchema,
+  FieldIdSchema,
+} from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -45,23 +52,75 @@ export interface CultivationServices {
 
 const CultivationSchema = z
   .object({
-    b_lu: z.string(),
-    b_lu_catalogue: z.string(),
-    b_lu_source: z.string(),
-    b_lu_name: z.string(),
-    b_lu_name_en: z.string().nullable(),
-    b_lu_hcat3: z.string().nullable(),
-    b_lu_hcat3_name: z.string().nullable(),
-    b_lu_croprotation: z.boolean().nullable(),
-    b_lu_eom: z.number().nullable(),
-    b_lu_eom_residue: z.number().nullable(),
-    b_lu_harvestcat: z.string().nullable(),
-    b_lu_harvestable: z.boolean(),
-    b_lu_variety: z.string().nullable(),
+    b_lu: CultivationIdSchema,
+    b_lu_catalogue: z
+      .string()
+      .describe(
+        "Identifier of the cultivation in its catalogue, prefixed by the catalogue, e.g. 'nl_265'.",
+      ),
+    b_lu_source: z
+      .string()
+      .describe("Catalogue the cultivation comes from, e.g. 'brp' for the Dutch crop list."),
+    b_lu_name: z.string().describe("Name of the cultivation in the language of its catalogue."),
+    b_lu_name_en: z
+      .string()
+      .nullable()
+      .describe("English name of the cultivation. `null` when no translation is available."),
+    b_lu_hcat3: CultivationHcat3Schema,
+    b_lu_hcat3_name: CultivationHcat3NameSchema,
+    b_lu_croprotation: z
+      .enum([
+        "other",
+        "clover",
+        "nature",
+        "potato",
+        "grass",
+        "rapeseed",
+        "starch",
+        "maize",
+        "cereal",
+        "sugarbeet",
+        "alfalfa",
+        "catchcrop",
+      ])
+      .nullable()
+      .describe(
+        "Crop rotation category of the cultivation, e.g. 'grass', 'maize', 'cereal' or 'potato'. `null` when unknown.",
+      ),
+    b_lu_eom: z
+      .number()
+      .nullable()
+      .describe(
+        "Effective organic matter supplied by the crop: organic matter that remains in the soil one year after input (kg EOM/ha/year). Range 0–7500. `null` when unknown.",
+      ),
+    b_lu_eom_residue: z
+      .number()
+      .nullable()
+      .describe(
+        "Effective organic matter supplied by crop residues such as straw and leaves (kg EOM/ha/year). Range 0–1500. `null` when unknown.",
+      ),
+    b_lu_harvestcat: z
+      .string()
+      .nullable()
+      .describe(
+        "Harvest category that determines which harvest parameters are relevant: 'HC010' standard, 'HC020' grass, 'HC031' maize, 'HC040' root crops, 'HC041' sugar beet, 'HC042' potatoes, 'HC050' cereals. `null` when unknown.",
+      ),
+    b_lu_harvestable: z
+      .enum(["once", "multiple", "none"])
+      .describe("How often the cultivation can be harvested: 'none', 'once' or 'multiple'."),
+    b_lu_variety: z
+      .string()
+      .nullable()
+      .describe("Variety (cultivar) of the cultivation. `null` when not specified."),
     b_lu_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     b_lu_end: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    m_cropresidue: z.boolean().nullable(),
-    b_id: z.string(),
+    m_cropresidue: z
+      .boolean()
+      .nullable()
+      .describe(
+        "Whether the crop residues are left on the field after harvest. `null` when unknown.",
+      ),
+    b_id: FieldIdSchema.describe("Unique identifier of the field the cultivation is on."),
   })
   .openapi("Cultivation")
 
@@ -121,7 +180,7 @@ const listCultivationsRoute = createRoute({
   description: "Returns all cultivations on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -145,7 +204,7 @@ const listFarmCultivationsRoute = createRoute({
   description: "Returns all cultivations on all fields for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -169,7 +228,7 @@ const createCultivationRoute = createRoute({
   description: "Creates a new cultivation on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateCultivationBodySchema },
@@ -193,7 +252,7 @@ const getCultivationRoute = createRoute({
   summary: "Get a cultivation",
   description: "Returns a single cultivation by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_lu: z.string() }) },
+  request: { params: z.object({ b_lu: CultivationIdSchema }) },
   responses: {
     200: {
       description: "The requested cultivation.",
@@ -211,7 +270,7 @@ const updateCultivationRoute = createRoute({
   description: "Partially updates an existing cultivation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_lu: z.string() }),
+    params: z.object({ b_lu: CultivationIdSchema }),
     body: {
       content: {
         "application/json": { schema: UpdateCultivationBodySchema },
@@ -235,7 +294,7 @@ const deleteCultivationRoute = createRoute({
   summary: "Delete a cultivation",
   description: "Permanently deletes a cultivation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_lu: z.string() }) },
+  request: { params: z.object({ b_lu: CultivationIdSchema }) },
   responses: {
     204: { description: "Cultivation deleted." },
     ...commonErrorResponses,

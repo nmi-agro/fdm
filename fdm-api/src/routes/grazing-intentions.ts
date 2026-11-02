@@ -7,6 +7,7 @@ import type {
 } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
+import { FarmIdSchema } from "../fields"
 import {
   commonErrorResponses,
   PaginationQuerySchema,
@@ -24,9 +25,14 @@ export interface GrazingIntentionServices {
 
 const GrazingIntentionSchema = z
   .object({
-    b_id_farm: z.string(),
-    b_grazing_intention_year: z.number().int(),
-    b_grazing_intention: z.boolean(),
+    b_id_farm: FarmIdSchema,
+    b_grazing_intention_year: z
+      .number()
+      .int()
+      .describe("Calendar year the grazing intention applies to, for example 2025."),
+    b_grazing_intention: z
+      .boolean()
+      .describe("Whether the farm intends to graze livestock in that year."),
   })
   .openapi("GrazingIntention")
 
@@ -46,7 +52,7 @@ const listGrazingIntentionsRoute = createRoute({
   description: "Returns all grazing intentions for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -71,11 +77,12 @@ const putGrazingIntentionRoute = createRoute({
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({
-      b_id_farm: z.string(),
+      b_id_farm: FarmIdSchema,
       b_grazing_intention_year: z.coerce
         .number()
         .int()
-        .openapi({ type: "integer", param: { required: true } }),
+        .openapi({ type: "integer", param: { required: true } })
+        .describe("Calendar year the grazing intention applies to, for example 2025."),
     }),
     body: {
       content: {
@@ -102,11 +109,12 @@ const deleteGrazingIntentionRoute = createRoute({
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({
-      b_id_farm: z.string(),
+      b_id_farm: FarmIdSchema,
       b_grazing_intention_year: z.coerce
         .number()
         .int()
-        .openapi({ type: "integer", param: { required: true } }),
+        .openapi({ type: "integer", param: { required: true } })
+        .describe("Calendar year the grazing intention applies to, for example 2025."),
     }),
   },
   responses: {
