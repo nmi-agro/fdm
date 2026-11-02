@@ -10,6 +10,7 @@ type AutocompletePrincipal = {
   value: string
   label: string
   icon: "user" | "organization" // Icon identifier string
+  description?: string // Muted second line, e.g. the email address the searcher typed
 }
 
 export async function loader({ request, url }: LoaderFunctionArgs) {
@@ -27,7 +28,8 @@ export async function loader({ request, url }: LoaderFunctionArgs) {
     const useEmail = url.searchParams.has("email")
     const usePrincipalId = url.searchParams.has("principal_id")
 
-    if (useEmail || usePrincipalId) {
+    const isHelpdeskLookup = useEmail || usePrincipalId
+    if (isHelpdeskLookup) {
       await checkHelpdeskPermission(
         fdm,
         "helpdesk",
@@ -43,24 +45,31 @@ export async function loader({ request, url }: LoaderFunctionArgs) {
     }
 
     // Basic validation to prevent malicious input
-    // Only allow alphanumeric characters, at-sign, plus, period, underscores, and hyphens
-    if (!/^[a-zA-Z0-9@+._-]+$/.test(identifier)) {
+    // Only allow alphanumeric characters, at-sign, plus, period, underscores, hyphens and spaces
+    // (spaces are needed to search organizations by name)
+    if (!/^[a-zA-Z0-9@+._ -]+$/.test(identifier)) {
       return []
     }
-    if (identifier.length < 2 || identifier.length > 100) {
+    const trimmedIdentifier = identifier.trim()
+    if (trimmedIdentifier.length < 2 || trimmedIdentifier.length > 100) {
       return [] // Return empty for too short or too long inputs
     }
 
-    const principals = await lookupPrincipal(fdm, identifier)
+    // Searching users by name is reserved for the helpdesk; everyone else finds users by exact email only.
+    const principals = await lookupPrincipal(fdm, trimmedIdentifier, {
+      includeUserNameSearch: isHelpdeskLookup,
+    })
 
     const valueSubscript = useEmail ? "email" : usePrincipalId ? "id" : "username"
 
     // Map the result to the format expected by AutoComplete
     const autocompletePrincipals: AutocompletePrincipal[] = principals
-      .map((p) => ({
+      .map((p): Omit<AutocompletePrincipal, "value"> & { value: string | null } => ({
         value: p[valueSubscript],
         label: p.displayUserName ?? p.username,
         icon: p.type, // Pass the type as the icon identifier
+        // A user is only matched on the email the searcher typed, so showing it reveals nothing new
+        description: !isHelpdeskLookup && p.type === "user" ? trimmedIdentifier : undefined,
       }))
       .filter((result): result is AutocompletePrincipal => typeof result.value === "string")
 

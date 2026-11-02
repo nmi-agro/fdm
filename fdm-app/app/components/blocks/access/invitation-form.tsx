@@ -78,7 +78,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
 
   return (
     <RemixFormProvider {...form}>
-      <Form ref={formRef} method="post" onSubmit={form.handleSubmit}>
+      <Form ref={formRef} method="post" onSubmit={form.handleSubmit} className="space-y-2">
         <fieldset disabled={isSubmitting} className="flex items-center justify-between space-x-4">
           <AutoComplete
             className="flex-1"
@@ -93,32 +93,35 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                 shouldTouch: true,
               })
             }}
-            emptyMessage={(value) =>
-              isEmail(value) ? (
-                <button
-                  className="w-full cursor-pointer text-center hover:underline"
-                  onClick={() => {
-                    form.setValue("username", value, {
-                      shouldTouch: true,
-                      shouldValidate: true,
-                    })
-                    formRef.current?.requestSubmit()
-                  }}
-                  type="button"
-                >
-                  Nodig {value} uit voor toegang als{" "}
-                  {form.getValues("role") === "owner"
-                    ? "eigenaar"
-                    : form.getValues("role") === "advisor"
-                      ? "adviseur"
-                      : "onderzoeker"}
-                  .
-                </button>
-              ) : (
-                "Geen gebruikers gevonden. Je kunt ook een e-mailadres invoeren om een uitnodiging te sturen."
-              )
-            }
-            placeholder="Zoek naar een gebruiker of organisatie"
+            emptyMessage={(value) => {
+              if (isEmail(value.trim())) {
+                return (
+                  <button
+                    className="w-full cursor-pointer text-center hover:underline"
+                    onClick={() => {
+                      form.setValue("username", value.trim(), {
+                        shouldTouch: true,
+                        shouldValidate: true,
+                      })
+                      formRef.current?.requestSubmit()
+                    }}
+                    type="button"
+                  >
+                    Nodig {value.trim()} uit voor toegang als{" "}
+                    {form.getValues("role") === "owner"
+                      ? "eigenaar"
+                      : form.getValues("role") === "advisor"
+                        ? "adviseur"
+                        : "onderzoeker"}
+                    .
+                  </button>
+                )
+              }
+              return value.includes("@")
+                ? "Vul het volledige e-mailadres in."
+                : "Geen organisatie gevonden. Wil je een persoon toevoegen? Vul dan het volledige e-mailadres in."
+            }}
+            placeholder="Vul een volledig e-mailadres of organisatienaam in"
             allowValuesOutsideList={true}
             disabled={isSubmitting}
             form={form} // Pass the form instance
@@ -158,6 +161,10 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
             </Button>
           </div>
         </fieldset>
+        <p className="text-muted-foreground text-sm">
+          Personen voeg je toe met hun volledige e-mailadres, bijvoorbeeld naam@bedrijf.nl.
+          Organisaties kun je op naam zoeken.
+        </p>
       </Form>
     </RemixFormProvider>
   )

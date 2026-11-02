@@ -189,6 +189,11 @@ describe("Principals", () => {
       expect(principalDetails?.type).toBe("organization")
     })
 
+    it("should identify a principal case-insensitively", async () => {
+      const principalDetails = await identifyPrincipal(fdm, ` ${userEmail.toUpperCase()} `)
+      expect(principalDetails?.id).toEqual(user_id)
+    })
+
     it("should return undefined if no principal is found", async () => {
       const nonExistentIdentifier = "nonexistent"
       const principalDetails = await identifyPrincipal(fdm, nonExistentIdentifier)
@@ -283,9 +288,28 @@ describe("Principals", () => {
       expect(results.some((r) => r.type === "organization")).toBe(true)
     })
 
-    it("should find users by partial name", async () => {
+    it("should find a user by email regardless of case and surrounding spaces", async () => {
+      const results = await lookupPrincipal(fdm, `  ${userEmail.toUpperCase()} `)
+      expect(results.length).toBe(1)
+      expect(results[0].id).toBe(user_id)
+    })
+
+    it.each(["Test", "testuser", "User", "Test User"])(
+      "should not find a user by partial name %s with default options",
+      async (identifier) => {
+        const results = await lookupPrincipal(fdm, identifier)
+        expect(results.some((r) => r.type === "user")).toBe(false)
+      },
+    )
+
+    it("should find organizations by partial name containing a space", async () => {
+      const results = await lookupPrincipal(fdm, "Test Organ")
+      expect(results.some((r) => r.id === organization_id)).toBe(true)
+    })
+
+    it("should find users by partial name with includeUserNameSearch", async () => {
       const identifier = "Test"
-      const results = await lookupPrincipal(fdm, identifier)
+      const results = await lookupPrincipal(fdm, identifier, { includeUserNameSearch: true })
 
       expect(results).toBeDefined()
       expect(results.length).toBeGreaterThanOrEqual(1) // Could be more than user matching that pattern in the test db
@@ -295,9 +319,9 @@ describe("Principals", () => {
       expect(results.some((r) => r.type === "user")).toBe(true)
     })
 
-    it("should find users by partial username", async () => {
+    it("should find users by partial username with includeUserNameSearch", async () => {
       const identifier = "testuser"
-      const results = await lookupPrincipal(fdm, identifier)
+      const results = await lookupPrincipal(fdm, identifier, { includeUserNameSearch: true })
 
       expect(results).toBeDefined()
       expect(results.length).toBeGreaterThanOrEqual(1) // Could be more than one user matching that pattern in the test db
@@ -307,9 +331,9 @@ describe("Principals", () => {
       expect(results.some((r) => r.type === "user")).toBe(true)
     })
 
-    it("should find users by firstname", async () => {
+    it("should find users by firstname with includeUserNameSearch", async () => {
       const identifier = "Test"
-      const results = await lookupPrincipal(fdm, identifier)
+      const results = await lookupPrincipal(fdm, identifier, { includeUserNameSearch: true })
 
       expect(results).toBeDefined()
       expect(results.length).toBeGreaterThanOrEqual(1) // Could be more than one user matching that pattern in the test db
@@ -319,9 +343,9 @@ describe("Principals", () => {
       expect(results.some((r) => r.type === "user")).toBe(true)
     })
 
-    it("should find users by surname", async () => {
+    it("should find users by surname with includeUserNameSearch", async () => {
       const identifier = "User"
-      const results = await lookupPrincipal(fdm, identifier)
+      const results = await lookupPrincipal(fdm, identifier, { includeUserNameSearch: true })
       expect(results).toBeDefined()
       expect(
         results.filter((x) => x.displayUserName?.match(new RegExp(identifier, "i"))).length,
