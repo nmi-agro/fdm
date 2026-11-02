@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
@@ -227,6 +227,8 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
   } catch (err) {
-    throw handleActionError(err)
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(err)) return err
+    return handleActionError(err)
   }
 }
