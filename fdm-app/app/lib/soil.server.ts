@@ -5,8 +5,9 @@ import { calculateNlv } from "@nmi-agro/fdm-calculator"
  * Enriches current soil data with the calculated base Nitrogen Supplying Capacity (d_n_supply_base / NLV)
  * if it is not already present and if soil organic matter (a_som_loi) is available.
  *
- * The NLV is a field-level calculation from soil organic matter, clay and C/N: it gets one source
- * "calculated" ("Berekend"), and its coverage and coverage warning reflect all three inputs.
+ * The NLV is a field-level calculation from soil organic matter, clay and C/N (for fields with
+ * zones their area-weighted means): it gets one source "calculated" ("Berekend") and no coverage of
+ * its own.
  *
  * @param currentSoilData The current soil parameter measurements for a field.
  * @returns The enriched CurrentSoilData array.
@@ -36,10 +37,10 @@ export function enrichCurrentSoilDataWithNlv(currentSoilData: CurrentSoilData): 
             a_som_loi: somItem.value,
           }) * 10,
         ) / 10
-      // NLV is calculated from the field values of three inputs, so it is a single field-level
-      // value: one calculated source (dated like the newest input), not a value per zone. The
-      // inputs may cover different parts of the field; their joint coverage is at most the
-      // smallest coverage, and any input with too little coverage makes the NLV uncertain too.
+      // NLV is calculated from the field values of three inputs (for fields with zones their
+      // area-weighted means), so it is a single field-level value: one calculated source (dated
+      // like the newest input), not a value per zone. It shows no coverage of its own; the
+      // coverage is shown with the inputs themselves.
       const inputs = [somItem, clayItem, cnItem]
       const newestSource = inputs
         .map((input) => input.sources[0])
@@ -48,15 +49,12 @@ export function enrichCurrentSoilDataWithNlv(currentSoilData: CurrentSoilData): 
             (b.b_sampling_date ? new Date(b.b_sampling_date).getTime() : 0) -
             (a.b_sampling_date ? new Date(a.b_sampling_date).getTime() : 0),
         )[0]
-      const coverages = inputs.map((input) => input.coverage)
       data.push({
         parameter: "d_n_supply_base",
         value: nlvVal,
         is_aggregated: false,
-        coverage: coverages.some((coverage) => coverage === null)
-          ? null
-          : Math.min(...(coverages as number[])),
-        has_coverage_warning: inputs.some((input) => input.has_coverage_warning),
+        coverage: null,
+        has_coverage_warning: false,
         sources: [{ ...newestSource, a_source: "calculated", value: nlvVal, area_fraction: 1 }],
       })
     }
