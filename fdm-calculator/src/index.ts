@@ -64,6 +64,7 @@ export {
   calculatePhosphateSaturationThreshold,
   classifyYears,
   collectInputForPhosphateBalance,
+  collectInputForPhosphateBalanceForFarms,
   determinePhosphateFrame,
   estimatePsdFromPAl,
   getPeatGroundwaterFactor,

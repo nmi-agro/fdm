@@ -130,3 +130,6 @@ export function formatSaturationSource(source: PhosphateSaturationSource): strin
       return "Onvoldoende gegevens"
   }
 }
+
+/** Source code of NMI soil estimates (BodemSchat): not a laboratory measurement. */
+export const NMI_ESTIMATE_SOURCE = "nl-other-nmi"
