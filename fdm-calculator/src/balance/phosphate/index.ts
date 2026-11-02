@@ -21,9 +21,5 @@ export {
   PHOSPHATE_DEPOSITION_PER_YEAR,
 } from "./mineralization"
 export { calculatePhosphateProjection, classifyYears } from "./projection"
-export {
-  calculatePhosphateSaturation,
-  calculatePhosphateSaturationThreshold,
-  estimatePsdFromPAl,
-} from "./saturation"
+export { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 export type * from "./types"

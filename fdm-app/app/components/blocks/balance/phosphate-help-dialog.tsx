@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
+import { clientConfig } from "~/lib/config"
 
 const references: { text: string; href: string }[] = [
   {
@@ -113,6 +114,9 @@ export function PhosphateHelpDialog() {
               <li>Mest van weidende dieren.</li>
               <li>Het vrijkomen van fosfaat bij vernatting van veen (wel een melding).</li>
               <li>Uitspoeling uit de bestaande voorraad bij een tekort.</li>
+              <li>
+                Afspoeling en erosie: fosfaat dat met water en grond over het oppervlak wegspoelt.
+              </li>
             </ul>
             <p>
               De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor het
@@ -120,6 +124,19 @@ export function PhosphateHelpDialog() {
               een prototype en worden nog met de onderzoekers afgestemd.
             </p>
           </div>
+
+          <p>
+            Meer over de berekening staat in de{" "}
+            <a
+              href={`${clientConfig.docsUrl}/docs/insights/balance/phosphate-balance`}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground underline"
+            >
+              documentatie van de fosfaatbalans
+            </a>
+            .
+          </p>
 
           <div className="space-y-1.5">
             <p className="text-foreground font-medium">Bronnen</p>

@@ -922,9 +922,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         mapResult: (fieldResult) => {
           const balance = fieldResult.balance as PhosphateBalanceField
           const psd = balance.projection?.psd ?? null
-          const estimated =
-            balance.saturation.source === "estimated_from_p_al" ||
-            balance.saturation.analysis_sources.includes(NMI_ESTIMATE_SOURCE)
+          const estimated = balance.saturation.analysis_sources.includes(NMI_ESTIMATE_SOURCE)
           return {
             balance: balance.balance,
             supply: balance.supply.total,

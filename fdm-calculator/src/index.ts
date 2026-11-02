@@ -66,7 +66,6 @@ export {
   collectInputForPhosphateBalance,
   collectInputForPhosphateBalanceForFarms,
   determinePhosphateFrame,
-  estimatePsdFromPAl,
   getPeatGroundwaterFactor,
   getPhosphateBalanceField,
   getPhosphateSoilTypeParameters,

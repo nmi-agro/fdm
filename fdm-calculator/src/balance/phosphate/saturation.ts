@@ -5,10 +5,6 @@ import type {
 } from "./types"
 import { getPhosphateSoilTypeParameters, ghgPerGroundwaterClass } from "./alpha-max"
 
-/** Root mean squared error (% PSD) of the P-AL → PSD regression of van Doorn (2026), Fig. S5.7. */
-const PSD_FROM_P_AL_RMSE = 10.1
-/** Agronomic P-AL target on arable land (mg P2O5 / 100 g), for all soils (CBAV). */
-const P_AL_TARGET_ARABLE = 40
 /** Threshold used when the field-specific threshold cannot be calculated (%). */
 const PSD_THRESHOLD_DEFAULT = 25
 
@@ -27,18 +23,6 @@ function latest<K extends keyof SoilInput>(soilAnalyses: SoilInput[], key: K) {
 }
 
 /**
- * Estimates the phosphorus saturation degree (PSD) from P-AL and the PSC with the regression of
- * van Doorn (2026), Fig. S5.7: log10(PSD) = 0.4949·log10(P-AL) − 0.2902·log10(PSC) + 1.2220.
- *
- * @param a_p_al - P-AL (mg P2O5 / 100 g).
- * @param psc - Phosphorus sorption capacity (mmol / kg), calculated with alpha_max = 0.5.
- * @returns The estimated PSD (%).
- */
-export function estimatePsdFromPAl(a_p_al: number, psc: number): number {
-  return 10 ** (0.4949 * Math.log10(a_p_al) - 0.2902 * Math.log10(psc) + 1.222)
-}
-
-/**
  * Determines the phosphorus saturation of the topsoil, using the data that is already available.
  *
  * DRAFT for discussion. `alpha_max` is fixed at 0.5. Order of preference:
@@ -46,8 +30,7 @@ export function estimatePsdFromPAl(a_p_al: number, psc: number): number {
  *    or NMI map values): `PSC = 0.5 · (Fe-ox + Al-ox)`, `PSD = P-ox / PSC · 100`. No range: the map
  *    values come without uncertainty.
  * 2. `a_p_sg` (PSD as delivered by the laboratory or the NMI API).
- * 3. An estimate from `a_p_al` with the PSC from the oxalate data or the soil-type defaults (indicative,
- *    with the regression error as range).
+ * Without either, the PSD is missing: it is not estimated from P-AL.
  *
  * @param soilAnalyses - The soil analyses of the field.
  * @param isGrassland - Whether the field is grassland (sampled 0–10 cm) rather than arable land (0–25 cm).
@@ -121,24 +104,7 @@ export function calculatePhosphateSaturation(
     ])
   }
 
-  // 3. Indicative estimate from P-AL
-  if (p_al && p_al.value > 0 && psc > 0) {
-    warnings.push("De fosfaatverzadigingsgraad is geschat uit P-AL en is alleen indicatief.")
-    const value = estimatePsdFromPAl(p_al.value, psc)
-    return result(
-      "estimated_from_p_al",
-      psc,
-      {
-        value,
-        min: Math.max(0, value - PSD_FROM_P_AL_RMSE),
-        max: value + PSD_FROM_P_AL_RMSE,
-      },
-      (value / 100) * psc,
-      [p_al.analysis.a_source, feAl?.a_source],
-    )
-  }
-
-  warnings.push("Geen P-ox, fosfaatverzadigingsgraad of P-AL beschikbaar.")
+  warnings.push("Geen P-ox of fosfaatverzadigingsgraad beschikbaar.")
   return result("missing", psc, null, null, [feAl?.a_source])
 }
 
@@ -155,39 +121,28 @@ function criticalConcentration(ghg: number): number {
 
 /**
  * Calculates the PSD threshold of the topsoil for a field: the environmental threshold of
- * van Doorn (2026, Eq. 5.5), capped at the PSD of the agronomic P-AL target.
+ * van Doorn (2026, Eq. 5.5).
  *
  * DRAFT for discussion.
  * - Langmuir affinity: `KL = beta_max · PSD / (C_P · alpha_max · (100 − PSD))`, with C_P (mol / m³) from
  *   P-CaCl2 (mg / kg) · 0.1 / 31 (1:10 extraction).
  * - Environmental threshold: `PSD_env = 100 · alpha_max · KL · C_env / (beta_max + alpha_max · KL · C_env)`,
  *   with C_env from the groundwater class (see `ghgPerGroundwaterClass`).
- * - Agronomic target: the PSD at P-AL 40 (arable land) or the soil-specific grassland target.
  * When P-CaCl2 or the PSD is missing, 25% is used (protocol for phosphate-saturated soils).
  *
  * @param saturation - The phosphorus saturation of the field.
  * @param soilAnalyses - The soil analyses (for P-CaCl2 and the groundwater class).
- * @param isGrassland - Whether the field is grassland.
  * @returns The threshold and its components.
  * @alpha
  */
 export function calculatePhosphateSaturationThreshold(
   saturation: PhosphateSaturation,
   soilAnalyses: SoilInput[],
-  isGrassland: boolean,
 ): PhosphateSaturationThreshold {
   const sorted = sortSoilAnalyses(soilAnalyses)
   const params = getPhosphateSoilTypeParameters(saturation.b_soiltype_agr)
   const warnings: string[] = []
   const { alpha_max, beta_max } = params
-
-  const psd_agronomic =
-    saturation.psc && saturation.psc > 0
-      ? estimatePsdFromPAl(
-          isGrassland ? params.p_al_target_grassland : P_AL_TARGET_ARABLE,
-          saturation.psc,
-        )
-      : null
 
   const gwl = latest(sorted, "b_gwl_class")
   const ghg = gwl ? (ghgPerGroundwaterClass[gwl.value] ?? null) : null
@@ -208,7 +163,6 @@ export function calculatePhosphateSaturationThreshold(
       value: PSD_THRESHOLD_DEFAULT,
       source: "default_25",
       psd_env: null,
-      psd_agronomic,
       ghg,
       c_p_env,
       k_l: null,
@@ -221,10 +175,9 @@ export function calculatePhosphateSaturationThreshold(
   const x = alpha_max * k_l * (c_p_env / 31)
   const psd_env = (100 * x) / (beta_max + x)
   return {
-    value: psd_agronomic === null ? psd_env : Math.min(psd_env, psd_agronomic),
+    value: psd_env,
     source: "field",
     psd_env,
-    psd_agronomic,
     ghg,
     c_p_env,
     k_l,

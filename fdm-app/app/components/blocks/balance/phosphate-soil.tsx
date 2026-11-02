@@ -302,12 +302,7 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
                 max={100}
               />
             ) : null}
-            <p className="text-muted-foreground text-xs">
-              {ILLUSTRATIVE_NOTE}
-              {balance.saturation.source === "estimated_from_p_al"
-                ? " De PSD is geschat uit P-AL en daarom indicatief."
-                : ""}
-            </p>
+            <p className="text-muted-foreground text-xs">{ILLUSTRATIVE_NOTE}</p>
             {balance.saturation.soil_note ? (
               <p className="text-muted-foreground text-xs">{balance.saturation.soil_note}</p>
             ) : null}
@@ -325,7 +320,7 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
               </Detail>
               <Detail title="Grenswaarde">
                 {psd.threshold.source === "field"
-                  ? `Per perceel berekend uit P-CaCl₂ en de grondwatertrap (gemiddeld hoogste grondwaterstand ${formatNumberNl(psd.threshold.ghg)} cm): milieugrens ${formatNumberNl(psd.threshold.psd_env)} %, begrensd op de PSD bij het landbouwkundige streefniveau (${formatNumberNl(psd.threshold.psd_agronomic)} %).`
+                  ? `Per perceel berekend uit P-CaCl₂ en de grondwatertrap (gemiddeld hoogste grondwaterstand ${formatNumberNl(psd.threshold.ghg)} cm): milieugrens ${formatNumberNl(psd.threshold.psd_env)} %.`
                   : "Geen P-CaCl₂ bekend: de algemene grens van 25 % is gebruikt."}
               </Detail>
               <Detail title="Bronnen">

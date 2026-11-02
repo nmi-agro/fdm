@@ -8,7 +8,7 @@ const project = (
   isGrassland = false,
 ) => {
   const saturation = calculatePhosphateSaturation(soil, isGrassland)
-  const threshold = calculatePhosphateSaturationThreshold(saturation, soil, isGrassland)
+  const threshold = calculatePhosphateSaturationThreshold(saturation, soil)
   return calculatePhosphateProjection(balance, saturation, threshold, soil, isGrassland)
 }
 

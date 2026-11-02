@@ -251,11 +251,7 @@ export function calculatePhosphateBalanceField(
   const supply = fertilizers.total.add(mineralization.total).add(deposition.total)
   const balance = supply.add(removal)
 
-  const threshold = calculatePhosphateSaturationThreshold(
-    saturation,
-    fieldInput.soilAnalyses,
-    isGrassland,
-  )
+  const threshold = calculatePhosphateSaturationThreshold(saturation, fieldInput.soilAnalyses)
   const leaching = calculatePhosphateLeaching(balance, saturation, threshold)
 
   const years = Decimal.max(yearsInTimeframe(timeFrame), 1 / 365)

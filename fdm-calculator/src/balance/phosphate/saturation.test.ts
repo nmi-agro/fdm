@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { phosphateSoilTypeParameters } from "./alpha-max"
-import {
-  calculatePhosphateSaturation,
-  calculatePhosphateSaturationThreshold,
-  estimatePsdFromPAl,
-} from "./saturation"
+import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 
 describe("calculatePhosphateSaturation", () => {
   it("should calculate the PSD from the oxalate data with alpha_max 0.5 and no range", () => {
@@ -53,13 +48,11 @@ describe("calculatePhosphateSaturation", () => {
     expect(result.a_p_ox).toBeCloseTo(0.3 * 40)
   })
 
-  it("should estimate an indicative PSD from P-AL with the regression error as range", () => {
+  it("should not estimate the PSD from P-AL", () => {
     const result = calculatePhosphateSaturation([{ a_p_al: 40, b_soiltype_agr: "dekzand" }], false)
-    const defaults = phosphateSoilTypeParameters.dekzand
-    const psc = 0.5 * (defaults.a_fe_ox_default[1] + defaults.a_al_ox_default[1])
-    expect(result.source).toBe("estimated_from_p_al")
-    expect(result.psd?.value).toBeCloseTo(estimatePsdFromPAl(40, psc))
-    expect(result.psd?.max).toBeCloseTo((result.psd?.value ?? 0) + 10.1)
+    expect(result.source).toBe("missing")
+    expect(result.psd).toBeNull()
+    expect(result.a_p_al).toBe(40)
   })
 
   it("should calculate the PSD on calcareous sand but add a warning", () => {
@@ -93,20 +86,20 @@ describe("calculatePhosphateSaturationThreshold", () => {
 
   it("should calculate the environmental threshold of van Doorn (Eq. 5.5) for a wet sandy field", () => {
     const saturation = calculatePhosphateSaturation(soil, false)
-    const threshold = calculatePhosphateSaturationThreshold(saturation, soil, false)
+    const threshold = calculatePhosphateSaturationThreshold(saturation, soil)
     expect(threshold.source).toBe("field")
     expect(threshold.ghg).toBe(15)
     expect(threshold.c_p_env).toBeCloseTo(0.1)
     // PSD about 37%, P-CaCl2 3 mg/kg: KL about 20 m³/mol, threshold about 17%
     expect(threshold.psd_env).toBeGreaterThan(15)
     expect(threshold.psd_env).toBeLessThan(19)
-    expect(threshold.value).toBe(Math.min(threshold.psd_env ?? 0, threshold.psd_agronomic ?? 100))
+    expect(threshold.value).toBe(threshold.psd_env)
   })
 
   it("should give a higher threshold with a deeper groundwater level", () => {
     const dry = [{ ...soil[0], b_gwl_class: "VII" as const }]
     const saturation = calculatePhosphateSaturation(dry, false)
-    const threshold = calculatePhosphateSaturationThreshold(saturation, dry, false)
+    const threshold = calculatePhosphateSaturationThreshold(saturation, dry)
     expect(threshold.c_p_env).toBeCloseTo(0.3)
     expect(threshold.psd_env).toBeGreaterThan(30)
   })
@@ -114,14 +107,8 @@ describe("calculatePhosphateSaturationThreshold", () => {
   it("should fall back to 25% without P-CaCl2", () => {
     const noCc = [{ ...soil[0], a_p_cc: undefined }]
     const saturation = calculatePhosphateSaturation(noCc, false)
-    const threshold = calculatePhosphateSaturationThreshold(saturation, noCc, false)
+    const threshold = calculatePhosphateSaturationThreshold(saturation, noCc)
     expect(threshold.source).toBe("default_25")
     expect(threshold.value).toBe(25)
-  })
-})
-
-describe("estimatePsdFromPAl", () => {
-  it("should reproduce the example of van Doorn (2026): P-AL 30 and PSC 80 give about 25%", () => {
-    expect(estimatePsdFromPAl(30, 80)).toBeCloseTo(25.2, 0)
   })
 })

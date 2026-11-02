@@ -24,9 +24,10 @@ const LEACHING_FRACTION: Record<PhosphateLeaching["risk"], number> = {
 const C_P_REFERENCE = 0.2
 
 /**
- * Calculates the phosphate leaching and runoff from the surplus, in the same way as nitrate leaching
- * in the nitrogen balance: only when the balance is positive, as surplus × factor, and **not**
- * subtracted from the balance (shown separately).
+ * Calculates the phosphate leaching (dissolved P to groundwater and drains) from the surplus, in the
+ * same way as nitrate leaching in the nitrogen balance (issue FDM-305, decision 4): only when the
+ * balance is positive, as surplus × factor, and **not** subtracted from the balance (shown
+ * separately). Surface runoff and erosion (particulate P) are not estimated.
  *
  * Factor = fraction by saturation (PSD ÷ threshold: ≤ 1 low 0.01, ≤ 2 medium 0.03, > 2 high 0.06)
  * × groundwater factor (0.2 ÷ critical concentration of the threshold: 2 at a mean highest

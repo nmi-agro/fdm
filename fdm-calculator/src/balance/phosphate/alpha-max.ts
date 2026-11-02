@@ -33,8 +33,6 @@ export interface PhosphateSoilTypeParameters {
   a_al_ox_default: [number, number]
   /** Fallback bulk density (g/cm³) */
   a_density_sa_default: number
-  /** Agronomic P-AL target for grassland (mg P2O5 / 100 g); arable land uses 40 for all soils */
-  p_al_target_grassland: number
   /** Short explanation for the discussion and the UI; shown as a warning when relevant */
   note: string | null
 }
@@ -70,7 +68,6 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
     ...MINERAL,
     ...SAND,
     p_al_buffer: [65, 60, 70],
-    p_al_target_grassland: 31,
     note: null,
   },
   duinzand: {
@@ -78,42 +75,36 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
     ...SAND,
     psd_valid: false,
     p_al_buffer: [65, 60, 70],
-    p_al_target_grassland: 31,
     note: "Kalkrijk zand: fosfaat is vooral aan kalk gebonden, de fosfaatverzadigingsgraad is hier weinig betrouwbaar.",
   },
   dalgrond: {
     ...MINERAL,
     ...PEATY,
     p_al_buffer: [65, 60, 70],
-    p_al_target_grassland: 31,
     note: "Dalgrond (voormalig veen): oxalaat lost ook organisch gebonden ijzer en aluminium op en de kaartschatting van Fe-ox en Al-ox is hier het minst zeker; de fosfaatverzadigingsgraad is waarschijnlijk onderschat.",
   },
   moerige_klei: {
     ...MINERAL,
     ...PEATY,
     p_al_buffer: [50, 50, 50],
-    p_al_target_grassland: 31,
     note: "Moerige klei: oxalaat lost ook organisch gebonden ijzer en aluminium op; de fosfaatverzadigingsgraad is waarschijnlijk onderschat.",
   },
   zeeklei: {
     ...MINERAL,
     ...CLAY,
     p_al_buffer: [50, 50, 50],
-    p_al_target_grassland: 31,
     note: "Zeeklei is vaak kalkrijk: de oxalaatextractie lost dan calciumfosfaat op, de fosfaatverzadigingsgraad kan overschat zijn.",
   },
   rivierklei: {
     ...MINERAL,
     ...CLAY,
     p_al_buffer: [50, 50, 50],
-    p_al_target_grassland: 26,
     note: null,
   },
   maasklei: {
     ...MINERAL,
     ...CLAY,
     p_al_buffer: [50, 50, 50],
-    p_al_target_grassland: 26,
     note: null,
   },
   loess: {
@@ -122,7 +113,6 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
     a_fe_ox_default: [47, 46],
     a_al_ox_default: [37, 37],
     a_density_sa_default: 1.35,
-    p_al_target_grassland: 22,
     note: null,
   },
   veen: {
@@ -134,7 +124,6 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
     a_fe_ox_default: [176, 183],
     a_al_ox_default: [70, 70],
     a_density_sa_default: 0.6,
-    p_al_target_grassland: 31,
     note: "Veen: oxalaat lost ook organisch gebonden ijzer en aluminium op, de fosfaatverzadigingsgraad is waarschijnlijk onderschat.",
   },
 }

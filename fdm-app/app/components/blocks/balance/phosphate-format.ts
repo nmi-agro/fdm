@@ -124,8 +124,6 @@ export function formatSaturationSource(source: PhosphateSaturationSource): strin
       return "Berekend uit P-ox, Fe-ox en Al-ox"
     case "a_p_sg":
       return "Fosfaatverzadigingsgraad uit de bodemanalyse"
-    case "estimated_from_p_al":
-      return "Geschat uit P-AL"
     case "missing":
       return "Onvoldoende gegevens"
   }

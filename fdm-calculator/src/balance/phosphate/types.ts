@@ -85,8 +85,6 @@ export type PhosphateSaturationSource =
   | "oxalate"
   /** Taken from a_p_sg; PSC from the oxalate data or the soil-type defaults */
   | "a_p_sg"
-  /** Estimated from P-AL and the PSC (van Doorn 2026, Fig. S5.7): indicative only */
-  | "estimated_from_p_al"
   /** Not enough data */
   | "missing"
 
@@ -102,7 +100,7 @@ export type PhosphateSaturation = {
   alpha_max: number
   /** Phosphorus sorption capacity (mmol / kg) */
   psc: number | null
-  /** Phosphorus saturation degree (%); a range only when estimated from P-AL */
+  /** Phosphorus saturation degree (%) */
   psd: ValueWithRange | null
   /** Oxalate-extractable P (mmol / kg) */
   a_p_ox: number | null
@@ -115,15 +113,13 @@ export type PhosphateSaturation = {
   warnings: string[]
 }
 
-/** PSD threshold of the topsoil (van Doorn 2026, Eq. 5.5), capped at the agronomic target PSD. */
+/** Environmental PSD threshold of the topsoil (van Doorn 2026, Eq. 5.5). */
 export type PhosphateSaturationThreshold = {
   /** Threshold used (%) */
   value: number | null
   source: "field" | "default_25"
   /** Environmental PSD threshold (%) */
   psd_env: number | null
-  /** PSD at the agronomic P-AL target (%) */
-  psd_agronomic: number | null
   /** Mean highest groundwater level (cm below surface) derived from b_gwl_class */
   ghg: number | null
   /** Critical ortho-P concentration (mg P / L) */
@@ -193,7 +189,7 @@ export type PhosphateSupplyMineralization = {
 export type PhosphateSupplyDeposition = { total: number }
 
 /**
- * Phosphate leaching and runoff (kg P2O5 / ha for the timeframe, negative): estimated from the
+ * Phosphate leaching (kg P2O5 / ha for the timeframe, negative; runoff and erosion not included): estimated from the
  * surplus and not part of the balance.
  */
 export type PhosphateLeaching = {
@@ -231,7 +227,7 @@ export type PhosphateBalanceField = {
     harvests: { total: number; harvests: PhosphateBalanceItem[] }
     residues: { total: number; cultivations: PhosphateBalanceItem[] }
   }
-  /** Leaching and runoff from the surplus; not included in `balance` */
+  /** Leaching from the surplus; not included in `balance` */
   leaching: PhosphateLeaching
   frame: PhosphateFrame
   saturation: PhosphateSaturation
@@ -254,7 +250,7 @@ export type PhosphateBalance = {
   balance: number
   supply: number
   removal: number
-  /** Leaching and runoff (not included in `balance`) */
+  /** Leaching (not included in `balance`) */
   leaching: number
   /** Area-weighted averages per ha of the terms of the balance (kg P2O5 / ha) */
   terms: {
