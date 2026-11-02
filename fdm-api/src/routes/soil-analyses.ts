@@ -14,6 +14,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, FieldIdSchema, SoilAnalysisIdSchema, soilParameterShape } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -52,62 +53,50 @@ export interface SoilAnalysisServices {
 
 const SoilAnalysisSchema = z
   .object({
-    a_id: z.string(),
+    a_id: SoilAnalysisIdSchema,
     a_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    a_source: z.string(),
-    b_id_sampling: z.string(),
-    a_depth_upper: z.number(),
-    a_depth_lower: z.number(),
+    a_source: z.string().describe("Laboratory or dataset that produced the soil analysis."),
+    b_id_sampling: z.string().describe("Unique identifier of the soil sampling event."),
+    a_depth_upper: z
+      .number()
+      .describe("Upper boundary of the sampled soil layer, measured from the surface (cm)."),
+    a_depth_lower: z
+      .number()
+      .describe("Lower boundary of the sampled soil layer, measured from the surface (cm)."),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    a_al_ox: z.number().nullable(),
-    a_c_of: z.number().nullable(),
-    a_ca_co: z.number().nullable(),
-    a_ca_co_po: z.number().nullable(),
-    a_caco3_if: z.number().nullable(),
-    a_cec_co: z.number().nullable(),
-    a_clay_mi: z.number().nullable(),
-    a_cn_fr: z.number().nullable(),
-    a_com_fr: z.number().nullable(),
-    a_cu_cc: z.number().nullable(),
-    a_density_sa: z.number().nullable(),
-    a_fe_ox: z.number().nullable(),
-    a_k_cc: z.number().nullable(),
-    a_k_co: z.number().nullable(),
-    a_k_co_po: z.number().nullable(),
-    a_mg_cc: z.number().nullable(),
-    a_mg_co: z.number().nullable(),
-    a_mg_co_po: z.number().nullable(),
-    a_n_pmn: z.number().nullable(),
-    a_n_rt: z.number().nullable(),
-    a_nh4_cc: z.number().nullable(),
-    a_nmin_cc: z.number().nullable(),
-    a_no3_cc: z.number().nullable(),
-    a_p_al: z.number().nullable(),
-    a_p_cc: z.number().nullable(),
-    a_p_ox: z.number().nullable(),
-    a_p_rt: z.number().nullable(),
-    a_p_sg: z.number().nullable(),
-    a_p_wa: z.number().nullable(),
-    a_ph_cc: z.number().nullable(),
-    a_s_rt: z.number().nullable(),
-    a_sand_mi: z.number().nullable(),
-    a_silt_mi: z.number().nullable(),
-    a_som_loi: z.number().nullable(),
-    a_zn_cc: z.number().nullable(),
-    b_gwl_class: z.string().nullable(),
-    b_soiltype_agr: z.string().nullable(),
+    ...soilParameterShape("nullable"),
   })
   .openapi("SoilAnalysis")
 
 const CurrentSoilDataItemSchema = z
   .object({
-    parameter: z.string(),
-    value: z.union([z.number(), z.string(), z.null()]),
-    a_id: z.string(),
+    parameter: z
+      .string()
+      .describe(
+        "Code of the soil parameter, e.g. 'a_som_loi'. See the SoilAnalysis schema for the meaning and unit of each parameter.",
+      ),
+    value: z
+      .union([z.number(), z.string(), z.null()])
+      .describe(
+        "Most recent value of the parameter, in the unit of that parameter. `null` when no analysis has a value.",
+      ),
+    a_id: SoilAnalysisIdSchema.describe(
+      "Unique identifier of the soil analysis the value comes from.",
+    ),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    a_depth_upper: z.number().nullable(),
-    a_depth_lower: z.number().nullable(),
-    a_source: z.string(),
+    a_depth_upper: z
+      .number()
+      .nullable()
+      .describe(
+        "Upper boundary of the sampled soil layer, measured from the surface (cm). `null` when unknown.",
+      ),
+    a_depth_lower: z
+      .number()
+      .nullable()
+      .describe(
+        "Lower boundary of the sampled soil layer, measured from the surface (cm). `null` when unknown.",
+      ),
+    a_source: z.string().describe("Laboratory or dataset that produced the soil analysis."),
   })
   .openapi("CurrentSoilDataItem")
 
@@ -138,7 +127,7 @@ const listSoilAnalysesRoute = createRoute({
   description: "Returns all soil analyses for the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -162,7 +151,7 @@ const listFarmSoilAnalysesRoute = createRoute({
   description: "Returns all soil analyses across all fields on the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -186,7 +175,7 @@ const currentSoilDataRoute = createRoute({
   description:
     "Returns the most recent known value for each soil parameter on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id: z.string() }) },
+  request: { params: z.object({ b_id: FieldIdSchema }) },
   responses: {
     200: {
       description: "Current soil data for the field.",
@@ -208,7 +197,7 @@ const createSoilAnalysisRoute = createRoute({
   description: "Creates a new soil analysis on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateSoilAnalysisBodySchema },
@@ -232,7 +221,7 @@ const getSoilAnalysisRoute = createRoute({
   summary: "Get a soil analysis",
   description: "Returns a single soil analysis by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ a_id: z.string() }) },
+  request: { params: z.object({ a_id: SoilAnalysisIdSchema }) },
   responses: {
     200: {
       description: "The requested soil analysis.",
@@ -250,7 +239,7 @@ const updateSoilAnalysisRoute = createRoute({
   description: "Partially updates measurement data on an existing soil analysis.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ a_id: z.string() }),
+    params: z.object({ a_id: SoilAnalysisIdSchema }),
     body: {
       content: {
         "application/json": { schema: UpdateSoilAnalysisBodySchema },
@@ -274,7 +263,7 @@ const deleteSoilAnalysisRoute = createRoute({
   summary: "Delete a soil analysis",
   description: "Permanently deletes a soil analysis.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ a_id: z.string() }) },
+  request: { params: z.object({ a_id: SoilAnalysisIdSchema }) },
   responses: {
     204: { description: "Soil analysis deleted." },
     ...commonErrorResponses,

@@ -2,6 +2,7 @@ import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type { addDerogation, FdmType, listDerogations, removeDerogation } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
+import { DerogationIdSchema, FarmIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -22,9 +23,12 @@ export interface DerogationServices {
 
 const DerogationSchema = z
   .object({
-    b_id_derogation: z.string(),
-    b_id_farm: z.string(),
-    b_derogation_year: z.number().int(),
+    b_id_derogation: DerogationIdSchema,
+    b_id_farm: FarmIdSchema,
+    b_derogation_year: z
+      .number()
+      .int()
+      .describe("Calendar year for which the farm is granted derogation, for example 2025."),
   })
   .openapi("Derogation")
 
@@ -42,7 +46,7 @@ const listDerogationsRoute = createRoute({
   description: "Returns all derogations for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -66,7 +70,7 @@ const createDerogationRoute = createRoute({
   description: "Creates a new derogation on the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateDerogationBodySchema },
@@ -90,7 +94,7 @@ const deleteDerogationRoute = createRoute({
   summary: "Delete a derogation",
   description: "Permanently deletes a derogation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_derogation: z.string() }) },
+  request: { params: z.object({ b_id_derogation: DerogationIdSchema }) },
   responses: {
     204: { description: "Derogation deleted." },
     ...commonErrorResponses,

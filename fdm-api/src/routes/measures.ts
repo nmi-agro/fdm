@@ -11,6 +11,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FieldIdSchema, MeasureIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -36,16 +37,24 @@ export interface MeasureServices {
 
 const MeasureSchema = z
   .object({
-    b_id_measure: z.string(),
-    m_id: z.string(),
-    b_id: z.string(),
+    b_id_measure: MeasureIdSchema,
+    m_id: z.string().describe("Identifier of the measure in the measure catalogue."),
+    b_id: FieldIdSchema.describe("Unique identifier of the field the measure is applied on."),
     m_start: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     m_end: DateStringSchema.nullable().describe(
       "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format.",
     ),
-    m_name: z.string(),
-    m_summary: z.string().nullable(),
-    m_conflicts: z.array(z.string()).nullable(),
+    m_name: z.string().describe("Name of the measure."),
+    m_summary: z
+      .string()
+      .nullable()
+      .describe("Short summary of the measure and its effect. `null` when not available."),
+    m_conflicts: z
+      .array(z.string())
+      .nullable()
+      .describe(
+        "Catalogue identifiers of measures that cannot be combined with this measure. `null` when none are known.",
+      ),
   })
   .openapi("Measure")
 
@@ -80,7 +89,7 @@ const listMeasuresRoute = createRoute({
   description: "Returns all measures for the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -102,7 +111,7 @@ const createMeasureRoute = createRoute({
   description: "Creates a new measure on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateMeasureBodySchema },
@@ -126,7 +135,7 @@ const getMeasureRoute = createRoute({
   summary: "Get a measure",
   description: "Returns a single measure by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_measure: z.string() }) },
+  request: { params: z.object({ b_id_measure: MeasureIdSchema }) },
   responses: {
     200: {
       description: "The requested measure.",
@@ -144,7 +153,7 @@ const updateMeasureRoute = createRoute({
   description: "Partially updates an existing measure.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_measure: z.string() }),
+    params: z.object({ b_id_measure: MeasureIdSchema }),
     body: {
       content: {
         "application/json": { schema: UpdateMeasureBodySchema },
@@ -168,7 +177,7 @@ const deleteMeasureRoute = createRoute({
   summary: "Delete a measure",
   description: "Permanently deletes a measure.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_measure: z.string() }) },
+  request: { params: z.object({ b_id_measure: MeasureIdSchema }) },
   responses: {
     204: { description: "Measure deleted." },
     ...commonErrorResponses,
