@@ -1,5 +1,4 @@
-import type { Readable } from "stream"
-import { SaveData, Storage } from "@google-cloud/storage"
+import { ApiError, SaveData, Storage } from "@google-cloud/storage"
 
 let _storage: Storage | null = null
 
@@ -205,29 +204,55 @@ export async function uploadObject(
   })
 }
 
+const TRANSIENT_NETWORK_ERROR_CODES = new Set(["ECONNRESET", "ETIMEDOUT", "EPIPE", "ECONNABORTED"])
+
 /**
- * Opens a readable stream for a GCS object, along with its content type and
- * size (when known). Used to proxy file contents through the app server
- * instead of redirecting the client to a signed GCS URL, so downloads and
- * inline views stay same-origin.
+ * Returns true when an error is a transient network failure (for example a
+ * reused keep-alive socket that the server already closed), which is worth
+ * retrying. HTTP errors returned by GCS (`ApiError`, such as 403 or 404) are
+ * never treated as transient.
+ *
+ * @param error - The error thrown by the GCS client
+ * @returns Whether a retry may succeed
+ */
+function isTransientNetworkError(error: unknown): boolean {
+  if (error instanceof ApiError || !(error instanceof Error)) return false
+  const code = (error as NodeJS.ErrnoException).code
+  if (code && TRANSIENT_NETWORK_ERROR_CODES.has(code)) return true
+  return /socket hang up/i.test(error.message)
+}
+
+/**
+ * Downloads a GCS object into memory, along with its content type. Used to
+ * proxy file contents through the app server instead of redirecting the
+ * client to a signed GCS URL, so downloads and inline views stay same-origin.
+ *
+ * The object is buffered rather than streamed so that any storage error is
+ * raised while the caller can still handle it (e.g. return a 404 or a proper
+ * error response), instead of aborting a response that has already started.
+ * Transient network failures are retried once. Only use this for small
+ * objects; uploads are capped at 10 MB.
  *
  * @param objectKey - The GCS object path
- * @returns The object's readable stream plus content type / size metadata
+ * @returns The object's contents plus its content type, when known
  */
-export async function getObjectStream(objectKey: string): Promise<{
-  stream: Readable
+export async function downloadObject(objectKey: string): Promise<{
+  buffer: Buffer
   contentType?: string
-  size?: number
 }> {
   const storage = getStorage()
   const bucket = getBucketName()
   const file = storage.bucket(bucket).file(objectKey)
 
-  const [metadata] = await file.getMetadata()
+  const attempt = async () => {
+    const [[metadata], [buffer]] = await Promise.all([file.getMetadata(), file.download()])
+    return { buffer, contentType: metadata.contentType ?? undefined }
+  }
 
-  return {
-    stream: file.createReadStream(),
-    contentType: metadata.contentType ?? undefined,
-    size: metadata.size !== undefined ? Number(metadata.size) : undefined,
+  try {
+    return await attempt()
+  } catch (error) {
+    if (!isTransientNetworkError(error)) throw error
+    return await attempt()
   }
 }
