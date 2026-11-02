@@ -1,10 +1,11 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { AlertCircle, TriangleAlert } from "lucide-react"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useState } from "react"
 import { NavLink, useActionData } from "react-router"
 import type { SoilAnalysisReview } from "~/lib/soil-upload.server"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
+import { getObjectUrl } from "~/lib/object-url"
 import { SoilAnalysisForm } from "./form"
 import { SoilAnalysisUploadForm, SoilAnalysisUploadSteps } from "./form-upload"
 import { SAMPLING_PARAMETERS } from "./parameter-groups"
@@ -104,8 +105,7 @@ function SoilAnalysisReviewStep({
   onChooseOtherFile: () => void
 }) {
   // A local URL for the chosen file, so the PDF can be shown without uploading it again
-  const pdfUrl = useMemo(() => URL.createObjectURL(file), [file])
-  useEffect(() => () => URL.revokeObjectURL(pdfUrl), [pdfUrl])
+  const pdfUrl = getObjectUrl(file)
 
   // The sampling parameters and every parameter that was read from the PDF
   const parameters = soilParameterDescription.filter(

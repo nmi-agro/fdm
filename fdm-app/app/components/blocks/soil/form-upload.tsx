@@ -27,17 +27,24 @@ const SUPPORTED_LABS = [
 ]
 
 /** The steps of adding a soil analysis from a PDF. */
-const UPLOAD_STEPS = ["PDF kiezen", "Uitlezen", "Controleren en opslaan"] as const
+const UPLOAD_STEPS: readonly string[] = ["PDF kiezen", "Uitlezen", "Controleren en opslaan"]
 
 /**
  * Shows the steps of adding a soil analysis from a PDF and which one is current.
  *
- * @param current - Index of the current step in {@link UPLOAD_STEPS}.
+ * @param current - Index of the current step.
+ * @param steps - The names of the steps; defaults to the steps of adding one PDF.
  */
-export function SoilAnalysisUploadSteps({ current }: { current: 0 | 1 | 2 }) {
+export function SoilAnalysisUploadSteps({
+  current,
+  steps = UPLOAD_STEPS,
+}: {
+  current: number
+  steps?: readonly string[]
+}) {
   return (
     <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-label="Stappen">
-      {UPLOAD_STEPS.map((step, index) => (
+      {steps.map((step, index) => (
         <li key={step} className="flex items-center gap-2">
           {index > 0 && <ChevronRight aria-hidden className="text-muted-foreground size-3.5" />}
           <span
@@ -107,6 +114,7 @@ export function SoilAnalysisUploadForm({
                 <FormItem>
                   <FormLabel className="sr-only">PDF-rapport van het lab</FormLabel>
                   <Dropzone
+                    label="Kies het PDF-rapport van het lab of sleep het hierheen"
                     ref={ref}
                     name={name}
                     value={dropzoneValue}

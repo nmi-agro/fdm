@@ -281,7 +281,7 @@ function parseSubmittedReview(formData: FormData): SoilAnalysisReview | null {
  * Whether a key read from a PDF is a soil parameter that may be saved as read. Only analysis values
  * (`a_` prefix) qualify; identifiers and the file path never come from the report.
  */
-function isExtraSoilParameter(key: string): boolean {
+export function isExtraSoilParameter(key: string): boolean {
   return /^a_[a-z0-9_]+$/.test(key) && key !== "a_id" && key !== "a_file_path" && key !== "a_source"
 }
 

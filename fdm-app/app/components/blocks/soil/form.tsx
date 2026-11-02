@@ -56,6 +56,8 @@ type ParameterDescription = SoilParameterDescription[number]
  * @param submitData - Extra values to submit with the form, such as an uploaded file.
  * @param encType - Encoding of the submission; use `multipart/form-data` when submitting a file.
  * @param secondaryAction - An extra action next to the save button, such as cancel.
+ * @param onValidSubmit - When given, valid values are passed to this function instead of being
+ * submitted to the route action, for example to edit a row before a bulk save.
  * @param fromReport - Whether the values were read from a lab report. Values outside their usual
  * range are then allowed and marked with a warning, instead of blocking the save.
  */
@@ -70,6 +72,7 @@ export function SoilAnalysisForm(props: {
   encType?: "multipart/form-data" | "application/x-www-form-urlencoded"
   secondaryAction?: ReactNode
   fromReport?: boolean
+  onValidSubmit?: (values: Record<string, unknown>) => void
 }) {
   const {
     soilAnalysis,
@@ -81,6 +84,7 @@ export function SoilAnalysisForm(props: {
     encType,
     secondaryAction,
     fromReport = false,
+    onValidSubmit,
   } = props
 
   // The crop year from the URL, so that a new analysis defaults to a date within that year
@@ -102,7 +106,9 @@ export function SoilAnalysisForm(props: {
     if (defaultValue === undefined && x.type === "text") {
       defaultValue = ""
     }
-    if (defaultValue === undefined && x.type === "date" && !soilAnalysis) {
+    // A new analysis gets a date in the selected year; values read from a report keep a missing
+    // date empty, so that it is clear it still has to be filled in
+    if (defaultValue === undefined && x.type === "date" && !soilAnalysis && !initialValues) {
       defaultValue = getContextualDate(calendar, 2, 1).toISOString()
     }
     if (defaultValue instanceof Date) {
@@ -121,6 +127,9 @@ export function SoilAnalysisForm(props: {
     defaultValues: defaultValues as Partial<SoilFormValues>,
     submitData,
     submitConfig: encType ? { encType } : undefined,
+    submitHandlers: onValidSubmit
+      ? { onValid: (values) => onValidSubmit(values as Record<string, unknown>) }
+      : undefined,
   })
 
   const formIsSubmitSuccessful = form.formState.isSubmitSuccessful
@@ -204,8 +213,12 @@ export function SoilAnalysisForm(props: {
                       : `${errorSummary.length} velden moeten nog worden aangepast`}
                   </span>
                 ) : form.formState.isDirty ? (
-                  "Je wijzigingen zijn nog niet opgeslagen."
-                ) : soilAnalysis ? (
+                  onValidSubmit ? (
+                    "Je wijzigingen zijn nog niet toegepast."
+                  ) : (
+                    "Je wijzigingen zijn nog niet opgeslagen."
+                  )
+                ) : soilAnalysis || onValidSubmit ? (
                   "Nog geen wijzigingen."
                 ) : (
                   "De bodemanalyse wordt vastgelegd als je opslaat."
