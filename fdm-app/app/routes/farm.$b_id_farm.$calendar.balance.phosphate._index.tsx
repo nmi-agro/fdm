@@ -6,6 +6,7 @@ import {
   ArrowRightLeft,
   ArrowUpFromLine,
   CircleAlert,
+  Droplets,
   TriangleAlert,
 } from "lucide-react"
 import { Suspense, use, useEffect, useState } from "react"
@@ -214,7 +215,7 @@ function FarmBalancePhosphateOverview({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Saldo (Bedrijf)</CardTitle>
@@ -251,21 +252,32 @@ function FarmBalancePhosphateOverview({
             <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Uitspoeling</CardTitle>
+            <Droplets className="text-muted-foreground text-xs" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatNumberNl(phosphateBalanceResult.leaching, 1)}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {PHOSPHATE_UNIT}, schatting, niet in saldo
+            </p>
+          </CardContent>
+        </Card>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De fosfaatbalans voor alle percelen van {farm.b_name_farm}: aanvoer met bemesting min
-              afvoer met oogst en gewasresten.
+              De fosfaatbalans voor alle percelen van {farm.b_name_farm}: aanvoer met bemesting,
+              mineralisatie en depositie min afvoer met oogst en gewasresten.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pl-2">
-            <PhosphateBalanceChart
-              supply={phosphateBalanceResult.supply}
-              removal={phosphateBalanceResult.removal}
-            />
+            <PhosphateBalanceChart type="farm" balance={phosphateBalanceResult} />
             {incompleteCount > 0 ? (
               <p className="text-muted-foreground flex items-center gap-1.5 pl-4 text-sm">
                 <TriangleAlert className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
@@ -293,10 +305,10 @@ function FarmBalancePhosphateOverview({
                     {fieldResult.balance ? (
                       <PhosphateStatusIcon
                         status={getPhosphateTrendStatus(fieldResult.balance)}
-                        className="h-8 w-8"
+                        className="h-6 w-6"
                       />
                     ) : (
-                      <CircleAlert className="h-8 w-8 rounded-full bg-orange-100 p-0 text-orange-500" />
+                      <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
                     )}
 
                     <div className="ml-4 space-y-1">

@@ -164,8 +164,8 @@ export function PhosphateStockCard({ balance }: { balance: PhosphateBalanceField
                 {formatNumberNl(projection.depth.value * 100)} cm.
               </Detail>
               <Detail title="Berekening">
-                Verandering P-AL per jaar = (saldo − vastlegging) ÷ buffer. Vastlegging:{" "}
-                {formatNumberNl(projection.fixation)} kg P₂O₅/ha/jaar. Buffer:{" "}
+                Verandering P-AL per jaar = (saldo − uitspoeling − vastlegging) ÷ buffer.
+                Vastlegging: {formatNumberNl(projection.fixation)} kg P₂O₅/ha/jaar. Buffer:{" "}
                 {formatNumberNl(pAl.buffer.value)} kg P₂O₅/ha per eenheid P-AL voor deze grondsoort
                 en laagdikte
                 {pAl.buffer.min !== pAl.buffer.max
@@ -265,7 +265,7 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
               </Detail>
               <Detail title="Berekening">
                 PSC = 0,5 × (Fe-ox + Al-ox); PSD = P-ox ÷ PSC × 100. Verandering per jaar uit (saldo
-                − vastlegging) verdeeld over de laag van{" "}
+                − uitspoeling − vastlegging) verdeeld over de laag van{" "}
                 {formatNumberNl(projection.depth.value * 100)} cm met dichtheid{" "}
                 {formatNumberNl(projection.a_density_sa.value, 2)} g/cm³.
               </Detail>

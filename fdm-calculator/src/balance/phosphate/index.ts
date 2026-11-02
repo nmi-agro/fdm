@@ -13,6 +13,13 @@ export {
 } from "./field"
 export type { PhosphateBalanceFieldCalculationInput } from "./field"
 export { collectInputForPhosphateBalance } from "./input"
+export { calculatePhosphateLeaching } from "./leaching"
+export {
+  calculatePhosphateDeposition,
+  calculatePhosphateMineralization,
+  getPeatGroundwaterFactor,
+  PHOSPHATE_DEPOSITION_PER_YEAR,
+} from "./mineralization"
 export { calculatePhosphateProjection, classifyYears } from "./projection"
 export {
   calculatePhosphateSaturation,

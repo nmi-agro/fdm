@@ -25,6 +25,7 @@ export type PhosphateSoilAnalysis = Pick<
   | "a_p_al" // mg P2O5 / 100 g
   | "a_p_cc" // mg P / kg
   | "a_density_sa" // g / cm³
+  | "a_som_loi" // %
   | "b_soiltype_agr"
   | "b_gwl_class"
 >
@@ -143,7 +144,7 @@ export type PhosphateFrame = {
 
 /** Projection of the soil P status at the current balance. */
 export type PhosphateProjection = {
-  /** Balance per year minus fixation (kg P2O5 / ha / year) */
+  /** Balance per year plus leaching (negative) minus fixation (kg P2O5 / ha / year) */
   balance_effective_per_year: number
   fixation: number
   /** Sampling depth used (m) and where it comes from */
@@ -171,6 +172,40 @@ export type PhosphateProjection = {
   } | null
 }
 
+/** Phosphate supply by the fertilizers of one type (kg P2O5 / ha for the timeframe). */
+export type PhosphateSupplyFertilizerType = {
+  total: number
+  applications: PhosphateBalanceItem[]
+}
+
+/** Phosphate supply by mineralisation of soil organic matter (kg P2O5 / ha for the timeframe). */
+export type PhosphateSupplyMineralization = {
+  total: number
+  /** `mineral`: organic matter degradation; `peat`: peat oxidation by groundwater class; `none`: no data */
+  track: "mineral" | "peat" | "none"
+  /** Missing data or effects that are not calculated (Dutch, for display) */
+  warnings: string[]
+}
+
+/** Atmospheric phosphate deposition (kg P2O5 / ha for the timeframe). */
+export type PhosphateSupplyDeposition = { total: number }
+
+/**
+ * Phosphate leaching and runoff (kg P2O5 / ha for the timeframe, negative): estimated from the
+ * surplus and not part of the balance.
+ */
+export type PhosphateLeaching = {
+  total: number
+  /** Saturation class: PSD relative to the field threshold */
+  risk: "low" | "medium" | "high" | "unknown"
+  /** Fraction of the surplus for the saturation class */
+  fraction: number
+  /** Groundwater factor (shallow groundwater > 1) */
+  groundwater_factor: number
+  /** fraction × groundwater_factor */
+  factor: number
+}
+
 /** Phosphate balance of one field (kg P2O5 / ha for the timeframe). */
 export type PhosphateBalanceField = {
   b_id: string
@@ -178,20 +213,24 @@ export type PhosphateBalanceField = {
   balance: number
   supply: {
     total: number
+    /** Per fertilizer type (`p_type`), with the applications of that type */
     fertilizers: {
       total: number
-      mineral: number
-      manure: number
-      compost: number
-      other: number
-      applications: PhosphateBalanceItem[]
+      mineral: PhosphateSupplyFertilizerType
+      manure: PhosphateSupplyFertilizerType
+      compost: PhosphateSupplyFertilizerType
+      other: PhosphateSupplyFertilizerType
     }
+    mineralization: PhosphateSupplyMineralization
+    deposition: PhosphateSupplyDeposition
   }
   removal: {
     total: number
     harvests: { total: number; harvests: PhosphateBalanceItem[] }
     residues: { total: number; cultivations: PhosphateBalanceItem[] }
   }
+  /** Leaching and runoff from the surplus; not included in `balance` */
+  leaching: PhosphateLeaching
   frame: PhosphateFrame
   saturation: PhosphateSaturation
   projection: PhosphateProjection | null
@@ -213,6 +252,20 @@ export type PhosphateBalance = {
   balance: number
   supply: number
   removal: number
+  /** Leaching and runoff (not included in `balance`) */
+  leaching: number
+  /** Area-weighted averages per ha of the terms of the balance (kg P2O5 / ha) */
+  terms: {
+    supply: {
+      mineral: number
+      manure: number
+      compost: number
+      other: number
+      mineralization: number
+      deposition: number
+    }
+    removal: { harvests: number; residues: number }
+  }
   fields: PhosphateBalanceFieldResult[]
   /** Whether the balance of one or more (non buffer strip) fields could not be calculated */
   hasErrors: boolean

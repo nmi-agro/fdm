@@ -88,17 +88,47 @@ describe("calculatePhosphateBalanceField", () => {
       timeFrame: input.timeFrame,
     })
     // 30 t manure × 1.4 + 50 kg TSP × 450 / 1000 = 42 + 22.5
-    expect(result.supply.fertilizers.manure).toBeCloseTo(42)
-    expect(result.supply.fertilizers.mineral).toBeCloseTo(22.5)
+    expect(result.supply.fertilizers.manure.total).toBeCloseTo(42)
+    expect(result.supply.fertilizers.mineral.total).toBeCloseTo(22.5)
+    expect(result.supply.fertilizers.manure.applications.map((a) => a.id)).toEqual(["a1"])
+    expect(result.supply.fertilizers.mineral.applications.map((a) => a.id)).toEqual(["a2"])
     // harvest: 10 000 kg DM × 4 g / kg (catalogue fallback) = 40
     expect(result.removal.harvests.total).toBeCloseTo(-40)
     // residues removed: 10 000 / 0.8 × 0.2 × 2 g / kg = 5
     expect(result.removal.residues.total).toBeCloseTo(-5)
-    expect(result.balance).toBeCloseTo(64.5 - 45)
+    // No organic matter content: no mineralisation; deposition 0.7 for one year
+    expect(result.supply.mineralization).toEqual({
+      total: 0,
+      track: "none",
+      warnings: ["Geen organische-stofgehalte bekend: de mineralisatie is op 0 gezet."],
+    })
+    expect(result.supply.deposition.total).toBeCloseTo(0.7)
+    expect(result.supply.total).toBeCloseTo(65.2)
+    expect(result.balance).toBeCloseTo(65.2 - 45)
     expect(result.saturation.source).toBe("oxalate")
     expect(result.projection?.depth.source).toBe("default_arable")
-    // Balance 19.5 (per 364 days, scaled to a year) minus fixation 20: slightly negative
-    expect(result.projection?.balance_effective_per_year).toBeCloseTo((19.5 * 365.25) / 364 - 20)
+    // PSD 12 / 32.5 = 37% > threshold 25% (≤ 2×): fraction 0.03; Gt unknown: factor 0.2 / 0.1 = 2
+    expect(result.leaching.risk).toBe("medium")
+    expect(result.leaching.factor).toBeCloseTo(0.06)
+    expect(result.leaching.total).toBeCloseTo(-20.2 * 0.06)
+    // Leaching is not part of the balance, but it is in the projection (minus fixation 20)
+    expect(result.projection?.balance_effective_per_year).toBeCloseTo(20.2 * 0.94 - 20)
+  })
+
+  it("should add mineralisation of soil organic matter on mineral soils", () => {
+    const fieldInput = {
+      ...input.fields[0],
+      soilAnalyses: [{ ...input.fields[0].soilAnalyses[0], a_som_loi: 3, a_density_sa: 1.3 }],
+    }
+    const result = calculatePhosphateBalanceField({
+      fieldInput,
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+    })
+    expect(result.supply.mineralization.track).toBe("mineral")
+    expect(result.supply.mineralization.total).toBeGreaterThan(0)
+    expect(result.balance).toBeCloseTo(65.2 + result.supply.mineralization.total - 45)
   })
 
   it("should use the phosphate content of the harvest analysis when present", () => {
@@ -157,6 +187,8 @@ describe("calculatePhosphateBalanceField", () => {
       timeFrame: input.timeFrame,
     })
     expect(result.balance).toBe(0)
+    expect(result.supply.total).toBe(0)
+    expect(result.leaching.total).toBe(0)
     expect(result.projection).toBeNull()
   })
 })
@@ -182,7 +214,11 @@ describe("calculatePhosphateBalance", () => {
   it("should average the fields per ha and exclude buffer strips", async () => {
     const result = await calculatePhosphateBalance(mockFdm, input)
     expect(result.fields).toHaveLength(2)
-    expect(result.balance).toBeCloseTo(19.5)
+    expect(result.balance).toBeCloseTo(20.2)
+    expect(result.leaching).toBeCloseTo(-20.2 * 0.06)
+    expect(result.terms.supply.manure).toBeCloseTo(42)
+    expect(result.terms.supply.deposition).toBeCloseTo(0.7)
+    expect(result.terms.removal.harvests).toBeCloseTo(-40)
     expect(result.hasErrors).toBe(false)
     expect(result.fieldErrorMessages).toEqual([])
   })
@@ -204,7 +240,7 @@ describe("calculatePhosphateBalance", () => {
     expect(result.hasErrors).toBe(true)
     expect(result.fields[1].errorMessage).toMatch(/no fertilizerDetails/)
     // Only f1 counts in the farm average
-    expect(result.balance).toBeCloseTo(19.5)
+    expect(result.balance).toBeCloseTo(20.2)
   })
 
   it("should return an error when there are no fields", async () => {
@@ -223,5 +259,6 @@ describe("calculatePhosphateBalanceFieldsToFarm", () => {
     expect(result.balance).toBe(0)
     expect(result.supply).toBe(0)
     expect(result.removal).toBe(0)
+    expect(result.leaching).toBe(0)
   })
 })

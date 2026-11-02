@@ -22,6 +22,10 @@ const references: { text: string; href: string }[] = [
     href: "https://doi.org/10.1080/10643389.2023.2240211",
   },
   {
+    text: "van Doorn, M. et al. (2026). Phosphorus leaching and runoff risks from non-calcareous sandy soils with a low sorption capacity and high hydrological connectivity. Journal of Environmental Quality 55, e70180.",
+    href: "https://doi.org/10.1002/jeq2.70180",
+  },
+  {
     text: "van der Salm, C., van Middelkoop, J.C. & Ehlert, P.A.I. (2017). Changes in soil phosphorus pools of grasslands following 17 yrs of balanced application of manure and fertilizer. Soil Use and Management 33(1), 2–12.",
     href: "https://doi.org/10.1111/sum.12333",
   },
@@ -93,11 +97,22 @@ export function PhosphateHelpDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-foreground font-medium">Wat (nog) niet is meegenomen</p>
+            <p className="text-foreground font-medium">Mineralisatie, depositie en uitspoeling</p>
+            <p>
+              Bij de afbraak van organische stof komt fosfaat vrij. Op veen is dat veel meer en
+              hangt het af van de grondwatertrap. Uit de lucht komt jaarlijks ongeveer 0,7 kg P₂O₅
+              per ha. Beide tellen mee als aanvoer. Uitspoeling wordt geschat uit het overschot, de
+              fosfaatverzadiging en de grondwatertrap en telt, net als bij stikstof, niet mee in het
+              saldo.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-foreground font-medium">Wat niet is meegenomen</p>
             <ul className="list-disc space-y-1 pl-5">
               <li>Mest van weidende dieren.</li>
-              <li>Mineralisatie van organisch fosfaat (ook in veen), depositie en uitspoeling.</li>
-              <li>Het vrijkomen van fosfaat bij vernatting van veen.</li>
+              <li>Het vrijkomen van fosfaat bij vernatting van veen (wel een melding).</li>
+              <li>Uitspoeling uit de bestaande voorraad bij een tekort.</li>
             </ul>
             <p>
               De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor het

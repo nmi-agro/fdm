@@ -12,6 +12,12 @@ import type {
 } from "./types"
 import pkg from "../../package"
 import { getPhosphateSoilTypeParameters } from "./alpha-max"
+import { calculatePhosphateLeaching } from "./leaching"
+import {
+  calculatePhosphateDeposition,
+  calculatePhosphateMineralization,
+  yearsInTimeframe,
+} from "./mineralization"
 import { calculatePhosphateProjection } from "./projection"
 import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 
@@ -27,29 +33,32 @@ function calculateSupplyByFertilizers(
   applications: PhosphateFieldInput["fertilizerApplications"],
   details: Map<string, PhosphateFertilizerDetail>,
 ) {
-  const totals = {
+  type FertilizerType = "mineral" | "manure" | "compost" | "other"
+  const totals: Record<FertilizerType, Decimal> = {
     mineral: new Decimal(0),
     manure: new Decimal(0),
     compost: new Decimal(0),
     other: new Decimal(0),
   }
-  const items = applications.map((application) => {
-    const detail = details.get(application.p_id_catalogue)
-    if (!detail) {
-      throw new Error(
-        `Fertilizer application ${application.p_app_id} has no fertilizerDetails for fertilizer ${application.p_id_catalogue}`,
-      )
-    }
-    const value = new Decimal(application.p_app_amount ?? 0)
-      .times(detail.p_p_rt ?? 0)
-      .dividedBy(1000)
-    const type =
-      detail.p_type === "mineral" || detail.p_type === "manure" || detail.p_type === "compost"
-        ? detail.p_type
-        : "other"
-    totals[type] = totals[type].add(value)
-    return { id: application.p_app_id, value }
-  })
+  const items = applications.map(
+    (application): { id: string; value: Decimal; type: FertilizerType } => {
+      const detail = details.get(application.p_id_catalogue)
+      if (!detail) {
+        throw new Error(
+          `Fertilizer application ${application.p_app_id} has no fertilizerDetails for fertilizer ${application.p_id_catalogue}`,
+        )
+      }
+      const value = new Decimal(application.p_app_amount ?? 0)
+        .times(detail.p_p_rt ?? 0)
+        .dividedBy(1000)
+      const type =
+        detail.p_type === "mineral" || detail.p_type === "manure" || detail.p_type === "compost"
+          ? detail.p_type
+          : "other"
+      totals[type] = totals[type].add(value)
+      return { id: application.p_app_id, value, type }
+    },
+  )
   const total = totals.mineral.add(totals.manure).add(totals.compost).add(totals.other)
   return { total, totals, items }
 }
@@ -169,8 +178,11 @@ export function determinePhosphateFrame(a_p_al: number | null, fixation: number)
  * Calculates the phosphate balance of one field (kg P2O5 / ha for the timeframe), the phosphorus
  * saturation of the topsoil and the effect of the balance on the soil phosphorus stock.
  *
- * PROTOTYPE for discussion: no deposition, mineralisation or leaching terms yet; fixation is used in the
- * projection, not in the balance itself.
+ * Balance = fertilizers + mineralisation + deposition − harvest − removed crop residues. Leaching and
+ * runoff are estimated from the surplus and reported separately, not subtracted from the balance (as
+ * nitrate in the nitrogen balance). The projection uses the balance plus leaching minus fixation.
+ *
+ * PROTOTYPE for discussion: parameters to be reviewed.
  *
  * @param input - The field input with the fertilizer and cultivation details and the timeframe.
  * @returns The phosphate balance of the field.
@@ -195,13 +207,22 @@ export function calculatePhosphateBalanceField(
       balance: 0,
       supply: {
         total: 0,
-        fertilizers: { total: 0, mineral: 0, manure: 0, compost: 0, other: 0, applications: [] },
+        fertilizers: {
+          total: 0,
+          mineral: { total: 0, applications: [] },
+          manure: { total: 0, applications: [] },
+          compost: { total: 0, applications: [] },
+          other: { total: 0, applications: [] },
+        },
+        mineralization: { total: 0, track: "none", warnings: [] },
+        deposition: { total: 0 },
       },
       removal: {
         total: 0,
         harvests: { total: 0, harvests: [] },
         residues: { total: 0, cultivations: [] },
       },
+      leaching: { total: 0, risk: "unknown", fraction: 0, groundwater_factor: 0, factor: 0 },
       frame,
       saturation,
       projection: null,
@@ -220,19 +241,26 @@ export function calculatePhosphateBalanceField(
   const harvests = calculateRemovalByHarvests(fieldInput, cultivationDetails, timeFrame, warnings)
   const residues = calculateRemovalByResidues(fieldInput, cultivationDetails)
   const removal = harvests.total.add(residues.total)
-  const balance = fertilizers.total.add(removal)
-
-  const years = Math.max(
-    (timeFrame.end.getTime() - timeFrame.start.getTime()) / (365.25 * 24 * 3600 * 1000),
-    1 / 365.25,
+  const mineralization = calculatePhosphateMineralization(
+    fieldInput,
+    cultivationDetails,
+    isGrassland,
+    timeFrame,
   )
+  const deposition = calculatePhosphateDeposition(timeFrame)
+  const supply = fertilizers.total.add(mineralization.total).add(deposition.total)
+  const balance = supply.add(removal)
+
   const threshold = calculatePhosphateSaturationThreshold(
     saturation,
     fieldInput.soilAnalyses,
     isGrassland,
   )
+  const leaching = calculatePhosphateLeaching(balance, saturation, threshold)
+
+  const years = Decimal.max(yearsInTimeframe(timeFrame), 1 / 365)
   const projection = calculatePhosphateProjection(
-    balance.dividedBy(years).toNumber(),
+    balance.add(leaching.total).dividedBy(years).toNumber(),
     saturation,
     threshold,
     fieldInput.soilAnalyses,
@@ -241,26 +269,32 @@ export function calculatePhosphateBalanceField(
 
   const toItems = (items: { id: string; value: Decimal }[]) =>
     items.map((item) => ({ id: item.id, value: item.value.toNumber() }))
+  const fertilizerType = (type: keyof typeof fertilizers.totals) => ({
+    total: fertilizers.totals[type].toNumber(),
+    applications: toItems(fertilizers.items.filter((item) => item.type === type)),
+  })
   return {
     b_id: field.b_id,
     b_area: field.b_area ?? 0,
     balance: balance.toNumber(),
     supply: {
-      total: fertilizers.total.toNumber(),
+      total: supply.toNumber(),
       fertilizers: {
         total: fertilizers.total.toNumber(),
-        mineral: fertilizers.totals.mineral.toNumber(),
-        manure: fertilizers.totals.manure.toNumber(),
-        compost: fertilizers.totals.compost.toNumber(),
-        other: fertilizers.totals.other.toNumber(),
-        applications: toItems(fertilizers.items),
+        mineral: fertilizerType("mineral"),
+        manure: fertilizerType("manure"),
+        compost: fertilizerType("compost"),
+        other: fertilizerType("other"),
       },
+      mineralization,
+      deposition,
     },
     removal: {
       total: removal.toNumber(),
       harvests: { total: harvests.total.toNumber(), harvests: toItems(harvests.items) },
       residues: { total: residues.total.toNumber(), cultivations: toItems(residues.items) },
     },
+    leaching,
     frame,
     saturation,
     projection,
@@ -281,8 +315,8 @@ export const getPhosphateBalanceField = withCalculationCache(
 )
 
 /**
- * Aggregates field results to the farm: the area-weighted average per ha of supply, removal and
- * balance. Buffer strips and fields whose balance could not be calculated are excluded.
+ * Aggregates field results to the farm: the area-weighted average per ha of supply, removal,
+ * balance and leaching. Buffer strips and fields whose balance could not be calculated are excluded.
  *
  * @param fields - The results per field.
  * @param fieldErrorMessages - The error messages of the fields that failed.
@@ -309,6 +343,21 @@ export function calculatePhosphateBalanceFieldsToFarm(
     balance: weighted((f) => f.balance),
     supply: weighted((f) => f.supply.total),
     removal: weighted((f) => f.removal.total),
+    leaching: weighted((f) => f.leaching.total),
+    terms: {
+      supply: {
+        mineral: weighted((f) => f.supply.fertilizers.mineral.total),
+        manure: weighted((f) => f.supply.fertilizers.manure.total),
+        compost: weighted((f) => f.supply.fertilizers.compost.total),
+        other: weighted((f) => f.supply.fertilizers.other.total),
+        mineralization: weighted((f) => f.supply.mineralization.total),
+        deposition: weighted((f) => f.supply.deposition.total),
+      },
+      removal: {
+        harvests: weighted((f) => f.removal.harvests.total),
+        residues: weighted((f) => f.removal.residues.total),
+      },
+    },
     fields,
     hasErrors: fields.some((f) => f.errorMessage !== undefined),
     fieldErrorMessages,

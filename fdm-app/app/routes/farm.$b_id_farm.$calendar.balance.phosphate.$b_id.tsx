@@ -1,5 +1,11 @@
 import { getFarm, getField } from "@nmi-agro/fdm-core"
-import { ArrowDownToLine, ArrowRightLeft, ArrowUpFromLine, TriangleAlert } from "lucide-react"
+import {
+  ArrowDownToLine,
+  ArrowRightLeft,
+  ArrowUpFromLine,
+  Droplets,
+  TriangleAlert,
+} from "lucide-react"
 import { Suspense, use, useState } from "react"
 import {
   data,
@@ -234,7 +240,7 @@ function PhosphateBalance({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Saldo (Perceel)</CardTitle>
@@ -265,8 +271,20 @@ function PhosphateBalance({
             <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Uitspoeling</CardTitle>
+            <Droplets className="text-muted-foreground text-xs" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatNumberNl(result.leaching.total, 1)}</div>
+            <p className="text-muted-foreground text-xs">
+              {PHOSPHATE_UNIT}, schatting, niet in saldo
+            </p>
+          </CardContent>
+        </Card>
       </div>
-      {(result.warnings ?? []).map((warning) => (
+      {[...(result.warnings ?? []), ...result.supply.mineralization.warnings].map((warning) => (
         <p key={warning} className="text-muted-foreground flex items-start gap-2 text-sm">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-hidden />
           {warning}
@@ -281,12 +299,12 @@ function PhosphateBalance({
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De fosfaatbalans voor {field.b_name} van {farm.b_name_farm}: aanvoer met bemesting min
-              afvoer met oogst en gewasresten.
+              De fosfaatbalans voor {field.b_name} van {farm.b_name_farm}: aanvoer met bemesting,
+              mineralisatie en depositie min afvoer met oogst en gewasresten.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <PhosphateBalanceChart supply={result.supply.total} removal={result.removal.total} />
+            <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
           </CardContent>
         </Card>
         <Card className="col-span-3">

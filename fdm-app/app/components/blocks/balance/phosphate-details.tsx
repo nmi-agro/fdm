@@ -13,9 +13,18 @@ import { formatNumberNl, PHOSPHATE_UNIT } from "./phosphate-format"
 
 type Item = { id: string; value: number }
 
+/** Dutch label of the leaching risk class (PSD relative to the field threshold). */
+const LEACHING_RISK_LABELS = {
+  low: "verzadiging onder de grens",
+  medium: "verzadiging boven de grens",
+  high: "verzadiging ruim boven de grens",
+  unknown: "verzadiging onbekend",
+} as const
+
 /**
  * Accordion with the terms of the phosphate balance of a field: supply per fertilizer type and
- * application, removal per harvest and per cultivation whose crop residues are removed.
+ * application, mineralisation and deposition, removal per harvest and per cultivation whose crop
+ * residues are removed, and the leaching (not part of the balance).
  *
  * @param balanceData - The phosphate balance of the field.
  * @param fieldInput - The input of the field (for names and dates).
@@ -38,6 +47,7 @@ export function PhosphateBalanceDetails({
   const renderApplications = (items: Item[]) => (
     <ul className="ml-6 list-outside list-disc space-y-1">
       {items.map((item) => {
+        if (item.value === 0) return null
         const application = fieldInput.fertilizerApplications.find((a) => a.p_app_id === item.id)
         if (!application) return null
         return (
@@ -95,14 +105,17 @@ export function PhosphateBalanceDetails({
   )
 
   const { harvests, residues } = balanceData.removal
+  const { mineralization, deposition } = balanceData.supply
+  const { leaching } = balanceData
   const typeTotals = (
     [
       ["mineral", "Kunstmest"],
-      ["manure", "Mest"],
+      ["manure", "Dierlijke mest"],
       ["compost", "Compost"],
-      ["other", "Overig"],
+      ["other", "Overige meststoffen"],
     ] as const
-  ).filter(([type]) => fertilizers[type] !== 0)
+  ).filter(([type]) => fertilizers[type].total !== 0)
+  const rowClass = "flex border-b py-4 text-sm font-medium"
 
   return (
     <Accordion type="multiple" className="w-full">
@@ -110,21 +123,31 @@ export function PhosphateBalanceDetails({
         <AccordionTrigger>
           Aanvoer (Totaal): {formatNumberNl(balanceData.supply.total)} {PHOSPHATE_UNIT}
         </AccordionTrigger>
-        <AccordionContent className="space-y-3">
-          {typeTotals.length > 0 ? (
-            <ul className="ml-4 space-y-1 text-sm">
-              {typeTotals.map(([type, label]) => (
-                <li key={type}>
-                  {label}: {formatNumberNl(fertilizers[type])} {PHOSPHATE_UNIT}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground ml-4 text-sm">Geen bemesting met fosfaat.</p>
-          )}
-          {fertilizers.applications.length > 0
-            ? renderApplications(fertilizers.applications)
-            : null}
+        <AccordionContent>
+          <Accordion type="multiple" className="ml-4">
+            {typeTotals.length > 0 ? (
+              typeTotals.map(([type, label]) => (
+                <AccordionItem key={type} value={`supply.fertilizers.${type}`}>
+                  <AccordionTrigger>
+                    {label}: {formatNumberNl(fertilizers[type].total)} {PHOSPHATE_UNIT}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {renderApplications(fertilizers[type].applications)}
+                  </AccordionContent>
+                </AccordionItem>
+              ))
+            ) : (
+              <p className={rowClass}>Geen bemesting met fosfaat.</p>
+            )}
+            <p className={rowClass}>
+              Mineralisatie
+              {mineralization.track === "peat" ? " (veen)" : " (organische stof)"}:{" "}
+              {formatNumberNl(mineralization.total)} {PHOSPHATE_UNIT}
+            </p>
+            <p className={rowClass}>
+              Depositie: {formatNumberNl(deposition.total, 1)} {PHOSPHATE_UNIT}
+            </p>
+          </Accordion>
         </AccordionContent>
       </AccordionItem>
       <AccordionItem value="removal">
@@ -154,6 +177,18 @@ export function PhosphateBalanceDetails({
               </AccordionItem>
             ) : null}
           </Accordion>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="leaching">
+        <AccordionTrigger>
+          Uitspoeling (niet in saldo): {formatNumberNl(leaching.total, 1)} {PHOSPHATE_UNIT}
+        </AccordionTrigger>
+        <AccordionContent>
+          <p className="text-muted-foreground ml-4 text-sm">
+            {leaching.total === 0
+              ? "Geen overschot, dus geen extra uitspoeling geschat."
+              : `Overschot × ${formatNumberNl(leaching.factor, 3)} (${LEACHING_RISK_LABELS[leaching.risk]}: ${formatNumberNl(leaching.fraction, 2)}; grondwater: × ${formatNumberNl(leaching.groundwater_factor, 2)}).`}
+          </p>
         </AccordionContent>
       </AccordionItem>
     </Accordion>
