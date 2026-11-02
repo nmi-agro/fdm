@@ -5,16 +5,7 @@ import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { AlertTriangle, CalendarIcon, Check, Microscope, Save, Shovel, X } from "lucide-react"
-import {
-  FocusEventHandler,
-  memo,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
@@ -53,12 +44,14 @@ const isValidDepth = (depth: {
 }): depth is { a_depth_lower: number; a_depth_upper: number } => {
   return !!(
     typeof depth.a_depth_lower === "number" &&
-    typeof depth.a_depth_upper === "number" &&
     Number.isFinite(depth.a_depth_lower) &&
-    Number.isFinite(depth.a_depth_upper) &&
-    depth.a_depth_lower >= 0 &&
-    depth.a_depth_upper >= 0 &&
-    depth.a_depth_lower > depth.a_depth_upper
+    (typeof depth.a_depth_upper === "undefined" ||
+      depth.a_depth_upper === null ||
+      (typeof depth.a_depth_upper === "number" &&
+        Number.isFinite(depth.a_depth_upper) &&
+        depth.a_depth_upper >= 0 &&
+        depth.a_depth_lower >= 0 &&
+        depth.a_depth_lower > depth.a_depth_upper))
   )
 }
 
@@ -295,20 +288,31 @@ function DepthCell({
   depth: { a_depth_lower: number | undefined; a_depth_upper: number | undefined }
   setDepth: (depth: { a_depth_lower: number; a_depth_upper: number }) => void
 }) {
-  const [open, setOpen] = useState(false)
   const lowerId = useId()
   const upperId = useId()
   const lowerRef = useRef<HTMLInputElement>(null)
+  const lowerCursorTimeout = useRef<any>(undefined)
   const upperRef = useRef<HTMLInputElement>(null)
+  const upperCursorTimeout = useRef<any>(undefined)
   const [formLower, setFormLower] = useState(
     typeof depth.a_depth_lower === "number" && Number.isFinite(depth.a_depth_lower)
       ? depth.a_depth_lower.toString()
-      : "0",
+      : "-",
   )
   const [formUpper, setFormUpper] = useState(
     typeof depth.a_depth_upper === "number" && Number.isFinite(depth.a_depth_upper)
       ? depth.a_depth_upper.toString()
-      : "0",
+      : "-",
+  )
+
+  // Only open the form if something is invalid.
+  const [open] = useState(
+    !(
+      typeof depth.a_depth_lower === "number" &&
+      Number.isFinite(depth.a_depth_lower) &&
+      typeof depth.a_depth_upper === "number" &&
+      Number.isFinite(depth.a_depth_upper)
+    ),
   )
 
   const formLowerNum = Number.parseFloat(formLower)
@@ -331,105 +335,91 @@ function DepthCell({
         ? "Onderkant moet lager zijn dan de bovenkant."
         : null
 
-  const focusFirstFieldTimeoutRef = useRef<any>(null)
-  const blurTimeoutRef = useRef<any>(null)
-
   // Clean up the timeouts on unmount
   useEffect(
     () => () => {
-      if (focusFirstFieldTimeoutRef.current !== null) {
-        clearTimeout(focusFirstFieldTimeoutRef.current)
+      if (upperCursorTimeout.current !== null) {
+        clearTimeout(upperCursorTimeout.current)
       }
-      if (blurTimeoutRef.current !== null) {
-        clearTimeout(blurTimeoutRef.current)
+      if (lowerCursorTimeout.current !== null) {
+        clearTimeout(lowerCursorTimeout.current)
       }
     },
     [],
   )
 
-  const handleOpen = () => {
-    if (focusFirstFieldTimeoutRef.current) {
-      clearTimeout(focusFirstFieldTimeoutRef.current)
-      focusFirstFieldTimeoutRef.current = null
-    }
-
-    setOpen(true)
-
-    focusFirstFieldTimeoutRef.current = setTimeout(() => {
-      if (upperError && upperRef.current) {
-        upperRef.current.focus()
-      }
-
-      if (lowerError && lowerRef.current) {
-        lowerRef.current.focus()
-      }
-
-      if (upperRef.current) {
-        upperRef.current.focus()
-      }
-    }, 100)
-  }
-
-  /**
-   * When an input is blurred, save changes if the focus has moved outside of the box
-   * @param e
-   */
-  const onFieldBlur: FocusEventHandler<HTMLInputElement> = () => {
-    if (blurTimeoutRef.current !== null) {
-      clearTimeout(blurTimeoutRef.current)
-      blurTimeoutRef.current = null
-    }
-
-    // Update the choice immediately.
-    if (lowerError === null && upperError === null && overallError === null) {
-      setDepth({ a_depth_lower: formLowerNum, a_depth_upper: formUpperNum })
-
-      // Blur the input with a slight delay.
-      blurTimeoutRef.current = setTimeout(() => {
-        if (
-          document.activeElement !== lowerRef.current &&
-          document.activeElement !== upperRef.current
-        ) {
-          setOpen(false)
-        }
-      }, 100)
-    }
-  }
-
   if (!open) {
     return (
-      <Button type="button" variant="link" onClick={handleOpen}>
+      <div className="flex items-center">
         <Shovel className="mr-1 h-3 w-3" />
         {!Number.isFinite(depth.a_depth_lower)
           ? "Geen bemonsteringslaag is gespecifieerd. Klik om te bewerken."
           : !Number.isFinite(depth.a_depth_upper) || depth.a_depth_upper === 0
             ? `Onderkant: ${depth.a_depth_lower} cm`
             : `${depth.a_depth_upper} - ${depth.a_depth_lower} cm`}
-      </Button>
+      </div>
     )
   }
 
   return (
     <div className="space-y-3">
-      <Field className="gap-1" data-invalid={upperError !== null} onBlur={onFieldBlur}>
+      <Field className="gap-1" data-invalid={upperError !== null}>
         <FieldLabel htmlFor={upperId}>Bovenkant (cm)</FieldLabel>
         <Input
           ref={upperRef}
           id={upperId}
           type="number"
           value={formUpper}
-          onChange={(e) => setFormUpper(e.target.value)}
+          className="bg-background"
+          onFocus={(e) => {
+            if (e.currentTarget.value === "-") {
+              setFormUpper("0")
+              if (typeof upperCursorTimeout.current !== "undefined") {
+                clearTimeout(upperCursorTimeout.current)
+              }
+              upperCursorTimeout.current = setTimeout(() => {
+                // Move the cursor to the end of the input.
+                e.target.selectionStart = e.target.selectionEnd = e.target.value.length + 1
+              }, 10)
+            }
+          }}
+          onChange={(e) => {
+            setFormUpper(e.target.value)
+            setDepth({
+              a_depth_lower: formLowerNum,
+              a_depth_upper: Number.parseFloat(e.target.value),
+            })
+          }}
         />
         {overallError && <FieldError>{overallError}</FieldError>}
       </Field>
-      <Field className="gap-1" data-invalid={lowerError !== null} onBlur={onFieldBlur}>
+      <Field className="gap-1" data-invalid={lowerError !== null}>
         <FieldLabel htmlFor={lowerId}>Onderkant (cm)</FieldLabel>
         <Input
           ref={lowerRef}
           id={lowerId}
           type="number"
           value={formLower}
-          onChange={(e) => setFormLower(e.target.value)}
+          className="bg-background"
+          onFocus={(e) => {
+            if (e.currentTarget.value === "-") {
+              setFormLower("0")
+              if (typeof lowerCursorTimeout.current !== "undefined") {
+                clearTimeout(lowerCursorTimeout.current)
+              }
+              lowerCursorTimeout.current = setTimeout(() => {
+                // Move the cursor to the end of the input.
+                e.target.selectionStart = e.target.selectionEnd = e.target.value.length + 1
+              }, 50)
+            }
+          }}
+          onChange={(e) => {
+            setFormLower(e.target.value)
+            setDepth({
+              a_depth_lower: Number.parseFloat(e.target.value),
+              a_depth_upper: formUpperNum,
+            })
+          }}
         />
         {lowerError && <FieldError>{lowerError}</FieldError>}
       </Field>
@@ -561,6 +551,7 @@ export function BulkSoilAnalysisReview({
                   row.original.a_depth_lower !== undefined) && (
                   <div className="flex items-center ">
                     <DepthCell
+                      key={row.original.id}
                       depth={table.options.meta!.depths[row.original.id]}
                       setDepth={(depth) =>
                         table.options.meta!.handleDepthChange(row.original.id, depth)
