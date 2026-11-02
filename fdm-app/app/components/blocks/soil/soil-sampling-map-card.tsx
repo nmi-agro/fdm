@@ -20,10 +20,13 @@ export function SoilSamplingMapCard({
   fieldGeometry,
   samplingZone,
   samplingPoints,
+  mapHeight = "320px",
 }: {
   fieldGeometry: Polygon | MultiPolygon | null
   samplingZone: Polygon | MultiPolygon | null | undefined
   samplingPoints: MultiPoint | null | undefined
+  /** Height of the map, as a CSS length. */
+  mapHeight?: string
 }) {
   const fieldArea = fieldGeometry ? area(fieldGeometry) : 0
   const zoneArea = samplingZone ? area(samplingZone) : 0
@@ -48,8 +51,11 @@ export function SoilSamplingMapCard({
         </p>
       </div>
       <div className="overflow-hidden rounded-lg border">
-        <Suspense fallback={<div className="bg-muted/40 h-80 animate-pulse" />}>
+        <Suspense
+          fallback={<div className="bg-muted/40 animate-pulse" style={{ height: mapHeight }} />}
+        >
           <SoilSamplingMap
+            height={mapHeight}
             fieldGeometry={fieldGeometry}
             samplingZone={showZone ? samplingZone : null}
             samplingPoints={samplingPoints ?? null}

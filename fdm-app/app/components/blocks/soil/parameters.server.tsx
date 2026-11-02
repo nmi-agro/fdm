@@ -1,10 +1,16 @@
 /* eslint-disable typescript/restrict-template-expressions -- Soil parameters and nested locale options are interpolated as strings safely in component server rendering. */
 import { getSoilParametersDescription } from "@nmi-agro/fdm-core"
+import { SAMPLING_PARAMETERS } from "./parameter-groups"
 
+/**
+ * Returns the descriptions of the soil parameters on the form for a type of soil analysis. Every
+ * type starts with the sampling parameters (laboratory, sampling date and depth), which are needed
+ * to save any soil analysis.
+ */
 export function getSoilParametersForSoilAnalysisType(
   soilAnalysisType: "standard" | "all" | "nmin" | "derogation",
 ) {
-  let soilParameters = []
+  let soilParameters: string[] = []
   if (soilAnalysisType === "standard") {
     soilParameters = [
       "a_source",
@@ -104,6 +110,14 @@ export function getSoilParametersForSoilAnalysisType(
       `Unsupported soil analysis type: ${soilAnalysisType}. Supported types: standard, all, nmin, derogation`,
     )
   }
+
+  // Every type needs the sampling parameters, so put them first and only once
+  soilParameters = [
+    ...SAMPLING_PARAMETERS,
+    ...soilParameters.filter(
+      (parameter) => !(SAMPLING_PARAMETERS as readonly string[]).includes(parameter),
+    ),
+  ]
 
   // Get soil parameter descriptions
   let soilParameterDescription = getSoilParametersDescription("NL-nl")

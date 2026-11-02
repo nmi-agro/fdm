@@ -12,6 +12,7 @@ import type { ExpressionSpecification } from "maplibre-gl"
 import { useMemo } from "react"
 import { Layer, type LayerProps, type MapLayerMouseEvent, Source } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { COOPERATIVE_GESTURES_PROPS } from "~/components/blocks/atlas/atlas-cooperative-gestures"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
@@ -152,6 +153,7 @@ export default function SoilAnalysesMap({
       initialViewState={initialViewState}
       interactive={true}
       interactiveLayerIds={[POINT_LAYER, ZONE_FILL_LAYER]}
+      {...COOPERATIVE_GESTURES_PROPS}
       useStoredViewState={false}
       updateFromInitialViewState={true}
       style={{ height, width: "100%" }}

@@ -17,67 +17,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils"
+import { SOIL_PARAMETER_GROUPS } from "./parameter-groups"
 
-const SOIL_GROUPS = [
-  {
-    id: "basis",
-    title: "Basis",
-    parameters: ["b_soiltype_agr", "a_som_loi", "d_n_supply_base", "a_ph_cc", "b_gwl_class"],
-  },
-  {
-    id: "nutrients",
-    title: "Nutriënten",
-    parameters: [
-      "a_n_rt",
-      "a_p_cc",
-      "a_p_al",
-      "a_p_wa",
-      "a_k_cc",
-      "a_s_rt",
-      "a_mg_cc",
-      "a_zn_cc",
-      "a_cu_cc",
-    ],
-  },
-  {
-    id: "texture",
-    title: "Textuur",
-    parameters: ["a_clay_mi", "a_silt_mi", "a_sand_mi", "a_density_sa"],
-  },
-  {
-    id: "n-mineral",
-    title: "N-mineraal",
-    parameters: ["a_nmin_cc", "a_nh4_cc", "a_no3_cc"],
-  },
-  {
-    id: "occupation",
-    title: "Bezetting",
-    parameters: [
-      "a_cec_co",
-      "a_ca_co",
-      "a_ca_co_po",
-      "a_k_co",
-      "a_k_co_po",
-      "a_mg_co",
-      "a_mg_co_po",
-    ],
-  },
-  {
-    id: "other",
-    title: "Overig",
-    parameters: [
-      "a_p_rt",
-      "a_p_ox",
-      "a_fe_ox",
-      "a_al_ox",
-      "a_p_sg",
-      "a_caco3_if",
-      "a_cn_fr",
-      "a_com_fr",
-      "a_n_pmn",
-    ],
-  },
-]
+// The same groups and order as the soil analysis form, without the sampling details
+const SOIL_GROUPS = SOIL_PARAMETER_GROUPS.filter((group) => group.id !== "sampling")
 
 /** Classes for the small metadata lines at the bottom of a soil data card. */
 const META_LINE = "text-muted-foreground flex items-center gap-1.5 text-xs"
@@ -139,7 +82,7 @@ function SoilDataCard({
     : {}
 
   const coverageClassName = cn(
-    "inline-flex shrink-0 items-center gap-1 self-start rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100",
+    "inline-flex shrink-0 items-center gap-1 self-start rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 pointer-coarse:px-3 pointer-coarse:py-2",
     FOCUS_RING,
   )
   const coverageContent = (
@@ -152,7 +95,7 @@ function SoilDataCard({
 
   return (
     <Card className="flex h-full flex-col">
-      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2 max-sm:p-4 max-sm:pb-2">
         <CardTitle className="min-h-[2lh] min-w-0 text-sm leading-snug font-semibold">
           <TooltipProvider>
             <Tooltip>
@@ -176,7 +119,7 @@ function SoilDataCard({
                   to={link}
                   aria-label={`${isEditable ? "Bewerk" : "Bekijk"} de analyse van ${title}`}
                   className={cn(
-                    "text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-6 shrink-0 items-center justify-center rounded-md transition-colors",
+                    "text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-6 shrink-0 items-center justify-center rounded-md transition-colors pointer-coarse:-m-2.5 pointer-coarse:size-10",
                     FOCUS_RING,
                   )}
                 >
@@ -188,7 +131,7 @@ function SoilDataCard({
           </TooltipProvider>
         ) : null}
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-3 pt-0">
+      <CardContent className="flex flex-1 flex-col gap-3 pt-0 max-sm:px-4 max-sm:pb-4">
         <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
           {value === null ? (
             <div className="text-muted-foreground text-xl leading-tight font-semibold">
@@ -365,7 +308,7 @@ export function SoilDataCards({
               </h4>
               <Separator className="flex-1 opacity-40" />
             </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,10rem),1fr))] gap-3 sm:gap-4">
               {groupCards.map((card) => {
                 const sourceParam = soilParameterDescription.find((x) => x.parameter === "a_source")
                 const sourceOption = sourceParam?.options?.find((x) => x.value === card.source)

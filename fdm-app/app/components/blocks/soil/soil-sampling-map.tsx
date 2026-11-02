@@ -10,6 +10,7 @@ import type { FeatureCollection, MultiPoint, MultiPolygon, Polygon } from "geojs
 import { useMemo } from "react"
 import { Layer, type LayerProps, Source } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { COOPERATIVE_GESTURES_PROPS } from "~/components/blocks/atlas/atlas-cooperative-gestures"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
@@ -66,11 +67,14 @@ export default function SoilSamplingMap({
 
   // Fit the view on everything that is shown, so points outside the field remain visible
   const initialViewState = useMemo(
-    () =>
-      getViewState({
+    () => ({
+      ...getViewState({
         type: "FeatureCollection",
         features: [...fieldData.features, ...zoneData.features, ...pointData.features],
       }),
+      // The map is small, so fit tightly; the default padding would shrink the field
+      fitBoundsOptions: { padding: 24 },
+    }),
     [fieldData, zoneData, pointData],
   )
 
@@ -83,6 +87,7 @@ export default function SoilSamplingMap({
     <Atlas
       initialViewState={initialViewState}
       interactive={true}
+      {...COOPERATIVE_GESTURES_PROPS}
       useStoredViewState={false}
       updateFromInitialViewState={true}
       style={{ height, width: "100%" }}

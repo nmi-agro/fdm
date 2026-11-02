@@ -129,7 +129,7 @@ export function SoilAnalysesList({
                 {analysis.a_file_path && (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <ViewPdfButton variant="outline" />
+                      <ViewPdfButton variant="outline" className="pointer-coarse:h-10" />
                     </DialogTrigger>
                     <PdfViewerDialogContent
                       downloadUrl={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
@@ -142,7 +142,7 @@ export function SoilAnalysesList({
                     />
                   </Dialog>
                 )}
-                <Button asChild size="sm" variant="outline">
+                <Button asChild size="sm" variant="outline" className="pointer-coarse:h-10">
                   <NavLink to={`./analysis/${analysis.a_id}`}>
                     {canModify ? "Bewerk" : "Bekijk"}
                   </NavLink>
@@ -153,7 +153,7 @@ export function SoilAnalysesList({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 pointer-coarse:h-10"
                         disabled={fetcher.state !== "idle"}
                       >
                         {isDeleting ? (
