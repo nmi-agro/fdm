@@ -10,6 +10,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { assertGeoJsonCoordinates } from "../guards"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
@@ -43,20 +44,45 @@ export interface FieldServices {
 
 const FieldSchema = z
   .object({
-    b_id: z.string(),
-    b_name: z.string(),
-    b_id_farm: z.string(),
-    b_id_source: z.string().nullable(),
-    b_geometry: GeoJsonGeometrySchema.nullable(),
-    b_centroid: z.tuple([z.number(), z.number()]),
-    b_area: z.number().nullable(),
-    b_perimeter: z.number().nullable(),
-    b_bufferstrip: z.boolean(),
+    b_id: FieldIdSchema,
+    b_name: z.string().describe("Field display name."),
+    b_id_farm: FarmIdSchema.describe("Unique identifier of the farm that manages the field."),
+    b_id_source: z
+      .string()
+      .nullable()
+      .describe(
+        "Identifier of the field in an external source, such as a government registry. `null` when not set.",
+      ),
+    b_geometry: GeoJsonGeometrySchema.nullable().describe(
+      "Field boundary as GeoJSON Polygon or MultiPolygon in WGS84 (EPSG:4326). `null` when unknown.",
+    ),
+    b_centroid: z
+      .tuple([z.number(), z.number()])
+      .describe("Centroid of the field as [longitude, latitude] in WGS84 (EPSG:4326)."),
+    b_area: z
+      .number()
+      .nullable()
+      .describe("Area of the field (ha), rounded to 2 decimals. `null` without a geometry."),
+    b_perimeter: z
+      .number()
+      .nullable()
+      .describe(
+        "Length of the outer boundary of the field (m), rounded to 2 decimals. `null` without a geometry.",
+      ),
+    b_bufferstrip: z
+      .boolean()
+      .describe(
+        "Whether the field is a buffer strip. Buffer strips are excluded from most nutrient calculations.",
+      ),
     b_start: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     b_end: DateStringSchema.nullable().describe(
       "Last day the field is managed (inclusive, Europe/Amsterdam), in YYYY-MM-DD format.",
     ),
-    b_acquiring_method: z.string(),
+    b_acquiring_method: z
+      .string()
+      .describe(
+        "How the farm acquired the right to use the field. Dutch codes 'nl_01' to 'nl_09' follow the RVO registration (e.g. 'nl_01' ownership, 'nl_02' regular lease); 'unknown' when not specified.",
+      ),
   })
   .openapi("Field")
 
@@ -104,7 +130,7 @@ const listFieldsRoute = createRoute({
   description: "Returns all fields belonging to the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -125,7 +151,7 @@ const getFieldRoute = createRoute({
   summary: "Get a field",
   description: "Returns a single field by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id: z.string() }) },
+  request: { params: z.object({ b_id: FieldIdSchema }) },
   responses: {
     200: {
       description: "The requested field.",
@@ -144,7 +170,7 @@ const createFieldRoute = createRoute({
     "Creates a new field on the specified farm. The geometry must be a valid GeoJSON Polygon or MultiPolygon with at most 10,000 coordinates.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
       content: { "application/json": { schema: CreateFieldBodySchema } },
       required: true,
@@ -167,7 +193,7 @@ const updateFieldRoute = createRoute({
   description: "Partially updates an existing field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: z.string() }),
+    params: z.object({ b_id: FieldIdSchema }),
     body: {
       content: { "application/json": { schema: UpdateFieldBodySchema } },
       required: true,
@@ -189,7 +215,7 @@ const deleteFieldRoute = createRoute({
   summary: "Delete a field",
   description: "Permanently deletes a field and all its associated cultivations and soil analyses.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id: z.string() }) },
+  request: { params: z.object({ b_id: FieldIdSchema }) },
   responses: {
     204: { description: "Field deleted." },
     ...commonErrorResponses,
