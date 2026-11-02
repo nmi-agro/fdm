@@ -5,7 +5,8 @@ import { calculateNlv } from "@nmi-agro/fdm-calculator"
  * Enriches current soil data with the calculated base Nitrogen Supplying Capacity (d_n_supply_base / NLV)
  * if it is not already present and if soil organic matter (a_som_loi) is available.
  *
- * Sets the source to "calculated" ("Berekend").
+ * The NLV is a field-level calculation from soil organic matter, clay and C/N: it gets one source
+ * "calculated" ("Berekend"), and its coverage and coverage warning reflect all three inputs.
  *
  * @param currentSoilData The current soil parameter measurements for a field.
  * @returns The enriched CurrentSoilData array.
@@ -35,17 +36,28 @@ export function enrichCurrentSoilDataWithNlv(currentSoilData: CurrentSoilData): 
             a_som_loi: somItem.value,
           }) * 10,
         ) / 10
+      // NLV is calculated from the field values of three inputs, so it is a single field-level
+      // value: one calculated source (dated like the newest input), not a value per zone. The
+      // inputs may cover different parts of the field; their joint coverage is at most the
+      // smallest coverage, and any input with too little coverage makes the NLV uncertain too.
+      const inputs = [somItem, clayItem, cnItem]
+      const newestSource = inputs
+        .map((input) => input.sources[0])
+        .sort(
+          (a, b) =>
+            (b.b_sampling_date ? new Date(b.b_sampling_date).getTime() : 0) -
+            (a.b_sampling_date ? new Date(a.b_sampling_date).getTime() : 0),
+        )[0]
+      const coverages = inputs.map((input) => input.coverage)
       data.push({
         parameter: "d_n_supply_base",
         value: nlvVal,
-        is_aggregated: somItem.is_aggregated,
-        coverage: somItem.coverage,
-        has_coverage_warning: somItem.has_coverage_warning,
-        sources: somItem.sources.map((source) => ({
-          ...source,
-          a_source: "calculated",
-          value: nlvVal,
-        })),
+        is_aggregated: false,
+        coverage: coverages.some((coverage) => coverage === null)
+          ? null
+          : Math.min(...(coverages as number[])),
+        has_coverage_warning: inputs.some((input) => input.has_coverage_warning),
+        sources: [{ ...newestSource, a_source: "calculated", value: nlvVal, area_fraction: 1 }],
       })
     }
   }

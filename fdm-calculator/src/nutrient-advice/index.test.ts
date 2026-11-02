@@ -176,6 +176,48 @@ describe("requestNutrientAdvice", () => {
     expect(result.cuts).toBeUndefined()
   })
 
+  it("should keep Nmin of zones sampled at different depths in their own layer", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockNutrientAdviceResponse,
+    } as Response)
+
+    const source = {
+      a_id: "",
+      a_source: null,
+      b_sampling_date: null,
+      a_depth_upper: 0,
+    }
+    const inputs: NutrientAdviceInputs = {
+      b_lu_catalogue: "nl_2014",
+      b_centroid: [4.3, 52.4],
+      currentSoilData: [
+        {
+          parameter: "a_nmin_cc",
+          value: 45,
+          is_aggregated: true,
+          coverage: 1,
+          has_coverage_warning: false,
+          sources: [
+            { ...source, a_depth_lower: 30, value: 40, area_fraction: 0.25 },
+            { ...source, a_depth_lower: 30, value: 20, area_fraction: 0.25 },
+            { ...source, a_depth_lower: 60, value: 80, area_fraction: 0.5 },
+          ],
+        },
+      ],
+      nmiApiKey: "mock-api-key",
+    }
+
+    await requestNutrientAdvice(inputs)
+
+    const body = JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body)) as Record<
+      string,
+      unknown
+    >
+    expect(body.a_nmin_cc_d30).toBe(30)
+    expect(body.a_nmin_cc_d60).toBe(80)
+  })
+
   it("should return per-cut advice when the API provides it", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,

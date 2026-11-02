@@ -992,7 +992,8 @@ async function getEffectiveZoneAreas(
 }
 
 /**
- * Validates the sampling geometries and normalises a `Polygon` zone to a `MultiPolygon`.
+ * Validates the sampling geometries and normalises a `Polygon` zone to a `MultiPolygon`. An empty
+ * MultiPoint or zone is stored as `null`: a zone without area must not count as a sampling zone.
  *
  * @param geometries - The sampling geometries as provided by the caller.
  * @returns The geometries to store. `undefined` means "leave unchanged".
@@ -1002,7 +1003,8 @@ function normalizeSamplingGeometries(geometries: SoilSamplingGeometries): {
   b_sampling_geometry: GeoJSON.MultiPoint | null | undefined
   b_sampling_geometry_zone: GeoJSON.MultiPolygon | null | undefined
 } {
-  const { b_sampling_geometry, b_sampling_geometry_zone } = geometries
+  const { b_sampling_geometry_zone } = geometries
+  let { b_sampling_geometry } = geometries
 
   const assertPositions = (positions: unknown[], name: string) => {
     for (const position of positions) {
@@ -1031,6 +1033,8 @@ function normalizeSamplingGeometries(geometries: SoilSamplingGeometries): {
       throw new Error("b_sampling_geometry must be a MultiPoint")
     }
     assertPositions(b_sampling_geometry.coordinates, "b_sampling_geometry")
+    // No sample points is the same as unknown sample points
+    if (b_sampling_geometry.coordinates.length === 0) b_sampling_geometry = null
   }
 
   let zone: GeoJSON.MultiPolygon | null | undefined = b_sampling_geometry_zone as null | undefined
@@ -1057,6 +1061,9 @@ function normalizeSamplingGeometries(geometries: SoilSamplingGeometries): {
         assertPositions(ring, "b_sampling_geometry_zone")
       }
     }
+    // An empty zone represents no area; storing it would let it replace whole-field data, so it is
+    // treated as no zone (the whole field)
+    if (zone.coordinates.length === 0) zone = null
   }
 
   return { b_sampling_geometry, b_sampling_geometry_zone: zone }

@@ -1312,6 +1312,17 @@ describe("Soil sampling zones", () => {
     ).rejects.toThrowError("Exception for updateSoilAnalysis")
   })
 
+  it("stores an empty zone or empty sample points as null", async () => {
+    const a_id = await add("2024-03-01", {
+      a_p_al: 30,
+      b_sampling_geometry: { type: "MultiPoint", coordinates: [] },
+      b_sampling_geometry_zone: { type: "MultiPolygon", coordinates: [] },
+    })
+    const analysis = await getSoilAnalysis(fdm, principal_id, a_id)
+    expect(analysis?.b_sampling_geometry).toBeNull()
+    expect(analysis?.b_sampling_geometry_zone).toBeNull()
+  })
+
   it("combines two zones by area without mixing parameters across zones", async () => {
     const a_id_west = await add("2024-03-20", {
       a_p_al: 40,

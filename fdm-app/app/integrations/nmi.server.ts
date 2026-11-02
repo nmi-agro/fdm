@@ -20,8 +20,10 @@ if (!proj4.defs("EPSG:28992")) {
 /**
  * Parses a sampling geometry from the SoilReader response (WKT in WGS84) into GeoJSON.
  *
- * A single `POINT` is returned as a `MultiPoint` when a MultiPoint is expected. Missing, malformed
- * or unexpected geometries return `null`, so that the upload itself does not fail on them.
+ * A single `POINT` is returned as a `MultiPoint` when a MultiPoint is expected. Only longitude and
+ * latitude are kept, also when the WKT has a height. Missing, empty, malformed or unexpected
+ * geometries and positions outside WGS84 return `null`, so that the upload itself does not fail on
+ * them.
  *
  * @param wkt - The WKT string from the response.
  * @param expected - The accepted GeoJSON geometry types.
@@ -41,18 +43,58 @@ export function parseSamplingGeometry<T extends MultiPoint | Polygon | MultiPoly
       console.warn(`Unexpected sampling geometry type: ${geometry.type}`)
       return null
     }
-    const positions = (geometry as MultiPoint | Polygon | MultiPolygon).coordinates.flat(
-      3,
-    ) as unknown as number[]
-    for (let i = 0; i < positions.length; i += 2) {
-      const lon = positions[i]
-      const lat = positions[i + 1]
-      if (!(Math.abs(lon) <= 180 && Math.abs(lat) <= 90)) {
-        console.warn("Sampling geometry does not have WGS84 coordinates")
+    // Keep longitude and latitude of every position (WKT may add a height) and check them
+    const toLonLat = (position: unknown): [number, number] | null => {
+      if (!Array.isArray(position) || position.length < 2) return null
+      const [lon, lat] = position as number[]
+      return Number.isFinite(lon) &&
+        Number.isFinite(lat) &&
+        Math.abs(lon) <= 180 &&
+        Math.abs(lat) <= 90
+        ? [lon, lat]
+        : null
+    }
+    const toRing = (ring: unknown): [number, number][] | null => {
+      if (!Array.isArray(ring) || ring.length < 4) return null
+      const positions = ring.map(toLonLat)
+      return positions.every((position) => position !== null)
+        ? (positions as [number, number][])
+        : null
+    }
+    const toPolygon = (polygon: unknown): [number, number][][] | null => {
+      if (!Array.isArray(polygon) || polygon.length === 0) return null
+      const rings = polygon.map(toRing)
+      return rings.every((ring) => ring !== null) ? (rings as [number, number][][]) : null
+    }
+
+    if (geometry.type === "MultiPoint") {
+      const points = geometry.coordinates.map(toLonLat)
+      if (points.length === 0 || points.some((point) => point === null)) {
+        console.warn("Sampling geometry is empty or does not have WGS84 coordinates")
         return null
       }
+      return { type: "MultiPoint", coordinates: points as [number, number][] } as unknown as T
     }
-    return geometry as T
+    if (geometry.type === "Polygon") {
+      const polygon = toPolygon(geometry.coordinates)
+      if (!polygon) {
+        console.warn("Sampling zone is empty or does not have WGS84 coordinates")
+        return null
+      }
+      return { type: "Polygon", coordinates: polygon } as unknown as T
+    }
+    if (geometry.type === "MultiPolygon") {
+      const polygons = geometry.coordinates.map(toPolygon)
+      if (polygons.length === 0 || polygons.some((polygon) => polygon === null)) {
+        console.warn("Sampling zone is empty or does not have WGS84 coordinates")
+        return null
+      }
+      return {
+        type: "MultiPolygon",
+        coordinates: polygons as [number, number][][][],
+      } as unknown as T
+    }
+    return null
   } catch (e) {
     console.warn("Failed to parse sampling geometry:", e)
     return null

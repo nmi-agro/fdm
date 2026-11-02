@@ -1,5 +1,7 @@
 import type { MultiPoint, MultiPolygon, Polygon } from "geojson"
 import area from "@turf/area"
+import { feature, featureCollection } from "@turf/helpers"
+import intersect from "@turf/intersect"
 import { lazy, Suspense } from "react"
 import { SAMPLING_POINT_COLOR, SAMPLING_ZONE_COLOR } from "./soil-sampling-colors"
 
@@ -29,9 +31,18 @@ export function SoilSamplingMapCard({
   mapHeight?: string
 }) {
   const fieldArea = fieldGeometry ? area(fieldGeometry) : 0
-  const zoneArea = samplingZone ? area(samplingZone) : 0
-  // The zone is clipped to the field for the calculations; drawing it is only useful when it
-  // represents a clearly smaller part of the field.
+  // Clip the zone to the field, like the soil data calculations do: parts outside the field carry
+  // no weight. Drawing the zone is only useful when it covers a clearly smaller part of the field.
+  let zoneArea = 0
+  if (samplingZone && fieldGeometry) {
+    try {
+      const clipped = intersect(featureCollection([feature(fieldGeometry), feature(samplingZone)]))
+      zoneArea = clipped ? area(clipped) : 0
+    } catch {
+      // Invalid geometries: fall back to the unclipped zone
+      zoneArea = area(samplingZone)
+    }
+  }
   const showZone =
     samplingZone && !(fieldArea > 0 && zoneArea / fieldArea >= ZONE_EQUALS_FIELD_FRACTION)
   const hasPoints = (samplingPoints?.coordinates.length ?? 0) > 0

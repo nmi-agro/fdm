@@ -285,6 +285,34 @@ describe("POST /fields/:b_id/soil-analyses", () => {
     expect(res.status).toBe(400)
   })
 
+  it("returns 422 when a sampling geometry is outside WGS84 or empty", async () => {
+    const app = makeApp()
+    const post = (geometries: Record<string, unknown>) =>
+      app.request("/fields/field-1/soil-analyses", {
+        method: "POST",
+        headers: {
+          "x-api-key": "valid",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          a_date: "2023-05-01",
+          a_source: "Lab NL",
+          a_depth_lower: 30,
+          b_sampling_date: "2023-04-28",
+          ...geometries,
+        }),
+      })
+
+    const outside = await post({
+      b_sampling_geometry: { type: "MultiPoint", coordinates: [[181, 52]] },
+    })
+    expect(outside.status).toBe(422)
+    const empty = await post({
+      b_sampling_geometry_zone: { type: "MultiPolygon", coordinates: [] },
+    })
+    expect(empty.status).toBe(422)
+  })
+
   it("returns 400 when required fields are missing", async () => {
     const app = makeApp()
     const res = await app.request("/fields/field-1/soil-analyses", {

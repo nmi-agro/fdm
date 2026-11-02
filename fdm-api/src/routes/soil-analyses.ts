@@ -437,14 +437,42 @@ function serialiseSoilZones(zones: SoilZone[]) {
 }
 
 /**
- * Checks the coordinate count of the sampling geometries in a request body.
+ * Checks the sampling geometries in a request body: the coordinate count, and that every position is
+ * a WGS84 longitude and latitude and no geometry is empty. Invalid geometries are rejected with a
+ * 422 instead of failing later in the soil analysis service.
+ *
+ * @throws {ApiError} 422 when a geometry is empty or has a position outside WGS84.
  */
 function assertSamplingGeometries(body: {
   b_sampling_geometry?: unknown
   b_sampling_geometry_zone?: unknown
 }): void {
-  if (body.b_sampling_geometry) assertGeoJsonCoordinates(body.b_sampling_geometry)
-  if (body.b_sampling_geometry_zone) assertGeoJsonCoordinates(body.b_sampling_geometry_zone)
+  for (const [name, geometry] of [
+    ["b_sampling_geometry", body.b_sampling_geometry],
+    ["b_sampling_geometry_zone", body.b_sampling_geometry_zone],
+  ] as const) {
+    if (!geometry) continue
+    assertGeoJsonCoordinates(geometry)
+    const positions = collectPositions((geometry as { coordinates?: unknown }).coordinates)
+    if (positions.length === 0) {
+      throw new ApiError(422, "unprocessable-entity", `${name} has no coordinates.`)
+    }
+    const outside = positions.some(([lon, lat]) => !(Math.abs(lon) <= 180 && Math.abs(lat) <= 90))
+    if (outside) {
+      throw new ApiError(
+        422,
+        "unprocessable-entity",
+        `${name} has a position outside WGS84 (longitude -180 to 180, latitude -90 to 90).`,
+      )
+    }
+  }
+}
+
+/** Collects the positions of a GeoJSON coordinate array of any depth. */
+function collectPositions(coordinates: unknown): [number, number][] {
+  if (!Array.isArray(coordinates)) return []
+  if (typeof coordinates[0] === "number") return [coordinates as [number, number]]
+  return coordinates.flatMap((child) => collectPositions(child))
 }
 
 /**
