@@ -352,77 +352,85 @@ function DepthCell({
     return (
       <div className="flex items-center">
         <Shovel className="mr-1 h-3 w-3" />
-        {!Number.isFinite(depth.a_depth_lower)
-          ? "Geen bemonsteringslaag is gespecifieerd. Klik om te bewerken."
-          : !Number.isFinite(depth.a_depth_upper) || depth.a_depth_upper === 0
-            ? `Onderkant: ${depth.a_depth_lower} cm`
-            : `${depth.a_depth_upper} - ${depth.a_depth_lower} cm`}
+        {!Number.isFinite(depth.a_depth_upper) || depth.a_depth_upper === 0
+          ? `Onderkant: ${depth.a_depth_lower} cm`
+          : `${depth.a_depth_upper} - ${depth.a_depth_lower} cm`}
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <Field className="gap-1" data-invalid={upperError !== null}>
-        <FieldLabel htmlFor={upperId}>Bovenkant (cm)</FieldLabel>
-        <Input
-          ref={upperRef}
-          id={upperId}
-          type="number"
-          value={formUpper}
-          className="bg-background"
-          onFocus={(e) => {
-            if (e.currentTarget.value === "-") {
-              setFormUpper("0")
-              if (typeof upperCursorTimeout.current !== "undefined") {
-                clearTimeout(upperCursorTimeout.current)
+    <div>
+      <div className="flex items-center">
+        <Field orientation="horizontal" className="gap-1" data-invalid={upperError !== null}>
+          <FieldLabel htmlFor={upperId}>
+            Boven
+            <br />
+            (cm)
+          </FieldLabel>
+          <Input
+            ref={upperRef}
+            id={upperId}
+            type="number"
+            value={formUpper}
+            className="bg-background w-[6em]"
+            onFocus={(e) => {
+              if (e.currentTarget.value === "-") {
+                setFormUpper("0")
+                if (typeof upperCursorTimeout.current !== "undefined") {
+                  clearTimeout(upperCursorTimeout.current)
+                }
+                upperCursorTimeout.current = setTimeout(() => {
+                  // Move the cursor to the end of the input.
+                  e.target.selectionStart = e.target.selectionEnd = e.target.value.length + 1
+                }, 10)
               }
-              upperCursorTimeout.current = setTimeout(() => {
-                // Move the cursor to the end of the input.
-                e.target.selectionStart = e.target.selectionEnd = e.target.value.length + 1
-              }, 10)
-            }
-          }}
-          onChange={(e) => {
-            setFormUpper(e.target.value)
-            setDepth({
-              a_depth_lower: formLowerNum,
-              a_depth_upper: Number.parseFloat(e.target.value),
-            })
-          }}
-        />
-        {overallError && <FieldError>{overallError}</FieldError>}
-      </Field>
-      <Field className="gap-1" data-invalid={lowerError !== null}>
-        <FieldLabel htmlFor={lowerId}>Onderkant (cm)</FieldLabel>
-        <Input
-          ref={lowerRef}
-          id={lowerId}
-          type="number"
-          value={formLower}
-          className="bg-background"
-          onFocus={(e) => {
-            if (e.currentTarget.value === "-") {
-              setFormLower("0")
-              if (typeof lowerCursorTimeout.current !== "undefined") {
-                clearTimeout(lowerCursorTimeout.current)
+            }}
+            onChange={(e) => {
+              setFormUpper(e.target.value)
+              setDepth({
+                a_depth_lower: formLowerNum,
+                a_depth_upper: Number.parseFloat(e.target.value),
+              })
+            }}
+          />
+        </Field>
+        <Field orientation="horizontal" className="gap-1" data-invalid={lowerError !== null}>
+          <FieldLabel htmlFor={lowerId}>
+            Onder
+            <br />
+            (cm)
+          </FieldLabel>
+          <Input
+            ref={lowerRef}
+            id={lowerId}
+            type="number"
+            value={formLower}
+            className="bg-background w-[6em]"
+            onFocus={(e) => {
+              if (e.currentTarget.value === "-") {
+                setFormLower("0")
+                if (typeof lowerCursorTimeout.current !== "undefined") {
+                  clearTimeout(lowerCursorTimeout.current)
+                }
+                lowerCursorTimeout.current = setTimeout(() => {
+                  // Move the cursor to the end of the input.
+                  e.target.selectionStart = e.target.selectionEnd = e.target.value.length + 1
+                }, 50)
               }
-              lowerCursorTimeout.current = setTimeout(() => {
-                // Move the cursor to the end of the input.
-                e.target.selectionStart = e.target.selectionEnd = e.target.value.length + 1
-              }, 50)
-            }
-          }}
-          onChange={(e) => {
-            setFormLower(e.target.value)
-            setDepth({
-              a_depth_lower: Number.parseFloat(e.target.value),
-              a_depth_upper: formUpperNum,
-            })
-          }}
-        />
-        {lowerError && <FieldError>{lowerError}</FieldError>}
-      </Field>
+            }}
+            onChange={(e) => {
+              setFormLower(e.target.value)
+              setDepth({
+                a_depth_lower: Number.parseFloat(e.target.value),
+                a_depth_upper: formUpperNum,
+              })
+            }}
+          />
+        </Field>
+      </div>
+      {overallError && <FieldError>{overallError}</FieldError>}
+      {lowerError && <FieldError>{lowerError}</FieldError>}
     </div>
   )
 }
