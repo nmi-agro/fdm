@@ -7,7 +7,8 @@ import {
   getSoilParametersDescription,
   removeSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { Plus } from "lucide-react"
+import { FlaskConical, Plus } from "lucide-react"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -18,8 +19,19 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
-import { SoilAnalysesOverview } from "~/components/blocks/soil/soil-analyses-overview"
+import {
+  SOIL_ANALYSES_MAP_ID,
+  SoilAnalysesOverview,
+} from "~/components/blocks/soil/soil-analyses-overview"
 import { Button } from "~/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty"
 import { Separator } from "~/components/ui/separator"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
@@ -28,7 +40,6 @@ import { getTimeframe } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
-import { cn } from "~/lib/utils"
 
 /**
  * Loader function for the soil data page of a specific farm field.
@@ -139,61 +150,89 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 }
 
 /**
- * Component that renders the soil data overview for a farm field..
+ * Component that renders the soil data overview for a farm field.
  *
- * This component displays the soil data section, including a title, description, and
- * a list of soil data cards. It also handles the case where no soil analyses are available.
- *
+ * It shows the most recent value of each soil parameter as cards, next to the map and list of the
+ * soil analyses of the field. A value that only covers part of the field can highlight its sampling
+ * zones on the map. Without soil analyses, it explains how to add one.
  */
 export default function FarmFieldSoilOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
+  // A highlight set by clicking a value stays until the user points at something else; otherwise
+  // the pointer leaving the value (for example when the page scrolls to the map) would clear it
+  const [highlight, setHighlight] = useState<{ ids: string[]; pinned: boolean }>({
+    ids: [],
+    pinned: false,
+  })
+  const highlightedIds = highlight.ids
+  const setHighlightedIds = (ids: string[]) => setHighlight({ ids, pinned: false })
+
+  const handleShowZones = (a_ids: string[], options?: { scroll?: boolean }) => {
+    if (a_ids.length === 0 && highlight.pinned) return
+    setHighlight({ ids: a_ids, pinned: options?.scroll === true })
+    if (options?.scroll) {
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      document
+        .getElementById(SOIL_ANALYSES_MAP_ID)
+        ?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" })
+    }
+  }
+
+  const addAnalysisButton = loaderData.fieldWritePermission ? (
+    <Button asChild>
+      <NavLink to="./analysis/new">
+        <Plus aria-hidden />
+        Bodemanalyse toevoegen
+      </NavLink>
+    </Button>
+  ) : null
 
   return (
     <div className="space-y-6">
-      <div className="flex space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">
-            In de gegevens hieronder vind je de meest recente waarde gemeten voor elke
-            bodemparameter
+            Per bodemparameter de meest recente waarde, met de analyse waar die vandaan komt.
           </p>
         </div>
-        <div className="ml-auto">
-          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-            <NavLink to="./analysis/new">
-              <Plus />
-              Bodemanalyse toevoegen
-            </NavLink>
-          </Button>
-        </div>
+        {loaderData.soilAnalyses.length > 0 && addAnalysisButton}
       </div>
       <Separator />
       {loaderData.soilAnalyses.length === 0 ? (
-        <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
-          <div className="flex flex-col space-y-2 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Dit perceel heeft nog geen bodemanalyse
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Voeg een analyse toe om gegevens over de bodem bij te houden
-            </p>
-          </div>
-          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-            <NavLink to="./analysis/new">Bodemanalyse toevoegen</NavLink>
-          </Button>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <FlaskConical aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>Nog geen bodemanalyse</EmptyTitle>
+            <EmptyDescription>
+              {loaderData.fieldWritePermission
+                ? "Voeg een bodemanalyse toe, bijvoorbeeld door het PDF-rapport van het lab te uploaden. De waarden verschijnen dan hier."
+                : "Voor dit perceel is nog geen bodemanalyse vastgelegd."}
+            </EmptyDescription>
+          </EmptyHeader>
+          {addAnalysisButton && <EmptyContent>{addAnalysisButton}</EmptyContent>}
+        </Empty>
       ) : (
-        <div className="flex flex-col-reverse gap-6 lg:flex-row lg:items-start">
-          <div className="border-t pt-6 lg:w-2/3 lg:border-t-0 lg:pt-0">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="min-w-0 lg:w-2/3">
             <SoilDataCards
               currentSoilData={loaderData.currentSoilData}
               soilParameterDescription={loaderData.soilParameterDescription}
               canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
+              onShowZones={handleShowZones}
             />
           </div>
-          <div className="space-y-4 lg:w-1/3 lg:border-l lg:pl-6">
-            <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase">
+          <section
+            className="space-y-4 border-t pt-6 lg:w-1/3 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6"
+            aria-labelledby="soil-analyses-heading"
+          >
+            <h4
+              id="soil-analyses-heading"
+              className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase"
+            >
               Bodemanalyses
             </h4>
             <SoilAnalysesOverview
@@ -203,8 +242,10 @@ export default function FarmFieldSoilOverviewBlock() {
               fetcher={fetcher}
               canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
               fieldName={loaderData.field.b_name}
+              highlightedIds={highlightedIds}
+              onHighlight={setHighlightedIds}
             />
-          </div>
+          </section>
         </div>
       )}
     </div>
@@ -257,7 +298,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         await deleteObject(soilAnalysis.a_file_path)
       }
       return redirectWithSuccess("./", {
-        message: "Bodemanalyse is verwijderd! 🎉",
+        message: "Bodemanalyse verwijderd",
       })
     }
     throw data("Method not allowed", {

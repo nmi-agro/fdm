@@ -1,6 +1,7 @@
 /**
  * Map of all soil analyses of a field: the zone and the sample points of each analysis, each in its
- * own colour. Hovering or clicking an analysis highlights it; clicking opens it.
+ * own colour. Hovering an analysis highlights it; clicking opens it. Several analyses can be
+ * highlighted at once, for example the zones behind an aggregated soil value.
  *
  * Import with React.lazy (see `SoilAnalysesOverview`) to avoid SSR issues with maplibre-gl and to
  * keep the maplibre-gl bundle out of the initial JS payload.
@@ -30,7 +31,7 @@ const POINT_LAYER = "soil-analyses-points"
 export default function SoilAnalysesMap({
   fieldGeometry,
   analyses,
-  highlightedId,
+  highlightedIds,
   onHighlight,
   onSelect,
   height = "280px",
@@ -38,8 +39,9 @@ export default function SoilAnalysesMap({
   fieldGeometry: Polygon | MultiPolygon | null
   /** The analyses with geometry, newest first. */
   analyses: MappedSoilAnalysis[]
-  highlightedId: string | null
-  onHighlight: (a_id: string | null) => void
+  /** The analyses to highlight; the others are dimmed while any analysis is highlighted. */
+  highlightedIds: string[]
+  onHighlight: (a_ids: string[]) => void
   onSelect: (a_id: string) => void
   height?: string
 }) {
@@ -81,22 +83,31 @@ export default function SoilAnalysesMap({
     [analyses],
   )
 
+  // Fit tightly around the field: the map is small, so the default padding would leave the field
+  // as a small shape in the middle
   const initialViewState = useMemo(
-    () =>
-      getViewState({
+    () => ({
+      ...getViewState({
         type: "FeatureCollection",
         features: [...fieldData.features, ...zoneData.features, ...pointData.features],
       }),
+      fitBoundsOptions: { padding: 24 },
+    }),
     [fieldData, zoneData, pointData],
   )
 
-  const isHighlighted: ExpressionSpecification = ["==", ["get", "a_id"], highlightedId ?? ""]
+  const hasHighlight = highlightedIds.length > 0
+  const isHighlighted: ExpressionSpecification = [
+    "in",
+    ["get", "a_id"],
+    ["literal", highlightedIds],
+  ]
   const zoneFill: LayerProps = {
     id: ZONE_FILL_LAYER,
     type: "fill",
     paint: {
       "fill-color": ["get", "color"],
-      "fill-opacity": ["case", isHighlighted, 0.55, highlightedId ? 0.08 : 0.25],
+      "fill-opacity": ["case", isHighlighted, 0.55, hasHighlight ? 0.08 : 0.3],
     },
   }
   const zoneOutline: LayerProps = {
@@ -104,7 +115,8 @@ export default function SoilAnalysesMap({
     type: "line",
     paint: {
       "line-color": ["get", "color"],
-      "line-width": ["case", isHighlighted, 3, 1.5],
+      "line-width": ["case", isHighlighted, 3, 2],
+      "line-opacity": ["case", isHighlighted, 1, hasHighlight ? 0.3 : 1],
     },
   }
   const pointStyle: LayerProps = {
@@ -112,15 +124,22 @@ export default function SoilAnalysesMap({
     type: "circle",
     paint: {
       "circle-color": ["get", "color"],
-      "circle-radius": ["case", isHighlighted, 7, 5],
-      "circle-opacity": ["case", isHighlighted, 1, highlightedId ? 0.4 : 1],
+      "circle-radius": ["case", isHighlighted, 5, 3.5],
+      "circle-opacity": ["case", isHighlighted, 1, hasHighlight ? 0.25 : 0.9],
       "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 1.5,
+      "circle-stroke-width": 1,
+      "circle-stroke-opacity": ["case", isHighlighted, 1, hasHighlight ? 0.25 : 0.9],
     },
   }
   const fieldOutline = {
     ...getFieldsStyle("fieldsSavedOutline"),
     id: "soil-analyses-field-outline",
+  }
+  // A white casing keeps the green field boundary visible on aerial imagery
+  const fieldOutlineCasing: LayerProps = {
+    id: "soil-analyses-field-outline-casing",
+    type: "line",
+    paint: { "line-color": "#ffffff", "line-width": 7, "line-opacity": 0.85 },
   }
 
   function getAnalysisId(event: MapLayerMouseEvent): string | null {
@@ -136,9 +155,16 @@ export default function SoilAnalysesMap({
       useStoredViewState={false}
       updateFromInitialViewState={true}
       style={{ height, width: "100%" }}
-      cursor={highlightedId ? "pointer" : undefined}
-      onMouseMove={(event: MapLayerMouseEvent) => onHighlight(getAnalysisId(event))}
-      onMouseLeave={() => onHighlight(null)}
+      cursor={hasHighlight ? "pointer" : undefined}
+      onMouseMove={(event: MapLayerMouseEvent) => {
+        const a_id = getAnalysisId(event)
+        const next = a_id ? [a_id] : []
+        // Only report changes, so that moving within one zone does not re-render the page
+        if (next.join() !== highlightedIds.join()) onHighlight(next)
+      }}
+      onMouseLeave={() => {
+        if (hasHighlight) onHighlight([])
+      }}
       onClick={(event: MapLayerMouseEvent) => {
         const a_id = getAnalysisId(event)
         if (a_id) onSelect(a_id)
@@ -146,6 +172,7 @@ export default function SoilAnalysesMap({
     >
       <MapTilerAttribution />
       <FieldsSourceNotClickable id="soil-analyses-field" fieldsData={fieldData}>
+        <Layer {...fieldOutlineCasing} />
         <Layer {...fieldOutline} />
       </FieldsSourceNotClickable>
       <Source id="soil-analyses-zones" type="geojson" data={zoneData}>

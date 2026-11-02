@@ -20,10 +20,12 @@ import { cn } from "~/lib/utils"
 
 const SOIL_GROUPS = [
   {
+    id: "basis",
     title: "Basis",
     parameters: ["b_soiltype_agr", "a_som_loi", "d_n_supply_base", "a_ph_cc", "b_gwl_class"],
   },
   {
+    id: "nutrients",
     title: "Nutriënten",
     parameters: [
       "a_n_rt",
@@ -38,14 +40,17 @@ const SOIL_GROUPS = [
     ],
   },
   {
+    id: "texture",
     title: "Textuur",
     parameters: ["a_clay_mi", "a_silt_mi", "a_sand_mi", "a_density_sa"],
   },
   {
+    id: "n-mineral",
     title: "N-mineraal",
     parameters: ["a_nmin_cc", "a_nh4_cc", "a_no3_cc"],
   },
   {
+    id: "occupation",
     title: "Bezetting",
     parameters: [
       "a_cec_co",
@@ -58,6 +63,7 @@ const SOIL_GROUPS = [
     ],
   },
   {
+    id: "other",
     title: "Overig",
     parameters: [
       "a_p_rt",
@@ -72,6 +78,12 @@ const SOIL_GROUPS = [
     ],
   },
 ]
+
+/** Classes for the small metadata lines at the bottom of a soil data card. */
+const META_LINE = "text-muted-foreground flex items-center gap-1.5 text-xs"
+
+/** Classes for the focus ring of the small interactive elements on a soil data card. */
+const FOCUS_RING = "focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
 
 function SoilDataCard({
   title,
@@ -88,6 +100,7 @@ function SoilDataCard({
   zones,
   coverage,
   hasCoverageWarning,
+  onShowZones,
 }: {
   title: string
   description: string
@@ -103,32 +116,71 @@ function SoilDataCard({
   zones: SoilDataCardZone[]
   coverage: number | null
   hasCoverageWarning: boolean
+  /**
+   * Highlights the given analyses on the map of the page (an empty list clears the highlight).
+   * Without it, the coverage warning links to the newest analysis instead.
+   */
+  onShowZones?: (a_ids: string[], options?: { scroll?: boolean }) => void
 }) {
   const isAggregated = zones.length > 1
   const oldestDate = isAggregated ? zones[zones.length - 1].date : null
   const isEditable = canModify && source !== "calculated"
   const EditIcon = isEditable ? Pencil : ExternalLink
+  const coveragePercentage = coverage !== null ? Math.round(coverage * 100) : null
+  const showCoverage = hasCoverageWarning && coveragePercentage !== null
+  const zoneIds = zones.map((zone) => zone.a_id)
+  const zoneHighlightHandlers = onShowZones
+    ? {
+        onMouseEnter: () => onShowZones(zoneIds),
+        onMouseLeave: () => onShowZones([]),
+        onFocus: () => onShowZones(zoneIds),
+        onBlur: () => onShowZones([]),
+      }
+    : {}
+
+  const coverageClassName = cn(
+    "inline-flex shrink-0 items-center gap-1 self-start rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100",
+    FOCUS_RING,
+  )
+  const coverageContent = (
+    <>
+      <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+      <span>{coveragePercentage}% van perceel</span>
+    </>
+  )
+  const coverageLabel = `${title} is gebaseerd op bemonsterde zones die ${coveragePercentage}% van het perceel dekken.`
+
   return (
-    <Card className="hover:bg-accent/5 flex h-full flex-col transition-colors">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 space-x-2 pb-2">
-        <div className="flex min-w-0 items-center gap-1.5">
+    <Card className="flex h-full flex-col">
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+        <CardTitle className="min-h-[2lh] min-w-0 text-sm leading-snug font-semibold">
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <CardTitle className="decoration-muted-foreground/30 hover:decoration-muted-foreground/60 cursor-help truncate text-sm leading-tight font-semibold underline decoration-dotted underline-offset-4 transition-colors">
-                  {title}
-                </CardTitle>
+              <TooltipTrigger
+                className={cn(
+                  "decoration-muted-foreground/40 hover:decoration-muted-foreground line-clamp-2 cursor-help rounded-sm text-left underline decoration-dotted underline-offset-4 transition-colors",
+                  FOCUS_RING,
+                )}
+              >
+                {title}
               </TooltipTrigger>
-              <TooltipContent className="max-w-[250px]">{description}</TooltipContent>
+              <TooltipContent className="max-w-[260px]">{description}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </div>
+        </CardTitle>
         {source !== "nl-other-nmi" ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <NavLink to={link} className="h-4 w-4 shrink-0">
-                  <EditIcon className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
+                <NavLink
+                  to={link}
+                  aria-label={`${isEditable ? "Bewerk" : "Bekijk"} de analyse van ${title}`}
+                  className={cn(
+                    "text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-6 shrink-0 items-center justify-center rounded-md transition-colors",
+                    FOCUS_RING,
+                  )}
+                >
+                  <EditIcon className="size-3.5" aria-hidden />
                 </NavLink>
               </TooltipTrigger>
               <TooltipContent>{isEditable ? "Bewerken" : "Bekijken"}</TooltipContent>
@@ -136,62 +188,91 @@ function SoilDataCard({
           </TooltipProvider>
         ) : null}
       </CardHeader>
-      <CardContent className="mt-auto space-y-3 pt-0">
-        <div className="flex items-baseline space-x-1.5">
+      <CardContent className="flex flex-1 flex-col gap-3 pt-0">
+        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
           {value === null ? (
-            "Onbekend"
-          ) : type === "enum" ? (
-            <div className="text-xl leading-tight font-bold">
-              {label && type === "enum" ? label : value}
+            <div className="text-muted-foreground text-xl leading-tight font-semibold">
+              Onbekend
             </div>
+          ) : type === "enum" ? (
+            <div className="text-xl leading-tight font-bold">{label ?? value}</div>
           ) : (
             <>
-              <div className="text-2xl font-bold tracking-tight">
+              <div className="text-2xl font-bold tracking-tight tabular-nums">
                 {typeof value === "number" ? Math.round(value * 10) / 10 : value}
               </div>
-              <div className="text-muted-foreground text-[10px] font-medium">{unit}</div>
+              <div className="text-muted-foreground text-xs font-medium">{unit}</div>
             </>
           )}
         </div>
 
-        <div className="border-border/40 flex flex-col space-y-1.5 border-t pt-1">
+        {showCoverage && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    "text-muted-foreground flex items-center space-x-1.5 text-[10px]",
-                    !source ? "invisible" : "",
-                  )}
-                >
-                  {source === "calculated" ? (
-                    <Calculator className="h-3 w-3 shrink-0" />
-                  ) : source === "nl-other-nmi" ? (
-                    <Sparkles className="h-3 w-3 shrink-0" />
-                  ) : source === "other" || !source ? (
-                    <User className="h-3 w-3 shrink-0" />
-                  ) : (
-                    <Microscope className="text-primary/60 h-3 w-3 shrink-0" />
-                  )}
-                  <span className="max-w-full truncate">{sourceLabel}</span>
-                </div>
+                {onShowZones ? (
+                  <button
+                    type="button"
+                    className={coverageClassName}
+                    aria-label={`${coverageLabel} Toon de zones op de kaart.`}
+                    {...zoneHighlightHandlers}
+                    onClick={() => onShowZones(zoneIds, { scroll: true })}
+                  >
+                    {coverageContent}
+                  </button>
+                ) : (
+                  <NavLink
+                    to={link}
+                    className={coverageClassName}
+                    aria-label={`${coverageLabel} Bekijk de bemonstering.`}
+                  >
+                    {coverageContent}
+                  </NavLink>
+                )}
               </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {source === "calculated"
-                  ? "Berekend"
-                  : source === "nl-other-nmi"
-                    ? `Geschat met ${sourceLabel}`
-                    : source === "other" || !source
-                      ? "Onbekende bron"
-                      : `Gemeten door ${sourceLabel}`}
+              <TooltipContent side="bottom" className="max-w-[260px]">
+                De bemonsterde zones dekken {coveragePercentage}% van het perceel. De waarde geldt
+                alleen voor het bemonsterde deel.{" "}
+                {onShowZones
+                  ? "De zones zijn gemarkeerd op de kaart."
+                  : "Klik om de bemonstering te bekijken."}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        )}
+
+        <div className="border-border/60 mt-auto flex flex-col gap-1.5 border-t pt-2">
+          {source && (
+            <div className={META_LINE}>
+              {source === "calculated" ? (
+                <Calculator className="size-3.5 shrink-0" aria-hidden />
+              ) : source === "nl-other-nmi" ? (
+                <Sparkles className="size-3.5 shrink-0" aria-hidden />
+              ) : source === "other" ? (
+                <User className="size-3.5 shrink-0" aria-hidden />
+              ) : (
+                <Microscope className="size-3.5 shrink-0" aria-hidden />
+              )}
+              <span className="min-w-0 truncate" title={sourceLabel}>
+                <span className="sr-only">
+                  {source === "calculated"
+                    ? ""
+                    : source === "nl-other-nmi"
+                      ? "Geschat met "
+                      : source === "other"
+                        ? "Bron: "
+                        : "Gemeten door "}
+                </span>
+                {sourceLabel}
+              </span>
+            </div>
+          )}
 
           {!(!date || source === "nl-other-nmi") && (
-            <div className="text-muted-foreground flex items-center space-x-1.5 text-[10px]">
-              <Calendar className="h-3 w-3 shrink-0 opacity-60" />
+            <div className={META_LINE}>
+              <Calendar className="size-3.5 shrink-0" aria-hidden />
               <span>
+                <span className="sr-only">Bemonsterd op </span>
                 {oldestDate && oldestDate.getTime() !== date.getTime()
                   ? `${format(oldestDate, "P", { locale: nl })} – ${format(date, "P", { locale: nl })}`
                   : format(date, "P", { locale: nl })}
@@ -202,11 +283,14 @@ function SoilDataCard({
           {isAggregated && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="text-muted-foreground flex cursor-help items-center space-x-1.5 text-[10px]">
-                    <Layers className="h-3 w-3 shrink-0 opacity-60" />
-                    <span>Gemiddelde van {zones.length} zones</span>
-                  </div>
+                <TooltipTrigger
+                  className={cn(META_LINE, "cursor-help rounded-sm text-left", FOCUS_RING)}
+                  {...zoneHighlightHandlers}
+                >
+                  <Layers className="size-3.5 shrink-0" aria-hidden />
+                  <span className="underline decoration-dotted underline-offset-4">
+                    Gemiddelde van {zones.length} zones
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[260px]">
                   <p className="mb-1">
@@ -229,43 +313,32 @@ function SoilDataCard({
               </Tooltip>
             </TooltipProvider>
           )}
-
-          {hasCoverageWarning && coverage !== null && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <NavLink
-                    to={link}
-                    className="flex cursor-pointer items-center space-x-1.5 text-[10px] text-amber-700 hover:underline"
-                  >
-                    <TriangleAlert className="h-3 w-3 shrink-0" />
-                    <span>Dekt {Math.round(coverage * 100)}% van perceel</span>
-                  </NavLink>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[260px]">
-                  De bemonsterde zones dekken {Math.round(coverage * 100)}% van het perceel. De
-                  waarde geldt alleen voor het bemonsterde deel. Klik om de bemonstering op de kaart
-                  te bekijken.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
       </CardContent>
     </Card>
   )
 }
 
+/**
+ * The current soil data of a field as cards, grouped by topic. Each card shows the most recent value
+ * of a parameter with its source and sampling date. When a value combines several sampling zones,
+ * or the sampled zones cover only part of the field, the card says so.
+ *
+ * Pass `onShowZones` when the page also shows the soil analyses map, so that the coverage warning
+ * highlights the contributing zones there instead of linking away.
+ */
 export function SoilDataCards({
   currentSoilData,
   soilParameterDescription,
   canModifyAllSoilAnalyses = false,
   canModifySoilAnalysis = {},
+  onShowZones,
 }: {
   currentSoilData: CurrentSoilData
   soilParameterDescription: SoilParameterDescription
   canModifyAllSoilAnalyses?: boolean
   canModifySoilAnalysis?: Record<string, boolean>
+  onShowZones?: (a_ids: string[], options?: { scroll?: boolean }) => void
 }) {
   const cards = constructSoilDataCards(currentSoilData, soilParameterDescription)
 
@@ -280,15 +353,19 @@ export function SoilDataCards({
 
         if (groupCards.length === 0) return null
 
+        const headingId = `soil-group-${group.id}`
         return (
-          <div key={group.title} className="space-y-4">
+          <section key={group.id} className="space-y-4" aria-labelledby={headingId}>
             <div className="flex items-center gap-4">
-              <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] whitespace-nowrap uppercase">
+              <h4
+                id={headingId}
+                className="text-muted-foreground text-xs font-bold tracking-[0.1em] whitespace-nowrap uppercase"
+              >
                 {group.title}
               </h4>
               <Separator className="flex-1 opacity-40" />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-4">
               {groupCards.map((card) => {
                 const sourceParam = soilParameterDescription.find((x) => x.parameter === "a_source")
                 const sourceOption = sourceParam?.options?.find((x) => x.value === card.source)
@@ -314,11 +391,12 @@ export function SoilDataCards({
                     zones={card.zones}
                     coverage={card.coverage}
                     hasCoverageWarning={card.has_coverage_warning}
+                    onShowZones={onShowZones}
                   />
                 )
               })}
             </div>
-          </div>
+          </section>
         )
       })}
     </div>

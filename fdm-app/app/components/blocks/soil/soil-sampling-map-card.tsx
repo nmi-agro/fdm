@@ -9,7 +9,7 @@ const SoilSamplingMap = lazy(() => import("./soil-sampling-map"))
 /**
  * Share of the field area above which a sampling zone is treated as the whole field and not drawn.
  */
-const ZONE_EQUALS_FIELD_FRACTION = 0.9
+export const ZONE_EQUALS_FIELD_FRACTION = 0.9
 
 /**
  * Shows where a soil analysis was sampled: the field boundary, the sampling zone (when it differs

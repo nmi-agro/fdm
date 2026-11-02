@@ -474,6 +474,9 @@ importers:
       '@turf/helpers':
         specifier: ^7.4.0
         version: 7.4.0
+      '@turf/intersect':
+        specifier: ^7.4.0
+        version: 7.4.0
       '@turf/length':
         specifier: ^7.4.0
         version: 7.4.0
