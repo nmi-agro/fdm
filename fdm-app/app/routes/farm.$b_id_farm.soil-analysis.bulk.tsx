@@ -14,7 +14,7 @@ import {
   useNavigation,
   useSubmit,
 } from "react-router"
-import { redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -32,6 +32,7 @@ import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { validateBulkAnalyses } from "~/lib/soil-analysis-bulk"
 import { buildObjectKey, deleteObject, uploadObject } from "../integrations/gcs.server"
 
 export const handle = { hideNavigationProgress: true }
@@ -185,27 +186,23 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
       }
 
-      const results = await Promise.all(
-        matches.map(async (match: { analysisId: string; fieldId: string }) => {
-          const analysis = analysesData.find((a: any) => a.id === match.analysisId)
-          if (analysis) {
-            // Validate depth fields before processing
-            const depthLower = Number(analysis.a_depth_lower)
-            const depthUpper = Number(analysis.a_depth_upper ?? 0)
-            if (Number.isNaN(depthLower) || Number.isNaN(depthUpper)) {
-              throw new Error(
-                `Analysis ${match.analysisId}: invalid depth values (lower: ${analysis.a_depth_lower}, upper: ${analysis.a_depth_upper})`,
-              )
-            }
+      // Validate the whole batch before inserting anything, so a bad row cannot leave a partial save.
+      const validation = validateBulkAnalyses(matches, analysesData)
+      if (!validation.valid) {
+        captureEvent(session.principal_id, "soil_analysis_bulk_rejected", {
+          b_id_farm,
+          method: "bulk",
+          count: validation.invalidFiles.length,
+        })
+        return dataWithError(null, validation.message, { status: 400 })
+      }
 
-            const samplingDate = analysis.b_sampling_date
-              ? new Date(analysis.b_sampling_date)
-              : undefined
-            if (!samplingDate || Number.isNaN(samplingDate.getTime())) {
-              throw new Error(
-                `Analysis ${match.analysisId}: invalid b_sampling_date (${analysis.b_sampling_date})`,
-              )
-            }
+      const results = await Promise.all(
+        validation.analyses.map(
+          async ({ match, analysis, a_depth_lower, a_depth_upper, b_sampling_date }) => {
+            const depthLower = a_depth_lower
+            const depthUpper = a_depth_upper
+            const samplingDate = b_sampling_date
             // Strip UI-only and redundant properties before saving to DB
             const {
               id: _id,
@@ -258,8 +255,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
 
             return soilAnalysisId
-          }
-        }),
+          },
+        ),
       )
 
       const savedCount = results.filter(Boolean).length

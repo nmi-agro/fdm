@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import {
@@ -36,24 +37,7 @@ import {
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth } from "~/lib/calendar"
-import { Field, FieldError, FieldLabel } from "../../ui/field"
-
-const isValidDepth = (depth: {
-  a_depth_lower: number | undefined
-  a_depth_upper: number | undefined
-}): depth is { a_depth_lower: number; a_depth_upper: number } => {
-  return !!(
-    typeof depth.a_depth_lower === "number" &&
-    Number.isFinite(depth.a_depth_lower) &&
-    (typeof depth.a_depth_upper === "undefined" ||
-      depth.a_depth_upper === null ||
-      (typeof depth.a_depth_upper === "number" &&
-        Number.isFinite(depth.a_depth_upper) &&
-        depth.a_depth_upper >= 0 &&
-        depth.a_depth_lower >= 0 &&
-        depth.a_depth_lower > depth.a_depth_upper))
-  )
-}
+import { isValidDepth } from "~/lib/soil-analysis-bulk"
 
 const isValidDate = (dateStr: string | undefined | null): boolean => {
   if (!dateStr) return false
@@ -214,11 +198,13 @@ const StatusCell = memo(
   ({
     matchId,
     date,
+    isDepthValid,
     matchReason,
     initialMatchId,
   }: {
     matchId: string
     date: string
+    isDepthValid: boolean
     matchReason?: "geometry" | "name" | "both"
     initialMatchId?: string
   }) => {
@@ -230,6 +216,15 @@ const StatusCell = memo(
         <div className="text-destructive flex items-center">
           <AlertTriangle className="mr-1 h-4 w-4" />
           <span className="text-xs">Datum ontbreekt</span>
+        </div>
+      )
+    }
+
+    if (!isDepthValid) {
+      return (
+        <div className="text-destructive flex items-center">
+          <AlertTriangle className="mr-1 h-4 w-4" />
+          <span className="text-xs">Diepte ontbreekt</span>
         </div>
       )
     }
@@ -306,14 +301,7 @@ function DepthCell({
   )
 
   // Only open the form if something is invalid.
-  const [open] = useState(
-    !(
-      typeof depth.a_depth_lower === "number" &&
-      Number.isFinite(depth.a_depth_lower) &&
-      typeof depth.a_depth_upper === "number" &&
-      Number.isFinite(depth.a_depth_upper)
-    ),
-  )
+  const [open] = useState(!isValidDepth(depth))
 
   const formLowerNum = Number.parseFloat(formLower)
   const formUpperNum = Number.parseFloat(formUpper)
@@ -460,7 +448,7 @@ export function BulkSoilAnalysisReview({
     Object.fromEntries(
       analyses.map((a) => [
         a.id,
-        { a_depth_lower: a.a_depth_lower, a_depth_upper: a.a_depth_upper },
+        { a_depth_lower: a.a_depth_lower, a_depth_upper: a.a_depth_upper ?? 0 },
       ]),
     ),
   )
@@ -555,18 +543,15 @@ export function BulkSoilAnalysisReview({
                   <Microscope className="mr-1 h-3 w-3" />
                   <span>{sourceLabel}</span>
                 </div>
-                {(row.original.a_depth_upper !== undefined ||
-                  row.original.a_depth_lower !== undefined) && (
-                  <div className="flex items-center ">
-                    <DepthCell
-                      key={row.original.id}
-                      depth={table.options.meta!.depths[row.original.id]}
-                      setDepth={(depth) =>
-                        table.options.meta!.handleDepthChange(row.original.id, depth)
-                      }
-                    />
-                  </div>
-                )}
+                <div className="flex items-center ">
+                  <DepthCell
+                    key={row.original.id}
+                    depth={table.options.meta!.depths[row.original.id]}
+                    setDepth={(depth) =>
+                      table.options.meta!.handleDepthChange(row.original.id, depth)
+                    }
+                  />
+                </div>
               </div>
             </div>
           )
@@ -637,6 +622,7 @@ export function BulkSoilAnalysisReview({
             <StatusCell
               matchId={meta.matches[row.original.id]}
               date={meta.dates[row.original.id]}
+              isDepthValid={isValidDepth(meta.depths[row.original.id])}
               matchReason={row.original.matchReason}
               initialMatchId={row.original.matchedFieldId}
             />
@@ -670,7 +656,7 @@ export function BulkSoilAnalysisReview({
           <CardTitle>Controleer en koppel</CardTitle>
           <CardDescription>
             Controleer de gegevens uit de pdf's en koppel ze aan het juiste perceel. Analyses met
-            ontbrekende datum of zonder gekoppeld perceel worden overgeslagen.
+            ontbrekende datum of diepte, of zonder gekoppeld perceel, worden overgeslagen.
           </CardDescription>
         </CardHeader>
         <CardContent>
