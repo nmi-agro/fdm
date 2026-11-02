@@ -10,17 +10,17 @@ packages:
   - fdm-helpdesk
 
 catalog:
-  "@better-auth/api-key": 1.7.12
-  "@better-auth/core": 1.7.12
-  "@types/node": ^26.6.5
+  "@better-auth/api-key": 1.7.14
+  "@better-auth/core": 1.7.14
+  "@types/node": ^26.6.6
   "@dotenvx/dotenvx": ^2.38.2
   jose: ^6.2.13
   "@vitest/coverage-v8": 5.0.5
-  better-auth: 1.7.12
+  better-auth: 1.7.14
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   nanoid: ^6.0.2
-  tsdown: 0.23.1
+  tsdown: 0.23.3
   typedoc: ^0.28.20
   typedoc-plugin-missing-exports: ^4.1.4
   typescript: ^7.0.2
