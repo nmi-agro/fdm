@@ -17,6 +17,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { FieldPageHandle } from "~/lib/field-page"
 import { SoilAnalysisValues } from "~/components/blocks/soil/analysis-values"
 import {
   getSoilAnalysisDownloadName,
@@ -28,7 +29,6 @@ import { SAMPLING_PARAMETERS } from "~/components/blocks/soil/parameter-groups"
 import { SoilSamplingMapCard } from "~/components/blocks/soil/soil-sampling-map-card"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -137,6 +137,35 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 }
 
 /**
+ * Describes a soil analysis for under the field name: sampling date, laboratory and depth.
+ */
+function describeSoilAnalysis(loaderData: unknown): string | undefined {
+  const data = loaderData as Awaited<ReturnType<typeof loader>> | undefined
+  if (!data?.soilAnalysis) return undefined
+  const { soilAnalysis, soilParameterDescription } = data
+  const sourceLabel = soilParameterDescription
+    .find((x) => x.parameter === "a_source")
+    ?.options?.find((option: { value: string }) => option.value === soilAnalysis.a_source)?.label
+  const samplingDate = soilAnalysis.b_sampling_date ? new Date(soilAnalysis.b_sampling_date) : null
+  const depth =
+    typeof soilAnalysis.a_depth_lower === "number"
+      ? `${soilAnalysis.a_depth_upper ?? 0}–${soilAnalysis.a_depth_lower} cm`
+      : null
+  return [
+    samplingDate
+      ? `Bodemanalyse van ${format(samplingDate, "d MMMM yyyy", { locale: nl })}`
+      : "Bodemanalyse",
+    sourceLabel ? `Gemeten door ${sourceLabel}` : null,
+    depth ? `diepte ${depth}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
+}
+
+/** The field layout shows the sampling date, laboratory and depth under the field name. */
+export const handle: FieldPageHandle = { fieldDescription: describeSoilAnalysis }
+
+/**
  * Page of one soil analysis. By default it shows the values read-only, grouped by topic, next to a
  * map of where the field was sampled. Users who may edit the analysis switch to the form with
  * "Bewerken" (`?modus=bewerken`).
@@ -147,60 +176,34 @@ export default function FarmFieldSoilAnalysisBlock() {
   const [searchParams] = useSearchParams()
   const isEditing = soilAnalysisWritePermission && searchParams.get("modus") === "bewerken"
 
-  const sourceLabel = soilParameterDescription
-    .find((x) => x.parameter === "a_source")
-    ?.options?.find((option: { value: string }) => option.value === soilAnalysis.a_source)?.label
-  const samplingDate = soilAnalysis.b_sampling_date ? new Date(soilAnalysis.b_sampling_date) : null
-  const depth =
-    typeof soilAnalysis.a_depth_lower === "number"
-      ? `${soilAnalysis.a_depth_upper ?? 0}–${soilAnalysis.a_depth_lower} cm`
-      : null
-  const subtitle = [
-    sourceLabel ? `Gemeten door ${sourceLabel}` : null,
-    depth ? `diepte ${depth}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ")
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h3 className="text-lg font-medium">
-            {samplingDate
-              ? `Bodemanalyse van ${format(samplingDate, "d MMMM yyyy", { locale: nl })}`
-              : "Bodemanalyse"}
-          </h3>
-          {subtitle && <p className="text-muted-foreground text-sm">{subtitle}</p>}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {soilAnalysis.a_file_path && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <ViewPdfButton variant="outline" size="sm" />
-              </DialogTrigger>
-              <PdfViewerDialogContent
-                downloadUrl={`/api/soil-analysis/download/${soilAnalysis.a_id}.pdf`}
-                filename={getSoilAnalysisDownloadName(
-                  soilAnalysis,
-                  loaderData.field.b_name,
-                  soilParameterDescription,
-                )}
-                title={getSoilAnalysisTitle(soilAnalysis, soilParameterDescription)}
-              />
-            </Dialog>
-          )}
-          {soilAnalysisWritePermission && !isEditing && (
-            <Button asChild size="sm">
-              <NavLink to={{ search: "?modus=bewerken" }}>
-                <Pencil />
-                Bewerken
-              </NavLink>
-            </Button>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-2 empty:hidden">
+        {soilAnalysis.a_file_path && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <ViewPdfButton variant="outline" size="sm" />
+            </DialogTrigger>
+            <PdfViewerDialogContent
+              downloadUrl={`/api/soil-analysis/download/${soilAnalysis.a_id}.pdf`}
+              filename={getSoilAnalysisDownloadName(
+                soilAnalysis,
+                loaderData.field.b_name,
+                soilParameterDescription,
+              )}
+              title={getSoilAnalysisTitle(soilAnalysis, soilParameterDescription)}
+            />
+          </Dialog>
+        )}
+        {soilAnalysisWritePermission && !isEditing && (
+          <Button asChild size="sm">
+            <NavLink to={{ search: "?modus=bewerken" }}>
+              <Pencil />
+              Bewerken
+            </NavLink>
+          </Button>
+        )}
       </div>
-      <Separator />
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)] xl:items-start">
         <div className="min-w-0">
           {isEditing ? (

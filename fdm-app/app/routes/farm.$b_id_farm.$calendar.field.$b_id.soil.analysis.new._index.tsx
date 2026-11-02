@@ -7,12 +7,13 @@ import {
   NavLink,
   useLoaderData,
 } from "react-router"
+import type { FieldPageHandle } from "~/lib/field-page"
 import { SoilAnalysisFormSelection } from "~/components/blocks/soil/form-selection"
 import {
   PdfReadingUnavailableAlert,
   SoilAnalysisUploadFlow,
 } from "~/components/blocks/soil/upload-flow"
-import { Separator } from "~/components/ui/separator"
+import { Button } from "~/components/ui/button"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
@@ -74,6 +75,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+/** The field layout names the page under the field name. */
+export const handle: FieldPageHandle = {
+  fieldDescription:
+    "Bodemanalyse toevoegen: upload het PDF-rapport van het lab of voer de waarden zelf in",
+}
+
 /**
  * Page to add a soil analysis. Uploading the PDF report of the lab is the main way: the values are
  * read and checked before saving. Below it are the forms to enter the values by hand.
@@ -82,7 +89,7 @@ export default function FarmFieldSoilAnalysisNewBlock() {
   const { b_id_farm, isNmiConfigured, soilParameterDescription } = useLoaderData<typeof loader>()
 
   const manualEntry = (
-    <section aria-labelledby="soil-manual-entry" className="space-y-3">
+    <section aria-labelledby="soil-manual-entry" className="space-y-4">
       <div className="space-y-1">
         <h4 id="soil-manual-entry" className="text-base font-semibold">
           Zelf invoeren
@@ -93,37 +100,44 @@ export default function FarmFieldSoilAnalysisNewBlock() {
         </p>
       </div>
       <SoilAnalysisFormSelection />
-      <p className="text-muted-foreground flex items-center gap-2 text-sm">
-        <Files aria-hidden className="size-4 shrink-0" />
-        <span>
-          Rapporten voor meerdere percelen tegelijk?{" "}
-          <NavLink
-            to={`/farm/${b_id_farm}/soil-analysis/bulk`}
-            className="text-foreground font-medium underline underline-offset-4"
-          >
-            Upload ze in één keer
-          </NavLink>
-        </span>
-      </p>
     </section>
+  )
+
+  // Reading many reports at once uses the same PDF reading, so it is offered with the upload
+  const bulkUpload = (
+    <div className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
+      <Files aria-hidden className="text-muted-foreground size-5 shrink-0 max-sm:hidden" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">Rapporten voor meerdere percelen?</p>
+        <p className="text-muted-foreground text-sm">
+          Upload de PDF's van meerdere percelen van dit bedrijf in één keer.
+        </p>
+      </div>
+      <Button asChild variant="outline" className="max-sm:w-full pointer-coarse:h-11">
+        <NavLink to={`/farm/${b_id_farm}/soil-analysis/bulk`}>
+          <Files aria-hidden />
+          Meerdere PDF's uploaden
+        </NavLink>
+      </Button>
+    </div>
   )
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-medium">Bodemanalyse toevoegen</h3>
-          <p className="text-muted-foreground text-sm">
-            Upload het PDF-rapport van het lab, of voer de waarden zelf in.
-          </p>
-        </div>
-      </div>
-      <Separator />
       {isNmiConfigured ? (
         <SoilAnalysisUploadFlow
           soilParameterDescription={soilParameterDescription}
           manualEntryHref="./standard"
-          belowUpload={manualEntry}
+          heading={
+            <div className="space-y-1">
+              <h4 className="text-base font-semibold">PDF-rapport uploaden</h4>
+              <p className="text-muted-foreground text-sm">
+                De waarden worden uit de PDF gehaald, zodat je ze niet hoeft over te typen.
+              </p>
+            </div>
+          }
+          belowUpload={bulkUpload}
+          aside={manualEntry}
         />
       ) : (
         <div className="max-w-3xl space-y-6">

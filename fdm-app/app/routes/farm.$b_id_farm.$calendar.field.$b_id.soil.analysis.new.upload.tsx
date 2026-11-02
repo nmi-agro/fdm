@@ -7,12 +7,12 @@ import {
   NavLink,
   useLoaderData,
 } from "react-router"
+import type { FieldPageHandle } from "~/lib/field-page"
 import {
   PdfReadingUnavailableAlert,
   SoilAnalysisUploadFlow,
 } from "~/components/blocks/soil/upload-flow"
 import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
@@ -76,6 +76,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+/** The field layout names the page under the field name. */
+export const handle: FieldPageHandle = {
+  fieldDescription:
+    "Bodemanalyse uploaden: je controleert de uitgelezen waarden voordat ze worden opgeslagen",
+}
+
 /**
  * Renders the page to add a soil analysis from a PDF lab report: first the PDF is read, then the
  * user checks the values next to the PDF and saves them.
@@ -87,22 +93,12 @@ export default function FarmFieldSoilAnalysisUploadBlock() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-medium">Bodemanalyse uploaden</h3>
-          <p className="text-muted-foreground text-sm">
-            Upload het PDF-rapport van het lab. Je controleert de uitgelezen waarden voordat de
-            analyse wordt opgeslagen.
-          </p>
-        </div>
-        <Button asChild variant="ghost" size="sm">
-          <NavLink to="../soil/analysis/new">
-            <ArrowLeft />
-            Andere manier kiezen
-          </NavLink>
-        </Button>
-      </div>
-      <Separator />
+      <Button asChild variant="ghost" size="sm" className="-ml-3">
+        <NavLink to="../soil/analysis/new">
+          <ArrowLeft />
+          Andere manier kiezen
+        </NavLink>
+      </Button>
       {!isNmiConfigured && <PdfReadingUnavailableAlert manualEntryHref="../standard" />}
       <SoilAnalysisUploadFlow
         soilParameterDescription={soilParameterDescription}

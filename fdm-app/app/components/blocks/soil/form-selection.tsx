@@ -1,7 +1,13 @@
 import type { ReactNode } from "react"
 import { ChevronDown, ChevronRight, FileUp } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink, useLocation, useParams } from "react-router"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
+
+/**
+ * From this crop year on, the analysis for derogation is rarely needed, so it moves under "Meer
+ * opties".
+ */
+const DEROGATION_SECONDARY_FROM_YEAR = 2026
 
 /** The forms for entering a soil analysis by hand. */
 const MANUAL_FORMS = [
@@ -24,13 +30,19 @@ const MANUAL_FORMS = [
 
 /**
  * The ways to enter a soil analysis by hand, as a list of links to the forms. The form with every
- * soil parameter is behind "Meer opties".
+ * soil parameter is behind "Meer opties", and so is the form for derogation from crop year 2026 on.
  *
  * @param uploadHref - When given, a link to add the analysis from a PDF is shown first. Leave it
  * out on pages that already show the upload.
  */
 export function SoilAnalysisFormSelection({ uploadHref }: { uploadHref?: string } = {}) {
   const location = useLocation()
+  const { calendar } = useParams()
+  const year = Number(calendar)
+  const derogationIsSecondary = Number.isInteger(year) && year >= DEROGATION_SECONDARY_FROM_YEAR
+  const isSecondary = (type: string) => type === "derogation" && derogationIsSecondary
+  const primaryForms = MANUAL_FORMS.filter((manualForm) => !isSecondary(manualForm.type))
+  const secondaryForms = MANUAL_FORMS.filter((manualForm) => isSecondary(manualForm.type))
 
   return (
     <div className="space-y-3">
@@ -45,7 +57,7 @@ export function SoilAnalysisFormSelection({ uploadHref }: { uploadHref?: string 
             />
           </li>
         )}
-        {MANUAL_FORMS.map((manualForm) => (
+        {primaryForms.map((manualForm) => (
           <li key={manualForm.type}>
             <SelectionLink
               to={`./${manualForm.type}${location.search}`}
@@ -64,7 +76,16 @@ export function SoilAnalysisFormSelection({ uploadHref }: { uploadHref?: string 
           Meer opties
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
-          <ul className="overflow-hidden rounded-lg border">
+          <ul className="divide-y overflow-hidden rounded-lg border">
+            {secondaryForms.map((manualForm) => (
+              <li key={manualForm.type}>
+                <SelectionLink
+                  to={`./${manualForm.type}${location.search}`}
+                  title={manualForm.title}
+                  description={manualForm.description}
+                />
+              </li>
+            ))}
             <li>
               <SelectionLink
                 to={`./all${location.search}`}

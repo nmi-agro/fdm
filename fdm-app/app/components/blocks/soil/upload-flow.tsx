@@ -19,19 +19,26 @@ type UploadActionData = { review?: SoilAnalysisReview; uploadError?: string } | 
  * @param soilParameterDescription - Descriptions of all soil parameters.
  * @param disabled - Whether reading PDFs is unavailable.
  * @param manualEntryHref - Link to the form for entering the values by hand.
- * @param belowUpload - Content shown below the upload step only, such as other ways to add an
- * analysis; it is hidden while the user checks the values.
+ * @param heading - Heading shown above the upload step.
+ * @param belowUpload - Content shown below the upload step only, such as a link to upload many
+ * reports at once; it is hidden while the user checks the values.
+ * @param aside - Content shown next to the upload step when there is room (below it otherwise),
+ * such as other ways to add an analysis; it is hidden while the user checks the values.
  */
 export function SoilAnalysisUploadFlow({
   soilParameterDescription,
   disabled,
   manualEntryHref,
+  heading,
   belowUpload,
+  aside,
 }: {
   soilParameterDescription: SoilParameterDescription
   disabled?: boolean
   manualEntryHref: string
+  heading?: ReactNode
   belowUpload?: ReactNode
+  aside?: ReactNode
 }) {
   const actionData = useActionData<UploadActionData>()
   const [file, setFile] = useState<File | null>(null)
@@ -53,8 +60,9 @@ export function SoilAnalysisUploadFlow({
     )
   }
 
-  return (
-    <div className="max-w-3xl space-y-10">
+  const upload = (
+    <div className="space-y-6">
+      {heading}
       <SoilAnalysisUploadForm
         disabled={disabled}
         error={actionData?.uploadError}
@@ -62,6 +70,20 @@ export function SoilAnalysisUploadFlow({
         onFileChange={setFile}
       />
       {belowUpload}
+    </div>
+  )
+
+  if (!aside) {
+    return <div className="max-w-3xl">{upload}</div>
+  }
+
+  // The upload and the alternatives side by side when the page is wide enough
+  return (
+    <div className="@container">
+      <div className="grid gap-10 @4xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @4xl:gap-12">
+        {upload}
+        {aside}
+      </div>
     </div>
   )
 }

@@ -8,11 +8,11 @@ import {
   useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { FieldPageHandle } from "~/lib/field-page"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
 import { getSoilParametersForSoilAnalysisType } from "~/components/blocks/soil/parameters.server"
 import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -99,6 +99,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+/** The field layout names the form under the field name. */
+export const handle: FieldPageHandle = {
+  fieldDescription: (loaderData) => {
+    const type = (loaderData as { soilAnalysisType?: string } | undefined)?.soilAnalysisType
+    const title = SOIL_ANALYSIS_TYPE_TITLES[type as keyof typeof SOIL_ANALYSIS_TYPE_TITLES]
+    return title ? `${title}: neem de waarden over uit het rapport van het lab` : undefined
+  },
+}
+
 /** Page titles per type of soil analysis form. */
 const SOIL_ANALYSIS_TYPE_TITLES = {
   standard: "Standaard bodemanalyse invoeren",
@@ -119,28 +128,12 @@ export default function FarmFieldSoilOverviewBlock() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-medium">
-            {
-              SOIL_ANALYSIS_TYPE_TITLES[
-                loaderData.soilAnalysisType as keyof typeof SOIL_ANALYSIS_TYPE_TITLES
-              ]
-            }
-          </h3>
-          <p className="text-muted-foreground text-sm">
-            Neem de waarden over uit het rapport van het lab. Laat velden leeg die niet zijn
-            gemeten.
-          </p>
-        </div>
-        <Button asChild variant="ghost" size="sm">
-          <NavLink to="../soil/analysis/new">
-            <ArrowLeft />
-            Andere manier kiezen
-          </NavLink>
-        </Button>
-      </div>
-      <Separator />
+      <Button asChild variant="ghost" size="sm" className="-ml-3">
+        <NavLink to="../soil/analysis/new">
+          <ArrowLeft />
+          Andere manier kiezen
+        </NavLink>
+      </Button>
       <SoilAnalysisForm
         soilAnalysis={undefined}
         soilParameterDescription={loaderData.soilParameterDescription}

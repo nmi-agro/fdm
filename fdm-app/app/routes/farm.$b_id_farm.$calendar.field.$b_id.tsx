@@ -27,6 +27,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
+import { useFieldPageDescription } from "~/lib/field-page"
 import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 
@@ -167,6 +168,7 @@ export default function FarmFieldIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const calendar = useCalendarStore((state) => state.calendar)
   const location = useLocation()
+  const pageDescription = useFieldPageDescription()
   const isDashboardRoute =
     location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}` ||
     location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}/`
@@ -213,9 +215,10 @@ export default function FarmFieldIndex() {
         <FarmTitle
           title={loaderData.field?.b_name}
           description={
-            isDashboardRoute
+            pageDescription ??
+            (isDashboardRoute
               ? "Overzicht van dit perceel"
-              : "Beheer hier de gegevens van dit perceel"
+              : "Beheer hier de gegevens van dit perceel")
           }
         />
         <FarmContent>
