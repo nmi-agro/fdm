@@ -20,6 +20,7 @@ import { AccessFormSchema } from "~/lib/schemas/access.schema"
 // Define the type for the principal object based on usage
 type Principal = {
   username: string
+  email?: string | null
   displayUserName: string | null
   image?: string | null
   initials: string
@@ -94,6 +95,17 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
               })
             }}
             emptyMessage={(value) => {
+              const typedEmail = value.trim().toLowerCase()
+              // The lookup hides principals that already have access, so detect them here
+              const existingPrincipal = principals.find(
+                (p) =>
+                  p.username.toLowerCase() === typedEmail || p.email?.toLowerCase() === typedEmail,
+              )
+              if (existingPrincipal) {
+                return existingPrincipal.status === "pending"
+                  ? `${value.trim()} is al uitgenodigd.`
+                  : `${value.trim()} heeft al toegang.`
+              }
               if (isEmail(value.trim())) {
                 return (
                   <button
