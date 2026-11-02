@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.39.4
+
+### Patch Changes
+
+- [#905](https://github.com/nmi-agro/fdm/pull/905) [`533d76a`](https://github.com/nmi-agro/fdm/commit/533d76aa36c61fe1e62c51fe30be5a254225922f) Thanks [@SvenVw](https://github.com/SvenVw)! - Opening a link to an organization invitation that can no longer be used now explains why, instead of showing the error page: the invitation has expired, was already accepted, was rejected earlier, or was cancelled by the organization. Invitations that do not exist or are meant for another account show "Uitnodiging niet beschikbaar". The "Terug naar mijn organisaties" button on these messages now works as well.
+
 ## 0.39.3
 
 ### Patch Changes
