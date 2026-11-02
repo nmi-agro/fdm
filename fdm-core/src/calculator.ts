@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { inArray } from "drizzle-orm"
 import { createHash } from "node:crypto"
 import stableStringify from "safe-stable-stringify"
 import type { FdmType } from "./fdm.types"
@@ -49,18 +49,40 @@ export function getCachedCalculation<T_Output>(
   fdm: FdmType,
   calculation_hash: string,
 ): Promise<T_Output | null> {
+  return getCachedCalculations<T_Output>(fdm, [calculation_hash]).then(
+    // See if a cached calculation for this input hash was retrieved and if so return it, otherwise return null.
+    (results) => results.get(calculation_hash) ?? null,
+  )
+}
+
+/**
+ * Retrieves multiple cached calculation results for a list of calculation hashes from the database.
+ *
+ * @template T_Output - The expected type of the calculation result.
+ * @param {FdmType} fdm - The FDM instance, providing database access.
+ * @param {string} calculation_hash - List of hashes identifying the cached calculations.
+ * @returns {Promise<Map<string, T_Output>>} A promise that resolves to a Map from each calculation hash to its
+ * found cached calculation. Some calculation hashes might me missing from the returned map, which means no cached
+ * calculation was found for those hashes.
+ */
+export async function getCachedCalculations<T_Output>(
+  fdm: FdmType,
+  calculation_hashes: string[],
+): Promise<Map<string, T_Output>> {
+  const dedupedHashes = [...new Set(calculation_hashes)]
   // Query the calculation cache table for a record matching the provided hash.
   // Limits to 1 result as the hash is a primary key.
-  const result = fdm
+  const result = await fdm
     .select({
+      calculation_hash: calculationCacheTable.calculation_hash,
       result: calculationCacheTable.result,
     })
     .from(calculationCacheTable)
-    .where(eq(calculationCacheTable.calculation_hash, calculation_hash))
-    .limit(1)
+    .where(inArray(calculationCacheTable.calculation_hash, dedupedHashes))
+    .limit(dedupedHashes.length)
 
-  // Process the query result: if a row is found, return its 'result' field, otherwise return null.
-  return result.then((rows) => (rows?.length ? (rows[0].result as T_Output) : null))
+  // Build a Map from the retrieved cached calculation results.
+  return new Map(result.map((row) => [row.calculation_hash, row.result as T_Output]))
 }
 
 /**
@@ -86,15 +108,34 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
 ) {
   // Inserts a new cache record. If a record with the same calculation_hash already exists,
   // skip the insert — the stored result is identical since the hash is deterministic.
+  return await setCachedCalculations(fdm, calculationFunctionName, calculatorVersion, [
+    { calculation_hash: calculationHash, inputForCache: input, result: result },
+  ])
+}
+
+async function setCachedCalculations<T_Input extends object, T_Output>(
+  fdm: FdmType,
+  calculationFunctionName: string,
+  calculatorVersion: string,
+  values: {
+    calculation_hash: string
+    inputForCache: T_Input
+    result: T_Output
+  }[],
+) {
+  // Inserts new cache records. If a record with the same calculation_hash already exists,
+  // skip the insert — the stored result is identical since the hash is deterministic.
   await fdm
     .insert(calculationCacheTable)
-    .values({
-      calculation_hash: calculationHash,
-      calculation_function: calculationFunctionName,
-      calculator_version: calculatorVersion,
-      input: input,
-      result: result,
-    })
+    .values(
+      values.map((v) => ({
+        calculation_hash: v.calculation_hash,
+        calculation_function: calculationFunctionName,
+        calculator_version: calculatorVersion,
+        input: v.inputForCache,
+        result: v.result,
+      })),
+    )
     .onConflictDoNothing()
 }
 
@@ -118,15 +159,50 @@ export async function setCalculationError<T_Input extends object>(
   error_message: string,
   stack_trace: string | undefined,
 ) {
-  return fdm.insert(calculationErrorsTable).values({
-    calculation_error_id: createId(), // Generate a unique ID for each error record
-    calculation_function: calculationFunctionName,
-    calculator_version: calculatorVersion,
-    input: input,
-    error_message: error_message,
-    stack_trace: stack_trace ?? null, // Store stack trace, or null if not provided
-  })
+  return await setCalculationErrors(fdm, calculationFunctionName, calculatorVersion, [
+    { inputForCache: input, error_message: error_message, stack_trace: stack_trace },
+  ])
 }
+
+async function setCalculationErrors<T_Input extends object>(
+  fdm: FdmType,
+  calculationFunctionName: string,
+  calculatorVersion: string,
+  values: {
+    inputForCache: T_Input
+    error_message: string
+    stack_trace: string | undefined
+  }[],
+) {
+  return fdm.insert(calculationErrorsTable).values(
+    values.map((v) => ({
+      calculation_error_id: createId(), // Generate a unique ID for each error record
+      calculation_function: calculationFunctionName,
+      calculator_version: calculatorVersion,
+      input: v.inputForCache,
+      error_message: v.error_message,
+      stack_trace: v.stack_trace ?? null, // Store stack trace, or null if not provided
+    })),
+  )
+}
+
+/**
+ * Limit on the number of IDs to include in one cache lookup query, needed because of the SQL query
+ * parameter limit.
+ */
+const MAX_CACHE_LOOKUPS_PER_DB_QUERY = 1000
+
+/**
+ * Limit the number of concurrent calculate... calls. There is also the ApiClient used for NMI API
+ * calls, which works independently to this.
+ */
+const MAX_RECOMPUTATION_CONCURRENCY = 100
+
+/*
+ * Limit on the number of cache items to write in one DB query, needed because of the SQL query
+ * parameter limit.
+ */
+const MAX_CACHE_WRITE_PER_DB_QUERY = 100
 
 /**
  * A decorator function that adds caching capabilities to any asynchronous calculation function.
@@ -166,8 +242,10 @@ export function withCalculationCache<T_Input extends object, T_Output>(
   calculationFunctionName: string,
   calculatorVersion: string,
   sensitiveKeys: string[] = [],
-) {
-  return async (fdm: FdmType, input: T_Input) => {
+): ((fdm: FdmType, input: T_Input) => Promise<T_Output>) & {
+  many: (fdm: FdmType, inputs: T_Input[]) => Promise<Promise<T_Output>[]>
+} {
+  const many = async (fdm: FdmType, inputs: T_Input[]) => {
     if (!calculationFunctionName) {
       throw new Error(
         "Calculation function name not provided for caching. Please provide a valid function name.",
@@ -180,120 +258,218 @@ export function withCalculationCache<T_Input extends object, T_Output>(
       )
     }
 
-    // Sanitize input if sensitive keys are provided
-    let inputForCache = input
-    if (sensitiveKeys.length > 0) {
-      const redact = (obj: unknown): unknown => {
-        if (typeof obj !== "object" || obj === null) {
-          return obj
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(redact)
-        }
-        // Check if it's a plain object or similar to avoid breaking classes/Dates if they shouldn't be touched
-        // Ideally input is a plain object for hashing/json.
-        if (obj instanceof Date) {
-          return obj
-        }
-
-        const newObj = { ...(obj as object) } as Record<string, unknown>
-        for (const key of Object.keys(newObj)) {
-          if (sensitiveKeys.includes(key)) {
-            newObj[key] = "REDACTED"
-          } else {
-            newObj[key] = redact(newObj[key])
+    const calculationInputs: {
+      input: T_Input
+      inputForCache: T_Input
+      calculation_hash: string
+    }[] = []
+    // Collect each calculation hash
+    for (const input of inputs) {
+      // Sanitize input if sensitive keys are provided
+      let inputForCache = input
+      if (sensitiveKeys.length > 0) {
+        const redact = (obj: unknown): unknown => {
+          if (typeof obj !== "object" || obj === null) {
+            return obj
           }
+          if (Array.isArray(obj)) {
+            return obj.map(redact)
+          }
+          // Check if it's a plain object or similar to avoid breaking classes/Dates if they shouldn't be touched
+          // Ideally input is a plain object for hashing/json.
+          if (obj instanceof Date) {
+            return obj
+          }
+
+          const newObj = { ...(obj as object) } as Record<string, unknown>
+          for (const key of Object.keys(newObj)) {
+            if (sensitiveKeys.includes(key)) {
+              newObj[key] = "REDACTED"
+            } else {
+              newObj[key] = redact(newObj[key])
+            }
+          }
+          return newObj
         }
-        return newObj
-      }
-      inputForCache = redact(input) as T_Input
-    }
-
-    // Generate a unique hash for the current calculation based on function name, version, and input.
-    const calculationHash = generateCalculationHash(
-      calculationFunctionName,
-      calculatorVersion,
-      inputForCache,
-    )
-
-    let cachedResult: T_Output | null = null
-    // Flag to determine if the result of the current calculation should be cached.
-    // This is set to false if reading from cache fails.
-    let cacheResultOfCalculation = true
-
-    // Attempt to retrieve the result from cache.
-    try {
-      cachedResult = await getCachedCalculation(fdm, calculationHash)
-    } catch (e: unknown) {
-      // If reading from cache fails, log the error and mark that the result should not be cached.
-      // This makes the caching mechanism resilient to temporary database issues.
-      cacheResultOfCalculation = false
-      const errorMessage = e instanceof Error ? e.message : String(e)
-      console.error(
-        `Failed to read from calculation cache for ${calculationFunctionName} (hash: ${calculationHash}): ${errorMessage}`,
-      )
-      // Treat as a cache miss and proceed with calculation, but do not attempt to set a new cache entry
-      // as the cache might be in an unhealthy state.
-    }
-
-    // If a cached result was successfully retrieved, return it immediately.
-    if (cachedResult) {
-      // console.log(
-      //     `Cache HIT for ${calculationFunctionName} (hash: ${calculationHash})`,
-      // )
-      return cachedResult
-    }
-
-    // If no cached result was found (either genuinely a miss or cache read failed),
-    // perform the actual calculation.
-    try {
-      // console.log(
-      //     `Cache MISS for ${calculationFunctionName} (hash: ${calculationHash}). Performing calculation...`,
-      // )
-      const result = await calculationFunction(input)
-
-      // If the initial cache read was successful (meaning the cache is healthy),
-      // then store the new calculation result in the cache.
-      // Fire-and-forget: don't await the cache write to avoid blocking the response
-      // when many parallel calculations complete simultaneously (lock contention).
-      if (cacheResultOfCalculation) {
-        setCachedCalculation(
-          fdm,
-          calculationHash,
-          calculationFunctionName,
-          calculatorVersion,
-          inputForCache,
-          result,
-        ).catch((e: unknown) => {
-          const errorMessage = e instanceof Error ? e.message : String(e)
-          console.error(
-            `Failed to write to calculation cache for ${calculationFunctionName} (hash: ${calculationHash}): ${errorMessage}`,
-          )
-        })
+        inputForCache = redact(input) as T_Input
       }
 
-      return result
-    } catch (e: unknown) {
-      // Record the error in the database (fire-and-forget to avoid blocking error propagation).
-      const errorMessage = e instanceof Error ? e.message : String(e)
-      const stackTrace = e instanceof Error ? e.stack : undefined
-
-      setCalculationError(
-        fdm,
+      // Generate a unique hash for the current calculation based on function name, version, and input.
+      const calculationHash = await generateCalculationHash(
         calculationFunctionName,
         calculatorVersion,
         inputForCache,
-        errorMessage,
-        stackTrace,
-      ).catch((loggingError: unknown) => {
-        const loggingErrorMessage =
-          loggingError instanceof Error ? loggingError.message : String(loggingError)
-        console.error(
-          `Failed to log calculation error for ${calculationFunctionName}: ${loggingErrorMessage}`,
-        )
-      })
+      )
 
-      throw e
+      calculationInputs.push({
+        input: input,
+        inputForCache: inputForCache,
+        calculation_hash: calculationHash,
+      })
     }
+
+    const cacheLookupPromises: Promise<{
+      hashes: string[]
+      cachedResults: Map<string, T_Output>
+      cacheResultOfCalculation: boolean
+    }>[] = []
+
+    for (let i = 0; i < calculationInputs.length; i += MAX_CACHE_LOOKUPS_PER_DB_QUERY) {
+      const hashes = calculationInputs
+        .slice(i, i + MAX_CACHE_LOOKUPS_PER_DB_QUERY)
+        .map((input) => input.calculation_hash)
+      cacheLookupPromises.push(
+        (async () => {
+          for (let trial = 0; trial < 3; trial++) {
+            try {
+              return {
+                hashes: hashes,
+                cachedResults: await getCachedCalculations(fdm, hashes),
+                cacheResultOfCalculation: true,
+              }
+            } catch (e) {
+              // If reading from cache fails, log the error and mark that the result should not be cached.
+              // This makes the caching mechanism resilient to temporary database issues.
+              const errorMessage = e instanceof Error ? e.message : String(e)
+              console.error(
+                `Failed to read from calculation cache for ${calculationFunctionName}: ${errorMessage}`,
+              )
+              // Treat as a cache miss and proceed with calculation, but do not attempt to set a new cache entry
+              // as the cache might be in an unhealthy state.
+            }
+          }
+          return {
+            hashes: hashes,
+            cachedResults: new Map(),
+            cacheResultOfCalculation: false,
+          }
+        })(),
+      )
+    }
+
+    const cacheLookups = await Promise.all(cacheLookupPromises)
+    const toRecompute: {
+      input: T_Input
+      inputForCache: T_Input
+      calculation_hash: string
+      cacheResultOfCalculation: boolean
+    }[] = []
+
+    const returnValue = new Map<string, Promise<T_Output>>()
+
+    for (let i = 0; i < inputs.length; i++) {
+      const { calculation_hash, input, inputForCache } = calculationInputs[i]
+      const batchNr = Math.floor(i / MAX_CACHE_LOOKUPS_PER_DB_QUERY)
+      const cachedResult = cacheLookups[batchNr].cachedResults.get(calculation_hash) ?? null
+      if (cachedResult !== null) {
+        returnValue.set(calculation_hash, Promise.resolve(cachedResult))
+      } else {
+        toRecompute.push({
+          input: input,
+          inputForCache: inputForCache,
+          calculation_hash: calculation_hash,
+          cacheResultOfCalculation: cacheLookups[batchNr].cacheResultOfCalculation,
+        })
+      }
+    }
+
+    const resultsToWrite: {
+      calculation_hash: string
+      inputForCache: T_Input
+      result: T_Output
+    }[] = []
+
+    const errorsToWrite: {
+      calculation_hash: string
+      inputForCache: T_Input
+      error_message: string
+      stack_trace: any
+    }[] = []
+
+    for (
+      let recomputeBatchStart = 0;
+      recomputeBatchStart < toRecompute.length;
+      recomputeBatchStart += MAX_RECOMPUTATION_CONCURRENCY
+    ) {
+      const batch = toRecompute.slice(
+        recomputeBatchStart,
+        recomputeBatchStart + MAX_RECOMPUTATION_CONCURRENCY,
+      )
+      await Promise.allSettled(
+        batch.map(async ({ input, inputForCache, calculation_hash, cacheResultOfCalculation }) => {
+          try {
+            const result = await calculationFunction(input)
+            if (cacheResultOfCalculation) {
+              resultsToWrite.push({
+                calculation_hash,
+                inputForCache,
+                result,
+              })
+            }
+            returnValue.set(calculation_hash, Promise.resolve(result))
+          } catch (e) {
+            const error_message = e instanceof Error ? e.message : String(e)
+            const stack_trace = e instanceof Error ? e.stack : undefined
+            errorsToWrite.push({
+              calculation_hash,
+              inputForCache,
+              error_message,
+              stack_trace,
+            })
+            returnValue.set(calculation_hash, Promise.reject(e))
+          }
+        }),
+      )
+    }
+
+    for (
+      let resultsToWriteStart = 0;
+      resultsToWriteStart < resultsToWrite.length;
+      resultsToWriteStart += MAX_CACHE_WRITE_PER_DB_QUERY
+    ) {
+      const batch = resultsToWrite.slice(
+        resultsToWriteStart,
+        resultsToWriteStart + MAX_CACHE_WRITE_PER_DB_QUERY,
+      )
+      // Fire and forget
+      setCachedCalculations(fdm, calculationFunctionName, calculatorVersion, batch).catch(
+        (e: unknown) => {
+          const errorMessage = e instanceof Error ? e.message : String(e)
+          console.error(
+            `Failed to write to calculation cache for ${calculationFunctionName}: ${errorMessage}`,
+          )
+        },
+      )
+    }
+
+    for (
+      let errorsToWriteStart = 0;
+      errorsToWriteStart < errorsToWrite.length;
+      errorsToWriteStart += MAX_CACHE_WRITE_PER_DB_QUERY
+    ) {
+      const batch = errorsToWrite.slice(
+        errorsToWriteStart,
+        errorsToWriteStart + MAX_CACHE_WRITE_PER_DB_QUERY,
+      )
+      setCalculationErrors(fdm, calculationFunctionName, calculatorVersion, batch).catch(
+        (loggingError: unknown) => {
+          const loggingErrorMessage =
+            loggingError instanceof Error ? loggingError.message : String(loggingError)
+          console.error(
+            `Failed to log calculation error for ${calculationFunctionName}: ${loggingErrorMessage}`,
+          )
+        },
+      )
+    }
+
+    return calculationInputs.map((input) => returnValue.get(input.calculation_hash)!)
   }
+
+  const single = async (fdm: FdmType, input: T_Input) => {
+    return many(fdm, [input]).then((m) => m[0])
+  }
+
+  single.many = many
+
+  return single
 }
