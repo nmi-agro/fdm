@@ -12,8 +12,11 @@ import { isbot } from "isbot"
 import { PassThrough } from "node:stream"
 import { renderToPipeableStream } from "react-dom/server"
 import { ServerRouter } from "react-router"
+import { maskSentrySecrets } from "~/lib/analytics-privacy"
 import { isInternalRouterNoise, reportError } from "~/lib/error"
 import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"
+
+maskSentrySecrets()
 
 export const streamTimeout = 180000
 
