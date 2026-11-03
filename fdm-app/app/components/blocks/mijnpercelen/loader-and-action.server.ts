@@ -1,13 +1,7 @@
 import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import type { MetaFunction } from "react-router"
-import {
-  type Field,
-  getCultivationsForFarm,
-  getCultivationsFromCatalogue,
-  getFarm,
-  getFields,
-} from "@nmi-agro/fdm-core"
-import { compareShapefileFields } from "@nmi-agro/fdm-rvo"
+import { type Field, getCultivationsFromCatalogue, getFarm } from "@nmi-agro/fdm-core"
+import { reviewShapefileImport } from "@nmi-agro/fdm-rvo"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import fs from "node:fs/promises"
@@ -24,7 +18,6 @@ import { clientConfig } from "~/lib/config"
 import { extractErrorMessage, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { saveRvoImport } from "~/lib/rvo-import.server"
-import { getRvoFieldsFromShapefile, validateShapefileYear } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -134,19 +127,6 @@ export async function genericAction(
     const intent = formData.get("intent")
 
     if (intent === "upload") {
-      // Prepare existing fields for comparison
-      const fields = await getFields(fdm, session.principal_id, b_id_farm)
-      const allCultivations = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm)
-      const fieldsExtended = fields.map((field) => ({
-        ...field,
-        cultivations: allCultivations.get(field.b_id) ?? [],
-      }))
-      const cultivationsCatalogue = await getCultivationsFromCatalogue(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-      )
-
       const files = formData
         .getAll("shapefile")
         .filter((entry): entry is File => entry instanceof File)
@@ -165,29 +145,25 @@ export async function genericAction(
         }
       }
 
-      const rvoFields = await getRvoFieldsFromShapefile(shp_file, shx_file, dbf_file, prj_file)
-
-      // Validate that no field has a BeginDate year greater than the selected calendar year
-      const yearValidation = validateShapefileYear(rvoFields, year)
-      if (!yearValidation.valid) {
+      // Same comparison as the REST API, including the buffer strip estimate.
+      const review = await reviewShapefileImport(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        { shp: shp_file, shx: shx_file, dbf: dbf_file, prj: prj_file },
+        year,
+      )
+      if (!review.valid) {
         return {
           success: false,
-          message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar heeft gekozen.`,
-          suggestedYear: yearValidation.maxYear,
+          message: `Het shapefile bevat percelen met een ingangsdatum in ${review.suggestedYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar heeft gekozen.`,
+          suggestedYear: review.suggestedYear,
           RvoImportReviewData: undefined,
         }
       }
 
-      // Shapefiles have no buffer strip information; it is estimated per field.
-      const RvoImportReviewData = compareShapefileFields(
-        fieldsExtended,
-        rvoFields,
-        year,
-        cultivationsCatalogue,
-      )
-
       return {
-        RvoImportReviewData: RvoImportReviewData,
+        RvoImportReviewData: review.items,
         message: "Percelen zijn klaar voor beoordeling! 🎉",
         success: true,
       }

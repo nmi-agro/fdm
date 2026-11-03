@@ -1,11 +1,18 @@
-import type { Field, FieldGeometry } from "@nmi-agro/fdm-core"
-import { acquiringMethodOptions, determineIfFieldIsBuffer } from "@nmi-agro/fdm-core"
+import type { FdmType, Field, FieldGeometry } from "@nmi-agro/fdm-core"
+import {
+  acquiringMethodOptions,
+  determineIfFieldIsBuffer,
+  getCultivationsForFarm,
+  getCultivationsFromCatalogue,
+  getFields,
+} from "@nmi-agro/fdm-core"
 import area from "@turf/area"
 import { lineString } from "@turf/helpers"
 import { length } from "@turf/length"
 import { createHash } from "node:crypto"
 import type { AcquiringMethod, ImportFieldInit, ImportFieldUpdate, RvoImportPlan } from "./apply"
 import { compareFields, type FieldWithCultivations } from "./compare"
+import { getRvoFieldsFromShapefile, validateShapefileYear } from "./shapefile"
 import {
   type FieldDiff,
   type ImportReviewAction,
@@ -189,9 +196,16 @@ function sameValue(a: unknown, b: unknown): boolean {
 }
 
 /**
- * The values of a review item as stored locally and as reported by RVO or the shapefile.
+ * Returns the values of a review item as stored locally and as reported by RVO or the shapefile,
+ * in the form `resolveImportChoices` compares them. For an expired local field, the remote values
+ * only contain the proposed end date (31 December of the year before `year`).
+ *
+ * @param item - The review item.
+ * @param year - Calendar year of the import.
+ * @returns `localValues` (absent for a new remote field) and `remoteValues` (absent for a field
+ *   only known locally). `b_area` is the area in hectares.
  */
-function getItemValues(item: RvoImportReviewItem<Field>, year: number) {
+export function getImportItemValues(item: RvoImportReviewItem<Field>, year: number) {
   const local = item.localField
   const rvo = item.rvoField
   const closeDate = new Date(Date.UTC(year - 1, 11, 31))
@@ -205,6 +219,7 @@ function getItemValues(item: RvoImportReviewItem<Field>, year: number) {
         b_end: local.b_end ? new Date(local.b_end) : null,
         b_acquiring_method: local.b_acquiring_method as AcquiringMethod,
         b_bufferstrip: local.b_bufferstrip,
+        b_area: local.b_area ?? null,
       }
     : undefined
 
@@ -219,6 +234,7 @@ function getItemValues(item: RvoImportReviewItem<Field>, year: number) {
         b_end: rvo.properties.EndDate ? new Date(rvo.properties.EndDate) : null,
         b_acquiring_method: remoteAcquiringMethod(rvo.properties.UseTitleCode),
         b_bufferstrip: parseBufferstrip(rvo.properties.mestData?.IndBufferstrook),
+        b_area: Math.round((area(rvo.geometry) / 10000) * 10000) / 10000,
       }
     : item.status === RvoImportReviewStatus.EXPIRED_LOCAL
       ? { b_end: closeDate }
@@ -291,7 +307,7 @@ export function resolveImportChoices(
     const choice = choices[item_id]
     if (!choice || choice.action === "IGNORE" || choice.action === "NO_ACTION") continue
 
-    const { localValues, remoteValues } = getItemValues(item, year)
+    const { localValues, remoteValues } = getImportItemValues(item, year)
     const overrides = choice.values ?? {}
 
     if (choice.action === "REMOVE_LOCAL") {
@@ -399,4 +415,88 @@ function validatePeriod(
       message: "The end date must be after the start date.",
     })
   }
+}
+
+/**
+ * Thrown when the files of a shapefile export cannot be read, for example because a file is
+ * missing, corrupt or not from an RVO Mijn Percelen export.
+ */
+export class ShapefileReadError extends Error {
+  /**
+   * @param message - Description of the problem.
+   * @param options - The original error as `cause`.
+   */
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options)
+    this.name = "ShapefileReadError"
+  }
+}
+
+/** The files of an RVO Mijn Percelen shapefile export. */
+export interface ShapefileUpload {
+  shp: Blob
+  shx: Blob
+  dbf: Blob
+  prj: Blob
+}
+
+/** The result of comparing a shapefile with the fields of a farm. */
+export type ShapefileReview =
+  | {
+      /** The comparison succeeded. */
+      valid: true
+      /** One review item per field, in the shapefile or the farm. */
+      items: RvoImportReviewItem<Field>[]
+      /** Hash of the items, see {@link getReviewHash}. */
+      review_hash: string
+    }
+  | {
+      /** The shapefile contains fields that start after the requested year. */
+      valid: false
+      /** The latest start year in the shapefile, the year the user probably meant. */
+      suggestedYear: number
+    }
+
+/**
+ * Reads an RVO Mijn Percelen shapefile export and compares it with the fields and cultivations
+ * of a farm for a calendar year. Nothing is saved.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The principal performing the import. Needs read access to the farm.
+ * @param b_id_farm - The farm.
+ * @param files - The `.shp`, `.shx`, `.dbf` and `.prj` files of the export.
+ * @param year - Calendar year of the import.
+ * @returns The review items and their hash, or the suggested year when the shapefile contains
+ *   fields that start after `year`.
+ * @throws {ShapefileReadError} When the files cannot be read.
+ */
+export async function reviewShapefileImport(
+  fdm: FdmType,
+  principal_id: string,
+  b_id_farm: string,
+  files: ShapefileUpload,
+  year: number,
+): Promise<ShapefileReview> {
+  let rvoFields: RvoField[]
+  try {
+    rvoFields = await getRvoFieldsFromShapefile(files.shp, files.shx, files.dbf, files.prj)
+  } catch (error) {
+    throw new ShapefileReadError("The shapefile could not be read.", { cause: error })
+  }
+  const yearCheck = validateShapefileYear(rvoFields, year)
+  if (!yearCheck.valid) {
+    return { valid: false, suggestedYear: yearCheck.maxYear }
+  }
+
+  const [fields, cultivationsByField, cultivationsCatalogue] = await Promise.all([
+    getFields(fdm, principal_id, b_id_farm),
+    getCultivationsForFarm(fdm, principal_id, b_id_farm),
+    getCultivationsFromCatalogue(fdm, principal_id, b_id_farm),
+  ])
+  const localFields = fields.map((field) => ({
+    ...field,
+    cultivations: cultivationsByField.get(field.b_id) ?? [],
+  }))
+  const items = compareShapefileFields(localFields, rvoFields, year, cultivationsCatalogue)
+  return { valid: true, items, review_hash: getReviewHash(items) }
 }

@@ -1,6 +1,7 @@
 /** @module */
 
 import {
+  addSoilParameterEstimatesToField,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
   collectInputForNitrogenBalance,
@@ -109,6 +110,7 @@ import {
   updateSoilAnalysis,
   updateSoilImageAnnotation,
 } from "@nmi-agro/fdm-core"
+import { applyRvoImport, reviewShapefileImport } from "@nmi-agro/fdm-rvo"
 import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
 
@@ -271,6 +273,11 @@ export interface FdmApiServices {
   removeSoilImageAnnotation: typeof removeSoilImageAnnotation
   // Lab reports
   extractSoilAnalysesFromPdfs: typeof extractSoilAnalysesFromPdfs
+  // Field import
+  reviewShapefileImport: typeof reviewShapefileImport
+  applyRvoImport: typeof applyRvoImport
+  // Soil estimates
+  addSoilParameterEstimatesToField: typeof addSoilParameterEstimatesToField
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -381,6 +388,9 @@ const defaultServices: FdmApiServices = {
   updateSoilImageAnnotation,
   removeSoilImageAnnotation,
   extractSoilAnalysesFromPdfs,
+  reviewShapefileImport,
+  applyRvoImport,
+  addSoilParameterEstimatesToField,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
 }
 
