@@ -2,9 +2,11 @@ Notable changes to the REST API, newest first. Operations that were added recent
 
 ## 0.4.0
 
-### New endpoints: everything the web app can do
+### New endpoints for more features of the web app
 
-The API now covers the farm data features of the web app. Logic that was only in the web app moved to the shared libraries, so the API and the web app return the same results.
+The API now covers more of the farm data features of the web app. Logic that was only in the web app moved to the shared libraries, so the API and the web app return the same results.
+
+Not available through the API yet: sharing a farm with other users and organizations, the RVO import (it needs an interactive eHerkenning login), the map layers of the atlas, mineralization, the AI assistant and organization, account and API key management.
 
 **Fertilizers**
 

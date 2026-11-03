@@ -246,8 +246,8 @@ export {
   parseSamplingGeometry,
   parseSoilReaderField,
   SoilReaderError,
-} from "./soil-reader"
-export type { ExtractedSoilAnalysis } from "./soil-reader"
+} from "./soilreader"
+export type { ExtractedSoilAnalysis } from "./soilreader"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
 export { enrichCurrentSoilDataWithNlv } from "./other/current-soil-data"
