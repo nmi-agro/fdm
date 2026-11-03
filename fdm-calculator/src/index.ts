@@ -225,6 +225,11 @@ export type {
 } from "./nutrient-advice/types"
 export { collectInputForSoilParameterEstimates } from "./estimates/input"
 export { getSoilParameterEstimates, requestSoilParameterEstimates } from "./estimates/index"
+export {
+  addSoilParameterEstimatesToField,
+  getGeometryCentroid,
+  getSoilParameterEstimatesForGeometry,
+} from "./estimates/field"
 export type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./estimates/types"
 export { bln3Client, soilEstimatesClient, soilReaderClient } from "./nmi/client"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"

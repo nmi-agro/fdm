@@ -1,26 +1,15 @@
 import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import type { MetaFunction } from "react-router"
 import {
-  addCultivation,
-  addField,
-  addSoilAnalysis,
-  determineIfFieldIsBuffer,
   type Field,
-  type FieldGeometry,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
-  getDefaultDatesOfCultivation,
   getFarm,
   getFields,
-  removeCultivation,
-  removeField,
-  updateField,
 } from "@nmi-agro/fdm-core"
+import { compareShapefileFields } from "@nmi-agro/fdm-rvo"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
-import area from "@turf/area"
-import { lineString } from "@turf/helpers"
-import { length } from "@turf/length"
 import fs from "node:fs/promises"
 import { data } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -28,19 +17,14 @@ import {
   getImportValidationMessage,
   ImportReviewChoicesSchema,
 } from "~/components/blocks/rvo/schema"
-import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-  compareFields,
-  getRvoFieldsFromShapefile,
-  RvoImportReviewStatus,
-  validateShapefileYear,
-} from "~/lib/rvo.server"
+import { saveRvoImport } from "~/lib/rvo-import.server"
+import { getRvoFieldsFromShapefile, validateShapefileYear } from "~/lib/rvo.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -194,54 +178,13 @@ export async function genericAction(
         }
       }
 
-      /** Calculates the perimeter of the given polygon geometry in meters */
-      function perimeter(geometry: FieldGeometry) {
-        if (geometry.type === "Polygon") {
-          return length(lineString(geometry.coordinates[0]), {
-            units: "meters",
-          })
-        }
-        if (geometry.type === "MultiPolygon") {
-          return geometry.coordinates
-            .map((polygon) => length(lineString(polygon[0]), { units: "meters" }))
-            .reduce((a, b) => a + b, 0)
-        }
-        return 0
-      }
-
-      const RvoImportReviewData = compareFields(
+      // Shapefiles have no buffer strip information; it is estimated per field.
+      const RvoImportReviewData = compareShapefileFields(
         fieldsExtended,
         rvoFields,
         year,
         cultivationsCatalogue,
       )
-
-      // Determine if any imported field might be a buffer strip and add it since shapefiles don't have this information
-      for (const item of rvoFields) {
-        item.properties.mestData = {
-          IndBufferstrook: determineIfFieldIsBuffer(
-            area(item.geometry) / 10000, // m2 to ha
-            perimeter(item.geometry), // already in meters
-            item.properties.CropFieldDesignator,
-          )
-            ? "J"
-            : "N",
-        }
-      }
-
-      // Override each local field's corresponding RVO field buffer strip status
-      for (const item of RvoImportReviewData) {
-        item.diffs = item.diffs.filter((diff) => diff !== "b_bufferstrip")
-        // b_bufferstrip should no longer be considered a difference
-        if (item.diffs.length === 0 && item.status === RvoImportReviewStatus.CONFLICT) {
-          item.status = RvoImportReviewStatus.MATCH
-        }
-        if (item.localField && item.rvoField?.properties.mestData) {
-          item.rvoField.properties.mestData.IndBufferstrook = item.localField.b_bufferstrip
-            ? "J"
-            : "N"
-        }
-      }
 
       return {
         RvoImportReviewData: RvoImportReviewData,
@@ -273,134 +216,12 @@ export async function genericAction(
           fieldsToUpdate: JSON.parse(fieldsToUpdateJson),
         })
 
-        const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
-
-        await fdm.transaction(async (tx) => {
-          for (const field of formValues.fieldsToAdd) {
-            const b_id = await addField(
-              tx,
-              session.principal_id,
-              b_id_farm,
-              field.b_name,
-              field.b_id_source,
-              field.b_geometry as unknown as FieldGeometry,
-              field.b_start,
-              field.b_acquiring_method,
-              field.b_end,
-              field.b_bufferstrip,
-            )
-
-            // Soil estimates depend on the location only, so every added field gets them.
-            addedFields.push({
-              b_id: b_id,
-              geometry: field.b_geometry as unknown as FieldGeometry,
-            })
-
-            if (typeof field.b_lu_catalogue === "string") {
-              const defaultDates = await getDefaultDatesOfCultivation(
-                tx,
-                session.principal_id,
-                b_id_farm,
-                field.b_lu_catalogue,
-                year,
-              )
-
-              await addCultivation(
-                tx,
-                session.principal_id,
-                field.b_lu_catalogue,
-                b_id,
-                defaultDates.b_lu_start,
-                defaultDates.b_lu_end,
-              )
-            }
-          }
-
-          for (const field of formValues.fieldsToUpdate) {
-            const b_id = field.b_id
-            const b_bufferstrip = field.b_bufferstrip
-
-            await updateField(
-              tx,
-              session.principal_id,
-              b_id,
-              field.b_name ?? undefined,
-              field.b_id_source,
-              field.b_geometry as unknown as FieldGeometry,
-              field.b_start,
-              field.b_acquiring_method,
-              field.b_end,
-              b_bufferstrip,
-            )
-
-            if (typeof field.b_lu_catalogue !== "undefined") {
-              if (field.b_lu) {
-                // Always remove the existing cultivation
-                await removeCultivation(tx, session.principal_id, field.b_lu)
-              }
-
-              if (field.b_lu_catalogue) {
-                // Add the new cultivation if not null
-                const b_lu_catalogue = field.b_lu_catalogue
-                const defaultDates = await getDefaultDatesOfCultivation(
-                  tx,
-                  session.principal_id,
-                  b_id_farm,
-                  field.b_lu_catalogue,
-                  year,
-                )
-
-                await addCultivation(
-                  tx,
-                  session.principal_id,
-                  b_lu_catalogue,
-                  b_id,
-                  defaultDates.b_lu_start,
-                  defaultDates.b_lu_end,
-                )
-              }
-            }
-          }
-
-          for (const b_id of formValues.fieldsToRemove) {
-            await removeField(tx, session.principal_id, b_id)
-          }
-        })
-
-        const nmiApiKey = getNmiApiKey()
-        if (nmiApiKey) {
-          const chunkSize = 10
-          const chunkedFeatures: { b_id: string; geometry: FieldGeometry }[][] = []
-          for (let i = 0; i < addedFields.length; i += chunkSize) {
-            chunkedFeatures.push(addedFields.slice(i, i + chunkSize))
-          }
-          for (const chunk of chunkedFeatures) {
-            await Promise.all(
-              chunk.map(async ({ b_id, geometry }) => {
-                try {
-                  const soilEstimates = await getSoilParameterEstimatesForGeometry(
-                    fdm,
-                    geometry,
-                    nmiApiKey,
-                  )
-                  await addSoilAnalysis(
-                    fdm,
-                    session.principal_id,
-                    undefined,
-                    "nl-other-nmi",
-                    b_id,
-                    soilEstimates.a_depth_lower ?? 30,
-                    undefined,
-                    soilEstimates,
-                    soilEstimates.a_depth_upper,
-                  )
-                } catch (e) {
-                  console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
-                }
-              }),
-            )
-          }
-        }
+        const { created: addedFields } = await saveRvoImport(
+          session.principal_id,
+          b_id_farm,
+          year,
+          formValues,
+        )
 
         captureEvent(session.principal_id, "fields_imported_rvo", {
           b_id_farm,
