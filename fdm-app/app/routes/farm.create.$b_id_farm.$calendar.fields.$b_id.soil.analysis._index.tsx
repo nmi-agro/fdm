@@ -69,14 +69,14 @@ export default function FarmFieldSoilOverviewBlock() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-medium">Bodem</h3>
+          <h3 className="text-lg font-medium">Bodemanalyse toevoegen</h3>
           <p className="text-muted-foreground text-sm">
-            Kies het type bodemanalyse voor uw formulier
+            Upload het PDF-rapport van het lab, of voer de waarden zelf in.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild variant="ghost" size="sm">
           {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
           <NavLink to={`../${location.search}`}>
             <ArrowLeft />
@@ -85,7 +85,7 @@ export default function FarmFieldSoilOverviewBlock() {
         </Button>
       </div>
       <Separator />
-      <SoilAnalysisFormSelection />
+      <SoilAnalysisFormSelection uploadHref="./upload" />
     </div>
   )
 }

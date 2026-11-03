@@ -869,6 +869,10 @@ export const soilSampling = fdmSchema.table(
     b_sampling_geometry: geometry("b_sampling_geometry", {
       type: "MultiPoint",
     }),
+    // Area the analysis represents: the whole field or a zone within it. Stored as MultiPolygon; null means the whole field
+    b_sampling_geometry_zone: geometry("b_sampling_geometry_zone", {
+      type: "MultiPolygon",
+    }),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -876,6 +880,7 @@ export const soilSampling = fdmSchema.table(
     // Matches the per-field lookups that return the most recent sampling first
     index("soil_sampling_b_id_date_idx").on(table.b_id, table.b_sampling_date.desc().nullsLast()),
     index("soil_sampling_a_id_idx").on(table.a_id),
+    index("soil_sampling_zone_idx").using("gist", table.b_sampling_geometry_zone),
   ],
 )
 

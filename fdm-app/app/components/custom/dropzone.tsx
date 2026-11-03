@@ -45,6 +45,8 @@ export type DropzoneProps = {
   onFilesChange?: (files: File[]) => void
   mergeFiles?: (oldFiles: File[], newFiles: File[]) => Promise<File[] | null> | File[] | null
   children?: ReactNode
+  /** Accessible name of the file input, read by screen readers. */
+  label?: string
 }
 
 export const Dropzone = ({
@@ -66,6 +68,7 @@ export const Dropzone = ({
   onBlur,
   onFilesChange,
   mergeFiles,
+  label = "Kies bestanden of sleep ze hierheen",
 }: DropzoneProps) => {
   const inputRef = useRef<HTMLInputElement>(null)
   // Uncontrolled mode (no `value`/`onFilesChange` from the parent) tracks its own files in state,
@@ -232,7 +235,10 @@ export const Dropzone = ({
             }
           }}
           placeholder=""
-          className="hidden"
+          aria-label={label}
+          // Visually hidden but focusable, so the dropzone works with the keyboard; the label below
+          // shows its focus ring
+          className="peer sr-only"
           accept={typeof accept === "string" ? accept : accept?.join(",")}
           multiple={multiple}
           required={required}
@@ -241,18 +247,12 @@ export const Dropzone = ({
         <label
           style={style}
           className={cn(
-            "border-muted-foreground/25 hover:bg-muted/25 w-full flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors",
-            disabled ? "hidden" : "flex",
+            "border-muted-foreground/25 hover:bg-muted/25 peer-focus-visible:ring-ring/50 peer-focus-visible:border-ring flex w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors peer-focus-visible:ring-[3px]",
+            disabled && "pointer-events-none opacity-60",
             className,
           )}
           htmlFor={labelId}
-          aria-label="Upload shapefile files by clicking or dragging and dropping"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault()
-              inputRef.current?.click()
-            }
-          }}
+          aria-disabled={disabled || undefined}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >

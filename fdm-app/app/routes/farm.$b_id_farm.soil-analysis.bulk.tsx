@@ -1,42 +1,45 @@
 import {
-  addSoilAnalysis,
+  checkPermission,
   getFarms,
   getFields,
+  getSoilAnalysesForFarm,
   getSoilParametersDescription,
-  updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { useState } from "react"
-import {
-  type ActionFunctionArgs,
-  data,
-  type LoaderFunctionArgs,
-  useLoaderData,
-  useNavigation,
-  useSubmit,
-} from "react-router"
-import { redirectWithSuccess } from "remix-toast"
+import { AlertCircle, ShieldAlert } from "lucide-react"
+import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BulkSoilAnalysisUploadForm } from "~/components/blocks/soil/bulk-upload-form"
-import { matchAnalysesToFields } from "~/components/blocks/soil/bulk-upload-match"
-import {
-  BulkSoilAnalysisReview,
-  type ProcessedAnalysis,
-} from "~/components/blocks/soil/bulk-upload-review"
+import { BulkSoilAnalysisUpload } from "~/components/blocks/soil/bulk-upload"
+import { toDateKey } from "~/components/blocks/soil/bulk-upload-model"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { Spinner } from "~/components/ui/spinner"
-import { captureEvent } from "~/lib/analytics.server"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { clientConfig } from "~/lib/config"
+import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { buildObjectKey, deleteObject, uploadObject } from "../integrations/gcs.server"
 
 export const handle = { hideNavigationProgress: true }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export const meta: MetaFunction = () => {
+  return [
+    { title: `Bodemanalyses uploaden | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "Upload de PDF-rapporten van meerdere percelen in één keer.",
+    },
+  ]
+}
+
+/**
+ * Loads what the bulk upload needs: the fields of the farm (with geometry, area and period, to link
+ * analyses), the analyses already stored (to recognise the same report), and whether the user may
+ * add analyses and whether PDFs can be read.
+ */
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -44,238 +47,102 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     const session = await getSession(request)
-    const farms = await getFarms(fdm, session.principal_id)
-    const fields = await getFields(fdm, session.principal_id, b_id_farm)
-
-    const farmOptions = farms.map((farm) => ({
-      b_id_farm: farm.b_id_farm,
-      b_name_farm: farm.b_name_farm,
-    }))
-
-    // Get soil parameter descriptions
-    const soilParameterDescription = getSoilParametersDescription()
+    const [farms, fields, analysesByField, canWrite] = await Promise.all([
+      getFarms(fdm, session.principal_id),
+      getFields(fdm, session.principal_id, b_id_farm),
+      getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm),
+      checkPermission(fdm, "farm", "write", b_id_farm, session.principal_id, url.pathname, false),
+    ])
 
     return {
       b_id_farm,
-      farmOptions,
-      fields: fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name,
-        geometry: f.b_geometry,
+      farmOptions: farms.map((farm) => ({
+        b_id_farm: farm.b_id_farm,
+        b_name_farm: farm.b_name_farm,
       })),
-      soilParameterDescription,
+      fields: fields.map((field) => ({
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_area: field.b_area,
+        b_start: field.b_start,
+        b_end: field.b_end,
+        geometry: field.b_geometry,
+      })),
+      existing: [...analysesByField.entries()].flatMap(([b_id, analyses]) =>
+        analyses.map((analysis) => ({
+          b_id,
+          date: toDateKey(analysis.b_sampling_date),
+          a_depth_lower: analysis.a_depth_lower ?? null,
+        })),
+      ),
+      soilParameterDescription: getSoilParametersDescription(),
+      canWrite,
+      isNmiConfigured: Boolean(getNmiApiKey()),
     }
   } catch (error) {
     throw handleLoaderError(error)
   }
 }
 
+/**
+ * Page to add the soil analyses of many PDF reports of a farm at once.
+ */
 export default function BulkSoilAnalysisUploadPage() {
-  const { b_id_farm, farmOptions, fields, soilParameterDescription } =
-    useLoaderData<typeof loader>()
-  const [processedAnalyses, setProcessedAnalyses] = useState<ProcessedAnalysis[]>([])
-  const [step, setStep] = useState<"upload" | "review">("upload")
-  const navigation = useNavigation()
-  const submit = useSubmit()
-
-  const [files, setFiles] = useState<File[]>([])
-
-  const isSaving = navigation.state !== "idle" && navigation.formMethod?.toLowerCase() === "post"
-
-  const handleUploadSuccess = (analyses: any[]) => {
-    const matchedAnalyses = matchAnalysesToFields(analyses, fields)
-    setProcessedAnalyses(matchedAnalyses)
-    setStep("review")
-  }
-
-  const handleSave = (
-    matches: { analysisId: string; fieldId: string; filename?: string }[],
-    updatedAnalyses: ProcessedAnalysis[],
-  ) => {
-    const formData = new FormData()
-    // Filter out "none" selections
-    const validMatches = matches.filter((m) => m.fieldId !== "none" && m.fieldId !== "")
-    const validMatchFiles = new Set(
-      validMatches
-        .map((match) => match.filename?.toLowerCase())
-        .filter((filename) => typeof filename === "string"),
-    )
-    formData.append("matches", JSON.stringify(validMatches))
-    formData.append("analysesData", JSON.stringify(updatedAnalyses))
-    for (const file of files) {
-      if (validMatchFiles.has(file.name.toLowerCase())) {
-        formData.append("soilAnalysisFile", file)
-      }
-    }
-
-    void submit(formData, { method: "post", encType: "multipart/form-data" })
-  }
+  const loaderData = useLoaderData<typeof loader>()
 
   return (
     <SidebarInset>
       <Header
         action={{
-          to: `/farm/${b_id_farm}`,
-          label: "Terug naar dashboard",
+          to: `/farm/${loaderData.b_id_farm}`,
+          label: "Terug naar bedrijf",
           disabled: false,
         }}
       >
-        <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
+        <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbItem className="hidden md:block">Upload bodemanalyses</BreadcrumbItem>
+        <BreadcrumbItem className="hidden md:block">Bodemanalyses uploaden</BreadcrumbItem>
       </Header>
       <main>
         <FarmTitle
-          title="Upload bodemanalyses"
-          description={
-            step === "upload"
-              ? "Upload meerdere bodemanalyses tegelijkertijd en koppel ze aan je percelen."
-              : "Controleer de resultaten en bevestig de koppelingen."
-          }
+          title="Bodemanalyses uploaden"
+          description="Upload de PDF-rapporten van meerdere percelen in één keer. Je controleert de koppeling aan de percelen en de waarden voordat ze worden opgeslagen."
         />
         <FarmContent>
           <div className="space-y-6">
-            {isSaving ? (
-              <div className="flex flex-col items-center justify-center space-y-4 py-12">
-                <Spinner className="text-primary h-8 w-8" />
-                <p className="text-muted-foreground">Opslaan en koppelen...</p>
-              </div>
-            ) : step === "upload" ? (
-              <BulkSoilAnalysisUploadForm
-                onSuccess={handleUploadSuccess}
-                files={files}
-                onFilesChange={setFiles}
-              />
+            {!loaderData.canWrite ? (
+              <Alert className="max-w-3xl">
+                <ShieldAlert aria-hidden />
+                <AlertTitle>Je kunt hier geen analyses toevoegen</AlertTitle>
+                <AlertDescription>
+                  Je hebt alleen leesrechten voor dit bedrijf. Vraag iemand die het bedrijf beheert
+                  om je toegang aan te passen.
+                </AlertDescription>
+              </Alert>
             ) : (
-              <BulkSoilAnalysisReview
-                analyses={processedAnalyses}
-                fields={fields}
-                soilParameterDescription={soilParameterDescription}
-                onSave={handleSave}
-                onCancel={() => setStep("upload")}
-              />
+              <>
+                {!loaderData.isNmiConfigured && (
+                  <Alert className="max-w-3xl border-amber-200 bg-amber-50 text-amber-800">
+                    <AlertCircle aria-hidden className="text-amber-800!" />
+                    <AlertTitle>Automatisch uitlezen van PDF's niet beschikbaar</AlertTitle>
+                    <AlertDescription>
+                      Het uitlezen van PDF-rapporten is in deze omgeving niet ingesteld. Je kunt
+                      analyses per perceel invoeren via de bodempagina van het perceel.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <BulkSoilAnalysisUpload
+                  fields={loaderData.fields}
+                  existing={loaderData.existing}
+                  soilParameterDescription={loaderData.soilParameterDescription}
+                  disabled={!loaderData.isNmiConfigured}
+                  destination={`/farm/${loaderData.b_id_farm}`}
+                />
+              </>
             )}
           </div>
         </FarmContent>
       </main>
     </SidebarInset>
   )
-}
-
-export async function action({ request, params }: ActionFunctionArgs) {
-  try {
-    const b_id_farm = params.b_id_farm
-    if (!b_id_farm) throw data("Farm ID is required", { status: 400 })
-
-    const session = await getSession(request)
-    const formData = await request.formData()
-
-    // Handle final save
-    if (formData.has("matches")) {
-      const matchesRaw = formData.get("matches") as string
-      const analysesDataRaw = formData.get("analysesData") as string
-
-      const matches = JSON.parse(matchesRaw)
-      const analysesData = JSON.parse(analysesDataRaw)
-
-      const uploadedPdfs = new Map<string, File>()
-      for (const file of formData.getAll("soilAnalysisFile")) {
-        if (file instanceof File && file.type === "application/pdf") {
-          uploadedPdfs.set(file.name.toLowerCase(), file)
-        }
-      }
-
-      const results = await Promise.all(
-        matches.map(async (match: { analysisId: string; fieldId: string }) => {
-          const analysis = analysesData.find((a: any) => a.id === match.analysisId)
-          if (analysis) {
-            // Validate depth fields before processing
-            const depthLower = Number(analysis.a_depth_lower)
-            const depthUpper = Number(analysis.a_depth_upper ?? 0)
-            if (Number.isNaN(depthLower) || Number.isNaN(depthUpper)) {
-              throw new Error(
-                `Analysis ${match.analysisId}: invalid depth values (lower: ${analysis.a_depth_lower}, upper: ${analysis.a_depth_upper})`,
-              )
-            }
-
-            const samplingDate = analysis.b_sampling_date
-              ? new Date(analysis.b_sampling_date)
-              : undefined
-            if (!samplingDate || Number.isNaN(samplingDate.getTime())) {
-              throw new Error(
-                `Analysis ${match.analysisId}: invalid b_sampling_date (${analysis.b_sampling_date})`,
-              )
-            }
-            // Strip UI-only and redundant properties before saving to DB
-            const {
-              id: _id,
-              location: _location,
-              a_source: _a_source,
-              matchedFieldId: _matchedFieldId,
-              matchReason: _matchReason,
-              b_name: _b_name,
-              b_sampling_date: _b_sampling_date,
-              a_depth_upper: _a_depth_upper,
-              a_depth_lower: _a_depth_lower,
-              data: _data, // Strip raw data
-              filename,
-              ...dbAnalysis
-            } = analysis
-
-            const soilAnalysisId = await addSoilAnalysis(
-              fdm,
-              session.principal_id,
-              null,
-              analysis.a_source || "other",
-              match.fieldId,
-              depthLower,
-              samplingDate,
-              dbAnalysis,
-              depthUpper,
-            )
-
-            const file = uploadedPdfs.get(filename.toLowerCase())
-
-            if (file) {
-              const key = buildObjectKey("soil_analysis", soilAnalysisId, "pdf")
-              let uploaded = false
-              try {
-                await uploadObject(key, file.stream(), "application/pdf")
-                uploaded = true
-                await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, {
-                  a_file_path: key,
-                })
-              } catch (gcsSaveError) {
-                try {
-                  if (uploaded) {
-                    await deleteObject(key)
-                  }
-                } catch (deleteError) {
-                  void handleActionError(deleteError)
-                }
-                void handleActionError(gcsSaveError)
-              }
-            }
-
-            return soilAnalysisId
-          }
-        }),
-      )
-
-      const savedCount = results.filter(Boolean).length
-      captureEvent(session.principal_id, "soil_analysis_saved", {
-        b_id_farm,
-        method: "bulk",
-        count: savedCount,
-      })
-
-      return redirectWithSuccess(`/farm/${b_id_farm}`, {
-        message: "Bodemanalyses succesvol opgeslagen",
-      })
-    }
-
-    return data({ message: "Invalid request" }, { status: 400 })
-  } catch (error) {
-    return handleActionError(error)
-  }
 }

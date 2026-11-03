@@ -59,7 +59,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const somItem = soilDataArray.find((item) => item.parameter === "a_som_loi")
     const phItem = soilDataArray.find((item) => item.parameter === "a_ph_cc")
 
-    const rawSource = somItem?.a_source ?? phItem?.a_source ?? null
+    const rawSource = somItem?.sources[0]?.a_source ?? phItem?.sources[0]?.a_source ?? null
     const soilParameterDescription = getSoilParametersDescription()
     const sourceParam = soilParameterDescription.find(
       (x: { parameter: string }) => x.parameter === "a_source",

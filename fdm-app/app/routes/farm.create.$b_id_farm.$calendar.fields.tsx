@@ -83,7 +83,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         if (currentSoilData.length === 0) {
           soilStatus[field.b_id] = "missing"
         } else {
-          const sources = new Set(currentSoilData.map((i) => i.a_source))
+          const sources = new Set(currentSoilData.flatMap((i) => i.sources.map((s) => s.a_source)))
           const hasMeasured = Array.from(sources).some((s) => s !== "nl-other-nmi")
 
           if (hasMeasured) {
