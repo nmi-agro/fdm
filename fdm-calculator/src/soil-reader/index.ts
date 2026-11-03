@@ -160,15 +160,19 @@ export function parseSoilReaderField(field: Record<string, unknown>): ExtractedS
   if (samplingDate) analysis.b_sampling_date = samplingDate
   if (typeof field.b_soiltype_agr === "string") analysis.b_soil_type = field.b_soiltype_agr
 
-  if (field.b_depth) {
-    const parts = String(field.b_depth).split("-")
+  const depth =
+    typeof field.b_depth === "string" || typeof field.b_depth === "number"
+      ? String(field.b_depth)
+      : undefined
+  if (depth) {
+    const parts = depth.split("-")
     if (parts.length !== 2) {
-      throw new SoilReaderError(`Invalid depth format: ${String(field.b_depth)}`)
+      throw new SoilReaderError(`Invalid depth format: ${depth}`)
     }
     const upper = Number(parts[0])
     const lower = Number(parts[1])
     if (Number.isNaN(upper) || Number.isNaN(lower)) {
-      throw new SoilReaderError(`Invalid numeric depth values: ${String(field.b_depth)}`)
+      throw new SoilReaderError(`Invalid numeric depth values: ${depth}`)
     }
     analysis.a_depth_upper = upper
     analysis.a_depth_lower = lower

@@ -1,0 +1,5 @@
+---
+"@nmi-agro/fdm-api": minor
+---
+
+Add endpoints for the farm data features of the web app: custom fertilizers (`POST /farms/{b_id_farm}/fertilizers/custom`, `PATCH /fertilizers/{p_id}`), lists per farm of fertilizer applications, harvests, measures and current soil data, nutrient advice per farm and per field, harvest parameters of a cultivation, farm invitations of the key owner, soil condition score (BCS) parameters, photos and annotations, reading soil analyses from lab report PDFs and keeping the report, a two-step field import from an RVO shapefile, fertilizer plans, and balances, indicators and measures of a farm group. Current soil data includes the calculated nitrogen supplying capacity when no analysis has it. Upload endpoints accept `multipart/form-data` with a size limit per endpoint, and a write request without a body needs no `Content-Type`. `createFdmApi` accepts a `storage` and `reportBranding`; the standalone server reads the report images from `FDM_REPORT_LOGO`, `FDM_REPORT_LOGO_INVERTED` and `FDM_REPORT_COVER`.

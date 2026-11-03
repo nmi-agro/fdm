@@ -1,0 +1,5 @@
+---
+"@nmi-agro/fdm-rvo": minor
+---
+
+Add `applyRvoImport`, which saves a reviewed field import (fields to add, update and remove) in one transaction, and the building blocks of a two-step import: `reviewShapefileImport` (reads a shapefile export and compares it with a farm), `compareShapefileFields` (with the buffer strip estimate for shapefiles), `getAllowedImportActions`, `getReviewHash`, `getImportItemValues` and `resolveImportChoices`, which turns one action per item with optional per-field values into the changes to save. `processRvoImport` now uses the same code: `UPDATE_FROM_REMOTE` only changes the values that differ or are missing locally, `CLOSE_LOCAL` only sets the end date, and a new field without buffer strip information is not a buffer strip. It returns the created, updated, closed and removed fields and throws `ImportChoiceError` when an action does not fit the status of its item.

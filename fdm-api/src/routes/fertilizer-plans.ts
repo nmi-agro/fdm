@@ -15,7 +15,7 @@ import type { FileStorage } from "@nmi-agro/fdm-storage"
 import { createRoute, z } from "@hono/zod-openapi"
 import { FileNotFoundError } from "@nmi-agro/fdm-storage"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { ApiError } from "../error"
+import { ApiError, getErrorMessages } from "../error"
 import { FarmIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
@@ -215,7 +215,7 @@ export function registerFertilizerPlanRoutes(
 
   async function requirePlan(principal_id: string, p_id_plan: string) {
     const plan = await services.getFertilizerPlan(fdm, principal_id, p_id_plan).catch((err) => {
-      if (err instanceof Error && /not found/i.test(String(err.cause ?? err.message))) {
+      if (getErrorMessages(err).some((message) => /not found/i.test(message))) {
         return undefined
       }
       throw err

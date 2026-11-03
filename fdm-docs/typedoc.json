@@ -11,7 +11,9 @@
     "../fdm-api/src/index.ts"
   ],
   "entryPointStrategy": "resolve",
-  "plugin": ["typedoc-plugin-markdown"],
+  "plugin": [
+    "typedoc-plugin-markdown"
+  ],
   "out": "api-reference",
   "readme": "none",
   "tsconfig": "../tsconfig.typedoc.json",
@@ -24,7 +26,16 @@
       "Measure": "#",
       "MeasureCatalogue": "#",
       "SoilAnalysis": "#",
-      "syncFertilizerCatalogueArray": "#"
+      "syncFertilizerCatalogueArray": "#",
+      "FertilizerApplication": "#",
+      "Harvest": "#",
+      "listPendingInvitationsForPrincipal": "#"
+    },
+    "@nmi-agro/fdm-calculator": {
+      "startFarmNutrientAdviceRows": "#"
+    },
+    "@nmi-agro/fdm-storage": {
+      "buildObjectKey": "#"
     }
   }
 }
