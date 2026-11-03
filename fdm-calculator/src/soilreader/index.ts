@@ -126,14 +126,15 @@ export function parseSamplingGeometry<T extends MultiPoint | Polygon | MultiPoly
   }
 }
 
-/** Parses a date in the format `dd-mm-yyyy`. */
+/**
+ * Parses a date in the format `dd-mm-yyyy`. Any other format, such as `yyyy-mm-dd`, is not read,
+ * so a date is never interpreted with day and year swapped.
+ */
 function parseDutchDate(value: unknown): Date | undefined {
   if (typeof value !== "string") return undefined
-  const parts = value.split("-")
-  if (parts.length !== 3) return undefined
-  const [day, month, year] = parts.map((part) => Number.parseInt(part, 10))
-  if (day === undefined || month === undefined || year === undefined) return undefined
-  if ([day, month, year].some((n) => Number.isNaN(n))) return undefined
+  const match = /^(\d{1,2})-(\d{1,2})-(\d{4})$/.exec(value.trim())
+  if (!match) return undefined
+  const [, day, month, year] = match.map(Number) as [number, number, number, number]
   return new Date(year, month - 1, day)
 }
 

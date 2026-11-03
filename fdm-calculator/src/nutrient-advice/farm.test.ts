@@ -17,7 +17,8 @@ vi.mock("@nmi-agro/fdm-core", async (importOriginal) => ({
 vi.mock("./index", () => advice)
 vi.mock("../other/cultivation-suggestion", () => suggestion)
 
-const { getFarmNutrientAdviceRows } = await import("./farm")
+const { findMainCultivation, getFarmNutrientAdviceRows, startFarmNutrientAdviceRows } =
+  await import("./farm")
 
 const fdm = {} as FdmType
 const timeframe = { start: new Date("2026-01-01"), end: new Date("2026-12-31") }
@@ -131,5 +132,83 @@ describe("getFarmNutrientAdviceRows", () => {
 
   it("returns no rows for a farm without fields", async () => {
     expect(await getFarmNutrientAdviceRows(input([]))).toEqual([])
+  })
+})
+
+describe("farm nutrient advice edge cases", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    core.getCultivationsForFarm.mockResolvedValue(new Map([["f1", [mainCultivation]]]))
+    core.getFertilizerApplicationsForFarm.mockResolvedValue(new Map())
+    core.getCurrentSoilDataForFarm.mockResolvedValue(new Map())
+    core.getFertilizers.mockResolvedValue([])
+    advice.getNutrientAdvice.mockResolvedValue({ d_n_req: 120 })
+  })
+
+  it("finds no main cultivation in an empty list", () => {
+    expect(findMainCultivation([], 2026)).toBeUndefined()
+  })
+
+  it("runs one field at a time with a concurrency of 1", async () => {
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map(["f1", "f2", "f3"].map((b_id) => [b_id, [mainCultivation]])),
+    )
+    let running = 0
+    let maxRunning = 0
+    advice.getNutrientAdvice.mockImplementation(async () => {
+      running++
+      maxRunning = Math.max(maxRunning, running)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      running--
+      return { d_n_req: 1 }
+    })
+    const rows = await Promise.all(
+      startFarmNutrientAdviceRows({
+        ...input([field("f1"), field("f2"), field("f3")]),
+        concurrency: 1,
+      }),
+    )
+    expect(rows).toHaveLength(3)
+    expect(maxRunning).toBe(1)
+  })
+
+  it("uses 0 ha for a field without area and keeps an unknown crop rotation", async () => {
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map([["f1", [{ ...mainCultivation, b_lu_croprotation: undefined }]]]),
+    )
+    const [row] = await getFarmNutrientAdviceRows(input([{ ...field("f1"), b_area: null }]))
+    expect(row?.b_area).toBe(0)
+    expect(row?.mainCultivation?.b_lu_croprotation).toBeNull()
+  })
+
+  it("reports 0 ha for an error row of a field without area", async () => {
+    const [row] = await getFarmNutrientAdviceRows(input([{ ...field("f9"), b_area: null }]))
+    expect(row).toMatchObject({ b_area: 0, error: { code: "no_cultivation" } })
+  })
+
+  it("describes an error that is not an Error", async () => {
+    core.getFertilizers.mockRejectedValue("database unavailable")
+    const [row] = await getFarmNutrientAdviceRows(input([field("f1")]))
+    expect(row?.error).toEqual({ code: "farm_data_unavailable", message: "database unavailable" })
+  })
+
+  it("reports a field whose calculation fails outside the advice", async () => {
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map([
+        [
+          "f1",
+          [
+            {
+              ...mainCultivation,
+              b_lu_start: new Date("2026-08-01"),
+              b_lu_end: new Date("2026-10-01"),
+            },
+          ],
+        ],
+      ]),
+    )
+    suggestion.getCultivationSuggestion.mockRejectedValue(new Error("unexpected"))
+    const [row] = await getFarmNutrientAdviceRows(input([field("f1")]))
+    expect(row?.error).toEqual({ code: "advice_failed", message: "unexpected" })
   })
 })

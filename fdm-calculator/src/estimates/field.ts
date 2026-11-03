@@ -17,11 +17,10 @@ export function getGeometryCentroid(geometry: FieldGeometry): [number, number] {
   let count = 0
   for (const polygon of polygons) {
     for (const ring of polygon) {
-      for (let i = 0; i < ring.length - 1; i++) {
-        const position = ring[i]
-        if (!position) continue
-        lon += position[0] ?? 0
-        lat += position[1] ?? 0
+      // Every vertex except the closing one, which repeats the first.
+      for (const position of ring.slice(0, -1)) {
+        lon += position[0] as number
+        lat += position[1] as number
         count++
       }
     }

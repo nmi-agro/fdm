@@ -47,3 +47,38 @@ describe("matchSoilAnalysisToField", () => {
     })
   })
 })
+
+describe("matchSoilAnalysisToField edge cases", () => {
+  it("skips fields without or with an invalid geometry", () => {
+    const odd: SoilAnalysisMatchField[] = [
+      { b_id: "x", b_name: "X", b_start: null, b_end: null, geometry: null },
+      {
+        b_id: "y",
+        b_name: "Y",
+        b_start: null,
+        b_end: null,
+        geometry: { type: "Polygon", coordinates: [[]] } as never,
+      },
+    ]
+    expect(matchSoilAnalysisToField(point(5), null, null, odd).b_id).toBeNull()
+  })
+
+  it("prefers the field that existed on the sampling date, else the first", () => {
+    const later: SoilAnalysisMatchField = {
+      b_id: "new",
+      b_name: "Nieuw",
+      b_start: "2020-01-01",
+      b_end: null,
+      geometry: square(5),
+    }
+    const earlier = fields[2]! // 2010 to 2015, same location
+    // On a date in 2012 only the earlier field existed.
+    expect(
+      matchSoilAnalysisToField(point(5), null, new Date("2012-06-01"), [later, earlier]).b_id,
+    ).toBe("c")
+    // On a date when neither existed, the first candidate is used.
+    expect(
+      matchSoilAnalysisToField(point(5), null, new Date("2005-06-01"), [later, earlier]).b_id,
+    ).toBe("new")
+  })
+})

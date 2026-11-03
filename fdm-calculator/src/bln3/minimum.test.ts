@@ -21,4 +21,21 @@ describe("computeMinimumScores", () => {
   it("returns empty lists without scores", () => {
     expect(computeMinimumScores([null, undefined])).toEqual({ aggregations: [], indicators: [] })
   })
+
+  it("skips missing aggregations and scores, and uses the score when the index is missing", () => {
+    const result = computeMinimumScores([
+      { indicators: [] } as unknown as Bln3Score,
+      {
+        aggregations: [{ aggregation_id: "S_WAT", score: Number.NaN }],
+        indicators: [
+          { indicator_id: "I_C_N", score: null, index: 0.1, status: 0, target: 0, impact: 0 },
+          { indicator_id: "I_P", score: 0.7, status: 0, target: 0, impact: 0 },
+        ],
+      } as unknown as Bln3Score,
+    ])
+    expect(result.aggregations).toEqual([])
+    expect(result.indicators).toEqual([
+      { indicator_id: "I_P", score: 0.7, index: 0.7, status: 0, target: 0, impact: 0 },
+    ])
+  })
 })

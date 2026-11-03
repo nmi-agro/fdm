@@ -69,3 +69,17 @@ describe("enrichCurrentSoilDataWithNlv", () => {
     expect(result).toHaveLength(2)
   })
 })
+
+describe("enrichCurrentSoilDataWithNlv without sampling dates", () => {
+  it("still adds the NLV when the inputs have no sampling date", () => {
+    const undated = (parameter: string, value: number) => ({
+      ...item(parameter, value, "2024-01-01"),
+      sources: [{ ...item(parameter, value, "2024-01-01").sources[0], b_sampling_date: null }],
+    })
+    const data = [undated("a_som_loi", 3), undated("a_clay_mi", 20), undated("a_cn_fr", 10)]
+    const nlv = enrichCurrentSoilDataWithNlv(data as unknown as CurrentSoilData).find(
+      (i) => i.parameter === "d_n_supply_base",
+    )
+    expect(nlv?.sources[0]?.b_sampling_date).toBeNull()
+  })
+})
