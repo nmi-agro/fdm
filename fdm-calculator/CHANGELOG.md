@@ -1,5 +1,58 @@
 # fdm-calculator
 
+## 0.20.0
+
+### Minor Changes
+
+- [#869](https://github.com/nmi-agro/fdm/pull/869) [`2d9da29`](https://github.com/nmi-agro/fdm/commit/2d9da29dcf294ad8817ce8095fe02a178f49ea67) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - For BLN3 indicator score calculations and measure applicability estimations all soil analyses up to the ending year are considered, not only those in the requested timeframe. This ensures that more real lab data (in contrast to NMI BodemSchat) is available to consider for each relevant soil parameter.
+
+- [#873](https://github.com/nmi-agro/fdm/pull/873) [`05fcc10`](https://github.com/nmi-agro/fdm/commit/05fcc106e6bf1c5018c436c0d33f296a75f137ba) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Added the option `useEffectiveNitrogen` to the nitrogen balance to calculate the nitrogen supply by fertilizers with effective nitrogen (`p_n_rt * p_n_wc`) and soil mineralization with the MINIP model. Nitrate leaching is based on the surplus of the balance with total nitrogen in both modes. The default remains total nitrogen. In the app, the nitrogen balance pages let you choose between calculating with total nitrogen or with effective nitrogen; the target and status are only shown for the balance with total nitrogen.
+
+- [#829](https://github.com/nmi-agro/fdm/pull/829) [`2e0ab65`](https://github.com/nmi-agro/fdm/commit/2e0ab65ac95fac055d38d494ee08aac366a11eeb) Thanks [@SvenVw](https://github.com/SvenVw)! - Add `getFieldIndicators`, `getFarmIndicators` and `getFieldMeasureOptions` for indicator scores and field measure options, together with the pure post-processing helpers `aggregateFarmScores`, `buildMeasureOptions`, `buildPredictedImpacts`, `getTopOpportunitiesForField`, `computeAreaWeightedAggregation`, `getFieldAggregationScore`, `getScoreTier`, `scoreToDisplay`, `isExcludedFromBln3` and the `IndicatorsUnavailableError` error class. The pure helpers are also available from the browser-safe subpath `@nmi-agro/fdm-calculator/browser`, which does not depend on `fdm-core`, so client-side code can use them.
+
+- [#875](https://github.com/nmi-agro/fdm/pull/875) [`d8b1b60`](https://github.com/nmi-agro/fdm/commit/d8b1b602987a3d10448b94dbc3bd66805ef192bd) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Add `getMeasureFamilyId`, `getBestVariantIds`, `getFieldOpportunityCandidates` and `getFarmBestVariantIds` to group BLN3 measure variants (IDs that differ only in a trailing lowercase letter) into families. `getTopOpportunitiesForField` now keeps only the best variant per family and skips variants of a family that is already active on the field; field measure recommendations in the API follow the same rule. `getTopOpportunitiesForField` accepts optional `selectableMeasureIds`, so a variant that cannot be adopted does not hide a selectable sibling; `buildMeasureOptions` passes the selectable options.
+
+- [#870](https://github.com/nmi-agro/fdm/pull/870) [`fdad56f`](https://github.com/nmi-agro/fdm/commit/fdad56f8f24e47a68322272c0e201780dbd59a57) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch the nitrogen mineralization module to the NMI Dyna v2 endpoint and add the building blocks for the redesigned Mineralisatie app: `prepareMineralizationInput` builds the Dyna v2 request for one field and year (only the main cultivation and the green manure or catch crops after it, the selected year's harvests and fertilizer applications), `getDynaV2` runs the cached calculation, `getWeatherForecast` returns the weather forecast for a location, `deriveMineralizationInsights` derives the season phase, key figures, signals and improvement points, and `applyScenarioToRequest`, `diffScenario` and `getMineralizationScenarioSchema` support what-if scenarios. Also adds `getFieldExclusionReason`, which leaves out buffer strips, nature and landscape elements. The used input of a calculation lists each cultivation with its crop rotation group (`b_lu_croprotation`), so apps can show it in the usual crop colors.
+
+  **Breaking:** the N-supply integration (`getNSupply`, `requestNSupply`, `buildNSupplyRequest`, `assessDataCompleteness`, `methodRequirements`) and Dyna v1 (`getDyna`, `requestDyna`, `buildDynaRequest`, `dynaResponseDataSchema`) are removed, together with their types.
+
+  Harvests of one cultivation need to be at least 10 days apart for Dyna: `prepareMineralizationInput` leaves out a harvest that falls within 10 days after the previous one and lists it in `usedInput.omittedHarvests`, and the scenario schema rejects harvests that are closer together; the minimum is exported as `DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS`.
+
+  A scenario holds all harvests of the main cultivation in the year (`harvests`, each with its `b_id_harvesting`), so the cuts of grassland can be changed, added or removed; `diffScenario` returns the harvests to add, update and remove. Each harvest carries the parameters of its harvest class as entered (`parameters`, e.g. yield and crude protein for grassland); `applyScenarioToRequest` converts them to dry matter yield and nitrogen content with the new `mainHarvestcat` argument and keeps the stored values when a parameter is missing. `usedInput.harvests` now includes `b_id_harvesting` and `parameters`, and `MineralizationCultivation` includes `b_lu_harvestcat`. Adds `HARVEST_PARAMETER_KEYS`, `HarvestParameterValues` and `isSameHarvestParameters`.
+
+- [#874](https://github.com/nmi-agro/fdm/pull/874) [`fa57acb`](https://github.com/nmi-agro/fdm/commit/fa57acb13cb01e8e896661d01cbe3099f150552e) Thanks [@SvenVw](https://github.com/SvenVw)! - Add `aggregateNutrientAdviceToFarmLevel` to aggregate the nutrient dose and advice of several fields to an area-weighted average per hectare or a total. Add the browser-safe entry point `@nmi-agro/fdm-calculator/browser`, which exports the pure aggregation functions (`aggregateNutrientAdviceToFarmLevel`, `calculateNitrogenBalancesFieldToFarm` and `aggregateNormFillingsToFarmLevel`) without server-only dependencies.
+
+  The browser entry point also exports `calculateDose`, `calculateNitrogenBalanceField` and the new `calculateFertilizerApplicationFillingsWithRegion`, which calculates the fillings of all gebruiksnormen of a field for 2025 or 2026 with a known soil region, so the effect of an unsaved fertilizer application can be calculated in the browser. The nitrogen filling functions now have a `…WithRegion` variant that takes the soil region instead of looking it up.
+
+  Raster values (for example the soil region and atmospheric deposition) are now cached in memory per location, so repeated calculations for the same fields do not read the raster again.
+
+### Patch Changes
+
+- [#861](https://github.com/nmi-agro/fdm/pull/861) [`1970cef`](https://github.com/nmi-agro/fdm/commit/1970cef75abba6dd5c831a7a70b71c27d043689b) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed the 2025 and 2026 nitrogen usage norm (stikstofgebruiksnorm) for `Bladgewassen overig` (`nl_2791`, `nl_2792`) and `Kruiden` (`nl_2743`, `nl_2744`), which previously threw an error. The norm input now includes the harvests of each cultivation in the norm year: with more than one harvest the _meermalige oogst_ norm applies, otherwise the _eenmalige oogst_ norm.
+
+- [#873](https://github.com/nmi-agro/fdm/pull/873) [`8498cbc`](https://github.com/nmi-agro/fdm/commit/8498cbce7096b00e466225cbd8b9a2c57bb702e9) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - The MINIP calculation of soil nitrogen mineralization for the nitrogen balance and for the nitrogen supplying capacity (NLV) now uses one shared implementation. Each keeps its own model parameters, so calculated values are unchanged.
+
+- [#868](https://github.com/nmi-agro/fdm/pull/868) [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Corrected the displayed units and names of several soil parameters to match the NMI parameter definitions: `a_c_of` is now shown in g C/kg and `a_n_rt` in mg N/kg, `a_mg_co` uses the same "mmol+/kg" notation as `a_ca_co` and `a_k_co`, and these three exchangeable cations are now labelled "uitwisselbaar" instead of "totale bodemvoorraad". The input range for `a_ca_co_po` is limited to 1–100 %. Bulk density is documented in g/cm³ throughout the calculator.
+
+- [#864](https://github.com/nmi-agro/fdm/pull/864) [`f7c4ff2`](https://github.com/nmi-agro/fdm/commit/f7c4ff2f57048bb0d5e88a90c2e7d85294ab9d7b) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix the selection of the period-based nitrogen usage norm for temporary grassland (`Tijdelijk grasland`) in 2025 and 2026, following RVO Tabel 2:
+
+  - Grass sown on or after 15 April now gets the latest "vanaf …" sowing window that has started, instead of always "vanaf 15 april". For example, grass sown on 15 October now gets 0 kg N/ha instead of the "vanaf 15 april tot minstens 15 oktober" norm.
+  - Temporary grassland that continues into the next year now gets the norm for the full norm year, instead of "tot minstens 15 april".
+  - Grass sown between 1 January and 15 April uses the "van 1 januari tot minstens …" rows.
+  - Temporary grassland sown in a previous year that is followed by another main crop (e.g. grass destroyed in spring before maize) is now counted with its "van 1 januari tot minstens …" norm when it lasts until at least 15 April. Previously it was left out because it was not the main crop (hoofdteelt). When it is renewed by grass that is sown before 15 October and remains until at least 15 October, the re-sown grass carries the norm instead and is marked as heringezaaid. This also applies when the old stand is the main crop.
+  - Grass that does not meet the minimum period of any row (destroyed before 15 April, or sown in a "vanaf" window and destroyed before 15 October) now receives 0 kg N/ha, with the note "geen ruimte: minimale periode niet gehaald".
+
+  Gras voor industriële verwerking now also takes the sowing date into account: grass sown before 15 May in its first year receives the "inzaai voor 15 mei en volgende jaren" norm instead of the "inzaai in september en eerste jaar" norm.
+
+  The norm description (`normSource`) of temporary grassland now includes the selected period, e.g. "Tijdelijk grasland (vanaf 15 oktober) (0 kg N/ha)".
+
+  The period selection is available as `selectSubTypeByPeriod` and is shared by the 2025 and 2026 calculators.
+
+  In 2026 the grassland renewal reduction (50 kg N/ha) and the grassland destruction reduction (65 kg N/ha) now apply only on sand and loess, following footnotes 14, 15 and 16 of Tabel 2. Previously they were also applied on clay and peat.
+
+- Updated dependencies [[`cc8a891`](https://github.com/nmi-agro/fdm/commit/cc8a89101cb6a573a3822be02ced6d17224d54fa), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`cf1fb25`](https://github.com/nmi-agro/fdm/commit/cf1fb25994f3d8485410e826fc4220143acd4050), [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196), [`0e9b593`](https://github.com/nmi-agro/fdm/commit/0e9b593b0080553b243d23f68bf56d972d651eda), [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc)]:
+  - @nmi-agro/fdm-core@0.39.0
+
 ## 0.19.3
 
 ### Patch Changes

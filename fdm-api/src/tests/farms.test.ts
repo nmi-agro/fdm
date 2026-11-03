@@ -12,6 +12,9 @@ const mockAuth = {
 } as any
 
 const mockFdm = {
+  transaction: function <T>(handler: (tx: any) => Promise<T>) {
+    return handler(this)
+  },
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
   onConflictDoUpdate: vi.fn().mockReturnThis(),
@@ -268,23 +271,68 @@ describe("POST /farms", () => {
       b_postalcode_farm: null,
       roles: [],
     }
-    const app = makeApp({
+    const services = {
       addFarm: vi.fn().mockResolvedValue("farm-new"),
+      enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      getFertilizersFromCatalogue: vi
+        .fn()
+        .mockResolvedValue([{ p_id_catalogue: "baat_1" }, { p_id_catalogue: "baat_2" }]),
+      addFertilizer: vi.fn().mockResolvedValue("p-1"),
       getFarm: vi.fn().mockResolvedValue(newFarm),
-    })
+    }
+    const app = makeApp(services)
     const res = await app.request("/farms", {
       method: "POST",
       headers: {
         "x-api-key": "valid",
         "content-type": "application/json",
       },
-      body: JSON.stringify({ b_name_farm: "New Farm" }),
+      body: JSON.stringify(newFarm),
     })
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.b_id_farm).toBe("farm-new")
     expect(body.b_name_farm).toBe("New Farm")
     expect(res.headers.get("location")).toContain("/farms/farm-new")
+
+    // Check if catalogues were enabled.
+    expect(services.enableFertilizerCatalogue).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      body.b_id_farm,
+      "baat",
+    )
+    expect(services.enableFertilizerCatalogue).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      body.b_id_farm,
+      body.b_id_farm,
+    )
+    expect(services.enableCultivationCatalogue).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      body.b_id_farm,
+      "brp",
+    )
+    expect(services.enableMeasureCatalogue).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      body.b_id_farm,
+      "bln",
+    )
+
+    // Check if the catalogue fertilizers were added to the farm.
+    expect(services.addFertilizer).toHaveBeenCalledTimes(2)
+    expect(services.addFertilizer).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      "baat_1",
+      body.b_id_farm,
+      null,
+      null,
+    )
   })
 
   it("returns 400 with invalid JSON body", async () => {
@@ -341,6 +389,57 @@ describe("POST /farms", () => {
       body: JSON.stringify({ b_name_farm: "Farm" }),
     })
     expect(res.status).toBe(403)
+  })
+
+  it("returns 500 if getFarm returns null", async () => {
+    const getFarm = vi.fn().mockResolvedValue(null)
+    const app = makeApp({
+      addFarm: vi.fn().mockResolvedValue("farm-new"),
+      enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      getFertilizersFromCatalogue: vi.fn().mockResolvedValue([]),
+      addFertilizer: vi.fn().mockResolvedValue("p-1"),
+      getFarm,
+    })
+    const res = await app.request("/farms", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ b_name_farm: "Farm" }),
+    })
+    expect(res.status).toBe(500)
+    expect(getFarm).toHaveBeenCalled()
+  })
+
+  it("returns 500 if catalogue enablement fails", async () => {
+    const newFarm = {
+      b_id_farm: "farm-new",
+      b_name_farm: "New Farm",
+      b_businessid_farm: null,
+      b_address_farm: null,
+      b_postalcode_farm: null,
+      roles: [],
+    }
+    const app = makeApp({
+      addFarm: vi.fn().mockResolvedValue("farm-new"),
+      enableFertilizerCatalogue: vi
+        .fn()
+        .mockRejectedValue(new Error("Database connection was lost")),
+      enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/farms", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(newFarm),
+    })
+    expect(res.status).toBe(500)
   })
 })
 

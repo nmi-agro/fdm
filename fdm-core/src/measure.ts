@@ -75,7 +75,7 @@ async function assertNoMeasureOverlap(
  * `m_end` is the last day the measure is applied (inclusive), interpreted as a calendar date in
  * Europe/Amsterdam. It is stored as entered. When the measure is read, a date on 1 January is
  * returned as the end of 31 December of the previous year, so that a measure ended "on 1 January"
- * is not part of that new calendar year. See {@link adjustEndDateAtYearStart}.
+ * is not part of that new calendar year. See `adjustEndDateAtYearStart`.
  *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
@@ -361,7 +361,7 @@ export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCat
  * Pass `m_end = null` to clear the end date (doorlopend).
  *
  * `m_end` is stored as entered. When the measure is read, a date on 1 January is returned as the
- * end of 31 December of the previous year. See {@link adjustEndDateAtYearStart}.
+ * end of 31 December of the previous year. See `adjustEndDateAtYearStart`.
  *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
@@ -524,7 +524,7 @@ export const buildMeasureTimeframeCondition = (
 
 /**
  * Returns a copy of a measure row with an end date on 1 January adjusted to the end of 31 December
- * of the previous year. See {@link adjustEndDateAtYearStart}.
+ * of the previous year. See `adjustEndDateAtYearStart`.
  *
  * @param row A measure row with an `m_end`.
  * @returns The measure row with the adjusted `m_end`.

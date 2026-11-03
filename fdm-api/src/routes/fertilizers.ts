@@ -12,6 +12,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, FertilizerIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -22,9 +23,9 @@ import {
   serializeDate,
   writeErrorResponses,
 } from "../schemas"
+import { FertilizerCatalogueSchema } from "./catalogues"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
-const FERTILIZER_TYPES = ["manure", "mineral", "compost"] as const
 const FERTILIZER_NUMERIC_FIELDS = [
   "p_dm",
   "p_density",
@@ -71,8 +72,6 @@ const FERTILIZER_NUMERIC_FIELDS = [
   "p_ef_nh3",
 ] as const
 
-type FertilizerNumericField = (typeof FERTILIZER_NUMERIC_FIELDS)[number]
-
 /** Defines the fertilizer data access functions required by the fertilizer routes. */
 export interface FertilizerServices {
   getFertilizers: typeof getFertilizers
@@ -82,31 +81,15 @@ export interface FertilizerServices {
   getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
 }
 
-const FertilizerNumericSchemaShape = Object.fromEntries(
-  FERTILIZER_NUMERIC_FIELDS.map((field) => [field, z.number().nullable()]),
-) as Record<FertilizerNumericField, z.ZodNullable<z.ZodNumber>>
-
-const FertilizerCatalogueSchema = z
-  .object({
-    p_id_catalogue: z.string(),
-    p_source: z.string(),
-    p_name_nl: z.string().nullable(),
-    p_name_en: z.string().nullable(),
-    p_description: z.string().nullable(),
-    p_app_method_options: z.array(z.string()).nullable(),
-    p_app_amount_unit: z.string(),
-    ...FertilizerNumericSchemaShape,
-    p_type: z.enum(FERTILIZER_TYPES).nullable(),
-    p_type_rvo: z.string().nullable(),
-  })
-  .openapi("FertilizerCatalogue")
-
 const FertilizerSchema = z
   .object({
-    p_id: z.string(),
+    p_id: FertilizerIdSchema,
     p_date_acquiring: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     p_picking_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    p_app_amount: z.number().nullable(),
+    p_app_amount: z
+      .number()
+      .nullable()
+      .describe("Amount of the product acquired by the farm (kg). `null` when unknown."),
     ...FertilizerCatalogueSchema.shape,
   })
   .openapi("Fertilizer")
@@ -127,7 +110,7 @@ const listFertilizersRoute = createRoute({
   description: "Returns all fertilizers acquired for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     query: PaginationQuerySchema,
   },
   responses: {
@@ -151,7 +134,7 @@ const createFertilizerRoute = createRoute({
   description: "Creates a fertilizer acquisition for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateFertilizerBodySchema },
@@ -168,31 +151,6 @@ const createFertilizerRoute = createRoute({
   },
 })
 
-const listFertilizerCatalogueRoute = createRoute({
-  method: "get",
-  path: "/farms/{b_id_farm}/fertilizer-catalogue",
-  tags: ["Fertilizers"],
-  summary: "List fertilizer catalogue items for a farm",
-  description:
-    "Returns fertilizer catalogue items available from the enabled catalogues for the specified farm.",
-  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: {
-    params: z.object({ b_id_farm: z.string() }),
-    query: PaginationQuerySchema,
-  },
-  responses: {
-    200: {
-      description: "A paginated list of fertilizer catalogue items.",
-      content: {
-        "application/json": {
-          schema: paginatedSchema(FertilizerCatalogueSchema),
-        },
-      },
-    },
-    ...commonErrorResponses,
-  },
-})
-
 const getFertilizerRoute = createRoute({
   method: "get",
   path: "/fertilizers/{p_id}",
@@ -200,7 +158,7 @@ const getFertilizerRoute = createRoute({
   summary: "Get a fertilizer",
   description: "Returns a single fertilizer by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_id: z.string() }) },
+  request: { params: z.object({ p_id: FertilizerIdSchema }) },
   responses: {
     200: {
       description: "The requested fertilizer.",
@@ -217,7 +175,7 @@ const deleteFertilizerRoute = createRoute({
   summary: "Delete a fertilizer",
   description: "Permanently deletes a fertilizer.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_id: z.string() }) },
+  request: { params: z.object({ p_id: FertilizerIdSchema }) },
   responses: {
     204: { description: "Fertilizer deleted." },
     ...commonErrorResponses,
@@ -240,10 +198,6 @@ function serialiseFertilizerCatalogueBase(fertilizer: Fertilizer | FertilizerCat
     serialised[field] = fertilizer[field] ?? null
   }
   return serialised
-}
-
-function serialiseFertilizerCatalogue(fertilizer: FertilizerCatalogue) {
-  return serialiseFertilizerCatalogueBase(fertilizer)
 }
 
 function serialiseFertilizer(fertilizer: Fertilizer) {
@@ -326,25 +280,6 @@ export function registerFertilizerRoutes(
     return c.json(serialiseFertilizer(fertilizer), 201)
   }
 
-  const listFertilizerCatalogueHandler: RouteHandler<typeof listFertilizerCatalogueRoute> = async (
-    c,
-  ) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
-    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
-    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const fertilizers = await services.getFertilizersFromCatalogue(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-    )
-    return c.json(
-      paginatedResponse(fertilizers.map(serialiseFertilizerCatalogue), limit, offset),
-      200,
-    )
-  }
-
   const getFertilizerHandler: RouteHandler<typeof getFertilizerRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
@@ -366,7 +301,6 @@ export function registerFertilizerRoutes(
 
   app.openapi(listFertilizersRoute, listFertilizersHandler)
   app.openapi(createFertilizerRoute, createFertilizerHandler)
-  app.openapi(listFertilizerCatalogueRoute, listFertilizerCatalogueHandler)
   app.openapi(getFertilizerRoute, getFertilizerHandler)
   app.openapi(deleteFertilizerRoute, deleteFertilizerHandler)
 }

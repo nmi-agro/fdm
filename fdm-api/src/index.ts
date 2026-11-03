@@ -1,6 +1,5 @@
 /** @module */
 
-import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
@@ -20,18 +19,29 @@ import {
   addCultivation,
   addDerogation,
   addFarm,
+  addFarmToGroup,
   addFertilizer,
   addFertilizerApplication,
   addField,
   addHarvest,
-  addFarmToGroup,
   addMeasure,
   addOrganicCertification,
   addSoilAnalysis,
+  createFarmGroup,
+  enableCultivationCatalogue,
+  enableFertilizerCatalogue,
+  enableMeasureCatalogue,
+  type FdmAuth,
+  type FdmType,
   getCultivation,
   getCultivations,
   getCultivationsForFarm,
+  getCultivationsFromCatalogues,
   getCurrentSoilData,
+  getEnabledCultivationCatalogues,
+  getEnabledFertilizerCatalogues,
+  getEnabledMeasureCatalogues,
+  // getCultivationsFromCatalogue,
   getFarm,
   getFarmGroup,
   getFarms,
@@ -40,6 +50,7 @@ import {
   getFertilizerApplications,
   getFertilizers,
   getFertilizersFromCatalogue,
+  getFertilizersFromCatalogues,
   getField,
   getFields,
   getGrazingIntentions,
@@ -47,22 +58,20 @@ import {
   getHarvests,
   getMeasure,
   getMeasures,
+  getMeasuresFromCatalogue,
   getOrganicCertification,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
   listDerogations,
+  listFarmGroups,
   listOrganicCertifications,
   removeCultivation,
   removeDerogation,
   removeFarm,
   removeFarmFromGroup,
-  removeFarmGroupMembership,
-  updateFarmGroupMembership,
   removeFarmGroup,
-  renameFarmGroup,
-  createFarmGroup,
-  listFarmGroups,
+  removeFarmGroupMembership,
   removeFertilizer,
   removeFertilizerApplication,
   removeField,
@@ -71,9 +80,11 @@ import {
   removeMeasure,
   removeOrganicCertification,
   removeSoilAnalysis,
+  renameFarmGroup,
   setGrazingIntention,
   updateCultivation,
   updateFarm,
+  updateFarmGroupMembership,
   updateFertilizerApplication,
   updateField,
   updateHarvest,
@@ -130,6 +141,9 @@ export interface FdmApiServices {
   updateField: typeof updateField
   removeField: typeof removeField
   // Cultivations
+  getEnabledCultivationCatalogues: typeof getEnabledCultivationCatalogues
+  enableCultivationCatalogue: typeof enableCultivationCatalogue
+  getCultivationsFromCatalogues: typeof getCultivationsFromCatalogues
   getCultivations: typeof getCultivations
   getCultivationsForFarm: typeof getCultivationsForFarm
   getCultivation: typeof getCultivation
@@ -143,6 +157,9 @@ export interface FdmApiServices {
   updateHarvest: typeof updateHarvest
   removeHarvest: typeof removeHarvest
   // Fertilizers
+  getEnabledFertilizerCatalogues: typeof getEnabledFertilizerCatalogues
+  enableFertilizerCatalogue: typeof enableFertilizerCatalogue
+  getFertilizersFromCatalogues: typeof getFertilizersFromCatalogues
   getFertilizers: typeof getFertilizers
   addFertilizer: typeof addFertilizer
   getFertilizer: typeof getFertilizer
@@ -155,6 +172,9 @@ export interface FdmApiServices {
   updateFertilizerApplication: typeof updateFertilizerApplication
   removeFertilizerApplication: typeof removeFertilizerApplication
   // Measures
+  getEnabledMeasureCatalogues: typeof getEnabledMeasureCatalogues
+  enableMeasureCatalogue: typeof enableMeasureCatalogue
+  getMeasuresFromCatalogue: typeof getMeasuresFromCatalogue
   getMeasures: typeof getMeasures
   getMeasure: typeof getMeasure
   addMeasure: typeof addMeasure
@@ -221,6 +241,9 @@ const defaultServices: FdmApiServices = {
   addField,
   updateField,
   removeField,
+  getEnabledCultivationCatalogues,
+  enableCultivationCatalogue,
+  getCultivationsFromCatalogues,
   getCultivations,
   getCultivationsForFarm,
   getCultivation,
@@ -237,11 +260,17 @@ const defaultServices: FdmApiServices = {
   getFertilizer,
   removeFertilizer,
   getFertilizersFromCatalogue,
+  enableFertilizerCatalogue,
+  getEnabledFertilizerCatalogues,
+  getFertilizersFromCatalogues,
   getFertilizerApplications,
   getFertilizerApplication,
   addFertilizerApplication,
   updateFertilizerApplication,
   removeFertilizerApplication,
+  getEnabledMeasureCatalogues,
+  enableMeasureCatalogue,
+  getMeasuresFromCatalogue,
   getMeasures,
   getMeasure,
   addMeasure,

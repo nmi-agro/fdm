@@ -8,7 +8,7 @@
     },
     "build-docs": {
       "outputs": ["build/**"],
-      "dependsOn": ["^build-docs"]
+      "dependsOn": ["^build", "^build-docs"]
     },
     "check-types": {
       "outputs": [],

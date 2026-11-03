@@ -83,7 +83,7 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
@@ -393,7 +393,9 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
 
     throw data("Ongeldige actie", { status: 400 })
   } catch (error) {
-    throw handleActionError(error)
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(error)) return error
+    return handleActionError(error)
   }
 }
 

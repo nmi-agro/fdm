@@ -1,5 +1,25 @@
 # Changelog fdm-core
 
+## 0.39.0
+
+### Minor Changes
+
+- [#832](https://github.com/nmi-agro/fdm/pull/832) [`cc8a891`](https://github.com/nmi-agro/fdm/commit/cc8a89101cb6a573a3822be02ced6d17224d54fa) Thanks [@SvenVw](https://github.com/SvenVw)! - Add farm groups: named, organization-scoped groupings of farms. New tables `farm_groups`, `farm_group_joining` (`b_group_joined`) and `farm_group_leaving` (`b_group_leaved`), a `farm_group` authorization resource and the functions `createFarmGroup`, `getFarmGroup`, `listFarmGroups`, `renameFarmGroup`, `removeFarmGroup`, `addFarmToGroup`, `removeFarmFromGroup`, `updateFarmGroupMembership` and `removeFarmGroupMembership`. `removeFarmFromGroup` ends a membership and keeps the history, moving a later planned end date forward; `removeFarmGroupMembership` deletes a period, as if the farm never was part of the group in it. The dates are the dates from which and until which a farm is part of a group, chosen by the user, not the moment of recording. Membership periods are derived from the joining and leaving events. `removeFarm` now also removes the farm from its groups.
+
+- [#863](https://github.com/nmi-agro/fdm/pull/863) [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - The cultivation catalogue data model now supports the `b_lu_ya` field, which is the array of years the cultivation catalogue code is available in the RVO Basisregistratie Percelen. It is synchronized with the `b_lu_ya` data available in fdm-data, which currently encompasses 2009 through 2026. Just like in fdm-data, `b_lu_ya` being null means that it is available in all years the catalogue is available for. `getCultivationsFromCatalogue` now supports an extra `year` argument which will filter the result by the given availability year. `addCultivationToCatalogue` also supports adding this field.
+
+- [#870](https://github.com/nmi-agro/fdm/pull/870) [`cf1fb25`](https://github.com/nmi-agro/fdm/commit/cf1fb25994f3d8485410e826fc4220143acd4050) Thanks [@SvenVw](https://github.com/SvenVw)! - Export `convertHarvestParameters` and its result type `StandardHarvestParameters`, so other packages can derive the dry matter yield and nitrogen content of a harvest from the parameters of its harvest class without saving it.
+
+- [#887](https://github.com/nmi-agro/fdm/pull/887) [`0e9b593`](https://github.com/nmi-agro/fdm/commit/0e9b593b0080553b243d23f68bf56d972d651eda) Thanks [@SvenVw](https://github.com/SvenVw)! - Add database indexes to speed up reading fields and soil analyses. `field_acquiring` gets an index on `b_id_farm`; `soil_sampling` gets an index on `b_id` with `b_sampling_date` (descending, nulls last) and an index on `a_id`. Before, `getFields` scanned the whole `field_acquiring` table, and `getSoilAnalyses`, `getCurrentSoilData`, `getSoilAnalysis` and their farm-level variants scanned the whole `soil_sampling` table on every call. The migration only creates indexes and does not change any data.
+
+### Patch Changes
+
+- [#868](https://github.com/nmi-agro/fdm/pull/868) [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Corrected the displayed units and names of several soil parameters to match the NMI parameter definitions: `a_c_of` is now shown in g C/kg and `a_n_rt` in mg N/kg, `a_mg_co` uses the same "mmol+/kg" notation as `a_ca_co` and `a_k_co`, and these three exchangeable cations are now labelled "uitwisselbaar" instead of "totale bodemvoorraad". The input range for `a_ca_co_po` is limited to 1–100 %. Bulk density is documented in g/cm³ throughout the calculator.
+
+- [#876](https://github.com/nmi-agro/fdm/pull/876) [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc) Thanks [@SvenVw](https://github.com/SvenVw)! - Update `safe-stable-stringify` to v3, which is used to hash calculation inputs for the cache.
+- Updated dependencies [[`0faf07a`](https://github.com/nmi-agro/fdm/commit/0faf07a43c60272aa59ee51eabc4ac49c1168102), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f)]:
+  - @nmi-agro/fdm-data@0.24.0
+
 ## 0.38.1
 
 ### Patch Changes

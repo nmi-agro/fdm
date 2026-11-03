@@ -11,6 +11,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { CultivationIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -34,50 +35,28 @@ export interface HarvestServices {
   removeHarvest: typeof removeHarvest
 }
 
-const HarvestPropertyShape = {
-  b_lu_yield: z.number().nullable().optional(),
-  b_lu_yield_bruto: z.number().nullable().optional(),
-  b_lu_yield_fresh: z.number().nullable().optional(),
-  b_lu_tarra: z.number().nullable().optional(),
-  b_lu_dm: z.number().nullable().optional(),
-  b_lu_moist: z.number().nullable().optional(),
-  b_lu_uww: z.number().nullable().optional(),
-  b_lu_cp: z.number().nullable().optional(),
-  b_lu_n_harvestable: z.number().nullable().optional(),
-  b_lu_n_residue: z.number().nullable().optional(),
-  b_lu_p_harvestable: z.number().nullable().optional(),
-  b_lu_p_residue: z.number().nullable().optional(),
-  b_lu_k_harvestable: z.number().nullable().optional(),
-  b_lu_k_residue: z.number().nullable().optional(),
-} as const
+const HarvestPropertyShape = harvestAnalysisShape((schema) => schema.nullable().optional())
 
 const HarvestableAnalysisSchema = z.object({
-  b_id_harvestable_analysis: z.string(),
-  b_lu_yield: z.number().nullable(),
-  b_lu_yield_fresh: z.number().nullable(),
-  b_lu_yield_bruto: z.number().nullable(),
-  b_lu_tarra: z.number().nullable(),
-  b_lu_dm: z.number().nullable(),
-  b_lu_moist: z.number().nullable(),
-  b_lu_uww: z.number().nullable(),
-  b_lu_cp: z.number().nullable(),
-  b_lu_n_harvestable: z.number().nullable(),
-  b_lu_n_residue: z.number().nullable(),
-  b_lu_p_harvestable: z.number().nullable(),
-  b_lu_p_residue: z.number().nullable(),
-  b_lu_k_harvestable: z.number().nullable(),
-  b_lu_k_residue: z.number().nullable(),
+  b_id_harvestable_analysis: z
+    .string()
+    .describe("Unique identifier of the analysis of the harvested product."),
+  ...harvestAnalysisShape((schema) => schema.nullable()),
 })
 
 const HarvestSchema = z
   .object({
-    b_id_harvesting: z.string(),
+    b_id_harvesting: HarvestIdSchema,
     b_lu_harvest_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    b_lu: z.string(),
-    harvestable: z.object({
-      b_id_harvestable: z.string(),
-      harvestable_analyses: z.array(HarvestableAnalysisSchema),
-    }),
+    b_lu: CultivationIdSchema.describe("Unique identifier of the harvested cultivation."),
+    harvestable: z
+      .object({
+        b_id_harvestable: z.string().describe("Unique identifier of the harvested product."),
+        harvestable_analyses: z
+          .array(HarvestableAnalysisSchema)
+          .describe("Analyses of the harvested product. Values are `null` when not measured."),
+      })
+      .describe("The product that was harvested."),
   })
   .openapi("Harvest")
 
@@ -103,7 +82,7 @@ const listHarvestsRoute = createRoute({
   description: "Returns all harvests for the specified cultivation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_lu: z.string() }),
+    params: z.object({ b_lu: CultivationIdSchema }),
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -125,7 +104,7 @@ const createHarvestRoute = createRoute({
   description: "Creates a new harvest on the specified cultivation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_lu: z.string() }),
+    params: z.object({ b_lu: CultivationIdSchema }),
     body: {
       content: {
         "application/json": { schema: CreateHarvestBodySchema },
@@ -149,7 +128,7 @@ const getHarvestRoute = createRoute({
   summary: "Get a harvest",
   description: "Returns a single harvest by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_harvesting: z.string() }) },
+  request: { params: z.object({ b_id_harvesting: HarvestIdSchema }) },
   responses: {
     200: {
       description: "The requested harvest.",
@@ -167,7 +146,7 @@ const updateHarvestRoute = createRoute({
   description: "Updates an existing harvest.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_harvesting: z.string() }),
+    params: z.object({ b_id_harvesting: HarvestIdSchema }),
     body: {
       content: {
         "application/json": { schema: UpdateHarvestBodySchema },
@@ -191,7 +170,7 @@ const deleteHarvestRoute = createRoute({
   summary: "Delete a harvest",
   description: "Permanently deletes a harvest.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_harvesting: z.string() }) },
+  request: { params: z.object({ b_id_harvesting: HarvestIdSchema }) },
   responses: {
     204: { description: "Harvest deleted." },
     ...commonErrorResponses,

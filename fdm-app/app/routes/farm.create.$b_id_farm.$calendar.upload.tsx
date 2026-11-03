@@ -41,6 +41,7 @@ export default function CreateWithMijnPercelenPage() {
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}
         backUrl={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}`}
+        isFarmCreateWizard={true}
       />
     </SidebarInset>
   )

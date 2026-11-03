@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-rvo",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": false,
   "description": "RVO Synchronization Logic for FDM",
   "homepage": "https://svenvw.github.io/fdm/",

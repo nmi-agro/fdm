@@ -1,23 +1,24 @@
 import type { ZodError } from "zod"
 import {
+  addCultivation,
   addFarmVerification,
+  addField,
   addSoilAnalysis,
-  type FdmType,
   type Field,
   type FieldGeometry,
   getCultivations,
   getCultivationsFromCatalogue,
+  getDefaultDatesOfCultivation,
   getFarm,
   getFarms,
   getFields,
+  removeCultivation,
+  removeField,
+  updateField,
 } from "@nmi-agro/fdm-core"
-import {
-  type ImportReviewAction,
-  type RvoImportReviewItem,
-  type UserChoiceMap,
-} from "@nmi-agro/fdm-rvo/types"
+import { type RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import { AlertTriangle, Loader2 } from "lucide-react"
-import { useEffect, useMemo } from "react"
+import { useEffect, useState } from "react"
 import {
   data,
   Form,
@@ -28,15 +29,30 @@ import {
   useSearchParams,
   useNavigation,
   useParams,
+  ShouldRevalidateFunctionArgs,
 } from "react-router"
+import { redirectWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { parseRvoRequestMode, RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
-import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import {
+  countImportChanges,
+  ImportChangeList,
+  ImportIssuesAlert,
+} from "~/components/blocks/rvo/import-review-summary"
+import {
+  CustomValueButtonsToggle,
+  RvoImportReviewTable,
+  useRvoImportForm,
+} from "~/components/blocks/rvo/import-review-table"
 import { RvoNoFieldsAlert } from "~/components/blocks/rvo/no-fields-alert"
+import {
+  getImportValidationMessage,
+  ImportReviewChoicesSchema,
+} from "~/components/blocks/rvo/schema"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -51,7 +67,6 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
@@ -68,14 +83,12 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { defaultChoices } from "~/lib/rvo-import"
 import {
   compareFields,
   fetchRvoFields,
   generateAuthUrl,
   getRvoErrorDetails,
   isRvoPermissionDeniedError,
-  processRvoImport,
 } from "~/lib/rvo.server"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rvo"
 
@@ -83,6 +96,23 @@ type ReviewItem = RvoImportReviewItem<Field>
 
 export const meta: Route.MetaFunction = ({ params }) => {
   return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
+}
+
+export function shouldRevalidate({
+  formData,
+  actionResult,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  // Do not revalidate (run the loader again) if this was a form submission.
+  const intent = formData?.get("intent")
+  const failedReviewSave =
+    intent === "apply_changes" &&
+    typeof actionResult === "object" &&
+    actionResult !== null &&
+    "success" in actionResult &&
+    actionResult.success === false
+
+  return failedReviewSave ? false : defaultShouldRevalidate
 }
 
 export async function loader({ request, params, url }: Route.LoaderArgs) {
@@ -99,6 +129,7 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
   const rvoToken = await parseRvoToken(request.headers.get("Cookie"))
 
   let rvoImportReviewData: ReviewItem[] = []
+  let cultivationOptions: { value: string; label: string }[] = []
   let error: string | null = null
   // Set once an RVO token is present: whose data was requested, and whether RVO denied it
   let rvoMode: RvoRequestMode | null = null
@@ -228,6 +259,10 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
         year,
         cultivationsCatalogue,
       )
+      cultivationOptions = cultivationsCatalogue.map((c) => ({
+        value: c.b_lu_catalogue,
+        label: c.b_lu_name,
+      }))
     } catch (e) {
       console.error("Error with importing from RVO:", e)
       if (accessDenied) {
@@ -257,6 +292,7 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
         farms,
         b_name_farm,
         calendar: yearString,
+        cultivationOptions,
       },
       { headers: { "Set-Cookie": clearedTokenCookie } },
     )
@@ -278,6 +314,7 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
       farms,
       b_name_farm,
       calendar: yearString,
+      cultivationOptions,
     },
     { headers: { "Set-Cookie": clearedTokenCookie } },
   )
@@ -296,6 +333,7 @@ export default function RvoImportReviewPage() {
     calendar,
     showimportButton,
     noRvoFieldsFound,
+    cultivationOptions,
   } = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
@@ -307,19 +345,23 @@ export default function RvoImportReviewPage() {
   const isApplying =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "apply_changes"
 
-  // The defaults for the current review data, plus whatever the user has overridden. New review
-  // data (e.g. from a fresh import) starts without overrides.
-  const defaults = useMemo(() => defaultChoices(rvoImportReviewData), [rvoImportReviewData])
-  const [overrides, setOverrides] = useKeyedState<ReviewItem[], UserChoiceMap>(
+  const [canUnloadSafely, setCanUnloadSafely] = useState(false)
+  const { formValues, summary, issues, changeSummaryAgainstRvo } = useRvoImportForm(
     rvoImportReviewData,
-    () => ({}),
+    { calendar },
   )
-  const userChoices = { ...defaults, ...overrides }
+
+  // A failed save re-arms the guard even if the user had just disarmed it to submit.
+  const effectiveCanUnloadSafely = canUnloadSafely && actionData?.success !== false
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
     if (rvoImportReviewData.length > 0) {
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        // Submitting the form disarms the guard
+        if (effectiveCanUnloadSafely) {
+          return
+        }
         e.preventDefault()
         e.returnValue =
           "Als u de pagina ververst, wordt de verbinding met RVO verbroken en moet u opnieuw inloggen met eHerkenning. Wilt u doorgaan?"
@@ -328,25 +370,13 @@ export default function RvoImportReviewPage() {
       window.addEventListener("beforeunload", handleBeforeUnload)
       return () => window.removeEventListener("beforeunload", handleBeforeUnload)
     }
-  }, [rvoImportReviewData])
-
-  const handleChoiceChange = (id: string, action: ImportReviewAction) => {
-    setOverrides((prev) => ({ ...prev, [id]: action }))
-  }
+  }, [effectiveCanUnloadSafely, rvoImportReviewData])
 
   const currentFarmName = farms.find((farm) => farm.b_id_farm === b_id_farm)?.b_name_farm ?? ""
 
-  const changes = Object.values(userChoices).reduce(
-    (acc, action) => {
-      if (action === "ADD_REMOTE") acc.add++
-      if (action === "REMOVE_LOCAL") acc.remove++
-      if (action === "UPDATE_FROM_REMOTE") acc.update++
-      if (action === "CLOSE_LOCAL") acc.close++
-      return acc
-    },
-    { add: 0, remove: 0, update: 0, close: 0 },
-  )
-  const hasChanges = Object.values(changes).some((count) => count > 0)
+  const hasChanges = countImportChanges(summary) > 0
+  const hasIssues = issues.length > 0
+  const removesFields = summary.remove.length > 0
 
   if (error) {
     return (
@@ -459,10 +489,11 @@ export default function RvoImportReviewPage() {
             />
             <FarmContent>
               <div className="flex flex-col space-y-4 pb-10">
-                <div className="flex justify-end">
+                <div className="bg-background sticky top-0 z-20 flex items-center justify-end gap-4 border-b py-3">
+                  <CustomValueButtonsToggle />
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button disabled={isApplying}>
+                      <Button disabled={isApplying || hasIssues}>
                         {isApplying ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -479,36 +510,17 @@ export default function RvoImportReviewPage() {
                       <DialogHeader>
                         <DialogTitle>Wijzigingen toepassen</DialogTitle>
                         <DialogDescription>
-                          U staat op het punt de volgende wijzigingen door te voeren:
+                          Controleer de wijzigingen voordat u ze toepast.
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="py-4">
-                        <ul className="text-muted-foreground list-disc space-y-2 pl-6">
-                          {changes.add > 0 && (
-                            <li>
-                              {changes.add} {changes.add === 1 ? "perceel" : "percelen"} toevoegen
-                            </li>
-                          )}
-                          {changes.remove > 0 && (
-                            <li>
-                              {changes.remove} {changes.remove === 1 ? "perceel" : "percelen"}{" "}
-                              verwijderen
-                            </li>
-                          )}
-                          {changes.update > 0 && (
-                            <li>
-                              {changes.update} {changes.update === 1 ? "perceel" : "percelen"}{" "}
-                              bijwerken
-                            </li>
-                          )}
-                          {changes.close > 0 && (
-                            <li>
-                              {changes.close} {changes.close === 1 ? "perceel" : "percelen"}{" "}
-                              afsluiten
-                            </li>
-                          )}
-                        </ul>
-                        {!hasChanges && <p>Geen wijzigingen geselecteerd.</p>}
+                      <div className="max-h-[60vh] overflow-y-auto py-4">
+                        {hasChanges ? (
+                          <ImportChangeList summary={summary} />
+                        ) : (
+                          <p className="text-muted-foreground text-sm">
+                            Geen wijzigingen geselecteerd.
+                          </p>
+                        )}
                       </div>
                       <DialogFooter>
                         <DialogClose asChild>
@@ -518,28 +530,39 @@ export default function RvoImportReviewPage() {
                           <input type="hidden" name="intent" value="apply_changes" />
                           <input
                             type="hidden"
-                            name="userChoices"
-                            value={JSON.stringify(userChoices)}
+                            name="fieldsToAdd"
+                            value={JSON.stringify(formValues.fieldsToAdd)}
                           />
                           <input
                             type="hidden"
-                            name="rvoImportReviewDataJson"
-                            value={JSON.stringify(rvoImportReviewData)}
+                            name="fieldsToRemove"
+                            value={JSON.stringify(formValues.fieldsToRemove)}
                           />
-                          <Button type="submit" disabled={isApplying}>
-                            Bevestigen
+                          <input
+                            type="hidden"
+                            name="fieldsToUpdate"
+                            value={JSON.stringify(formValues.fieldsToUpdate)}
+                          />
+                          <Button
+                            type="submit"
+                            variant={removesFields ? "destructive" : "default"}
+                            disabled={isApplying || hasIssues}
+                            onClick={() => setCanUnloadSafely(true)}
+                          >
+                            {removesFields ? "Bevestigen en verwijderen" : "Bevestigen"}
                           </Button>
                         </Form>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
+                <ImportIssuesAlert issues={issues} />
                 <div className="w-full">
                   <RvoImportReviewTable
                     calendar={calendar}
                     data={rvoImportReviewData}
-                    userChoices={userChoices}
-                    onChoiceChange={handleChoiceChange}
+                    cultivationOptions={cultivationOptions}
+                    changeSummaryAgainstRvo={changeSummaryAgainstRvo}
                   />
                 </div>
               </div>
@@ -606,13 +629,15 @@ export async function action({ request, params, url }: Route.ActionArgs) {
   }
 
   if (intent === "apply_changes") {
-    const rvoImportReviewDataJson = formData.get("rvoImportReviewDataJson")
-    const userChoicesJson = formData.get("userChoices")
+    const fieldsToAddJson = formData.get("fieldsToAdd")
+    const fieldsToRemoveJson = formData.get("fieldsToRemove")
+    const fieldsToUpdateJson = formData.get("fieldsToUpdate")
 
-    let rvoImportReviewData: ReviewItem[] = []
-    let userChoices: UserChoiceMap = {}
-
-    if (typeof rvoImportReviewDataJson !== "string" || typeof userChoicesJson !== "string") {
+    if (
+      typeof fieldsToAddJson !== "string" ||
+      typeof fieldsToRemoveJson !== "string" ||
+      typeof fieldsToUpdateJson !== "string"
+    ) {
       return {
         success: false,
         message: "Geen data gevonden om te verwerken. Start 'percelen ophalen bij RVO' opnieuw.",
@@ -620,28 +645,105 @@ export async function action({ request, params, url }: Route.ActionArgs) {
     }
 
     try {
-      rvoImportReviewData = JSON.parse(rvoImportReviewDataJson)
-      userChoices = JSON.parse(userChoicesJson)
-
-      // Basic validation: ensure we have an array of items
-      if (!Array.isArray(rvoImportReviewData)) {
-        throw new Error("Invalid review data format")
-      }
+      const formValues = ImportReviewChoicesSchema.parse({
+        fieldsToAdd: JSON.parse(fieldsToAddJson),
+        fieldsToRemove: JSON.parse(fieldsToRemoveJson),
+        fieldsToUpdate: JSON.parse(fieldsToUpdateJson),
+      })
 
       const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
-      const onFieldAdded = async (_: FdmType, b_id: string, geometry: FieldGeometry) => {
-        addedFields.push({ b_id, geometry })
-      }
 
-      await processRvoImport(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-        rvoImportReviewData,
-        userChoices,
-        year,
-        onFieldAdded,
-      )
+      await fdm.transaction(async (tx) => {
+        for (const field of formValues.fieldsToAdd) {
+          const b_id = await addField(
+            tx,
+            session.principal_id,
+            b_id_farm,
+            field.b_name,
+            field.b_id_source,
+            field.b_geometry as unknown as FieldGeometry,
+            field.b_start,
+            field.b_acquiring_method,
+            field.b_end,
+            field.b_bufferstrip,
+          )
+
+          // Soil estimates depend on the location only, so every added field gets them.
+          addedFields.push({
+            b_id: b_id,
+            geometry: field.b_geometry as unknown as FieldGeometry,
+          })
+
+          if (typeof field.b_lu_catalogue === "string") {
+            const defaultDates = await getDefaultDatesOfCultivation(
+              tx,
+              session.principal_id,
+              b_id_farm,
+              field.b_lu_catalogue,
+              year,
+            )
+
+            await addCultivation(
+              tx,
+              session.principal_id,
+              field.b_lu_catalogue,
+              b_id,
+              defaultDates.b_lu_start,
+              defaultDates.b_lu_end,
+            )
+          }
+        }
+
+        for (const field of formValues.fieldsToUpdate) {
+          const b_id = field.b_id
+          const b_bufferstrip = field.b_bufferstrip
+
+          await updateField(
+            tx,
+            session.principal_id,
+            b_id,
+            field.b_name ?? undefined,
+            field.b_id_source,
+            field.b_geometry as unknown as FieldGeometry,
+            field.b_start,
+            field.b_acquiring_method,
+            field.b_end,
+            b_bufferstrip,
+          )
+
+          if (typeof field.b_lu_catalogue !== "undefined") {
+            if (field.b_lu) {
+              // Always remove the existing cultivation
+              await removeCultivation(tx, session.principal_id, field.b_lu)
+            }
+
+            if (field.b_lu_catalogue) {
+              // Add the new cultivation if not null
+              const b_lu_catalogue = field.b_lu_catalogue
+              const defaultDates = await getDefaultDatesOfCultivation(
+                tx,
+                session.principal_id,
+                b_id_farm,
+                field.b_lu_catalogue,
+                year,
+              )
+
+              await addCultivation(
+                tx,
+                session.principal_id,
+                b_lu_catalogue,
+                b_id,
+                defaultDates.b_lu_start,
+                defaultDates.b_lu_end,
+              )
+            }
+          }
+        }
+
+        for (const b_id of formValues.fieldsToRemove) {
+          await removeField(tx, session.principal_id, b_id)
+        }
+      })
 
       const nmiApiKey = getNmiApiKey()
       if (nmiApiKey) {
@@ -684,12 +786,23 @@ export async function action({ request, params, url }: Route.ActionArgs) {
         calendar: yearString,
       })
 
-      return redirect(`/farm/${b_id_farm}`)
+      const changedCount =
+        formValues.fieldsToAdd.length +
+        formValues.fieldsToUpdate.length +
+        formValues.fieldsToRemove.length
+      return redirectWithSuccess(
+        `/farm/${b_id_farm}`,
+        changedCount > 0
+          ? `${changedCount} ${changedCount === 1 ? "perceel is" : "percelen zijn"} bijgewerkt met de gegevens van RVO.`
+          : "Er zijn geen wijzigingen opgeslagen.",
+      )
     } catch (e: any) {
       console.error("Error with processing RVO import: ", e)
       return {
         success: false,
-        message: `Error with processing RVO import: ${await extractErrorMessage(e)}`,
+        message:
+          getImportValidationMessage(e) ??
+          `Het verwerken van de percelen is mislukt. Uw keuzes zijn bewaard, probeer het opnieuw. (${await extractErrorMessage(e)})`,
       }
     }
   }
