@@ -1,6 +1,7 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MapGeoJSONFeature } from "maplibre-gl"
 import type { MetaFunction } from "react-router"
+import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
 import {
   getCurrentSoilDataForFarm,
   getFields,
@@ -46,7 +47,6 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parameter"
 
 export const meta: MetaFunction = () => {

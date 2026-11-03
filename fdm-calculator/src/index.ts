@@ -187,6 +187,29 @@ export { getRegion, isFieldInNVGebied } from "./norms/nl/2025/value/stikstofgebr
 export type { NL2025NormsInput, RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"
+export {
+  FARM_NUTRIENT_ADVICE_NUTRIENTS,
+  findMainCultivation,
+  getFarmNutrientAdviceRows,
+  NUTRIENT_ADVICE_CONCURRENCY,
+  startFarmNutrientAdviceRows,
+} from "./nutrient-advice/farm"
+export type {
+  FarmNutrientAdviceErrorCode,
+  FarmNutrientAdviceField,
+  FarmNutrientAdviceInput,
+  FarmNutrientAdviceRow,
+  FarmNutrientAdviceValue,
+  FarmNutrientSymbol,
+} from "./nutrient-advice/farm"
+export {
+  getCultivationSuggestion,
+  getCultivationSuggestionResult,
+} from "./other/cultivation-suggestion"
+export type {
+  CultivationSuggestion,
+  CultivationSuggestionResult,
+} from "./other/cultivation-suggestion"
 export type {
   AggregatedNutrientAdvice,
   InputAggregateNutrientAdviceToFarmLevel,
@@ -206,6 +229,7 @@ export type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from
 export { bln3Client, soilEstimatesClient, soilReaderClient } from "./nmi/client"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
+export { enrichCurrentSoilDataWithNlv } from "./other/current-soil-data"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"

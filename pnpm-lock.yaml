@@ -730,6 +730,9 @@ importers:
       '@nmi-agro/fdm-core':
         specifier: workspace:^
         version: link:../fdm-core
+      '@nmi-agro/fdm-data':
+        specifier: workspace:^
+        version: link:../fdm-data
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
