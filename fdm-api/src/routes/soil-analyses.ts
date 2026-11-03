@@ -18,7 +18,14 @@ import { createRoute, z } from "@hono/zod-openapi"
 import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
-import { FarmIdSchema, FieldIdSchema, SoilAnalysisIdSchema, soilParameterShape } from "../fields"
+import {
+  FarmIdSchema,
+  FieldIdSchema,
+  SoilAnalysisIdSchema,
+  type SoilParameterCode,
+  soilParameterDescriptions,
+  soilParameterShape,
+} from "../fields"
 import { assertGeoJsonCoordinates } from "../guards"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
@@ -404,6 +411,16 @@ const deleteSoilAnalysisRoute = createRoute({
   },
 })
 
+/** Returns every soil parameter of an analysis, with `null` for parameters without a value. */
+function serialiseSoilParameters(sa: SoilAnalysis) {
+  const source = sa as unknown as Partial<Record<SoilParameterCode, number | string | null>>
+  const values: Record<string, number | string | null> = {}
+  for (const code of Object.keys(soilParameterDescriptions) as SoilParameterCode[]) {
+    values[code] = source[code] ?? null
+  }
+  return values
+}
+
 function serialiseSoilAnalysis(sa: SoilAnalysis) {
   return {
     a_id: sa.a_id,
@@ -413,43 +430,7 @@ function serialiseSoilAnalysis(sa: SoilAnalysis) {
     a_depth_upper: sa.a_depth_upper,
     a_depth_lower: sa.a_depth_lower,
     b_sampling_date: serializeDate(sa.b_sampling_date),
-    a_al_ox: sa.a_al_ox ?? null,
-    a_c_of: sa.a_c_of ?? null,
-    a_ca_co: sa.a_ca_co ?? null,
-    a_ca_co_po: sa.a_ca_co_po ?? null,
-    a_caco3_if: sa.a_caco3_if ?? null,
-    a_cec_co: sa.a_cec_co ?? null,
-    a_clay_mi: sa.a_clay_mi ?? null,
-    a_cn_fr: sa.a_cn_fr ?? null,
-    a_com_fr: sa.a_com_fr ?? null,
-    a_cu_cc: sa.a_cu_cc ?? null,
-    a_density_sa: sa.a_density_sa ?? null,
-    a_fe_ox: sa.a_fe_ox ?? null,
-    a_k_cc: sa.a_k_cc ?? null,
-    a_k_co: sa.a_k_co ?? null,
-    a_k_co_po: sa.a_k_co_po ?? null,
-    a_mg_cc: sa.a_mg_cc ?? null,
-    a_mg_co: sa.a_mg_co ?? null,
-    a_mg_co_po: sa.a_mg_co_po ?? null,
-    a_n_pmn: sa.a_n_pmn ?? null,
-    a_n_rt: sa.a_n_rt ?? null,
-    a_nh4_cc: sa.a_nh4_cc ?? null,
-    a_nmin_cc: sa.a_nmin_cc ?? null,
-    a_no3_cc: sa.a_no3_cc ?? null,
-    a_p_al: sa.a_p_al ?? null,
-    a_p_cc: sa.a_p_cc ?? null,
-    a_p_ox: sa.a_p_ox ?? null,
-    a_p_rt: sa.a_p_rt ?? null,
-    a_p_sg: sa.a_p_sg ?? null,
-    a_p_wa: sa.a_p_wa ?? null,
-    a_ph_cc: sa.a_ph_cc ?? null,
-    a_s_rt: sa.a_s_rt ?? null,
-    a_sand_mi: sa.a_sand_mi ?? null,
-    a_silt_mi: sa.a_silt_mi ?? null,
-    a_som_loi: sa.a_som_loi ?? null,
-    a_zn_cc: sa.a_zn_cc ?? null,
-    b_gwl_class: sa.b_gwl_class ?? null,
-    b_soiltype_agr: sa.b_soiltype_agr ?? null,
+    ...serialiseSoilParameters(sa),
     b_sampling_geometry: sa.b_sampling_geometry ?? null,
     b_sampling_geometry_zone: sa.b_sampling_geometry_zone ?? null,
   }
