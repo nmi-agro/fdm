@@ -485,6 +485,7 @@ describe("DELETE /soil-analyses/:a_id", () => {
 
   it("returns 204 on success", async () => {
     const app = makeApp({
+      getSoilAnalysis: vi.fn().mockResolvedValue({ ...baseSoilAnalysis, b_id_sampling: null }),
       removeSoilAnalysis: vi.fn().mockResolvedValue(undefined),
     })
     const res = await app.request("/soil-analyses/sa-1", {
@@ -496,6 +497,7 @@ describe("DELETE /soil-analyses/:a_id", () => {
 
   it("returns 403 when principal lacks permission", async () => {
     const app = makeApp({
+      getSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")),
       removeSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")),
     })
     const res = await app.request("/soil-analyses/sa-1", {

@@ -13,7 +13,12 @@ import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError, getErrorMessages } from "../error"
 import { FarmGroupIdSchema, FarmIdSchema, FieldIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
-import { commonErrorResponses, DateStringSchema, serializeDate } from "../schemas"
+import {
+  commonErrorResponses,
+  DateStringSchema,
+  problemResponseDefinition,
+  serializeDate,
+} from "../schemas"
 import { NitrogenBalanceSchema, OrganicMatterBalanceSchema } from "./calculations"
 import {
   AggregationScoreSchema,
@@ -204,6 +209,13 @@ const groupRoute = <T extends z.ZodTypeAny>(
         content: { "application/json": { schema } },
       },
       ...commonErrorResponses,
+      400: problemResponseDefinition("Bad request — the query parameters are not valid."),
+      422: problemResponseDefinition(
+        "Unprocessable entity — a requested farm is not part of the group in the year.",
+      ),
+      503: problemResponseDefinition(
+        "Service unavailable — indicator calculations are not available on this server.",
+      ),
     },
   })
 

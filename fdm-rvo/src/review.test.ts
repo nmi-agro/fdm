@@ -206,6 +206,20 @@ describe("resolveImportChoices", () => {
       expect(plan.fieldsToUpdate).toEqual([{ b_id: "b1", b_lu: "lu-1", [key]: value }])
     })
 
+    it("compares dates by their day in the Europe/Amsterdam time zone", () => {
+      // 1 January 2025 00:00 in Amsterdam, stored as 31 December 2024 23:00 UTC.
+      const item = {
+        ...conflict,
+        localField: { ...localField("b1"), b_start: new Date("2024-12-31T23:00:00Z") },
+      } as RvoImportReviewItem<Field>
+      const plan = resolveImportChoices(
+        [item],
+        { b1: { action: "KEEP_LOCAL", values: { b_start: new Date("2025-01-01") } } },
+        year,
+      )
+      expect(plan.fieldsToUpdate).toEqual([])
+    })
+
     it("lets a client keep the local geometry while taking other remote values", () => {
       const plan = resolveImportChoices(
         items,

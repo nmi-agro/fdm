@@ -2,6 +2,7 @@ import type { FdmType, Field, FieldGeometry } from "@nmi-agro/fdm-core"
 import {
   acquiringMethodOptions,
   determineIfFieldIsBuffer,
+  toFdmDateString,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getFields,
@@ -186,7 +187,7 @@ function remoteAcquiringMethod(useTitleCode: string | undefined): AcquiringMetho
 type ComparableValue = string | number | boolean | null | undefined
 
 function toComparable(value: unknown): ComparableValue {
-  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  if (value instanceof Date) return toFdmDateString(value)
   if (value && typeof value === "object") return JSON.stringify(value)
   return value as ComparableValue
 }

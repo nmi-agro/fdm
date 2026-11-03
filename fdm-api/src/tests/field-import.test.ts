@@ -79,6 +79,9 @@ function setup(overrides: Partial<FdmApiServices> = {}) {
       removed: [],
     }),
     addSoilParameterEstimatesToField: vi.fn().mockResolvedValue("a-1"),
+    getCultivationsFromCatalogue: vi
+      .fn()
+      .mockResolvedValue([{ b_lu_catalogue: "nl_265" }, { b_lu_catalogue: "nl_233" }]),
     getNmiApiKey: () => "key",
     ...overrides,
   }
@@ -246,6 +249,18 @@ describe("POST /farms/:b_id_farm/fields/import/apply", () => {
     })
     expect(res.status).toBe(422)
     expect((await res.json()).item_ids).toEqual(["b-1"])
+    expect(services.applyRvoImport).not.toHaveBeenCalled()
+  })
+
+  it("returns 422 for a cultivation that is not in the catalogues of the farm", async () => {
+    const { app, services } = setup()
+    const res = await apply(app, {
+      choices: JSON.stringify({
+        "rvo-1": { action: "ADD_REMOTE", values: { b_lu_catalogue: "nl_9999" } },
+      }),
+    })
+    expect(res.status).toBe(422)
+    expect((await res.json()).item_ids).toEqual(["rvo-1"])
     expect(services.applyRvoImport).not.toHaveBeenCalled()
   })
 

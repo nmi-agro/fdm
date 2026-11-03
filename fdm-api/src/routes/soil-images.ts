@@ -544,14 +544,15 @@ export function registerSoilImageRoutes(
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { a_id_image } = c.req.valid("param") as { a_id_image: string }
-    await requireImage(principal.effectivePrincipalId, a_id_image)
+    const image = await requireImage(principal.effectivePrincipalId, a_id_image)
+    await services.removeSoilImage(fdm, principal.effectivePrincipalId, a_id_image)
+    // The photo is removed; a file that cannot be deleted is only logged.
     const storage = services.getStorage()
-    await services.removeSoilImage(
-      fdm,
-      principal.effectivePrincipalId,
-      a_id_image,
-      storage ? (path) => storage.delete(path) : undefined,
-    )
+    if (storage) {
+      await storage.delete(image.a_image_path).catch((err: unknown) => {
+        console.warn(`[fdm-api] could not delete the file of soil image ${a_id_image}:`, err)
+      })
+    }
     return c.newResponse(null, 204)
   }
 

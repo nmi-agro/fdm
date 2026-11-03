@@ -104,6 +104,21 @@ describe("POST /soil-analyses/extract", () => {
     expect(services.extractSoilAnalysesFromPdfs).toHaveBeenCalledTimes(2)
   })
 
+  it("gives every analysis of a report its own token and copy of the report", async () => {
+    const { app, storage } = setup({
+      extractSoilAnalysesFromPdfs: vi.fn().mockResolvedValue([extracted, extracted]),
+    })
+    const res = await app.request("/soil-analyses/extract", {
+      method: "POST",
+      headers,
+      body: pdfForm(PDF),
+    })
+    const body = await res.json()
+    expect(body).toHaveLength(2)
+    expect(body[0].upload_token).not.toBe(body[1].upload_token)
+    expect(storage.keys()).toHaveLength(2)
+  })
+
   it("rejects a file that is not a PDF with 415", async () => {
     const { app, services } = setup()
     const res = await app.request("/soil-analyses/extract", {
@@ -180,10 +195,55 @@ describe("linking and downloading the lab report", () => {
       body: createBody(token),
     })
     expect(res.status).toBe(201)
-    expect(storage.keys()).toEqual(["soil_analysis/a-1.pdf"])
-    expect(services.updateSoilAnalysis).toHaveBeenCalledWith(mockFdm, "user-1", "a-1", {
-      a_file_path: "soil_analysis/a-1.pdf",
+    const [key] = storage.keys()
+    expect(key).toMatch(/^soil_analysis\/[0-9a-f-]{36}\.pdf$/)
+    // The key of the report is saved with the analysis in one insert.
+    expect(services.addSoilAnalysis.mock.calls[0]?.[7]).toMatchObject({ a_file_path: key })
+
+    // The token can be used only once.
+    const again = await app.request("/fields/f-1/soil-analyses", {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: createBody(token),
     })
+    expect(again.status).toBe(422)
+  })
+
+  it("removes the claimed report when the analysis cannot be saved", async () => {
+    const { app, storage } = setup({
+      addSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    })
+    const token = "5f0c8a52-3b9e-4d0e-9a51-2c6f1e7d8b90"
+    await storage.upload(
+      `soil_analysis_pending/user-1/${token}.pdf`,
+      Buffer.from(PDF),
+      "application/pdf",
+    )
+    const res = await app.request("/fields/f-1/soil-analyses", {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: createBody(token),
+    })
+    expect(res.status).toBe(403)
+    expect(storage.keys()).toEqual([])
+  })
+
+  it("deletes the report and photos of a deleted analysis", async () => {
+    const removeSoilAnalysis = vi.fn().mockResolvedValue(undefined)
+    const { app, storage } = setup({
+      getSoilAnalysis: vi
+        .fn()
+        .mockResolvedValue({ ...savedAnalysis, a_file_path: "soil_analysis/a-1.pdf" }),
+      getSoilImages: vi.fn().mockResolvedValue([{ a_image_path: "soil_image/p-1.jpg" }]),
+      removeSoilAnalysis,
+    })
+    await storage.upload("soil_analysis/a-1.pdf", Buffer.from(PDF), "application/pdf")
+    await storage.upload("soil_image/p-1.jpg", Buffer.from("x"), "image/jpeg")
+    await storage.upload("soil_image/other.jpg", Buffer.from("x"), "image/jpeg")
+    const res = await app.request("/soil-analyses/a-1", { method: "DELETE", headers })
+    expect(res.status).toBe(204)
+    expect(removeSoilAnalysis).toHaveBeenCalled()
+    expect(storage.keys()).toEqual(["soil_image/other.jpg"])
   })
 
   it("does not create the analysis for an unknown token", async () => {

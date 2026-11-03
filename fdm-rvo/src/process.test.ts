@@ -11,7 +11,8 @@ import { processRvoImport } from "./process"
 import { type RvoImportReviewItem, RvoImportReviewStatus } from "./types"
 
 // Mock fdm-core
-vi.mock("@nmi-agro/fdm-core", () => ({
+vi.mock("@nmi-agro/fdm-core", async (importOriginal) => ({
+  toFdmDateString: (await importOriginal<typeof import("@nmi-agro/fdm-core")>()).toFdmDateString,
   addField: vi.fn(),
   updateField: vi.fn(),
   removeField: vi.fn(),

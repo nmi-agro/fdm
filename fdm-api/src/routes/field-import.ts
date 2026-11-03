@@ -1,6 +1,6 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type { addSoilParameterEstimatesToField } from "@nmi-agro/fdm-calculator"
-import type { FdmType, Field } from "@nmi-agro/fdm-core"
+import type { FdmType, Field, getCultivationsFromCatalogue } from "@nmi-agro/fdm-core"
 import type {
   applyRvoImport,
   ImportChoice,
@@ -21,6 +21,7 @@ import {
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
+import { rateLimitMiddleware } from "../rate-limit"
 import {
   DateStringSchema,
   GeoJsonGeometrySchema,
@@ -33,6 +34,7 @@ import {
 export interface FieldImportServices {
   reviewShapefileImport: typeof reviewShapefileImport
   applyRvoImport: typeof applyRvoImport
+  getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
   addSoilParameterEstimatesToField: typeof addSoilParameterEstimatesToField
   getNmiApiKey: () => string | undefined
 }
@@ -355,7 +357,11 @@ export function registerFieldImportRoutes(
   fdm: FdmType,
   services: FieldImportServices,
 ): void {
-  // /farms/* is covered by the rate-limit middleware in farms.ts
+  // Compare is covered by the /farms/* middleware in farms.ts; apply requests soil estimates
+  // from the NMI API and counts in the "nmi" bucket.
+  app.use("/farms/:b_id_farm/fields/import/apply", (c, next) =>
+    rateLimitMiddleware(fdm, "nmi")(c, next),
+  )
 
   async function review(
     principal_id: string,
@@ -460,6 +466,30 @@ export function registerFieldImportRoutes(
         choices[item_id] = { action: form.default_action }
       } else if (form.default_action === "UPDATE_FROM_REMOTE" && item.status === "NEW_REMOTE") {
         choices[item_id] = { action: "ADD_REMOTE" }
+      }
+    }
+
+    // A cultivation chosen by the client must be in the catalogues of the farm.
+    const chosenCrops = Object.entries(choices).filter(
+      ([, choice]) => typeof choice.values?.b_lu_catalogue === "string",
+    )
+    if (chosenCrops.length > 0) {
+      const catalogue = await services.getCultivationsFromCatalogue(
+        fdm,
+        principal.effectivePrincipalId,
+        b_id_farm,
+      )
+      const known = new Set(catalogue.map((item) => item.b_lu_catalogue))
+      const unknown = chosenCrops.filter(
+        ([, choice]) => !known.has(choice.values?.b_lu_catalogue as string),
+      )
+      if (unknown.length > 0) {
+        throw new ApiError(
+          422,
+          "unprocessable-entity",
+          "Some choices have a cultivation that is not in the catalogues of the farm.",
+          { item_ids: unknown.map(([item_id]) => item_id) },
+        )
       }
     }
 

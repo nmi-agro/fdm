@@ -10,6 +10,7 @@ import type {
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
+  getSoilImages,
   removeSoilAnalysis,
   SoilAnalysis,
   SoilZone,
@@ -80,6 +81,8 @@ export interface SoilAnalysisServices {
   updateSoilAnalysis: typeof updateSoilAnalysis
   /** Permanently deletes a soil analysis. */
   removeSoilAnalysis: typeof removeSoilAnalysis
+  /** Returns the photos of a soil sampling, to delete their files with the analysis. */
+  getSoilImages: typeof getSoilImages
   /** Reads soil analyses from lab report PDFs with the NMI SoilReader service. */
   extractSoilAnalysesFromPdfs: typeof extractSoilAnalysesFromPdfs
   /** Resolves the server-side NMI API key; `undefined` when not configured. */
@@ -256,7 +259,7 @@ const ExtractedSoilAnalysisSchema = z
     upload_token: z
       .string()
       .describe(
-        "Token of the uploaded report. Send it as `upload_token` with `POST /fields/{b_id}/soil-analyses` to store the report with the analysis.",
+        "Token of the uploaded report for this analysis. Send it as `upload_token` with `POST /fields/{b_id}/soil-analyses` to store the report with the analysis. Each analysis has its own token, also when several analyses come from one report.",
       ),
     filename: z.string().describe("File name of the report this analysis was read from."),
     b_name: z
@@ -537,6 +540,9 @@ const createSoilAnalysisRoute = createRoute({
       content: { "application/json": { schema: SoilAnalysisSchema } },
     },
     ...writeErrorResponses,
+    503: problemResponseDefinition(
+      "Service unavailable — `upload_token` was sent, but file storage is not configured on this server.",
+    ),
   },
 })
 
@@ -878,37 +884,46 @@ export function registerSoilAnalysisRoutes(
       ...soilAnalysisData
     } = body
 
-    // Check the report before creating the analysis, so a bad token creates nothing.
-    let pendingKey: string | undefined
+    // Claim the report before creating the analysis: moving it away from its pending key makes
+    // the token single-use, also for concurrent requests, and a bad token creates nothing.
     let storage: FileStorage | undefined
+    let a_file_path: string | undefined
     if (upload_token) {
       storage = requireStorage(services.getStorage)
-      pendingKey = pendingReportKey(principal.userId, upload_token)
-      if (!(await storage.exists(pendingKey))) {
-        throw new ApiError(
-          422,
-          "unprocessable-entity",
-          "upload_token is unknown, already used or expired. Upload the report again.",
-        )
+      a_file_path = `soil_analysis/${randomUUID()}.pdf`
+      try {
+        await storage.move(pendingReportKey(principal.userId, upload_token), a_file_path)
+      } catch (err) {
+        if (err instanceof FileNotFoundError) {
+          throw new ApiError(
+            422,
+            "unprocessable-entity",
+            "upload_token is unknown, already used or expired. Upload the report again.",
+          )
+        }
+        throw err
       }
     }
-    const a_id = await services.addSoilAnalysis(
-      fdm,
-      principal.effectivePrincipalId,
-      new Date(a_date),
-      a_source,
-      b_id,
-      a_depth_lower,
-      b_sampling_date ? new Date(b_sampling_date) : null,
-      soilAnalysisData as Parameters<typeof addSoilAnalysis>[7],
-      a_depth_upper,
-    )
-    if (storage && pendingKey) {
-      const a_file_path = `soil_analysis/${a_id}.pdf`
-      await storage.move(pendingKey, a_file_path)
-      await services.updateSoilAnalysis(fdm, principal.effectivePrincipalId, a_id, {
-        a_file_path,
-      })
+
+    let a_id: string
+    try {
+      a_id = await services.addSoilAnalysis(
+        fdm,
+        principal.effectivePrincipalId,
+        new Date(a_date),
+        a_source,
+        b_id,
+        a_depth_lower,
+        b_sampling_date ? new Date(b_sampling_date) : null,
+        { ...soilAnalysisData, ...(a_file_path ? { a_file_path } : {}) } as Parameters<
+          typeof addSoilAnalysis
+        >[7],
+        a_depth_upper,
+      )
+    } catch (err) {
+      // The analysis was not saved, so the claimed report is not needed.
+      if (storage && a_file_path) await storage.delete(a_file_path).catch(() => {})
+      throw err
     }
     const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
     if (!analysis?.a_id) {
@@ -970,14 +985,15 @@ export function registerSoilAnalysisRoutes(
         }
         throw err
       }
-      if (analyses.length === 0) continue
-      const upload_token = randomUUID()
-      await storage.upload(
-        pendingReportKey(principal.userId, upload_token),
-        report.buffer,
-        "application/pdf",
-      )
+      // One token (and one copy of the report) per analysis, so each analysis of a report
+      // with several fields can keep the report, as in the web app.
       for (const analysis of analyses) {
+        const upload_token = randomUUID()
+        await storage.upload(
+          pendingReportKey(principal.userId, upload_token),
+          report.buffer,
+          "application/pdf",
+        )
         results.push(serialiseExtractedSoilAnalysis(analysis, upload_token, report.filename))
       }
     }
@@ -1061,7 +1077,33 @@ export function registerSoilAnalysisRoutes(
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { a_id } = c.req.valid("param") as { a_id: string }
+    // Collect the files of the analysis (lab report and BCS photos) before it is removed.
+    const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
+    const files: string[] = []
+    const reportPath = (analysis as { a_file_path?: string | null } | undefined)?.a_file_path
+    if (reportPath) files.push(reportPath)
+    if (analysis?.b_id_sampling) {
+      const images = await services.getSoilImages(
+        fdm,
+        principal.effectivePrincipalId,
+        analysis.b_id_sampling,
+      )
+      files.push(...images.map((image) => image.a_image_path))
+    }
+
     await services.removeSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
+
+    // The analysis is removed; a file that cannot be deleted is only logged.
+    const storage = services.getStorage()
+    if (storage) {
+      await Promise.all(
+        files.map((path) =>
+          storage.delete(path).catch((err: unknown) => {
+            console.warn(`[fdm-api] could not delete ${path} of soil analysis ${a_id}:`, err)
+          }),
+        ),
+      )
+    }
     return c.newResponse(null, 204)
   }
 
