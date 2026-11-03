@@ -10,11 +10,14 @@ import {
   extractSoilAnalysesFromPdfs,
   getDoseForField,
   getFarmIndicators,
+  getFarmMeasureSummary,
   getFarmNutrientAdviceRows,
   getFieldIndicators,
   getFieldMeasureOptions,
   getNitrogenBalanceField,
+  getNitrogenBalanceForFarms,
   getOrganicMatterBalanceField,
+  getOrganicMatterBalanceForFarms,
 } from "@nmi-agro/fdm-calculator"
 import {
   acceptInvitation,
@@ -298,6 +301,10 @@ export interface FdmApiServices {
   // Fertilizer plans (core)
   getFertilizerPlans: typeof getFertilizerPlans
   getFertilizerPlan: typeof getFertilizerPlan
+  // Farm group aggregations
+  getNitrogenBalanceForFarms: typeof getNitrogenBalanceForFarms
+  getOrganicMatterBalanceForFarms: typeof getOrganicMatterBalanceForFarms
+  getFarmMeasureSummary: typeof getFarmMeasureSummary
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -418,6 +425,9 @@ const defaultServices: FdmApiServices = {
   createFertilizerPlanStatusChecker,
   getFertilizerPlans,
   getFertilizerPlan,
+  getNitrogenBalanceForFarms,
+  getOrganicMatterBalanceForFarms,
+  getFarmMeasureSummary,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
   getReportBranding: async () => ({ name: "FDM" }),
 }

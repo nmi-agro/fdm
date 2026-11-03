@@ -256,7 +256,8 @@ const NitrogenBalanceFieldResultSchema = z
   })
   .openapi("NitrogenBalanceFieldResult")
 
-const NitrogenBalanceSchema = z
+/** Nitrogen or organic matter balance of a farm, shared with the farm group routes. */
+export const NitrogenBalanceSchema = z
   .object({
     balance: z.number().describe("Weighted average nitrogen balance across all fields in kg N/ha"),
     supply: z
@@ -312,6 +313,7 @@ const NitrogenBalanceSchema = z
       .array(z.string())
       .describe("Error messages of the fields for which the calculation failed."),
   })
+  .describe("Nitrogen balance (kg N/ha) of a farm or a group of farms, with the result per field.")
   .openapi("NitrogenBalance")
 
 // ---------------------------------------------------------------------------
@@ -406,7 +408,8 @@ const OrganicMatterBalanceFieldResultSchema = z
   })
   .openapi("OrganicMatterBalanceFieldResult")
 
-const OrganicMatterBalanceSchema = z
+/** Nitrogen or organic matter balance of a farm, shared with the farm group routes. */
+export const OrganicMatterBalanceSchema = z
   .object({
     balance: z
       .number()
@@ -423,6 +426,9 @@ const OrganicMatterBalanceSchema = z
       .array(z.string())
       .describe("Error messages of the fields for which the calculation failed."),
   })
+  .describe(
+    "Organic matter balance (kg EOC/ha) of a farm or a group of farms, with the result per field.",
+  )
   .openapi("OrganicMatterBalance")
 
 // ---------------------------------------------------------------------------
