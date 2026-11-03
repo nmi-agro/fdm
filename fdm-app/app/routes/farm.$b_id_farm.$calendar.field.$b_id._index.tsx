@@ -456,8 +456,11 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           "d_n_supply_base",
         ].includes(card.parameter),
       )
-      .map((card) => ({
+      .map(({ zones, coverage, has_coverage_warning, ...card }) => ({
         ...card,
+        zoneCount: zones.length,
+        coverage,
+        hasCoverageWarning: has_coverage_warning,
         date: toIsoString(card.date),
         sourceLabel:
           sourceParam?.options?.find((option) => option.value === card.source)?.label ??

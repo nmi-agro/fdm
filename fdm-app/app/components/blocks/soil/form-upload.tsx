@@ -1,211 +1,194 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { AlertCircle, CheckCircle, FileUp, Upload } from "lucide-react"
-import { useEffect, useMemo } from "react"
+import { AlertCircle, ChevronRight, FileUp } from "lucide-react"
+import { useMemo } from "react"
 import { useWatch } from "react-hook-form"
-import { Form, useActionData, useNavigation } from "react-router"
+import { Form, NavLink, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
-import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card"
-import { FormDescription, FormField, FormItem, FormMessage } from "~/components/ui/form"
-import { Progress } from "~/components/ui/progress"
+import { FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Spinner } from "~/components/ui/spinner"
-import { useKeyedState } from "~/hooks/use-keyed-state"
+import { cn } from "~/lib/utils"
 
-type UploadStatus = "idle" | "uploading" | "success" | "error"
-type ActionData = {
-  message?: string
-  fieldErrors?: Record<string, string[]>
-  formErrors?: string[]
-} | null
+/** Laboratories whose PDF reports can be read automatically. */
+const SUPPORTED_LABS = [
+  "Eurofins Agro",
+  "HLB",
+  "ALNN",
+  "Altic",
+  "Dumea",
+  "Fertilab",
+  "Koch",
+  "Roba",
+  "SoilTech",
+  "Laboratorium Zeeuws-Vlaanderen",
+]
 
-export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}) {
+/** The steps of adding a soil analysis from a PDF. */
+const UPLOAD_STEPS: readonly string[] = ["PDF kiezen", "Uitlezen", "Controleren en opslaan"]
+
+/**
+ * Shows the steps of adding a soil analysis from a PDF and which one is current.
+ *
+ * @param current - Index of the current step.
+ * @param steps - The names of the steps; defaults to the steps of adding one PDF.
+ */
+export function SoilAnalysisUploadSteps({
+  current,
+  steps = UPLOAD_STEPS,
+}: {
+  current: number
+  steps?: readonly string[]
+}) {
+  return (
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-label="Stappen">
+      {steps.map((step, index) => (
+        <li key={step} className="flex items-center gap-2">
+          {index > 0 && <ChevronRight aria-hidden className="text-muted-foreground size-3.5" />}
+          <span
+            className={cn(
+              index === current ? "text-foreground font-medium" : "text-muted-foreground",
+            )}
+            aria-current={index === current ? "step" : undefined}
+          >
+            {index + 1}. {step}
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/**
+ * First step of adding a soil analysis from a PDF: choosing the lab report and having it read.
+ * Submitting posts the file with `intent=extract`; nothing is saved yet.
+ *
+ * @param disabled - Whether reading PDFs is unavailable.
+ * @param error - Message shown when the previous attempt to read a PDF failed.
+ * @param manualEntryHref - Link to the form for entering the values by hand.
+ * @param onFileChange - Called with the chosen file, so the next step can show and submit it.
+ */
+export function SoilAnalysisUploadForm({
+  disabled,
+  error,
+  manualEntryHref,
+  onFileChange,
+}: {
+  disabled?: boolean
+  error?: string | null
+  manualEntryHref: string
+  onFileChange?: (file: File | null) => void
+}) {
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onTouched",
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      soilAnalysisFile: undefined,
-    },
+    defaultValues: { soilAnalysisFile: undefined },
   })
 
   const selectedFile = useWatch({ control: form.control, name: "soilAnalysisFile" })
   const dropzoneValue = useMemo(() => (selectedFile ? [selectedFile] : []), [selectedFile])
 
-  const actionData = useActionData<ActionData>()
   const navigation = useNavigation()
-
-  // Determine if the form is currently submitting
-  const isSubmitting = navigation.state !== "idle"
-
-  // Whether the current actionData's result has already been shown for its 2s display window.
-  const [dismissed, setDismissed] = useKeyedState(actionData, () => false)
-
-  const uploadStatus: UploadStatus = isSubmitting
-    ? "uploading"
-    : actionData && !dismissed
-      ? actionData.message
-        ? "success"
-        : actionData.fieldErrors || actionData.formErrors
-          ? "error"
-          : "idle"
-      : "idle"
-  const uploadProgress = isSubmitting ? 100 : 0
-
-  // Reset to idle a short delay after a result is shown, for visual feedback.
-  const formReset = form.reset
-  useEffect(() => {
-    if (!isSubmitting && actionData && !dismissed) {
-      const timer = setTimeout(() => {
-        setDismissed(true)
-        formReset()
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [formReset, isSubmitting, actionData, dismissed, setDismissed])
+  const isReading =
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "extract"
 
   const handleFilesChange = (files: File[]) => {
-    form.setValue("soilAnalysisFile", files[0])
-    setDismissed(true)
+    const file = files[0]
+    form.setValue("soilAnalysisFile", file, { shouldValidate: true })
+    onFileChange?.(file ?? null)
   }
 
   return (
-    <div className="flex justify-center">
-      <Card className="mx-auto w-full max-w-lg">
-        <CardHeader>
-          <CardTitle>Upload bodemanalyse</CardTitle>
-          <CardDescription>
-            Upload het PDF-rapport van uw bodemanalyse van een van onze ondersteunde laboratoria.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <RemixFormProvider {...form}>
-            <Form id="soilAnalysisUploadForm" method="post" encType="multipart/form-data">
-              <fieldset disabled={isSubmitting || disabled}>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="soilAnalysisFile"
-                      render={({ field: { name, onBlur, ref } }) => (
-                        <FormItem>
-                          <div>Bodemanalyse</div>
-                          <Dropzone
-                            ref={ref}
-                            name={name}
-                            value={dropzoneValue}
-                            accept=".pdf"
-                            maxSize={fileSizeLimit}
-                            required
-                            disabled={disabled}
-                            className={cn(
-                              "h-32",
-                              uploadStatus === "success" && "border-green-500 bg-green-50",
-                              uploadStatus === "error" && "border-red-500 bg-red-50",
-                            )}
-                            onBlur={onBlur}
-                            onFilesChange={handleFilesChange}
-                          >
-                            <div className="flex h-full w-full cursor-pointer flex-col items-center justify-center">
-                              {uploadStatus === "idle" && (
-                                <>
-                                  <FileUp className="text-muted-foreground mb-2 h-8 w-8" />
-                                  <div className="text-muted-foreground text-sm">
-                                    {selectedFile
-                                      ? selectedFile.name
-                                      : "Klik om te uploaden of sleep een PDF bestand naar hier"}
-                                  </div>
-                                  <div className="text-muted-foreground mt-1 text-xs">
-                                    PDF tot 5MB
-                                  </div>
-                                </>
-                              )}
-
-                              {uploadStatus === "uploading" && (
-                                <>
-                                  <Upload className="text-primary mb-2 h-8 w-8 animate-pulse" />
-                                  <div className="text-sm">
-                                    Uploading {selectedFile?.name}
-                                    ...
-                                  </div>
-                                  <Progress value={uploadProgress} className="mt-2 h-2 w-full" />
-                                </>
-                              )}
-
-                              {uploadStatus === "success" && (
-                                <>
-                                  <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
-                                  <div className="text-sm text-green-600">Uploaden succesvol!</div>
-                                </>
-                              )}
-
-                              {uploadStatus === "error" && (
-                                <>
-                                  <AlertCircle className="mb-2 h-8 w-8 text-red-500" />
-                                  <div className="text-sm text-red-600">
-                                    Uploaden mislukt. Probeer het opnieuw.
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </Dropzone>
-                          <FormDescription />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isSubmitting || disabled || uploadStatus === "success"}
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center space-x-2">
-                          <Spinner />
-                          <span>Uploaden...</span>
-                        </div>
+    <div className="space-y-4">
+      <SoilAnalysisUploadSteps current={isReading ? 1 : 0} />
+      <RemixFormProvider {...form}>
+        <Form id="soilAnalysisUploadForm" method="post" encType="multipart/form-data">
+          <input type="hidden" name="intent" value="extract" />
+          <fieldset disabled={isReading || disabled} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="soilAnalysisFile"
+              render={({ field: { name, onBlur, ref } }) => (
+                <FormItem>
+                  <FormLabel className="sr-only">PDF-rapport van het lab</FormLabel>
+                  <Dropzone
+                    label="Kies het PDF-rapport van het lab of sleep het hierheen"
+                    ref={ref}
+                    name={name}
+                    value={dropzoneValue}
+                    accept=".pdf"
+                    maxSize={fileSizeLimit}
+                    required
+                    disabled={disabled || isReading}
+                    className="h-36"
+                    onBlur={onBlur}
+                    onFilesChange={handleFilesChange}
+                  >
+                    <div className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 px-4 text-center">
+                      {isReading ? (
+                        <>
+                          <Spinner className="mb-1 size-6" />
+                          <div className="text-sm font-medium">PDF wordt uitgelezen…</div>
+                          <div className="text-muted-foreground text-xs">Dit kan even duren.</div>
+                        </>
                       ) : (
-                        "Upload analyse"
+                        <>
+                          <FileUp className="text-muted-foreground mb-1 size-7" aria-hidden />
+                          <div className="text-sm font-medium">
+                            {selectedFile
+                              ? selectedFile.name
+                              : "Kies het PDF-rapport of sleep het hierheen"}
+                          </div>
+                          <div className="text-muted-foreground text-xs">PDF, maximaal 5 MB</div>
+                        </>
                       )}
-                    </Button>
-                  </div>
-                </div>
-              </fieldset>
-            </Form>
-          </RemixFormProvider>
-        </CardContent>
-        <CardFooter className="flex flex-col items-start">
-          <p className="text-muted-foreground text-sm">
-            De volgende labs worden op dit moment ondersteunt:
-          </p>
-          <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
-            {[
-              "Eurofins Agro",
-              "HLB",
-              "ALNN",
-              "Altic",
-              "Dumea",
-              "Fertilab",
-              "Koch",
-              "Roba",
-              "SoilTech",
-              "Laboratorium Zeeuws-Vlaanderen",
-            ].map((lab) => (
-              <div key={lab} className="rounded-md border p-2 text-center text-sm">
-                {lab}
-              </div>
-            ))}
-          </div>
-        </CardFooter>
-      </Card>
+                    </div>
+                  </Dropzone>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div aria-live="polite" className="sr-only">
+              {isReading ? "De PDF wordt uitgelezen." : ""}
+            </div>
+            {error && !isReading && (
+              <Alert variant="destructive" role="alert">
+                <AlertCircle aria-hidden />
+                <AlertTitle>PDF niet uitgelezen</AlertTitle>
+                <AlertDescription>
+                  <p>{error}</p>
+                  <NavLink
+                    to={manualEntryHref}
+                    className="font-medium underline underline-offset-4"
+                  >
+                    Analyse handmatig invoeren
+                  </NavLink>
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button
+              type="submit"
+              disabled={isReading || disabled || !selectedFile}
+              className="max-sm:w-full pointer-coarse:h-11"
+            >
+              {isReading ? (
+                <>
+                  <Spinner />
+                  Uitlezen…
+                </>
+              ) : (
+                "PDF uitlezen"
+              )}
+            </Button>
+          </fieldset>
+        </Form>
+      </RemixFormProvider>
+      <p className="text-muted-foreground text-sm">
+        Je controleert de uitgelezen waarden voordat de analyse wordt opgeslagen. Ondersteunde labs:{" "}
+        {SUPPORTED_LABS.join(", ")}.
+      </p>
     </div>
   )
 }
@@ -213,14 +196,14 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
 const fileSizeLimit = 5 * 1024 * 1024 // 5MB
 export const FormSchema = z.object({
   soilAnalysisFile: z
-    .instanceof(File)
+    .instanceof(File, { error: "Kies een PDF-bestand" })
     .refine((file) => ["application/pdf"].includes(file.type), {
-      error: "Ongeldig bestandstype",
+      error: "Kies een PDF-bestand",
     })
     .refine((file) => file.size > 0, {
-      error: "Bestand is ongeldig",
+      error: "Dit bestand is leeg",
     })
     .refine((file) => file.size <= fileSizeLimit, {
-      error: "Bestand mag niet groter zijn dan 5MB",
+      error: "Het bestand mag niet groter zijn dan 5 MB",
     }),
 })

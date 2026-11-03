@@ -114,7 +114,7 @@ export default function FarmFieldSoilOverviewBlock() {
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
         </div>
-        <Button asChild>
+        <Button asChild variant="ghost" size="sm">
           <NavLink to={`../${loaderData.field.b_id}`}>
             <ArrowLeft />
             Terug
@@ -184,7 +184,7 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
 
     // Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route
     return redirectWithSuccess(`../${url.search}`, {
-      message: "Bodemanalyse is toegevoegd! 🎉",
+      message: "Bodemanalyse toegevoegd",
     })
   } catch (error) {
     return handleActionError(error)

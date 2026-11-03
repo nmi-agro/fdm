@@ -6,7 +6,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, useFetcher, useLoaderData } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
-import { SoilAnalysesList } from "~/components/blocks/soil/list"
+import { SoilAnalysesOverview } from "~/components/blocks/soil/soil-analyses-overview"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -139,8 +139,9 @@ export default function FarmFieldSoilOverviewBlock() {
             <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase">
               Bodemanalyses
             </h4>
-            <SoilAnalysesList
+            <SoilAnalysesOverview
               soilAnalyses={loaderData.soilAnalyses}
+              fieldGeometry={loaderData.field.b_geometry}
               soilParameterDescription={loaderData.soilParameterDescription}
               fetcher={fetcher}
               fieldName={loaderData.field.b_name}

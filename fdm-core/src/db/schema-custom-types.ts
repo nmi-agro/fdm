@@ -144,8 +144,14 @@ function readMultiPoint(
   const numPoints = dataView.getUint32(offset, littleEndian)
   offset += 4
   const points: GeoJSON.Position[] = []
+  // Each point is a complete WKB Point: byte order (1), geometry type (4) and coordinates (16)
   for (let i = 0; i < numPoints; i++) {
-    points.push(readPoint(dataView, littleEndian, offset + i * 16))
+    const pointOffset = offset + i * 21
+    if (pointOffset + 21 > dataView.byteLength) {
+      throw new Error("Buffer too small to read MultiPoint")
+    }
+    const pointLittleEndian = dataView.getUint8(pointOffset) === 1
+    points.push(readPoint(dataView, pointLittleEndian, pointOffset + 5))
   }
   return points
 }

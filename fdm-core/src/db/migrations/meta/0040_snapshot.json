@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "id": "c15248b5-5205-40fc-bfe2-1d37fd18719b",
-=======
   "id": "8c426bb3-5298-43ad-9380-e9d8fad5b003",
->>>>>>> origin/development
   "prevId": "cdd02854-9ac4-4aea-ad4d-2cceea21a516",
   "version": "7",
   "dialect": "postgresql",
@@ -472,21 +468,6 @@
           "primaryKey": false,
           "notNull": false
         },
-<<<<<<< HEAD
-        "b_lu_p_harvestable": {
-          "name": "b_lu_p_harvestable",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "b_lu_p_residue": {
-          "name": "b_lu_p_residue",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-=======
->>>>>>> origin/development
         "b_n_fixation": {
           "name": "b_n_fixation",
           "type": "numeric",
@@ -1996,9 +1977,6 @@
           "notNull": false
         }
       },
-<<<<<<< HEAD
-      "indexes": {},
-=======
       "indexes": {
         "field_acquiring_b_id_farm_idx": {
           "name": "field_acquiring_b_id_farm_idx",
@@ -2016,7 +1994,6 @@
           "with": {}
         }
       },
->>>>>>> origin/development
       "foreignKeys": {
         "field_acquiring_b_id_fields_b_id_fk": {
           "name": "field_acquiring_b_id_fields_b_id_fk",
@@ -3594,9 +3571,6 @@
           "notNull": false
         }
       },
-<<<<<<< HEAD
-      "indexes": {},
-=======
       "indexes": {
         "soil_sampling_b_id_date_idx": {
           "name": "soil_sampling_b_id_date_idx",
@@ -3635,7 +3609,6 @@
           "with": {}
         }
       },
->>>>>>> origin/development
       "foreignKeys": {
         "soil_sampling_b_id_fields_b_id_fk": {
           "name": "soil_sampling_b_id_fields_b_id_fk",
