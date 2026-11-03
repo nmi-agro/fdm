@@ -235,10 +235,10 @@ export function BulkSoilAnalysisUploadForm({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted-foreground text-sm">
-          Ondersteunde labs: {SUPPORTED_LABS}. Niets wordt opgeslagen voordat je de resultaten hebt
-          gecontroleerd.
-        </p>
+        <div className="text-muted-foreground space-y-1 text-sm">
+          <p>Ondersteunde labs: {SUPPORTED_LABS}.</p>
+          <p>Niets wordt opgeslagen voordat je de resultaten hebt gecontroleerd.</p>
+        </div>
         <Button
           type="button"
           size="lg"
