@@ -175,7 +175,12 @@ Without P-CaCl₂ or PSD, a threshold of 25% is used.
 
 The projection shows what happens to the soil if the long-term average balance is repeated every year. It is illustrative, not a prediction.
 
-**Long-term average balance.** The balance is calculated for the selected year and for each of the four years before it (`history` in the input; `collectInputForPhosphateBalance` collects these by default, `historyYears: 4`). Earlier years without any fertilizer application or harvest on the field are left out; the selected year is always included. The average balance and leaching per year over the remaining years (`long_term`) are used for the projection, so a crop rotation with, for example, potatoes in one year and cereals in the next is taken into account. The earlier years use the same soil data and parameters as the selected year.
+**Long-term average balance.** The balance is averaged over the selected year and up to four years before it, so a crop rotation (for example potatoes in one year and cereals in the next) is taken into account:
+
+- **Years:** the selected year and every earlier year with a cultivation on the field. Registered cultivations are collected with the input (`history`; `collectInputForPhosphateBalance` collects four earlier years by default, `historyYears: 4`). For years without registered cultivations, the crop history of the field (`cultivation_history`, in the app the BRP crops from the NMI API, as on the field dashboard) is used.
+- **Removal, mineralisation and deposition** are averaged over these years. In earlier years, a crop without a registered harvest gets the default yield and phosphate content of the cultivation catalogue (NMI API): once for a crop that is harvested once, every year for grassland. When no default is known, the app asks the user to add the harvest.
+- **Fertilizer supply** is averaged over the years with registered fertilizer applications (the selected year always counts), because missing applications in earlier years usually mean "not registered" rather than "not fertilized". The app asks the user to add the fertilizer applications of those years.
+- The leaching of the average balance and the average balance itself (`long_term`) are used for the projection. The earlier years use the same soil data and parameters as the selected year.
 
 ```text
 effective balance (kg P₂O₅ / ha / year) = long-term balance + long-term leaching − fixation

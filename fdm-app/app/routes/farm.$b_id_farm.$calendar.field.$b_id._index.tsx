@@ -70,7 +70,7 @@ import {
 } from "~/components/blocks/soil/download"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getIndicatorsForField } from "~/integrations/bln3.server"
-import { getNorms } from "~/integrations/calculator"
+import { addPhosphateCropHistory, getNorms } from "~/integrations/calculator"
 import { getMapStyle } from "~/integrations/map"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getFieldAggregationScore } from "~/lib/aggregations"
@@ -909,8 +909,19 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       computeFieldBalanceResult<FieldDashboardPhosphateBalanceSummary>({
         isBufferstrip: !!field.b_bufferstrip,
         bufferstripMessage: "Bufferstroken hebben geen fosfaatbalans.",
-        collectInput: () =>
-          collectInputForPhosphateBalance(fdm, session.principal_id, b_id_farm, timeframe, b_id),
+        collectInput: async () =>
+          addPhosphateCropHistory(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            await collectInputForPhosphateBalance(
+              fdm,
+              session.principal_id,
+              b_id_farm,
+              timeframe,
+              b_id,
+            ),
+          ),
         calculate: (input) =>
           calculatePhosphateBalance(fdm, input as Parameters<typeof calculatePhosphateBalance>[1]),
         b_id,

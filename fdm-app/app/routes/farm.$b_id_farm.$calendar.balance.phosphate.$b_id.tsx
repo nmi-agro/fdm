@@ -232,7 +232,11 @@ function PhosphateBalance({
   }
   const result = fieldResult.balance
 
-  const warnings = [...(result.warnings ?? []), ...result.supply.mineralization.warnings]
+  const warnings = [
+    ...(result.warnings ?? []),
+    ...result.supply.mineralization.warnings,
+    ...result.long_term.warnings,
+  ]
 
   return (
     <>
@@ -255,13 +259,9 @@ function PhosphateBalance({
         {/* Right: the balance */}
         <div className="space-y-4">
           <PhosphateBalanceCard
-            description={`De fosfaatbalans voor ${field.b_name} van ${farm.b_name_farm}: aanvoer met bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten.`}
             year={calendar}
             balance={result.balance}
-            supply={result.supply.total}
-            removal={result.removal.total}
             leaching={result.leaching.total}
-            longTerm={result.long_term}
           >
             <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
           </PhosphateBalanceCard>

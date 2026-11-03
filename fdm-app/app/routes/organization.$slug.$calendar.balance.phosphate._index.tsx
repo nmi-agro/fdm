@@ -32,6 +32,7 @@ import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { addPhosphateCropHistory } from "~/integrations/calculator"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -144,7 +145,10 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
         farmIds,
         timeframe,
       )
-      const inputsByFarm = new Map(inputs.map((input) => [input.b_id_farm, input]))
+      const inputsWithHistory = await Promise.all(
+        inputs.map((input) => addPhosphateCropHistory(fdm, principal_id, input.b_id_farm, input)),
+      )
+      const inputsByFarm = new Map(inputsWithHistory.map((input) => [input.b_id_farm, input]))
 
       const farmResults: FarmResult[] = await Promise.all(
         farmsExtended
@@ -341,7 +345,15 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-2">
-      {/* Left: the farms, judged on the PSD of their fields (the main indicator) */}
+      {/* Left: the balance, as in the other balances */}
+      <PhosphateBalanceCard
+        year={params.calendar ?? ""}
+        balance={combinedResult.balance}
+        leaching={combinedResult.leaching}
+      >
+        <PhosphateBalanceChart type="farm" balance={combinedResult} />
+      </PhosphateBalanceCard>
+      {/* Right: the farms, judged on the PSD of their fields (the main indicator) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
@@ -359,9 +371,8 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
             <BufferStripInfo />
           </CardTitle>
           <CardDescription>
-            ✓ als minstens de helft van de oppervlakte (met bekende fosfaatverzadiging) op koers
-            ligt: de PSD ligt bij het gemiddelde saldo van de afgelopen jaren over 20 jaar onder de
-            grens.
+            ✓ als op minstens de helft van de oppervlakte de fosfaatverzadiging binnen 20 jaar onder
+            de grens komt of blijft.
             {orgShare !== null
               ? ` Alle geselecteerde bedrijven samen: ${formatNumberNl(orgShare)} % op koers.`
               : ""}
@@ -371,18 +382,6 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
           <div className="space-y-8">{farmResults.map(createFarmRow)}</div>
         </CardContent>
       </Card>
-      {/* Right: the balance */}
-      <PhosphateBalanceCard
-        description="De gemiddelde fosfaatbalans per hectare van de geselecteerde bedrijven: aanvoer met bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten."
-        year={params.calendar ?? ""}
-        balance={combinedResult.balance}
-        supply={combinedResult.supply}
-        removal={combinedResult.removal}
-        leaching={combinedResult.leaching}
-        longTerm={{ balance: combinedResult.long_term_balance }}
-      >
-        <PhosphateBalanceChart type="farm" balance={combinedResult} />
-      </PhosphateBalanceCard>
     </div>
   )
 }

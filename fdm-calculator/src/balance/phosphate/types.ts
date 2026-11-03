@@ -46,6 +46,11 @@ export type PhosphateFieldInput = {
   harvests: Harvest[]
   soilAnalyses: Partial<PhosphateSoilAnalysis>[]
   fertilizerApplications: BaseFertilizerApplication[]
+  /**
+   * Optional crop history per year (e.g. from the BRP via the NMI API), used for the long-term
+   * average in earlier years without registered cultivations.
+   */
+  cultivation_history?: { year: number; b_lu_catalogue: string }[]
 }
 
 /** Cultivation catalogue properties used by the phosphate balance. */
@@ -58,7 +63,10 @@ export type PhosphateCultivationDetail = Pick<
   | "b_lu_harvestable"
   | "b_lu_p_harvestable" // g P2O5 / kg DM
   | "b_lu_p_residue" // g P2O5 / kg DM
->
+> & {
+  /** Name of the cultivation, for messages */
+  b_lu_name?: string | null
+}
 
 /** Fertilizer properties used by the phosphate balance. */
 export type PhosphateFertilizerDetail = Pick<
@@ -89,15 +97,28 @@ export type PhosphateBalanceInput = {
 
 /**
  * Long-term average balance of a field (kg P2O5 / ha / year), over this year and the earlier years
- * that have data (a fertilizer application or a harvest). Used for the projection.
+ * with a cultivation (crop rotation, e.g. from the BRP history). Used for the projection.
+ *
+ * - Removal, mineralisation and deposition are averaged over all these years. In earlier years, a
+ *   cultivation without a registered harvest gets the default yield and phosphate content of the
+ *   cultivation catalogue (NMI API).
+ * - The fertilizer supply is averaged over the years with registered fertilizer applications (this
+ *   year always counts), because missing applications in earlier years usually mean "not
+ *   registered" rather than "not fertilized".
  */
 export type PhosphateLongTermBalance = {
   /** Average balance per year */
   balance: number
-  /** Average leaching per year (negative) */
+  /** Leaching of the average balance (negative) */
   leaching: number
   /** Calendar years included in the average, oldest first */
   years: number[]
+  /** Years whose fertilizer applications are used for the average supply */
+  fertilizer_years: number[]
+  /** Earlier years in which (part of) the removal was estimated with catalogue defaults */
+  estimated_removal_years: number[]
+  /** What the user can add for a better long-term balance (Dutch, for display) */
+  warnings: string[]
 }
 
 /** One contribution to the balance (kg P2O5 / ha). */

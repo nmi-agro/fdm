@@ -195,9 +195,6 @@ export function PhosphateStockCard({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Bodemvoorraad (P-AL)</CardTitle>
-        <CardDescription className="text-xs">
-          Aanvullende informatie: hoeveel fosfaat beschikbaar is voor het gewas.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {projection && pAl ? (
@@ -281,9 +278,6 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
   const psd = projection?.psd ?? null
   const status = getPhosphateTrendStatus(balance)
   const years = getPhosphateYearsToThreshold(balance)
-  const offTrack = status === "off_track"
-  const above =
-    psd !== null && psd.threshold.value !== null && psd.current.value > psd.threshold.value
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
@@ -305,13 +299,6 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
                 <div className="text-2xl font-bold">{years.value}</div>
               </div>
             ) : null}
-            {offTrack ? (
-              <p className="text-foreground text-sm font-medium">
-                {above
-                  ? "Bij het gemiddelde saldo komt de PSD binnen 20 jaar niet onder de grens: de kans op uit- en afspoeling van fosfaat blijft hoog."
-                  : "Bij het gemiddelde saldo komt de PSD binnen 20 jaar boven de grens: de kans op uit- en afspoeling van fosfaat neemt toe."}
-              </p>
-            ) : null}
             <Row label="Nu">{formatNumberNl(psd.current.value)} %</Row>
             <Row label="Grenswaarde">{formatNumberNl(psd.threshold.value)} %</Row>
             <Row label="Verandering bij gemiddeld saldo">
@@ -332,30 +319,26 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
             {balance.saturation.soil_note ? (
               <p className="text-muted-foreground text-xs">{balance.saturation.soil_note}</p>
             ) : null}
-            <MoreDetails title="Wat zegt de fosfaatverzadiging?">
-              <Detail title="Wat is het?">
-                De fosfaatverzadigingsgraad (PSD) is het deel van de fosfaatbindingscapaciteit van
-                de bodem (ijzer- en aluminiumoxiden) dat al met fosfaat bezet is.
-              </Detail>
-              <Detail title="Wat voegt het toe aan P-AL?">
-                P-AL zegt hoeveel fosfaat beschikbaar is voor het gewas. De PSD zegt ook hoe vol de
-                bodem al zit. Bij dezelfde P-AL kan een zandgrond met weinig ijzer en aluminium al
-                verzadigd zijn en een kleigrond niet. Daarom laat de PSD beter zien hoe groot het
-                risico op verlies naar water is.
-              </Detail>
-              <Detail title="Waarom onder de grens?">
-                Boven de milieugrens is er zoveel fosfaat in het bodemvocht dat het uit- en afspoelt
-                naar sloten en grondwater, wat bijdraagt aan vermesting van het water. De grens
-                wordt per perceel berekend uit P-CaCl₂ en de grondwatertrap: bij ondiep grondwater
-                is hij strenger.
-              </Detail>
-              <Detail title="Het oordeel ✓ of ✗">
-                ✓ als de PSD bij het gemiddelde saldo over 20 jaar onder de grens ligt (of eronder
-                blijft), anders ✗. Het gemiddelde saldo is dat van dit jaar en de jaren ervoor met
-                gegevens (tot 5 jaar), zodat een vruchtwisseling meetelt.
-              </Detail>
-            </MoreDetails>
             <MoreDetails>
+              <Detail title="Wat zegt de fosfaatverzadiging?">
+                Het deel van de fosfaatbinding van de bodem (ijzer- en aluminiumoxiden) dat al bezet
+                is. P-AL zegt hoeveel fosfaat het gewas kan opnemen; de PSD zegt ook hoe vol de
+                bodem zit. Boven de milieugrens spoelt fosfaat uit en af naar sloten en grondwater.
+                ✓ als de PSD binnen 20 jaar onder de grens komt of blijft, anders ✗.
+              </Detail>
+              <Detail title="Gemiddeld saldo">
+                {formatNumberNl(balance.long_term.balance)} kg P₂O₅/ha per jaar
+                {balance.long_term.years.length > 0
+                  ? ` over ${formatLongTermYears(balance.long_term.years)}`
+                  : ""}
+                , zodat een vruchtwisseling meetelt.
+                {balance.long_term.estimated_removal_years.length > 0
+                  ? ` Afvoer zonder geregistreerde oogst (${balance.long_term.estimated_removal_years.join(", ")}): standaardopbrengst en fosfaatgehalte van het gewas.`
+                  : ""}
+                {balance.long_term.fertilizer_years.length < balance.long_term.years.length
+                  ? ` Bemesting: gemiddelde van ${balance.long_term.fertilizer_years.join(", ")}.`
+                  : ""}
+              </Detail>
               <Detail title="Gegevens">
                 {formatSaturationSource(balance.saturation.source)} (
                 {formatSources(balance.saturation.analysis_sources)}). Fosfaatbindingscapaciteit

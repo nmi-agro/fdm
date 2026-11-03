@@ -38,9 +38,110 @@ function yearOfTimeFrame(timeFrame: { start: Date; end: Date }): number {
   return new Date((timeFrame.start.getTime() + timeFrame.end.getTime()) / 2).getFullYear()
 }
 
-/** Whether a field has data for a year: at least one fertilizer application or harvest. */
-function hasBalanceData(fieldInput: PhosphateFieldInput): boolean {
-  return fieldInput.fertilizerApplications.length > 0 || fieldInput.harvests.length > 0
+/**
+ * Removal (kg P2O5 / ha, negative) of the cultivations of an earlier year that have no registered
+ * harvest in that year, with the default yield and phosphate content of the catalogue. A crop that is
+ * harvested once counts in the year it ends (or starts, without an end date); a crop that is
+ * harvested several times (grassland) counts in every year it is on the field.
+ */
+function estimateDefaultRemoval(
+  fieldInput: PhosphateFieldInput,
+  details: Map<string, PhosphateCultivationDetail>,
+  timeFrame: { start: Date; end: Date },
+  missing: string[],
+): Decimal {
+  const inFrame = (date: Date | null | undefined) =>
+    !!date &&
+    new Date(date).getTime() >= timeFrame.start.getTime() &&
+    new Date(date).getTime() <= timeFrame.end.getTime()
+  let total = new Decimal(0)
+  for (const cultivation of fieldInput.cultivations) {
+    const detail = details.get(cultivation.b_lu_catalogue)
+    if (!detail || detail.b_lu_harvestable === "none") continue
+    if (fieldInput.harvests.some((h) => h.b_lu === cultivation.b_lu)) continue
+    const counts =
+      detail.b_lu_harvestable === "multiple" ||
+      (cultivation.b_lu_end ? inFrame(cultivation.b_lu_end) : inFrame(cultivation.b_lu_start))
+    if (!counts) continue
+    if (detail.b_lu_yield == null || detail.b_lu_p_harvestable == null) {
+      missing.push(cultivation.b_lu_name ?? detail.b_lu_name ?? cultivation.b_lu_catalogue)
+      continue
+    }
+    total = total.add(
+      new Decimal(detail.b_lu_yield).times(detail.b_lu_p_harvestable).dividedBy(1000).times(-1),
+    )
+  }
+  return total
+}
+
+/** Number of earlier years in the long-term average. */
+const LONG_TERM_HISTORY_YEARS = 4
+
+/**
+ * The earlier years of a field for the long-term average: the registered data in `history`, and for
+ * years without registered cultivations the crop of `cultivation_history` (e.g. BRP), as a
+ * cultivation over the whole year without harvest (so the removal uses the catalogue defaults).
+ */
+function withCultivationHistory(
+  input: PhosphateBalanceFieldCalculationInput,
+  currentYear: number,
+  details: Map<string, PhosphateCultivationDetail>,
+): { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[] {
+  const { fieldInput } = input
+  const byYear = new Map(
+    (input.history ?? []).map((past) => [yearOfTimeFrame(past.timeFrame), past] as const),
+  )
+  const result: { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[] = []
+  for (let i = 1; i <= LONG_TERM_HISTORY_YEARS; i++) {
+    const year = currentYear - i
+    const past = byYear.get(year)
+    if (past && past.fieldInput.cultivations.length > 0) {
+      result.push(past)
+      continue
+    }
+    const crops = (fieldInput.cultivation_history ?? []).filter((c) => c.year === year)
+    if (crops.length === 0) {
+      if (past) result.push(past)
+      continue
+    }
+    const shift = (date: Date) => {
+      const shifted = new Date(date)
+      shifted.setFullYear(shifted.getFullYear() - i)
+      return shifted
+    }
+    const timeFrame = past?.timeFrame ?? {
+      start: shift(input.timeFrame.start),
+      end: shift(input.timeFrame.end),
+    }
+    const start = new Date((timeFrame.start.getTime() + timeFrame.end.getTime()) / 2)
+    result.push({
+      timeFrame,
+      fieldInput: {
+        ...fieldInput,
+        cultivations: crops.map((crop, index) => ({
+          b_lu: `history-${year}-${index}`,
+          b_lu_catalogue: crop.b_lu_catalogue,
+          b_lu_name: details.get(crop.b_lu_catalogue)?.b_lu_name ?? crop.b_lu_catalogue,
+          b_lu_croprotation: details.get(crop.b_lu_catalogue)?.b_lu_croprotation ?? "other",
+          m_cropresidue: null,
+          b_lu_start: start,
+          b_lu_end: start,
+        })),
+        harvests: [],
+        fertilizerApplications: past?.fieldInput.fertilizerApplications ?? [],
+        cultivation_history: undefined,
+      },
+    })
+  }
+  return result
+}
+
+/** Short Dutch list of years, e.g. "2022, 2023 en 2025". */
+function formatYears(years: number[]): string {
+  const sorted = [...years].sort((a, b) => a - b).map(String)
+  return sorted.length <= 1
+    ? (sorted[0] ?? "")
+    : `${sorted.slice(0, -1).join(", ")} en ${sorted[sorted.length - 1]}`
 }
 
 /** Phosphate supply by fertilizers: amount (kg / ha) × p_p_rt (g P2O5 / kg) / 1000, at 100% (no working coefficient). */
@@ -282,7 +383,14 @@ export function calculatePhosphateBalanceField(
         residues: { total: 0, cultivations: [] },
       },
       leaching: { total: 0, risk: "unknown", fraction: 0, groundwater_factor: 0, factor: 0 },
-      long_term: { balance: 0, leaching: 0, years: [] },
+      long_term: {
+        balance: 0,
+        leaching: 0,
+        years: [],
+        fertilizer_years: [],
+        estimated_removal_years: [],
+        warnings: [],
+      },
       frame,
       saturation,
       projection: null,
@@ -309,19 +417,24 @@ export function calculatePhosphateBalanceField(
     terms
   const leaching = terms.leaching
 
-  // Long-term average over this year and the earlier years with data (crop rotation). Years without
-  // any fertilizer application or harvest are left out; this year is always included.
+  // Long-term average over this year and the earlier years with a cultivation (crop rotation).
+  // See `PhosphateLongTermBalance` for how missing harvests and fertilizer applications are handled.
   const perYear = (value: Decimal, frame: { start: Date; end: Date }) =>
     value.dividedBy(Decimal.max(yearsInTimeframe(frame), 1 / 365))
-  const yearly = [
+  const currentYear = yearOfTimeFrame(timeFrame)
+  const years = [
     {
-      year: yearOfTimeFrame(timeFrame),
-      balance: perYear(balance, timeFrame),
-      leaching: perYear(new Decimal(leaching.total), timeFrame),
+      year: currentYear,
+      rest: perYear(removal.add(mineralization.total).add(deposition.total), timeFrame),
+      fertilizers: perYear(fertilizers.total, timeFrame),
+      hasFertilizers: true,
     },
   ]
-  for (const past of input.history ?? []) {
-    if (!hasBalanceData(past.fieldInput)) continue
+  const estimatedRemovalYears: number[] = []
+  const missingDefaults: string[] = []
+  for (const past of withCultivationHistory(input, currentYear, cultivationDetails)) {
+    if (past.fieldInput.cultivations.length === 0) continue
+    const year = yearOfTimeFrame(past.timeFrame)
     const pastTerms = calculateFieldTerms(
       past.fieldInput,
       fertilizerDetails,
@@ -332,18 +445,55 @@ export function calculatePhosphateBalanceField(
       threshold,
       [],
     )
-    yearly.push({
-      year: yearOfTimeFrame(past.timeFrame),
-      balance: perYear(pastTerms.balance, past.timeFrame),
-      leaching: perYear(new Decimal(pastTerms.leaching.total), past.timeFrame),
+    const missingBefore = missingDefaults.length
+    const defaultRemoval = estimateDefaultRemoval(
+      past.fieldInput,
+      cultivationDetails,
+      past.timeFrame,
+      missingDefaults,
+    )
+    if (!defaultRemoval.isZero()) estimatedRemovalYears.push(year)
+    for (let i = missingBefore; i < missingDefaults.length; i++) {
+      missingDefaults[i] = `${missingDefaults[i]} (${year})`
+    }
+    years.push({
+      year,
+      rest: perYear(
+        pastTerms.removal
+          .add(defaultRemoval)
+          .add(pastTerms.mineralization.total)
+          .add(pastTerms.deposition.total),
+        past.timeFrame,
+      ),
+      fertilizers: perYear(pastTerms.fertilizers.total, past.timeFrame),
+      hasFertilizers: past.fieldInput.fertilizerApplications.length > 0,
     })
   }
-  const average = (pick: (y: (typeof yearly)[number]) => Decimal) =>
-    yearly.reduce((a, y) => a.add(pick(y)), new Decimal(0)).dividedBy(yearly.length)
+  const mean = (values: Decimal[]) =>
+    values.reduce((a, v) => a.add(v), new Decimal(0)).dividedBy(Math.max(values.length, 1))
+  const fertilizedYears = years.filter((y) => y.hasFertilizers)
+  const longTermBalance = mean(fertilizedYears.map((y) => y.fertilizers)).add(
+    mean(years.map((y) => y.rest)),
+  )
+  const longTermWarnings: string[] = []
+  const unfertilized = years.filter((y) => !y.hasFertilizers).map((y) => y.year)
+  if (unfertilized.length > 0) {
+    longTermWarnings.push(
+      `Voor ${formatYears(unfertilized)} is geen bemesting geregistreerd: daarvoor is de gemiddelde bemesting van de andere jaren gebruikt. Voeg de bemesting van eerdere jaren toe voor een beter saldo op lange termijn.`,
+    )
+  }
+  if (missingDefaults.length > 0) {
+    longTermWarnings.push(
+      `Geen standaardopbrengst of fosfaatgehalte bekend voor ${[...new Set(missingDefaults)].join(", ")}: voeg de oogst toe voor een beter saldo op lange termijn.`,
+    )
+  }
   const long_term: PhosphateLongTermBalance = {
-    balance: average((y) => y.balance).toNumber(),
-    leaching: average((y) => y.leaching).toNumber(),
-    years: yearly.map((y) => y.year).sort((a, b) => a - b),
+    balance: longTermBalance.toNumber(),
+    leaching: calculatePhosphateLeaching(longTermBalance, saturation, threshold).total,
+    years: years.map((y) => y.year).sort((a, b) => a - b),
+    fertilizer_years: fertilizedYears.map((y) => y.year).sort((a, b) => a - b),
+    estimated_removal_years: estimatedRemovalYears.sort((a, b) => a - b),
+    warnings: longTermWarnings,
   }
 
   const projection = calculatePhosphateProjection(

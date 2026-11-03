@@ -144,7 +144,6 @@ export default function FarmBalancePhosphateOverviewBlock() {
 }
 
 function FarmBalancePhosphateOverview({
-  farm,
   calendar,
   fields,
   cultivationsEntries,
@@ -209,7 +208,23 @@ function FarmBalancePhosphateOverview({
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-2">
-      {/* Left: the fields, judged on the PSD (the main indicator) */}
+      {/* Left: the balance, as in the other balances */}
+      <PhosphateBalanceCard
+        year={calendar}
+        balance={phosphateBalanceResult.balance}
+        leaching={phosphateBalanceResult.leaching}
+      >
+        <PhosphateBalanceChart type="farm" balance={phosphateBalanceResult} />
+        {incompleteCount > 0 ? (
+          <p className="text-muted-foreground flex items-center gap-1.5 pl-4 text-sm">
+            <TriangleAlert className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
+            Bij {incompleteCount}{" "}
+            {incompleteCount === 1 ? "perceel ontbreken" : "percelen ontbreken"} gegevens voor de
+            afvoer (oogst of fosfaatgehalte). Open het perceel voor details.
+          </p>
+        ) : null}
+      </PhosphateBalanceCard>
+      {/* Right: the fields, judged on the PSD (the main indicator) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -217,8 +232,7 @@ function FarmBalancePhosphateOverview({
             <BufferStripInfo />
           </CardTitle>
           <CardDescription>
-            ✓ als de fosfaatverzadiging (PSD) bij het gemiddelde saldo van de afgelopen jaren over
-            20 jaar onder de grens van het perceel ligt, anders ✗. Rechts het saldo van dit jaar.
+            ✓ als de fosfaatverzadiging binnen 20 jaar onder de grens komt of blijft.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -269,26 +283,6 @@ function FarmBalancePhosphateOverview({
           </div>
         </CardContent>
       </Card>
-      {/* Right: the balance */}
-      <PhosphateBalanceCard
-        description={`De fosfaatbalans voor alle percelen van ${farm.b_name_farm} (gemiddeld per ha): aanvoer met bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten.`}
-        year={calendar}
-        balance={phosphateBalanceResult.balance}
-        supply={phosphateBalanceResult.supply}
-        removal={phosphateBalanceResult.removal}
-        leaching={phosphateBalanceResult.leaching}
-        longTerm={{ balance: phosphateBalanceResult.long_term_balance }}
-      >
-        <PhosphateBalanceChart type="farm" balance={phosphateBalanceResult} />
-        {incompleteCount > 0 ? (
-          <p className="text-muted-foreground flex items-center gap-1.5 pl-4 text-sm">
-            <TriangleAlert className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
-            Bij {incompleteCount}{" "}
-            {incompleteCount === 1 ? "perceel ontbreken" : "percelen ontbreken"} gegevens voor de
-            afvoer (oogst of fosfaatgehalte). Open het perceel voor details.
-          </p>
-        ) : null}
-      </PhosphateBalanceCard>
     </div>
   )
 }

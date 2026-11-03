@@ -116,11 +116,11 @@ export function getPhosphateYearsToThreshold(
   if (psd.current.value > threshold) {
     return psd.delta_per_year < 0
       ? { label: "Onder de grens over", value: formatYearsClass(psd.years_class) }
-      : { label: "Bij dit saldo", value: "Blijft boven de grens" }
+      : { label: "Bij het gemiddelde saldo", value: "Blijft boven de grens" }
   }
   return psd.delta_per_year > 0
     ? { label: "Boven de grens over", value: formatYearsClass(psd.years_class) }
-    : { label: "Bij dit saldo", value: "Blijft onder de grens" }
+    : { label: "Bij het gemiddelde saldo", value: "Blijft onder de grens" }
 }
 
 /**
