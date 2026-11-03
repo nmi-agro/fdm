@@ -18,6 +18,15 @@ describe("isFarmGroupMembershipInYear", () => {
     expect(isFarmGroupMembershipInYear(period("2026-01-01", null), 2025)).toBe(false)
   })
 
+  it("accepts dates as text, as they arrive from JSON", () => {
+    expect(
+      isFarmGroupMembershipInYear(
+        { b_group_joined: "2024-06-01T00:00:00.000Z", b_group_leaved: "2025-01-01" } as never,
+        2025,
+      ),
+    ).toBe(false)
+  })
+
   it("includes every period without a year", () => {
     expect(isFarmGroupMembershipInYear(period("2030-01-01", null), undefined)).toBe(true)
   })

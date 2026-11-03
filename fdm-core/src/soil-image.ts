@@ -333,21 +333,19 @@ export async function getSoilImage(
   a_id_image: schema.soilImageTypeSelect["a_id_image"],
 ): Promise<SoilImage | undefined> {
   try {
-    const [image] = await fdm
-      .select()
+    // The image with the field of its sampling, for the permission check.
+    const [row] = await fdm
+      .select({ image: schema.soilImage, b_id: schema.soilSampling.b_id })
       .from(schema.soilImage)
+      .innerJoin(
+        schema.soilSampling,
+        eq(schema.soilSampling.b_id_sampling, schema.soilImage.b_id_sampling),
+      )
       .where(eq(schema.soilImage.a_id_image, a_id_image))
       .limit(1)
-    if (!image) return undefined
+    if (!row) return undefined
 
-    const [sampling] = await fdm
-      .select({ b_id: schema.soilSampling.b_id })
-      .from(schema.soilSampling)
-      .where(eq(schema.soilSampling.b_id_sampling, image.b_id_sampling))
-      .limit(1)
-    if (!sampling) return undefined
-
-    await checkPermission(fdm, "field", "read", sampling.b_id, principal_id, "getSoilImage")
+    await checkPermission(fdm, "field", "read", row.b_id, principal_id, "getSoilImage")
 
     const annotations = await fdm
       .select()
@@ -355,7 +353,7 @@ export async function getSoilImage(
       .where(eq(schema.soilImageAnnotating.a_id_image, a_id_image))
       .orderBy(schema.soilImageAnnotating.a_image_annotation_order)
 
-    return { ...image, annotations }
+    return { ...row.image, annotations }
   } catch (err) {
     throw handleError(err, "Exception for getSoilImage", { a_id_image })
   }
@@ -377,18 +375,25 @@ export async function getSoilImageAnnotation(
   a_id_annotation: schema.soilImageAnnotatingTypeSelect["a_id_annotation"],
 ): Promise<SoilImageAnnotation | undefined> {
   try {
-    const [annotation] = await fdm
-      .select()
+    // The annotation with the field of the sampling of its image, for the permission check.
+    const [row] = await fdm
+      .select({ annotation: schema.soilImageAnnotating, b_id: schema.soilSampling.b_id })
       .from(schema.soilImageAnnotating)
+      .innerJoin(
+        schema.soilImage,
+        eq(schema.soilImage.a_id_image, schema.soilImageAnnotating.a_id_image),
+      )
+      .innerJoin(
+        schema.soilSampling,
+        eq(schema.soilSampling.b_id_sampling, schema.soilImage.b_id_sampling),
+      )
       .where(eq(schema.soilImageAnnotating.a_id_annotation, a_id_annotation))
       .limit(1)
-    if (!annotation) return undefined
+    if (!row) return undefined
 
-    // Checks read access to the field of the image.
-    const image = await getSoilImage(fdm, principal_id, annotation.a_id_image)
-    if (!image) return undefined
+    await checkPermission(fdm, "field", "read", row.b_id, principal_id, "getSoilImageAnnotation")
 
-    return annotation
+    return row.annotation
   } catch (err) {
     throw handleError(err, "Exception for getSoilImageAnnotation", { a_id_annotation })
   }

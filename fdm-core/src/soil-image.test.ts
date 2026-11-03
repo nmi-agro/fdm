@@ -209,7 +209,12 @@ describe("Soil Image Functions", () => {
       const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
         a_image_path: "soil_image/two.jpg",
       })
+      const a_id_annotation = await addSoilImageAnnotation(fdm, principal_id, a_id_image, {
+        a_image_annotation_type: "pin",
+        a_image_annotation_coordinates: { x: 1, y: 2 },
+      })
       await expect(getSoilImage(fdm, createId(), a_id_image)).rejects.toThrow()
+      await expect(getSoilImageAnnotation(fdm, createId(), a_id_annotation)).rejects.toThrow()
     })
   })
 
