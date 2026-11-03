@@ -718,11 +718,10 @@ export function TimelineMobileView({
         <ToggleGroup
           className="flex-1"
           onValueChange={(value) => {
-            if (value) setViewMode(value as "date" | "field")
+            if (value[0]) setViewMode(value[0] as "date" | "field")
           }}
           size="lg"
-          type="single"
-          value={viewMode}
+          value={[viewMode]}
           variant="outline"
         >
           <ToggleGroupItem className="flex-1 text-xs" value="date">

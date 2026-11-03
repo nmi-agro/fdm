@@ -351,7 +351,7 @@ export function FieldImpactTable({
                 <DropdownMenuCheckboxItem
                   key={key}
                   checked={isShown(key)}
-                  onSelect={(event) => event.preventDefault()}
+                  closeOnClick={false}
                   onCheckedChange={(checked) => toggleColumn(key, checked === true)}
                 >
                   {COLUMN_LABELS[key]}
@@ -367,7 +367,7 @@ export function FieldImpactTable({
                     <DropdownMenuCheckboxItem
                       key={key}
                       checked={isShown(key)}
-                      onSelect={(event) => event.preventDefault()}
+                      closeOnClick={false}
                       onCheckedChange={(checked) => toggleColumn(key, checked === true)}
                     >
                       {NORM_HEADERS[key].full}
@@ -378,7 +378,7 @@ export function FieldImpactTable({
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
                 checked={isShown("status")}
-                onSelect={(event) => event.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) => toggleColumn("status", checked === true)}
               >
                 {COLUMN_LABELS.status}

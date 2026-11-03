@@ -81,11 +81,11 @@ export function PhotoUploadButton({
             }
           />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => cameraRef.current?.click()}>
+            <DropdownMenuItem onClick={() => cameraRef.current?.click()}>
               <Camera className="size-4" />
               Camera
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => galleryRef.current?.click()}>
+            <DropdownMenuItem onClick={() => galleryRef.current?.click()}>
               <Upload className="size-4" />
               Galerij kiezen
             </DropdownMenuItem>

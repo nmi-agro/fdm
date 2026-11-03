@@ -233,12 +233,7 @@ export function NutrientAdviceOverviewTable({
               }
             />
             <DropdownMenuContent align="end" className="max-h-96 overflow-y-auto">
-              <DropdownMenuItem
-                onSelect={(event) => {
-                  event.preventDefault()
-                  resetColumnVisibility()
-                }}
-              >
+              <DropdownMenuItem closeOnClick={false} onClick={() => resetColumnVisibility()}>
                 Alles tonen
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -253,7 +248,7 @@ export function NutrientAdviceOverviewTable({
                         key={column.id}
                         checked={column.getIsVisible()}
                         onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                        onSelect={(event) => event.preventDefault()}
+                        closeOnClick={false}
                       >
                         {nutrientsBySymbol.get(column.id)?.name ?? column.id}
                       </DropdownMenuCheckboxItem>

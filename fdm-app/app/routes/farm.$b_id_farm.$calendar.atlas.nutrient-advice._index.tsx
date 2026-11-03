@@ -322,7 +322,7 @@ export default function FarmAtlasNutrientAdviceBlock() {
                 ? `${nutrientDescription.name} (${nutrientDescription.symbol})`
                 : null}
             </SelectTrigger>
-            <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
+            <SelectContent className="max-h-[min(var(--available-height,100vh),calc(var(--anchor-height,0)+100*var(--spacing)))]">
               {nutrientGroups.map((group) => (
                 <SelectGroup key={group.type}>
                   <SelectLabel>{group.label}</SelectLabel>
@@ -341,12 +341,11 @@ export default function FarmAtlasNutrientAdviceBlock() {
             </SelectContent>
           </Select>
           <ToggleGroup
-            type="single"
             size="sm"
             variant="outline"
-            value={mode}
-            // Radix sends "" when the active item is clicked again; keep the current mode then.
-            onValueChange={(value) => {
+            value={[mode]}
+            // Base UI sends an empty array when the active item is clicked again; keep the current mode then.
+            onValueChange={([value]) => {
               if (isNutrientAdviceMode(value)) setMode(value)
             }}
             className="w-full"

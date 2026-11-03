@@ -180,7 +180,7 @@ export function RvoConnectCard({
                     key={option.value}
                     className={cn(
                       "relative flex items-start gap-3 rounded-md border p-3 transition-colors",
-                      "has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5",
+                      "has-data-checked:border-primary has-data-checked:bg-primary/5",
                       "has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px]",
                       showModeError && "border-destructive",
                     )}

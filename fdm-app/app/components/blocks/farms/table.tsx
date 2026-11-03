@@ -155,7 +155,7 @@ export function DataTable<TData extends FarmExtended>({
                   <DropdownMenuCheckboxItem
                     key={group.b_id_group}
                     checked={groupFilter.includes(group.b_id_group)}
-                    onSelect={(event) => event.preventDefault()}
+                    closeOnClick={false}
                     onCheckedChange={(checked) => {
                       const next = checked
                         ? [...groupFilter, group.b_id_group]
