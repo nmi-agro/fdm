@@ -176,13 +176,17 @@ describe("farm nutrient advice edge cases", () => {
     core.getCultivationsForFarm.mockResolvedValue(
       new Map([["f1", [{ ...mainCultivation, b_lu_croprotation: undefined }]]]),
     )
-    const [row] = await getFarmNutrientAdviceRows(input([{ ...field("f1"), b_area: null }]))
+    const [row] = await getFarmNutrientAdviceRows(
+      input([{ ...field("f1"), b_area: null as unknown as number }]),
+    )
     expect(row?.b_area).toBe(0)
     expect(row?.mainCultivation?.b_lu_croprotation).toBeNull()
   })
 
   it("reports 0 ha for an error row of a field without area", async () => {
-    const [row] = await getFarmNutrientAdviceRows(input([{ ...field("f9"), b_area: null }]))
+    const [row] = await getFarmNutrientAdviceRows(
+      input([{ ...field("f9"), b_area: null as unknown as number }]),
+    )
     expect(row).toMatchObject({ b_area: 0, error: { code: "no_cultivation" } })
   })
 
