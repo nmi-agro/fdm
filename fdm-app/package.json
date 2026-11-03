@@ -34,6 +34,7 @@
     "@nmi-agro/fdm-core": "workspace:^",
     "@nmi-agro/fdm-data": "workspace:*",
     "@nmi-agro/fdm-helpdesk": "workspace:*",
+    "@nmi-agro/fdm-reports": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:^",
     "@nmi-agro/fdm-storage": "workspace:*",
     "@posthog/ai": "^8.17.0",

@@ -414,6 +414,9 @@ importers:
       '@nmi-agro/fdm-helpdesk':
         specifier: workspace:*
         version: link:../fdm-helpdesk
+      '@nmi-agro/fdm-reports':
+        specifier: workspace:*
+        version: link:../fdm-reports
       '@nmi-agro/fdm-rvo':
         specifier: workspace:^
         version: link:../fdm-rvo
@@ -944,6 +947,9 @@ importers:
       '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
+      '@nmi-agro/fdm-reports':
+        specifier: workspace:*
+        version: link:../fdm-reports
       '@nmi-agro/fdm-rvo':
         specifier: workspace:*
         version: link:../fdm-rvo
@@ -996,6 +1002,61 @@ importers:
       typedoc:
         specifier: 'catalog:'
         version: 0.28.20(typescript@7.0.2)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  fdm-reports:
+    dependencies:
+      '@date-fns/tz':
+        specifier: ^1.5.0
+        version: 1.5.0
+      '@nmi-agro/fdm-calculator':
+        specifier: workspace:^
+        version: link:../fdm-calculator
+      '@nmi-agro/fdm-core':
+        specifier: workspace:^
+        version: link:../fdm-core
+      '@nmi-agro/fdm-storage':
+        specifier: workspace:^
+        version: link:../fdm-storage
+      '@react-pdf/renderer':
+        specifier: ^4.9.0
+        version: 4.9.0(react@19.3.1)
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+    devDependencies:
+      '@dotenvx/dotenvx':
+        specifier: 'catalog:'
+        version: 2.38.2
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(vitest@5.0.5)
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.3(tsx@4.23.15)(typescript@7.0.2)
+      typedoc:
+        specifier: 'catalog:'
+        version: 0.28.20(typescript@7.0.2)
+      typedoc-plugin-missing-exports:
+        specifier: 'catalog:'
+        version: 4.1.4(typedoc@0.28.20(typescript@7.0.2))
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

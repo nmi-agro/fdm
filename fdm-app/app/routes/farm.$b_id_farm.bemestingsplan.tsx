@@ -1,15 +1,15 @@
 import {
-  addFertilizerPlan,
-  FertilizerPlan,
-  updateFertilizerPlanFilePath,
-  getFertilizerPlans,
-  getFertilizerPlan,
-  removeFertilizerPlan,
   checkPermission,
   getFarm,
   getFarms,
+  getFertilizerPlan,
+  getFertilizerPlans,
 } from "@nmi-agro/fdm-core"
-import { renderToBuffer } from "@react-pdf/renderer"
+import {
+  createFertilizerPlanStatusChecker,
+  establishFertilizerPlan,
+  removeFertilizerPlanWithFile,
+} from "@nmi-agro/fdm-reports"
 import { AlertCircle } from "lucide-react"
 import { MetaFunction, Outlet, useLoaderData } from "react-router"
 import { redirectWithSuccess, redirectWithWarning } from "remix-toast"
@@ -21,26 +21,17 @@ import { DataTable } from "@/app/components/blocks/bemestingsplan/table"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BemestingsplanPDF } from "~/components/blocks/pdf/bemestingsplan/BemestingsplanPDF"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
-import {
-  buildObjectKey,
-  deleteObject,
-  isGcsConfigured,
-  uploadObject,
-} from "~/integrations/gcs.server"
+import { gcsStorage, isGcsConfigured } from "~/integrations/gcs.server"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
-import {
-  collectBemestingsplanInputFromDatabase,
-  computeBemestingsplanData,
-  getBemestingsplanInputHash,
-} from "~/lib/bemestingsplan.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError, isToastResponse, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { getReportBranding } from "~/lib/report-branding.server"
 import { Route } from "./+types/farm.$b_id_farm.bemestingsplan"
 
 export const meta: MetaFunction = () => {
@@ -64,34 +55,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       getFertilizerPlans(fdm, session.principal_id, b_id_farm),
     ])
 
-    const statusYears = new Set(fertilizerPlans.map((plan) => plan.p_plan_year))
-    const statusHashes = new Map<number, Promise<string>>()
-
-    let lastHashPromise = Promise.resolve("")
-    for (const year of statusYears) {
-      const hashPromise = lastHashPromise.then(async () => {
-        const inputData = await collectBemestingsplanInputFromDatabase(
-          fdm,
-          session.principal_id,
-          b_id_farm,
-          year,
-        )
-        return getBemestingsplanInputHash(inputData)
-      })
-      statusHashes.set(year, hashPromise)
-      lastHashPromise = hashPromise
-    }
-
-    async function checkPlanStatus(plan: FertilizerPlan) {
-      const hashPromise = statusHashes.get(plan.p_plan_year)
-
-      if (!hashPromise) {
-        return "unknown"
-      }
-
-      return (await hashPromise) === plan.p_plan_hash ? "fresh" : "expired"
-    }
-
+    const checkPlanStatus = createFertilizerPlanStatusChecker(fdm, session.principal_id, b_id_farm)
     const fertilizerPlansExtended = fertilizerPlans.map((plan) => ({
       ...plan,
       status: checkPlanStatus(plan),
@@ -153,46 +117,15 @@ export async function action({ params, request }: Route.ActionArgs) {
         )
       }
 
-      const dataCollectionDate = new Date()
-      const collectedData = await collectBemestingsplanInputFromDatabase(
+      const p_id_plan = await establishFertilizerPlan({
         fdm,
-        session.principal_id,
+        principal_id: session.principal_id,
         b_id_farm,
-        formValues.year,
-      )
-      const inputHash = getBemestingsplanInputHash(collectedData)
-      const computedData = await computeBemestingsplanData(collectedData)
-      const p_id_plan = await addFertilizerPlan(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-        formValues.year,
-        `inputHash.pdf`,
-        inputHash,
-        dataCollectionDate,
-      )
-      const objectKey = buildObjectKey("bemestingsplan", p_id_plan, "pdf")
-      const pdfBuffer = await renderToBuffer(<BemestingsplanPDF data={computedData} />)
-      let uploaded = false
-      try {
-        await uploadObject(objectKey, pdfBuffer, "application/pdf")
-        uploaded = true
-        await updateFertilizerPlanFilePath(fdm, session.principal_id, p_id_plan, objectKey)
-      } catch (uploadObjectError) {
-        if (uploaded) {
-          try {
-            await deleteObject(objectKey)
-          } catch (deleteError) {
-            void handleActionError(deleteError)
-          }
-          try {
-            await removeFertilizerPlan(fdm, session.principal_id, p_id_plan)
-          } catch (removeError) {
-            void handleActionError(removeError)
-          }
-        }
-        throw uploadObjectError
-      }
+        year: formValues.year,
+        storage: gcsStorage,
+        nmiApiKey: getNmiApiKey(),
+        branding: await getReportBranding(),
+      })
 
       return redirectWithSuccess(
         `/farm/${b_id_farm}/bemestingsplan/${p_id_plan}`,
@@ -209,18 +142,19 @@ export async function action({ params, request }: Route.ActionArgs) {
       }
 
       const plan = await getFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
-      await removeFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
-      if (plan.p_plan_file_path) {
-        try {
-          await deleteObject(plan.p_plan_file_path)
-        } catch (deleteError) {
-          // The plan itself is gone; redirect anyway so the list refreshes, and report the orphaned file
-          const errorId = reportError(deleteError, { scope: "action" })
-          return redirectWithWarning(
-            `/farm/${b_id_farm}/bemestingsplan`,
-            `Bemestingsplan voor teeltjaar ${plan.p_plan_year} is verwijderd, maar het bijbehorende PDF-bestand kon niet worden opgeruimd. Neem contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`,
-          )
-        }
+      const deleteError = await removeFertilizerPlanWithFile(
+        fdm,
+        session.principal_id,
+        plan,
+        gcsStorage,
+      )
+      if (deleteError) {
+        // The plan itself is gone; redirect anyway so the list refreshes, and report the orphaned file
+        const errorId = reportError(deleteError, { scope: "action" })
+        return redirectWithWarning(
+          `/farm/${b_id_farm}/bemestingsplan`,
+          `Bemestingsplan voor teeltjaar ${plan.p_plan_year} is verwijderd, maar het bijbehorende PDF-bestand kon niet worden opgeruimd. Neem contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`,
+        )
       }
 
       return redirectWithSuccess(

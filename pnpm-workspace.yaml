@@ -9,6 +9,7 @@ packages:
   - fdm-api
   - fdm-helpdesk
   - fdm-storage
+  - fdm-reports
 
 catalog:
   "@better-auth/api-key": 1.7.14
@@ -45,6 +46,7 @@ allowBuilds:
   "@nmi-agro/fdm-helpdesk@file:fdm-helpdesk": true
   "@nmi-agro/fdm-rvo@file:fdm-rvo": true
   "@nmi-agro/fdm-storage@file:fdm-storage": true
+  "@nmi-agro/fdm-reports@file:fdm-reports": true
   "@sentry-internal/node-cpu-profiler": true
   "@sentry/cli": true
   "@sentry/node-cpu-profiler": true

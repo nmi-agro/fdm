@@ -1,0 +1,71 @@
+{
+  "name": "@nmi-agro/fdm-reports",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Reports for FDM, such as the yearly fertilizer plan (bemestingsplan) as PDF",
+  "homepage": "https://svenvw.github.io/fdm/",
+  "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+  "license": "MIT",
+  "author": {
+    "name": "Sven Verweij",
+    "email": "37927107+SvenVw@users.noreply.github.com",
+    "url": "https://github.com/SvenVw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nmi-agro/fdm.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "coverage": "vitest run --coverage",
+    "document": "typedoc",
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage",
+    "watch": "vitest"
+  },
+  "dependencies": {
+    "@date-fns/tz": "^1.5.0",
+    "@nmi-agro/fdm-calculator": "workspace:^",
+    "@nmi-agro/fdm-core": "workspace:^",
+    "@nmi-agro/fdm-storage": "workspace:^",
+    "@react-pdf/renderer": "^4.9.0",
+    "@types/geojson": "^7946.0.16",
+    "date-fns": "^4.4.0",
+    "react": "^19.3.1"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "^19.3.0",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typedoc": "catalog:",
+    "typedoc-plugin-missing-exports": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@12.8.1"
+}
