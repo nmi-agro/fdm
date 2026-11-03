@@ -241,6 +241,13 @@ export {
 } from "./estimates/field"
 export type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./estimates/types"
 export { bln3Client, soilEstimatesClient, soilReaderClient } from "./nmi/client"
+export {
+  extractSoilAnalysesFromPdfs,
+  parseSamplingGeometry,
+  parseSoilReaderField,
+  SoilReaderError,
+} from "./soil-reader"
+export type { ExtractedSoilAnalysis } from "./soil-reader"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
 export { enrichCurrentSoilDataWithNlv } from "./other/current-soil-data"
