@@ -12,7 +12,12 @@ export {
   getPhosphateBalanceField,
 } from "./field"
 export type { PhosphateBalanceFieldCalculationInput } from "./field"
-export { collectInputForPhosphateBalance, collectInputForPhosphateBalanceForFarms } from "./input"
+export {
+  collectInputForPhosphateBalance,
+  collectInputForPhosphateBalanceForFarms,
+  PHOSPHATE_HISTORY_YEARS,
+} from "./input"
+export type { PhosphateInputOptions } from "./input"
 export { calculatePhosphateLeaching } from "./leaching"
 export {
   calculatePhosphateDeposition,

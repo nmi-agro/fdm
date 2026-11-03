@@ -17,7 +17,21 @@ import {
   getSoilAnalyses,
   getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
-import type { PhosphateBalanceInput, PhosphateFieldInput } from "./types"
+import { subYears } from "date-fns"
+import type {
+  PhosphateBalanceHistoryYear,
+  PhosphateBalanceInput,
+  PhosphateFieldInput,
+} from "./types"
+
+/** Default number of earlier years collected for the long-term average balance (so up to 5 years). */
+export const PHOSPHATE_HISTORY_YEARS = 4
+
+/** Options for the input collection. */
+export type PhosphateInputOptions = {
+  /** Number of earlier years to collect for the long-term average (0: none). Default 4. */
+  historyYears?: number
+}
 
 /** Default timeframe (the current calendar year) when the timeframe has no start or end. */
 function toTimeFrame(timeframe: Timeframe): { start: Date; end: Date } {
@@ -77,6 +91,52 @@ async function collectFieldInputs(
   })
 }
 
+/** Whether a date lies in the timeframe (inclusive). */
+function inFrame(date: Date | null | undefined, frame: { start: Date; end: Date }): boolean {
+  if (!date) return false
+  const t = new Date(date).getTime()
+  return t >= frame.start.getTime() && t <= frame.end.getTime()
+}
+
+/**
+ * Collects the earlier years in one query set (the whole period before the timeframe) and splits
+ * them per year: fertilizer applications and harvests by their date, cultivations that overlap the
+ * year. Soil analyses are the same for every year.
+ */
+async function collectHistory(
+  tx: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
+  timeFrame: { start: Date; end: Date },
+  historyYears: number,
+  b_id?: fdmSchema.fieldsTypeSelect["b_id"],
+): Promise<PhosphateBalanceHistoryYear[]> {
+  if (historyYears <= 0) return []
+  const period = {
+    start: subYears(timeFrame.start, historyYears),
+    end: new Date(timeFrame.start.getTime() - 1),
+  }
+  const fields = await collectFieldInputs(tx, principal_id, b_id_farm, period, b_id)
+  return Array.from({ length: historyYears }, (_, i) => {
+    const frame = { start: subYears(timeFrame.start, i + 1), end: subYears(timeFrame.end, i + 1) }
+    return {
+      timeFrame: frame,
+      fields: fields.map((f) => ({
+        ...f,
+        cultivations: f.cultivations.filter(
+          (c) =>
+            (!c.b_lu_start || new Date(c.b_lu_start).getTime() <= frame.end.getTime()) &&
+            (!c.b_lu_end || new Date(c.b_lu_end).getTime() >= frame.start.getTime()),
+        ),
+        harvests: f.harvests.filter((h) => inFrame(h.b_lu_harvest_date, frame)),
+        fertilizerApplications: f.fertilizerApplications.filter((a) =>
+          inFrame(a.p_app_date, frame),
+        ),
+      })),
+    }
+  })
+}
+
 /**
  * Collects the input for the phosphate balance of a farm, or of one of its fields.
  *
@@ -85,6 +145,7 @@ async function collectFieldInputs(
  * @param b_id_farm - The farm.
  * @param timeframe - The period of the balance.
  * @param b_id - Optional field; when given, only this field is collected.
+ * @param options - `historyYears`: earlier years for the long-term average (default 4).
  * @returns The input for `calculatePhosphateBalance`.
  * @alpha
  */
@@ -94,14 +155,18 @@ export async function collectInputForPhosphateBalance(
   b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
   timeframe: Timeframe,
   b_id?: fdmSchema.fieldsTypeSelect["b_id"],
+  options: PhosphateInputOptions = {},
 ): Promise<PhosphateBalanceInput> {
+  const timeFrame = toTimeFrame(timeframe)
+  const historyYears = options.historyYears ?? PHOSPHATE_HISTORY_YEARS
   return await fdm.transaction(async (tx: FdmType) => {
-    const [fields, cultivationDetails, fertilizerDetails] = await Promise.all([
+    const [fields, history, cultivationDetails, fertilizerDetails] = await Promise.all([
       collectFieldInputs(tx, principal_id, b_id_farm, timeframe, b_id),
+      collectHistory(tx, principal_id, b_id_farm, timeFrame, historyYears, b_id),
       getCultivationsFromCatalogue(tx, principal_id, b_id_farm),
       getFertilizersFromCatalogue(tx, principal_id, b_id_farm),
     ])
-    return { fields, cultivationDetails, fertilizerDetails, timeFrame: toTimeFrame(timeframe) }
+    return { fields, cultivationDetails, fertilizerDetails, timeFrame, history }
   })
 }
 
@@ -114,6 +179,7 @@ export async function collectInputForPhosphateBalance(
  * @param principal_id - The principal requesting the data.
  * @param farmIds - The farms.
  * @param timeframe - The period of the balance.
+ * @param options - `historyYears`: earlier years for the long-term average (default 4).
  * @returns The input per farm, with its `b_id_farm`.
  * @alpha
  */
@@ -122,7 +188,10 @@ export async function collectInputForPhosphateBalanceForFarms(
   principal_id: PrincipalId,
   farmIds: fdmSchema.farmsTypeSelect["b_id_farm"][],
   timeframe: Timeframe,
+  options: PhosphateInputOptions = {},
 ): Promise<(PhosphateBalanceInput & { b_id_farm: string })[]> {
+  const timeFrame = toTimeFrame(timeframe)
+  const historyYears = options.historyYears ?? PHOSPHATE_HISTORY_YEARS
   return await fdm.transaction(async (tx: FdmType) => {
     const uniqueFarmIds = [...new Set(farmIds)]
     const [cultivationCatalogues, fertilizerCatalogues] = await Promise.all([
@@ -138,14 +207,18 @@ export async function collectInputForPhosphateBalanceForFarms(
 
     const settled = await Promise.allSettled(
       uniqueFarmIds.map(async (b_id_farm) => {
-        const fields = await collectFieldInputs(tx, principal_id, b_id_farm, timeframe)
+        const [fields, history] = await Promise.all([
+          collectFieldInputs(tx, principal_id, b_id_farm, timeframe),
+          collectHistory(tx, principal_id, b_id_farm, timeFrame, historyYears),
+        ])
+        const allFields = [...fields, ...history.flatMap((year) => year.fields)]
         const cultivationSources = new Set(cultivationCatalogues[b_id_farm] ?? [])
         const cultivationIds = new Set(
-          fields.flatMap((f) => f.cultivations.map((c) => c.b_lu_catalogue)),
+          allFields.flatMap((f) => f.cultivations.map((c) => c.b_lu_catalogue)),
         )
         const fertilizerSources = new Set(fertilizerCatalogues[b_id_farm] ?? [])
         const fertilizerIds = new Set(
-          fields.flatMap((f) => f.fertilizerApplications.map((a) => a.p_id_catalogue)),
+          allFields.flatMap((f) => f.fertilizerApplications.map((a) => a.p_id_catalogue)),
         )
         return {
           b_id_farm,
@@ -156,7 +229,8 @@ export async function collectInputForPhosphateBalanceForFarms(
           fertilizerDetails: allFertilizers.filter(
             (f) => fertilizerSources.has(f.p_source) && fertilizerIds.has(f.p_id_catalogue),
           ),
-          timeFrame: toTimeFrame(timeframe),
+          timeFrame,
+          history,
         }
       }),
     )

@@ -30,7 +30,7 @@ Where:
 
 Leaching is estimated separately from the surplus and is **not** subtracted from the balance (as for nitrate in the nitrogen balance). Surface runoff and erosion are not estimated (see [Limitations](#6-limitations)). All phosphate is counted at 100% (no working coefficients: these belong to fertilizer advice, not to a balance).
 
-The calculations are performed for a user-defined **Time Frame**, normally one calendar year.
+The calculations are performed for a user-defined **Time Frame**, normally one calendar year. For the effect on the soil, a **long-term average balance** is used: the average over this year and up to four earlier years that have data (Section 3.4.3), so that a crop rotation is taken into account.
 
 ## 2. Required Input Data
 
@@ -173,10 +173,12 @@ Without P-CaCl₂ or PSD, a threshold of 25% is used.
 
 #### 3.4.3. Projection and Year Classes
 
-The projection shows what happens to the soil if the balance of this year is repeated every year. It is illustrative, not a prediction.
+The projection shows what happens to the soil if the long-term average balance is repeated every year. It is illustrative, not a prediction.
+
+**Long-term average balance.** The balance is calculated for the selected year and for each of the four years before it (`history` in the input; `collectInputForPhosphateBalance` collects these by default, `historyYears: 4`). Earlier years without any fertilizer application or harvest on the field are left out; the selected year is always included. The average balance and leaching per year over the remaining years (`long_term`) are used for the projection, so a crop rotation with, for example, potatoes in one year and cereals in the next is taken into account. The earlier years use the same soil data and parameters as the selected year.
 
 ```text
-effective balance (kg P₂O₅ / ha / year) = balance per year + leaching per year − fixation
+effective balance (kg P₂O₅ / ha / year) = long-term balance + long-term leaching − fixation
 ```
 
 `fixation` is 20 kg P₂O₅ / ha / year on mineral soils and 0 on peat (_draft_).
@@ -186,20 +188,20 @@ effective balance (kg P₂O₅ / ha / year) = balance per year + leaching per ye
 
 The time until the PSD crosses the field threshold (back below it, or above it) is reported as a class: `reached`, `< 5`, `5–10`, `10–20`, `> 20` years, or `not_reached` at this balance.
 
-In the app, a field is shown as **on track** (✓) when its PSD is above the threshold and decreasing, or at or below the threshold and not exceeding it within 20 years; otherwise as **off track** (✗); and as unknown when the PSD or threshold is missing.
+In the app, a field is shown as **on track** (✓) when the projected PSD after 20 years is at or below the field threshold: it stays below, or comes below within 20 years. Otherwise it is **off track** (✗), also when the PSD is above the threshold and decreases too slowly to reach it within 20 years. Without PSD or threshold the status is unknown.
 
 ## 4. Field, Farm and Organisation Level Balance
 
 - **Field balance:** `Supply − Removal` as above, in kg P₂O₅ / ha for the time frame. Results are cached per field (`getPhosphateBalanceField`) and recalculated after a calculator release.
 - **Farm balance:** the area-weighted average per ha of the balance, supply, removal, leaching and their terms over all fields that could be calculated. Buffer strips and fields that failed are left out; a failing field is reported in `fields[].errorMessage` without failing the farm. Fields are calculated in batches of 50.
 - **Organisation:** the app calculates the farm balance of each selected farm and the area-weighted average over all their fields. Per farm, it shows the share of the area that is on track.
-- **3-year average:** the app shows the average balance of the selected year and the two years before it, only when each of the three years has fertilizer applications or harvests.
+- **Long-term average:** per field as in Section 3.4.3; the farm and organisation show the area-weighted average of the fields (`long_term_balance`).
 
 ## 5. Output
 
 The farm output (`PhosphateBalance`) provides:
 
-- `balance`, `supply`, `removal` and `leaching` (kg P₂O₅ / ha, area-weighted), and `terms` with the supply per fertilizer type, mineralisation and deposition, and the removal by harvests and residues.
+- `balance`, `supply`, `removal`, `leaching` and `long_term_balance` (kg P₂O₅ / ha, area-weighted), and `terms` with the supply per fertilizer type, mineralisation and deposition, and the removal by harvests and residues.
 - `fields`: per field the ID, area, buffer strip flag and either the `balance` (`PhosphateBalanceField`) or an `errorMessage`.
 - `hasErrors`, `fieldErrorMessages`, and `errorMessage` when no balance could be calculated at all (e.g. `No fields in input`).
 
@@ -207,6 +209,7 @@ The field output (`PhosphateBalanceField`) contains:
 
 - `balance`, `supply` (total, fertilizers per type with their applications, mineralisation with its track and notes, deposition) and `removal` (total, harvests, residues).
 - `leaching` (total, saturation class, fraction, groundwater factor and factor).
+- `long_term` (average balance and leaching per year, and the years included).
 - `saturation` (source, PSC, PSD, P-ox, P-AL, soil-type note and warnings) and `projection` (effective balance, fixation, depth, bulk density, P-AL track and PSD track with threshold and year class).
 - `warnings`: missing data that make the removal incomplete.
 
@@ -219,7 +222,7 @@ Values are not rounded by the calculator.
 - **Draft parameters.** The leaching fractions, the groundwater factor, the peat mineralisation factors, the P-AL buffers and the fixation of 20 kg P₂O₅ / ha / year are provisional and have to be reviewed.
 - **Estimated soil data.** Where no soil analysis is available, the NMI estimates of P-ox, Fe-ox and Al-ox are used. Their uncertainty is not shown, and the PSD may be less reliable on peat, dalgrond, moerige klei and calcareous soils.
 - **Not modelled:** excreta of grazing animals, and the release of iron-bound phosphate when peat is rewetted (only flagged).
-- **One year repeated.** The projection repeats the balance of one year; it is an illustration of the direction and the time scale, not a prediction.
+- **Average repeated.** The projection repeats the long-term average balance (up to five years); it is an illustration of the direction and the time scale, not a prediction. Changes in soil data between years are not taken into account.
 
 ## 7. References
 

@@ -1,14 +1,7 @@
 import type { PhosphateBalanceFieldResult } from "@nmi-agro/fdm-calculator"
 import type { Cultivation, Harvest } from "@nmi-agro/fdm-core"
 import { getCultivationsForFarm, getFarm, getFields, getHarvestsForFarm } from "@nmi-agro/fdm-core"
-import {
-  ArrowDownToLine,
-  ArrowRightLeft,
-  ArrowUpFromLine,
-  CircleAlert,
-  Droplets,
-  TriangleAlert,
-} from "lucide-react"
+import { CircleAlert, TriangleAlert } from "lucide-react"
 import { Suspense, use, useEffect, useState } from "react"
 import {
   data,
@@ -20,17 +13,17 @@ import {
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
+import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-balance-card"
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import {
   formatNumberNl,
   getPhosphateTrendStatus,
-  PHOSPHATE_UNIT,
 } from "~/components/blocks/balance/phosphate-format"
 import { PhosphateStatusIcon } from "~/components/blocks/balance/phosphate-soil"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getPhosphateBalanceAverage, getPhosphateBalanceForFarm } from "~/integrations/calculator"
+import { getPhosphateBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -82,24 +75,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
     ])
 
-    const year = Number(params.calendar)
     const asyncData = (async () => {
-      const [phosphateBalanceResult, average] = await Promise.all([
-        getPhosphateBalanceForFarm({
-          fdm,
-          principal_id: session.principal_id,
-          b_id_farm,
-          timeframe,
-        }),
-        Number.isInteger(year)
-          ? getPhosphateBalanceAverage({
-              fdm,
-              principal_id: session.principal_id,
-              b_id_farm,
-              year,
-            }).catch(() => null)
-          : Promise.resolve(null),
-      ])
+      const phosphateBalanceResult = await getPhosphateBalanceForFarm({
+        fdm,
+        principal_id: session.principal_id,
+        b_id_farm,
+        timeframe,
+      })
 
       if (phosphateBalanceResult.hasErrors) {
         reportError(
@@ -116,7 +98,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
       }
 
-      return { phosphateBalanceResult, average }
+      return { phosphateBalanceResult }
     })()
 
     const calendar = getCalendar(params)
@@ -163,13 +145,14 @@ export default function FarmBalancePhosphateOverviewBlock() {
 
 function FarmBalancePhosphateOverview({
   farm,
+  calendar,
   fields,
   cultivationsEntries,
   harvestsEntries,
   mainCultivationEntries,
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
-  const { phosphateBalanceResult, average } = use(asyncData)
+  const { phosphateBalanceResult } = use(asyncData)
   // Computed once, not on every render: only shown in the error branch's debug dump below.
   const [errorTimestamp] = useState(() => new Date())
 
@@ -225,145 +208,87 @@ function FarmBalancePhosphateOverview({
   ).length
 
   return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo (Bedrijf)</CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumberNl(phosphateBalanceResult.balance)}
-            </div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-            {average ? (
-              <p className="text-muted-foreground mt-1 text-xs">
-                Gemiddeld {average.startYear}–{average.endYear}:{" "}
-                <span className="text-foreground font-medium">
-                  {formatNumberNl(average.balance)}
-                </span>
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDownToLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumberNl(phosphateBalanceResult.supply)}
-            </div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumberNl(phosphateBalanceResult.removal)}
-            </div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uitspoeling</CardTitle>
-            <Droplets className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumberNl(phosphateBalanceResult.leaching, 1)}
-            </div>
-            <p className="text-muted-foreground text-xs">
-              {PHOSPHATE_UNIT}, schatting, niet in saldo
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Balans</CardTitle>
-            <CardDescription>
-              De fosfaatbalans voor alle percelen van {farm.b_name_farm}: aanvoer met bemesting,
-              mineralisatie en depositie min afvoer met oogst en gewasresten.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pl-2">
-            <PhosphateBalanceChart type="farm" balance={phosphateBalanceResult} />
-            {incompleteCount > 0 ? (
-              <p className="text-muted-foreground flex items-center gap-1.5 pl-4 text-sm">
-                <TriangleAlert className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
-                Bij {incompleteCount}{" "}
-                {incompleteCount === 1 ? "perceel ontbreken" : "percelen ontbreken"} gegevens voor
-                de afvoer (oogst of fosfaatgehalte). Open het perceel voor details.
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <p>Percelen</p>
-              <BufferStripInfo />
-            </CardTitle>
-            <CardDescription />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              {filteredFields.map((fieldResult: PhosphateBalanceFieldResult) => {
-                const fieldData = fieldsMap.get(fieldResult.b_id)
-                return (
-                  <div className="flex items-center" key={fieldResult.b_id}>
-                    {fieldResult.balance ? (
-                      <PhosphateStatusIcon
-                        status={getPhosphateTrendStatus(fieldResult.balance)}
-                        className="h-6 w-6"
-                      />
-                    ) : (
-                      <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
-                    )}
+    <div className="grid items-start gap-4 lg:grid-cols-2">
+      {/* Left: the fields, judged on the PSD (the main indicator) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <p>Percelen</p>
+            <BufferStripInfo />
+          </CardTitle>
+          <CardDescription>
+            ✓ als de fosfaatverzadiging (PSD) bij het gemiddelde saldo van de afgelopen jaren over
+            20 jaar onder de grens van het perceel ligt, anders ✗. Rechts het saldo van dit jaar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">
+            {filteredFields.map((fieldResult: PhosphateBalanceFieldResult) => {
+              const fieldData = fieldsMap.get(fieldResult.b_id)
+              return (
+                <div className="flex items-center" key={fieldResult.b_id}>
+                  {fieldResult.balance ? (
+                    <PhosphateStatusIcon
+                      status={getPhosphateTrendStatus(fieldResult.balance)}
+                      className="h-6 w-6"
+                    />
+                  ) : (
+                    <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
+                  )}
 
-                    <div className="ml-4 space-y-1">
-                      <div className="flex items-baseline gap-2">
-                        <NavLink to={`./${fieldResult.b_id}`}>
-                          <p className="text-sm leading-none font-medium hover:underline">
-                            {fieldData?.b_name}
-                          </p>
-                        </NavLink>
-                        <p className="text-muted-foreground text-xs">{fieldData?.b_area} ha</p>
-                      </div>
-                      <FieldCultivationsBadge
-                        cultivations={cultivationsMap.get(fieldResult.b_id) ?? []}
-                        mainCultivation={mainCultivationMap.get(fieldResult.b_id)}
-                        harvestsMap={harvestsMap}
-                        fieldName={fieldData?.b_name ?? ""}
-                      />
+                  <div className="ml-4 space-y-1">
+                    <div className="flex items-baseline gap-2">
+                      <NavLink to={`./${fieldResult.b_id}`}>
+                        <p className="text-sm leading-none font-medium hover:underline">
+                          {fieldData?.b_name}
+                        </p>
+                      </NavLink>
+                      <p className="text-muted-foreground text-xs">{fieldData?.b_area} ha</p>
                     </div>
-                    <div className="ml-auto font-medium">
-                      {fieldResult.balance ? (
-                        formatNumberNl(fieldResult.balance.balance)
-                      ) : (
-                        <NavLink to={`./${fieldResult.b_id}`}>
-                          <p className="text-end text-sm text-orange-500 hover:underline">
-                            {"Bekijk foutmelding"}
-                          </p>
-                        </NavLink>
-                      )}
-                    </div>
+                    <FieldCultivationsBadge
+                      cultivations={cultivationsMap.get(fieldResult.b_id) ?? []}
+                      mainCultivation={mainCultivationMap.get(fieldResult.b_id)}
+                      harvestsMap={harvestsMap}
+                      fieldName={fieldData?.b_name ?? ""}
+                    />
                   </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+                  <div className="ml-auto font-medium">
+                    {fieldResult.balance ? (
+                      formatNumberNl(fieldResult.balance.balance)
+                    ) : (
+                      <NavLink to={`./${fieldResult.b_id}`}>
+                        <p className="text-end text-sm text-orange-500 hover:underline">
+                          {"Bekijk foutmelding"}
+                        </p>
+                      </NavLink>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+      {/* Right: the balance */}
+      <PhosphateBalanceCard
+        description={`De fosfaatbalans voor alle percelen van ${farm.b_name_farm} (gemiddeld per ha): aanvoer met bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten.`}
+        year={calendar}
+        balance={phosphateBalanceResult.balance}
+        supply={phosphateBalanceResult.supply}
+        removal={phosphateBalanceResult.removal}
+        leaching={phosphateBalanceResult.leaching}
+        longTerm={{ balance: phosphateBalanceResult.long_term_balance }}
+      >
+        <PhosphateBalanceChart type="farm" balance={phosphateBalanceResult} />
+        {incompleteCount > 0 ? (
+          <p className="text-muted-foreground flex items-center gap-1.5 pl-4 text-sm">
+            <TriangleAlert className="h-4 w-4 shrink-0 text-orange-500" aria-hidden />
+            Bij {incompleteCount}{" "}
+            {incompleteCount === 1 ? "perceel ontbreken" : "percelen ontbreken"} gegevens voor de
+            afvoer (oogst of fosfaatgehalte). Open het perceel voor details.
+          </p>
+        ) : null}
+      </PhosphateBalanceCard>
+    </div>
   )
 }

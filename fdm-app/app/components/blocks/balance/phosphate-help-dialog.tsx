@@ -93,7 +93,9 @@ export function PhosphateHelpDialog() {
             <p>
               De fosfaatverzadigingsgraad (PSD) is het deel van de bindingscapaciteit van de bodem
               dat al met fosfaat gevuld is. De grenswaarde wordt per perceel berekend uit P-CaCl₂ en
-              de grondwatertrap; zonder P-CaCl₂ geldt 25%.
+              de grondwatertrap; zonder P-CaCl₂ geldt 25%. Een perceel krijgt een ✓ als de PSD bij
+              het gemiddelde saldo van de afgelopen jaren (tot 5 jaar, zodat een vruchtwisseling
+              meetelt) over 20 jaar onder de grens ligt, anders een ✗.
             </p>
           </div>
 

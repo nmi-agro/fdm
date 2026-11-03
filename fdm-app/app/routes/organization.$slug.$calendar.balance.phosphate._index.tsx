@@ -6,15 +6,7 @@ import {
   type PhosphateBalanceFieldResult,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
-import {
-  ArrowDownToLine,
-  ArrowRightLeft,
-  ArrowUpFromLine,
-  CircleAlert,
-  CircleCheck,
-  CircleX,
-  Droplets,
-} from "lucide-react"
+import { CircleAlert, CircleCheck, CircleX } from "lucide-react"
 import { Suspense, use } from "react"
 import {
   data,
@@ -28,6 +20,7 @@ import {
 import type { OrganizationFarmGroup } from "~/lib/farm-groups"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { FarmSelectDialog } from "~/components/blocks/balance/farm-select-dialog"
+import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-balance-card"
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import {
   formatNumberNl,
@@ -347,100 +340,49 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
   }
 
   return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo (Bedrijven)</CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 text-2xl font-bold">
-              <p>{formatNumberNl(combinedResult.balance)}</p>
-              {hasErrors ? (
-                <Tooltip>
-                  <TooltipTrigger>
-                    <CircleAlert className="rounded-full bg-orange-100 text-orange-500" />
-                  </TooltipTrigger>
-                  <TooltipContent>Niet alle bedrijven konden worden berekend</TooltipContent>
-                </Tooltip>
-              ) : (
-                <ShareOnTrackIcon share={orgShare} />
-              )}
-            </div>
-            <p className="text-muted-foreground text-xs">
-              {PHOSPHATE_UNIT}
-              {orgShare !== null ? ` · ${formatNumberNl(orgShare)} % op koers` : ""}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDownToLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(combinedResult.supply)}</div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(combinedResult.removal)}</div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uitspoeling</CardTitle>
-            <Droplets className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(combinedResult.leaching, 1)}</div>
-            <p className="text-muted-foreground text-xs">
-              {PHOSPHATE_UNIT}, schatting, niet in saldo
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Balans</CardTitle>
-            <CardDescription>
-              De gemiddelde fosfaatbalans per hectare van de geselecteerde bedrijven: aanvoer met
-              bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <PhosphateBalanceChart type="farm" balance={combinedResult} />
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
-              <p className="grow">Bedrijven</p>
-              <GroupPicker groups={loaderData.farmGroups} />
-              <FarmSelectDialog
-                farms={asyncData.farms}
-                defaultSelectedFarmIds={asyncData.farmIds}
-              />
-              <BufferStripInfo />
-            </CardTitle>
-            <CardDescription>
-              ✓ als minstens de helft van de oppervlakte (met bekende fosfaatverzadiging) op koers
-              ligt.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">{farmResults.map(createFarmRow)}</div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+    <div className="grid items-start gap-4 lg:grid-cols-2">
+      {/* Left: the farms, judged on the PSD of their fields (the main indicator) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
+            <p className="grow">Bedrijven</p>
+            {hasErrors ? (
+              <Tooltip>
+                <TooltipTrigger>
+                  <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 text-orange-500" />
+                </TooltipTrigger>
+                <TooltipContent>Niet alle bedrijven konden worden berekend</TooltipContent>
+              </Tooltip>
+            ) : null}
+            <GroupPicker groups={loaderData.farmGroups} />
+            <FarmSelectDialog farms={asyncData.farms} defaultSelectedFarmIds={asyncData.farmIds} />
+            <BufferStripInfo />
+          </CardTitle>
+          <CardDescription>
+            ✓ als minstens de helft van de oppervlakte (met bekende fosfaatverzadiging) op koers
+            ligt: de PSD ligt bij het gemiddelde saldo van de afgelopen jaren over 20 jaar onder de
+            grens.
+            {orgShare !== null
+              ? ` Alle geselecteerde bedrijven samen: ${formatNumberNl(orgShare)} % op koers.`
+              : ""}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-8">{farmResults.map(createFarmRow)}</div>
+        </CardContent>
+      </Card>
+      {/* Right: the balance */}
+      <PhosphateBalanceCard
+        description="De gemiddelde fosfaatbalans per hectare van de geselecteerde bedrijven: aanvoer met bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten."
+        year={params.calendar ?? ""}
+        balance={combinedResult.balance}
+        supply={combinedResult.supply}
+        removal={combinedResult.removal}
+        leaching={combinedResult.leaching}
+        longTerm={{ balance: combinedResult.long_term_balance }}
+      >
+        <PhosphateBalanceChart type="farm" balance={combinedResult} />
+      </PhosphateBalanceCard>
+    </div>
   )
 }

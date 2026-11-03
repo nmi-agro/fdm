@@ -1,10 +1,11 @@
 import type { PhosphateBalanceField, PhosphateFieldInput } from "@nmi-agro/fdm-calculator"
 import type { ReactNode } from "react"
 import { ChevronDown, CircleAlert, CircleCheck, CircleX } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { cn } from "~/lib/utils"
 import {
+  formatLongTermYears,
   formatNumberNl,
   formatPAlLevel,
   formatSaturationSource,
@@ -65,12 +66,18 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** Collapsible "Meer details" block for advisors: data sources, calculation and references. */
-function MoreDetails({ children }: { children: ReactNode }) {
+/** Collapsible block, by default "Meer details" for advisors: data sources, calculation, references. */
+function MoreDetails({
+  children,
+  title = "Meer details",
+}: {
+  children: ReactNode
+  title?: string
+}) {
   return (
     <Collapsible className="border-t pt-2">
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex w-full items-center justify-between text-sm">
-        Meer details
+        {title}
         <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className="text-muted-foreground space-y-2 pt-2 text-xs">
@@ -101,7 +108,14 @@ function Reference({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
-const ILLUSTRATIVE_NOTE = "Illustratief: het verloop als het saldo van dit jaar elk jaar terugkomt."
+/** Note under the trend charts: the trend repeats the long-term average saldo every year. */
+function illustrativeNote(balance: PhosphateBalanceField): string {
+  const years = formatLongTermYears(balance.long_term.years)
+  return `Illustratief: het verloop als het gemiddelde saldo${years ? ` van ${years}` : ""} elk jaar terugkomt.`
+}
+
+/** Colour of the P-AL levels: different from the PSD threshold. */
+const P_AL_LEVEL_COLOR = "var(--color-sky-600)"
 
 /** Laboratories and estimates by their `a_source` code (as in the fdm-core soil analysis options). */
 const SOIL_SOURCE_LABELS: Record<string, string> = {
@@ -181,13 +195,16 @@ export function PhosphateStockCard({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Bodemvoorraad (P-AL)</CardTitle>
+        <CardDescription className="text-xs">
+          Aanvullende informatie: hoeveel fosfaat beschikbaar is voor het gewas.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {projection && pAl ? (
           <>
             <Row label="Nu">{formatNumberNl(pAl.current)} mg P₂O₅ / 100 g</Row>
             <Row label="Niveau">{formatPAlLevel(pAl.current)}</Row>
-            <Row label="Verandering bij dit saldo">
+            <Row label="Verandering bij gemiddeld saldo">
               {pAl.delta_per_year.value > 0 ? "+" : ""}
               {formatNumberNl(pAl.delta_per_year.value, 1)} per jaar
             </Row>
@@ -199,11 +216,12 @@ export function PhosphateStockCard({
                 { value: P_AL_HIGH, label: "hoog >" },
               ]}
               band={{ from: P_AL_LOW, to: P_AL_HIGH }}
+              boundColor={P_AL_LEVEL_COLOR}
               unit=""
               measurements={measurements}
             />
             <p className="text-muted-foreground text-xs">
-              {ILLUSTRATIVE_NOTE}
+              {illustrativeNote(balance)}
               {measurements.length > 0
                 ? " Punten: gemeten P-AL uit bodemanalyses van een laboratorium."
                 : ""}
@@ -215,7 +233,7 @@ export function PhosphateStockCard({
                 {formatNumberNl(projection.depth.value * 100)} cm.
               </Detail>
               <Detail title="Berekening">
-                Verandering P-AL per jaar = (saldo − uitspoeling − vastlegging) ÷ buffer.
+                Verandering P-AL per jaar = (gemiddeld saldo − uitspoeling − vastlegging) ÷ buffer.
                 Vastlegging: {formatNumberNl(projection.fixation)} kg P₂O₅/ha/jaar. Buffer:{" "}
                 {formatNumberNl(pAl.buffer.value)} kg P₂O₅/ha per eenheid P-AL voor deze grondsoort
                 en laagdikte
@@ -264,10 +282,18 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
   const status = getPhosphateTrendStatus(balance)
   const years = getPhosphateYearsToThreshold(balance)
   const offTrack = status === "off_track"
+  const above =
+    psd !== null && psd.threshold.value !== null && psd.current.value > psd.threshold.value
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Fosfaatverzadiging (PSD)</CardTitle>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
+        <div className="space-y-1">
+          <CardTitle className="text-base font-semibold">Fosfaatverzadiging (PSD)</CardTitle>
+          <CardDescription className="text-xs">
+            Hoeveel van de fosfaatbinding van de bodem al bezet is. Hoe hoger, hoe groter de kans
+            dat fosfaat naar grond- en oppervlaktewater verdwijnt.
+          </CardDescription>
+        </div>
         <PhosphateStatusIcon status={status} className="h-8 w-8" />
       </CardHeader>
       <CardContent className="space-y-2">
@@ -276,22 +302,22 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
             {years ? (
               <div>
                 <p className="text-muted-foreground text-xs">{years.label}</p>
-                <div className={cn("text-2xl font-bold", offTrack && "text-red-600")}>
-                  {years.value}
-                </div>
+                <div className="text-2xl font-bold">{years.value}</div>
               </div>
             ) : null}
             {offTrack ? (
-              <p className="text-sm font-medium text-red-600">
-                Het overschot vergroot de kans op uit- en afspoeling van fosfaat naar grond- en
-                oppervlaktewater.
+              <p className="text-foreground text-sm font-medium">
+                {above
+                  ? "Bij het gemiddelde saldo komt de PSD binnen 20 jaar niet onder de grens: de kans op uit- en afspoeling van fosfaat blijft hoog."
+                  : "Bij het gemiddelde saldo komt de PSD binnen 20 jaar boven de grens: de kans op uit- en afspoeling van fosfaat neemt toe."}
               </p>
             ) : null}
             <Row label="Nu">{formatNumberNl(psd.current.value)} %</Row>
             <Row label="Grenswaarde">{formatNumberNl(psd.threshold.value)} %</Row>
-            <Row label="Verandering bij dit saldo">
+            <Row label="Verandering bij gemiddeld saldo">
               {psd.delta_per_year > 0 ? "+" : ""}
-              {formatNumberNl(psd.delta_per_year, 1)} % per jaar
+              {formatNumberNl(psd.delta_per_year, Math.abs(psd.delta_per_year) < 0.1 ? 2 : 1)} % per
+              jaar
             </Row>
             {psd.threshold.value !== null ? (
               <PhosphateTrendChart
@@ -302,10 +328,33 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
                 max={100}
               />
             ) : null}
-            <p className="text-muted-foreground text-xs">{ILLUSTRATIVE_NOTE}</p>
+            <p className="text-muted-foreground text-xs">{illustrativeNote(balance)}</p>
             {balance.saturation.soil_note ? (
               <p className="text-muted-foreground text-xs">{balance.saturation.soil_note}</p>
             ) : null}
+            <MoreDetails title="Wat zegt de fosfaatverzadiging?">
+              <Detail title="Wat is het?">
+                De fosfaatverzadigingsgraad (PSD) is het deel van de fosfaatbindingscapaciteit van
+                de bodem (ijzer- en aluminiumoxiden) dat al met fosfaat bezet is.
+              </Detail>
+              <Detail title="Wat voegt het toe aan P-AL?">
+                P-AL zegt hoeveel fosfaat beschikbaar is voor het gewas. De PSD zegt ook hoe vol de
+                bodem al zit. Bij dezelfde P-AL kan een zandgrond met weinig ijzer en aluminium al
+                verzadigd zijn en een kleigrond niet. Daarom laat de PSD beter zien hoe groot het
+                risico op verlies naar water is.
+              </Detail>
+              <Detail title="Waarom onder de grens?">
+                Boven de milieugrens is er zoveel fosfaat in het bodemvocht dat het uit- en afspoelt
+                naar sloten en grondwater, wat bijdraagt aan vermesting van het water. De grens
+                wordt per perceel berekend uit P-CaCl₂ en de grondwatertrap: bij ondiep grondwater
+                is hij strenger.
+              </Detail>
+              <Detail title="Het oordeel ✓ of ✗">
+                ✓ als de PSD bij het gemiddelde saldo over 20 jaar onder de grens ligt (of eronder
+                blijft), anders ✗. Het gemiddelde saldo is dat van dit jaar en de jaren ervoor met
+                gegevens (tot 5 jaar), zodat een vruchtwisseling meetelt.
+              </Detail>
+            </MoreDetails>
             <MoreDetails>
               <Detail title="Gegevens">
                 {formatSaturationSource(balance.saturation.source)} (
@@ -313,8 +362,8 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
                 (PSC): {formatNumberNl(balance.saturation.psc)} mmol/kg.
               </Detail>
               <Detail title="Berekening">
-                PSC = 0,5 × (Fe-ox + Al-ox); PSD = P-ox ÷ PSC × 100. Verandering per jaar uit (saldo
-                − uitspoeling − vastlegging) verdeeld over de laag van{" "}
+                PSC = 0,5 × (Fe-ox + Al-ox); PSD = P-ox ÷ PSC × 100. Verandering per jaar uit
+                (gemiddeld saldo − uitspoeling − vastlegging) verdeeld over de laag van{" "}
                 {formatNumberNl(projection.depth.value * 100)} cm met dichtheid{" "}
                 {formatNumberNl(projection.a_density_sa.value, 2)} g/cm³.
               </Detail>

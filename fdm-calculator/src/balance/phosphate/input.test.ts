@@ -73,6 +73,50 @@ describe("collectInputForPhosphateBalance", () => {
     expect(input.timeFrame).toEqual(timeframe)
   })
 
+  it("should collect the earlier years once and split them per year", async () => {
+    vi.mocked(fdmCore.getFertilizerApplicationsForFarm).mockImplementation((async (
+      _fdm: unknown,
+      _p: unknown,
+      _farm: string,
+      frame: { start: Date },
+    ) =>
+      frame.start.getFullYear() < 2025
+        ? new Map([
+            [
+              "f1",
+              [
+                { p_app_id: "old1", p_id_catalogue: "x", p_app_date: new Date("2024-04-01") },
+                { p_app_id: "old2", p_id_catalogue: "x", p_app_date: new Date("2022-04-01") },
+              ],
+            ],
+          ])
+        : new Map()) as never)
+    const input = await collectInputForPhosphateBalance(fdm, principal, "farm", timeframe)
+    expect(input.history).toHaveLength(4)
+    expect(input.history?.[0].timeFrame.start.getFullYear()).toBe(2024)
+    expect(input.history?.[0].fields[0].fertilizerApplications.map((a) => a.p_app_id)).toEqual([
+      "old1",
+    ])
+    expect(input.history?.[2].fields[0].fertilizerApplications.map((a) => a.p_app_id)).toEqual([
+      "old2",
+    ])
+    expect(input.history?.[1].fields[0].fertilizerApplications).toEqual([])
+  })
+
+  it("should not collect earlier years with historyYears 0", async () => {
+    const input = await collectInputForPhosphateBalance(
+      fdm,
+      principal,
+      "farm",
+      timeframe,
+      undefined,
+      {
+        historyYears: 0,
+      },
+    )
+    expect(input.history).toEqual([])
+  })
+
   it("should use the per-field queries for one field", async () => {
     vi.mocked(fdmCore.getField).mockResolvedValue(fields[0] as never)
     vi.mocked(fdmCore.getCultivations).mockResolvedValue([

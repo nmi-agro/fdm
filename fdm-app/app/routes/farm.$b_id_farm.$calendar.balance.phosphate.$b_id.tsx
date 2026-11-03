@@ -1,11 +1,5 @@
 import { getFarm, getField } from "@nmi-agro/fdm-core"
-import {
-  ArrowDownToLine,
-  ArrowRightLeft,
-  ArrowUpFromLine,
-  Droplets,
-  TriangleAlert,
-} from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import { Suspense, use, useState } from "react"
 import {
   data,
@@ -16,9 +10,9 @@ import {
   useLocation,
 } from "react-router"
 import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
+import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-balance-card"
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import { PhosphateBalanceDetails } from "~/components/blocks/balance/phosphate-details"
-import { formatNumberNl, PHOSPHATE_UNIT } from "~/components/blocks/balance/phosphate-format"
 import {
   PhosphateSaturationCard,
   PhosphateStockCard,
@@ -34,7 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { getPhosphateBalanceAverage, getPhosphateBalanceForField } from "~/integrations/calculator"
+import { getPhosphateBalanceForField } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -90,18 +84,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
-    const year = Number(params.calendar)
-    const averagePromise = Number.isInteger(year)
-      ? getPhosphateBalanceAverage({
-          fdm,
-          principal_id: session.principal_id,
-          b_id_farm,
-          b_id,
-          year,
-        }).catch(() => null)
-      : Promise.resolve(null)
-
-    const balancePromise = getPhosphateBalanceForField({
+    const phosphateBalanceResult = getPhosphateBalanceForField({
       fdm,
       principal_id: session.principal_id,
       b_id_farm,
@@ -127,9 +110,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
       return { fieldResult: { ...fieldResult, errorId }, fieldInput }
     })
-    const phosphateBalanceResult = Promise.all([balancePromise, averagePromise]).then(
-      ([result, average]) => ({ ...result, average }),
-    )
 
     return {
       phosphateBalanceResult,
@@ -181,7 +161,7 @@ function PhosphateBalance({
 }: Awaited<ReturnType<typeof loader>> & {
   phosphateBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["phosphateBalanceResult"]>
 }) {
-  const { fieldResult, fieldInput, average } = use(phosphateBalanceResult)
+  const { fieldResult, fieldInput } = use(phosphateBalanceResult)
   const location = useLocation()
   const page = location.pathname
   const calendar = useCalendarStore((state) => state.calendar)
@@ -252,96 +232,49 @@ function PhosphateBalance({
   }
   const result = fieldResult.balance
 
+  const warnings = [...(result.warnings ?? []), ...result.supply.mineralization.warnings]
+
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo (Perceel)</CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(result.balance)}</div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-            {average ? (
-              <p className="text-muted-foreground mt-1 text-xs">
-                Gemiddeld {average.startYear}–{average.endYear}:{" "}
-                <span className="text-foreground font-medium">
-                  {formatNumberNl(average.balance)}
-                </span>
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDownToLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(result.supply.total)}</div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(result.removal.total)}</div>
-            <p className="text-muted-foreground text-xs">{PHOSPHATE_UNIT}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Uitspoeling</CardTitle>
-            <Droplets className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumberNl(result.leaching.total, 1)}</div>
-            <p className="text-muted-foreground text-xs">
-              {PHOSPHATE_UNIT}, schatting, niet in saldo
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      {[...(result.warnings ?? []), ...result.supply.mineralization.warnings].map((warning) => (
+      {warnings.map((warning) => (
         <p key={warning} className="text-muted-foreground flex items-start gap-2 text-sm">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-hidden />
           {warning}
         </p>
       ))}
-      <div className="grid gap-4 md:grid-cols-2">
-        <PhosphateSaturationCard balance={result} />
-        <PhosphateStockCard
-          balance={result}
-          soilAnalyses={fieldInput.soilAnalyses}
-          calendarYear={Number(calendar)}
-        />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Balans</CardTitle>
-            <CardDescription>
-              De fosfaatbalans voor {field.b_name} van {farm.b_name_farm}: aanvoer met bemesting,
-              mineralisatie en depositie min afvoer met oogst en gewasresten.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        {/* Left: the soil, with the PSD as the main indicator and P-AL as extra information */}
+        <div className="space-y-4">
+          <PhosphateSaturationCard balance={result} />
+          <PhosphateStockCard
+            balance={result}
+            soilAnalyses={fieldInput.soilAnalyses}
+            calendarYear={Number(calendar)}
+          />
+        </div>
+        {/* Right: the balance */}
+        <div className="space-y-4">
+          <PhosphateBalanceCard
+            description={`De fosfaatbalans voor ${field.b_name} van ${farm.b_name_farm}: aanvoer met bemesting, mineralisatie en depositie min afvoer met oogst en gewasresten.`}
+            year={calendar}
+            balance={result.balance}
+            supply={result.supply.total}
+            removal={result.removal.total}
+            leaching={result.leaching.total}
+            longTerm={result.long_term}
+          >
             <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Posten</CardTitle>
-            <CardDescription />
-          </CardHeader>
-          <CardContent>
-            <PhosphateBalanceDetails balanceData={result} fieldInput={fieldInput} />
-          </CardContent>
-        </Card>
+          </PhosphateBalanceCard>
+          <Card>
+            <CardHeader>
+              <CardTitle>Posten</CardTitle>
+              <CardDescription />
+            </CardHeader>
+            <CardContent>
+              <PhosphateBalanceDetails balanceData={result} fieldInput={fieldInput} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   )

@@ -36,7 +36,6 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
-import { getTimeframeForYears, isSupportedYear } from "~/lib/calendar"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNmiApiKey } from "./nmi.server"
 
@@ -343,13 +342,23 @@ export async function getPhosphateBalanceForField({
   }
 
   const fieldInput = fields[0]
+  const { history: historyYears, ...details } = rest
+  const history = (historyYears ?? []).flatMap((year) =>
+    year.fields
+      .filter((f) => f.field.b_id === b_id)
+      .map((past) => ({ timeFrame: year.timeFrame, fieldInput: past })),
+  )
   const base = {
     b_id: b_id,
     b_area: fieldInput.field.b_area ?? 0,
     b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
   }
   try {
-    const balance = await getPhosphateBalanceField(fdm, { fieldInput, ...rest })
+    const balance = await getPhosphateBalanceField(fdm, {
+      fieldInput,
+      ...details,
+      ...(history.length > 0 ? { history } : {}),
+    })
     return { fieldResult: { ...base, balance }, fieldInput }
   } catch (error) {
     return {
@@ -376,63 +385,6 @@ export async function getPhosphateBalanceForFarm({
 }): Promise<PhosphateBalance> {
   const input = await collectInputForPhosphateBalance(fdm, principal_id, b_id_farm, timeframe)
   return calculatePhosphateBalance(fdm, input)
-}
-
-/** Number of years in the rolling average of the phosphate balance. */
-export const PHOSPHATE_AVERAGE_YEARS = 3
-
-/**
- * Average phosphate balance (kg P₂O₅ / ha / year) of the farm, or of one field, over the selected
- * year and the two years before it. Single years are dominated by weather-driven yield swings, so the
- * average gives a steadier picture.
- *
- * Returned only when every one of the three years has data: at least one fertilizer application or
- * harvest on a (non buffer strip) field, and a balance without a general error. Otherwise `null`, so
- * the average is not shown.
- *
- * @param year - The selected calendar year (the last year of the average).
- * @param b_id - Optional field; without it, the farm balance (area-weighted average per ha) is used.
- * @returns The average with its first and last year, or `null`.
- */
-export async function getPhosphateBalanceAverage({
-  fdm,
-  principal_id,
-  b_id_farm,
-  b_id,
-  year,
-}: {
-  fdm: FdmType
-  principal_id: PrincipalId
-  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
-  b_id?: Field["b_id"]
-  year: number
-}): Promise<{ balance: number; startYear: number; endYear: number } | null> {
-  const startYear = year - PHOSPHATE_AVERAGE_YEARS + 1
-  if (!isSupportedYear(startYear) || !isSupportedYear(year)) return null
-  const years = Array.from({ length: PHOSPHATE_AVERAGE_YEARS }, (_, i) => startYear + i)
-
-  const balances = await Promise.all(
-    years.map(async (y) => {
-      const input = await collectInputForPhosphateBalance(
-        fdm,
-        principal_id,
-        b_id_farm,
-        getTimeframeForYears(y, y),
-        b_id,
-      )
-      const hasData = input.fields.some(
-        (f) =>
-          !f.field.b_bufferstrip && (f.fertilizerApplications.length > 0 || f.harvests.length > 0),
-      )
-      if (!hasData) return null
-      const result = await calculatePhosphateBalance(fdm, input)
-      if (result.errorMessage || (b_id && result.hasErrors)) return null
-      return result.balance
-    }),
-  )
-  if (balances.some((b) => b === null)) return null
-  const total = (balances as number[]).reduce((a, b) => a + b, 0)
-  return { balance: total / PHOSPHATE_AVERAGE_YEARS, startYear, endYear: year }
 }
 
 export async function getNutrientAdviceForField({

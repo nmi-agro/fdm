@@ -9,6 +9,9 @@ import type {
   PhosphateCultivationDetail,
   PhosphateFertilizerDetail,
   PhosphateFieldInput,
+  PhosphateLongTermBalance,
+  PhosphateSaturation,
+  PhosphateSaturationThreshold,
 } from "./types"
 import pkg from "../../package"
 import { getPhosphateSoilTypeParameters } from "./alpha-max"
@@ -26,6 +29,18 @@ export type PhosphateBalanceFieldCalculationInput = {
   fertilizerDetails: PhosphateFertilizerDetail[]
   cultivationDetails: PhosphateCultivationDetail[]
   timeFrame: { start: Date; end: Date }
+  /** Optional: the same field in earlier years, for the long-term average balance */
+  history?: { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[]
+}
+
+/** Calendar year of a timeframe (taken at its middle, so time zones do not shift it). */
+function yearOfTimeFrame(timeFrame: { start: Date; end: Date }): number {
+  return new Date((timeFrame.start.getTime() + timeFrame.end.getTime()) / 2).getFullYear()
+}
+
+/** Whether a field has data for a year: at least one fertilizer application or harvest. */
+function hasBalanceData(fieldInput: PhosphateFieldInput): boolean {
+  return fieldInput.fertilizerApplications.length > 0 || fieldInput.harvests.length > 0
 }
 
 /** Phosphate supply by fertilizers: amount (kg / ha) × p_p_rt (g P2O5 / kg) / 1000, at 100% (no working coefficient). */
@@ -175,12 +190,56 @@ export function determinePhosphateFrame(a_p_al: number | null, fixation: number)
 }
 
 /**
+ * The balance terms of a field for one timeframe (kg P2O5 / ha), with the leaching from its surplus.
+ */
+function calculateFieldTerms(
+  fieldInput: PhosphateFieldInput,
+  fertilizerDetails: Map<string, PhosphateFertilizerDetail>,
+  cultivationDetails: Map<string, PhosphateCultivationDetail>,
+  timeFrame: { start: Date; end: Date },
+  isGrassland: boolean,
+  saturation: PhosphateSaturation,
+  threshold: PhosphateSaturationThreshold,
+  warnings: string[],
+) {
+  const fertilizers = calculateSupplyByFertilizers(
+    fieldInput.fertilizerApplications,
+    fertilizerDetails,
+  )
+  const harvests = calculateRemovalByHarvests(fieldInput, cultivationDetails, timeFrame, warnings)
+  const residues = calculateRemovalByResidues(fieldInput, cultivationDetails)
+  const removal = harvests.total.add(residues.total)
+  const mineralization = calculatePhosphateMineralization(
+    fieldInput,
+    cultivationDetails,
+    isGrassland,
+    timeFrame,
+  )
+  const deposition = calculatePhosphateDeposition(timeFrame)
+  const supply = fertilizers.total.add(mineralization.total).add(deposition.total)
+  const balance = supply.add(removal)
+  const leaching = calculatePhosphateLeaching(balance, saturation, threshold)
+  return {
+    fertilizers,
+    harvests,
+    residues,
+    removal,
+    mineralization,
+    deposition,
+    supply,
+    balance,
+    leaching,
+  }
+}
+
+/**
  * Calculates the phosphate balance of one field (kg P2O5 / ha for the timeframe), the phosphorus
  * saturation of the topsoil and the effect of the balance on the soil phosphorus stock.
  *
- * Balance = fertilizers + mineralisation + deposition − harvest − removed crop residues. Leaching and
- * runoff are estimated from the surplus and reported separately, not subtracted from the balance (as
- * nitrate in the nitrogen balance). The projection uses the balance plus leaching minus fixation.
+ * Balance = fertilizers + mineralisation + deposition − harvest − removed crop residues. Leaching is
+ * estimated from the surplus and reported separately, not subtracted from the balance (as nitrate in
+ * the nitrogen balance). The projection uses the long-term average balance (this year and the
+ * earlier years in `history` that have data, see `long_term`) plus leaching minus fixation.
  *
  * PROTOTYPE for discussion: parameters to be reviewed.
  *
@@ -223,6 +282,7 @@ export function calculatePhosphateBalanceField(
         residues: { total: 0, cultivations: [] },
       },
       leaching: { total: 0, risk: "unknown", fraction: 0, groundwater_factor: 0, factor: 0 },
+      long_term: { balance: 0, leaching: 0, years: [] },
       frame,
       saturation,
       projection: null,
@@ -232,31 +292,62 @@ export function calculatePhosphateBalanceField(
 
   const fertilizerDetails = new Map(input.fertilizerDetails.map((d) => [d.p_id_catalogue, d]))
   const cultivationDetails = new Map(input.cultivationDetails.map((d) => [d.b_lu_catalogue, d]))
-
-  const fertilizers = calculateSupplyByFertilizers(
-    fieldInput.fertilizerApplications,
-    fertilizerDetails,
-  )
-  const warnings: string[] = []
-  const harvests = calculateRemovalByHarvests(fieldInput, cultivationDetails, timeFrame, warnings)
-  const residues = calculateRemovalByResidues(fieldInput, cultivationDetails)
-  const removal = harvests.total.add(residues.total)
-  const mineralization = calculatePhosphateMineralization(
-    fieldInput,
-    cultivationDetails,
-    isGrassland,
-    timeFrame,
-  )
-  const deposition = calculatePhosphateDeposition(timeFrame)
-  const supply = fertilizers.total.add(mineralization.total).add(deposition.total)
-  const balance = supply.add(removal)
-
   const threshold = calculatePhosphateSaturationThreshold(saturation, fieldInput.soilAnalyses)
-  const leaching = calculatePhosphateLeaching(balance, saturation, threshold)
 
-  const years = Decimal.max(yearsInTimeframe(timeFrame), 1 / 365)
+  const warnings: string[] = []
+  const terms = calculateFieldTerms(
+    fieldInput,
+    fertilizerDetails,
+    cultivationDetails,
+    timeFrame,
+    isGrassland,
+    saturation,
+    threshold,
+    warnings,
+  )
+  const { fertilizers, harvests, residues, removal, mineralization, deposition, supply, balance } =
+    terms
+  const leaching = terms.leaching
+
+  // Long-term average over this year and the earlier years with data (crop rotation). Years without
+  // any fertilizer application or harvest are left out; this year is always included.
+  const perYear = (value: Decimal, frame: { start: Date; end: Date }) =>
+    value.dividedBy(Decimal.max(yearsInTimeframe(frame), 1 / 365))
+  const yearly = [
+    {
+      year: yearOfTimeFrame(timeFrame),
+      balance: perYear(balance, timeFrame),
+      leaching: perYear(new Decimal(leaching.total), timeFrame),
+    },
+  ]
+  for (const past of input.history ?? []) {
+    if (!hasBalanceData(past.fieldInput)) continue
+    const pastTerms = calculateFieldTerms(
+      past.fieldInput,
+      fertilizerDetails,
+      cultivationDetails,
+      past.timeFrame,
+      isGrassland,
+      saturation,
+      threshold,
+      [],
+    )
+    yearly.push({
+      year: yearOfTimeFrame(past.timeFrame),
+      balance: perYear(pastTerms.balance, past.timeFrame),
+      leaching: perYear(new Decimal(pastTerms.leaching.total), past.timeFrame),
+    })
+  }
+  const average = (pick: (y: (typeof yearly)[number]) => Decimal) =>
+    yearly.reduce((a, y) => a.add(pick(y)), new Decimal(0)).dividedBy(yearly.length)
+  const long_term: PhosphateLongTermBalance = {
+    balance: average((y) => y.balance).toNumber(),
+    leaching: average((y) => y.leaching).toNumber(),
+    years: yearly.map((y) => y.year).sort((a, b) => a - b),
+  }
+
   const projection = calculatePhosphateProjection(
-    balance.add(leaching.total).dividedBy(years).toNumber(),
+    long_term.balance + long_term.leaching,
     saturation,
     threshold,
     fieldInput.soilAnalyses,
@@ -291,6 +382,7 @@ export function calculatePhosphateBalanceField(
       residues: { total: residues.total.toNumber(), cultivations: toItems(residues.items) },
     },
     leaching,
+    long_term,
     frame,
     saturation,
     projection,
@@ -340,6 +432,7 @@ export function calculatePhosphateBalanceFieldsToFarm(
     supply: weighted((f) => f.supply.total),
     removal: weighted((f) => f.removal.total),
     leaching: weighted((f) => f.leaching.total),
+    long_term_balance: weighted((f) => f.long_term.balance),
     terms: {
       supply: {
         mineral: weighted((f) => f.supply.fertilizers.mineral.total),
@@ -392,11 +485,16 @@ export async function calculatePhosphateBalance(
           b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
         }
         try {
+          const history = (input.history ?? []).flatMap((year) => {
+            const past = year.fields.find((f) => f.field.b_id === fieldInput.field.b_id)
+            return past ? [{ timeFrame: year.timeFrame, fieldInput: past }] : []
+          })
           const balance = await getPhosphateBalanceField(fdm, {
             fieldInput,
             fertilizerDetails: input.fertilizerDetails,
             cultivationDetails: input.cultivationDetails,
             timeFrame: input.timeFrame,
+            ...(history.length > 0 ? { history } : {}),
           })
           return { ...base, balance }
         } catch (error) {

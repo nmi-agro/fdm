@@ -28,6 +28,7 @@ const YEAR_CLASSES = [
  * @param deltaPerYear - Change per year at the current balance.
  * @param bounds - Horizontal reference lines (e.g. the PSD threshold, or P-AL 25 and 45).
  * @param band - Optional shaded range on the y axis (e.g. the P-AL target level 25–45).
+ * @param boundColor - Colour of the bound lines and the band (default: the colour of the PSD threshold).
  * @param unit - Unit for the tooltip-free labels (e.g. "%").
  * @param min - Lower limit of the indicator (values are clamped).
  * @param max - Upper limit of the indicator (values are clamped).
@@ -39,6 +40,7 @@ export function PhosphateTrendChart({
   deltaPerYear,
   bounds,
   band,
+  boundColor = "var(--chart-1)",
   unit,
   min = 0,
   max = Number.POSITIVE_INFINITY,
@@ -48,6 +50,7 @@ export function PhosphateTrendChart({
   deltaPerYear: number
   bounds: { value: number; label: string }[]
   band?: { from: number; to: number }
+  boundColor?: string
   unit: string
   min?: number
   max?: number
@@ -98,7 +101,7 @@ export function PhosphateTrendChart({
           <ReferenceArea
             y1={band.from}
             y2={band.to}
-            fill="var(--chart-2)"
+            fill={boundColor}
             fillOpacity={0.08}
             ifOverflow="extendDomain"
           />
@@ -127,7 +130,7 @@ export function PhosphateTrendChart({
           <ReferenceLine
             key={b.label}
             y={b.value}
-            stroke="var(--chart-1)"
+            stroke={boundColor}
             strokeDasharray="6 4"
             label={{
               value: `${b.label} ${formatNumberNl(b.value)}${unit}`,

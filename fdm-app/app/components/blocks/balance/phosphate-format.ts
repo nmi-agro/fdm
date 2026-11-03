@@ -26,10 +26,10 @@ export const PHOSPHATE_UNIT = "kg P₂O₅ / ha"
 export const PHOSPHATE_HORIZON_YEARS = 20
 
 /**
- * Whether the balance of a field moves the phosphorus saturation degree (PSD) in the desired
- * direction: `on_track` when the PSD is above the field threshold and decreases, or is at or below
- * it and stays there within the horizon; `off_track` when it is above and does not decrease, or is
- * below and will exceed the threshold within the horizon; `unknown` without PSD or threshold.
+ * Whether the balance of a field fits the PSD aim: `on_track` when the PSD, at the long-term average
+ * balance, is at or below the field threshold at the end of the horizon (20 years), so when it is
+ * below and stays below, or is above and comes below within the horizon; `off_track` otherwise (also
+ * when it is above and decreases too slowly); `unknown` without PSD or threshold.
  */
 export type PhosphateTrendStatus = "on_track" | "off_track" | "unknown"
 
@@ -43,11 +43,22 @@ export function getPhosphateTrendStatus(balance: PhosphateBalanceField): Phospha
   const psd = balance.projection?.psd
   const threshold = psd?.threshold.value
   if (!psd || threshold === null || threshold === undefined) return "unknown"
-  const current = psd.current.value
-  const delta = psd.delta_per_year
-  if (current > threshold) return delta < 0 ? "on_track" : "off_track"
-  const exceedsWithinHorizon = delta > 0 && (threshold - current) / delta <= PHOSPHATE_HORIZON_YEARS
-  return exceedsWithinHorizon ? "off_track" : "on_track"
+  const atHorizon = psd.current.value + psd.delta_per_year * PHOSPHATE_HORIZON_YEARS
+  return atHorizon <= threshold ? "on_track" : "off_track"
+}
+
+/**
+ * Dutch description of the years in the long-term average balance, e.g. "2022–2026 (5 jaar)".
+ *
+ * @param years - The calendar years with data.
+ * @returns The description, or an empty string without years.
+ */
+export function formatLongTermYears(years: number[]): string {
+  if (years.length === 0) return ""
+  const first = years[0]
+  const last = years[years.length - 1]
+  const range = first === last ? `${first}` : `${first}–${last}`
+  return `${range} (${years.length} ${years.length === 1 ? "jaar" : "jaar met gegevens"})`
 }
 
 /** P-AL bounds (mg P₂O₅ / 100 g): below 25 low, 25–45 medium (target level), above 45 high. */

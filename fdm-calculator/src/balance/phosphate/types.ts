@@ -68,12 +68,36 @@ export type PhosphateFertilizerDetail = Pick<
   | "p_type"
 >
 
+/** The fields of one earlier year, for the long-term average balance. */
+export type PhosphateBalanceHistoryYear = {
+  timeFrame: { start: Date; end: Date }
+  fields: PhosphateFieldInput[]
+}
+
 /** Input of a farm (or a set of fields) for the phosphate balance. */
 export type PhosphateBalanceInput = {
   fields: PhosphateFieldInput[]
   fertilizerDetails: PhosphateFertilizerDetail[]
   cultivationDetails: PhosphateCultivationDetail[]
   timeFrame: { start: Date; end: Date }
+  /**
+   * Optional earlier years (most recent first). The projection then uses the average balance of
+   * the years with data (crop rotation), instead of the balance of this year only.
+   */
+  history?: PhosphateBalanceHistoryYear[]
+}
+
+/**
+ * Long-term average balance of a field (kg P2O5 / ha / year), over this year and the earlier years
+ * that have data (a fertilizer application or a harvest). Used for the projection.
+ */
+export type PhosphateLongTermBalance = {
+  /** Average balance per year */
+  balance: number
+  /** Average leaching per year (negative) */
+  leaching: number
+  /** Calendar years included in the average, oldest first */
+  years: number[]
 }
 
 /** One contribution to the balance (kg P2O5 / ha). */
@@ -229,6 +253,8 @@ export type PhosphateBalanceField = {
   }
   /** Leaching from the surplus; not included in `balance` */
   leaching: PhosphateLeaching
+  /** Average balance over the last years with data; the projection is based on it */
+  long_term: PhosphateLongTermBalance
   frame: PhosphateFrame
   saturation: PhosphateSaturation
   projection: PhosphateProjection | null
@@ -252,6 +278,8 @@ export type PhosphateBalance = {
   removal: number
   /** Leaching (not included in `balance`) */
   leaching: number
+  /** Long-term average balance per year (area-weighted over the fields) */
+  long_term_balance: number
   /** Area-weighted averages per ha of the terms of the balance (kg P2O5 / ha) */
   terms: {
     supply: {
