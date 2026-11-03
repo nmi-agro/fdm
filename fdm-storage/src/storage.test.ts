@@ -49,6 +49,13 @@ describe("createMemoryStorage", () => {
     expect(await storage.exists("b/1.png")).toBe(false)
   })
 
+  it("returns a URL for a stored file only", async () => {
+    const storage = createMemoryStorage()
+    await storage.upload("a/1.png", Buffer.from("x"), "image/png")
+    expect(await storage.signedReadUrl("a/1.png")).toBe("memory://a/1.png")
+    await expect(storage.signedReadUrl("missing")).rejects.toBeInstanceOf(FileNotFoundError)
+  })
+
   it("throws FileNotFoundError for a missing file", async () => {
     const storage = createMemoryStorage()
     await expect(storage.download("missing")).rejects.toBeInstanceOf(FileNotFoundError)
