@@ -100,7 +100,7 @@ const UPLOAD_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
  * analysis. The key includes the user, so only the user who uploaded it can link it.
  */
 function pendingReportKey(userId: string, uploadToken: string): string {
-  return `soil_analysis_pending/${userId}/${uploadToken}.pdf`
+  return `soil_analysis/pending/${userId}/${uploadToken}.pdf`
 }
 
 const SoilAnalysisSchema = z

@@ -25,7 +25,7 @@ Upload endpoints accept `multipart/form-data` instead of JSON, with their own li
 | `POST /soil-analyses/extract`                                   | 1 to 10 lab report PDFs           | **5 MB per file, 50 MB in total** |
 | `POST /farms/{b_id_farm}/fields/import/compare` and `.../apply` | `.shp`, `.shx`, `.dbf` and `.prj` | **20 MB**                         |
 
-Lab reports uploaded with `POST /soil-analyses/extract` that are not linked to a soil analysis are kept temporarily under `soil_analysis_pending/` in the file storage. Operators should remove them with a lifecycle rule on that prefix, for example after one day.
+Lab reports uploaded with `POST /soil-analyses/extract` that are not linked to a soil analysis are kept temporarily under `soil_analysis/pending/` in the file storage. This is the same bucket as the other files. Operators should remove these reports with a lifecycle rule on the prefix `soil_analysis/pending/`, for example after one day. The rule does not affect reports that are linked to a soil analysis, which are stored directly under `soil_analysis/`.
 
 ```json title="413 response — payload-too-large"
 {

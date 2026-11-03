@@ -98,8 +98,8 @@ describe("POST /soil-analyses/extract", () => {
     expect(body[0].upload_token).toMatch(TOKEN_PATTERN)
     expect(body[0].upload_token).not.toBe(body[1].upload_token)
     expect(storage.keys()).toEqual([
-      `soil_analysis_pending/user-1/${body[0].upload_token}.pdf`,
-      `soil_analysis_pending/user-1/${body[1].upload_token}.pdf`,
+      `soil_analysis/pending/user-1/${body[0].upload_token}.pdf`,
+      `soil_analysis/pending/user-1/${body[1].upload_token}.pdf`,
     ])
     expect(services.extractSoilAnalysesFromPdfs).toHaveBeenCalledTimes(2)
   })
@@ -184,7 +184,7 @@ describe("linking and downloading the lab report", () => {
     const { app, storage, services } = setup()
     const token = "5f0c8a52-3b9e-4d0e-9a51-2c6f1e7d8b90"
     await storage.upload(
-      `soil_analysis_pending/user-1/${token}.pdf`,
+      `soil_analysis/pending/user-1/${token}.pdf`,
       Buffer.from(PDF),
       "application/pdf",
     )
@@ -215,7 +215,7 @@ describe("linking and downloading the lab report", () => {
     })
     const token = "5f0c8a52-3b9e-4d0e-9a51-2c6f1e7d8b90"
     await storage.upload(
-      `soil_analysis_pending/user-1/${token}.pdf`,
+      `soil_analysis/pending/user-1/${token}.pdf`,
       Buffer.from(PDF),
       "application/pdf",
     )
@@ -261,7 +261,7 @@ describe("linking and downloading the lab report", () => {
     const { app, storage, services } = setup()
     const token = "5f0c8a52-3b9e-4d0e-9a51-2c6f1e7d8b90"
     await storage.upload(
-      `soil_analysis_pending/user-2/${token}.pdf`,
+      `soil_analysis/pending/user-2/${token}.pdf`,
       Buffer.from(PDF),
       "application/pdf",
     )
