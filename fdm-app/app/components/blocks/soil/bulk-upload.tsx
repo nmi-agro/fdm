@@ -10,7 +10,12 @@ import {
   createRowsFromAnalyses,
   type ExistingSoilAnalysis,
 } from "./bulk-upload-model"
-import { type BulkReadResult, readSoilAnalysisPdfs } from "./bulk-upload-read"
+import {
+  type BulkReadResult,
+  READ_CONNECTION_ERROR,
+  ReadRequestError,
+  readSoilAnalysisPdfs,
+} from "./bulk-upload-read"
 import { BulkSoilAnalysisReview } from "./bulk-upload-review"
 
 /**
@@ -67,7 +72,7 @@ export function BulkSoilAnalysisUpload({
     } catch (error) {
       results.push({
         fileName,
-        error: error instanceof Error ? error.message : "Het uitlezen is mislukt.",
+        error: error instanceof ReadRequestError ? error.message : READ_CONNECTION_ERROR,
       })
     }
     if (results.length === 0) {

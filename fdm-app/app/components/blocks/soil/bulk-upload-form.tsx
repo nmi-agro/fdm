@@ -9,6 +9,7 @@ import { Spinner } from "~/components/ui/spinner"
 import {
   type BulkReadResult,
   mergeUniqueFiles,
+  READ_CONNECTION_ERROR,
   ReadRequestError,
   readSoilAnalysisPdfs,
 } from "./bulk-upload-read"
@@ -102,7 +103,8 @@ export function BulkSoilAnalysisUploadForm({
           })
           answeredBatches++
         } catch (readError) {
-          lastError = readError instanceof Error ? readError.message : "Het uitlezen is mislukt."
+          lastError =
+            readError instanceof ReadRequestError ? readError.message : READ_CONNECTION_ERROR
           if (readError instanceof ReadRequestError && readError.status === 401) {
             reportUnanswered(files.slice(start), lastError)
             break
@@ -112,7 +114,8 @@ export function BulkSoilAnalysisUploadForm({
       }
       // PDFs without an answer are reported as not read, so none goes missing silently
       reportUnanswered(files, "Er kwam geen antwoord voor dit rapport.")
-      if (answeredBatches > 0) {
+      // Also when a portion broke off halfway, the reports read before that are kept
+      if (answeredBatches > 0 || results.some((result) => !result.error)) {
         onReadComplete(results)
       } else {
         setError(lastError ?? "Het uitlezen is mislukt.")

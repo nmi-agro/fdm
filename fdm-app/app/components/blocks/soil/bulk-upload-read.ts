@@ -5,6 +5,10 @@ export interface BulkReadResult {
   error?: string
 }
 
+/** Message for a read that failed without an answer from the server, such as a lost connection. */
+export const READ_CONNECTION_ERROR =
+  "De verbinding viel weg tijdens het uitlezen. Probeer het opnieuw."
+
 /** A request to read PDFs that failed as a whole, with the HTTP status of the response. */
 export class ReadRequestError extends Error {
   /**
