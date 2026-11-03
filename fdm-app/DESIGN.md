@@ -14,7 +14,7 @@ colors:
   muted-foreground: "#64748b"
   accent: "#f1f5f9"
   accent-foreground: "#0f172a"
-  destructive: "#ef4444"
+  destructive: "#dc2626"
   destructive-foreground: "#f8fafc"
   border: "#e2e8f0"
   input: "#e2e8f0"
@@ -142,7 +142,7 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 
 ### Status
 
-- **Destructive Red** (`#ef4444`): Errors, destructive actions, invalid fields. Muted to a darker red in dark mode.
+- **Destructive Red** (`#dc2626`): Errors, destructive actions, invalid fields. Dark enough for white button text and red text on white to meet AA (≥4.5:1). Muted to a darker red in dark mode.
 
 ### Named Rules
 

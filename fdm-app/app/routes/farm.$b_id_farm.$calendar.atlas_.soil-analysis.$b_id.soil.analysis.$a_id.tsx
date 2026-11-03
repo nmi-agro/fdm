@@ -5,6 +5,7 @@ import {
   getSoilAnalysisTitle,
 } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
+import { SoilSamplingMapCard } from "~/components/blocks/soil/soil-sampling-map-card"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Dialog, DialogTrigger } from "~/components/ui/dialog"
 import { Separator } from "~/components/ui/separator"
@@ -137,6 +138,12 @@ export default function FarmFieldSoilOverviewBlock() {
           </Dialog>
         )}
       </div>
+      <Separator />
+      <SoilSamplingMapCard
+        fieldGeometry={loaderData.field.b_geometry}
+        samplingZone={loaderData.soilAnalysis.b_sampling_geometry_zone}
+        samplingPoints={loaderData.soilAnalysis.b_sampling_geometry}
+      />
       <Separator />
       <SoilAnalysisForm
         soilAnalysis={loaderData.soilAnalysis}

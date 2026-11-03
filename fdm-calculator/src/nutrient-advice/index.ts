@@ -73,11 +73,10 @@ export async function requestNutrientAdvice({
   for (const item of currentSoilData as CurrentSoilData) {
     // Exclude 'a_nmin_cc' from soilData as it's handled separately
     if (item.parameter === "a_nmin_cc") {
-      if ((item.a_depth_lower ?? 0) <= 30) {
-        a_nmin_cc_d30 = item.value as number
-      } else if ((item.a_depth_lower ?? 0) <= 60) {
-        a_nmin_cc_d60 = item.value as number
-      }
+      // Nmin is reported per layer. Zones sampled at different depths must not be mixed, so the
+      // value of each layer is the area-weighted mean of the sources sampled to that depth.
+      a_nmin_cc_d30 = weightedNminForLayer(item.sources, 0, 30) ?? a_nmin_cc_d30
+      a_nmin_cc_d60 = weightedNminForLayer(item.sources, 30, 60) ?? a_nmin_cc_d60
       continue // Skip adding a_nmin_cc to soilData
     }
     if (item.value !== null && item.value !== undefined) {
@@ -170,3 +169,31 @@ export const getNutrientAdvice = withCalculationCache(
   pkg.calculatorVersion,
   ["nmiApiKey"],
 )
+
+/**
+ * Returns the area-weighted mean Nmin of the sources whose lower sampling depth lies in
+ * `(minDepth, maxDepth]` cm (a missing depth counts as 0, the top layer), or `undefined` when no
+ * source in that layer has a value.
+ *
+ * @param sources - The contributing analyses of the current Nmin value.
+ * @param minDepth - Lower bound of the layer (exclusive), in cm; 0 includes analyses without depth.
+ * @param maxDepth - Upper bound of the layer (inclusive), in cm.
+ */
+function weightedNminForLayer(
+  sources: CurrentSoilData[number]["sources"],
+  minDepth: number,
+  maxDepth: number,
+): number | undefined {
+  const inLayer = sources.filter((source) => {
+    const depth = source.a_depth_lower ?? 0
+    const inRange = minDepth === 0 ? depth <= maxDepth : depth > minDepth && depth <= maxDepth
+    return inRange && typeof source.value === "number"
+  })
+  if (inLayer.length === 0) return undefined
+  const totalFraction = inLayer.reduce((sum, source) => sum + source.area_fraction, 0)
+  if (totalFraction <= 0) return inLayer[0].value as number
+  return (
+    inLayer.reduce((sum, source) => sum + (source.value as number) * source.area_fraction, 0) /
+    totalFraction
+  )
+}

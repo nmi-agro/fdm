@@ -8,11 +8,11 @@ import {
   useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { FieldPageHandle } from "~/lib/field-page"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
 import { getSoilParametersForSoilAnalysisType } from "~/components/blocks/soil/parameters.server"
 import { Button } from "~/components/ui/button"
-import { Separator } from "~/components/ui/separator"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -99,6 +99,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+/** The field layout names the form under the field name. */
+export const handle: FieldPageHandle = {
+  fieldDescription: (loaderData) => {
+    const type = (loaderData as { soilAnalysisType?: string } | undefined)?.soilAnalysisType
+    const title = SOIL_ANALYSIS_TYPE_TITLES[type as keyof typeof SOIL_ANALYSIS_TYPE_TITLES]
+    return title ? `${title}: neem de waarden over uit het rapport van het lab` : undefined
+  },
+}
+
+/** Page titles per type of soil analysis form. */
+const SOIL_ANALYSIS_TYPE_TITLES = {
+  standard: "Standaard bodemanalyse invoeren",
+  nmin: "Nmin-bemonstering invoeren",
+  derogation: "Analyse voor derogatie invoeren",
+  all: "Bodemanalyse invoeren",
+} as const
+
 /**
  * Component that renders the soil analysis creation form for a specific field.
  *
@@ -111,28 +128,12 @@ export default function FarmFieldSoilOverviewBlock() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-medium">
-            {loaderData.soilAnalysisType === "nmin"
-              ? "Bodemanalyse voor Nmin"
-              : loaderData.soilAnalysisType === "derogation"
-                ? "Bodemanalyse voor derogatie"
-                : "Bodemanalyse"}
-          </h3>
-          <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
-        </div>
-        <Button
-          nativeButton={false}
-          render={
-            <NavLink to="../soil/analysis/new">
-              <ArrowLeft />
-              Terug
-            </NavLink>
-          }
-        />
-      </div>
-      <Separator />
+      <Button asChild variant="ghost" size="sm" className="-ml-3">
+        <NavLink to="../soil/analysis/new">
+          <ArrowLeft />
+          Andere manier kiezen
+        </NavLink>
+      </Button>
       <SoilAnalysisForm
         soilAnalysis={undefined}
         soilParameterDescription={loaderData.soilParameterDescription}
@@ -145,13 +146,12 @@ export default function FarmFieldSoilOverviewBlock() {
 /**
  *  Action function to add a new soil analysis.
  *
- * his function creates a new soil analysis based on the provided form data.
+ * This function creates a new soil analysis based on the provided form data.
  * It validates the data, retrieves the necessary IDs from the route parameters,
  * and uses the `addSoilAnalysis` function from `@nmi-agro/fdm-core` to perform the creation.
  *
  * @param params - The route parameters, including `b_id` and `b_id_farm`.
- * @returns A redirect response after successful creation.
- * @returns A redirect response after successful update.
+ * @returns A redirect to the new soil analysis after successful creation.
  * @throws {Response} If any ID is missing (HTTP 400).
  * @throws {Response} If there is an error during the creation (HTTP 500).
  */
@@ -182,7 +182,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const formValues = await extractFormValuesFromRequest(request, FormSchema)
 
     // add soil analysis
-    await addSoilAnalysis(
+    const a_id = await addSoilAnalysis(
       fdm,
       session.principal_id,
       undefined,
@@ -201,8 +201,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
       calendar: String(params.calendar),
     })
 
-    return redirectWithSuccess("../soil", {
-      message: "Bodemanalyse is toegevoegd! 🎉",
+    // Show the saved analysis, so the user sees what was stored
+    return redirectWithSuccess(`../soil/analysis/${a_id}`, {
+      message: "Bodemanalyse toegevoegd",
     })
   } catch (error) {
     return handleActionError(error)

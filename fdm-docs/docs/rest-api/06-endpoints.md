@@ -120,13 +120,17 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 ## Soil analyses
 
-| Method   | Path                               | Description                          | `fdm-core` mapping   |
-| -------- | ---------------------------------- | ------------------------------------ | -------------------- |
-| `GET`    | `/api/fields/{b_id}/soil-analyses` | List soil analyses for a field       | `getSoilAnalyses`    |
-| `POST`   | `/api/fields/{b_id}/soil-analyses` | Add a soil analysis to a field       | `addSoilAnalysis`    |
-| `GET`    | `/api/soil-analyses/{a_id}`        | Get a single soil analysis           | `getSoilAnalysis`    |
-| `PATCH`  | `/api/soil-analyses/{a_id}`        | Update a soil analysis               | `updateSoilAnalysis` |
-| `DELETE` | `/api/soil-analyses/{a_id}`        | Delete a soil analysis (hard delete) | `removeSoilAnalysis` |
+| Method   | Path                                         | Description                                  | `fdm-core` mapping          |
+| -------- | -------------------------------------------- | -------------------------------------------- | --------------------------- |
+| `GET`    | `/api/fields/{b_id}/soil-analyses`           | List soil analyses for a field               | `getSoilAnalyses`           |
+| `POST`   | `/api/fields/{b_id}/soil-analyses`           | Add a soil analysis to a field               | `addSoilAnalysis`           |
+| `GET`    | `/api/soil-analyses/{a_id}`                  | Get a single soil analysis                   | `getSoilAnalysis`           |
+| `PATCH`  | `/api/soil-analyses/{a_id}`                  | Update a soil analysis                       | `updateSoilAnalysis`        |
+| `DELETE` | `/api/soil-analyses/{a_id}`                  | Delete a soil analysis (hard delete)         | `removeSoilAnalysis`        |
+| `GET`    | `/api/fields/{b_id}/current-soil-data`       | Get the current value of each soil parameter | `getCurrentSoilData`        |
+| `GET`    | `/api/fields/{b_id}/current-soil-data/zones` | Get the current soil data per sampling zone  | `getCurrentSoilDataPerZone` |
+
+Soil analyses accept and return the optional sampling geometries `b_sampling_geometry` (GeoJSON `MultiPoint`) and `b_sampling_geometry_zone` (GeoJSON `Polygon` or `MultiPolygon` on input, `MultiPolygon` on output), both in WGS84. The current soil data lists the contributing analyses per parameter in `sources`, and combines sampling zones by area; see [Soil analyses](../core-concepts/07-soil-analyses.md#current-soil-data-and-sampling-zones).
 
 ---
 

@@ -11,6 +11,7 @@ import * as Sentry from "@sentry/node"
 import { nanoid } from "nanoid"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
+import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import { commonErrorResponses, ProblemDetailsSchema } from "../schemas"
 
@@ -59,36 +60,52 @@ const FarmMetricSchema = z.object({
 
 const FieldIndicatorsSchema = z
   .object({
-    b_id: z.string(),
-    year: z.number().int(),
+    b_id: FieldIdSchema,
+    year: z.number().int().describe("Calendar year the results apply to."),
     is_excluded: z
       .boolean()
       .describe(
         "`true` for buffer strips and nature fields, which have no indicator score. `indicators` and `aggregations` are then empty.",
       ),
-    indicators: z.array(IndicatorScoreSchema),
-    aggregations: z.array(AggregationScoreSchema),
+    indicators: z.array(IndicatorScoreSchema).describe("Score per soil quality indicator."),
+    aggregations: z
+      .array(AggregationScoreSchema)
+      .describe("Scores aggregated per soil function and overall."),
   })
   .openapi("FieldIndicators")
 
 const FarmIndicatorsSchema = z
   .object({
-    b_id_farm: z.string(),
-    year: z.number().int(),
+    b_id_farm: FarmIdSchema,
+    year: z.number().int().describe("Calendar year the results apply to."),
     fields: z
       .array(
         z.object({
-          b_id: z.string(),
+          b_id: FieldIdSchema,
           b_area: z.number().nullable().describe("Field area in hectares."),
-          indicators: z.array(IndicatorScoreSchema),
-          aggregations: z.array(AggregationScoreSchema),
+          indicators: z.array(IndicatorScoreSchema).describe("Score per soil quality indicator."),
+          aggregations: z
+            .array(AggregationScoreSchema)
+            .describe("Scores aggregated per soil function and overall."),
         }),
       )
       .describe("Eligible fields only; buffer strips and nature fields are left out."),
     farm: z
       .object({
-        indicators: z.array(FarmMetricSchema.extend({ indicator_id: z.string() })),
-        aggregations: z.array(FarmMetricSchema.extend({ aggregation_id: z.string() })),
+        indicators: z
+          .array(
+            FarmMetricSchema.extend({
+              indicator_id: z.string().describe("Indicator identifier, e.g. `C_N`."),
+            }),
+          )
+          .describe("Area-weighted score per soil quality indicator."),
+        aggregations: z
+          .array(
+            FarmMetricSchema.extend({
+              aggregation_id: z.string().describe("Aggregation identifier, e.g. `S_BLN`."),
+            }),
+          )
+          .describe("Area-weighted score per soil function and overall."),
       })
       .describe(
         "Area-weighted farm scores. Each metric uses only the eligible fields with a score for it and a positive area; metrics without contributing fields are omitted.",
@@ -97,12 +114,12 @@ const FarmIndicatorsSchema = z
   .openapi("FarmIndicators")
 
 const ImpactSchema = z.object({
-  indicator_id: z.string(),
+  indicator_id: z.string().describe("Indicator identifier, e.g. `C_N`."),
   measure_impact: z.number().describe("Predicted positive impact on the indicator (0..1 scale)."),
 })
 
 const RecommendationImpactSchema = z.object({
-  indicator_id: z.string(),
+  indicator_id: z.string().describe("Indicator identifier, e.g. `C_N`."),
   measure_impact: z
     .number()
     .describe("Predicted impact on the indicator (0..1 scale); can be negative."),
@@ -111,17 +128,42 @@ const RecommendationImpactSchema = z.object({
 const MeasureOptionSchema = z
   .object({
     m_id: z.string().describe("Catalogue identifier; use it to create a measure on the field."),
-    m_source: z.string(),
-    m_name: z.string(),
-    m_description: z.string().nullable(),
-    m_summary: z.string().nullable(),
-    m_source_url: z.string().nullable(),
-    m_conflicts: z.array(z.string()).nullable(),
-    m_stage_applicability: z.enum(["field", "farm"]).nullable(),
-    applicability: z.object({
-      status: z.enum(["applicable", "not yet applicable", "inapplicable", "unknown"]),
-      message: z.string().describe("Explanation from the applicability check; may be empty."),
-    }),
+    m_source: z.string().describe("Catalogue the measure comes from, e.g. 'bln'."),
+    m_name: z.string().describe("Name of the measure."),
+    m_description: z
+      .string()
+      .nullable()
+      .describe("Detailed description of the measure and its effects. `null` when not available."),
+    m_summary: z
+      .string()
+      .nullable()
+      .describe("Short summary of the measure. `null` when not available."),
+    m_source_url: z
+      .string()
+      .nullable()
+      .describe("Link to a source that describes the measure. `null` when not available."),
+    m_conflicts: z
+      .array(z.string())
+      .nullable()
+      .describe(
+        "Catalogue identifiers of measures that cannot be combined with this measure. `null` when none are known.",
+      ),
+    m_stage_applicability: z
+      .enum(["field", "farm"])
+      .nullable()
+      .describe(
+        "Whether the measure is taken per field or for the whole farm. `null` when unknown.",
+      ),
+    applicability: z
+      .object({
+        status: z
+          .enum(["applicable", "not yet applicable", "inapplicable", "unknown"])
+          .describe(
+            "Result of the applicability check for this field: 'applicable', 'not yet applicable' (conditions can still be met), 'inapplicable' or 'unknown' (not enough data).",
+          ),
+        message: z.string().describe("Explanation from the applicability check; may be empty."),
+      })
+      .describe("Whether the measure can be taken on this field."),
     active_measures: z
       .array(z.string())
       .describe("Instance IDs of adopted measures with this catalogue ID in the selected year."),
@@ -140,7 +182,7 @@ const MeasureOptionSchema = z
       ),
     recommendation: z
       .object({
-        rank: z.number().int().min(1).max(5),
+        rank: z.number().int().min(1).max(5).describe("Rank of the recommendation, 1 (best) to 5."),
         aggregate_impact: z
           .number()
           .describe(
@@ -161,10 +203,12 @@ const MeasureOptionSchema = z
 
 const FieldMeasureOptionsSchema = z
   .object({
-    b_id: z.string(),
-    year: z.number().int(),
+    b_id: FieldIdSchema,
+    year: z.number().int().describe("Calendar year the results apply to."),
     is_excluded: z.boolean().describe("`true` for excluded fields; `data` is then empty."),
-    data: z.array(MeasureOptionSchema),
+    data: z
+      .array(MeasureOptionSchema)
+      .describe("Measures from the catalogue, with their applicability and predicted impact."),
   })
   .openapi("FieldMeasureOptions")
 
@@ -193,7 +237,7 @@ const fieldIndicatorsRoute = createRoute({
   description:
     "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips and nature fields return `is_excluded: true` with empty arrays. Counts against the `nmi` rate limit.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id: z.string() }), query: YearQuerySchema },
+  request: { params: z.object({ b_id: FieldIdSchema }), query: YearQuerySchema },
   responses: {
     200: {
       description: "indicator scores of the field.",
@@ -212,7 +256,7 @@ const farmIndicatorsRoute = createRoute({
   description:
     "Returns indicator scores of all eligible fields of a farm and the area-weighted farm scores for a calendar year. Fields that cannot be scored fail the whole request with 503. A farm without eligible fields returns empty `fields` and empty farm aggregates. Counts as one request against the `nmi` rate limit, regardless of the number of fields.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: z.string() }), query: YearQuerySchema },
+  request: { params: z.object({ b_id_farm: FarmIdSchema }), query: YearQuerySchema },
   responses: {
     200: {
       description: "indicator scores of the farm.",
@@ -231,7 +275,7 @@ const fieldMeasureOptionsRoute = createRoute({
   description:
     "Lists field-level catalogue measures with descriptions, applicability, active and conflicting status, predicted impacts and recommendations for a calendar year. These are catalogue candidates, not adopted measures; use `m_id` of a selectable option with `POST /fields/{b_id}/measures`. Predicted impacts are advice for this field and year, not stored properties. Counts against the `nmi` rate limit.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id: z.string() }), query: YearQuerySchema },
+  request: { params: z.object({ b_id: FieldIdSchema }), query: YearQuerySchema },
   responses: {
     200: {
       description: "Measure options of the field.",

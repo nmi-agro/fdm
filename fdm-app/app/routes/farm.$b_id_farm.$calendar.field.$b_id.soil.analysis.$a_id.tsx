@@ -5,17 +5,32 @@ import {
   getSoilParametersDescription,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale/nl"
+import { Pencil } from "lucide-react"
+import {
+  type ActionFunctionArgs,
+  data,
+  type LoaderFunctionArgs,
+  NavLink,
+  useLoaderData,
+  useSearchParams,
+} from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { FieldPageHandle } from "~/lib/field-page"
+import { SoilAnalysisValues } from "~/components/blocks/soil/analysis-values"
 import {
   getSoilAnalysisDownloadName,
   getSoilAnalysisTitle,
 } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
+import { SAMPLING_PARAMETERS } from "~/components/blocks/soil/parameter-groups"
+import { SoilSamplingMapCard } from "~/components/blocks/soil/soil-sampling-map-card"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
-import { Separator } from "~/components/ui/separator"
+import { Button } from "~/components/ui/button"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -81,17 +96,22 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // Get the soil analyses
     const soilAnalysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
 
-    if (!soilAnalysis) {
+    // BodemConditieScore assessments have their own pages and are not edited as a soil analysis
+    if (!soilAnalysis || isBcsAnalysis(soilAnalysis)) {
       throw data("Soil analysis not found", {
         status: 404,
         statusText: "Soil analysis not found",
       })
     }
 
-    // Get soil parameter descriptions and filter on the available soil parameters
+    // The parameters with a value (including 0), plus the sampling details so that missing ones
+    // can be filled in; calculated parameters (d_) are never edited
+    const values = soilAnalysis as unknown as Record<string, unknown>
     const soilParameterDescription = getSoilParametersDescription().filter(
       (item: { parameter: string }) =>
-        (soilAnalysis as unknown as Record<string, unknown>)[item.parameter],
+        !item.parameter.startsWith("d_") &&
+        ((SAMPLING_PARAMETERS as readonly string[]).includes(item.parameter) ||
+          (values[item.parameter] !== null && values[item.parameter] !== undefined)),
     )
 
     const soilAnalysisWritePermission = await checkPermission(
@@ -117,48 +137,102 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 }
 
 /**
- * Component that renders the soil analysis form.
- *
- * This component displays the soil analysis form
- *
+ * Describes a soil analysis for under the field name: sampling date, laboratory and depth.
  */
-export default function FarmFieldSoilOverviewBlock() {
+function describeSoilAnalysis(loaderData: unknown): string | undefined {
+  const data = loaderData as Awaited<ReturnType<typeof loader>> | undefined
+  if (!data?.soilAnalysis) return undefined
+  const { soilAnalysis, soilParameterDescription } = data
+  const sourceLabel = soilParameterDescription
+    .find((x) => x.parameter === "a_source")
+    ?.options?.find((option: { value: string }) => option.value === soilAnalysis.a_source)?.label
+  const samplingDate = soilAnalysis.b_sampling_date ? new Date(soilAnalysis.b_sampling_date) : null
+  const depth =
+    typeof soilAnalysis.a_depth_lower === "number"
+      ? `${soilAnalysis.a_depth_upper ?? 0}–${soilAnalysis.a_depth_lower} cm`
+      : null
+  return [
+    samplingDate
+      ? `Bodemanalyse van ${format(samplingDate, "d MMMM yyyy", { locale: nl })}`
+      : "Bodemanalyse",
+    sourceLabel ? `Gemeten door ${sourceLabel}` : null,
+    depth ? `diepte ${depth}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
+}
+
+/** The field layout shows the sampling date, laboratory and depth under the field name. */
+export const handle: FieldPageHandle = { fieldDescription: describeSoilAnalysis }
+
+/**
+ * Page of one soil analysis. By default it shows the values read-only, grouped by topic, next to a
+ * map of where the field was sampled. Users who may edit the analysis switch to the form with
+ * "Bewerken" (`?modus=bewerken`).
+ */
+export default function FarmFieldSoilAnalysisBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const { soilAnalysis, soilParameterDescription, soilAnalysisWritePermission } = loaderData
+  const [searchParams] = useSearchParams()
+  const isEditing = soilAnalysisWritePermission && searchParams.get("modus") === "bewerken"
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between gap-2">
-        <div>
-          <h3 className="text-lg font-medium">Bodem</h3>
-          <p className="text-muted-foreground text-sm">
-            Bekijk en bewerk de gegevens van deze bodemanalyse
-          </p>
-        </div>
-        {loaderData.soilAnalysis.a_file_path && (
+      <div className="flex flex-wrap items-center justify-end gap-2 empty:hidden">
+        {soilAnalysis.a_file_path && (
           <Dialog>
-            <DialogTrigger render={<ViewPdfButton />} />
+            <DialogTrigger asChild>
+              <ViewPdfButton variant="outline" size="sm" />
+            </DialogTrigger>
             <PdfViewerDialogContent
-              downloadUrl={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
+              downloadUrl={`/api/soil-analysis/download/${soilAnalysis.a_id}.pdf`}
               filename={getSoilAnalysisDownloadName(
-                loaderData.soilAnalysis,
+                soilAnalysis,
                 loaderData.field.b_name,
-                loaderData.soilParameterDescription,
+                soilParameterDescription,
               )}
-              title={getSoilAnalysisTitle(
-                loaderData.soilAnalysis,
-                loaderData.soilParameterDescription,
-              )}
+              title={getSoilAnalysisTitle(soilAnalysis, soilParameterDescription)}
             />
           </Dialog>
         )}
+        {soilAnalysisWritePermission && !isEditing && (
+          <Button asChild size="sm">
+            <NavLink to={{ search: "?modus=bewerken" }}>
+              <Pencil />
+              Bewerken
+            </NavLink>
+          </Button>
+        )}
       </div>
-      <Separator />
-      <SoilAnalysisForm
-        soilAnalysis={loaderData.soilAnalysis}
-        soilParameterDescription={loaderData.soilParameterDescription}
-        action="."
-        editable={loaderData.soilAnalysisWritePermission}
-      />
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)] xl:items-start">
+        <div className="min-w-0">
+          {isEditing ? (
+            <SoilAnalysisForm
+              soilAnalysis={soilAnalysis}
+              soilParameterDescription={soilParameterDescription}
+              action="."
+              secondaryAction={
+                <Button asChild variant="ghost">
+                  <NavLink to={{ search: "" }}>Annuleren</NavLink>
+                </Button>
+              }
+            />
+          ) : (
+            <SoilAnalysisValues
+              soilAnalysis={soilAnalysis}
+              soilParameterDescription={soilParameterDescription}
+            />
+          )}
+        </div>
+        <aside className="xl:sticky xl:top-4">
+          <SoilSamplingMapCard
+            fieldGeometry={loaderData.field.b_geometry}
+            samplingZone={soilAnalysis.b_sampling_geometry_zone}
+            samplingPoints={soilAnalysis.b_sampling_geometry}
+            mapHeight="240px"
+          />
+        </aside>
+      </div>
     </div>
   )
 }
@@ -214,8 +288,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     //update Soilanalysis
     await updateSoilAnalysis(fdm, session.principal_id, a_id, formValues)
 
-    return redirectWithSuccess("../soil", {
-      message: "Bodemanalyse is bijgewerkt! 🎉",
+    // Back to the read view of this analysis, so the user sees what was stored
+    return redirectWithSuccess(`../soil/analysis/${a_id}`, {
+      message: "Bodemanalyse bijgewerkt",
     })
   } catch (error) {
     return handleActionError(error)

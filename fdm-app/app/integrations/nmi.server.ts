@@ -1,8 +1,9 @@
 import type { SoilParameterEstimatesResponse } from "@nmi-agro/fdm-calculator"
 /* eslint-disable typescript/no-redundant-type-constituents -- 'any' is used intentionally inside custom return types to represent raw third-party JSON properties that cannot be typed ahead of time. */
 import type { FdmType, FieldGeometry } from "@nmi-agro/fdm-core"
-import type { Feature, Geometry } from "geojson"
+import type { Feature, Geometry, MultiPoint, MultiPolygon, Polygon } from "geojson"
 import { getSoilParameterEstimates, soilReaderClient } from "@nmi-agro/fdm-calculator"
+import { wktToGeoJSON } from "@terraformer/wkt"
 import centroid from "@turf/centroid"
 import proj4 from "proj4"
 import { serverConfig } from "~/lib/config.server"
@@ -13,6 +14,103 @@ if (!proj4.defs("EPSG:28992")) {
   proj4.defs(
     "EPSG:28992",
     "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.2369,50.0087,465.658,-0.406857330322398,0.350732676542563,-1.8703473836068,4.0812 +units=m +no_defs",
+  )
+}
+
+/**
+ * Parses a sampling geometry from the SoilReader response (WKT in WGS84) into GeoJSON.
+ *
+ * A single `POINT` is returned as a `MultiPoint` when a MultiPoint is expected. Only longitude and
+ * latitude are kept, also when the WKT has a height. Missing, empty, malformed or unexpected
+ * geometries and positions outside WGS84 return `null`, so that the upload itself does not fail on
+ * them.
+ *
+ * @param wkt - The WKT string from the response.
+ * @param expected - The accepted GeoJSON geometry types.
+ * @returns The GeoJSON geometry, or `null`.
+ */
+export function parseSamplingGeometry<T extends MultiPoint | Polygon | MultiPolygon>(
+  wkt: unknown,
+  expected: T["type"][],
+): T | null {
+  if (typeof wkt !== "string" || wkt.trim() === "") return null
+  try {
+    let geometry = wktToGeoJSON(wkt.trim()) as Geometry
+    if (geometry.type === "Point" && expected.includes("MultiPoint")) {
+      geometry = { type: "MultiPoint", coordinates: [geometry.coordinates] }
+    }
+    if (!expected.includes(geometry.type as T["type"])) {
+      console.warn(`Unexpected sampling geometry type: ${geometry.type}`)
+      return null
+    }
+    // Keep longitude and latitude of every position (WKT may add a height) and check them
+    const toLonLat = (position: unknown): [number, number] | null => {
+      if (!Array.isArray(position) || position.length < 2) return null
+      const [lon, lat] = position as number[]
+      return Number.isFinite(lon) &&
+        Number.isFinite(lat) &&
+        Math.abs(lon) <= 180 &&
+        Math.abs(lat) <= 90
+        ? [lon, lat]
+        : null
+    }
+    const toRing = (ring: unknown): [number, number][] | null => {
+      if (!Array.isArray(ring) || ring.length < 4) return null
+      const positions = ring.map(toLonLat)
+      return positions.every((position) => position !== null)
+        ? (positions as [number, number][])
+        : null
+    }
+    const toPolygon = (polygon: unknown): [number, number][][] | null => {
+      if (!Array.isArray(polygon) || polygon.length === 0) return null
+      const rings = polygon.map(toRing)
+      return rings.every((ring) => ring !== null) ? (rings as [number, number][][]) : null
+    }
+
+    if (geometry.type === "MultiPoint") {
+      const points = geometry.coordinates.map(toLonLat)
+      if (points.length === 0 || points.some((point) => point === null)) {
+        console.warn("Sampling geometry is empty or does not have WGS84 coordinates")
+        return null
+      }
+      return { type: "MultiPoint", coordinates: points as [number, number][] } as unknown as T
+    }
+    if (geometry.type === "Polygon") {
+      const polygon = toPolygon(geometry.coordinates)
+      if (!polygon) {
+        console.warn("Sampling zone is empty or does not have WGS84 coordinates")
+        return null
+      }
+      return { type: "Polygon", coordinates: polygon } as unknown as T
+    }
+    if (geometry.type === "MultiPolygon") {
+      const polygons = geometry.coordinates.map(toPolygon)
+      if (polygons.length === 0 || polygons.some((polygon) => polygon === null)) {
+        console.warn("Sampling zone is empty or does not have WGS84 coordinates")
+        return null
+      }
+      return {
+        type: "MultiPolygon",
+        coordinates: polygons as [number, number][][][],
+      } as unknown as T
+    }
+    return null
+  } catch (e) {
+    console.warn("Failed to parse sampling geometry:", e)
+    return null
+  }
+}
+
+/**
+ * Maps the sampling geometries of a SoilReader field onto the extracted soil analysis.
+ */
+function addSamplingGeometries(soilAnalysis: Record<string, unknown>, field: any) {
+  soilAnalysis.b_sampling_geometry = parseSamplingGeometry<MultiPoint>(field.b_sampling_geometry, [
+    "MultiPoint",
+  ])
+  soilAnalysis.b_sampling_geometry_zone = parseSamplingGeometry<Polygon | MultiPolygon>(
+    field.b_sampling_geometry_zone,
+    ["Polygon", "MultiPolygon"],
   )
 }
 
@@ -160,6 +258,9 @@ export async function extractSoilAnalysisAndBuffer(formData: FormData) {
       }
     }
   }
+
+  // Locations of the subsamples and the area the analysis represents
+  addSamplingGeometries(soilAnalysis, field)
 
   return { buffer, soilAnalysis }
 }
@@ -336,6 +437,9 @@ export async function extractBulkSoilAnalyses(formData: FormData) {
         }
       }
     }
+
+    // Locations of the subsamples and the area the analysis represents
+    addSamplingGeometries(soilAnalysis, field)
 
     return soilAnalysis
   })

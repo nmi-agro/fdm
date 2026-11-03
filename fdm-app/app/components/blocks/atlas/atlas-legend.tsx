@@ -5,6 +5,7 @@ import { ChevronUp, TriangleAlert } from "lucide-react"
 import { type ReactNode, useId, useMemo, useState } from "react"
 import { Bar, BarChart, type BarShapeProps, Rectangle, XAxis, YAxis } from "recharts"
 import type { AdviceProgressStatus } from "~/components/blocks/nutrient-advice/progress-bar"
+import { SAMPLING_POINT_COLOR } from "~/components/blocks/soil/soil-sampling-colors"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
@@ -31,6 +32,7 @@ import {
   getShadingParameterMapper,
   SHADED_SOIL_TYPES,
   type ShadedSoilParameters,
+  SOIL_SAMPLING_COPY,
   transformGradientStops,
 } from "./atlas-soil-analysis"
 
@@ -215,6 +217,8 @@ interface SoilAnalysisLegendProps {
   soilParametersDescriptions: SoilParameterDescription
   min?: number
   max?: number
+  /** Adds the sampling zones and points to the legend. */
+  showSampling?: boolean
 }
 
 export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
@@ -260,6 +264,25 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
             <TriangleAlert className="h-4 w-4 text-orange-500" />
             Geen data op hele bedrijf
           </p>
+        )}
+        {props.showSampling && (
+          <ul className="text-muted-foreground mt-2 space-y-1 border-t pt-2 text-xs">
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-4 rounded-[2px] border border-dashed border-white bg-slate-500 ring-1 ring-slate-300"
+                aria-hidden
+              />
+              {SOIL_SAMPLING_COPY.legendZone}
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block size-2.5 rounded-full ring-2 ring-white"
+                style={{ backgroundColor: SAMPLING_POINT_COLOR }}
+                aria-hidden
+              />
+              {SOIL_SAMPLING_COPY.legendPoint}
+            </li>
+          </ul>
         )}
       </CardContent>
     </Card>
