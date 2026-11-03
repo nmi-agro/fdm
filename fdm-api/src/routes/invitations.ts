@@ -10,7 +10,12 @@ import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError, getErrorMessages } from "../error"
 import { FarmIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
-import { commonErrorResponses, serializeDate, writeErrorResponses } from "../schemas"
+import {
+  commonErrorResponses,
+  problemResponseDefinition,
+  serializeDate,
+  writeErrorResponses,
+} from "../schemas"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
@@ -90,11 +95,9 @@ function respondRoute(action: "accept" | "decline") {
       204: {
         description: action === "accept" ? "Invitation accepted." : "Invitation declined.",
       },
-      409: {
-        description:
-          "Conflict — the invitation has already been accepted, declined or has expired.",
-        content: writeErrorResponses[422].content,
-      },
+      409: problemResponseDefinition(
+        "Conflict — the invitation has already been accepted, declined or has expired.",
+      ),
       ...commonErrorResponses,
       422: writeErrorResponses[422],
     },

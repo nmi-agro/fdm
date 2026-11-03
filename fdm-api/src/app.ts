@@ -24,6 +24,7 @@ import { registerInvitationRoutes } from "./routes/invitations"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
+import { registerSoilImageRoutes } from "./routes/soil-images"
 
 /**
  * Reads the API changelog (markdown) that is shown as a separate page in the API reference.
@@ -119,6 +120,7 @@ export function buildApp(
   registerGrazingIntentionRoutes(app, fdm, services)
   registerSoilAnalysisRoutes(app, fdm, services)
   registerInvitationRoutes(app, fdm, services)
+  registerSoilImageRoutes(app, fdm, services)
 
   // Security schemes
   app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyHeader", {

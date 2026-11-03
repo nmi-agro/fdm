@@ -276,6 +276,8 @@ export type {
 export {
   addSoilImage,
   addSoilImageAnnotation,
+  getSoilImage,
+  getSoilImageAnnotation,
   getSoilImages,
   removeSoilImage,
   removeSoilImageAnnotation,

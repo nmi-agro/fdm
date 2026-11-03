@@ -28,6 +28,8 @@ import {
   addMeasure,
   addOrganicCertification,
   addSoilAnalysis,
+  addSoilImage,
+  addSoilImageAnnotation,
   createFarmGroup,
   declineInvitation,
   enableCultivationCatalogue,
@@ -70,6 +72,9 @@ import {
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
+  getSoilImage,
+  getSoilImageAnnotation,
+  getSoilImages,
   listDerogations,
   listFarmGroups,
   listOrganicCertifications,
@@ -88,6 +93,8 @@ import {
   removeMeasure,
   removeOrganicCertification,
   removeSoilAnalysis,
+  removeSoilImage,
+  removeSoilImageAnnotation,
   renameFarmGroup,
   setGrazingIntention,
   updateCultivation,
@@ -99,6 +106,7 @@ import {
   updateHarvest,
   updateMeasure,
   updateSoilAnalysis,
+  updateSoilImageAnnotation,
 } from "@nmi-agro/fdm-core"
 import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
@@ -251,6 +259,15 @@ export interface FdmApiServices {
   listPendingInvitationsForUser: typeof listPendingInvitationsForUser
   acceptInvitation: typeof acceptInvitation
   declineInvitation: typeof declineInvitation
+  // Soil images
+  getSoilImages: typeof getSoilImages
+  getSoilImage: typeof getSoilImage
+  addSoilImage: typeof addSoilImage
+  removeSoilImage: typeof removeSoilImage
+  addSoilImageAnnotation: typeof addSoilImageAnnotation
+  getSoilImageAnnotation: typeof getSoilImageAnnotation
+  updateSoilImageAnnotation: typeof updateSoilImageAnnotation
+  removeSoilImageAnnotation: typeof removeSoilImageAnnotation
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -352,6 +369,14 @@ const defaultServices: FdmApiServices = {
   listPendingInvitationsForUser,
   acceptInvitation,
   declineInvitation,
+  getSoilImages,
+  getSoilImage,
+  addSoilImage,
+  removeSoilImage,
+  addSoilImageAnnotation,
+  getSoilImageAnnotation,
+  updateSoilImageAnnotation,
+  removeSoilImageAnnotation,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
 }
 

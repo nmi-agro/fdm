@@ -186,6 +186,24 @@ export const writeErrorResponses = {
 }
 
 /**
+ * Builds an OpenAPI response definition for an RFC 9457 problem document, for a status that is
+ * not part of `commonErrorResponses` or `writeErrorResponses`.
+ *
+ * @param description - Description of when the status is returned.
+ * @returns A response definition for use in `createRoute({ responses })`.
+ * @example
+ * ```ts
+ * responses: { 503: problemResponseDefinition("Service unavailable — storage is not configured.") }
+ * ```
+ */
+export function problemResponseDefinition(description: string) {
+  return {
+    description,
+    content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+  }
+}
+
+/**
  * Error responses for write operations that accept `multipart/form-data` uploads.
  * Same as `writeErrorResponses`, with upload-specific 413 and 415 descriptions.
  */
