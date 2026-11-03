@@ -1,6 +1,10 @@
 import type { MultiPoint, MultiPolygon, Polygon } from "geojson"
 import type { ActionFunctionArgs } from "react-router"
-import { addSoilAnalysis, updateSoilAnalysis } from "@nmi-agro/fdm-core"
+import {
+  addSoilAnalysis,
+  getSoilParametersDescription,
+  updateSoilAnalysis,
+} from "@nmi-agro/fdm-core"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { fileTypeFromBuffer } from "file-type"
 import { ReviewedUploadFormSchema } from "~/components/blocks/soil/formschema"
@@ -106,7 +110,12 @@ async function saveRow(
     const parsed = ReviewedUploadFormSchema.safeParse(row.values ?? {})
     if (!parsed.success) {
       const issue = parsed.error.issues[0]
-      return { id, status: "failed", message: issue?.message ?? "De waarden zijn niet geldig." }
+      if (!issue) return { id, status: "failed", message: "De waarden zijn niet geldig." }
+      const parameter = String(issue.path[0] ?? "")
+      const name =
+        getSoilParametersDescription().find((item) => item.parameter === parameter)?.name ??
+        parameter
+      return { id, status: "failed", message: name ? `${name}: ${issue.message}` : issue.message }
     }
     const { a_source, a_depth_lower, a_depth_upper, b_sampling_date, ...values } = parsed.data
 

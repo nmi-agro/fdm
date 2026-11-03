@@ -5,13 +5,28 @@ export interface BulkReadResult {
   error?: string
 }
 
+/** A request to read PDFs that failed as a whole, with the HTTP status of the response. */
+export class ReadRequestError extends Error {
+  /**
+   * @param message - Dutch message for the user.
+   * @param status - HTTP status of the response.
+   */
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message)
+    this.name = "ReadRequestError"
+  }
+}
+
 /**
  * Reads soil analysis PDFs with the soil analysis reader. All files go in one request and the
  * results stream back per file, so progress can be shown while the rest is still being read.
  *
  * @param files - The PDFs to read; their names must be unique.
  * @param onResult - Called for every PDF as soon as it has been read or has failed.
- * @throws {Error} With a Dutch message when the request as a whole fails.
+ * @throws {ReadRequestError} With a Dutch message when the request as a whole fails.
  */
 export async function readSoilAnalysisPdfs(
   files: File[],
@@ -26,10 +41,11 @@ export async function readSoilAnalysisPdfs(
     credentials: "same-origin",
   })
   if (!response.ok || !response.body) {
-    throw new Error(
+    throw new ReadRequestError(
       response.status === 401
         ? "Je sessie is verlopen. Log opnieuw in en probeer het nog eens."
         : "Het uitlezen kon niet worden gestart. Probeer het later opnieuw.",
+      response.status,
     )
   }
 

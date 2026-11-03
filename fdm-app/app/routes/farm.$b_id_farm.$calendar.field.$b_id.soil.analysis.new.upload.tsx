@@ -99,11 +99,13 @@ export default function FarmFieldSoilAnalysisUploadBlock() {
           Andere manier kiezen
         </NavLink>
       </Button>
-      {!isNmiConfigured && <PdfReadingUnavailableAlert manualEntryHref="../standard" />}
+      {!isNmiConfigured && (
+        <PdfReadingUnavailableAlert manualEntryHref="../soil/analysis/new/standard" />
+      )}
       <SoilAnalysisUploadFlow
         soilParameterDescription={soilParameterDescription}
         disabled={!isNmiConfigured}
-        manualEntryHref="../standard"
+        manualEntryHref="../soil/analysis/new/standard"
       />
     </div>
   )

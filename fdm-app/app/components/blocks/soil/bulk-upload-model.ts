@@ -6,6 +6,7 @@
  */
 import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import type { MultiPoint, MultiPolygon, Point, Polygon } from "geojson"
+import { TZDate } from "@date-fns/tz"
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon"
 import { getRangeWarning, ReviewedUploadFormSchema } from "./formschema"
 import { REQUIRED_SAMPLING_PARAMETERS } from "./parameter-groups"
@@ -66,7 +67,7 @@ export type BulkRowStatus = "failed" | "incomplete" | "check" | "ready" | "saved
 
 /** Something about a row that the user should know or fix. */
 export interface BulkRowIssue {
-  kind: "missing" | "unmatched" | "duplicate" | "exists" | "range" | "nameConflict"
+  kind: "missing" | "invalid" | "unmatched" | "duplicate" | "exists" | "range" | "nameConflict"
   message: string
   /** Whether the row cannot be saved until this is fixed. */
   blocking: boolean
@@ -84,9 +85,11 @@ export function toDateKey(value: unknown): string | null {
         : null
   if (!date || value === "") return null
   if (Number.isNaN(date.getTime())) return null
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
+  // A fixed time zone, so that the server and every browser derive the same key
+  const zoned = new TZDate(date.getTime(), "Europe/Amsterdam")
+  const year = zoned.getFullYear()
+  const month = String(zoned.getMonth() + 1).padStart(2, "0")
+  const day = String(zoned.getDate()).padStart(2, "0")
   return `${year}-${month}-${day}`
 }
 
@@ -287,6 +290,19 @@ export function getRowIssues(row: BulkRow, context: BulkRowContext): BulkRowIssu
       message: `${missing.map((parameter) => context.parameterNames.get(parameter) ?? parameter).join(", ")} ontbreekt`,
       blocking: true,
     })
+  }
+
+  // The same check as when saving, so that a row marked ready is not rejected by the server
+  const parsed = ReviewedUploadFormSchema.safeParse(row.values)
+  if (!parsed.success) {
+    const invalid = parsed.error.issues.flatMap((issue) => {
+      const parameter = String(issue.path[0] ?? "")
+      if ((missing as readonly string[]).includes(parameter)) return []
+      return [`${context.parameterNames.get(parameter) ?? parameter}: ${issue.message}`]
+    })
+    if (invalid.length > 0) {
+      issues.push({ kind: "invalid", message: invalid.join("; "), blocking: true })
+    }
   }
 
   if (!row.fieldId) {

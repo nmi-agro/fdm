@@ -438,10 +438,12 @@ function serialiseSoilZones(zones: SoilZone[]) {
 
 /**
  * Checks the sampling geometries in a request body: the coordinate count, and that every position is
- * a WGS84 longitude and latitude and no geometry is empty. Invalid geometries are rejected with a
- * 422 instead of failing later in the soil analysis service.
+ * a WGS84 longitude and latitude and no geometry is empty, and that every ring of the zone is
+ * closed and has at least four positions. Invalid geometries are rejected with a 422 instead of
+ * failing later in the soil analysis service.
  *
- * @throws {ApiError} 422 when a geometry is empty or has a position outside WGS84.
+ * @throws {ApiError} 422 when a geometry is empty, has a position outside WGS84, or has an invalid
+ * polygon or ring.
  */
 function assertSamplingGeometries(body: {
   b_sampling_geometry?: unknown
@@ -464,6 +466,52 @@ function assertSamplingGeometries(body: {
         "unprocessable-entity",
         `${name} has a position outside WGS84 (longitude -180 to 180, latitude -90 to 90).`,
       )
+    }
+  }
+  if (body.b_sampling_geometry_zone) assertPolygonRings(body.b_sampling_geometry_zone)
+}
+
+/**
+ * Checks the rings of a Polygon or MultiPolygon zone: every polygon has at least one ring, and
+ * every ring is closed and has at least four positions.
+ *
+ * @throws {ApiError} 422 when a polygon or ring is invalid.
+ */
+function assertPolygonRings(geometry: unknown): void {
+  const { type, coordinates } = geometry as { type?: string; coordinates?: unknown }
+  const polygons = (
+    type === "Polygon" ? [coordinates] : Array.isArray(coordinates) ? coordinates : []
+  ) as unknown[]
+  for (const polygon of polygons) {
+    if (!Array.isArray(polygon) || polygon.length === 0) {
+      throw new ApiError(
+        422,
+        "unprocessable-entity",
+        "b_sampling_geometry_zone has a polygon without rings.",
+      )
+    }
+    for (const ring of polygon) {
+      if (!Array.isArray(ring) || ring.length < 4) {
+        throw new ApiError(
+          422,
+          "unprocessable-entity",
+          "b_sampling_geometry_zone has a ring with fewer than four positions.",
+        )
+      }
+      const first = ring[0] as unknown[]
+      const last = ring[ring.length - 1] as unknown[]
+      if (
+        !Array.isArray(first) ||
+        !Array.isArray(last) ||
+        first.length !== last.length ||
+        first.some((value, index) => value !== last[index])
+      ) {
+        throw new ApiError(
+          422,
+          "unprocessable-entity",
+          "b_sampling_geometry_zone has a ring whose first and last positions differ.",
+        )
+      }
     }
   }
 }

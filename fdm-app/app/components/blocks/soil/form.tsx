@@ -134,11 +134,12 @@ export function SoilAnalysisForm(props: {
 
   const formIsSubmitSuccessful = form.formState.isSubmitSuccessful
   const formReset = form.reset
+  // Values read from a report keep the user's checked values, also when saving fails
   useEffect(() => {
-    if (formIsSubmitSuccessful) {
+    if (formIsSubmitSuccessful && !fromReport) {
       formReset()
     }
-  }, [formReset, formIsSubmitSuccessful])
+  }, [formReset, formIsSubmitSuccessful, fromReport])
 
   const control = form.control as unknown as Control<Record<string, unknown>>
   const groups = groupSoilParameters(soilParameterDescription.filter((x) => x.parameter !== "a_id"))

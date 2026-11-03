@@ -6,7 +6,12 @@ import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Progress } from "~/components/ui/progress"
 import { Spinner } from "~/components/ui/spinner"
-import { type BulkReadResult, mergeUniqueFiles, readSoilAnalysisPdfs } from "./bulk-upload-read"
+import {
+  type BulkReadResult,
+  mergeUniqueFiles,
+  ReadRequestError,
+  readSoilAnalysisPdfs,
+} from "./bulk-upload-read"
 import { SoilAnalysisUploadSteps } from "./form-upload"
 
 /** The steps of a bulk upload, shown on every step. */
@@ -70,28 +75,48 @@ export function BulkSoilAnalysisUploadForm({
     setError(null)
     setProgress({ done: 0, failed: 0 })
     const results: BulkReadResult[] = []
+    const reported = new Set<string>()
+    let answeredBatches = 0
+    let lastError: string | null = null
+    /** Reports the PDFs without an answer as not read, so that they can be tried again. */
+    const reportUnanswered = (batch: File[], message: string) => {
+      for (const file of batch) {
+        if (reported.has(file.name)) continue
+        reported.add(file.name)
+        results.push({ fileName: file.name, error: message })
+      }
+    }
     try {
       // Read in portions, one after the other, so that a large upload does not become one huge
-      // request
+      // request. A failed portion does not stop the others; only an expired session does.
       for (let start = 0; start < files.length; start += READ_BATCH_SIZE) {
-        await readSoilAnalysisPdfs(files.slice(start, start + READ_BATCH_SIZE), (result) => {
-          results.push(result)
-          setProgress((current) => ({
-            done: (current?.done ?? 0) + 1,
-            failed: (current?.failed ?? 0) + (result.error ? 1 : 0),
-          }))
-        })
-      }
-      // PDFs without an answer are reported as not read, so none goes missing silently
-      const reported = new Set(results.map((result) => result.fileName))
-      for (const file of files) {
-        if (!reported.has(file.name)) {
-          results.push({ fileName: file.name, error: "Er kwam geen antwoord voor dit rapport." })
+        const batch = files.slice(start, start + READ_BATCH_SIZE)
+        try {
+          await readSoilAnalysisPdfs(batch, (result) => {
+            reported.add(result.fileName)
+            results.push(result)
+            setProgress((current) => ({
+              done: (current?.done ?? 0) + 1,
+              failed: (current?.failed ?? 0) + (result.error ? 1 : 0),
+            }))
+          })
+          answeredBatches++
+        } catch (readError) {
+          lastError = readError instanceof Error ? readError.message : "Het uitlezen is mislukt."
+          if (readError instanceof ReadRequestError && readError.status === 401) {
+            reportUnanswered(files.slice(start), lastError)
+            break
+          }
+          reportUnanswered(batch, lastError)
         }
       }
-      onReadComplete(results)
-    } catch (readError) {
-      setError(readError instanceof Error ? readError.message : "Het uitlezen is mislukt.")
+      // PDFs without an answer are reported as not read, so none goes missing silently
+      reportUnanswered(files, "Er kwam geen antwoord voor dit rapport.")
+      if (answeredBatches > 0) {
+        onReadComplete(results)
+      } else {
+        setError(lastError ?? "Het uitlezen is mislukt.")
+      }
     } finally {
       setProgress(null)
     }

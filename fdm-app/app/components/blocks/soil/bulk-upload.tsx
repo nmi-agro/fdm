@@ -70,6 +70,9 @@ export function BulkSoilAnalysisUpload({
         error: error instanceof Error ? error.message : "Het uitlezen is mislukt.",
       })
     }
+    if (results.length === 0) {
+      results.push({ fileName, error: "Er kwam geen antwoord voor dit rapport." })
+    }
     const replacement = results.flatMap(toRows)
     setRows((current) =>
       current

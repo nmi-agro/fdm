@@ -311,6 +311,50 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       b_sampling_geometry_zone: { type: "MultiPolygon", coordinates: [] },
     })
     expect(empty.status).toBe(422)
+    const emptyPolygon = await post({
+      b_sampling_geometry_zone: {
+        type: "MultiPolygon",
+        coordinates: [
+          [],
+          [
+            [
+              [5, 52],
+              [5.1, 52],
+              [5.1, 52.1],
+              [5, 52],
+            ],
+          ],
+        ],
+      },
+    })
+    expect(emptyPolygon.status).toBe(422)
+    const shortRing = await post({
+      b_sampling_geometry_zone: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [5, 52],
+            [5.1, 52],
+            [5, 52],
+          ],
+        ],
+      },
+    })
+    expect(shortRing.status).toBe(422)
+    const openRing = await post({
+      b_sampling_geometry_zone: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [5, 52],
+            [5.1, 52],
+            [5.1, 52.1],
+            [5, 52.1],
+          ],
+        ],
+      },
+    })
+    expect(openRing.status).toBe(422)
   })
 
   it("returns 400 when required fields are missing", async () => {

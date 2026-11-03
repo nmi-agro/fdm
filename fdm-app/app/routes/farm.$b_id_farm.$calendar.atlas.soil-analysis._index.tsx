@@ -124,7 +124,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         for (const item of fieldEnrichedSoilData) {
           if (item.sources.length > 1) zoneCounts[`zones_${item.parameter}`] = item.sources.length
           for (const source of item.sources) {
-            if (source.value === null) continue
+            // A calculated value (NLV) belongs to the whole field, not to a sampling zone
+            if (source.value === null || source.a_source === "calculated") continue
             const values = valuesById.get(source.a_id) ?? {}
             values[item.parameter] = source.value
             values[`share_${item.parameter}`] = source.area_fraction

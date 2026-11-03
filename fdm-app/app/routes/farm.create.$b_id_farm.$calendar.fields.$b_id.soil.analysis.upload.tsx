@@ -1,5 +1,12 @@
 import { getField, getSoilParametersDescription } from "@nmi-agro/fdm-core"
-import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
+import {
+  type ActionFunctionArgs,
+  data,
+  type LoaderFunctionArgs,
+  useLoaderData,
+  useLocation,
+  useParams,
+} from "react-router"
 import {
   PdfReadingUnavailableAlert,
   SoilAnalysisUploadFlow,
@@ -73,14 +80,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFieldSoilAnalysisUploadBlock() {
   const { isNmiConfigured, soilParameterDescription } = useLoaderData<typeof loader>()
+  const { b_id_farm, calendar, b_id } = useParams()
+  const location = useLocation()
+  // Absolute, because the parent route is the fields list; the search keeps the creation flow
+  const manualEntryHref = `/farm/create/${b_id_farm}/${calendar}/fields/${b_id}/soil/analysis/standard${location.search}`
 
   return (
     <div className="space-y-6">
-      {!isNmiConfigured && <PdfReadingUnavailableAlert manualEntryHref="../standard" />}
+      {!isNmiConfigured && <PdfReadingUnavailableAlert manualEntryHref={manualEntryHref} />}
       <SoilAnalysisUploadFlow
         soilParameterDescription={soilParameterDescription}
         disabled={!isNmiConfigured}
-        manualEntryHref="../standard"
+        manualEntryHref={manualEntryHref}
       />
     </div>
   )
