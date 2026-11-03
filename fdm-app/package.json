@@ -35,6 +35,7 @@
     "@nmi-agro/fdm-data": "workspace:*",
     "@nmi-agro/fdm-helpdesk": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:^",
+    "@nmi-agro/fdm-storage": "workspace:*",
     "@posthog/ai": "^8.17.0",
     "@radix-ui/react-context-menu": "^2.4.1",
     "@radix-ui/react-slider": "^1.6.1",

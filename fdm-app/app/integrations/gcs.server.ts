@@ -1,160 +1,54 @@
-import { ApiError, SaveData, Storage } from "@google-cloud/storage"
+import { createGcsStorage, type GcsStorage } from "@nmi-agro/fdm-storage"
 
-let _storage: Storage | null = null
+export { buildObjectKey, FileNotFoundError, isGcsConfigured } from "@nmi-agro/fdm-storage"
 
 /**
- * Returns a GCS Storage client using the best available authentication method:
- *
- * 1. Application Default Credentials (ADC) — preferred.
- *    - On GCP (Cloud Run, GKE, GCE, App Engine): automatically uses the
- *      service account attached to the runtime. Zero configuration required.
- *    - Locally: run `gcloud auth application-default login`.
- *    - Any environment: set GOOGLE_APPLICATION_CREDENTIALS to the path of a
- *      Workload Identity Federation config file (avoids long-lived key files).
- *
- * 2. Inline service account key (fallback, not recommended).
- *    - Set GCS_SERVICE_ACCOUNT_KEY to a base64-encoded JSON key file.
- *    - Only use this when ADC is not available and WIF is not configured.
- *
- * For signed URL generation the attached / impersonated service account must
- * have the `roles/iam.serviceAccountTokenCreator` role so the library can
- * call the IAM signBlob API without a local private key.
- * Optionally set GCS_SERVICE_ACCOUNT_EMAIL to explicitly declare which service
- * account email to sign as (required when using Workload Identity Federation).
+ * Shared Google Cloud Storage instance of the app. Bucket and credentials come from the
+ * `GCS_BUCKET_NAME`, `GCS_SERVICE_ACCOUNT_EMAIL` and `GCS_SERVICE_ACCOUNT_KEY` environment
+ * variables; see `@nmi-agro/fdm-storage` for the authentication order.
  */
-function getStorage(): Storage {
-  if (_storage) return _storage
-
-  const keyBase64 = process.env.GCS_SERVICE_ACCOUNT_KEY
-  const serviceAccountEmail = process.env.GCS_SERVICE_ACCOUNT_EMAIL
-
-  if (keyBase64) {
-    // Fallback: inline JSON key (base64-encoded). Not recommended for
-    // production; prefer ADC or Workload Identity Federation instead.
-    const credentials = JSON.parse(Buffer.from(keyBase64, "base64").toString("utf-8"))
-    _storage = new Storage({ credentials })
-  } else {
-    // Preferred: ADC. The library calls IAM signBlob for signed URLs.
-    // serviceAccountEmail is required for Workload Identity Federation
-    // and optional when the metadata server can resolve it automatically.
-    _storage = serviceAccountEmail ? new Storage({ email: serviceAccountEmail }) : new Storage()
-  }
-
-  return _storage
-}
-
-export function isGcsConfigured(): boolean {
-  return Boolean(process.env.GCS_BUCKET_NAME?.trim())
-}
-
-function getBucketName(): string {
-  const bucket = process.env.GCS_BUCKET_NAME
-  if (!bucket) {
-    throw new Error("GCS_BUCKET_NAME environment variable is not set")
-  }
-  return bucket
-}
+export const gcsStorage: GcsStorage = createGcsStorage()
 
 /**
- * Returns a consistently formatted GCS object key.
- * Example: buildObjectKey("soil_analysis", a_id, "pdf") → "soil_analysis/{a_id}.pdf"
+ * Generates a V4 signed POST policy URL for a direct browser upload. Valid for 10 minutes.
  *
- * @param prefix - The prefix or folder in GCS (e.g. "soil_analysis")
- * @param id - The unique identifier for the object (e.g. a_id)
- * @param ext - The file extension (e.g. "pdf", "jpg")
- * @returns The full GCS object key
- */
-export function buildObjectKey(prefix: string, id: string, ext: string): string {
-  return `${prefix}/${id}.${ext}`
-}
-
-/**
- * Generates a V4 signed URL for direct browser-to-GCS upload (PUT).
- * TTL is 10 minutes. Size is limited via X-Goog-Content-Length-Range header.
- *
- * @param objectKey - The GCS object path (e.g. visual_soil_analysis/farms/{b_id_farm}/{id}.jpg)
+ * @param objectKey - The GCS object path
  * @param contentType - MIME type of the file being uploaded
  * @param maxSizeBytes - Maximum allowed file size in bytes (default 10MB)
  * @returns Signed upload URL
  */
-export async function generateSignedUploadUrl(
+export function generateSignedUploadUrl(
   objectKey: string,
   contentType: string,
-  maxSizeBytes = 10 * 1024 * 1024,
+  maxSizeBytes?: number,
 ): Promise<string> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-
-  const [url] = await storage
-    .bucket(bucket)
-    .file(objectKey)
-    .generateSignedPostPolicyV4({
-      expires: Date.now() + 10 * 60 * 1000, // 10 minutes
-      conditions: [
-        ["content-length-range", 1, maxSizeBytes],
-        ["eq", "$Content-Type", contentType],
-      ],
-      fields: {
-        "Content-Type": contentType,
-      },
-    })
-
-  return url.url
+  return gcsStorage.generateSignedUploadUrl(objectKey, contentType, maxSizeBytes)
 }
 
 /**
- * Generates a V4 signed URL for reading (GET) a GCS object.
- * TTL is 1 hour.
+ * Generates a V4 signed URL for reading (GET) a GCS object. Valid for 1 hour.
  *
  * @param objectKey - The GCS object path
  * @returns Signed read URL
  */
-export async function generateSignedReadUrl(objectKey: string): Promise<string> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-
-  const [url] = await storage
-    .bucket(bucket)
-    .file(objectKey)
-    .getSignedUrl({
-      version: "v4",
-      action: "read",
-      expires: Date.now() + 60 * 60 * 1000, // 1 hour
-    })
-
-  return url
+export function generateSignedReadUrl(objectKey: string): Promise<string> {
+  return gcsStorage.signedReadUrl(objectKey)
 }
 
 /**
- * Generates a V4 signed URL for direct browser-to-GCS upload (PUT).
+ * Generates a V4 signed URL for direct browser-to-GCS upload (PUT). Valid for 10 minutes.
  *
  * @param objectKey - The GCS object path
  * @param contentType - MIME type of the file being uploaded
  * @param maxSizeBytes - Maximum allowed file size in bytes (default 10MB)
  * @returns Object with the signed PUT URL and the object key
  */
-export async function generateSignedPutUrl(
+export function generateSignedPutUrl(
   objectKey: string,
   contentType: string,
-  maxSizeBytes = 10 * 1024 * 1024,
+  maxSizeBytes?: number,
 ): Promise<{ uploadUrl: string; objectKey: string }> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-
-  const [uploadUrl] = await storage
-    .bucket(bucket)
-    .file(objectKey)
-    .getSignedUrl({
-      version: "v4",
-      action: "write",
-      expires: Date.now() + 10 * 60 * 1000, // 10 minutes
-      contentType,
-      extensionHeaders: {
-        "X-Goog-Content-Length-Range": `0,${maxSizeBytes}`,
-      },
-    })
-
-  return { uploadUrl, objectKey }
+  return gcsStorage.generateSignedPutUrl(objectKey, contentType, maxSizeBytes)
 }
 
 /**
@@ -163,24 +57,17 @@ export async function generateSignedPutUrl(
  * @param objectKey - The GCS object path
  * @returns true if the object exists
  */
-export async function objectExists(objectKey: string): Promise<boolean> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-
-  const [exists] = await storage.bucket(bucket).file(objectKey).exists()
-  return exists
+export function objectExists(objectKey: string): Promise<boolean> {
+  return gcsStorage.exists(objectKey)
 }
 
 /**
- * Deletes an object from GCS.
+ * Deletes an object from GCS. Deleting a missing object is not an error.
  *
  * @param objectKey - The GCS object path
  */
-export async function deleteObject(objectKey: string): Promise<void> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-
-  await storage.bucket(bucket).file(objectKey).delete({ ignoreNotFound: true })
+export function deleteObject(objectKey: string): Promise<void> {
+  return gcsStorage.delete(objectKey)
 }
 
 /**
@@ -190,69 +77,26 @@ export async function deleteObject(objectKey: string): Promise<void> {
  * @param buffer - The file contents
  * @param contentType - MIME type of the file
  */
-export async function uploadObject(
+export function uploadObject(
   objectKey: string,
-  buffer: SaveData,
+  buffer: Buffer | Uint8Array,
   contentType: string,
 ): Promise<void> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-
-  await storage.bucket(bucket).file(objectKey).save(buffer, {
-    contentType,
-    resumable: false,
-  })
-}
-
-const TRANSIENT_NETWORK_ERROR_CODES = new Set(["ECONNRESET", "ETIMEDOUT", "EPIPE", "ECONNABORTED"])
-
-/**
- * Returns true when an error is a transient network failure (for example a
- * reused keep-alive socket that the server already closed), which is worth
- * retrying. HTTP errors returned by GCS (`ApiError`, such as 403 or 404) are
- * never treated as transient.
- *
- * @param error - The error thrown by the GCS client
- * @returns Whether a retry may succeed
- */
-function isTransientNetworkError(error: unknown): boolean {
-  if (error instanceof ApiError || !(error instanceof Error)) return false
-  const code = (error as NodeJS.ErrnoException).code
-  if (code && TRANSIENT_NETWORK_ERROR_CODES.has(code)) return true
-  return /socket hang up/i.test(error.message)
+  return gcsStorage.upload(objectKey, buffer, contentType)
 }
 
 /**
- * Downloads a GCS object into memory, along with its content type. Used to
- * proxy file contents through the app server instead of redirecting the
- * client to a signed GCS URL, so downloads and inline views stay same-origin.
- *
- * The object is buffered rather than streamed so that any storage error is
- * raised while the caller can still handle it (e.g. return a 404 or a proper
- * error response), instead of aborting a response that has already started.
- * Transient network failures are retried once. Only use this for small
- * objects; uploads are capped at 10 MB.
+ * Downloads a GCS object into memory, along with its content type. Used to proxy file
+ * contents through the app server so downloads and inline views stay same-origin.
+ * Transient network failures are retried once.
  *
  * @param objectKey - The GCS object path
  * @returns The object's contents plus its content type, when known
+ * @throws {FileNotFoundError} When the object does not exist
  */
-export async function downloadObject(objectKey: string): Promise<{
+export function downloadObject(objectKey: string): Promise<{
   buffer: Buffer
   contentType?: string
 }> {
-  const storage = getStorage()
-  const bucket = getBucketName()
-  const file = storage.bucket(bucket).file(objectKey)
-
-  const attempt = async () => {
-    const [[metadata], [buffer]] = await Promise.all([file.getMetadata(), file.download()])
-    return { buffer, contentType: metadata.contentType ?? undefined }
-  }
-
-  try {
-    return await attempt()
-  } catch (error) {
-    if (!isTransientNetworkError(error)) throw error
-    return await attempt()
-  }
+  return gcsStorage.download(objectKey)
 }

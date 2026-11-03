@@ -186,6 +186,49 @@ export const writeErrorResponses = {
 }
 
 /**
+ * Error responses for write operations that accept `multipart/form-data` uploads.
+ * Same as `writeErrorResponses`, with upload-specific 413 and 415 descriptions.
+ */
+export const uploadErrorResponses = {
+  ...writeErrorResponses,
+  413: {
+    description: "Payload too large — the upload exceeds the size limit of this endpoint.",
+    content: {
+      "application/problem+json": { schema: ProblemDetailsSchema },
+    },
+  },
+  415: {
+    description:
+      "Unsupported media type — Content-Type must be multipart/form-data, or an uploaded file has a type this endpoint does not accept.",
+    content: {
+      "application/problem+json": { schema: ProblemDetailsSchema },
+    },
+  },
+}
+
+/**
+ * Builds an OpenAPI response definition for a binary file download.
+ *
+ * @param mediaType - Media type of the returned file, for example `application/pdf`.
+ * @param description - Description of the response shown in the API reference.
+ * @returns A response definition for use in `createRoute({ responses })`.
+ * @example
+ * ```ts
+ * responses: { 200: binaryResponse("application/pdf", "The fertilizer plan as PDF.") }
+ * ```
+ */
+export function binaryResponse(mediaType: string, description: string) {
+  return {
+    description,
+    content: {
+      [mediaType]: {
+        schema: z.string().openapi({ format: "binary" }).describe(`File contents (${mediaType}).`),
+      },
+    },
+  }
+}
+
+/**
  * Reusable schema for optional soil measurement fields accepted in create and update requests.
  */
 export const SoilAnalysisDataSchema = z.object(soilParameterShape("optional"))

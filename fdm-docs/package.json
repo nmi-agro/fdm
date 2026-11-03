@@ -40,6 +40,7 @@
     "@nmi-agro/fdm-core": "workspace:*",
     "@nmi-agro/fdm-data": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:*",
+    "@nmi-agro/fdm-storage": "workspace:*",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "^4.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",

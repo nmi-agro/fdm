@@ -9,7 +9,7 @@ import {
   getFarm,
   getFarms,
 } from "@nmi-agro/fdm-core"
-import { renderToStream } from "@react-pdf/renderer"
+import { renderToBuffer } from "@react-pdf/renderer"
 import { AlertCircle } from "lucide-react"
 import { MetaFunction, Outlet, useLoaderData } from "react-router"
 import { redirectWithSuccess, redirectWithWarning } from "remix-toast"
@@ -172,10 +172,10 @@ export async function action({ params, request }: Route.ActionArgs) {
         dataCollectionDate,
       )
       const objectKey = buildObjectKey("bemestingsplan", p_id_plan, "pdf")
-      const pdfStream = await renderToStream(<BemestingsplanPDF data={computedData} />)
+      const pdfBuffer = await renderToBuffer(<BemestingsplanPDF data={computedData} />)
       let uploaded = false
       try {
-        await uploadObject(objectKey, pdfStream, "application/pdf")
+        await uploadObject(objectKey, pdfBuffer, "application/pdf")
         uploaded = true
         await updateFertilizerPlanFilePath(fdm, session.principal_id, p_id_plan, objectKey)
       } catch (uploadObjectError) {

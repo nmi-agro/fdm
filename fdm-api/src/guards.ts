@@ -6,12 +6,70 @@ import { ApiError } from "./error"
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])
 
+const MB = 1024 * 1024
+
 const bodyLimitMiddleware = bodyLimit({
   maxSize: MAX_BODY_BYTES,
   onError: () => {
     throw new ApiError(413, "payload-too-large", "Request body exceeds the 5 MB limit.")
   },
 })
+
+/**
+ * Describes a route that accepts `multipart/form-data` uploads instead of JSON.
+ */
+export interface UploadRoutePolicy {
+  /** HTTP method of the upload route. */
+  method: "POST" | "PUT" | "PATCH"
+  /** Pattern matched against the full request path, including the base path. */
+  pattern: RegExp
+  /** Maximum size of the whole multipart body in bytes. */
+  maxBytes: number
+}
+
+/**
+ * Routes that accept `multipart/form-data`. Every other write route requires JSON.
+ * The limits cover the full multipart body, so they include all files of one request.
+ */
+export const UPLOAD_ROUTES: UploadRoutePolicy[] = [
+  // Soil condition score (BCS) images.
+  { method: "POST", pattern: /\/soil-analyses\/[^/]+\/images\/?$/, maxBytes: 10 * MB },
+  // Lab report PDFs: up to 10 files of 5 MB each.
+  { method: "POST", pattern: /\/soil-analyses\/extract\/?$/, maxBytes: 50 * MB },
+  // RVO Mijn Percelen shapefile export (.shp, .shx, .dbf, .prj).
+  {
+    method: "POST",
+    pattern: /\/farms\/[^/]+\/fields\/import\/(compare|apply)\/?$/,
+    maxBytes: 20 * MB,
+  },
+]
+
+const uploadBodyLimits = new Map(
+  UPLOAD_ROUTES.map((policy) => [
+    policy,
+    bodyLimit({
+      maxSize: policy.maxBytes,
+      onError: () => {
+        throw new ApiError(
+          413,
+          "payload-too-large",
+          `Request body exceeds the ${Math.round(policy.maxBytes / MB)} MB limit for this upload.`,
+        )
+      },
+    }),
+  ]),
+)
+
+/**
+ * Finds the upload policy that applies to a request, if any.
+ *
+ * @param method - HTTP method of the request.
+ * @param path - Request path.
+ * @returns The matching upload policy, or `undefined` when the route only accepts JSON.
+ */
+export function findUploadPolicy(method: string, path: string): UploadRoutePolicy | undefined {
+  return UPLOAD_ROUTES.find((policy) => policy.method === method && policy.pattern.test(path))
+}
 
 /**
  * Creates middleware that returns a 404 problem response for paths that don't match any
@@ -66,7 +124,10 @@ export function createPathExistenceGuard(appUrl: string): MiddlewareHandler {
  * @param c - Hono request context used to inspect headers and continue the middleware chain.
  * @param next - Callback that advances processing once the request passes validation.
  * @returns A promise that resolves after the request passes validation and control moves to the next middleware.
- * @throws {ApiError} Throws when a write request exceeds 5 MB or does not use the `application/json` media type.
+ * Upload routes listed in {@link UPLOAD_ROUTES} accept `multipart/form-data` instead, with their
+ * own size limit.
+ *
+ * @throws {ApiError} Throws when a write request exceeds its size limit or uses an unsupported media type.
  * @example
  * ```ts
  * app.use("*", requestGuard)
@@ -78,6 +139,19 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
   if (WRITE_METHODS.has(method)) {
     const rawContentType = c.req.header("content-type") ?? ""
     const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
+    const uploadPolicy = findUploadPolicy(method, c.req.path)
+    if (uploadPolicy) {
+      if (mediaType !== "multipart/form-data") {
+        throw new ApiError(
+          415,
+          "unsupported-media-type",
+          "Content-Type must be multipart/form-data.",
+        )
+      }
+      const uploadLimit = uploadBodyLimits.get(uploadPolicy) ?? bodyLimitMiddleware
+      await uploadLimit(c, next)
+      return
+    }
     if (mediaType !== "application/json") {
       throw new ApiError(415, "unsupported-media-type", "Content-Type must be application/json.")
     }

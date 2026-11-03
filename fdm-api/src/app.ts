@@ -88,7 +88,7 @@ export function buildApp(
       origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : "*",
       allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
-      exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+      exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "Content-Disposition"],
       maxAge: 86400,
     }),
   )
@@ -191,7 +191,21 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
       // First in the list, so the sidebar shows it directly below the introduction.
       { name: "Changelog", description: readChangelog() },
       { name: "Farms", description: "Manage farms" },
+      {
+        name: "Farm Access",
+        description:
+          "Share a farm with users and organizations, change their roles and revoke access",
+      },
+      {
+        name: "Invitations",
+        description: "Accept or decline farm invitations for the authenticated user",
+      },
       { name: "Fields", description: "Manage fields within farms" },
+      {
+        name: "Field Import",
+        description:
+          "Import fields from an RVO Mijn Percelen shapefile export in two steps: compare, then apply",
+      },
       {
         name: "Cultivations",
         description: "Manage cultivations on fields",
@@ -232,6 +246,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         description: "Manage soil analyses on fields",
       },
       {
+        name: "Soil Images",
+        description: "Photos and annotations of a soil condition score (BCS) assessment",
+      },
+      {
         name: "Catalogues",
         description: "Access the cultivation, fertilizer, and field measure catalogues",
       },
@@ -240,6 +258,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         description: "Manage groups of farms within an organization",
       },
       { name: "Calculations", description: "Run agronomic calculations" },
+      {
+        name: "Fertilizer Plans",
+        description: "Generate and download yearly fertilizer plans (bemestingsplan) as PDF",
+      },
     ],
   })
 

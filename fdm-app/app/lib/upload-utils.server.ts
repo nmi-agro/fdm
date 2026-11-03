@@ -1,5 +1,4 @@
-import { detectXml } from "@file-type/xml"
-import { fileTypeFromBuffer } from "file-type"
+import { readAndValidateFileUpload as validateUpload } from "@nmi-agro/fdm-storage"
 import { MAX_ATTACHMENT_SIZE } from "./upload-utils"
 
 const UNSUPPORTED_FILE_TYPE_MESSAGE = "Unsupported file type."
@@ -14,25 +13,16 @@ export const ATTACHMENT_UPLOAD_RATE_LIMIT_MAX = 20
  * and returns the raw buffer and detected MIME.
  * Throws if the type is not in allowedMimes.
  *
- * @param fileUpload - The uploaded file field
+ * @param file - The uploaded file field
  * @param allowedMimes - Set of allowed MIME types (e.g. "image/jpeg", "image/png")
  * @returns Object containing the file buffer and detected MIME type.
  * @throws if the file is not a valid type.
  */
-export async function readAndValidateFileUpload(
+export function readAndValidateFileUpload(
   file: File,
   allowedMimes?: Set<string>,
 ): Promise<{ buffer: Buffer; mime: string }> {
-  const arrayBuffer = await file.arrayBuffer()
-  const fileType = await fileTypeFromBuffer(arrayBuffer, { customDetectors: [detectXml] })
-  if (allowedMimes && (!fileType || !allowedMimes.has(fileType.mime))) {
-    throw new Error(`${UNSUPPORTED_FILE_TYPE_MESSAGE} Allowed: ${[...allowedMimes].join(", ")}`)
-  }
-
-  const fileBuffer = Buffer.from(arrayBuffer)
-  const detectedMime = fileType?.mime ?? "application/octet-stream"
-
-  return { buffer: fileBuffer, mime: detectedMime }
+  return validateUpload(file, { allowedMimes })
 }
 
 const MAX_PDF_SIZE = 5 * 1024 * 1024

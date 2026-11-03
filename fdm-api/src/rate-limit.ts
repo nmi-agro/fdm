@@ -26,6 +26,11 @@ const NMI_PATH_PATTERNS: RegExp[] = [
   /\/fields\/[^/]+\/indicators\/?$/,
   /\/farms\/[^/]+\/indicators\/?$/,
   /\/fields\/[^/]+\/measures\/catalogue\/?$/,
+  /\/farms\/[^/]+\/calculations\/nutrient-advice\/?$/,
+  /\/fields\/[^/]+\/calculations\/nutrient-advice\/?$/,
+  /\/soil-analyses\/extract\/?$/,
+  /\/farms\/[^/]+\/fertilizer-plans\/?$/,
+  /\/farm-groups\/[^/]+\/indicators\/?$/,
 ]
 
 /**

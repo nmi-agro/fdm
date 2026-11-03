@@ -92,7 +92,22 @@ import {
   updateMeasure,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
+import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
+
+/**
+ * Describes a farm invitation that was created through the API.
+ */
+export interface FarmInvitationEvent {
+  /** ID of the farm the invitation is for. */
+  b_id_farm: string
+  /** Username, organization slug or email address that was invited, as sent by the client. */
+  target: string
+  /** Role offered to the invitee. */
+  role: "owner" | "advisor" | "researcher"
+  /** Principal ID of the user who sent the invitation. */
+  inviter_principal_id: string
+}
 
 /**
  * Describes the public configuration used to mount the FDM API application.
@@ -113,6 +128,17 @@ export interface FdmApiConfig {
    * responses. Omit when the API is served from the same origin as the app.
    */
   allowedOrigins?: string[]
+  /**
+   * Storage for uploaded and generated files (soil images, lab reports, fertilizer plans).
+   * Defaults to Google Cloud Storage when `GCS_BUCKET_NAME` is set. When no storage is
+   * available, file endpoints respond with `503 Service Unavailable`.
+   */
+  storage?: FileStorage
+  /**
+   * Called after a farm invitation has been created, for example to send an email to the
+   * invitee. Errors are logged and do not fail the request, because the invitation already exists.
+   */
+  onFarmInvitationCreated?: (event: FarmInvitationEvent) => Promise<void>
 }
 
 /**
@@ -221,6 +247,11 @@ export interface FdmApiServices {
   createFunctionsForNorms: typeof createFunctionsForNorms
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice: typeof getNutrientAdvice
+  // Files and notifications
+  /** Returns the file storage; `undefined` when no storage is configured. */
+  getStorage: () => FileStorage | undefined
+  /** Notifies the invitee of a new farm invitation. Does nothing by default. */
+  notifyFarmInvitation: (event: FarmInvitationEvent) => Promise<void>
 }
 
 const defaultServices: FdmApiServices = {
@@ -310,6 +341,14 @@ const defaultServices: FdmApiServices = {
   createFunctionsForNorms,
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice,
+  getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
+  notifyFarmInvitation: async () => {},
+}
+
+let gcsStorage: FileStorage | undefined
+function defaultStorage(): FileStorage {
+  gcsStorage ??= createGcsStorage()
+  return gcsStorage
 }
 
 /**
@@ -335,7 +374,16 @@ export function createFdmApi(
   config: FdmApiConfig,
   services: Partial<FdmApiServices> = {},
 ) {
-  return buildApp(fdm, auth, config, { ...defaultServices, ...services })
+  const configServices: Partial<FdmApiServices> = {}
+  if (config.storage) {
+    const storage = config.storage
+    configServices.getStorage = () => storage
+  }
+  if (config.onFarmInvitationCreated) {
+    configServices.notifyFarmInvitation = config.onFarmInvitationCreated
+  }
+  return buildApp(fdm, auth, config, { ...defaultServices, ...configServices, ...services })
 }
 
 export type { ApiEnv, ApiPrincipalContext } from "./types"
+export type { FileStorage } from "@nmi-agro/fdm-storage"
