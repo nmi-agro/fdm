@@ -106,6 +106,19 @@ describe("GET /farms/:b_id_farm/fertilizer-applications", () => {
     })
   })
 
+  it("sorts applications on the same date by their ID", async () => {
+    const getFertilizerApplicationsForFarm = vi.fn().mockResolvedValue(
+      new Map([
+        ["f1", [application("app-b", "2026-03-01")]],
+        ["f2", [application("app-a", "2026-03-01")]],
+      ]),
+    )
+    const app = makeApp({ getFertilizerApplicationsForFarm })
+    const res = await app.request("/farms/farm-1/fertilizer-applications", { headers })
+    const body = await res.json()
+    expect(body.data.map((item: any) => item.p_app_id)).toEqual(["app-a", "app-b"])
+  })
+
   it("returns 403 without read access", async () => {
     const app = makeApp({
       getFertilizerApplicationsForFarm: vi.fn().mockRejectedValue(new Error("Permission denied")),
@@ -147,6 +160,19 @@ describe("GET /farms/:b_id_farm/harvests", () => {
     const body = await res.json()
     expect(body.data.map((item: any) => item.b_id_harvesting)).toEqual(["h-1", "h-2"])
     expect(body.pagination?.total ?? body.total).toBe(3)
+  })
+
+  it("sorts harvests on the same date by their ID", async () => {
+    const getHarvestsForFarm = vi.fn().mockResolvedValue(
+      new Map([
+        ["lu-1", [harvest("h-b", "lu-1", "2026-09-01")]],
+        ["lu-2", [harvest("h-a", "lu-2", "2026-09-01")]],
+      ]),
+    )
+    const app = makeApp({ getHarvestsForFarm })
+    const res = await app.request("/farms/farm-1/harvests", { headers })
+    const body = await res.json()
+    expect(body.data.map((item: any) => item.b_id_harvesting)).toEqual(["h-a", "h-b"])
   })
 
   it("returns 403 without read access", async () => {
