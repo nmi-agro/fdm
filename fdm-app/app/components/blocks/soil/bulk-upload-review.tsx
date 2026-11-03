@@ -440,11 +440,13 @@ export function BulkSoilAnalysisReview({
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row max-sm:[&>*]:w-full pointer-coarse:[&>*]:h-11">
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" disabled={saving !== null}>
-                Andere PDF's kiezen
-              </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+              render={
+                <Button type="button" variant="ghost" disabled={saving !== null}>
+                  Andere PDF's kiezen
+                </Button>
+              }
+            />
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Andere PDF's kiezen?</AlertDialogTitle>
@@ -759,24 +761,26 @@ function FieldCombobox({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          role="combobox"
-          aria-expanded={open}
-          aria-label={label}
-          disabled={disabled}
-          className={cn(
-            "w-full justify-between font-normal pointer-coarse:h-10",
-            !selected && "text-muted-foreground",
-          )}
-        >
-          <span className="truncate">{selected ? selected.b_name : "Kies een perceel"}</span>
-          <ChevronsUpDown aria-hidden className="opacity-50" />
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            role="combobox"
+            aria-expanded={open}
+            aria-label={label}
+            disabled={disabled}
+            className={cn(
+              "w-full justify-between font-normal pointer-coarse:h-10",
+              !selected && "text-muted-foreground",
+            )}
+          >
+            <span className="truncate">{selected ? selected.b_name : "Kies een perceel"}</span>
+            <ChevronsUpDown aria-hidden className="opacity-50" />
+          </Button>
+        }
+      />
       <PopoverContent className="w-72 p-0" align="start">
         <Command>
           <CommandInput placeholder="Zoek een perceel" />

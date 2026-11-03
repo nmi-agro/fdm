@@ -128,9 +128,9 @@ export function SoilAnalysesList({
               <div className="flex flex-wrap items-center gap-2">
                 {analysis.a_file_path && (
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <ViewPdfButton variant="outline" className="pointer-coarse:h-10" />
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={<ViewPdfButton variant="outline" className="pointer-coarse:h-10" />}
+                    />
                     <PdfViewerDialogContent
                       downloadUrl={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
                       filename={getSoilAnalysisDownloadName(
@@ -142,33 +142,41 @@ export function SoilAnalysesList({
                     />
                   </Dialog>
                 )}
-                <Button asChild size="sm" variant="outline" className="pointer-coarse:h-10">
-                  <NavLink to={`./analysis/${analysis.a_id}`}>
-                    {canModify ? "Bewerk" : "Bekijk"}
-                  </NavLink>
-                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="pointer-coarse:h-10"
+                  nativeButton={false}
+                  render={
+                    <NavLink to={`./analysis/${analysis.a_id}`}>
+                      {canModify ? "Bewerk" : "Bekijk"}
+                    </NavLink>
+                  }
+                />
                 {canModify && (
                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 pointer-coarse:h-10"
-                        disabled={fetcher.state !== "idle"}
-                      >
-                        {isDeleting ? (
-                          <>
-                            <Spinner />
-                            Verwijderen…
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 aria-hidden />
-                            Verwijder
-                          </>
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 pointer-coarse:h-10"
+                          disabled={fetcher.state !== "idle"}
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Spinner />
+                              Verwijderen…
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 aria-hidden />
+                              Verwijder
+                            </>
+                          )}
+                        </Button>
+                      }
+                    />
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Bodemanalyse verwijderen?</AlertDialogTitle>

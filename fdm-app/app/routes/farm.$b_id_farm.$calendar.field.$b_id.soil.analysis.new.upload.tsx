@@ -93,12 +93,18 @@ export default function FarmFieldSoilAnalysisUploadBlock() {
 
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-3">
-        <NavLink to="../soil/analysis/new">
-          <ArrowLeft />
-          Andere manier kiezen
-        </NavLink>
-      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-3"
+        nativeButton={false}
+        render={
+          <NavLink to="../soil/analysis/new">
+            <ArrowLeft />
+            Andere manier kiezen
+          </NavLink>
+        }
+      />
       {!isNmiConfigured && (
         <PdfReadingUnavailableAlert manualEntryHref="../soil/analysis/new/standard" />
       )}

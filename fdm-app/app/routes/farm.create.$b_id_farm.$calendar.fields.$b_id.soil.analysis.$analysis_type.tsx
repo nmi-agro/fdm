@@ -114,12 +114,17 @@ export default function FarmFieldSoilOverviewBlock() {
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <NavLink to={`../${loaderData.field.b_id}`}>
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={
+            <NavLink to={`../${loaderData.field.b_id}`}>
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          }
+        />
       </div>
       <Separator />
       <SoilAnalysisForm
