@@ -72,6 +72,57 @@ const baseSoilAnalysis = {
   b_soiltype_agr: "clay",
 }
 
+const samplingPoints = {
+  type: "MultiPoint",
+  coordinates: [
+    [5.002, 52.002],
+    [5.003, 52.003],
+  ],
+}
+
+const samplingZone = {
+  type: "MultiPolygon",
+  coordinates: [
+    [
+      [
+        [5.0, 52.0],
+        [5.005, 52.0],
+        [5.005, 52.005],
+        [5.0, 52.005],
+        [5.0, 52.0],
+      ],
+    ],
+  ],
+}
+
+const currentSoilDataItem = {
+  parameter: "a_p_al",
+  value: 30,
+  is_aggregated: true,
+  coverage: 1,
+  has_coverage_warning: false,
+  sources: [
+    {
+      a_id: "sa-1",
+      a_source: "Lab NL",
+      b_sampling_date: new Date("2023-04-28"),
+      a_depth_upper: 0,
+      a_depth_lower: 30,
+      value: 40,
+      area_fraction: 0.5,
+    },
+    {
+      a_id: "sa-2",
+      a_source: "Lab NL",
+      b_sampling_date: new Date("2023-04-20"),
+      a_depth_upper: 0,
+      a_depth_lower: 30,
+      value: 20,
+      area_fraction: 0.5,
+    },
+  ],
+}
+
 // ---------------------------------------------------------------------------
 // GET /fields/:b_id/soil-analyses
 // ---------------------------------------------------------------------------
@@ -177,6 +228,133 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       }),
     })
     expect(res.status).toBe(403)
+  })
+
+  it("passes the sampling geometries to the service and returns them", async () => {
+    const addSoilAnalysis = vi.fn().mockResolvedValue("sa-new")
+    const app = makeApp({
+      addSoilAnalysis,
+      getSoilAnalysis: vi.fn().mockResolvedValue({
+        ...baseSoilAnalysis,
+        a_id: "sa-new",
+        b_sampling_geometry: samplingPoints,
+        b_sampling_geometry_zone: samplingZone,
+      }),
+    })
+    const res = await app.request("/fields/field-1/soil-analyses", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        a_date: "2023-05-01",
+        a_source: "Lab NL",
+        a_depth_lower: 30,
+        b_sampling_date: "2023-04-28",
+        b_sampling_geometry: samplingPoints,
+        b_sampling_geometry_zone: samplingZone,
+      }),
+    })
+    expect(res.status).toBe(201)
+    expect(addSoilAnalysis.mock.calls[0][7]).toMatchObject({
+      b_sampling_geometry: samplingPoints,
+      b_sampling_geometry_zone: samplingZone,
+    })
+    const body = await res.json()
+    expect(body.b_sampling_geometry).toEqual(samplingPoints)
+    expect(body.b_sampling_geometry_zone).toEqual(samplingZone)
+  })
+
+  it("returns 400 when a sampling geometry has the wrong type", async () => {
+    const app = makeApp()
+    const res = await app.request("/fields/field-1/soil-analyses", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        a_date: "2023-05-01",
+        a_source: "Lab NL",
+        a_depth_lower: 30,
+        b_sampling_date: "2023-04-28",
+        b_sampling_geometry_zone: samplingPoints,
+      }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 422 when a sampling geometry is outside WGS84 or empty", async () => {
+    const app = makeApp()
+    const post = (geometries: Record<string, unknown>) =>
+      app.request("/fields/field-1/soil-analyses", {
+        method: "POST",
+        headers: {
+          "x-api-key": "valid",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          a_date: "2023-05-01",
+          a_source: "Lab NL",
+          a_depth_lower: 30,
+          b_sampling_date: "2023-04-28",
+          ...geometries,
+        }),
+      })
+
+    const outside = await post({
+      b_sampling_geometry: { type: "MultiPoint", coordinates: [[181, 52]] },
+    })
+    expect(outside.status).toBe(422)
+    const empty = await post({
+      b_sampling_geometry_zone: { type: "MultiPolygon", coordinates: [] },
+    })
+    expect(empty.status).toBe(422)
+    const emptyPolygon = await post({
+      b_sampling_geometry_zone: {
+        type: "MultiPolygon",
+        coordinates: [
+          [],
+          [
+            [
+              [5, 52],
+              [5.1, 52],
+              [5.1, 52.1],
+              [5, 52],
+            ],
+          ],
+        ],
+      },
+    })
+    expect(emptyPolygon.status).toBe(422)
+    const shortRing = await post({
+      b_sampling_geometry_zone: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [5, 52],
+            [5.1, 52],
+            [5, 52],
+          ],
+        ],
+      },
+    })
+    expect(shortRing.status).toBe(422)
+    const openRing = await post({
+      b_sampling_geometry_zone: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [5, 52],
+            [5.1, 52],
+            [5.1, 52.1],
+            [5, 52.1],
+          ],
+        ],
+      },
+    })
+    expect(openRing.status).toBe(422)
   })
 
   it("returns 400 when required fields are missing", async () => {
@@ -370,23 +548,36 @@ describe("GET /fields/:b_id/current-soil-data", () => {
 
   it("returns 200 with current soil data", async () => {
     const app = makeApp({
-      getCurrentSoilData: vi.fn().mockResolvedValue([
-        {
-          parameter: "a_ph_cc",
-          value: 6.2,
-          a_id: "sa-1",
-          b_sampling_date: new Date("2023-04-28"),
-          a_depth_upper: 0,
-          a_depth_lower: 30,
-          a_source: "Lab NL",
-        },
-      ]),
+      getCurrentSoilData: vi.fn().mockResolvedValue([currentSoilDataItem]),
     })
     const res = await app.request("/fields/field-1/current-soil-data", {
       headers: { "x-api-key": "valid" },
     })
     expect(res.status).toBe(200)
-    expect((await res.json())[0].parameter).toBe("a_ph_cc")
+    const body = await res.json()
+    expect(body[0].parameter).toBe("a_p_al")
+    expect(body[0].value).toBe(30)
+    expect(body[0].is_aggregated).toBe(true)
+    expect(body[0].sources).toEqual([
+      {
+        a_id: "sa-1",
+        a_source: "Lab NL",
+        b_sampling_date: "2023-04-28",
+        a_depth_upper: 0,
+        a_depth_lower: 30,
+        value: 40,
+        area_fraction: 0.5,
+      },
+      {
+        a_id: "sa-2",
+        a_source: "Lab NL",
+        b_sampling_date: "2023-04-20",
+        a_depth_upper: 0,
+        a_depth_lower: 30,
+        value: 20,
+        area_fraction: 0.5,
+      },
+    ])
   })
 
   it("returns 404 when no current soil data exists", async () => {
@@ -407,5 +598,59 @@ describe("GET /fields/:b_id/current-soil-data", () => {
       headers: { "x-api-key": "valid" },
     })
     expect(res.status).toBe(403)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// GET /fields/:b_id/current-soil-data/zones
+// ---------------------------------------------------------------------------
+describe("GET /fields/:b_id/current-soil-data/zones", () => {
+  beforeEach(() => {
+    validKey()
+  })
+
+  it("returns 200 with the current soil data per zone", async () => {
+    const app = makeApp({
+      getCurrentSoilDataPerZone: vi.fn().mockResolvedValue([
+        {
+          b_sampling_geometry_zone: samplingZone,
+          b_area: 1.72,
+          a_ids: ["sa-1"],
+          data: [
+            {
+              ...currentSoilDataItem,
+              value: 40,
+              is_aggregated: false,
+              coverage: null,
+              sources: [{ ...currentSoilDataItem.sources[0], area_fraction: 1 }],
+            },
+          ],
+        },
+      ]),
+    })
+    const res = await app.request("/fields/field-1/current-soil-data/zones", {
+      headers: { "x-api-key": "valid" },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body[0].b_sampling_geometry_zone).toEqual(samplingZone)
+    expect(body[0].a_ids).toEqual(["sa-1"])
+    expect(body[0].data[0].sources[0].b_sampling_date).toBe("2023-04-28")
+  })
+
+  it("returns 404 when no current soil data exists", async () => {
+    const app = makeApp({
+      getCurrentSoilDataPerZone: vi.fn().mockResolvedValue([]),
+    })
+    const res = await app.request("/fields/field-1/current-soil-data/zones", {
+      headers: { "x-api-key": "valid" },
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 401 without an API key", async () => {
+    const app = makeApp()
+    const res = await app.request("/fields/field-1/current-soil-data/zones")
+    expect(res.status).toBe(401)
   })
 })

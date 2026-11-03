@@ -1,5 +1,22 @@
 Notable changes to the REST API, newest first. Operations that were added recently carry a **New** badge in this reference.
 
+## 0.4.0
+
+### Breaking: current soil data lists its sources
+
+`GET /fields/{b_id}/current-soil-data` returns per parameter the contributing soil analyses in `sources`, instead of a single `a_id`, `b_sampling_date`, `a_source` and depth. Each source has its `a_id`, `a_source`, `b_sampling_date`, `a_depth_upper`, `a_depth_lower`, `value` and `area_fraction`, newest first. New fields per parameter:
+
+- `is_aggregated`: `true` when the value combines several sampling zones.
+- `coverage`: the share of the field that the sources represent (0–1).
+- `has_coverage_warning`: `true` when the sampling zones cover less than 95% of the field.
+
+For fields without sampling zones, `sources` holds exactly one analysis and the values are unchanged. When the most recent analysis for a parameter covers a sampling zone, the zones sampled within one month of it are combined: numeric parameters by the area-weighted mean, categorical parameters by the value with the largest area.
+
+### Sampling geometries and zones
+
+- Soil analyses return `b_sampling_geometry` (GeoJSON `MultiPoint`, the locations of the subsamples) and `b_sampling_geometry_zone` (GeoJSON `MultiPolygon`, the area the analysis represents; `null` for the whole field). `POST /fields/{b_id}/soil-analyses` and `PATCH /soil-analyses/{a_id}` accept both; a zone may also be a `Polygon`.
+- `GET /fields/{b_id}/current-soil-data/zones` returns the current soil data per sampling zone, with the zone geometry clipped to the field and its area in hectares.
+
 ## 0.3.1
 
 ### Every field documented

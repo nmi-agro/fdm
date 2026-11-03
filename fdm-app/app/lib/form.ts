@@ -19,9 +19,33 @@ export async function extractFormValuesFromRequest<T extends z.ZodType<unknown>>
   request: Request,
   schema: T,
 ): Promise<z.output<T>> {
+  let formData: FormData
   try {
-    const formData = await request.formData()
-    const formObject = Object.fromEntries(formData) as Record<string, unknown>
+    formData = await request.formData()
+  } catch (error) {
+    throw await handleActionError(error)
+  }
+  return extractFormValuesFromFormData(formData, schema)
+}
+
+/**
+ * Validates and transforms already parsed form data using a Zod schema, in the same way as
+ * {@link extractFormValuesFromRequest}. Use it when the request body has been parsed elsewhere,
+ * for example by a file upload handler. File entries are ignored.
+ *
+ * @param formData - The parsed form data.
+ * @param schema - The Zod schema to validate the form data against.
+ * @returns The parsed and validated form data.
+ * @throws {DataWithResponseInit} If the form data fails validation, with the issues in `data.validationErrors`.
+ */
+export async function extractFormValuesFromFormData<T extends z.ZodType<unknown>>(
+  formData: FormData,
+  schema: T,
+): Promise<z.output<T>> {
+  try {
+    const formObject = Object.fromEntries(
+      [...formData.entries()].filter(([, value]) => typeof value === "string"),
+    ) as Record<string, unknown>
 
     // Trim all values and remove quotation marks
     // Note: Somewhere additional quotation marks are added, preferably that is not the case, but this workaround removes them

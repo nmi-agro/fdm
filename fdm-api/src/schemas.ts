@@ -194,7 +194,10 @@ const GeoJsonPositionSchema = z
   .tuple([z.number(), z.number()])
   .describe("Position as [longitude, latitude] in WGS84 (EPSG:4326) decimal degrees.")
 
-const GeoJsonPolygonSchema = z.object({
+/**
+ * Validates a GeoJSON Polygon.
+ */
+export const GeoJsonPolygonSchema = z.object({
   type: z.literal("Polygon").describe("GeoJSON geometry type."),
   coordinates: z
     .array(z.array(GeoJsonPositionSchema))
@@ -203,12 +206,34 @@ const GeoJsonPolygonSchema = z.object({
     ),
 })
 
-const GeoJsonMultiPolygonSchema = z.object({
+/**
+ * Validates a GeoJSON MultiPolygon.
+ */
+export const GeoJsonMultiPolygonSchema = z.object({
   type: z.literal("MultiPolygon").describe("GeoJSON geometry type."),
   coordinates: z
     .array(z.array(z.array(GeoJsonPositionSchema)))
     .describe("Polygons of the geometry, each as a list of linear rings."),
 })
+
+/**
+ * Validates a GeoJSON MultiPoint, used for the locations of soil subsamples.
+ */
+export const GeoJsonMultiPointSchema = z
+  .object({
+    type: z.literal("MultiPoint").describe("GeoJSON geometry type."),
+    coordinates: z
+      .array(GeoJsonPositionSchema)
+      .describe("Positions of the points, each as [longitude, latitude] in WGS84."),
+  })
+  .openapi("GeoJsonMultiPoint")
+
+/**
+ * Validates the area a soil analysis represents: a Polygon or MultiPolygon.
+ */
+export const SamplingZoneGeometrySchema = z
+  .union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema])
+  .openapi("SamplingZoneGeometry")
 
 /**
  * Validates the GeoJSON geometry shapes accepted by field endpoints.

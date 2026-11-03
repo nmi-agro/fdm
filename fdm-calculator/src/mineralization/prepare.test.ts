@@ -91,20 +91,17 @@ function fieldData(overrides: Partial<MineralizationFieldData> = {}): Mineraliza
       {
         parameter: "a_som_loi",
         value: 3.1,
-        a_source: "lab_a",
-        b_sampling_date: winterDate("2026-02-01"),
+        sources: [{ a_source: "lab_a", b_sampling_date: winterDate("2026-02-01") }],
       },
       {
         parameter: "a_clay_mi",
         value: 6,
-        a_source: "lab_a",
-        b_sampling_date: winterDate("2026-02-01"),
+        sources: [{ a_source: "lab_a", b_sampling_date: winterDate("2026-02-01") }],
       },
       {
         parameter: "a_p_al",
         value: 40,
-        a_source: "lab_a",
-        b_sampling_date: winterDate("2026-02-01"),
+        sources: [{ a_source: "lab_a", b_sampling_date: winterDate("2026-02-01") }],
       },
     ],
     cultivations: [cultivation({})],
@@ -516,8 +513,7 @@ describe("prepareMineralizationInput", () => {
           // Not (yet) a stored soil parameter; the guard protects the request once it is mapped
           parameter: "b_gwl_glg" as MineralizationFieldData["soil"][number]["parameter"],
           value: 120,
-          a_source: "lab_a",
-          b_sampling_date: winterDate("2026-02-01"),
+          sources: [{ a_source: "lab_a", b_sampling_date: winterDate("2026-02-01") }],
         },
       ],
     })

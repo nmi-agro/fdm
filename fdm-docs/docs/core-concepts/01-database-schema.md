@@ -538,17 +538,18 @@ This schema holds the primary data related to farm operations.
 
 **Purpose**: Records the details of a soil sampling event, linking a field location to a soil analysis.
 
-| Column                  | Type                               | Constraints                                            | Description                                                                                                |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| **b_id_sampling**       | `text`                             | Primary Key                                            | Unique identifier for the soil sampling event.                                                             |
-| **b_id**                | `text`                             | Not Null, Foreign Key (references `fields.b_id`)       | Identifier of the field where the sample was taken.                                                        |
-| **a_id**                | `text`                             | Not Null, Foreign Key (references `soilAnalysis.a_id`) | Identifier of the analysis performed on this sample.                                                       |
-| **a_depth_upper**       | `numeric` (custom)                 | Not Null, Default: 0                                   | Upper depth of the soil sample (e.g., cm).                                                                 |
-| **a_depth_lower**       | `numeric` (custom)                 |                                                        | Lower depth of the soil sample (e.g., cm).                                                                 |
-| **b_sampling_date**     | `timestamp with time zone`         |                                                        | Timestamp when the sample was collected.                                                                   |
-| **b_sampling_geometry** | `geometry` (MultiPoint, SRID 4326) |                                                        | MultiPoint geometry representing the location(s) where the sample(s) were taken. See Custom Types section. |
-| **created**             | `timestamp with time zone`         | Not Null                                               | Timestamp when this record was created (default: now()).                                                   |
-| **updated**             | `timestamp with time zone`         |                                                        | Timestamp when this record was last updated.                                                               |
+| Column                       | Type                                 | Constraints                                            | Description                                                                                                                 |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| **b_id_sampling**            | `text`                               | Primary Key                                            | Unique identifier for the soil sampling event.                                                                              |
+| **b_id**                     | `text`                               | Not Null, Foreign Key (references `fields.b_id`)       | Identifier of the field where the sample was taken.                                                                         |
+| **a_id**                     | `text`                               | Not Null, Foreign Key (references `soilAnalysis.a_id`) | Identifier of the analysis performed on this sample.                                                                        |
+| **a_depth_upper**            | `numeric` (custom)                   | Not Null, Default: 0                                   | Upper depth of the soil sample (e.g., cm).                                                                                  |
+| **a_depth_lower**            | `numeric` (custom)                   |                                                        | Lower depth of the soil sample (e.g., cm).                                                                                  |
+| **b_sampling_date**          | `timestamp with time zone`           |                                                        | Timestamp when the sample was collected.                                                                                    |
+| **b_sampling_geometry**      | `geometry` (MultiPoint, SRID 4326)   |                                                        | MultiPoint geometry representing the location(s) where the sample(s) were taken. See Custom Types section.                  |
+| **b_sampling_geometry_zone** | `geometry` (MultiPolygon, SRID 4326) | GiST index                                             | Area the analysis represents: a zone within the field. `null` means the whole field. A Polygon is stored as a MultiPolygon. |
+| **created**                  | `timestamp with time zone`           | Not Null                                               | Timestamp when this record was created (default: now()).                                                                    |
+| **updated**                  | `timestamp with time zone`           |                                                        | Timestamp when this record was last updated.                                                                                |
 
 ---
 

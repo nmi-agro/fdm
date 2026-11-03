@@ -1,13 +1,5 @@
-import {
-  addSoilAnalysis,
-  getField,
-  getSoilParametersDescription,
-  updateSoilAnalysis,
-} from "@nmi-agro/fdm-core"
-import { createFsFileStorage } from "@remix-run/file-storage/fs"
-import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
-import { fileTypeFromBuffer } from "file-type"
-import { AlertCircle } from "lucide-react"
+import { getField, getSoilParametersDescription } from "@nmi-agro/fdm-core"
+import { ArrowLeft } from "lucide-react"
 import {
   type ActionFunctionArgs,
   data,
@@ -15,15 +7,18 @@ import {
   NavLink,
   useLoaderData,
 } from "react-router"
-import { dataWithError, redirectWithSuccess } from "remix-toast"
-import { FormSchema, SoilAnalysisUploadForm } from "~/components/blocks/soil/form-upload"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
-import { extractSoilAnalysisAndBuffer, getNmiApiKey } from "~/integrations/nmi.server"
+import type { FieldPageHandle } from "~/lib/field-page"
+import {
+  PdfReadingUnavailableAlert,
+  SoilAnalysisUploadFlow,
+} from "~/components/blocks/soil/upload-flow"
+import { Button } from "~/components/ui/button"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { handleSoilAnalysisUploadAction } from "~/lib/soil-upload.server"
 
 /**
  * Loader function for the soil analysis upload page.
@@ -81,44 +76,50 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+/** The field layout names the page under the field name. */
+export const handle: FieldPageHandle = {
+  fieldDescription:
+    "Bodemanalyse uploaden: je controleert de uitgelezen waarden voordat ze worden opgeslagen",
+}
+
 /**
- * Renders the soil analysis upload form.
+ * Renders the page to add a soil analysis from a PDF lab report: first the PDF is read, then the
+ * user checks the values next to the PDF and saves them.
  *
- * @returns The JSX element for the soil analysis upload form.
+ * @returns The JSX element for the soil analysis upload page.
  */
 export default function FarmFieldSoilAnalysisUploadBlock() {
-  const { isNmiConfigured } = useLoaderData<typeof loader>()
+  const { isNmiConfigured, soilParameterDescription } = useLoaderData<typeof loader>()
 
   return (
     <div className="space-y-6">
+      <Button asChild variant="ghost" size="sm" className="-ml-3">
+        <NavLink to="../soil/analysis/new">
+          <ArrowLeft />
+          Andere manier kiezen
+        </NavLink>
+      </Button>
       {!isNmiConfigured && (
-        <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-800">
-          <AlertCircle className="h-4 w-4 text-amber-800!" />
-          <AlertTitle>Automatische PDF-uitlezing niet beschikbaar</AlertTitle>
-          <AlertDescription>
-            Het automatisch uitlezen van PDF-bodemanalyses via de NMI API is in deze omgeving niet
-            geconfigureerd (NMI_API_KEY ontbreekt). U kunt bodemanalyses{" "}
-            <NavLink to="../standard" className="font-semibold underline">
-              handmatig invoeren
-            </NavLink>
-            .
-          </AlertDescription>
-        </Alert>
+        <PdfReadingUnavailableAlert manualEntryHref="../soil/analysis/new/standard" />
       )}
-      <SoilAnalysisUploadForm disabled={!isNmiConfigured} />
+      <SoilAnalysisUploadFlow
+        soilParameterDescription={soilParameterDescription}
+        disabled={!isNmiConfigured}
+        manualEntryHref="../soil/analysis/new/standard"
+      />
     </div>
   )
 }
 
 /**
- * Action function for uploading a soil analysis file.
+ * Action for the upload page: reads the PDF (`intent=extract`) or saves the checked values with
+ * the PDF (`intent=save`). See `handleSoilAnalysisUploadAction`.
  *
  * @param request - The HTTP request object.
  * @param params - The route parameters containing `b_id_farm` and `b_id`.
- * @returns A redirect response to the soil analysis page.
+ * @returns The values to check, or a redirect to the new soil analysis after saving.
  */
 export async function action({ request, params }: ActionFunctionArgs) {
-  // Get the farm id
   const b_id_farm = params.b_id_farm
   if (!b_id_farm) {
     throw data("Farm ID is required", {
@@ -127,7 +128,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     })
   }
 
-  // Get the field id
   const b_id = params.b_id
   if (!b_id) {
     throw data("Field ID is required", {
@@ -136,147 +136,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
     })
   }
 
-  try {
-    // Get the session
-    const session = await getSession(request)
-
-    const fileStorage = createFsFileStorage("./uploads/soil_analysis")
-
-    const uploadHandler = async (fileUpload: FileUpload) => {
-      if (fileUpload.fieldName === "soilAnalysisFile" && fileUpload.type === "application/pdf") {
-        // Check file type based on magic bytes
-        const fileBuffer = await fileUpload.arrayBuffer()
-        const fileType = await fileTypeFromBuffer(fileBuffer)
-
-        if (fileType?.mime !== "application/pdf") {
-          throw new Error("Invalid file type (magic bytes check)")
-        }
-
-        // We need to create a new File object from the buffer
-        const file = new File([fileBuffer], fileUpload.name, {
-          type: fileUpload.type,
-        })
-        const storageKey = crypto.randomUUID()
-        await fileStorage.set(storageKey, file)
-
-        const storedFile = await fileStorage.get(storageKey)
-        if (storedFile && "toFile" in storedFile && typeof storedFile.toFile === "function") {
-          return (storedFile as unknown as { toFile: () => File }).toFile()
-        }
-        return storedFile
-      }
-      throw new Error("Invalid file type (mime check)")
-    }
-
-    const formData = await parseFormData(request, { maxFileSize: 5 * 1024 * 1024 }, uploadHandler)
-    const file = formData.get("soilAnalysisFile") as File | undefined
-
-    // Server-side validation using Zod schema
-    const parsedFile = FormSchema.safeParse({ soilAnalysisFile: file })
-    if (!parsedFile.success) {
-      throw data(parsedFile.error.flatten(), { status: 400 })
-    }
-
-    if (!file) {
-      throw data("No file uploaded", { status: 400 })
-    }
-
-    // Submit to NMI API and get the parsed buffer to avoid memory duplication.
-    const { buffer, soilAnalysis } = await extractSoilAnalysisAndBuffer(formData)
-
-    // Validate required fields exist
-    if (!soilAnalysis.a_depth_lower) {
-      throw new Error("Missing required a_depth_lower value")
-    }
-    if (!soilAnalysis.b_sampling_date) {
-      throw new Error("Missing required b_sampling_date")
-    }
-    if (soilAnalysis.a_depth_upper === undefined || soilAnalysis.a_depth_upper === null) {
-      throw new Error("Missing required a_depth_upper value")
-    }
-
-    const {
-      a_source,
-      a_depth_lower,
-      a_depth_upper,
-      b_sampling_date,
-      location,
-      b_name,
-      ...soilAnalysisData
-    } = soilAnalysis
-    void location
-    void b_name
-
-    // Add soil analysis
-    const soilAnalysisId = await addSoilAnalysis(
-      fdm,
-      session.principal_id,
-      null,
-      typeof a_source === "string" ? a_source : "other",
-      b_id,
-      Number(a_depth_lower),
-      new Date(b_sampling_date),
-      soilAnalysisData as Parameters<typeof addSoilAnalysis>[7],
-      Number(a_depth_upper),
-    )
-
-    const objectKey = buildObjectKey("soil_analysis", soilAnalysisId, "pdf")
-
-    let uploaded = false
-    try {
-      await uploadObject(objectKey, new Uint8Array(buffer), "application/pdf")
-      uploaded = true
-      await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, {
-        a_file_path: objectKey,
-      })
-    } catch (gcsSaveError) {
-      try {
-        if (uploaded) {
-          await deleteObject(objectKey)
-        }
-      } catch (deleteError) {
-        void handleActionError(deleteError)
-      }
-      void handleActionError(gcsSaveError)
-    }
-
-    captureEvent(session.principal_id, "soil_analysis_saved", {
-      b_id_farm,
-      b_id,
-      analysis_type: typeof a_source === "string" ? a_source : "other",
-      method: "upload",
-      calendar: String(params.calendar),
-    })
-
-    return redirectWithSuccess(`../soil/analysis/${soilAnalysisId}`, {
-      message: "Bodemanalyse is toegevoegd! 🎉",
-    })
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message === "Invalid file type (magic bytes check)" ||
-        error.message === "Invalid file type (mime check)")
-    ) {
-      return dataWithError(
-        null,
-        "Het bestand is ongeldig. Controleer het bestand en probeer het opnieuw",
-      )
-    }
-
-    if (error instanceof Error && error.message.toLowerCase().includes("nmi api key")) {
-      return dataWithError(
-        null,
-        "Het automatisch inlezen van PDF-bodemanalyses is niet geconfigureerd (NMI_API_KEY ontbreekt). Voer de analyse handmatig in.",
-      )
-    }
-
-    if (error instanceof Error && error.message === "Invalid soil analysis") {
-      return dataWithError(
-        null,
-        "Helaas is het niet gelukt om de pdf te analyseren. Controleer het bestand of neem contact op met Ondersteuning",
-      )
-    }
-
-    return handleActionError(error)
-  }
+  return handleSoilAnalysisUploadAction({
+    request,
+    b_id,
+    redirectTo: (a_id) => `../soil/analysis/${a_id}`,
+    onSaved: (principal_id, saved) =>
+      captureEvent(principal_id, "soil_analysis_saved", {
+        b_id_farm,
+        b_id,
+        analysis_type: saved.a_source,
+        method: "upload",
+        calendar: String(params.calendar),
+      }),
+  })
 }

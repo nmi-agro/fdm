@@ -209,8 +209,13 @@ export async function computeBemestingsplanData({
           if (Array.isArray(currentSoilData)) {
             for (const item of currentSoilData) {
               soilParams[item.parameter] = item.value
-              if (item.b_sampling_date && (!samplingDate || item.b_sampling_date > samplingDate)) {
-                samplingDate = item.b_sampling_date
+              for (const source of item.sources) {
+                if (
+                  source.b_sampling_date &&
+                  (!samplingDate || source.b_sampling_date > samplingDate)
+                ) {
+                  samplingDate = source.b_sampling_date
+                }
               }
             }
           }
