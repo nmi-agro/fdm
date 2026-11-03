@@ -6,6 +6,7 @@ import {
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
   createFunctionsForNorms,
+  extractSoilAnalysesFromPdfs,
   getDoseForField,
   getFarmIndicators,
   getFarmNutrientAdviceRows,
@@ -268,6 +269,8 @@ export interface FdmApiServices {
   getSoilImageAnnotation: typeof getSoilImageAnnotation
   updateSoilImageAnnotation: typeof updateSoilImageAnnotation
   removeSoilImageAnnotation: typeof removeSoilImageAnnotation
+  // Lab reports
+  extractSoilAnalysesFromPdfs: typeof extractSoilAnalysesFromPdfs
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -377,6 +380,7 @@ const defaultServices: FdmApiServices = {
   getSoilImageAnnotation,
   updateSoilImageAnnotation,
   removeSoilImageAnnotation,
+  extractSoilAnalysesFromPdfs,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
 }
 

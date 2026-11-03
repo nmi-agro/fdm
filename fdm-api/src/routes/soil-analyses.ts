@@ -1,4 +1,5 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
+import type { ExtractedSoilAnalysis, extractSoilAnalysesFromPdfs } from "@nmi-agro/fdm-calculator"
 import type {
   addSoilAnalysis,
   CurrentSoilData,
@@ -14,8 +15,15 @@ import type {
   SoilZone,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
+import type { FileStorage } from "@nmi-agro/fdm-storage"
 import { createRoute, z } from "@hono/zod-openapi"
 import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
+import {
+  FileNotFoundError,
+  InvalidUploadError,
+  readAndValidateFileUpload,
+} from "@nmi-agro/fdm-storage"
+import { randomUUID } from "node:crypto"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import {
@@ -29,6 +37,7 @@ import {
 import { assertGeoJsonCoordinates } from "../guards"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
+  binaryResponse,
   commonErrorResponses,
   DateStringSchema,
   GeoJsonMultiPointSchema,
@@ -38,11 +47,14 @@ import {
   paginatedResponse,
   paginatedSchema,
   parseTimeframeQuery,
+  problemResponseDefinition,
   SamplingZoneGeometrySchema,
   SoilAnalysisDataSchema,
   serializeDate,
+  uploadErrorResponses,
   writeErrorResponses,
 } from "../schemas"
+import { requireStorage } from "../storage"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
@@ -68,6 +80,24 @@ export interface SoilAnalysisServices {
   updateSoilAnalysis: typeof updateSoilAnalysis
   /** Permanently deletes a soil analysis. */
   removeSoilAnalysis: typeof removeSoilAnalysis
+  /** Reads soil analyses from lab report PDFs with the NMI SoilReader service. */
+  extractSoilAnalysesFromPdfs: typeof extractSoilAnalysesFromPdfs
+  /** Resolves the server-side NMI API key; `undefined` when not configured. */
+  getNmiApiKey: () => string | undefined
+  /** Returns the file storage; `undefined` when no storage is configured. */
+  getStorage: () => FileStorage | undefined
+}
+
+const MAX_PDF_BYTES = 5 * 1024 * 1024
+const MAX_PDF_FILES = 10
+const UPLOAD_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
+/**
+ * Storage key of a lab report that was uploaded for extraction but is not yet linked to a soil
+ * analysis. The key includes the user, so only the user who uploaded it can link it.
+ */
+function pendingReportKey(userId: string, uploadToken: string): string {
+  return `soil_analysis_pending/${userId}/${uploadToken}.pdf`
 }
 
 const SoilAnalysisSchema = z
@@ -90,6 +120,11 @@ const SoilAnalysisSchema = z
     b_sampling_geometry_zone: GeoJsonMultiPolygonSchema.nullable().describe(
       "Area the analysis represents (WGS84); null when it represents the whole field.",
     ),
+    has_document: z
+      .boolean()
+      .describe(
+        "True when the lab report (PDF) of this analysis is stored. Download it with `GET /soil-analyses/{a_id}/document`.",
+      ),
   })
   .openapi("SoilAnalysis")
 
@@ -195,6 +230,13 @@ const CreateSoilAnalysisBodySchema = z
     a_depth_lower: z.number().describe("Lower sampling depth in cm."),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     a_depth_upper: z.number().optional().describe("Upper sampling depth in cm (default 0)."),
+    upload_token: z
+      .string()
+      .regex(UPLOAD_TOKEN_PATTERN, "upload_token must be a token from POST /soil-analyses/extract.")
+      .optional()
+      .describe(
+        "Token of a lab report uploaded with `POST /soil-analyses/extract`. The report is stored with the new analysis. Only the user who uploaded it can use the token, and it can be used once.",
+      ),
   })
   .merge(SoilAnalysisDataSchema)
   .merge(SamplingGeometriesBodySchema)
@@ -208,6 +250,149 @@ const UpdateSoilAnalysisBodySchema = z
   .merge(SoilAnalysisDataSchema)
   .merge(SamplingGeometriesBodySchema)
   .openapi("UpdateSoilAnalysis")
+
+const ExtractedSoilAnalysisSchema = z
+  .object({
+    upload_token: z
+      .string()
+      .describe(
+        "Token of the uploaded report. Send it as `upload_token` with `POST /fields/{b_id}/soil-analyses` to store the report with the analysis.",
+      ),
+    filename: z.string().describe("File name of the report this analysis was read from."),
+    b_name: z
+      .string()
+      .nullable()
+      .describe(
+        "Name of the field on the report, to match the analysis to a field. `null` when not found.",
+      ),
+    a_source: z
+      .string()
+      .nullable()
+      .describe("Laboratory that made the analysis. `null` when it could not be read."),
+    b_sampling_date: DateStringSchema.nullable().describe(
+      "Date of sampling in YYYY-MM-DD format. `null` when it could not be read.",
+    ),
+    a_depth_upper: z
+      .number()
+      .nullable()
+      .describe("Upper boundary of the sampled soil layer (cm). `null` when it could not be read."),
+    a_depth_lower: z
+      .number()
+      .nullable()
+      .describe("Lower boundary of the sampled soil layer (cm). `null` when it could not be read."),
+    location: z
+      .tuple([z.number(), z.number()])
+      .nullable()
+      .describe(
+        "Sampling location as [longitude, latitude] in WGS84, to match the analysis to a field. `null` when the report has none.",
+      ),
+    ...soilParameterShape("nullable"),
+    // Same schema as in SoilAnalysis, so the document has one definition of it.
+    b_sampling_geometry: SoilAnalysisSchema.shape.b_sampling_geometry,
+    b_sampling_geometry_zone: SamplingZoneGeometrySchema.nullable().describe(
+      "Area the analysis represents (WGS84). `null` when the report has none.",
+    ),
+  })
+  .openapi("ExtractedSoilAnalysis")
+
+const ExtractSoilAnalysesBodySchema = z
+  .object({
+    files: z
+      .union([
+        z.custom<File>((value) => value instanceof File, { message: "files must be PDF files." }),
+        z
+          .array(
+            z.custom<File>((value) => value instanceof File, {
+              message: "files must be PDF files.",
+            }),
+          )
+          .min(1)
+          .max(MAX_PDF_FILES),
+      ])
+      .openapi({ type: "array", items: { type: "string", format: "binary" } })
+      .describe(
+        "One to ten lab reports as PDF, at most 5 MB each. Send each file as a `files` field.",
+      ),
+  })
+  .openapi("ExtractSoilAnalyses")
+
+const extractSoilAnalysesRoute = createRoute({
+  method: "post",
+  path: "/soil-analyses/extract",
+  tags: ["Soil Analyses"],
+  summary: "Read soil analyses from lab reports",
+  description:
+    "Reads the soil analyses from lab reports (PDF) with the NMI SoilReader service, the same as the upload in the web app. Nothing is saved: check the values, then save each analysis with `POST /fields/{b_id}/soil-analyses`, passing its `upload_token` to store the report with it. Uploaded reports that are not linked to an analysis are removed after a while. Counts towards the NMI rate limit.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    body: {
+      content: { "multipart/form-data": { schema: ExtractSoilAnalysesBodySchema } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description:
+        "The soil analyses found in the reports. One report can contain several analyses.",
+      content: { "application/json": { schema: z.array(ExtractedSoilAnalysisSchema) } },
+    },
+    ...uploadErrorResponses,
+    502: problemResponseDefinition(
+      "Bad gateway — the lab report reading service could not read the reports.",
+    ),
+    503: problemResponseDefinition(
+      "Service unavailable — reading lab reports or file storage is not configured on this server.",
+    ),
+  },
+})
+
+const soilAnalysisDocumentRoute = createRoute({
+  method: "get",
+  path: "/soil-analyses/{a_id}/document",
+  tags: ["Soil Analyses"],
+  summary: "Download the lab report of a soil analysis",
+  description:
+    "Returns the lab report (PDF) stored with the soil analysis. Returns 404 when the analysis has no report (`has_document` is false).",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: { params: z.object({ a_id: SoilAnalysisIdSchema }) },
+  responses: {
+    200: binaryResponse("application/pdf", "The lab report."),
+    ...commonErrorResponses,
+    503: problemResponseDefinition(
+      "Service unavailable — file storage is not configured on this server.",
+    ),
+  },
+})
+
+function serialiseExtractedSoilAnalysis(
+  analysis: ExtractedSoilAnalysis,
+  upload_token: string,
+  filename: string,
+) {
+  const parameters: Record<string, unknown> = {}
+  for (const code of Object.keys(soilParameterDescriptions) as SoilParameterCode[]) {
+    const value = (analysis as Record<string, unknown>)[code]
+    parameters[code] = typeof value === "number" || typeof value === "string" ? value : null
+  }
+  if (parameters.b_soiltype_agr === null && analysis.b_soil_type) {
+    parameters.b_soiltype_agr = analysis.b_soil_type
+  }
+  return {
+    upload_token,
+    filename: analysis.filename ?? filename,
+    b_name: analysis.b_name ?? null,
+    a_source: typeof analysis.a_source === "string" ? analysis.a_source : null,
+    b_sampling_date: serializeDate(analysis.b_sampling_date ?? null),
+    a_depth_upper: analysis.a_depth_upper ?? null,
+    a_depth_lower: analysis.a_depth_lower ?? null,
+    location: analysis.location?.coordinates ?? null,
+    ...parameters,
+    b_sampling_geometry: analysis.b_sampling_geometry,
+    b_sampling_geometry_zone: analysis.b_sampling_geometry_zone,
+  }
+}
 
 const listSoilAnalysesRoute = createRoute({
   method: "get",
@@ -433,6 +618,7 @@ function serialiseSoilAnalysis(sa: SoilAnalysis) {
     ...serialiseSoilParameters(sa),
     b_sampling_geometry: sa.b_sampling_geometry ?? null,
     b_sampling_geometry_zone: sa.b_sampling_geometry_zone ?? null,
+    has_document: Boolean((sa as { a_file_path?: string | null }).a_file_path),
   }
 }
 
@@ -573,6 +759,8 @@ export function registerSoilAnalysisRoutes(
   // /fields/*/soil-analyses is covered by the /fields/* middleware in fields.ts
   // /farms/*/soil-analyses is covered by the /farms/* middleware in farms.ts
   // /fields/*/current-soil-data is covered by the /fields/* middleware in fields.ts
+  // Reading lab reports calls the NMI API and counts in the "nmi" bucket.
+  app.use("/soil-analyses/extract", (c, next) => rateLimitMiddleware(fdm, "nmi")(c, next))
   app.use("/soil-analyses", (c, next) =>
     rateLimitMiddleware(fdm, WRITE_METHODS.has(c.req.method) ? "write" : "general")(c, next),
   )
@@ -680,8 +868,30 @@ export function registerSoilAnalysisRoutes(
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateSoilAnalysisBodySchema>
     assertSamplingGeometries(body)
-    const { a_date, a_source, a_depth_lower, b_sampling_date, a_depth_upper, ...soilAnalysisData } =
-      body
+    const {
+      a_date,
+      a_source,
+      a_depth_lower,
+      b_sampling_date,
+      a_depth_upper,
+      upload_token,
+      ...soilAnalysisData
+    } = body
+
+    // Check the report before creating the analysis, so a bad token creates nothing.
+    let pendingKey: string | undefined
+    let storage: FileStorage | undefined
+    if (upload_token) {
+      storage = requireStorage(services.getStorage)
+      pendingKey = pendingReportKey(principal.userId, upload_token)
+      if (!(await storage.exists(pendingKey))) {
+        throw new ApiError(
+          422,
+          "unprocessable-entity",
+          "upload_token is unknown, already used or expired. Upload the report again.",
+        )
+      }
+    }
     const a_id = await services.addSoilAnalysis(
       fdm,
       principal.effectivePrincipalId,
@@ -693,12 +903,117 @@ export function registerSoilAnalysisRoutes(
       soilAnalysisData as Parameters<typeof addSoilAnalysis>[7],
       a_depth_upper,
     )
+    if (storage && pendingKey) {
+      const a_file_path = `soil_analysis/${a_id}.pdf`
+      await storage.move(pendingKey, a_file_path)
+      await services.updateSoilAnalysis(fdm, principal.effectivePrincipalId, a_id, {
+        a_file_path,
+      })
+    }
     const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
     if (!analysis?.a_id) {
       throw new ApiError(500, "internal-error", "Soil analysis created but could not be retrieved.")
     }
     c.header("Location", `${new URL(c.req.url).origin}/soil-analyses/${a_id}`)
     return c.json(serialiseSoilAnalysis(analysis), 201)
+  }
+
+  const extractSoilAnalysesHandler: RouteHandler<typeof extractSoilAnalysesRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const form = c.req.valid("form") as z.infer<typeof ExtractSoilAnalysesBodySchema>
+    const files = Array.isArray(form.files) ? form.files : [form.files]
+    const nmiApiKey = services.getNmiApiKey()
+    if (!nmiApiKey) {
+      throw new ApiError(
+        503,
+        "service-unavailable",
+        "Reading lab reports is not configured on this server.",
+      )
+    }
+    const storage = requireStorage(services.getStorage)
+
+    const reports: { buffer: Buffer; filename: string }[] = []
+    for (const file of files) {
+      try {
+        const { buffer } = await readAndValidateFileUpload(file, {
+          allowedMimes: new Set(["application/pdf"]),
+          maxBytes: MAX_PDF_BYTES,
+        })
+        reports.push({ buffer, filename: file.name || "report.pdf" })
+      } catch (err) {
+        if (err instanceof InvalidUploadError) {
+          throw err.reason === "too-large"
+            ? new ApiError(413, "payload-too-large", `'${file.name}' is larger than 5 MB.`)
+            : new ApiError(415, "unsupported-media-type", `'${file.name}' is not a PDF file.`)
+        }
+        throw err
+      }
+    }
+
+    const results = []
+    // One request per report, so each analysis can be linked to the report it came from.
+    for (const report of reports) {
+      let analyses: ExtractedSoilAnalysis[]
+      try {
+        analyses = await services.extractSoilAnalysesFromPdfs(
+          [{ file: new Blob([new Uint8Array(report.buffer)]), filename: report.filename }],
+          nmiApiKey,
+        )
+      } catch (err) {
+        if (err instanceof Error && err.name === "SoilReaderError") {
+          throw new ApiError(
+            502,
+            "bad-gateway",
+            `The lab report '${report.filename}' could not be read.`,
+          )
+        }
+        throw err
+      }
+      if (analyses.length === 0) continue
+      const upload_token = randomUUID()
+      await storage.upload(
+        pendingReportKey(principal.userId, upload_token),
+        report.buffer,
+        "application/pdf",
+      )
+      for (const analysis of analyses) {
+        results.push(serialiseExtractedSoilAnalysis(analysis, upload_token, report.filename))
+      }
+    }
+    return c.json(results as z.infer<typeof ExtractedSoilAnalysisSchema>[], 200)
+  }
+
+  const soilAnalysisDocumentHandler: RouteHandler<typeof soilAnalysisDocumentRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { a_id } = c.req.valid("param") as { a_id: string }
+    const storage = requireStorage(services.getStorage)
+    const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
+    if (!analysis?.a_id) {
+      throw new ApiError(404, "not-found", `Soil analysis '${a_id}' not found.`)
+    }
+    const filePath = (analysis as { a_file_path?: string | null }).a_file_path
+    if (!filePath) {
+      throw new ApiError(404, "not-found", `Soil analysis '${a_id}' has no lab report.`)
+    }
+    let file: Awaited<ReturnType<FileStorage["download"]>>
+    try {
+      file = await storage.download(filePath)
+    } catch (err) {
+      if (err instanceof FileNotFoundError) {
+        throw new ApiError(
+          404,
+          "not-found",
+          `The lab report of soil analysis '${a_id}' is missing.`,
+        )
+      }
+      throw err
+    }
+    return c.body(new Uint8Array(file.buffer), 200, {
+      "content-type": "application/pdf",
+      "content-disposition": `attachment; filename="soil-analysis-${a_id}.pdf"`,
+    }) as never
   }
 
   const getSoilAnalysisHandler: RouteHandler<typeof getSoilAnalysisRoute> = async (c) => {
@@ -751,6 +1066,8 @@ export function registerSoilAnalysisRoutes(
   }
 
   app.openapi(listSoilAnalysesRoute, listSoilAnalysesHandler)
+  app.openapi(extractSoilAnalysesRoute, extractSoilAnalysesHandler)
+  app.openapi(soilAnalysisDocumentRoute, soilAnalysisDocumentHandler)
   app.openapi(listFarmSoilAnalysesRoute, listFarmSoilAnalysesHandler)
   app.openapi(farmCurrentSoilDataRoute, getFarmCurrentSoilDataHandler)
   app.openapi(currentSoilDataRoute, getCurrentSoilDataHandler)
