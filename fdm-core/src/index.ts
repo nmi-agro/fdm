@@ -128,6 +128,7 @@ export {
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
+  getFertilizerTypesByRvoCode,
   removeFertilizer,
   removeFertilizerApplication,
   updateFertilizerApplication,

@@ -22,6 +22,7 @@ import {
   addFarmToGroup,
   addFertilizer,
   addFertilizerApplication,
+  addFertilizerToCatalogue,
   addField,
   addHarvest,
   addMeasure,
@@ -87,6 +88,7 @@ import {
   updateFarm,
   updateFarmGroupMembership,
   updateFertilizerApplication,
+  updateFertilizerFromCatalogue,
   updateField,
   updateHarvest,
   updateMeasure,
@@ -247,6 +249,9 @@ export interface FdmApiServices {
   createFunctionsForNorms: typeof createFunctionsForNorms
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice: typeof getNutrientAdvice
+  // Custom fertilizers
+  addFertilizerToCatalogue: typeof addFertilizerToCatalogue
+  updateFertilizerFromCatalogue: typeof updateFertilizerFromCatalogue
   // Files and notifications
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -341,6 +346,8 @@ const defaultServices: FdmApiServices = {
   createFunctionsForNorms,
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice,
+  addFertilizerToCatalogue,
+  updateFertilizerFromCatalogue,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
   notifyFarmInvitation: async () => {},
 }

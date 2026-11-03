@@ -38,6 +38,7 @@
     "@hono/zod-openapi": "^1.6.3",
     "@nmi-agro/fdm-calculator": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
+    "@nmi-agro/fdm-data": "workspace:*",
     "@nmi-agro/fdm-storage": "workspace:*",
     "@scalar/hono-api-reference": "^0.12.16",
     "@sentry/node": "^11.10.0",

@@ -299,6 +299,9 @@ importers:
       '@nmi-agro/fdm-core':
         specifier: workspace:*
         version: link:../fdm-core
+      '@nmi-agro/fdm-data':
+        specifier: workspace:*
+        version: link:../fdm-data
       '@nmi-agro/fdm-storage':
         specifier: workspace:*
         version: link:../fdm-storage
