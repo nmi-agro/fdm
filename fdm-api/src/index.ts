@@ -98,20 +98,6 @@ import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/f
 import { buildApp } from "./app"
 
 /**
- * Describes a farm invitation that was created through the API.
- */
-export interface FarmInvitationEvent {
-  /** ID of the farm the invitation is for. */
-  b_id_farm: string
-  /** Username, organization slug or email address that was invited, as sent by the client. */
-  target: string
-  /** Role offered to the invitee. */
-  role: "owner" | "advisor" | "researcher"
-  /** Principal ID of the user who sent the invitation. */
-  inviter_principal_id: string
-}
-
-/**
  * Describes the public configuration used to mount the FDM API application.
  */
 export interface FdmApiConfig {
@@ -136,11 +122,6 @@ export interface FdmApiConfig {
    * available, file endpoints respond with `503 Service Unavailable`.
    */
   storage?: FileStorage
-  /**
-   * Called after a farm invitation has been created, for example to send an email to the
-   * invitee. Errors are logged and do not fail the request, because the invitation already exists.
-   */
-  onFarmInvitationCreated?: (event: FarmInvitationEvent) => Promise<void>
 }
 
 /**
@@ -252,11 +233,9 @@ export interface FdmApiServices {
   // Custom fertilizers
   addFertilizerToCatalogue: typeof addFertilizerToCatalogue
   updateFertilizerFromCatalogue: typeof updateFertilizerFromCatalogue
-  // Files and notifications
+  // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
-  /** Notifies the invitee of a new farm invitation. Does nothing by default. */
-  notifyFarmInvitation: (event: FarmInvitationEvent) => Promise<void>
 }
 
 const defaultServices: FdmApiServices = {
@@ -349,7 +328,6 @@ const defaultServices: FdmApiServices = {
   addFertilizerToCatalogue,
   updateFertilizerFromCatalogue,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
-  notifyFarmInvitation: async () => {},
 }
 
 let gcsStorage: FileStorage | undefined
@@ -385,9 +363,6 @@ export function createFdmApi(
   if (config.storage) {
     const storage = config.storage
     configServices.getStorage = () => storage
-  }
-  if (config.onFarmInvitationCreated) {
-    configServices.notifyFarmInvitation = config.onFarmInvitationCreated
   }
   return buildApp(fdm, auth, config, { ...defaultServices, ...configServices, ...services })
 }
