@@ -1,5 +1,9 @@
 import type { HarvestableType } from "./types"
 
+/**
+ * Returns how often a cultivation can be harvested in the UI: only grassland can have multiple
+ * harvests. Mirrors `getEffectiveHarvestable` of fdm-core, so it can be used in client components.
+ */
 export function getEffectiveHarvestable(
   original: HarvestableType,
   croprotation?: string | null,

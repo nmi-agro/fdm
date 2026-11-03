@@ -180,6 +180,7 @@ export {
 export {
   addHarvest,
   getDefaultsForHarvestParameters,
+  getEffectiveHarvestable,
   getHarvest,
   getHarvestableTypeOfCultivation,
   getHarvests,

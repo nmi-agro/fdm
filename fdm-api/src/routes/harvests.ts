@@ -2,6 +2,9 @@ import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type {
   addHarvest,
   FdmType,
+  getCultivation,
+  getCultivationsFromCatalogue,
+  getField,
   getHarvest,
   getHarvests,
   getHarvestsForFarm,
@@ -10,6 +13,11 @@ import type {
   updateHarvest,
 } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
+import {
+  getDefaultsForHarvestParameters,
+  getEffectiveHarvestable,
+  getParametersForHarvestCat,
+} from "@nmi-agro/fdm-core"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { CultivationIdSchema, FarmIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
@@ -30,6 +38,9 @@ const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 /** Defines the harvest data access functions required by the harvest routes. */
 export interface HarvestServices {
   getHarvests: typeof getHarvests
+  getCultivation: typeof getCultivation
+  getField: typeof getField
+  getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
   getHarvestsForFarm: typeof getHarvestsForFarm
   getHarvest: typeof getHarvest
   addHarvest: typeof addHarvest
@@ -205,6 +216,70 @@ const listFarmHarvestsRoute = createRoute({
   },
 })
 
+const harvestParameterCodes = [
+  "b_lu_yield",
+  "b_lu_yield_fresh",
+  "b_lu_yield_bruto",
+  "b_lu_tarra",
+  "b_lu_uww",
+  "b_lu_moist",
+  "b_lu_dm",
+  "b_lu_cp",
+  "b_lu_n_harvestable",
+] as const
+
+const HarvestParametersSchema = z
+  .object({
+    b_lu: CultivationIdSchema.describe("Unique identifier of the cultivation."),
+    b_lu_catalogue: z.string().describe("Cultivation catalogue code of the cultivation."),
+    b_lu_harvestcat: z
+      .string()
+      .nullable()
+      .describe(
+        "Harvest category of the crop (HC010–HC050), which decides the parameters of a harvest. `null` when the crop has no harvest category.",
+      ),
+    b_lu_harvestable: z
+      .enum(["none", "once", "multiple"])
+      .describe(
+        "How often the cultivation can be harvested: `none`, `once`, or `multiple` (several cuts, only for grassland).",
+      ),
+    parameters: z
+      .array(z.enum(harvestParameterCodes))
+      .describe(
+        "Parameters required to register a harvest of this cultivation. Send these in `POST /cultivations/{b_lu}/harvests`. Empty when the crop is not harvested.",
+      ),
+    defaults: z
+      .object(harvestAnalysisShape((schema) => schema.optional()))
+      .pick(
+        Object.fromEntries(harvestParameterCodes.map((code) => [code, true])) as {
+          [K in (typeof harvestParameterCodes)[number]]: true
+        },
+      )
+      .describe(
+        "Default value of each required parameter, based on the typical yield and dry matter content of the crop. Only parameters in `parameters` can be present; a parameter without a typical value is omitted.",
+      ),
+  })
+  .openapi("HarvestParameters")
+
+const getHarvestParametersRoute = createRoute({
+  method: "get",
+  path: "/cultivations/{b_lu}/harvest-parameters",
+  tags: ["Harvests"],
+  summary: "Get the harvest parameters of a cultivation",
+  description:
+    "Returns which parameters a harvest of this cultivation needs and their default values, the same as the harvest form in the web app. Use it before `POST /cultivations/{b_lu}/harvests`.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: { params: z.object({ b_lu: CultivationIdSchema }) },
+  responses: {
+    200: {
+      description: "Harvest parameters and their default values.",
+      content: { "application/json": { schema: HarvestParametersSchema } },
+    },
+    ...commonErrorResponses,
+  },
+})
+
 function serialiseHarvest(harvest: Harvest) {
   return {
     b_id_harvesting: harvest.b_id_harvesting,
@@ -303,6 +378,47 @@ export function registerHarvestRoutes(
     return c.json(paginatedResponse(items.map(serialiseHarvest), query.limit, query.offset), 200)
   }
 
+  const getHarvestParametersHandler: RouteHandler<typeof getHarvestParametersRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_lu } = c.req.valid("param") as { b_lu: string }
+    const cultivation = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
+    if (!cultivation) {
+      throw new ApiError(404, "not-found", `Cultivation '${b_lu}' not found.`)
+    }
+    const field = await services.getField(fdm, principal.effectivePrincipalId, cultivation.b_id)
+    if (!field) {
+      throw new ApiError(404, "not-found", `Cultivation '${b_lu}' not found.`)
+    }
+    const catalogue = await services.getCultivationsFromCatalogue(
+      fdm,
+      principal.effectivePrincipalId,
+      field.b_id_farm,
+    )
+    const b_lu_harvestable = getEffectiveHarvestable(
+      cultivation.b_lu_harvestable,
+      cultivation.b_lu_croprotation,
+    )
+    const parameters =
+      b_lu_harvestable === "none" ? [] : getParametersForHarvestCat(cultivation.b_lu_harvestcat)
+    const defaults =
+      parameters.length > 0 &&
+      catalogue.some((item) => item.b_lu_catalogue === cultivation.b_lu_catalogue)
+        ? getDefaultsForHarvestParameters(cultivation.b_lu_catalogue, catalogue)
+        : {}
+    return c.json(
+      {
+        b_lu,
+        b_lu_catalogue: cultivation.b_lu_catalogue,
+        b_lu_harvestcat: cultivation.b_lu_harvestcat ?? null,
+        b_lu_harvestable,
+        parameters,
+        defaults,
+      } as z.infer<typeof HarvestParametersSchema>,
+      200,
+    )
+  }
+
   const listHarvestsHandler: RouteHandler<typeof listHarvestsRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
@@ -388,6 +504,7 @@ export function registerHarvestRoutes(
   }
 
   app.openapi(listHarvestsRoute, listHarvestsHandler)
+  app.openapi(getHarvestParametersRoute, getHarvestParametersHandler)
   app.openapi(listFarmHarvestsRoute, listFarmHarvestsHandler)
   app.openapi(createHarvestRoute, createHarvestHandler)
   app.openapi(getHarvestRoute, getHarvestHandler)
