@@ -4,6 +4,7 @@ import type {
   CurrentSoilData,
   FdmType,
   getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
@@ -14,6 +15,7 @@ import type {
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
+import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema, SoilAnalysisIdSchema, soilParameterShape } from "../fields"
@@ -49,6 +51,8 @@ export interface SoilAnalysisServices {
   getCurrentSoilData: typeof getCurrentSoilData
   /** Returns current soil data per sampling zone for a field visible to the authenticated principal. */
   getCurrentSoilDataPerZone: typeof getCurrentSoilDataPerZone
+  /** Returns current soil data for every field of a farm visible to the authenticated principal. */
+  getCurrentSoilDataForFarm: typeof getCurrentSoilDataForFarm
   /** Returns a single soil analysis visible to the authenticated principal. */
   getSoilAnalysis: typeof getSoilAnalysis
   /** Creates a new soil analysis on an existing field. */
@@ -84,8 +88,14 @@ const SoilAnalysisSchema = z
 
 const CurrentSoilDataSourceSchema = z
   .object({
-    a_id: SoilAnalysisIdSchema.describe("Unique identifier of the soil analysis."),
-    a_source: z.string().describe("Laboratory or dataset that produced the soil analysis."),
+    a_id: SoilAnalysisIdSchema.describe(
+      "Unique identifier of the soil analysis. For a calculated value, the analysis of the newest input.",
+    ),
+    a_source: z
+      .string()
+      .describe(
+        "Laboratory or dataset that produced the soil analysis, or `calculated` for a value derived from other parameters (see `d_n_supply_base` in CurrentSoilDataItem).",
+      ),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     a_depth_upper: z
       .number()
@@ -115,7 +125,7 @@ const CurrentSoilDataItemSchema = z
     parameter: z
       .string()
       .describe(
-        "Code of the soil parameter, e.g. 'a_som_loi'. See the SoilAnalysis schema for the meaning and unit of each parameter.",
+        "Code of the soil parameter, e.g. 'a_som_loi'. See the SoilAnalysis schema for the meaning and unit of each parameter. When no analysis has a nitrogen supplying capacity (`d_n_supply_base`, kg N/ha), it is calculated from `a_som_loi`, `a_clay_mi` and `a_cn_fr`, with one source of type `calculated` and `coverage` `null`; the web app shows the same value.",
       ),
     value: z
       .union([z.number(), z.string(), z.null()])
@@ -135,6 +145,17 @@ const CurrentSoilDataItemSchema = z
       .describe("Contributing soil analyses, newest first."),
   })
   .openapi("CurrentSoilDataItem")
+
+const FarmCurrentSoilDataSchema = z
+  .object({
+    b_id: FieldIdSchema.describe("Unique identifier of the field."),
+    items: z
+      .array(CurrentSoilDataItemSchema)
+      .describe(
+        "Current value of each soil parameter of the field. Empty when the field has no soil data.",
+      ),
+  })
+  .openapi("FarmCurrentSoilData")
 
 const SoilZoneSchema = z
   .object({
@@ -222,6 +243,32 @@ const listFarmSoilAnalysesRoute = createRoute({
       content: {
         "application/json": {
           schema: paginatedSchema(SoilAnalysisSchema),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+})
+
+const farmCurrentSoilDataRoute = createRoute({
+  method: "get",
+  path: "/farms/{b_id_farm}/current-soil-data",
+  tags: ["Soil Analyses"],
+  summary: "Get current soil data for all fields of a farm",
+  description:
+    "Returns the current value of each soil parameter for every field of the farm, in one request. The values are the same as `GET /fields/{b_id}/current-soil-data` per field. The list is paginated by field. Use `from` and `to` to use only analyses from that period.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    query: PaginationTimeframeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "A paginated list of fields with their current soil data.",
+      content: {
+        "application/json": {
+          schema: paginatedSchema(FarmCurrentSoilDataSchema),
         },
       },
     },
@@ -409,7 +456,8 @@ function serialiseSoilAnalysis(sa: SoilAnalysis) {
 }
 
 function serialiseCurrentSoilData(currentSoilData: CurrentSoilData) {
-  return currentSoilData.map((item) => ({
+  // Same NLV fallback as the web app, so both show the same value.
+  return enrichCurrentSoilDataWithNlv(currentSoilData).map((item) => ({
     parameter: item.parameter,
     value: item.value ?? null,
     is_aggregated: item.is_aggregated,
@@ -604,6 +652,29 @@ export function registerSoilAnalysisRoutes(
     return c.json(serialiseCurrentSoilData(currentSoilData), 200)
   }
 
+  const getFarmCurrentSoilDataHandler: RouteHandler<typeof farmCurrentSoilDataRoute> = async (
+    c,
+  ) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
+    const soilDataByField = await services.getCurrentSoilDataForFarm(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      parseTimeframeQuery(query),
+    )
+    const items = [...soilDataByField]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([b_id, currentSoilData]) => ({
+        b_id,
+        items: serialiseCurrentSoilData(currentSoilData),
+      }))
+    return c.json(paginatedResponse(items, query.limit, query.offset), 200)
+  }
+
   const getCurrentSoilDataZonesHandler: RouteHandler<typeof currentSoilDataZonesRoute> = async (
     c,
   ) => {
@@ -700,6 +771,7 @@ export function registerSoilAnalysisRoutes(
 
   app.openapi(listSoilAnalysesRoute, listSoilAnalysesHandler)
   app.openapi(listFarmSoilAnalysesRoute, listFarmSoilAnalysesHandler)
+  app.openapi(farmCurrentSoilDataRoute, getFarmCurrentSoilDataHandler)
   app.openapi(currentSoilDataRoute, getCurrentSoilDataHandler)
   app.openapi(currentSoilDataZonesRoute, getCurrentSoilDataZonesHandler)
   app.openapi(createSoilAnalysisRoute, createSoilAnalysisHandler)

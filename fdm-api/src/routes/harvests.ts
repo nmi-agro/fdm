@@ -4,6 +4,7 @@ import type {
   FdmType,
   getHarvest,
   getHarvests,
+  getHarvestsForFarm,
   Harvest,
   removeHarvest,
   updateHarvest,
@@ -11,7 +12,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
-import { CultivationIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
+import { CultivationIdSchema, FarmIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -29,6 +30,7 @@ const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 /** Defines the harvest data access functions required by the harvest routes. */
 export interface HarvestServices {
   getHarvests: typeof getHarvests
+  getHarvestsForFarm: typeof getHarvestsForFarm
   getHarvest: typeof getHarvest
   addHarvest: typeof addHarvest
   updateHarvest: typeof updateHarvest
@@ -177,6 +179,32 @@ const deleteHarvestRoute = createRoute({
   },
 })
 
+const listFarmHarvestsRoute = createRoute({
+  method: "get",
+  path: "/farms/{b_id_farm}/harvests",
+  tags: ["Harvests"],
+  summary: "List harvests on a farm",
+  description:
+    "Returns the harvests of all cultivations on the farm, sorted by harvest date. Each item has the `b_lu` of its cultivation. Use `from` and `to` to limit the period.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    query: PaginationTimeframeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "A paginated list of harvests.",
+      content: {
+        "application/json": {
+          schema: paginatedSchema(HarvestSchema),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+})
+
 function serialiseHarvest(harvest: Harvest) {
   return {
     b_id_harvesting: harvest.b_id_harvesting,
@@ -252,6 +280,28 @@ export function registerHarvestRoutes(
   app.use("/harvests/*", (c, next) =>
     rateLimitMiddleware(fdm, WRITE_METHODS.has(c.req.method) ? "write" : "general")(c, next),
   )
+
+  const listFarmHarvestsHandler: RouteHandler<typeof listFarmHarvestsRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
+    const byKey = await services.getHarvestsForFarm(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      parseTimeframeQuery(query),
+    )
+    const items = [...byKey.values()].flat()
+    items.sort(
+      (a, b) =>
+        String(serializeDate(a.b_lu_harvest_date)).localeCompare(
+          String(serializeDate(b.b_lu_harvest_date)),
+        ) || a.b_id_harvesting.localeCompare(b.b_id_harvesting),
+    )
+    return c.json(paginatedResponse(items.map(serialiseHarvest), query.limit, query.offset), 200)
+  }
 
   const listHarvestsHandler: RouteHandler<typeof listHarvestsRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
@@ -338,6 +388,7 @@ export function registerHarvestRoutes(
   }
 
   app.openapi(listHarvestsRoute, listHarvestsHandler)
+  app.openapi(listFarmHarvestsRoute, listFarmHarvestsHandler)
   app.openapi(createHarvestRoute, createHarvestHandler)
   app.openapi(getHarvestRoute, getHarvestHandler)
   app.openapi(updateHarvestRoute, updateHarvestHandler)

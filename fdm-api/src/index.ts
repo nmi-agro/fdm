@@ -39,6 +39,7 @@ import {
   getCultivationsForFarm,
   getCultivationsFromCatalogues,
   getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getCurrentSoilDataPerZone,
   getEnabledCultivationCatalogues,
   getEnabledFertilizerCatalogues,
@@ -50,6 +51,7 @@ import {
   getFertilizer,
   getFertilizerApplication,
   getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
@@ -58,8 +60,10 @@ import {
   getGrazingIntentions,
   getHarvest,
   getHarvests,
+  getHarvestsForFarm,
   getMeasure,
   getMeasures,
+  getMeasuresForFarm,
   getMeasuresFromCatalogue,
   getOrganicCertification,
   getSoilAnalyses,
@@ -233,6 +237,12 @@ export interface FdmApiServices {
   // Custom fertilizers
   addFertilizerToCatalogue: typeof addFertilizerToCatalogue
   updateFertilizerFromCatalogue: typeof updateFertilizerFromCatalogue
+  // Farm-level lists
+  getFertilizerApplicationsForFarm: typeof getFertilizerApplicationsForFarm
+  getHarvestsForFarm: typeof getHarvestsForFarm
+  getMeasuresForFarm: typeof getMeasuresForFarm
+  // Current soil data per farm
+  getCurrentSoilDataForFarm: typeof getCurrentSoilDataForFarm
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -327,6 +337,10 @@ const defaultServices: FdmApiServices = {
   // getNutrientAdvice,
   addFertilizerToCatalogue,
   updateFertilizerFromCatalogue,
+  getFertilizerApplicationsForFarm,
+  getHarvestsForFarm,
+  getMeasuresForFarm,
+  getCurrentSoilDataForFarm,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
 }
 
