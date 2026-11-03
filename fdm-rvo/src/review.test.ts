@@ -7,6 +7,7 @@ import {
   resolveImportChoices,
 } from "./review"
 import { type RvoField, type RvoImportReviewItem, RvoImportReviewStatus } from "./types"
+import { getItemId } from "./utils"
 
 const year = 2026
 
@@ -320,5 +321,107 @@ describe("compareShapefileFields", () => {
     const [item] = compareShapefileFields([], [remote], year)
     expect(item?.status).toBe(RvoImportReviewStatus.NEW_REMOTE)
     expect(["J", "N"]).toContain(item?.rvoField?.properties.mestData?.IndBufferstrook)
+  })
+})
+
+describe("edge cases of the review", () => {
+  it("allows the same actions for MATCH as for CONFLICT", () => {
+    expect(getAllowedImportActions(RvoImportReviewStatus.MATCH)).toEqual(
+      getAllowedImportActions(RvoImportReviewStatus.CONFLICT),
+    )
+  })
+
+  it("reads RVO values: designator fallback, unknown title, crop and end date", () => {
+    const item = {
+      status: RvoImportReviewStatus.NEW_REMOTE,
+      rvoField: rvoField("rvo-2", {
+        CropFieldDesignator: "",
+        UseTitleCode: "99",
+        CropTypeCode: "",
+        EndDate: "2026-11-30",
+        mestData: { IndBufferstrook: "J" },
+      }),
+      diffs: [],
+    } as RvoImportReviewItem<Field>
+    const plan = resolveImportChoices([item], { "rvo-2": { action: "ADD_REMOTE" } }, year)
+    expect(plan.fieldsToAdd[0]).toMatchObject({
+      b_name: "RVO Perceel rvo-2",
+      b_acquiring_method: "unknown",
+      b_lu_catalogue: null,
+      b_end: new Date("2026-11-30"),
+      b_bufferstrip: true,
+    })
+  })
+
+  it("reports a missing start date when adding", () => {
+    const item = {
+      status: RvoImportReviewStatus.NEW_REMOTE,
+      rvoField: rvoField("rvo-3", { BeginDate: "not a date" }),
+      diffs: [],
+    } as RvoImportReviewItem<Field>
+    expect(() => resolveImportChoices([item], { "rvo-3": { action: "ADD_REMOTE" } }, year)).toThrow(
+      ImportChoiceError,
+    )
+  })
+
+  it("keeps the local geometry when there is no remote geometry", () => {
+    const plan = resolveImportChoices(
+      items,
+      { b3: { action: "KEEP_LOCAL", values: { b_geometry: "remote" } } },
+      year,
+    )
+    expect(plan.fieldsToUpdate).toEqual([])
+  })
+
+  it("uses the local end date of a field", () => {
+    const item = {
+      ...newLocal,
+      localField: { ...localField("b4"), b_end: new Date("2026-06-30") },
+    } as RvoImportReviewItem<Field>
+    const plan = resolveImportChoices(
+      [item],
+      { b4: { action: "KEEP_LOCAL", values: { b_end: new Date("2026-06-30") } } },
+      year,
+    )
+    expect(plan.fieldsToUpdate).toEqual([])
+  })
+
+  it("skips items that miss the field the action needs", () => {
+    const remoteWithoutField = {
+      status: RvoImportReviewStatus.NEW_REMOTE,
+      diffs: [],
+    } as unknown as RvoImportReviewItem<Field>
+    const localWithoutField = {
+      status: RvoImportReviewStatus.NEW_LOCAL,
+      diffs: [],
+    } as unknown as RvoImportReviewItem<Field>
+    // Without a field the item ID falls back to a composite; build it the same way.
+    const plan = resolveImportChoices(
+      [remoteWithoutField, localWithoutField],
+      Object.fromEntries([
+        [getItemId(remoteWithoutField), { action: "ADD_REMOTE" as const }],
+        [getItemId(localWithoutField), { action: "KEEP_LOCAL" as const }],
+      ]),
+      year,
+    )
+    expect(plan).toEqual({ fieldsToAdd: [], fieldsToUpdate: [], fieldsToRemove: [] })
+  })
+
+  it("keeps a local buffer strip of N in a shapefile comparison", async () => {
+    const { compareShapefileFields } = await import("./review")
+    const local = {
+      ...localField("b1"),
+      b_bufferstrip: false,
+      b_id_source: "rvo-9",
+      cultivations: [],
+    }
+    const remote = rvoField("rvo-9", {
+      CropFieldDesignator: "Local name",
+      BeginDate: "2020-01-01",
+      UseTitleCode: "01",
+    })
+    remote.geometry = square
+    const [item] = compareShapefileFields([local], [remote], year)
+    expect(item?.rvoField?.properties.mestData?.IndBufferstrook).toBe("N")
   })
 })
