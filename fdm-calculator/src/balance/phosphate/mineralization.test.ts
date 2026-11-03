@@ -65,6 +65,23 @@ describe("calculatePhosphateMineralization", () => {
     expect(result.total).toBeCloseTo(23.5, 0)
   })
 
+  it("should use Gt V with a note when the groundwater class of peat is unknown", () => {
+    const unknown = calculatePhosphateMineralization(
+      fieldInput([{ b_soiltype_agr: "veen", a_som_loi: 70 }]),
+      details,
+      true,
+      year,
+    )
+    const reference = calculatePhosphateMineralization(
+      fieldInput([{ b_soiltype_agr: "veen", a_som_loi: 70, b_gwl_class: "V" }]),
+      details,
+      true,
+      year,
+    )
+    expect(unknown.total).toBeCloseTo(reference.total)
+    expect(unknown.warnings.join(" ")).toMatch(/Grondwatertrap onbekend/)
+  })
+
   it("should give less mineralisation on wet peat", () => {
     const wet = calculatePhosphateMineralization(
       fieldInput([{ b_soiltype_agr: "veen", b_gwl_class: "IIb" }]),

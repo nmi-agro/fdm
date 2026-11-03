@@ -57,6 +57,70 @@ describe("calculatePhosphateProjection", () => {
     expect(projection.psd?.years).not.toBeNull()
   })
 
+  it.each([
+    ["dekzand", 65],
+    ["dalgrond", 65],
+    ["zeeklei", 50],
+    ["rivierklei", 50],
+    ["loess", 50],
+    ["veen", 45],
+  ] as const)(
+    "should scale the P-AL buffer of %s to the sampling depth of arable land and grassland",
+    (soilType, central) => {
+      const arable = project(-20, [{ a_p_al: 40, b_soiltype_agr: soilType }], false)
+      const grassland = project(-20, [{ a_p_al: 40, b_soiltype_agr: soilType }], true)
+      // The buffer refers to 0–25 cm: arable 0.25 m keeps it, grassland 0.10 m gives 0.4 times
+      expect(arable.depth.source).toBe("default_arable")
+      expect(arable.p_al?.buffer.value).toBeCloseTo(central)
+      expect(grassland.depth.source).toBe("default_grassland")
+      expect(grassland.p_al?.buffer.value).toBeCloseTo(central * 0.4)
+      // A smaller buffer gives a faster change of P-AL at the same balance
+      expect(Math.abs(grassland.p_al?.delta_per_year.value ?? 0)).toBeGreaterThan(
+        Math.abs(arable.p_al?.delta_per_year.value ?? 0),
+      )
+    },
+  )
+
+  it("should use the sampling depth and bulk density of the soil analysis when present", () => {
+    const projection = project(
+      -20,
+      [
+        {
+          a_p_al: 40,
+          a_depth_upper: 0,
+          a_depth_lower: 5,
+          a_density_sa: 1.2,
+          b_soiltype_agr: "zeeklei",
+        },
+      ],
+      true,
+    )
+    expect(projection.depth).toEqual({ value: 0.05, source: "soil_analysis" })
+    expect(projection.a_density_sa).toEqual({ value: 1.2, source: "soil_analysis" })
+    expect(projection.p_al?.buffer.value).toBeCloseTo(50 * 0.2)
+  })
+
+  it("should use the default bulk density of the soil type without a measurement", () => {
+    const projection = project(-20, [{ a_p_al: 40, b_soiltype_agr: "veen" }], true)
+    expect(projection.a_density_sa).toEqual({ value: 0.6, source: "default_soil_type" })
+  })
+
+  it("should use P-AL 25 as the floor in the medium range and no floor below it", () => {
+    const medium = project(-60, [{ a_p_al: 35, b_soiltype_agr: "zeeklei" }])
+    expect(medium.p_al?.floor).toBe(25)
+    // (−60 − 20) / 50 = −1.6 per year; (35 − 25) / 1.6 = 6.25 years
+    expect(medium.p_al?.years?.value).toBeCloseTo(6.25)
+    const low = project(-60, [{ a_p_al: 20, b_soiltype_agr: "zeeklei" }])
+    expect(low.p_al?.floor).toBeNull()
+    expect(low.p_al?.years).toBeNull()
+  })
+
+  it("should not project P-AL or PSD without soil data", () => {
+    const projection = project(-20, [{ b_soiltype_agr: "zeeklei" }])
+    expect(projection.p_al).toBeNull()
+    expect(projection.psd).toBeNull()
+  })
+
   it("should not give years when the balance moves away from the floor", () => {
     const projection = project(40, [{ a_p_al: 60, b_soiltype_agr: "zeeklei" }])
     expect(projection.p_al?.years).toBeNull()

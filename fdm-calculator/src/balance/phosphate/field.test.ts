@@ -277,6 +277,66 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.warnings).toEqual([])
   })
 
+  it("should count all phosphate at face value, without working coefficients", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: {
+        ...input.fields[0],
+        fertilizerApplications: [
+          { p_app_id: "a1", p_id_catalogue: "manure", p_app_amount: 30000 },
+          { p_app_id: "a3", p_id_catalogue: "compost", p_app_amount: 10000 },
+          { p_app_id: "a4", p_id_catalogue: "lime", p_app_amount: 2000 },
+        ] as PhosphateBalanceInput["fields"][number]["fertilizerApplications"],
+      },
+      fertilizerDetails: [
+        ...input.fertilizerDetails,
+        { p_id_catalogue: "compost", p_p_rt: 3, p_type: "compost" },
+        { p_id_catalogue: "lime", p_p_rt: 1, p_type: null },
+      ],
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+    })
+    // Cattle slurry 1.4 g P2O5 / kg: 30 t gives 42 kg (not 60% of it)
+    expect(result.supply.fertilizers.manure.total).toBeCloseTo(42)
+    // Compost 3 g / kg × 10 t = 30 kg (not 60–80% of it)
+    expect(result.supply.fertilizers.compost.total).toBeCloseTo(30)
+    // A fertilizer without type counts as "other"
+    expect(result.supply.fertilizers.other.total).toBeCloseTo(2)
+    expect(result.supply.fertilizers.total).toBeCloseTo(74)
+  })
+
+  it("should warn when the yield of a harvest is unknown", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: { ...input.fields[0], harvests: [harvest("c1", null, 4)] },
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: [{ ...input.cultivationDetails[0], b_lu_yield: null }],
+      timeFrame: input.timeFrame,
+    })
+    expect(result.removal.harvests.total).toBe(0)
+    expect(result.warnings.join(" ")).toMatch(/Geen opbrengst bekend voor Aardappelen/)
+  })
+
+  it("should throw when a harvest has no cultivation details", () => {
+    expect(() =>
+      calculatePhosphateBalanceField({
+        fieldInput: input.fields[0],
+        fertilizerDetails: input.fertilizerDetails,
+        cultivationDetails: [],
+        timeFrame: input.timeFrame,
+      }),
+    ).toThrow()
+  })
+
+  it("should keep leaching at 0 when the balance is a deficit", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: { ...input.fields[0], fertilizerApplications: [] },
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+    })
+    expect(result.balance).toBeLessThan(0)
+    expect(result.leaching.total).toBe(0)
+  })
+
   it("should return zeros for a buffer strip", () => {
     const result = calculatePhosphateBalanceField({
       fieldInput: input.fields[1],

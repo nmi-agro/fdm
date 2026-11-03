@@ -29,6 +29,13 @@ describe("calculatePhosphateLeaching", () => {
     expect(result.total).toBeCloseTo(-4.8)
   })
 
+  it("should use the shallow-groundwater concentration when it is unknown", () => {
+    // 10 × 0.03 × (0.2 / 0.1) = 0.6
+    const result = calculatePhosphateLeaching(new Decimal(10), saturation(30), threshold(25, null))
+    expect(result.risk).toBe("medium")
+    expect(result.total).toBeCloseTo(-0.6)
+  })
+
   it("should use the medium fraction when the PSD is unknown", () => {
     const result = calculatePhosphateLeaching(new Decimal(10), saturation(null), threshold(25, 0.2))
     expect(result.risk).toBe("unknown")

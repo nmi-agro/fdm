@@ -65,6 +65,13 @@ describe("calculatePhosphateSaturation", () => {
     expect(result.warnings.length).toBe(1)
   })
 
+  it("should not divide by zero when Fe-ox and Al-ox are 0", () => {
+    const result = calculatePhosphateSaturation([{ a_p_ox: 5, a_fe_ox: 0, a_al_ox: 0 }], false)
+    expect(result.source).toBe("missing")
+    expect(result.psd).toBeNull()
+    expect(result.warnings.join(" ")).toMatch(/Fe-ox \+ Al-ox is nul/)
+  })
+
   it("should report a missing PSD without data", () => {
     const result = calculatePhosphateSaturation([{ b_soiltype_agr: "zeeklei" }], true)
     expect(result.source).toBe("missing")
@@ -102,6 +109,14 @@ describe("calculatePhosphateSaturationThreshold", () => {
     const threshold = calculatePhosphateSaturationThreshold(saturation, dry)
     expect(threshold.c_p_env).toBeCloseTo(0.3)
     expect(threshold.psd_env).toBeGreaterThan(30)
+  })
+
+  it("should interpolate the critical concentration between 25 and 100 cm", () => {
+    const medium = [{ ...soil[0], b_gwl_class: "VI" as const }]
+    const saturation = calculatePhosphateSaturation(medium, false)
+    const threshold = calculatePhosphateSaturationThreshold(saturation, medium)
+    expect(threshold.ghg).toBe(60)
+    expect(threshold.c_p_env).toBeCloseTo(0.1 + (0.2 * 35) / 75)
   })
 
   it("should fall back to 25% without P-CaCl2", () => {
