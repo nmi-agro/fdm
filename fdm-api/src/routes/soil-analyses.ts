@@ -370,7 +370,8 @@ const createSoilAnalysisRoute = createRoute({
   path: "/fields/{b_id}/soil-analyses",
   tags: ["Soil Analyses"],
   summary: "Create a soil analysis",
-  description: "Creates a new soil analysis on the specified field.",
+  description:
+    "Creates a new soil analysis on the specified field from the values in the body. To add analyses from lab report PDFs and keep the report with them, use the import in two steps: `POST /farms/{b_id_farm}/soil-analyses/import/compare` and `.../apply`.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id: FieldIdSchema }),
