@@ -57,6 +57,8 @@ import {
   getFertilizerApplication,
   getFertilizerApplications,
   getFertilizerApplicationsForFarm,
+  getFertilizerPlan,
+  getFertilizerPlans,
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
@@ -110,6 +112,12 @@ import {
   updateSoilAnalysis,
   updateSoilImageAnnotation,
 } from "@nmi-agro/fdm-core"
+import {
+  createFertilizerPlanStatusChecker,
+  establishFertilizerPlan,
+  type ReportBranding,
+  removeFertilizerPlanWithFile,
+} from "@nmi-agro/fdm-reports"
 import { applyRvoImport, reviewShapefileImport } from "@nmi-agro/fdm-rvo"
 import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
@@ -139,6 +147,11 @@ export interface FdmApiConfig {
    * available, file endpoints respond with `503 Service Unavailable`.
    */
   storage?: FileStorage
+  /**
+   * Name and images shown in generated reports such as the fertilizer plan. Defaults to the
+   * `appName` without images.
+   */
+  reportBranding?: ReportBranding | (() => Promise<ReportBranding>)
 }
 
 /**
@@ -278,9 +291,18 @@ export interface FdmApiServices {
   applyRvoImport: typeof applyRvoImport
   // Soil estimates
   addSoilParameterEstimatesToField: typeof addSoilParameterEstimatesToField
+  // Fertilizer plans
+  establishFertilizerPlan: typeof establishFertilizerPlan
+  removeFertilizerPlanWithFile: typeof removeFertilizerPlanWithFile
+  createFertilizerPlanStatusChecker: typeof createFertilizerPlanStatusChecker
+  // Fertilizer plans (core)
+  getFertilizerPlans: typeof getFertilizerPlans
+  getFertilizerPlan: typeof getFertilizerPlan
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
+  /** Returns the name and images shown in generated reports. */
+  getReportBranding: () => Promise<ReportBranding>
 }
 
 const defaultServices: FdmApiServices = {
@@ -391,7 +413,13 @@ const defaultServices: FdmApiServices = {
   reviewShapefileImport,
   applyRvoImport,
   addSoilParameterEstimatesToField,
+  establishFertilizerPlan,
+  removeFertilizerPlanWithFile,
+  createFertilizerPlanStatusChecker,
+  getFertilizerPlans,
+  getFertilizerPlan,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
+  getReportBranding: async () => ({ name: "FDM" }),
 }
 
 let gcsStorage: FileStorage | undefined
@@ -424,6 +452,9 @@ export function createFdmApi(
   services: Partial<FdmApiServices> = {},
 ) {
   const configServices: Partial<FdmApiServices> = {}
+  const branding = config.reportBranding
+  configServices.getReportBranding =
+    typeof branding === "function" ? branding : async () => branding ?? { name: config.appName }
   if (config.storage) {
     const storage = config.storage
     configServices.getStorage = () => storage
@@ -433,3 +464,4 @@ export function createFdmApi(
 
 export type { ApiEnv, ApiPrincipalContext } from "./types"
 export type { FileStorage } from "@nmi-agro/fdm-storage"
+export type { ReportBranding } from "@nmi-agro/fdm-reports"

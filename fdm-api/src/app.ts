@@ -15,6 +15,7 @@ import { registerDerogationRoutes } from "./routes/derogations"
 import { registerFarmGroupRoutes } from "./routes/farm-groups"
 import { registerFarmRoutes } from "./routes/farms"
 import { registerFertilizerApplicationRoutes } from "./routes/fertilizer-applications"
+import { registerFertilizerPlanRoutes } from "./routes/fertilizer-plans"
 import { registerFertilizerRoutes } from "./routes/fertilizers"
 import { registerFieldImportRoutes } from "./routes/field-import"
 import { registerFieldRoutes } from "./routes/fields"
@@ -123,6 +124,7 @@ export function buildApp(
   registerInvitationRoutes(app, fdm, services)
   registerSoilImageRoutes(app, fdm, services)
   registerFieldImportRoutes(app, fdm, services)
+  registerFertilizerPlanRoutes(app, fdm, services)
 
   // Security schemes
   app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyHeader", {

@@ -302,6 +302,9 @@ importers:
       '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
+      '@nmi-agro/fdm-reports':
+        specifier: workspace:*
+        version: link:../fdm-reports
       '@nmi-agro/fdm-rvo':
         specifier: workspace:*
         version: link:../fdm-rvo
