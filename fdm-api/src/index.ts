@@ -8,11 +8,10 @@ import {
   createFunctionsForNorms,
   getDoseForField,
   getFarmIndicators,
+  getFarmNutrientAdviceRows,
   getFieldIndicators,
   getFieldMeasureOptions,
   getNitrogenBalanceField,
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice,
   getOrganicMatterBalanceField,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -232,8 +231,6 @@ export interface FdmApiServices {
   getDoseForField: typeof getDoseForField
   // Norms
   createFunctionsForNorms: typeof createFunctionsForNorms
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice: typeof getNutrientAdvice
   // Custom fertilizers
   addFertilizerToCatalogue: typeof addFertilizerToCatalogue
   updateFertilizerFromCatalogue: typeof updateFertilizerFromCatalogue
@@ -243,6 +240,8 @@ export interface FdmApiServices {
   getMeasuresForFarm: typeof getMeasuresForFarm
   // Current soil data per farm
   getCurrentSoilDataForFarm: typeof getCurrentSoilDataForFarm
+  // Nutrient advice
+  getFarmNutrientAdviceRows: typeof getFarmNutrientAdviceRows
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -333,14 +332,13 @@ const defaultServices: FdmApiServices = {
   getOrganicMatterBalanceField,
   getDoseForField,
   createFunctionsForNorms,
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice,
   addFertilizerToCatalogue,
   updateFertilizerFromCatalogue,
   getFertilizerApplicationsForFarm,
   getHarvestsForFarm,
   getMeasuresForFarm,
   getCurrentSoilDataForFarm,
+  getFarmNutrientAdviceRows,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
 }
 

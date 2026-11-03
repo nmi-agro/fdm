@@ -79,6 +79,7 @@ export {
   getFarmIndicators,
   getFieldIndicators,
   getFieldMeasureOptions,
+  getYearTimeframe,
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
   getBln3MeasureAdvice,

@@ -1014,9 +1014,6 @@ importers:
 
   fdm-reports:
     dependencies:
-      '@date-fns/tz':
-        specifier: ^1.5.0
-        version: 1.5.0
       '@nmi-agro/fdm-calculator':
         specifier: workspace:^
         version: link:../fdm-calculator

@@ -762,3 +762,132 @@ describe("GET /fields/:b_id/calculations/norms", () => {
 //         expect(body.d_n_req).toBe(150)
 //     })
 // })
+
+describe("nutrient advice", () => {
+  const headers = { "x-api-key": "valid" }
+  const field = {
+    b_id: "f1",
+    b_id_farm: "farm-1",
+    b_name: "Perceel 1",
+    b_area: 2,
+    b_centroid: [5.6, 52],
+    b_bufferstrip: false,
+  }
+  const okRow = {
+    b_id: "f1",
+    b_name: "Perceel 1",
+    b_area: 2,
+    mainCultivation: {
+      b_lu: "lu-1",
+      b_lu_catalogue: "nl_2014",
+      b_lu_name: "Aardappelen",
+      b_lu_croprotation: "potato",
+    },
+    values: { N: { advice: 120, dose: 40, remaining: 80 } },
+  }
+  const failedRow = {
+    b_id: "f2",
+    b_name: "Perceel 2",
+    b_area: 1,
+    mainCultivation: null,
+    error: { code: "advice_failed", message: "Request to NMI API failed with status 500: secret" },
+    values: {},
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    validKey()
+  })
+
+  it("returns the advice per field and keeps failed fields with a fixed message", async () => {
+    const getFarmNutrientAdviceRows = vi.fn().mockResolvedValue([okRow, failedRow])
+    const app = makeApp({
+      getNmiApiKey: () => "key",
+      getFields: vi.fn().mockResolvedValue([field]),
+      getFarmNutrientAdviceRows,
+    })
+    const res = await app.request("/farms/farm-1/calculations/nutrient-advice?year=2026", {
+      headers,
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.hasErrors).toBe(true)
+    expect(body.fields[0]).toMatchObject({
+      b_id: "f1",
+      b_lu_catalogue: "nl_2014",
+      nutrients: { N: { advice: 120, dose: 40, remaining: 80 } },
+      error: null,
+    })
+    expect(body.fields[1].error).toEqual({
+      code: "advice_failed",
+      message: "The nutrient advice could not be calculated for this field.",
+    })
+    expect(JSON.stringify(body)).not.toContain("secret")
+    expect(getFarmNutrientAdviceRows.mock.calls[0]?.[0]).toMatchObject({
+      b_id_farm: "farm-1",
+      year: 2026,
+      nmiApiKey: "key",
+    })
+  })
+
+  it("returns 503 when no NMI API key is configured", async () => {
+    const app = makeApp({ getNmiApiKey: () => undefined, getFarmNutrientAdviceRows: vi.fn() })
+    const res = await app.request("/farms/farm-1/calculations/nutrient-advice?year=2026", {
+      headers,
+    })
+    expect(res.status).toBe(503)
+    expect((await res.json()).type).toContain("service-unavailable")
+  })
+
+  it("returns 400 without a valid year", async () => {
+    const app = makeApp({ getNmiApiKey: () => "key" })
+    const res = await app.request("/farms/farm-1/calculations/nutrient-advice?year=26", {
+      headers,
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 403 without read access", async () => {
+    const app = makeApp({
+      getNmiApiKey: () => "key",
+      getFields: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    })
+    const res = await app.request("/farms/farm-1/calculations/nutrient-advice?year=2026", {
+      headers,
+    })
+    expect(res.status).toBe(403)
+  })
+
+  it("returns the advice of a single field", async () => {
+    const getFarmNutrientAdviceRows = vi.fn().mockResolvedValue([okRow])
+    const app = makeApp({
+      getNmiApiKey: () => "key",
+      getField: vi.fn().mockResolvedValue(field),
+      getFarmNutrientAdviceRows,
+    })
+    const res = await app.request("/fields/f1/calculations/nutrient-advice?year=2026", { headers })
+    expect(res.status).toBe(200)
+    expect((await res.json()).nutrients.N.remaining).toBe(80)
+    expect(getFarmNutrientAdviceRows.mock.calls[0]?.[0]).toMatchObject({
+      b_id_farm: "farm-1",
+      fields: [field],
+    })
+  })
+
+  it("returns 404 for a missing field", async () => {
+    const app = makeApp({
+      getNmiApiKey: () => "key",
+      getField: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/missing/calculations/nutrient-advice?year=2026", {
+      headers,
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 401 without an API key", async () => {
+    const app = makeApp({ getNmiApiKey: () => "key" })
+    const res = await app.request("/fields/f1/calculations/nutrient-advice?year=2026")
+    expect(res.status).toBe(401)
+  })
+})

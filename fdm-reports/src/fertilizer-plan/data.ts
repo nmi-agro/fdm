@@ -10,6 +10,7 @@ import {
   getMainCultivation,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
+  getYearTimeframe,
   NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -27,11 +28,10 @@ import {
   isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
 import { generateCalculationHash } from "@nmi-agro/fdm-core"
-import { TZDate } from "@date-fns/tz"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import pkg from "../package"
 import type { FertilizerPlanData, ReportBranding } from "./types"
+import pkg from "../package"
 
 /** Norm values of a field, as calculated for the fertilizer plan. */
 type FieldNormValues = {
@@ -49,8 +49,6 @@ type FieldNormFillings = {
   renure?: NormFilling
 }
 
-const CALENDAR_TIME_ZONE = "Europe/Amsterdam"
-
 /**
  * Returns the timeframe of a calendar year in the Europe/Amsterdam time zone, the same
  * timeframe that fdm-app uses for a calendar year.
@@ -59,10 +57,7 @@ const CALENDAR_TIME_ZONE = "Europe/Amsterdam"
  * @returns Start (1 January 00:00) and end (31 December 23:59:59.999) of the year.
  */
 export function getCalendarYearTimeframe(year: number): { start: Date; end: Date } {
-  return {
-    start: new Date(new TZDate(year, 0, 1, CALENDAR_TIME_ZONE).getTime()),
-    end: new Date(new TZDate(year + 1, 0, 1, CALENDAR_TIME_ZONE).getTime() - 1),
-  }
+  return getYearTimeframe(year) as { start: Date; end: Date }
 }
 
 function formatDate(date: Date | string | number | undefined): string {
