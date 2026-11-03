@@ -1,3 +1,4 @@
+import { ShapefileReadError } from "@nmi-agro/fdm-rvo"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
@@ -162,6 +163,18 @@ describe("POST /farms/:b_id_farm/fields/import/compare", () => {
     expect(res.status).toBe(400)
   })
 
+  it("returns 422 when the shapefile cannot be read", async () => {
+    const { app } = setup({
+      reviewShapefileImport: vi.fn().mockRejectedValue(new ShapefileReadError("corrupt")),
+    })
+    const res = await app.request("/farms/farm-1/fields/import/compare", {
+      method: "POST",
+      headers,
+      body: shapefileForm(),
+    })
+    expect(res.status).toBe(422)
+  })
+
   it("returns 403 without access to the farm", async () => {
     const { app } = setup({
       reviewShapefileImport: vi.fn().mockRejectedValue(new Error("Permission denied")),
@@ -262,6 +275,35 @@ describe("POST /farms/:b_id_farm/fields/import/apply", () => {
     expect(res.status).toBe(422)
     expect((await res.json()).item_ids).toEqual(["rvo-1"])
     expect(services.applyRvoImport).not.toHaveBeenCalled()
+  })
+
+  it("adds new fields when default_action is UPDATE_FROM_REMOTE", async () => {
+    const { app, services } = setup()
+    const res = await apply(app, { default_action: "UPDATE_FROM_REMOTE" })
+    expect(res.status).toBe(200)
+    const plan = services.applyRvoImport.mock.calls[0]?.[3]
+    expect(plan.fieldsToAdd).toHaveLength(1)
+  })
+
+  it("returns 400 for choices that do not match the schema", async () => {
+    const { app } = setup()
+    const res = await apply(app, { choices: JSON.stringify({ "rvo-1": { action: "JUMP" } }) })
+    expect(res.status).toBe(400)
+  })
+
+  it("keeps the import when a soil estimate fails, and skips estimates without an NMI key", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const failing = setup({
+      addSoilParameterEstimatesToField: vi.fn().mockRejectedValue(new Error("down")),
+    })
+    const res = await apply(failing.app, { default_action: "ADD_REMOTE" })
+    expect(res.status).toBe(200)
+    expect(warn).toHaveBeenCalled()
+
+    const withoutKey = setup({ getNmiApiKey: () => undefined })
+    const res2 = await apply(withoutKey.app, { default_action: "ADD_REMOTE" })
+    expect(res2.status).toBe(200)
+    expect(withoutKey.services.addSoilParameterEstimatesToField).not.toHaveBeenCalled()
   })
 
   it("returns 400 for choices that are not JSON", async () => {

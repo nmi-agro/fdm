@@ -332,6 +332,12 @@ describe("GET /cultivations/:b_lu/harvest-parameters", () => {
     expect(res.status).toBe(404)
   })
 
+  it("returns 404 when the field of the cultivation is not found", async () => {
+    const app = makeApp(services({ getField: vi.fn().mockResolvedValue(undefined) }) as any)
+    const res = await app.request("/cultivations/lu-1/harvest-parameters", { headers })
+    expect(res.status).toBe(404)
+  })
+
   it("returns 403 without read access", async () => {
     const app = makeApp(
       services({

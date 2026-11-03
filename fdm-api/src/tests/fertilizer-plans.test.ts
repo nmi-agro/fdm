@@ -164,21 +164,118 @@ describe("fertilizer plans", () => {
 
   it("returns 404 for an unknown plan", async () => {
     const { app } = setup({
-      getFertilizerPlan: vi
-        .fn()
-        .mockRejectedValue(
-          new Error("Exception for getFertilizerPlan", {
-            cause: new Error("Fertilizer plan not found"),
-          }),
-        ),
+      getFertilizerPlan: vi.fn().mockRejectedValue(
+        new Error("Exception for getFertilizerPlan", {
+          cause: new Error("Fertilizer plan not found"),
+        }),
+      ),
     })
     const res = await app.request("/fertilizer-plans/missing", { headers })
     expect(res.status).toBe(404)
+  })
+
+  it("returns 500 when the PDF cannot be downloaded", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => ({
+        ...createMemoryStorage(),
+        download: vi.fn().mockRejectedValue(new Error("storage down")),
+      }),
+      getFertilizerPlan: vi.fn().mockResolvedValue(plan),
+    } as any)
+    const res = await app.request("/fertilizer-plans/plan-1/pdf", { headers })
+    expect(res.status).toBe(500)
+  })
+
+  it("logs a PDF that could not be deleted, and returns 503 without storage", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const { app } = setup({
+      removeFertilizerPlanWithFile: vi.fn().mockResolvedValue(new Error("storage down")),
+    })
+    const res = await app.request("/fertilizer-plans/plan-1", { method: "DELETE", headers })
+    expect(res.status).toBe(204)
+    expect(warn).toHaveBeenCalled()
+
+    const withoutStorage = setup({}, false)
+    const res2 = await withoutStorage.app.request("/fertilizer-plans/plan-1", {
+      method: "DELETE",
+      headers,
+    })
+    expect(res2.status).toBe(503)
+    expect(withoutStorage.services.removeFertilizerPlanWithFile).not.toHaveBeenCalled()
+  })
+
+  it("returns 403 when the plan is not accessible", async () => {
+    const { app } = setup({
+      getFertilizerPlan: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    })
+    const res = await app.request("/fertilizer-plans/plan-1", { headers })
+    expect(res.status).toBe(403)
   })
 
   it("returns 401 without an API key", async () => {
     const { app } = setup()
     const res = await app.request("/fertilizer-plans/plan-1")
     expect(res.status).toBe(401)
+  })
+})
+
+describe("report branding and file storage from the configuration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    validKey()
+  })
+
+  const generate = (app: ReturnType<typeof createFdmApi>) =>
+    app.request("/farms/farm-1/fertilizer-plans", {
+      method: "POST",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify({ year: 2026 }),
+    })
+
+  it("uses a branding function, or the app name without branding", async () => {
+    const establishFertilizerPlan = vi.fn().mockResolvedValue("plan-1")
+    const services = {
+      establishFertilizerPlan,
+      getFertilizerPlan: vi.fn().mockResolvedValue(plan),
+      getNmiApiKey: () => "key",
+    } as any
+    const storage = createMemoryStorage()
+    const withFunction = createFdmApi(
+      mockFdm,
+      mockAuth,
+      { ...config, storage, reportBranding: async () => ({ name: "Merk" }) },
+      services,
+    )
+    expect((await generate(withFunction)).status).toBe(201)
+    expect(establishFertilizerPlan.mock.calls[0]?.[0].branding).toEqual({ name: "Merk" })
+
+    const withoutBranding = createFdmApi(mockFdm, mockAuth, { ...config, storage }, services)
+    expect((await generate(withoutBranding)).status).toBe(201)
+    expect(establishFertilizerPlan.mock.calls[1]?.[0].branding).toEqual({ name: "Test App" })
+  })
+
+  it("uses Google Cloud Storage only when a bucket is configured", async () => {
+    const establishFertilizerPlan = vi.fn().mockResolvedValue("plan-1")
+    const services = {
+      establishFertilizerPlan,
+      getFertilizerPlan: vi.fn().mockResolvedValue(plan),
+      getNmiApiKey: () => "key",
+    } as any
+    try {
+      vi.stubEnv("GCS_BUCKET_NAME", "")
+      const withoutBucket = createFdmApi(mockFdm, mockAuth, config, services)
+      expect((await generate(withoutBucket)).status).toBe(503)
+
+      vi.stubEnv("GCS_BUCKET_NAME", "test-bucket")
+      const withBucket = createFdmApi(mockFdm, mockAuth, config, services)
+      expect((await generate(withBucket)).status).toBe(201)
+      expect(establishFertilizerPlan.mock.calls[0]?.[0].storage).toMatchObject({
+        upload: expect.any(Function),
+        download: expect.any(Function),
+      })
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 })

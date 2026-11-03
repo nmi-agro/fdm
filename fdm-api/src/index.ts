@@ -315,7 +315,7 @@ export interface FdmApiServices {
   getReportBranding: () => Promise<ReportBranding>
 }
 
-const defaultServices: FdmApiServices = {
+const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   getFarms,
   getFarm,
   addFarm,
@@ -433,7 +433,6 @@ const defaultServices: FdmApiServices = {
   getFarmMeasureSummary,
   getFarmIdsOfOrganization,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
-  getReportBranding: async () => ({ name: "FDM" }),
 }
 
 let gcsStorage: FileStorage | undefined
@@ -465,13 +464,12 @@ export function createFdmApi(
   config: FdmApiConfig,
   services: Partial<FdmApiServices> = {},
 ) {
-  const configServices: Partial<FdmApiServices> = {}
   const branding = config.reportBranding
-  configServices.getReportBranding =
-    typeof branding === "function" ? branding : async () => branding ?? { name: config.appName }
-  if (config.storage) {
-    const storage = config.storage
-    configServices.getStorage = () => storage
+  const storage = config.storage
+  const configServices: Pick<FdmApiServices, "getReportBranding"> & Partial<FdmApiServices> = {
+    getReportBranding:
+      typeof branding === "function" ? branding : async () => branding ?? { name: config.appName },
+    ...(storage ? { getStorage: () => storage } : {}),
   }
   return buildApp(fdm, auth, config, { ...defaultServices, ...configServices, ...services })
 }

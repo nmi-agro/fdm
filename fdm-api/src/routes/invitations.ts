@@ -149,9 +149,7 @@ export function registerInvitationRoutes(
   fdm: FdmType,
   services: InvitationServices,
 ): void {
-  app.use("/invitations", (c, next) =>
-    rateLimitMiddleware(fdm, WRITE_METHODS.has(c.req.method) ? "write" : "general")(c, next),
-  )
+  app.use("/invitations", rateLimitMiddleware(fdm, "general"))
   app.use("/invitations/*", (c, next) =>
     rateLimitMiddleware(fdm, WRITE_METHODS.has(c.req.method) ? "write" : "general")(c, next),
   )

@@ -181,6 +181,26 @@ describe("GET /farms/:b_id_farm/measures", () => {
     ])
   })
 
+  it("sorts measures with the same or no start date by their ID", async () => {
+    const getMeasuresForFarm = vi.fn().mockResolvedValue(
+      new Map([
+        [
+          "f1",
+          [
+            measure("bm-3", "f1", "2026-05-01"),
+            { ...measure("bm-9", "f1", "2026-01-01"), m_start: null },
+          ],
+        ],
+        ["f2", [measure("bm-2", "f2", "2026-05-01")]],
+      ]),
+    )
+    const app = makeApp({ getMeasuresForFarm })
+    const res = await app.request("/farms/farm-1/measures", { headers })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.data.map((item: any) => item.b_id_measure)).toEqual(["bm-9", "bm-2", "bm-3"])
+  })
+
   it("returns 401 without an API key", async () => {
     const app = makeApp({ getMeasuresForFarm: vi.fn() })
     const res = await app.request("/farms/farm-1/measures")

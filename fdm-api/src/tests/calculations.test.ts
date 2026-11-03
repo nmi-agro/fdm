@@ -885,6 +885,16 @@ describe("nutrient advice", () => {
     expect(res.status).toBe(404)
   })
 
+  it("returns 404 when no advice row is returned for the field", async () => {
+    const app = makeApp({
+      getNmiApiKey: () => "key",
+      getField: vi.fn().mockResolvedValue(field),
+      getFarmNutrientAdviceRows: vi.fn().mockResolvedValue([]),
+    })
+    const res = await app.request("/fields/f1/calculations/nutrient-advice?year=2026", { headers })
+    expect(res.status).toBe(404)
+  })
+
   it("returns 401 without an API key", async () => {
     const app = makeApp({ getNmiApiKey: () => "key" })
     const res = await app.request("/fields/f1/calculations/nutrient-advice?year=2026")

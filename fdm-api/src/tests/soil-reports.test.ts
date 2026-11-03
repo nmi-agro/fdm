@@ -165,6 +165,23 @@ describe("POST /farms/:b_id_farm/soil-analyses/import/compare", () => {
     expect(res.status).toBe(503)
   })
 
+  it("returns 413 for a report above 5 MB", async () => {
+    const { app } = setup()
+    const big = new Uint8Array(5 * 1024 * 1024 + 10)
+    big.set(PDF)
+    const res = await compare(app, [big])
+    expect(res.status).toBe(413)
+  })
+
+  it("returns 500 when reading fails unexpectedly", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const { app } = setup({
+      extractSoilAnalysesFromPdfs: vi.fn().mockRejectedValue(new Error("boom")),
+    })
+    const res = await compare(app, [PDF])
+    expect(res.status).toBe(500)
+  })
+
   it("returns 400 without files", async () => {
     const { app } = setup()
     const res = await app.request("/farms/farm-1/soil-analyses/import/compare", {
@@ -242,6 +259,33 @@ describe("POST /farms/:b_id_farm/soil-analyses/import/apply", () => {
     expect(res.status).toBe(400)
   })
 
+  it("returns 400 when analyses is not JSON", async () => {
+    const { app } = setup()
+    const res = await app.request("/farms/farm-1/soil-analyses/import/apply", {
+      method: "POST",
+      headers,
+      body: pdfForm([PDF], { analyses: "{not json" }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 503 without file storage", async () => {
+    const app = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => undefined,
+      getFields: vi.fn().mockResolvedValue(fields),
+    } as any)
+    const res = await apply(app, [analysis()])
+    expect(res.status).toBe(503)
+  })
+
+  it("links each analysis to the report of its file_index", async () => {
+    const addSoilAnalysis = vi.fn().mockResolvedValueOnce("a-1").mockResolvedValueOnce("a-2")
+    const { app, storage } = setup({ addSoilAnalysis })
+    const res = await apply(app, [analysis(), analysis({ file_index: 1, b_id: "f-2" })], [PDF, PDF])
+    expect(res.status).toBe(201)
+    expect(storage.keys()).toHaveLength(2)
+  })
+
   it("returns 401 without an API key", async () => {
     const { app } = setup()
     const res = await app.request("/farms/farm-1/soil-analyses/import/apply", {
@@ -293,6 +337,70 @@ describe("the lab report of a soil analysis", () => {
     const { app } = setup()
     const res = await app.request("/soil-analyses/a-1/document", { headers })
     expect(res.status).toBe(404)
+  })
+
+  it("returns 404 for an unknown analysis or a missing file, and 503 without storage", async () => {
+    const unknown = setup({ getSoilAnalysis: vi.fn().mockResolvedValue(undefined) })
+    expect((await unknown.app.request("/soil-analyses/x/document", { headers })).status).toBe(404)
+
+    const missing = setup({
+      getSoilAnalysis: vi
+        .fn()
+        .mockResolvedValue({ ...savedAnalysis, a_file_path: "soil_analysis/a-1.pdf" }),
+    })
+    expect((await missing.app.request("/soil-analyses/a-1/document", { headers })).status).toBe(404)
+
+    const noStorage = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => undefined,
+    } as any)
+    expect((await noStorage.request("/soil-analyses/a-1/document", { headers })).status).toBe(503)
+  })
+
+  it("returns 500 when the report cannot be downloaded", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => ({
+        ...createMemoryStorage(),
+        download: vi.fn().mockRejectedValue(new Error("storage down")),
+      }),
+      getSoilAnalysis: vi
+        .fn()
+        .mockResolvedValue({ ...savedAnalysis, a_file_path: "soil_analysis/a-1.pdf" }),
+    } as any)
+    const res = await app.request("/soil-analyses/a-1/document", { headers })
+    expect(res.status).toBe(500)
+  })
+
+  it("is still deleted when a file cannot be removed, or without storage", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const removeSoilAnalysis = vi.fn().mockResolvedValue(undefined)
+    const base = {
+      getSoilAnalysis: vi
+        .fn()
+        .mockResolvedValue({ ...savedAnalysis, a_file_path: "soil_analysis/a-1.pdf" }),
+      getSoilImages: vi.fn().mockResolvedValue([]),
+      removeSoilAnalysis,
+    }
+    const failing = createFdmApi(mockFdm, mockAuth, config, {
+      ...base,
+      getStorage: () => ({
+        ...createMemoryStorage(),
+        delete: vi.fn().mockRejectedValue(new Error("storage down")),
+      }),
+    } as any)
+    expect(
+      (await failing.request("/soil-analyses/a-1", { method: "DELETE", headers })).status,
+    ).toBe(204)
+    expect(warn).toHaveBeenCalled()
+
+    const noStorage = createFdmApi(mockFdm, mockAuth, config, {
+      ...base,
+      getStorage: () => undefined,
+    } as any)
+    expect(
+      (await noStorage.request("/soil-analyses/a-1", { method: "DELETE", headers })).status,
+    ).toBe(204)
+    expect(removeSoilAnalysis).toHaveBeenCalledTimes(2)
   })
 
   it("is reported as has_document on the analysis", async () => {

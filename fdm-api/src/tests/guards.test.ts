@@ -8,7 +8,7 @@
 import { Hono } from "hono"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createErrorHandler } from "../error"
-import { assertGeoJsonCoordinates, requestGuard } from "../guards"
+import { assertGeoJsonCoordinates, requestGuard, UPLOAD_ROUTES } from "../guards"
 import { createFdmApi } from "../index"
 
 // ---------------------------------------------------------------------------
@@ -298,6 +298,19 @@ describe("requestGuard: multipart upload routes", () => {
     expect(res.status).toBe(413)
     const body = await res.json()
     expect(body.type).toContain("payload-too-large")
+  })
+
+  it("uses the default body limit for an upload route added after startup", async () => {
+    const policy = { method: "POST", pattern: /\/late-upload$/, maxBytes: 1024 }
+    UPLOAD_ROUTES.push(policy)
+    try {
+      const form = new FormData()
+      form.append("file", new Blob([new Uint8Array(10)]), "a.bin")
+      const res = await makeGuardApp().request("/late-upload", { method: "POST", body: form })
+      expect(res.status).toBe(200)
+    } finally {
+      UPLOAD_ROUTES.splice(UPLOAD_ROUTES.indexOf(policy), 1)
+    }
   })
 
   it("allows an upload above 5 MB but within the route limit", async () => {

@@ -242,6 +242,76 @@ describe("soil images", () => {
     expect(services.removeSoilImageAnnotation).not.toHaveBeenCalled()
   })
 
+  it("returns 404 when the photo file is missing and 500 on other storage errors", async () => {
+    const { app } = setup()
+    const missing = await app.request("/soil-images/img-1", { headers })
+    expect(missing.status).toBe(404)
+
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const failing = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => ({
+        ...createMemoryStorage(),
+        download: vi.fn().mockRejectedValue(new Error("storage down")),
+      }),
+      getSoilImage: vi.fn().mockResolvedValue(image),
+    } as any)
+    const res = await failing.request("/soil-images/img-1", { headers })
+    expect(res.status).toBe(500)
+  })
+
+  it("deletes a photo even when its file cannot be deleted, or without storage", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const removeSoilImage = vi.fn().mockResolvedValue(undefined)
+    const failing = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => ({
+        ...createMemoryStorage(),
+        delete: vi.fn().mockRejectedValue(new Error("storage down")),
+      }),
+      getSoilImage: vi.fn().mockResolvedValue(image),
+      removeSoilImage,
+    } as any)
+    const res = await failing.request("/soil-images/img-1", { method: "DELETE", headers })
+    expect(res.status).toBe(204)
+    expect(warn).toHaveBeenCalled()
+
+    const withoutStorage = createFdmApi(mockFdm, mockAuth, config, {
+      getStorage: () => undefined,
+      getSoilImage: vi.fn().mockResolvedValue(image),
+      removeSoilImage,
+    } as any)
+    const res2 = await withoutStorage.request("/soil-images/img-1", { method: "DELETE", headers })
+    expect(res2.status).toBe(204)
+    expect(removeSoilImage).toHaveBeenCalledTimes(2)
+  })
+
+  it("deletes an annotation", async () => {
+    const { app, services } = setup()
+    const res = await app.request("/soil-image-annotations/an-1", { method: "DELETE", headers })
+    expect(res.status).toBe(204)
+    expect(services.removeSoilImageAnnotation).toHaveBeenCalledWith(mockFdm, "user-1", "an-1")
+  })
+
+  it("returns stored coordinates as-is, and null when they are not valid JSON", async () => {
+    const { app } = setup({
+      getSoilImages: vi.fn().mockResolvedValue([
+        {
+          ...image,
+          annotations: [
+            { ...annotation, a_image_annotation_coordinates: { x: 1, y: 2 } },
+            { ...annotation, a_id_annotation: "an-2", a_image_annotation_coordinates: "{broken" },
+          ],
+        },
+      ]),
+    })
+    const res = await app.request("/soil-analyses/a-1/images", { headers })
+    expect(res.status).toBe(200)
+    const [first] = await res.json()
+    expect(first.annotations.map((a: any) => a.a_image_annotation_coordinates)).toEqual([
+      { x: 1, y: 2 },
+      null,
+    ])
+  })
+
   it("returns 401 without an API key", async () => {
     const { app } = setup()
     const res = await app.request("/soil-images/img-1")

@@ -1,3 +1,4 @@
+import { IndicatorsUnavailableError } from "@nmi-agro/fdm-calculator"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
@@ -181,6 +182,74 @@ describe("farm group aggregations", () => {
       ],
       main_cultivations: [{ b_lu_catalogue: "nl_265", b_area: 8 }],
     })
+  })
+
+  it("returns the organic matter balance per farm, with a generic error for other failures", async () => {
+    const getOrganicMatterBalanceForFarms = vi.fn().mockResolvedValue({
+      total: { balance: 1 },
+      farms: [
+        { b_id_farm: "farm-a", balance: { balance: 2 } },
+        { b_id_farm: "farm-b", errorMessage: "database exploded" },
+      ],
+    })
+    const app = makeApp({ getOrganicMatterBalanceForFarms } as any)
+    const res = await app.request(
+      "/farm-groups/g-1/calculations/organic-matter-balance?year=2026&b_id_farm=farm-a&b_id_farm=farm-b&b_id_farm=farm-a",
+      { headers },
+    )
+    expect(res.status).toBe(200)
+    expect(getOrganicMatterBalanceForFarms.mock.calls[0]?.[2]).toEqual(["farm-a", "farm-b"])
+    const body = await res.json()
+    expect(body.farms).toEqual([
+      { b_id_farm: "farm-a", balance: { balance: 2 }, error: null },
+      { b_id_farm: "farm-b", error: "The result of this farm could not be calculated." },
+    ])
+    expect(JSON.stringify(body)).not.toContain("exploded")
+  })
+
+  it("returns 404 for an unknown group", async () => {
+    const app = makeApp({ getFarmGroup: vi.fn().mockResolvedValue(undefined) })
+    const res = await app.request("/farm-groups/missing/measures?year=2026", { headers })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 503 or 403 for indicator failures that apply to every farm", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const unavailable = makeApp({
+      getFarmIndicators: vi.fn().mockRejectedValue(new IndicatorsUnavailableError("down")),
+    } as any)
+    const res = await unavailable.request("/farm-groups/g-1/indicators?year=2026", { headers })
+    expect(res.status).toBe(503)
+
+    const denied = makeApp({
+      getFarmIndicators: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    } as any)
+    const res2 = await denied.request("/farm-groups/g-1/indicators?year=2026", { headers })
+    expect(res2.status).toBe(403)
+  })
+
+  it("leaves a farm whose measures fail out of the total", async () => {
+    const getFarmMeasureSummary = vi
+      .fn()
+      .mockResolvedValueOnce(measureSummary("farm-a", 2, "2026-03-01"))
+      .mockRejectedValueOnce(new Error("boom"))
+    const app = makeApp({ getFarmMeasureSummary } as any)
+    const res = await app.request("/farm-groups/g-1/measures?year=2026", { headers })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.farms[1]).toMatchObject({
+      b_id_farm: "farm-b",
+      error: "The result of this farm could not be calculated.",
+    })
+    expect(body.total.measures[0]).toMatchObject({ b_id_farms: ["farm-a"], field_count: 2 })
+  })
+
+  it("returns 403 when the measures of a farm are not accessible", async () => {
+    const app = makeApp({
+      getFarmMeasureSummary: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    } as any)
+    const res = await app.request("/farm-groups/g-1/measures?year=2026", { headers })
+    expect(res.status).toBe(403)
   })
 
   it("returns 403 without access to the group", async () => {

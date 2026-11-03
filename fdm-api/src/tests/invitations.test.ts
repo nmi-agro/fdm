@@ -117,6 +117,13 @@ describe.each([
     expect((await res.json()).type).toContain(slug)
   })
 
+  it("returns 500 for an unexpected error", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const fn = vi.fn().mockRejectedValue(new Error("Database down"))
+    const res = await request(makeApp({ [service]: fn }))
+    expect(res.status).toBe(500)
+  })
+
   it("returns 401 without an API key", async () => {
     const app = makeApp({ [service]: vi.fn() })
     const res = await app.request(`/invitations/inv-1/${action}`, { method: "POST" })
