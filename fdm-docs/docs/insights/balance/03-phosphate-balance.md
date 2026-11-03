@@ -195,6 +195,8 @@ The time until the PSD crosses the field threshold (back below it, or above it) 
 
 In the app, a field is shown as **on track** (✓) when the projected PSD after 20 years is at or below the field threshold: it stays below, or comes below within 20 years. Otherwise it is **off track** (✗), also when the PSD is above the threshold and decreases too slowly to reach it within 20 years. Without PSD or threshold the status is unknown.
 
+The field page adds a short recommendation: lower the current phosphate fertilisation when the field is off track (✗, also when the PSD decreases but stays above the threshold after 20 years); keep the fertilisation at its current level when it is on track (✓). The recommendation is a direction, not an amount, because the change per year is uncertain.
+
 ## 4. Field, Farm and Organisation Level Balance
 
 - **Field balance:** `Supply − Removal` as above, in kg P₂O₅ / ha for the time frame. Results are cached per field (`getPhosphateBalanceField`) and recalculated after a calculator release.

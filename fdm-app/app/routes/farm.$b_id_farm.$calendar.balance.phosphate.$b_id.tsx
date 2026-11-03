@@ -246,18 +246,11 @@ function PhosphateBalance({
           {warning}
         </p>
       ))}
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        {/* Left: the soil, with the PSD as the main indicator and P-AL as extra information */}
-        <div className="space-y-4">
-          <PhosphateSaturationCard balance={result} />
-          <PhosphateStockCard
-            balance={result}
-            soilAnalyses={fieldInput.soilAnalyses}
-            calendarYear={Number(calendar)}
-          />
-        </div>
-        {/* Right: the balance */}
-        <div className="space-y-4">
+      {/* Two columns on large screens: PSD next to the balance (same height), P-AL next to the
+          terms. On small screens: PSD, P-AL, balance, terms. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PhosphateSaturationCard balance={result} className="order-1 h-full" />
+        <div className="order-3 *:h-full lg:order-2">
           <PhosphateBalanceCard
             year={calendar}
             balance={result.balance}
@@ -265,16 +258,23 @@ function PhosphateBalance({
           >
             <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
           </PhosphateBalanceCard>
-          <Card>
-            <CardHeader>
-              <CardTitle>Posten</CardTitle>
-              <CardDescription />
-            </CardHeader>
-            <CardContent>
-              <PhosphateBalanceDetails balanceData={result} fieldInput={fieldInput} />
-            </CardContent>
-          </Card>
         </div>
+        <div className="order-2 self-start lg:order-3">
+          <PhosphateStockCard
+            balance={result}
+            soilAnalyses={fieldInput.soilAnalyses}
+            calendarYear={Number(calendar)}
+          />
+        </div>
+        <Card className="order-4 self-start">
+          <CardHeader>
+            <CardTitle>Posten</CardTitle>
+            <CardDescription />
+          </CardHeader>
+          <CardContent>
+            <PhosphateBalanceDetails balanceData={result} fieldInput={fieldInput} />
+          </CardContent>
+        </Card>
       </div>
     </>
   )

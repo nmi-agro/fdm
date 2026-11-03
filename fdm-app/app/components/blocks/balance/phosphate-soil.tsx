@@ -1,7 +1,8 @@
 import type { PhosphateBalanceField, PhosphateFieldInput } from "@nmi-agro/fdm-calculator"
 import type { ReactNode } from "react"
-import { ChevronDown, CircleAlert, CircleCheck, CircleX } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { ChevronDown, CircleAlert, CircleCheck, CircleX, Info } from "lucide-react"
+import { InfoTip } from "~/components/blocks/fertilizer-applications/bulk/info-tip"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { cn } from "~/lib/utils"
 import {
@@ -10,7 +11,6 @@ import {
   formatPAlLevel,
   formatSaturationSource,
   getPhosphateTrendStatus,
-  getPhosphateYearsToThreshold,
   P_AL_HIGH,
   P_AL_LOW,
   type PhosphateTrendStatus,
@@ -70,12 +70,14 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 function MoreDetails({
   children,
   title = "Meer details",
+  className,
 }: {
   children: ReactNode
   title?: string
+  className?: string
 }) {
   return (
-    <Collapsible className="border-t pt-2">
+    <Collapsible className={cn("border-t pt-2", className)}>
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex w-full items-center justify-between text-sm">
         {title}
         <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
@@ -266,39 +268,66 @@ export function PhosphateStockCard({
   )
 }
 
+/** Short definition of the PSD, shown behind the info icon next to the title. */
+const PSD_DEFINITION =
+  "Hoeveel van de fosfaatbinding van de bodem al bezet is. Hoe hoger, hoe groter de kans dat fosfaat naar grond- en oppervlaktewater verdwijnt."
+
 /**
- * Phosphorus saturation degree (PSD): the years until the threshold is crossed (the key figure),
- * now, the field-specific threshold and the change per year, with an illustrative trend, a warning
- * when the balance moves away from the aim, and details for advisors.
+ * Short recommendation for the phosphate fertilisation, one per status: lower the fertilisation
+ * when the projected PSD after 20 years is above the threshold (✗, also when the PSD decreases too
+ * slowly), keep it when the PSD stays below or comes below the threshold (✓).
  *
  * @param balance - The phosphate balance of the field.
+ * @returns The recommendation, or `null` when the PSD or its threshold is unknown.
  */
-export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalanceField }) {
+export function getPhosphateRecommendation(balance: PhosphateBalanceField): string | null {
+  const status = getPhosphateTrendStatus(balance)
+  if (status === "off_track") return "Verlaag de huidige fosfaatbemesting."
+  if (status === "on_track") return "Houd de fosfaatbemesting op het huidige niveau."
+  return null
+}
+
+/**
+ * Phosphorus saturation degree (PSD): a short fertilisation recommendation, now, the
+ * field-specific threshold and the change per year, with a large illustrative trend (the main
+ * message), the definition behind an info icon and details for advisors.
+ *
+ * @param balance - The phosphate balance of the field.
+ * @param className - Extra classes for the card (e.g. `h-full` to match the height of a card next
+ *   to it).
+ */
+export function PhosphateSaturationCard({
+  balance,
+  className,
+}: {
+  balance: PhosphateBalanceField
+  className?: string
+}) {
   const projection = balance.projection
   const psd = projection?.psd ?? null
   const status = getPhosphateTrendStatus(balance)
-  const years = getPhosphateYearsToThreshold(balance)
+  const recommendation = getPhosphateRecommendation(balance)
   return (
-    <Card>
+    <Card className={cn("flex flex-col", className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
-        <div className="space-y-1">
-          <CardTitle className="text-base font-semibold">Fosfaatverzadiging (PSD)</CardTitle>
-          <CardDescription className="text-xs">
-            Hoeveel van de fosfaatbinding van de bodem al bezet is. Hoe hoger, hoe groter de kans
-            dat fosfaat naar grond- en oppervlaktewater verdwijnt.
-          </CardDescription>
-        </div>
+        <CardTitle className="flex items-center gap-1.5 text-base font-semibold">
+          Fosfaatverzadiging (PSD)
+          <InfoTip content={PSD_DEFINITION} className="max-w-xs">
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-foreground -m-1 rounded-sm p-1"
+              aria-label={PSD_DEFINITION}
+            >
+              <Info className="size-4" aria-hidden="true" />
+            </button>
+          </InfoTip>
+        </CardTitle>
         <PhosphateStatusIcon status={status} className="h-8 w-8" />
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="flex flex-1 flex-col gap-2">
         {projection && psd ? (
           <>
-            {years ? (
-              <div>
-                <p className="text-muted-foreground text-xs">{years.label}</p>
-                <div className="text-2xl font-bold">{years.value}</div>
-              </div>
-            ) : null}
+            {recommendation ? <p className="text-sm font-medium">{recommendation}</p> : null}
             <Row label="Nu">{formatNumberNl(psd.current.value)} %</Row>
             <Row label="Grenswaarde">{formatNumberNl(psd.threshold.value)} %</Row>
             <Row label="Verandering bij gemiddeld saldo">
@@ -319,7 +348,8 @@ export function PhosphateSaturationCard({ balance }: { balance: PhosphateBalance
             {balance.saturation.soil_note ? (
               <p className="text-muted-foreground text-xs">{balance.saturation.soil_note}</p>
             ) : null}
-            <MoreDetails>
+            {/* At the bottom, so the card can match the height of the balance card */}
+            <MoreDetails className="mt-auto">
               <Detail title="Wat zegt de fosfaatverzadiging?">
                 Het deel van de fosfaatbinding van de bodem (ijzer- en aluminiumoxiden) dat al bezet
                 is. P-AL zegt hoeveel fosfaat het gewas kan opnemen; de PSD zegt ook hoe vol de

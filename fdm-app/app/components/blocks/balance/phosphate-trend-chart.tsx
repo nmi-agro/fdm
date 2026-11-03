@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts"
 import { type ChartConfig, ChartContainer } from "~/components/ui/chart"
+import { cn } from "~/lib/utils"
 import { formatNumberNl, PHOSPHATE_HORIZON_YEARS } from "./phosphate-format"
 
 /** Year classes shown as bands on the time axis (the uncertainty does not allow single years). */
@@ -34,6 +35,7 @@ const YEAR_CLASSES = [
  * @param max - Upper limit of the indicator (values are clamped).
  * @param measurements - Optional measured values in the past, as years before "nu" (negative) and
  *   value; shown as points, with the time axis extended backwards.
+ * @param className - Height of the chart (default `h-56`, the same for PSD and P-AL so they can be compared).
  */
 export function PhosphateTrendChart({
   current,
@@ -45,6 +47,7 @@ export function PhosphateTrendChart({
   min = 0,
   max = Number.POSITIVE_INFINITY,
   measurements = [],
+  className = "h-56",
 }: {
   current: number
   deltaPerYear: number
@@ -55,6 +58,7 @@ export function PhosphateTrendChart({
   min?: number
   max?: number
   measurements?: { year: number; value: number }[]
+  className?: string
 }): JSX.Element {
   const data = Array.from({ length: PHOSPHATE_HORIZON_YEARS + 1 }, (_, year) => ({
     year,
@@ -84,7 +88,7 @@ export function PhosphateTrendChart({
   } satisfies ChartConfig
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-44 w-full">
+    <ChartContainer config={chartConfig} className={cn("aspect-auto w-full", className)}>
       <ComposedChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         {YEAR_CLASSES.map((yc, i) => (
