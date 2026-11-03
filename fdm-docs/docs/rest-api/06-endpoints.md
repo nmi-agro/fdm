@@ -284,18 +284,26 @@ A plan is `expired` when the data of the farm or the calculation method changed 
 
 ---
 
-## Farm group results
+## Farm group and organization results
 
-All four take a `year` and an optional, repeatable `b_id_farm` to narrow the farms. A farm counts when it is part of the group at some point in the year.
+Balances, indicators and measures of several farms: for all selected farms together (`total`) and per farm (`farms`). They take a `year` and an optional, repeatable `b_id_farm` to narrow the farms.
 
-| Method | Path                                                                | Description                                               |
-| ------ | ------------------------------------------------------------------- | --------------------------------------------------------- |
-| `GET`  | `/api/farm-groups/{b_id_group}/calculations/nitrogen-balance`       | Nitrogen balance of all farms together and per farm       |
-| `GET`  | `/api/farm-groups/{b_id_group}/calculations/organic-matter-balance` | Organic matter balance of all farms together and per farm |
-| `GET`  | `/api/farm-groups/{b_id_group}/indicators`                          | Area-weighted and lowest indicator scores per farm        |
-| `GET`  | `/api/farm-groups/{b_id_group}/measures`                            | Measures and main cultivations per farm                   |
+| Method | Path                                                                       | Description                               |
+| ------ | -------------------------------------------------------------------------- | ----------------------------------------- |
+| `GET`  | `/api/farm-groups/{b_id_group}/calculations/nitrogen-balance`              | Nitrogen balance of the farms of a group  |
+| `GET`  | `/api/farm-groups/{b_id_group}/calculations/organic-matter-balance`        | Organic matter balance                    |
+| `GET`  | `/api/farm-groups/{b_id_group}/indicators`                                 | Area-weighted and lowest indicator scores |
+| `GET`  | `/api/farm-groups/{b_id_group}/measures`                                   | Measures and main cultivations            |
+| `GET`  | `/api/organizations/{organization_id}/calculations/nitrogen-balance`       | Same, for the farms of an organization    |
+| `GET`  | `/api/organizations/{organization_id}/calculations/organic-matter-balance` |                                           |
+| `GET`  | `/api/organizations/{organization_id}/indicators`                          |                                           |
+| `GET`  | `/api/organizations/{organization_id}/measures`                            |                                           |
 
-A farm that cannot be calculated is reported with an `error`; the other farms are still returned.
+- **Farm group:** a farm counts when it is part of the group at some point in the year.
+- **Organization:** all farms the organization has access to. The owner of the API key must be a member of the organization; the results are calculated with the access of the organization, as in the organization overview of the web app.
+- **Totals:** the balances are calculated over all fields of the selected farms together. The indicator total is area-weighted over all eligible fields, with the lowest score per indicator. The measure total lists each measure once, with the farms that have it and the number of fields.
+
+A farm that cannot be calculated is reported with an `error` and left out of the total; the other farms are still returned.
 
 ---
 

@@ -11,6 +11,7 @@ import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
+import { getFarms } from "./farm"
 import { createId } from "./id"
 
 const PERMISSION_DENIED = "Principal does not have permission to perform this action"
@@ -887,4 +888,29 @@ export function getFarmIdsOfFarmGroupInYear(
         .map((membership) => membership.b_id_farm),
     ),
   ]
+}
+
+/**
+ * Returns the IDs of the farms an organization has access to, for a member of that organization.
+ * Use it to calculate results for all farms of an organization, as the organization overview of
+ * the web app does.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The user requesting the farms. Must be a member of the organization.
+ * @param b_id_organization - The organization.
+ * @returns The IDs of the farms the organization has access to.
+ * @throws When the user is not a member of the organization.
+ */
+export async function getFarmIdsOfOrganization(
+  fdm: FdmType,
+  principal_id: string,
+  b_id_organization: string,
+): Promise<string[]> {
+  try {
+    await assertOrganizationMember(fdm, principal_id, b_id_organization)
+    const farms = await getFarms(fdm, b_id_organization)
+    return farms.map((farm) => farm.b_id_farm)
+  } catch (err) {
+    throw handleError(err, "Exception for getFarmIdsOfOrganization", { b_id_organization })
+  }
 }

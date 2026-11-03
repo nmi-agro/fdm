@@ -108,8 +108,10 @@ export type {
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
 export { getNitrogenBalanceForFarms, getOrganicMatterBalanceForFarms } from "./balance/farms"
-export { getFarmMeasureSummary } from "./bln3/farm-measures"
+export { combineFarmMeasureSummaries, getFarmMeasureSummary } from "./bln3/farm-measures"
 export type {
+  CombinedMeasureSummary,
+  CombinedMeasureSummaryItem,
   FarmMainCultivationArea,
   FarmMeasureSummary,
   FarmMeasureSummaryItem,

@@ -55,6 +55,7 @@ import {
   getEnabledMeasureCatalogues,
   getFarm,
   getFarmGroup,
+  getFarmIdsOfOrganization,
   getFarms,
   getFertilizer,
   getFertilizerApplication,
@@ -305,6 +306,8 @@ export interface FdmApiServices {
   getNitrogenBalanceForFarms: typeof getNitrogenBalanceForFarms
   getOrganicMatterBalanceForFarms: typeof getOrganicMatterBalanceForFarms
   getFarmMeasureSummary: typeof getFarmMeasureSummary
+  // Organizations
+  getFarmIdsOfOrganization: typeof getFarmIdsOfOrganization
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -428,6 +431,7 @@ const defaultServices: FdmApiServices = {
   getNitrogenBalanceForFarms,
   getOrganicMatterBalanceForFarms,
   getFarmMeasureSummary,
+  getFarmIdsOfOrganization,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
   getReportBranding: async () => ({ name: "FDM" }),
 }

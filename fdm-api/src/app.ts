@@ -8,11 +8,11 @@ import type { ApiEnv } from "./types"
 import { createApiKeyAuth } from "./auth"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { createPathExistenceGuard, requestGuard } from "./guards"
+import { registerAggregationRoutes } from "./routes/aggregations"
 import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCatalogueRoutes } from "./routes/catalogues"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
-import { registerFarmGroupAggregationRoutes } from "./routes/farm-group-aggregations"
 import { registerFarmGroupRoutes } from "./routes/farm-groups"
 import { registerFarmRoutes } from "./routes/farms"
 import { registerFertilizerApplicationRoutes } from "./routes/fertilizer-applications"
@@ -128,7 +128,7 @@ export function buildApp(
   registerSoilImageRoutes(app, fdm, services)
   registerFieldImportRoutes(app, fdm, services)
   registerFertilizerPlanRoutes(app, fdm, services)
-  registerFarmGroupAggregationRoutes(app, fdm, services)
+  registerAggregationRoutes(app, fdm, services)
 
   // Security schemes
   app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyHeader", {
@@ -264,6 +264,11 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
       {
         name: "Catalogues",
         description: "Access the cultivation, fertilizer, and field measure catalogues",
+      },
+      {
+        name: "Organizations",
+        description:
+          "Balances, indicators and measures of all farms of an organization, in total and per farm",
       },
       {
         name: "Farm Groups",

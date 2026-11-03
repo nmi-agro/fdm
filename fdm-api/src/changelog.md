@@ -44,9 +44,10 @@ Not available through the API yet: sharing a farm with other users and organizat
 
 - `GET` and `POST /farms/{b_id_farm}/fertilizer-plans` list and generate the yearly fertilizer plan (bemestingsplan). `GET /fertilizer-plans/{p_id_plan}`, `GET .../pdf` and `DELETE` return, download and delete a plan. Each plan reports whether it still matches the current data.
 
-**Farm groups**
+**Farm groups and organizations**
 
-- `GET /farm-groups/{b_id_group}/calculations/nitrogen-balance`, `.../organic-matter-balance`, `/indicators` and `/measures` return the results of the farms in a group for a year, in total and per farm.
+- `GET /farm-groups/{b_id_group}/calculations/nitrogen-balance`, `.../organic-matter-balance`, `/indicators` and `/measures` return the results of the farms in a group for a year, for all farms together and per farm.
+- `GET /organizations/{organization_id}/...` with the same four paths returns the same for all farms of an organization. The owner of the API key must be a member.
 
 ### Changed
 
