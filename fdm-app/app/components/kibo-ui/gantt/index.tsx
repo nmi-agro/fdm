@@ -28,6 +28,7 @@ import {
   startOfDay,
   startOfMonth,
 } from "date-fns"
+import { nl } from "date-fns/locale"
 import { atom, useAtom } from "jotai"
 import throttle from "lodash.throttle"
 import { PlusIcon, TrashIcon } from "lucide-react"
@@ -42,6 +43,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import { Card } from "~/components/ui/card"
 import {
   ContextMenu,
@@ -70,6 +72,51 @@ export type GanttFeature = {
   endAt: Date
   status: GanttStatus
   lane?: string // Optional: features with the same lane will share a row
+  /** Optional background color (e.g. an rgba string) applied to the feature's card. */
+  color?: string
+  resizable?: boolean
+  draggable?: boolean
+}
+
+export type GanttSubRowPositioned<T> = T & { subRow: number }
+
+/**
+ * Stacks time-overlapping features into separate sub-rows (greedy interval-graph coloring: sort
+ * by start date, assign each feature the first sub-row whose previous occupant has already
+ * ended). Shared by `GanttFeatureRow` (which renders the stacked bars) and any caller that needs
+ * to precompute the resulting row count ahead of render (e.g. to size a container explicitly) —
+ * using one implementation for both keeps the precomputed height and the actual rendered stack
+ * from drifting out of sync.
+ */
+export function computeGanttSubRows<T extends Pick<GanttFeature, "startAt" | "endAt">>(
+  features: T[],
+): GanttSubRowPositioned<T>[] {
+  const sorted = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+  const subRowEndTimes: number[] = []
+  const positioned: GanttSubRowPositioned<T>[] = []
+
+  for (const feature of sorted) {
+    let subRow = 0
+    while (subRow < subRowEndTimes.length && subRowEndTimes[subRow] > feature.startAt.getTime()) {
+      subRow++
+    }
+    if (subRow === subRowEndTimes.length) {
+      subRowEndTimes.push(feature.endAt.getTime())
+    } else {
+      subRowEndTimes[subRow] = feature.endAt.getTime()
+    }
+    positioned.push({ ...feature, subRow })
+  }
+
+  return positioned
+}
+
+/** Number of sub-rows `computeGanttSubRows` would stack the given features into (at least 1). */
+export function computeGanttSubRowCount(features: Pick<GanttFeature, "startAt" | "endAt">[]) {
+  return computeGanttSubRows(features).reduce(
+    (max, feature) => Math.max(max, feature.subRow + 1),
+    1,
+  )
 }
 
 export type GanttMarkerProps = {
@@ -179,30 +226,31 @@ const getDateByMousePosition = (context: GanttContextProps, mouseX: number) => {
   return actualDate
 }
 
-const createInitialTimelineData = (today: Date) => {
+const createInitialTimelineData = (startYear: number, endYear: number) => {
   const data: TimelineData = []
 
-  data.push(
-    { year: today.getFullYear() - 1, quarters: new Array(4).fill(null) },
-    { year: today.getFullYear(), quarters: new Array(4).fill(null) },
-    { year: today.getFullYear() + 1, quarters: new Array(4).fill(null) },
-  )
-
-  for (const yearObj of data) {
-    yearObj.quarters = new Array(4).fill(null).map((_, quarterIndex) => ({
-      months: new Array(3).fill(null).map((_, monthIndex) => {
-        const month = quarterIndex * 3 + monthIndex
-        return {
-          days: getDaysInMonth(new Date(yearObj.year, month, 1)),
-        }
-      }),
-    }))
+  for (let year = startYear; year <= endYear; year++) {
+    data.push({
+      year,
+      quarters: Array.from({ length: 4 }, (_, quarterIndex) => ({
+        months: Array.from({ length: 3 }, (_, monthIndex) => {
+          const month = quarterIndex * 3 + monthIndex
+          return {
+            days: getDaysInMonth(new Date(year, month, 1)),
+          }
+        }),
+      })),
+    })
   }
 
   return data
 }
 
-const getOffset = (date: Date, timelineStartDate: Date, context: GanttContextProps) => {
+export const getGanttDateOffset = (
+  date: Date,
+  timelineStartDate: Date,
+  context: Pick<GanttContextProps, "columnWidth" | "zoom" | "range">,
+) => {
   const parsedColumnWidth = (context.columnWidth * context.zoom) / 100
   const differenceIn = getDifferenceIn(context.range)
   const startOf = getStartOf(context.range)
@@ -218,6 +266,8 @@ const getOffset = (date: Date, timelineStartDate: Date, context: GanttContextPro
 
   return fullColumns * parsedColumnWidth + partialColumns * pixelsPerDay
 }
+
+const getOffset = getGanttDateOffset
 
 const getWidth = (startAt: Date, endAt: Date | null, context: GanttContextProps) => {
   const parsedColumnWidth = (context.columnWidth * context.zoom) / 100
@@ -273,7 +323,7 @@ const calculateInnerOffset = (date: Date, range: Range, columnWidth: number) => 
   return (dayOfMonth / totalRangeDays) * columnWidth
 }
 
-const GanttContext = createContext<GanttContextProps>({
+export const GanttContext = createContext<GanttContextProps>({
   zoom: 100,
   range: "monthly",
   columnWidth: 50,
@@ -302,7 +352,7 @@ export const GanttContentHeader: FC<GanttContentHeaderProps> = ({
 
   return (
     <div
-      className="bg-backdrop/90 sticky top-0 z-20 grid w-full shrink-0 backdrop-blur-sm"
+      className="bg-background sticky top-0 z-20 grid w-full shrink-0"
       style={{ height: "var(--gantt-header-height)" }}
     >
       <div>
@@ -346,13 +396,13 @@ const DailyHeader: FC = () => {
             columns={month.days}
             renderHeaderItem={(item: number) => (
               <div className="flex items-center justify-center gap-1">
-                <p>{format(addDays(new Date(year.year, index, 1), item), "d")}</p>
+                <p>{format(addDays(new Date(year.year, index, 1), item), "d", { locale: nl })}</p>
                 <p className="text-muted-foreground">
-                  {format(addDays(new Date(year.year, index, 1), item), "EEEEE")}
+                  {format(addDays(new Date(year.year, index, 1), item), "EEEEE", { locale: nl })}
                 </p>
               </div>
             )}
-            title={format(new Date(year.year, index, 1), "MMMM yyyy")}
+            title={format(new Date(year.year, index, 1), "MMMM yyyy", { locale: nl })}
           />
           <GanttColumns
             columns={month.days}
@@ -372,7 +422,9 @@ const MonthlyHeader: FC = () => {
     <div className="relative flex flex-col" key={year.year}>
       <GanttContentHeader
         columns={year.quarters.flatMap((quarter) => quarter.months).length}
-        renderHeaderItem={(item: number) => <p>{format(new Date(year.year, item, 1), "MMM")}</p>}
+        renderHeaderItem={(item: number) => (
+          <p>{format(new Date(year.year, item, 1), "MMM", { locale: nl })}</p>
+        )}
         title={`${year.year}`}
       />
       <GanttColumns columns={year.quarters.flatMap((quarter) => quarter.months).length} />
@@ -389,7 +441,7 @@ const QuarterlyHeader: FC = () => {
         <GanttContentHeader
           columns={quarter.months.length}
           renderHeaderItem={(item: number) => (
-            <p>{format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM")}</p>
+            <p>{format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM", { locale: nl })}</p>
           )}
           title={`Q${quarterIndex + 1} ${year.year}`}
         />
@@ -460,14 +512,10 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
 
   return (
     <div
-      className={cn(
-        "hover:bg-secondary relative flex items-center gap-2.5 p-2.5 text-xs",
-        className,
-      )}
+      className={cn("hover:bg-secondary relative flex items-center gap-2 p-1.5 text-xs", className)}
       key={feature.id}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      // biome-ignore lint/a11y/useSemanticElements: "This is a clickable item"
       role="button"
       style={{
         height: "var(--gantt-row-height)",
@@ -489,7 +537,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
 
 export const GanttSidebarHeader: FC = () => (
   <div
-    className="border-border/50 bg-backdrop/90 text-muted-foreground sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-b p-2.5 text-xs font-medium backdrop-blur-sm"
+    className="border-border/50 bg-background text-muted-foreground sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-b p-2.5 text-xs font-medium"
     style={{ height: "var(--gantt-header-height)" }}
   >
     {/* <Checkbox className="shrink-0" /> */}
@@ -500,18 +548,17 @@ export const GanttSidebarHeader: FC = () => (
 
 export type GanttSidebarGroupProps = {
   children: ReactNode
-  name: string
+  name: ReactNode
   className?: string
 }
 
 export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({ children, name, className }) => (
-  <div className={className}>
-    <p
-      className="text-muted-foreground w-full truncate p-2.5 text-left text-xs font-medium"
-      style={{ height: "var(--gantt-row-height)" }}
-    >
+  <div className={cn("relative", className)}>
+    {/* Overlaid on top of `children` (rather than stacked above it in its own row) so a field
+        occupies exactly the height its bar(s) need — one row per field by default, not two. */}
+    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full items-center gap-1.5 truncate p-1.5 text-left">
       {name}
-    </p>
+    </div>
     <div className="divide-border/50 divide-y">{children}</div>
   </div>
 )
@@ -524,13 +571,13 @@ export type GanttSidebarProps = {
 export const GanttSidebar: FC<GanttSidebarProps> = ({ children, className }) => (
   <div
     className={cn(
-      "border-border/50 bg-background/90 sticky left-0 z-30 h-max min-h-full overflow-clip border-r backdrop-blur-md",
+      "border-border/50 bg-background sticky left-0 z-30 h-max min-h-full overflow-clip border-r",
       className,
     )}
     data-roadmap-ui="gantt-sidebar"
   >
     <GanttSidebarHeader />
-    <div className="space-y-4">{children}</div>
+    <div className="space-y-2">{children}</div>
   </div>
 )
 
@@ -593,8 +640,6 @@ export const GanttColumn: FC<GanttColumnProps> = ({ index, isColumnSecondary }) 
   )
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: "This is a clickable column"
-    // biome-ignore lint/nursery/noNoninteractiveElementInteractions: "This is a clickable column"
     <div
       className={cn(
         "group relative h-full overflow-hidden",
@@ -672,7 +717,7 @@ export const GanttCreateMarkerTrigger: FC<GanttCreateMarkerTriggerProps> = ({
           <PlusIcon className="text-muted-foreground" size={12} />
         </button>
         <div className="border-border/50 bg-background/90 text-foreground rounded-full border px-2 py-1 text-xs whitespace-nowrap backdrop-blur-lg">
-          {formatDate(date, "MMM dd, yyyy")}
+          {formatDate(date, "d MMM yyyy", { locale: nl })}
         </div>
       </div>
     </div>
@@ -726,18 +771,18 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
             isPressed && "block",
           )}
         >
-          {format(date, "MMM dd, yyyy")}
+          {format(date, "d MMM yyyy", { locale: nl })}
         </div>
       )}
     </div>
   )
 }
 
-export type GanttFeatureItemCardProps = Pick<GanttFeature, "id"> & {
+export type GanttFeatureItemCardProps = Pick<GanttFeature, "id" | "color"> & {
   children?: ReactNode
 }
 
-export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, children }) => {
+export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, color, children }) => {
   const [, setDragging] = useGanttDragging()
   const { attributes, listeners, setNodeRef } = useDraggable({ id })
   const isPressed = Boolean(attributes["aria-pressed"])
@@ -745,7 +790,10 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, childr
   useEffect(() => setDragging(isPressed), [isPressed, setDragging])
 
   return (
-    <Card className="bg-background h-full w-full rounded-md p-2 text-xs shadow-sm">
+    <Card
+      className="bg-background h-full w-full rounded-md p-1 text-xs shadow-sm transition-shadow duration-150 hover:shadow-md"
+      style={color ? { backgroundColor: color } : undefined}
+    >
       <div
         className={cn(
           "flex h-full w-full items-center justify-between gap-2 text-left",
@@ -802,7 +850,20 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     },
   })
 
+  const [isItemDragging, setIsItemDragging] = useState(false)
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
+
+  // Follow the pointer while the whole item is dragged, so the new date can be shown next to it.
+  useEffect(() => {
+    if (!isItemDragging) return
+    const onPointerMove = (event: PointerEvent) =>
+      setPointer({ x: event.clientX, y: event.clientY })
+    window.addEventListener("pointermove", onPointerMove)
+    return () => window.removeEventListener("pointermove", onPointerMove)
+  }, [isItemDragging])
+
   const handleItemDragStart = useCallback(() => {
+    setIsItemDragging(true)
     setPreviousMouseX(mousePosition.x)
     setPreviousStartAt(startAt)
     setPreviousEndAt(endAt)
@@ -822,10 +883,16 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     setEndAt(newEndDate)
   }, [gantt, mousePosition.x, previousMouseX, previousStartAt, previousEndAt])
 
-  const onDragEnd = useCallback(
-    () => onMove?.(feature.id, startAt, endAt),
-    [onMove, feature.id, startAt, endAt],
-  )
+  const onDragEnd = useCallback(() => {
+    setIsItemDragging(false)
+    setPointer(null)
+    onMove?.(feature.id, startAt, endAt)
+  }, [onMove, feature.id, startAt, endAt])
+
+  const dragLabel =
+    endAt && !isSameDay(startAt, endAt)
+      ? `${format(startAt, "d MMM yyyy", { locale: nl })} – ${format(endAt, "d MMM yyyy", { locale: nl })}`
+      : format(startAt, "d MMM yyyy", { locale: nl })
 
   const handleLeftDragMove = useCallback(() => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -856,7 +923,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           left: Math.round(offset),
         }}
       >
-        {onMove && (
+        {onMove && feature.resizable !== false && (
           <DndContext
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
@@ -868,16 +935,31 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
         )}
         <DndContext
           modifiers={[restrictToHorizontalAxis]}
+          onDragCancel={() => {
+            setIsItemDragging(false)
+            setPointer(null)
+          }}
           onDragEnd={onDragEnd}
           onDragMove={handleItemDragMove}
           onDragStart={handleItemDragStart}
-          sensors={[mouseSensor]}
+          sensors={feature.draggable === false ? [] : [mouseSensor]}
         >
-          <GanttFeatureItemCard id={feature.id}>
+          <GanttFeatureItemCard color={feature.color} id={feature.id}>
             {children ?? <p className="flex-1 truncate text-xs">{feature.name}</p>}
           </GanttFeatureItemCard>
         </DndContext>
-        {onMove && (
+        {isItemDragging &&
+          pointer &&
+          createPortal(
+            <div
+              className="bg-popover text-popover-foreground pointer-events-none fixed z-50 -translate-x-1/2 rounded-md border px-2 py-1 text-xs shadow-md"
+              style={{ left: pointer.x, top: pointer.y - 36 }}
+            >
+              {dragLabel}
+            </div>,
+            document.body,
+          )}
+        {onMove && feature.resizable !== false && (
           <DndContext
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
@@ -902,9 +984,7 @@ export type GanttFeatureListGroupProps = {
 }
 
 export const GanttFeatureListGroup: FC<GanttFeatureListGroupProps> = ({ children, className }) => (
-  <div className={className} style={{ paddingTop: "var(--gantt-row-height)" }}>
-    {children}
-  </div>
+  <div className={className}>{children}</div>
 )
 
 export type GanttFeatureRowProps = {
@@ -920,33 +1000,16 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
   children,
   className,
 }) => {
-  // Sort features by start date to handle potential overlaps
-  const sortedFeatures = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+  const gantt = useContext(GanttContext)
 
-  // Calculate sub-row positions for overlapping features using a proper algorithm
-  const featureWithPositions = []
-  const subRowEndTimes: Date[] = [] // Track when each sub-row becomes free
-
-  for (const feature of sortedFeatures) {
-    let subRow = 0
-
-    // Find the first sub-row that's free (doesn't overlap)
-    while (subRow < subRowEndTimes.length && subRowEndTimes[subRow] > feature.startAt) {
-      subRow++
-    }
-
-    // Update the end time for this sub-row
-    if (subRow === subRowEndTimes.length) {
-      subRowEndTimes.push(feature.endAt)
-    } else {
-      subRowEndTimes[subRow] = feature.endAt
-    }
-
-    featureWithPositions.push({ ...feature, subRow })
-  }
-
-  const maxSubRows = Math.max(1, subRowEndTimes.length)
-  const subRowHeight = 36 // Base row height
+  const featureWithPositions = computeGanttSubRows(features)
+  const maxSubRows = featureWithPositions.reduce(
+    (max, feature) => Math.max(max, feature.subRow + 1),
+    1,
+  )
+  // Read the configured row height from context instead of hardcoding it, so sub-row stacking
+  // stays in sync with the sidebar (which sizes its rows from the same `--gantt-row-height`).
+  const subRowHeight = gantt.rowHeight
 
   return (
     <div
@@ -985,7 +1048,7 @@ export type GanttFeatureListProps = {
 
 export const GanttFeatureList: FC<GanttFeatureListProps> = ({ className, children }) => (
   <div
-    className={cn("absolute top-0 left-0 h-full w-max space-y-4", className)}
+    className={cn("absolute top-0 left-0 h-full w-max space-y-2", className)}
     style={{ marginTop: "var(--gantt-header-height)" }}
   >
     {children}
@@ -1038,7 +1101,7 @@ export const GanttMarker: FC<
         >
           {label}
           <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
-            {formatDate(date, "MMM dd, yyyy")}
+            {formatDate(date, "d MMM yyyy", { locale: nl })}
           </span>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -1063,6 +1126,12 @@ GanttMarker.displayName = "GanttMarker"
 export type GanttProviderProps = {
   range?: Range
   zoom?: number
+  /** Height (px) of each timeline/sidebar row. Defaults to 36. */
+  rowHeight?: number
+  /** First year rendered. Defaults to one year before the real current year. */
+  startYear?: number
+  /** Last year rendered. Defaults to one year after the real current year. */
+  endYear?: number
   onAddItem?: (date: Date) => void
   children: ReactNode
   className?: string
@@ -1071,19 +1140,21 @@ export type GanttProviderProps = {
 export const GanttProvider: FC<GanttProviderProps> = ({
   zoom = 100,
   range = "monthly",
+  rowHeight = 36,
+  startYear = new Date().getFullYear() - 1,
+  endYear = new Date().getFullYear() + 1,
   onAddItem,
   children,
   className,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [timelineData, setTimelineData] = useState<TimelineData>(
-    createInitialTimelineData(new Date()),
+    createInitialTimelineData(startYear, endYear),
   )
   const [, setScrollX] = useGanttScrollX()
   const [sidebarWidth, setSidebarWidth] = useState(0)
 
   const headerHeight = 60
-  const rowHeight = 36
   let columnWidth = 50
 
   if (range === "monthly") {
@@ -1102,7 +1173,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         "--gantt-row-height": `${rowHeight}px`,
         "--gantt-sidebar-width": `${sidebarWidth}px`,
       }) as CSSProperties,
-    [zoom, columnWidth, sidebarWidth],
+    [zoom, columnWidth, sidebarWidth, rowHeight],
   )
 
   useEffect(() => {
@@ -1160,8 +1231,8 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         const newTimelineData: TimelineData = [...timelineData]
         newTimelineData.unshift({
           year: firstYear - 1,
-          quarters: new Array(4).fill(null).map((_, quarterIndex) => ({
-            months: new Array(3).fill(null).map((_, monthIndex) => {
+          quarters: Array.from({ length: 4 }, (_, quarterIndex) => ({
+            months: Array.from({ length: 3 }, (_, monthIndex) => {
               const month = quarterIndex * 3 + monthIndex
               return {
                 days: getDaysInMonth(new Date(firstYear, month, 1)),
@@ -1186,8 +1257,8 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         const newTimelineData: TimelineData = [...timelineData]
         newTimelineData.push({
           year: lastYear + 1,
-          quarters: new Array(4).fill(null).map((_, quarterIndex) => ({
-            months: new Array(3).fill(null).map((_, monthIndex) => {
+          quarters: Array.from({ length: 4 }, (_, quarterIndex) => ({
+            months: Array.from({ length: 3 }, (_, monthIndex) => {
               const month = quarterIndex * 3 + monthIndex
               return {
                 days: getDaysInMonth(new Date(lastYear, month, 1)),
@@ -1231,18 +1302,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
       const timelineStartDate = new Date(timelineData[0].year, 0, 1)
 
       // Calculate the horizontal offset for the feature's start date
-      const offset = getOffset(feature.startAt, timelineStartDate, {
-        zoom,
-        range,
-        columnWidth,
-        sidebarWidth,
-        headerHeight,
-        rowHeight,
-        onAddItem,
-        placeholderLength: 2,
-        timelineData,
-        ref: scrollRef,
-      })
+      const offset = getOffset(feature.startAt, timelineStartDate, { zoom, range, columnWidth })
 
       // Scroll to align the feature's start with the right side of the sidebar
       const targetScrollLeft = Math.max(0, offset)
@@ -1292,10 +1352,14 @@ export const GanttProvider: FC<GanttProviderProps> = ({
 export type GanttTimelineProps = {
   children: ReactNode
   className?: string
+  style?: CSSProperties
 }
 
-export const GanttTimeline: FC<GanttTimelineProps> = ({ children, className }) => (
-  <div className={cn("relative flex h-full w-max flex-none overflow-clip", className)}>
+export const GanttTimeline: FC<GanttTimelineProps> = ({ children, className, style }) => (
+  <div
+    className={cn("relative flex h-full w-max flex-none overflow-clip", className)}
+    style={style}
+  >
     {children}
   </div>
 )
@@ -1334,16 +1398,23 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
     >
       <div
         className={cn(
-          "group bg-card text-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs whitespace-nowrap select-auto",
+          "group bg-primary text-primary-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs font-medium whitespace-nowrap select-auto",
+          "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500 motion-safe:ease-out",
           className,
         )}
       >
         {label}
         <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
-          {formatDate(date, "MMM dd, yyyy")}
+          {formatDate(date, "d MMM yyyy", { locale: nl })}
         </span>
       </div>
-      <div className={cn("bg-card h-full w-px", className)} />
+      <div
+        className={cn(
+          "bg-primary h-full w-px",
+          "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700",
+          className,
+        )}
+      />
     </div>
   )
 }

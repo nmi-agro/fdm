@@ -476,7 +476,7 @@ export function ImageCropperApp({
       <DirectionProvider direction="rtl">
         <Slider
           value={scaleSliderValue}
-          onValueChange={(v) => handleZoomInput(v)}
+          onValueChange={(v) => handleZoomInput(typeof v === "number" ? [v] : v)}
           min={MIN_SCALE}
           max={maxScale}
           step={0.05}
