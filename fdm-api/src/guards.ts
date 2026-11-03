@@ -137,6 +137,12 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
   const method = c.req.method
 
   if (WRITE_METHODS.has(method)) {
+    // A write without a body (for example accepting an invitation) needs no Content-Type.
+    const contentLength = c.req.header("content-length")
+    const hasBody = c.req.raw.body !== null && contentLength !== "0"
+    if (!hasBody && !c.req.header("content-type")) {
+      return next()
+    }
     const rawContentType = c.req.header("content-type") ?? ""
     const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
     const uploadPolicy = findUploadPolicy(method, c.req.path)

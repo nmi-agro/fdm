@@ -20,6 +20,7 @@ import { registerFieldRoutes } from "./routes/fields"
 import { registerGrazingIntentionRoutes } from "./routes/grazing-intentions"
 import { registerHarvestRoutes } from "./routes/harvests"
 import { registerIndicatorRoutes } from "./routes/indicators"
+import { registerInvitationRoutes } from "./routes/invitations"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
@@ -117,6 +118,7 @@ export function buildApp(
   registerDerogationRoutes(app, fdm, services)
   registerGrazingIntentionRoutes(app, fdm, services)
   registerSoilAnalysisRoutes(app, fdm, services)
+  registerInvitationRoutes(app, fdm, services)
 
   // Security schemes
   app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyHeader", {

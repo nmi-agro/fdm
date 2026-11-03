@@ -15,6 +15,7 @@ import {
   getOrganicMatterBalanceField,
 } from "@nmi-agro/fdm-calculator"
 import {
+  acceptInvitation,
   addCultivation,
   addDerogation,
   addFarm,
@@ -28,6 +29,7 @@ import {
   addOrganicCertification,
   addSoilAnalysis,
   createFarmGroup,
+  declineInvitation,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -71,6 +73,7 @@ import {
   listDerogations,
   listFarmGroups,
   listOrganicCertifications,
+  listPendingInvitationsForUser,
   removeCultivation,
   removeDerogation,
   removeFarm,
@@ -244,6 +247,10 @@ export interface FdmApiServices {
   getFarmNutrientAdviceRows: typeof getFarmNutrientAdviceRows
   // Harvest parameters
   getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
+  // Invitations
+  listPendingInvitationsForUser: typeof listPendingInvitationsForUser
+  acceptInvitation: typeof acceptInvitation
+  declineInvitation: typeof declineInvitation
   // Files
   /** Returns the file storage; `undefined` when no storage is configured. */
   getStorage: () => FileStorage | undefined
@@ -342,6 +349,9 @@ const defaultServices: FdmApiServices = {
   getCurrentSoilDataForFarm,
   getFarmNutrientAdviceRows,
   getCultivationsFromCatalogue,
+  listPendingInvitationsForUser,
+  acceptInvitation,
+  declineInvitation,
   getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
 }
 

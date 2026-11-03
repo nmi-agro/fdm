@@ -96,6 +96,24 @@ export function problemResponse(
   )
 }
 
+/**
+ * Returns the messages of an error and of every error in its `cause` chain, outermost first.
+ * fdm-core wraps errors with a generic message and keeps the original as `cause`; use this to
+ * map a known original message to a specific HTTP status.
+ *
+ * @param err - The caught error.
+ * @returns The messages of the chain. Empty for a value that is not an `Error`.
+ */
+export function getErrorMessages(err: unknown): string[] {
+  const messages: string[] = []
+  let current: unknown = err
+  while (current instanceof Error) {
+    messages.push(current.message)
+    current = current.cause
+  }
+  return messages
+}
+
 const PERMISSION_MESSAGES = new Set([
   "Permission denied",
   "Principal does not have permission to perform this action",

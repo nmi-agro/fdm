@@ -138,6 +138,12 @@ describe("requestGuard: read methods bypass content-type check", () => {
 // requestGuard: write methods enforce application/json
 // ---------------------------------------------------------------------------
 describe("requestGuard: write methods enforce application/json Content-Type", () => {
+  it("POST without a body and without Content-Type passes", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/any-path", { method: "POST" })
+    expect(res.status).toBe(200)
+  })
+
   it("POST without Content-Type header returns 415", async () => {
     const app = makeGuardApp()
     const res = await app.request("/any-path", {
