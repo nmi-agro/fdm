@@ -19,13 +19,11 @@ Requests with a body larger than 5 MB are rejected before processing. The limit 
 
 Upload endpoints accept `multipart/form-data` instead of JSON, with their own limit for the whole request. The type of each file is checked from its contents, not from its name.
 
-| Endpoint                                                        | Accepted files                    | Limit                             |
-| --------------------------------------------------------------- | --------------------------------- | --------------------------------- |
-| `POST /soil-analyses/{a_id}/images`                             | JPEG, PNG, WebP or HEIC photo     | **10 MB**                         |
-| `POST /soil-analyses/extract`                                   | 1 to 10 lab report PDFs           | **5 MB per file, 50 MB in total** |
-| `POST /farms/{b_id_farm}/fields/import/compare` and `.../apply` | `.shp`, `.shx`, `.dbf` and `.prj` | **20 MB**                         |
-
-Lab reports uploaded with `POST /soil-analyses/extract` that are not linked to a soil analysis are kept temporarily under `soil_analysis/pending/` in the file storage. This is the same bucket as the other files. Operators should remove these reports with a lifecycle rule on the prefix `soil_analysis/pending/`, for example after one day. The rule does not affect reports that are linked to a soil analysis, which are stored directly under `soil_analysis/`.
+| Endpoint                                                               | Accepted files                    | Limit                             |
+| ---------------------------------------------------------------------- | --------------------------------- | --------------------------------- |
+| `POST /soil-analyses/{a_id}/images`                                    | JPEG, PNG, WebP or HEIC photo     | **10 MB**                         |
+| `POST /farms/{b_id_farm}/soil-analyses/import/compare` and `.../apply` | 1 to 10 lab report PDFs           | **5 MB per file, 50 MB in total** |
+| `POST /farms/{b_id_farm}/fields/import/compare` and `.../apply`        | `.shp`, `.shx`, `.dbf` and `.prj` | **20 MB**                         |
 
 ```json title="413 response — payload-too-large"
 {
@@ -58,7 +56,7 @@ Rate limits are enforced **per API key**. Limits reset on a rolling one-minute w
 | Endpoints that use the NMI API       | **10 requests / minute** (separate `nmi` bucket) |
 | Key-management endpoints             | Subject to the general limit                     |
 
-The `nmi` bucket covers the indicators and measure options, the nutrient advice, reading lab reports (`POST /soil-analyses/extract`), the fertilizer plans of a farm (`/farms/{b_id_farm}/fertilizer-plans`), applying a field import (it requests soil estimates for every new field) and the indicators of a farm group. These requests do not also count in the general or write bucket.
+The `nmi` bucket covers the indicators and measure options, the nutrient advice, reading lab reports (`POST /farms/{b_id_farm}/soil-analyses/import/compare`), the fertilizer plans of a farm (`/farms/{b_id_farm}/fertilizer-plans`), applying a field import (it requests soil estimates for every new field) and the indicators of a farm group. These requests do not also count in the general or write bucket.
 
 When a limit is exceeded, the API returns `429` with a `Retry-After` header indicating the number of seconds until the limit resets.
 

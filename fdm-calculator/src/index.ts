@@ -248,6 +248,12 @@ export {
   SoilReaderError,
 } from "./soilreader"
 export type { ExtractedSoilAnalysis } from "./soilreader"
+export { matchSoilAnalysisToField } from "./soilreader/match"
+export type {
+  SoilAnalysisFieldMatch,
+  SoilAnalysisMatchField,
+  SoilAnalysisMatchReason,
+} from "./soilreader/match"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
 export { enrichCurrentSoilDataWithNlv } from "./other/current-soil-data"

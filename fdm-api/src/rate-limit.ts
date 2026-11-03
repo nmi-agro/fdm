@@ -28,7 +28,7 @@ const NMI_PATH_PATTERNS: RegExp[] = [
   /\/fields\/[^/]+\/measures\/catalogue\/?$/,
   /\/farms\/[^/]+\/calculations\/nutrient-advice\/?$/,
   /\/fields\/[^/]+\/calculations\/nutrient-advice\/?$/,
-  /\/soil-analyses\/extract\/?$/,
+  /\/farms\/[^/]+\/soil-analyses\/import\/compare\/?$/,
   /\/farms\/[^/]+\/fertilizer-plans\/?$/,
   /\/farm-groups\/[^/]+\/indicators\/?$/,
   // Applying an import requests soil estimates for every new field.

@@ -130,7 +130,7 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 | `GET`    | `/api/fields/{b_id}/current-soil-data`       | Get the current value of each soil parameter | `getCurrentSoilData`        |
 | `GET`    | `/api/fields/{b_id}/current-soil-data/zones` | Get the current soil data per sampling zone  | `getCurrentSoilDataPerZone` |
 
-Soil analyses accept and return the optional sampling geometries `b_sampling_geometry` (GeoJSON `MultiPoint`) and `b_sampling_geometry_zone` (GeoJSON `Polygon` or `MultiPolygon` on input, `MultiPolygon` on output), both in WGS84. The current soil data lists the contributing analyses per parameter in `sources`, and combines sampling zones by area; see [Soil analyses](../core-concepts/07-soil-analyses.md#current-soil-data-and-sampling-zones).
+To add soil analyses from lab report PDFs and keep the report, use the [lab report import](#soil-condition-score-and-lab-reports). Soil analyses accept and return the optional sampling geometries `b_sampling_geometry` (GeoJSON `MultiPoint`) and `b_sampling_geometry_zone` (GeoJSON `Polygon` or `MultiPolygon` on input, `MultiPolygon` on output), both in WGS84. The current soil data lists the contributing analyses per parameter in `sources`, and combines sampling zones by area; see [Soil analyses](../core-concepts/07-soil-analyses.md#current-soil-data-and-sampling-zones).
 
 ---
 
@@ -235,19 +235,20 @@ Sharing a farm (inviting others, changing roles, revoking access) is not availab
 
 ## Soil condition score and lab reports
 
-Soil analyses accept and return the soil condition score (BCS) parameters `a_ss_bcs` to `a_rt_bcs`. The photos of an assessment and their annotations have their own endpoints. Lab reports are read in two steps: extract the values, check them, then save the analysis with the `upload_token` of its report.
+Soil analyses accept and return the soil condition score (BCS) parameters `a_ss_bcs` to `a_rt_bcs`. The photos of an assessment and their annotations have their own endpoints. Lab reports are imported in two steps, like the field import: **compare** reads the PDFs (field `files`) and suggests the field of each analysis without saving; **apply** takes the same files and an `analyses` JSON array with, per analysis, its `file_index`, `b_id` and checked values, and saves them in one transaction with a copy of the report. The reports are not read again in the apply step.
 
-| Method   | Path                                            | Description                                             |
-| -------- | ----------------------------------------------- | ------------------------------------------------------- |
-| `GET`    | `/api/soil-analyses/{a_id}/images`              | Photos of a soil analysis with their annotations        |
-| `POST`   | `/api/soil-analyses/{a_id}/images`              | Upload a photo (`multipart/form-data`, field `file`)    |
-| `GET`    | `/api/soil-images/{a_id_image}`                 | Download a photo                                        |
-| `DELETE` | `/api/soil-images/{a_id_image}`                 | Delete a photo and its annotations                      |
-| `POST`   | `/api/soil-images/{a_id_image}/annotations`     | Add an annotation (pin, circle, arrow or freehand line) |
-| `PATCH`  | `/api/soil-image-annotations/{a_id_annotation}` | Update an annotation                                    |
-| `DELETE` | `/api/soil-image-annotations/{a_id_annotation}` | Delete an annotation                                    |
-| `POST`   | `/api/soil-analyses/extract`                    | Read soil analyses from lab report PDFs (field `files`) |
-| `GET`    | `/api/soil-analyses/{a_id}/document`            | Download the lab report of a soil analysis              |
+| Method   | Path                                                  | Description                                                 |
+| -------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| `GET`    | `/api/soil-analyses/{a_id}/images`                    | Photos of a soil analysis with their annotations            |
+| `POST`   | `/api/soil-analyses/{a_id}/images`                    | Upload a photo (`multipart/form-data`, field `file`)        |
+| `GET`    | `/api/soil-images/{a_id_image}`                       | Download a photo                                            |
+| `DELETE` | `/api/soil-images/{a_id_image}`                       | Delete a photo and its annotations                          |
+| `POST`   | `/api/soil-images/{a_id_image}/annotations`           | Add an annotation (pin, circle, arrow or freehand line)     |
+| `PATCH`  | `/api/soil-image-annotations/{a_id_annotation}`       | Update an annotation                                        |
+| `DELETE` | `/api/soil-image-annotations/{a_id_annotation}`       | Delete an annotation                                        |
+| `POST`   | `/api/farms/{b_id_farm}/soil-analyses/import/compare` | Read lab report PDFs and suggest the field of each analysis |
+| `POST`   | `/api/farms/{b_id_farm}/soil-analyses/import/apply`   | Save the checked analyses, each with a copy of its report   |
+| `GET`    | `/api/soil-analyses/{a_id}/document`                  | Download the lab report of a soil analysis                  |
 
 Reading lab reports uses the NMI API and counts in the `nmi` bucket. File endpoints return `503` when the server has no file storage configured.
 

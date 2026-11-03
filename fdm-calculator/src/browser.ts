@@ -16,6 +16,12 @@
  * @module browser
  */
 export * from "./bln3/postprocessing"
+export { matchSoilAnalysisToField } from "./soilreader/match"
+export type {
+  SoilAnalysisFieldMatch,
+  SoilAnalysisMatchField,
+  SoilAnalysisMatchReason,
+} from "./soilreader/match"
 export {
   calculateNitrogenBalanceField,
   calculateNitrogenBalancesFieldToFarm,

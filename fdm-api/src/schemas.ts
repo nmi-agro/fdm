@@ -294,6 +294,7 @@ export const GeoJsonMultiPointSchema = z
  */
 export const SamplingZoneGeometrySchema = z
   .union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema])
+  .describe("Area a soil analysis represents (GeoJSON Polygon or MultiPolygon, WGS84).")
   .openapi("SamplingZoneGeometry")
 
 /**

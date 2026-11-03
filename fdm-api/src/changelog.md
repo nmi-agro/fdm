@@ -33,7 +33,7 @@ Not available through the API yet: sharing a farm with other users and organizat
 
 **Lab reports**
 
-- `POST /soil-analyses/extract` reads soil analyses from up to ten lab report PDFs without saving them. Pass the returned `upload_token` to `POST /fields/{b_id}/soil-analyses` to store the report with the analysis, and download it with `GET /soil-analyses/{a_id}/document`. Soil analyses report `has_document`.
+- `POST /farms/{b_id_farm}/soil-analyses/import/compare` reads soil analyses from up to ten lab report PDFs and suggests the field of each analysis, without saving. `POST /farms/{b_id_farm}/soil-analyses/import/apply` takes the same files and the checked analyses and saves them in one transaction, each with a copy of its report. Download the report with `GET /soil-analyses/{a_id}/document`; soil analyses report `has_document`.
 
 **Field import from a shapefile**
 

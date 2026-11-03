@@ -35,7 +35,11 @@ export const UPLOAD_ROUTES: UploadRoutePolicy[] = [
   // Soil condition score (BCS) images.
   { method: "POST", pattern: /\/soil-analyses\/[^/]+\/images\/?$/, maxBytes: 10 * MB },
   // Lab report PDFs: up to 10 files of 5 MB each.
-  { method: "POST", pattern: /\/soil-analyses\/extract\/?$/, maxBytes: 50 * MB },
+  {
+    method: "POST",
+    pattern: /\/farms\/[^/]+\/soil-analyses\/import\/(compare|apply)\/?$/,
+    maxBytes: 50 * MB,
+  },
   // RVO Mijn Percelen shapefile export (.shp, .shx, .dbf, .prj).
   {
     method: "POST",

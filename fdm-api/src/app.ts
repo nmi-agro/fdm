@@ -27,6 +27,7 @@ import { registerInvitationRoutes } from "./routes/invitations"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
+import { registerSoilAnalysisImportRoutes } from "./routes/soil-analysis-import"
 import { registerSoilImageRoutes } from "./routes/soil-images"
 
 /**
@@ -122,6 +123,7 @@ export function buildApp(
   registerDerogationRoutes(app, fdm, services)
   registerGrazingIntentionRoutes(app, fdm, services)
   registerSoilAnalysisRoutes(app, fdm, services)
+  registerSoilAnalysisImportRoutes(app, fdm, services)
   registerInvitationRoutes(app, fdm, services)
   registerSoilImageRoutes(app, fdm, services)
   registerFieldImportRoutes(app, fdm, services)

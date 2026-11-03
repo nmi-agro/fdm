@@ -742,6 +742,9 @@ importers:
       '@terraformer/wkt':
         specifier: ^2.2.2
         version: 2.2.2
+      '@turf/boolean-point-in-polygon':
+        specifier: ^7.4.0
+        version: 7.4.0
       '@types/geojson':
         specifier: ^7946.0.16
         version: 7946.0.16
