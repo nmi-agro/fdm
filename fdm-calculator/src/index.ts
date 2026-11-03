@@ -106,6 +106,14 @@ export type {
 } from "./bln3/types"
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
+export { getNitrogenBalanceForFarms, getOrganicMatterBalanceForFarms } from "./balance/farms"
+export { getFarmMeasureSummary } from "./bln3/farm-measures"
+export type {
+  FarmMainCultivationArea,
+  FarmMeasureSummary,
+  FarmMeasureSummaryItem,
+} from "./bln3/farm-measures"
+export type { FarmBalanceResult, MultiFarmBalance } from "./balance/farms"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"

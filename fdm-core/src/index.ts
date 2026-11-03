@@ -86,6 +86,8 @@ export {
   addFarmToGroup,
   createFarmGroup,
   getFarmGroup,
+  getFarmIdsOfFarmGroupInYear,
+  isFarmGroupMembershipInYear,
   listFarmGroups,
   removeFarmFromGroup,
   removeFarmGroup,

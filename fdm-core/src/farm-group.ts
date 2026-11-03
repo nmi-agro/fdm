@@ -845,3 +845,46 @@ export async function removeFarmGroupMembership(
     })
   }
 }
+
+/**
+ * Checks whether a period of a farm in a farm group lies (partly) in a calendar year.
+ *
+ * `b_group_leaved` is the first day the farm is no longer part of the group, so a period that
+ * ends on 1 January does not reach into that year. Dates are compared as `YYYY-MM-DD` days.
+ *
+ * @param membership - The period of the farm in the group.
+ * @param year - The calendar year. When `undefined`, every period counts.
+ * @returns `true` when the period overlaps the year.
+ */
+export function isFarmGroupMembershipInYear(
+  membership: Pick<FarmGroupMembership, "b_group_joined" | "b_group_leaved">,
+  year: number | undefined,
+): boolean {
+  if (year === undefined) return true
+  const toDay = (date: Date | string) =>
+    typeof date === "string" ? date.slice(0, 10) : date.toISOString().slice(0, 10)
+  return (
+    toDay(membership.b_group_joined) < `${year + 1}-01-01` &&
+    (membership.b_group_leaved === null || toDay(membership.b_group_leaved) > `${year}-01-01`)
+  )
+}
+
+/**
+ * Returns the farms that are part of a farm group at some point in a calendar year.
+ *
+ * @param group - The farm group, for example from `getFarmGroup`.
+ * @param year - The calendar year. When `undefined`, all farms that were ever part of the group are returned.
+ * @returns The unique farm IDs, in the order of the periods.
+ */
+export function getFarmIdsOfFarmGroupInYear(
+  group: Pick<FarmGroup, "memberships">,
+  year: number | undefined,
+): string[] {
+  return [
+    ...new Set(
+      group.memberships
+        .filter((membership) => isFarmGroupMembershipInYear(membership, year))
+        .map((membership) => membership.b_id_farm),
+    ),
+  ]
+}

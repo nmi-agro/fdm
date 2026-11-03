@@ -1,11 +1,6 @@
 import type { FeatureCollection, MultiPolygon } from "geojson"
-import {
-  getCultivationsForFarm,
-  getFarms,
-  getFields,
-  getMeasuresForFarm,
-  type Measure,
-} from "@nmi-agro/fdm-core"
+import { getFarmMeasureSummary } from "@nmi-agro/fdm-calculator"
+import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { ClipboardList } from "lucide-react"
 import { lazy, Suspense, useMemo } from "react"
 import { data, type MetaFunction, useLoaderData, useNavigate, useParams } from "react-router"
@@ -29,8 +24,6 @@ import {
   selectFarms,
 } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { isExcludedFromBln3 } from "~/lib/indicators"
 import type { Route } from "./+types/organization.$slug.$calendar.measures"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
@@ -113,47 +106,7 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
       calendar,
     )
 
-    function combineMeasureAggregate(
-      existing: MeasureAggregate | undefined,
-      measure: Measure,
-    ): MeasureAggregate {
-      if (!existing) {
-        return {
-          ...measure,
-          fieldCount: 1,
-          farmCount: 0,
-        }
-      }
-
-      return {
-        ...existing,
-        m_start:
-          !existing.m_start || !measure.m_start
-            ? null
-            : existing.m_start < measure.m_start
-              ? existing.m_start
-              : measure.m_start,
-        m_end:
-          !existing.m_end || !measure.m_end
-            ? null
-            : existing.m_end > measure.m_end
-              ? existing.m_end
-              : measure.m_end,
-        fieldCount: existing.fieldCount + 1,
-        // Do not increment farmCount here. It won't work.
-      }
-    }
-
-    const farmFields = new Map<string, Awaited<ReturnType<typeof getFields>>>()
-
-    await Promise.all(
-      farms.map(async (farm) => {
-        const fields = await getFields(fdm, organization.id, farm.b_id_farm, timeframe)
-        farmFields.set(farm.b_id_farm, fields)
-      }),
-    )
-
-    // Build field list for the dialog — enrich with cultivation + area
+    // Measures and main cultivations per farm; shared with the REST API through fdm-calculator.
     const farmMeasures = new Map<
       string,
       {
@@ -164,69 +117,17 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
     const farmEligibleFields = new Map<string, Awaited<ReturnType<typeof getFields>>>()
     await Promise.all(
       farms.map(async (farm) => {
-        const [fieldMeasuresMap, farmCultivations] = await Promise.all([
-          getMeasuresForFarm(fdm, organization.id, farm.b_id_farm, timeframe),
-          getCultivationsForFarm(fdm, organization.id, farm.b_id_farm, timeframe),
-        ])
-
-        const rawFields = farmFields.get(farm.b_id_farm) ?? []
-        const eligibleFields = rawFields.filter((field) => {
-          const fieldCultivations = farmCultivations.get(field.b_id) ?? []
-          const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
-          return !isExcludedFromBln3({
-            b_bufferstrip: field.b_bufferstrip,
-            b_lu_croprotation: defaultCultivation?.b_lu_croprotation,
-            b_lu_catalogue: defaultCultivation?.b_lu_catalogue,
-          })
-        })
-        farmEligibleFields.set(farm.b_id_farm, eligibleFields)
-        const eligibleFieldIds = new Set(eligibleFields.map((f) => f.b_id))
-
-        const collectedMeasures = new Map<string, MeasureAggregate>()
-        for (const [b_id, fieldMeasures] of fieldMeasuresMap.entries()) {
-          if (!eligibleFieldIds.has(b_id)) continue
-          for (const measure of fieldMeasures) {
-            const existingMeasure = collectedMeasures.get(measure.m_id)
-            collectedMeasures.set(measure.m_id, combineMeasureAggregate(existingMeasure, measure))
-          }
-        }
-
-        const collectedCultivations = new Map<
-          string,
-          {
-            b_lu_catalogue: string
-            b_lu_name: string
-            b_lu_croprotation: string | null
-            b_area: number
-          }
-        >()
-        for (const field of eligibleFields) {
-          const fieldCultivations = farmCultivations.get(field.b_id)
-          if (!fieldCultivations || fieldCultivations.length === 0) continue
-          const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
-
-          if (defaultCultivation?.b_lu_catalogue) {
-            const existing = collectedCultivations.get(defaultCultivation.b_lu_catalogue)
-            if (existing) {
-              existing.b_area += field.b_area ?? 0
-            } else {
-              collectedCultivations.set(defaultCultivation.b_lu_catalogue, {
-                b_lu_catalogue: defaultCultivation.b_lu_catalogue,
-                b_lu_name: defaultCultivation.b_lu_name,
-                b_lu_croprotation: defaultCultivation.b_lu_croprotation,
-                b_area: field.b_area ?? 0,
-              })
-            }
-          }
-        }
-
-        const mainCultivations = [...collectedCultivations.values()].sort(
-          (a, b) => b.b_area - a.b_area,
+        const summary = await getFarmMeasureSummary(
+          fdm,
+          organization.id,
+          farm.b_id_farm,
+          timeframe,
+          Number(calendar),
         )
-
+        farmEligibleFields.set(farm.b_id_farm, summary.eligibleFields)
         farmMeasures.set(farm.b_id_farm, {
-          measures: [...collectedMeasures.values()],
-          mainCultivations: mainCultivations,
+          measures: summary.measures.map((measure) => ({ ...measure, farmCount: 0 })),
+          mainCultivations: summary.mainCultivations,
         })
       }),
     )
