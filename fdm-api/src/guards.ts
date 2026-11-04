@@ -131,7 +131,7 @@ export function createPathExistenceGuard(appUrl: string): MiddlewareHandler {
  * Upload routes listed in {@link UPLOAD_ROUTES} accept `multipart/form-data` instead, with their
  * own size limit.
  *
- * @throws {ApiError} Throws when a write request exceeds its size limit or uses an unsupported media type.
+ * @throws {ApiError} Throws when a write request exceeds its size limit, uses an unsupported media type, or sends `multipart/form-data` without a boundary.
  * @example
  * ```ts
  * app.use("*", requestGuard)
@@ -156,6 +156,13 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
           415,
           "unsupported-media-type",
           "Content-Type must be multipart/form-data.",
+        )
+      }
+      if (!/;\s*boundary=/i.test(rawContentType)) {
+        throw new ApiError(
+          400,
+          "validation-failed",
+          "The multipart/form-data body has no boundary. Do not set the Content-Type header yourself; let the HTTP client set it.",
         )
       }
       const uploadLimit = uploadBodyLimits.get(uploadPolicy) ?? bodyLimitMiddleware

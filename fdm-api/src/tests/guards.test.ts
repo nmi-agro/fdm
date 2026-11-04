@@ -280,6 +280,17 @@ describe("requestGuard: multipart upload routes", () => {
     expect(body.type).toContain("unsupported-media-type")
   })
 
+  it("rejects multipart/form-data without a boundary with 400", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/soil-analyses/a1/images", {
+      method: "POST",
+      headers: { "content-type": "multipart/form-data" },
+      body: "--x",
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).detail).toContain("no boundary")
+  })
+
   it("rejects multipart/form-data on a JSON-only route with 415", async () => {
     const app = makeGuardApp()
     const res = await app.request("/farms", {

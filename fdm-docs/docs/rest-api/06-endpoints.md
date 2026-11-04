@@ -235,7 +235,7 @@ Sharing a farm (inviting others, changing roles, revoking access) is not availab
 
 ## Soil condition score and lab reports
 
-Soil analyses accept and return the soil condition score (BCS) parameters `a_ss_bcs` to `a_rt_bcs`. The photos of an assessment and their annotations have their own endpoints. Lab reports are imported in two steps, like the field import: **compare** reads the PDFs (field `files`) and suggests the field of each analysis without saving; **apply** takes the same files and an `analyses` JSON array with, per analysis, its `file_index`, `b_id` and checked values, and saves them in one transaction with a copy of the report. The reports are not read again in the apply step.
+Soil analyses accept and return the soil condition score (BCS) parameters `a_ss_bcs` to `a_rt_bcs`. The photos of an assessment and their annotations have their own endpoints. Lab reports are imported in two steps, like the field import: **compare** reads the PDFs (field `files`) and suggests the field of each analysis without saving; **apply** takes the same files and the analyses to save, and saves them in one transaction with a copy of the report. Send the analyses as one `analyses` field with a JSON array, or as one `analyses` field per analysis with a JSON object. Each analysis has its `file_index`, the `b_id` of its field, an `a_date` and the checked values; an item of the compare step can be sent back with `b_id` and `a_date` added. The reports are not read again in the apply step.
 
 | Method   | Path                                                  | Description                                                 |
 | -------- | ----------------------------------------------------- | ----------------------------------------------------------- |
@@ -251,6 +251,19 @@ Soil analyses accept and return the soil condition score (BCS) parameters `a_ss_
 | `GET`    | `/api/soil-analyses/{a_id}/document`                  | Download the lab report of a soil analysis                  |
 
 Reading lab reports uses the NMI API and counts in the `nmi` bucket. File endpoints return `503` when the server has no file storage configured.
+
+```ts
+const form = new FormData()
+form.append("files", new Blob([pdf], { type: "application/pdf" }), "report.pdf")
+form.append("analyses", JSON.stringify({ ...item, b_id: "<field id>", a_date: "2026-03-20" }))
+
+// Do not set Content-Type yourself: the client adds it with the boundary of the parts.
+await fetch(`${baseUrl}/api/farms/${b_id_farm}/soil-analyses/import/apply`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${apiKey}` },
+  body: form,
+})
+```
 
 ---
 

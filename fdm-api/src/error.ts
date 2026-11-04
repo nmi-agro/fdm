@@ -136,11 +136,17 @@ function isPermissionDenied(err: unknown): boolean {
 export function createErrorHandler(appUrl: string): ErrorHandler {
   return (err, c) => {
     if (err instanceof HTTPException && err.status === 400) {
+      // Hono throws this when it cannot parse the body; name the format the client sent.
+      const isMultipart = (c.req.header("content-type") ?? "")
+        .toLowerCase()
+        .startsWith("multipart/form-data")
       return problemResponse(
         c,
         400,
         "validation-failed",
-        "Request body contains invalid JSON.",
+        isMultipart
+          ? "The request body could not be read as multipart/form-data."
+          : "Request body contains invalid JSON.",
         appUrl,
       )
     }

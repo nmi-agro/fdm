@@ -17,7 +17,7 @@ Requests with a body larger than 5 MB are rejected before processing. The limit 
 
 ### File uploads
 
-Upload endpoints accept `multipart/form-data` instead of JSON, with their own limit for the whole request. The type of each file is checked from its contents, not from its name.
+Upload endpoints accept `multipart/form-data` instead of JSON, with their own limit for the whole request. The type of each file is checked from its contents, not from its name. Let your HTTP client set the `Content-Type` header: it must include the `boundary` of the parts, and a request without it returns `400`.
 
 | Endpoint                                                               | Accepted files                    | Limit                             |
 | ---------------------------------------------------------------------- | --------------------------------- | --------------------------------- |

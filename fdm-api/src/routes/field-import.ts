@@ -93,7 +93,9 @@ const ShapefileBodyShape = {
     ),
 }
 
-const CompareBodySchema = z.object(ShapefileBodyShape).openapi("FieldImportCompare")
+// The multipart bodies are inline schemas with an `encoding`, so documentation tools show the
+// text fields as text and the shapefile parts as files.
+const CompareBodySchema = z.object(ShapefileBodyShape)
 
 const ChoiceValuesSchema = z
   .object({
@@ -134,29 +136,34 @@ const ChoicesSchema = z
   .record(z.string(), ChoiceSchema)
   .describe("Choice per `item_id`. Items without a choice get `default_action`.")
 
-const ApplyBodySchema = z
-  .object({
-    ...ShapefileBodyShape,
-    choices: z
-      .string()
-      .optional()
-      .describe(
-        'JSON object with a choice per `item_id`, for example `{"rvo-123": {"action": "ADD_REMOTE", "values": {"b_name": "Achter de schuur"}}}`. See FieldImportChoice for the shape of a choice.',
-      ),
-    default_action: z
-      .enum(["ADD_REMOTE", "UPDATE_FROM_REMOTE", "IGNORE"])
-      .optional()
-      .describe(
-        "Action for items without a choice, where it is allowed for their status: `ADD_REMOTE` adds all new fields, `UPDATE_FROM_REMOTE` adds new fields and updates changed ones. Defaults to `IGNORE`.",
-      ),
-    review_hash: z
-      .string()
-      .optional()
-      .describe(
-        "`review_hash` from the compare step. When it is given and the farm has changed since, nothing is saved and the response is 409 with the new review.",
-      ),
-  })
-  .openapi("FieldImportApply")
+const ApplyBodySchema = z.object({
+  ...ShapefileBodyShape,
+  choices: z
+    .string()
+    .optional()
+    .describe(
+      'JSON object with a choice per `item_id`, for example `{"rvo-123": {"action": "ADD_REMOTE", "values": {"b_name": "Achter de schuur"}}}`. See FieldImportChoice for the shape of a choice.',
+    ),
+  default_action: z
+    .enum(["ADD_REMOTE", "UPDATE_FROM_REMOTE", "IGNORE"])
+    .optional()
+    .describe(
+      "Action for items without a choice, where it is allowed for their status: `ADD_REMOTE` adds all new fields, `UPDATE_FROM_REMOTE` adds new fields and updates changed ones. Defaults to `IGNORE`.",
+    ),
+  review_hash: z
+    .string()
+    .optional()
+    .describe(
+      "`review_hash` from the compare step. When it is given and the farm has changed since, nothing is saved and the response is 409 with the new review.",
+    ),
+})
+
+const shapefileEncoding = {
+  shp: { contentType: "application/octet-stream" },
+  shx: { contentType: "application/octet-stream" },
+  dbf: { contentType: "application/octet-stream" },
+  prj: { contentType: "text/plain" },
+}
 
 const FieldValuesSchema = z.object({
   b_name: z.string().nullable().describe("Name of the field."),
@@ -243,7 +250,9 @@ const compareRoute = createRoute({
   request: {
     params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
-      content: { "multipart/form-data": { schema: CompareBodySchema } },
+      content: {
+        "multipart/form-data": { schema: CompareBodySchema, encoding: shapefileEncoding },
+      },
       required: true,
     },
   },
@@ -268,7 +277,12 @@ const applyRoute = createRoute({
   request: {
     params: z.object({ b_id_farm: FarmIdSchema }),
     body: {
-      content: { "multipart/form-data": { schema: ApplyBodySchema } },
+      content: {
+        "multipart/form-data": {
+          schema: ApplyBodySchema,
+          encoding: { ...shapefileEncoding, choices: { contentType: "application/json" } },
+        },
+      },
       required: true,
     },
   },

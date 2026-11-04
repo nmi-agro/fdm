@@ -55,7 +55,9 @@ const FilesSchema = z
     "One to ten lab reports as PDF, at most 5 MB each. Send each file as a `files` field; their order gives the `file_index`.",
   )
 
-const CompareBodySchema = z.object({ files: FilesSchema }).openapi("SoilAnalysisImportCompare")
+// The multipart bodies are inline schemas with an `encoding`, so documentation tools show
+// `analyses` as a text field and `files` as file fields.
+const CompareBodySchema = z.object({ files: FilesSchema })
 
 const ImportAnalysisSchema = CreateSoilAnalysisBodySchema.extend({
   file_index: z
@@ -67,16 +69,22 @@ const ImportAnalysisSchema = CreateSoilAnalysisBodySchema.extend({
   b_id: FieldIdSchema.describe("Field of the farm to save the analysis for."),
 }).openapi("SoilAnalysisImportAnalysis")
 
-const ApplyBodySchema = z
-  .object({
-    files: FilesSchema,
-    analyses: z
-      .string()
-      .describe(
-        "JSON array with the analyses to save, each with its `file_index`, its `b_id` and the values of a new soil analysis (see SoilAnalysisImportAnalysis). Several analyses can come from one report.",
-      ),
-  })
-  .openapi("SoilAnalysisImportApply")
+const AnalysesFieldSchema = z
+  .union([z.string(), z.array(z.string())])
+  .openapi({ type: "string" })
+  .describe(
+    "The analyses to save, as JSON: one `analyses` field with an array, or one `analyses` field per analysis with an object. Each analysis has its `file_index`, the `b_id` of its field, an `a_date` and the values of a new soil analysis (the same fields as CreateSoilAnalysis). An item from the compare step can be sent back with `b_id` and `a_date` added; its other keys are ignored. Several analyses can come from one report.",
+  )
+
+const ApplyBodySchema = z.object({
+  files: FilesSchema,
+  analyses: AnalysesFieldSchema,
+})
+
+const multipartEncoding = {
+  files: { contentType: "application/pdf" },
+  analyses: { contentType: "application/json" },
+}
 
 const CompareItemSchema = z
   .object({
@@ -161,12 +169,20 @@ const compareRoute = createRoute({
   tags: ["Soil Analyses"],
   summary: "Read lab reports and match them to fields",
   description:
-    "Step 1 of a lab report import. Reads the soil analyses from lab reports (PDF) with the NMI SoilReader service and finds the field of the farm each analysis belongs to, the same as the upload in the web app. Nothing is saved. Check the values and fields, then send the same files with `POST /farms/{b_id_farm}/soil-analyses/import/apply`. Counts towards the NMI rate limit.",
+    "Step 1 of a lab report import. Reads the soil analyses from lab reports (PDF) with the NMI SoilReader service and finds the field of the farm each analysis belongs to, the same as the upload in the web app. Nothing is saved. Check the values and fields, then send the same files with `POST /farms/{b_id_farm}/soil-analyses/import/apply`. Counts towards the NMI rate limit. Send the body as `multipart/form-data` and let the HTTP client set the `Content-Type` header, which includes the boundary of the parts.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   "x-badges": [{ name: "New", color: "#16a34a" }],
   request: {
     params: z.object({ b_id_farm: FarmIdSchema }),
-    body: { content: { "multipart/form-data": { schema: CompareBodySchema } }, required: true },
+    body: {
+      content: {
+        "multipart/form-data": {
+          schema: CompareBodySchema,
+          encoding: { files: multipartEncoding.files },
+        },
+      },
+      required: true,
+    },
   },
   responses: {
     200: {
@@ -189,12 +205,15 @@ const applyRoute = createRoute({
   tags: ["Soil Analyses"],
   summary: "Save soil analyses from lab reports",
   description:
-    "Step 2 of a lab report import. Send the same files as in the compare step and the analyses to save, each with the field it belongs to and the checked values. The reports are not read again: the values in `analyses` are saved. Each analysis is saved with a copy of its report, all in one transaction. Download a report later with `GET /soil-analyses/{a_id}/document`.",
+    "Step 2 of a lab report import. Send the same files as in the compare step and the analyses to save, each with the field it belongs to and the checked values. The reports are not read again: the values in `analyses` are saved. Each analysis is saved with a copy of its report, all in one transaction. Download a report later with `GET /soil-analyses/{a_id}/document`. Send the body as `multipart/form-data` and let the HTTP client set the `Content-Type` header, which includes the boundary of the parts.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   "x-badges": [{ name: "New", color: "#16a34a" }],
   request: {
     params: z.object({ b_id_farm: FarmIdSchema }),
-    body: { content: { "multipart/form-data": { schema: ApplyBodySchema } }, required: true },
+    body: {
+      content: { "multipart/form-data": { schema: ApplyBodySchema, encoding: multipartEncoding } },
+      required: true,
+    },
   },
   responses: {
     201: {
@@ -211,6 +230,28 @@ const applyRoute = createRoute({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Reads the `analyses` field: one JSON array, or one JSON object per field.
+ *
+ * @throws {ApiError} 400 when a value is not JSON.
+ */
+function parseAnalysesField(value: string | string[]): unknown[] {
+  const values = Array.isArray(value) ? value : [value]
+  return values.flatMap((text) => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      throw new ApiError(
+        400,
+        "validation-failed",
+        "analyses must be JSON: an array, or an object per analyses field.",
+      )
+    }
+    return Array.isArray(parsed) ? parsed : [parsed]
+  })
+}
 
 async function readReports(files: File[]): Promise<{ buffer: Buffer; filename: string }[]> {
   const reports: { buffer: Buffer; filename: string }[] = []
@@ -354,13 +395,7 @@ export function registerSoilAnalysisImportRoutes(
     const form = c.req.valid("form") as z.infer<typeof ApplyBodySchema>
     const files = Array.isArray(form.files) ? form.files : [form.files]
 
-    let rawAnalyses: unknown
-    try {
-      rawAnalyses = JSON.parse(form.analyses)
-    } catch {
-      throw new ApiError(400, "validation-failed", "analyses must be a JSON array.")
-    }
-    const parsed = z.array(ImportAnalysisSchema).min(1).safeParse(rawAnalyses)
+    const parsed = z.array(ImportAnalysisSchema).min(1).safeParse(parseAnalysesField(form.analyses))
     if (!parsed.success) {
       throw new ApiError(400, "validation-failed", "analyses is not valid.", {
         errors: parsed.error.issues,

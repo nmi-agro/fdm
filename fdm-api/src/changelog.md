@@ -33,7 +33,7 @@ Not available through the API yet: sharing a farm with other users and organizat
 
 **Lab reports**
 
-- `POST /farms/{b_id_farm}/soil-analyses/import/compare` reads soil analyses from up to ten lab report PDFs and suggests the field of each analysis, without saving. `POST /farms/{b_id_farm}/soil-analyses/import/apply` takes the same files and the checked analyses and saves them in one transaction, each with a copy of its report. Download the report with `GET /soil-analyses/{a_id}/document`; soil analyses report `has_document`.
+- `POST /farms/{b_id_farm}/soil-analyses/import/compare` reads soil analyses from up to ten lab report PDFs and suggests the field of each analysis, without saving. `POST /farms/{b_id_farm}/soil-analyses/import/apply` takes the same files and the checked analyses (one `analyses` field with a JSON array, or one field per analysis) and saves them in one transaction, each with a copy of its report. Download the report with `GET /soil-analyses/{a_id}/document`; soil analyses report `has_document`.
 
 **Field import from a shapefile**
 
@@ -52,7 +52,7 @@ Not available through the API yet: sharing a farm with other users and organizat
 ### Changed
 
 - `GET /fields/{b_id}/current-soil-data` includes the nitrogen supplying capacity (`d_n_supply_base`) calculated from organic matter, clay and C/N when no analysis has it, with one source of type `calculated`. The web app shows the same value.
-- File uploads use `multipart/form-data` on the upload endpoints above, with a size limit per endpoint. All other write requests still require `application/json`.
+- File uploads use `multipart/form-data` on the upload endpoints above, with a size limit per endpoint. The `Content-Type` header must include the boundary; a `multipart/form-data` body without it returns 400. All other write requests still require `application/json`.
 - A write request without a body, such as accepting an invitation, no longer needs a `Content-Type` header.
 
 ### Breaking: current soil data lists its sources

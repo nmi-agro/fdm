@@ -259,6 +259,55 @@ describe("POST /farms/:b_id_farm/soil-analyses/import/apply", () => {
     expect(res.status).toBe(400)
   })
 
+  it("accepts one analyses field per analysis, as a JSON object", async () => {
+    const addSoilAnalysis = vi.fn().mockResolvedValueOnce("a-1").mockResolvedValueOnce("a-2")
+    const { app } = setup({ addSoilAnalysis })
+    const form = pdfForm([PDF])
+    form.append("analyses", JSON.stringify(analysis()))
+    form.append("analyses", JSON.stringify(analysis({ b_id: "f-2" })))
+    const res = await app.request("/farms/farm-1/soil-analyses/import/apply", {
+      method: "POST",
+      headers,
+      body: form,
+    })
+    expect(res.status).toBe(201)
+    expect((await res.json()).created).toHaveLength(2)
+  })
+
+  it("accepts an item of the compare step with b_id and a_date added", async () => {
+    const { app, services } = setup()
+    const compareItem = {
+      item_id: "0.0",
+      file_index: 0,
+      filename: "report-0.pdf",
+      suggested_b_id: "f-1",
+      match_reason: "location",
+      name_conflict_b_id: null,
+      b_name: "Achter de schuur",
+      a_source: "nl-rva-l122",
+      b_sampling_date: "2026-03-15",
+      a_depth_upper: 0,
+      a_depth_lower: 30,
+      a_som_loi: 3.4,
+      a_clay_mi: null,
+      b_sampling_geometry: null,
+      b_sampling_geometry_zone: null,
+    }
+    const res = await apply(app, [{ ...compareItem, b_id: "f-1", a_date: "2026-03-20" }])
+    expect(res.status).toBe(201)
+    expect(services.addSoilAnalysis).toHaveBeenCalledTimes(1)
+  })
+
+  it("lists the missing fields of an analysis", async () => {
+    const { app } = setup()
+    const res = await apply(app, [{ file_index: 0, a_source: "nl-rva-l122" }])
+    expect(res.status).toBe(400)
+    const paths = (await res.json()).errors.map((issue: { path: unknown[] }) =>
+      issue.path.join("."),
+    )
+    expect(paths).toEqual(expect.arrayContaining(["0.b_id", "0.a_date"]))
+  })
+
   it("returns 400 when analyses is not JSON", async () => {
     const { app } = setup()
     const res = await app.request("/farms/farm-1/soil-analyses/import/apply", {
