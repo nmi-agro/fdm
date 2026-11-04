@@ -10,8 +10,8 @@ type ProcessLocalField = Pick<Field, "b_id"> & Partial<Omit<Field, "b_id">>
  * Processes the RVO import review results by applying one action per review item.
  *
  * Equivalent to {@link resolveImportChoices} followed by `applyRvoImport`, without per-value
- * overrides. Items without a choice, items with `IGNORE` or `NO_ACTION`, and choices for items
- * that are not in the review are left unchanged.
+ * overrides. Items without a choice, and choices for items that are not in the review, are
+ * ignored.
  *
  * @param fdm - The FDM client instance for database operations.
  * @param principal_id - The ID of the principal (user) performing the import.
@@ -35,11 +35,8 @@ export async function processRvoImport(
   const itemIds = new Set(rvoImportReviewData.map((item) => getItemId(item)))
   const choices: Record<string, ImportChoice> = {}
   for (const [item_id, action] of Object.entries(userChoices)) {
-    // Choices for items that are not in the review are ignored. `IGNORE` and `NO_ACTION` mean
-    // "change nothing" for any item here, as before the review flow gave each status its own
-    // action that changes nothing.
-    if (!itemIds.has(item_id) || action === "IGNORE" || action === "NO_ACTION") continue
-    choices[item_id] = { action }
+    // Choices for items that are not in the review are ignored.
+    if (itemIds.has(item_id)) choices[item_id] = { action }
   }
   const plan = resolveImportChoices(
     rvoImportReviewData as RvoImportReviewItem<Field>[],

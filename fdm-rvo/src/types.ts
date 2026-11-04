@@ -221,7 +221,7 @@ export type ImportReviewAction =
   | "KEEP_LOCAL" // Keep the local field; with values in the choice, only those values change
   | "REMOVE_LOCAL" // Remove the local field
   | "CLOSE_LOCAL" // Close the local field (set end date)
-  | "IGNORE" // Do not add a new remote field (processRvoImport: change nothing for any item)
+  | "IGNORE" // Do not add a new remote field
   | "NO_ACTION" // No specific action selected
 
 /**

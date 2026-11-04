@@ -8,6 +8,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { processRvoImport } from "./process"
+import { ImportChoiceError } from "./review"
 import { type RvoImportReviewItem, RvoImportReviewStatus } from "./types"
 
 // Mock fdm-core
@@ -317,14 +318,16 @@ describe("processRvoImport", () => {
     expect(removeField).not.toHaveBeenCalled()
   })
 
-  it("still accepts IGNORE and NO_ACTION for an item with a local field", async () => {
+  it("rejects IGNORE for an item with a local field, and accepts NO_ACTION", async () => {
     const item: RvoImportReviewItem<any> = {
       status: RvoImportReviewStatus.CONFLICT,
       localField: { b_id: "local-1" },
       diffs: ["b_name"],
     }
 
-    await processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "IGNORE" }, year)
+    await expect(
+      processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "IGNORE" }, year),
+    ).rejects.toBeInstanceOf(ImportChoiceError)
     await processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "NO_ACTION" }, year)
 
     expect(addField).not.toHaveBeenCalled()
