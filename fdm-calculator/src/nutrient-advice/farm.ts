@@ -13,6 +13,7 @@ import {
   getCultivationSuggestion,
 } from "../other/cultivation-suggestion"
 import { findHoofdteelt } from "../shared/hoofdteelt"
+import { Semaphore } from "../shared/semaphore"
 import { getNutrientAdvice } from "./index"
 
 /**
@@ -139,37 +140,6 @@ export function findMainCultivation<T extends Cultivation>(
 ): T | undefined {
   if (cultivations.length === 0) return undefined
   return findHoofdteelt(cultivations, year, true) ?? undefined
-}
-
-/**
- * Creates a limiter that runs at most `limit` tasks at the same time. A new task starts as soon
- * as a running task settles.
- */
-function createLimiter(limit: number) {
-  let active = 0
-  const queue: (() => void)[] = []
-
-  const next = () => {
-    if (active >= limit) return
-    const start = queue.shift()
-    if (!start) return
-    active += 1
-    start()
-  }
-
-  return function run<T>(task: () => Promise<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      queue.push(() => {
-        task()
-          .then(resolve, reject)
-          .finally(() => {
-            active -= 1
-            next()
-          })
-      })
-      next()
-    })
-  }
 }
 
 function errorMessage(error: unknown): string {
@@ -300,14 +270,17 @@ export function startFarmNutrientAdviceRows(
     }
   }
 
-  const limit = createLimiter(Math.max(1, input.concurrency ?? NUTRIENT_ADVICE_CONCURRENCY))
+  const semaphore = new Semaphore(Math.max(1, input.concurrency ?? NUTRIENT_ADVICE_CONCURRENCY))
   return fields.map(async (field) => {
     const data = await farmData
     if (!data.ok) return errorRow(field, "farm_data_unavailable", data.message)
+    await semaphore.acquire()
     try {
-      return await limit(() => getRow(field, data))
+      return await getRow(field, data)
     } catch (error) {
       return errorRow(field, "advice_failed", errorMessage(error))
+    } finally {
+      semaphore.release()
     }
   })
 }
