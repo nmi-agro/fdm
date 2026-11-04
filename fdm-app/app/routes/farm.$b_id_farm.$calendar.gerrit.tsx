@@ -65,6 +65,7 @@ import {
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -177,7 +178,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           await posthog.evaluateFlags(session.principal_id, {
             flagKeys: ["gerrit"],
           })
-        )?.isEnabled("gerrit") ?? true
+        )?.isEnabled("gerrit", { defaultValue: true }) ?? true
     }
   } catch {
     // Flag evaluation failed — default to blocked (fail-closed)
@@ -294,8 +295,12 @@ export default function GerritApp() {
 
   const supportedYears = ["2025", "2026"]
   const isSupportedYear = supportedYears.includes(calendar)
-  // Gerrit is enabled by default; only an explicit `false` flag disables it
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
+  // Gerrit is enabled by default; only an explicit `false` flag disables it. Until hydration has
+  // finished, keep it enabled so the browser renders the same markup as the server, which has no
+  // feature flags.
+  const isHydrated = useHydrated()
+  const gerritFlag = useFeatureFlagEnabled("gerrit")
+  const isGerritEnabled = isHydrated ? (gerritFlag ?? true) : true
 
   // Optimistic usage counter: increments when generation starts, reverts on
   // error. This makes the counter immediately reflect an in-flight request
