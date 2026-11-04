@@ -203,11 +203,17 @@ export default function SignIn() {
   const redirectError =
     errorParam === "microsoft_no_email"
       ? "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen."
-      : null
+      : errorParam === "account_not_linked"
+        ? "Er bestaat al een account met dit e-mailadres, maar Microsoft of Google heeft niet bevestigd dat dit e-mailadres van u is. Meld u hieronder aan met een aanmeldlink via uw e-mailadres."
+        : null
   // A failed sign-in attempt in this session takes precedence over the redirect error
   const socialSignInError = handlerError ?? redirectError
 
   const socialProviderNewUserCallbackUrl = modifySearchParams("/welcome", (searchParams) =>
+    searchParams.set("redirectTo", redirectTo),
+  )
+  // Send OAuth errors (e.g. `account_not_linked`) back to this page so they can be explained
+  const socialProviderErrorCallbackUrl = modifySearchParams("/signin", (searchParams) =>
     searchParams.set("redirectTo", redirectTo),
   )
 
@@ -306,6 +312,7 @@ export default function SignIn() {
                                 provider: "microsoft",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
+                                errorCallbackURL: socialProviderErrorCallbackUrl,
                               })
                             } catch (error) {
                               handleSignInError("Microsoft", error)
@@ -366,6 +373,7 @@ export default function SignIn() {
                                 provider: "google",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
+                                errorCallbackURL: socialProviderErrorCallbackUrl,
                                 // prompt: "select_account",
                               })
                             } catch (error) {
