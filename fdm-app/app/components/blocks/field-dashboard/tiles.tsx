@@ -214,6 +214,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
             calendar={dashboard.calendar}
             b_id={dashboard.b_id}
             result={result}
+            canWrite={dashboard.fieldWritePermission}
           />
         )}
       </Await>
@@ -589,10 +590,10 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                   {data.balance <= data.target ? (
                     <>
                       <CheckCircle2 className="size-3.5" />
-                      Onder streefwaarde
+                      <span>Onder streefwaarde</span>
                     </>
                   ) : (
-                    "Boven streefwaarde"
+                    <span>Boven streefwaarde</span>
                   )}
                 </span>
               }
@@ -670,10 +671,10 @@ export function FieldDashboardOrganicMatterBalanceTile({
                   {data.balance > 0 ? (
                     <>
                       <CheckCircle2 className="size-3.5" />
-                      Positief
+                      <span>Positief</span>
                     </>
                   ) : (
-                    "Negatief"
+                    <span>Negatief</span>
                   )}
                 </span>
               }
@@ -937,7 +938,7 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                       <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
-                          "Onbekend"
+                          <span>Onbekend</span>
                         ) : (
                           <>
                             <span
@@ -946,7 +947,7 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                                 getScoreDotClass(aggregation.score),
                               )}
                             />
-                            {aggregation.score}/100
+                            <span>{aggregation.score}/100</span>
                           </>
                         )}
                       </p>

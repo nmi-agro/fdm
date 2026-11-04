@@ -177,11 +177,13 @@ export function UnexpectedErrorPage({
         </Button>
         <Button variant="outline" onClick={copyStackTrace}>
           <Copy className="mr-2 h-4 w-4" />
-          {copyState === "copied"
-            ? "Gekopieerd!"
-            : copyState === "failed"
-              ? "Browser staat niet toe om te kopiëren — selecteer de tekst hieronder en kopieer handmatig"
-              : "Kopieer foutmelding"}
+          <span key={copyState}>
+            {copyState === "copied"
+              ? "Gekopieerd!"
+              : copyState === "failed"
+                ? "Browser staat niet toe om te kopiëren — selecteer de tekst hieronder en kopieer handmatig"
+                : "Kopieer foutmelding"}
+          </span>
         </Button>
       </div>
       {message ? (

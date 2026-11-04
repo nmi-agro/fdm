@@ -478,12 +478,12 @@ export default function RvoImportCreatePage() {
                       {isSaving ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Opslaan...
+                          <span>Opslaan...</span>
                         </>
                       ) : hasFieldsToAdd ? (
-                        "Opslaan en verder"
+                        <span key="save">Opslaan en verder</span>
                       ) : (
-                        "Doorgaan zonder percelen"
+                        <span key="skip">Doorgaan zonder percelen</span>
                       )}
                     </Button>
                   </Form>

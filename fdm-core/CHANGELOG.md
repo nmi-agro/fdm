@@ -1,5 +1,11 @@
 # Changelog fdm-core
 
+## 0.39.1
+
+### Patch Changes
+
+- [#917](https://github.com/nmi-agro/fdm/pull/917) [`300a018`](https://github.com/nmi-agro/fdm/commit/300a0185e41d5cd2b47932d9a11f203f72e77cfb) Thanks [@SvenVw](https://github.com/SvenVw)! - Update Better Auth to 1.7.16. Google and Microsoft sign-ins now only mark an email address as verified when the provider reports it as verified, so an unverified address is no longer linked automatically to an existing account. Adds `isMicrosoftEmailVerified`, which accepts `email_verified`, `xms_edov`, `verified_primary_email`/`verified_secondary_email` and personal Microsoft accounts.
+
 ## 0.39.0
 
 ### Minor Changes

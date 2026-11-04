@@ -149,11 +149,11 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
               type="submit"
             >
               {isSubmitting ? (
-                <span className="sr-only">
+                <span key="submitting" className="sr-only">
                   <Spinner /> Uitnodigen
                 </span>
               ) : (
-                "Uitnodigen"
+                <span key="idle">Uitnodigen</span>
               )}
             </Button>
           </div>

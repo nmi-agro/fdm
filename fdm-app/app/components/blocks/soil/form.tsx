@@ -215,14 +215,14 @@ export function SoilAnalysisForm(props: {
                   </span>
                 ) : form.formState.isDirty ? (
                   onValidSubmit ? (
-                    "Je wijzigingen zijn nog niet toegepast."
+                    <span key="dirty-apply">Je wijzigingen zijn nog niet toegepast.</span>
                   ) : (
-                    "Je wijzigingen zijn nog niet opgeslagen."
+                    <span key="dirty-save">Je wijzigingen zijn nog niet opgeslagen.</span>
                   )
                 ) : soilAnalysis || onValidSubmit ? (
-                  "Nog geen wijzigingen."
+                  <span key="clean">Nog geen wijzigingen.</span>
                 ) : (
-                  "De bodemanalyse wordt vastgelegd als je opslaat."
+                  <span key="new">De bodemanalyse wordt vastgelegd als je opslaat.</span>
                 )}
               </p>
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center max-sm:[&>*]:w-full pointer-coarse:[&>*]:h-11">
@@ -231,12 +231,12 @@ export function SoilAnalysisForm(props: {
                   {form.formState.isSubmitting ? (
                     <>
                       <Spinner />
-                      Opslaan…
+                      <span>Opslaan…</span>
                     </>
                   ) : (
                     <>
                       <Save aria-hidden />
-                      {submitLabel}
+                      <span>{submitLabel}</span>
                     </>
                   )}
                 </Button>
