@@ -171,7 +171,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
       if (!formValues.role) {
         return dataWithError(null, "Rol is verplicht.")
       }
-      await grantRoleToFarm(fdm, principalId, formValues.username, b_id_farm, formValues.role)
+      await grantRoleToFarm(
+        fdm,
+        principalId,
+        formValues.username,
+        b_id_farm,
+        formValues.role,
+        formValues.target_kind ?? "email",
+      )
 
       let targetPrincipal: any = null
 

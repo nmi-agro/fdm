@@ -857,6 +857,86 @@ describe("listPendingInvitationsForPrincipal", () => {
   })
 })
 
+describe("createInvitation target kind", () => {
+  let fdm: FdmServerType
+  let ownerPrincipalId: string
+  let farmId: string
+
+  beforeAll(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    const fdmAuth = createFdmAuth(
+      fdm,
+      { clientId: "mock_google_client_id", clientSecret: "mock_google_client_secret" },
+      {
+        clientId: "mock_ms_client_id",
+        tenantId: "common",
+        privateKey: "mock_ms_private_key",
+        certThumbprint: "mock_ms_thumbprint",
+      },
+      undefined,
+      true,
+    )
+    const owner = await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: "targetkind_owner@example.com",
+        name: "targetkind_owner",
+        username: "targetkind_owner",
+        password: "password",
+      } as any,
+    })
+    ownerPrincipalId = owner.user.id
+    farmId = await addFarm(
+      fdm,
+      ownerPrincipalId,
+      "Target Kind Farm",
+      "TKF001",
+      "Target Lane",
+      "44444",
+    )
+    await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: "targetkind_invitee@example.com",
+        name: "targetkind_invitee",
+        username: "targetkind_invitee",
+        password: "password",
+      } as any,
+    })
+  })
+
+  it("should reject a typed username that resolves to a user", async () => {
+    await expect(
+      grantRoleToFarm(fdm, ownerPrincipalId, "targetkind_invitee", farmId, "advisor", "email"),
+    ).rejects.toThrow()
+  })
+
+  it("should accept a username that was selected from the lookup", async () => {
+    await expect(
+      grantRoleToFarm(fdm, ownerPrincipalId, "targetkind_invitee", farmId, "advisor", "selected"),
+    ).resolves.toBeUndefined()
+  })
+
+  it("should accept a typed email address of a user", async () => {
+    await expect(
+      grantRoleToFarm(
+        fdm,
+        ownerPrincipalId,
+        "targetkind_invitee@example.com",
+        farmId,
+        "researcher",
+        "email",
+      ),
+    ).resolves.toBeUndefined()
+  })
+})
+
 describe("createInvitation spam prevention", () => {
   let fdm: FdmServerType
   let fdmAuth: FdmAuth

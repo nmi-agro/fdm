@@ -136,6 +136,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         formValues.username,
         b_id_farm,
         formValues.role,
+        formValues.target_kind ?? "email",
       )
 
       // Send invitation email

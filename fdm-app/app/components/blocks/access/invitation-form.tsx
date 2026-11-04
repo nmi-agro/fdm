@@ -54,6 +54,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
         void submit(
           {
             username: data.username ?? "",
+            target_kind: data.target_kind ?? "email",
             role: (data.role as string) ?? "advisor",
             intent: "invite_user",
           },
@@ -69,7 +70,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
   useEffect(() => {
     if (wasSubmitting.current && navigation.state === "idle") {
       setSelectedValue("")
-      formReset({ role: formGetValues("role"), intent: "invite_user" })
+      formReset({ role: formGetValues("role"), intent: "invite_user", target_kind: undefined })
     }
     wasSubmitting.current = navigation.state !== "idle"
   }, [navigation.state, formReset, formGetValues])
@@ -89,11 +90,10 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
             selectedValue={selectedValue}
             onSelectedValueChange={(value) => {
               setSelectedValue(value ?? "")
-              // Update form value when selected
-              form.setValue("username", value ?? "", {
-                shouldTouch: true,
-              })
+              form.setValue("username", value ?? "", { shouldTouch: true })
+              if (!value) form.setValue("target_kind", undefined)
             }}
+            onItemSelect={() => form.setValue("target_kind", "selected")}
             emptyMessage={(value) => {
               const typedEmail = value.trim().toLowerCase()
               // The lookup hides principals that already have access, so detect them here
@@ -115,6 +115,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                         shouldTouch: true,
                         shouldValidate: true,
                       })
+                      form.setValue("target_kind", "email")
                       formRef.current?.requestSubmit()
                     }}
                     type="button"

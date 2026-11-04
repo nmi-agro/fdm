@@ -18,7 +18,11 @@ import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import { removeField } from "./field"
 import { createId } from "./id"
-import { createInvitation, listPendingInvitationsForPrincipal } from "./invitation"
+import {
+  createInvitation,
+  type InvitationTargetKind,
+  listPendingInvitationsForPrincipal,
+} from "./invitation"
 import { identifyPrincipal } from "./principal"
 
 /**
@@ -341,6 +345,7 @@ export async function updateFarm(
  * @param target - The username, email, or slug of the invitee.
  * @param b_id_farm - The identifier of the farm.
  * @param role - The role to be granted ('owner', 'advisor', or 'researcher').
+ * @param target_kind - Optional. How the target was identified; see {@link createInvitation}.
  *
  * @throws {Error} If the acting principal does not have 'share' permission, or if any other error occurs.
  */
@@ -350,11 +355,21 @@ export async function grantRoleToFarm(
   target: string,
   b_id_farm: schema.farmsTypeInsert["b_id_farm"],
   role: "owner" | "advisor" | "researcher",
+  target_kind?: InvitationTargetKind,
 ): Promise<void> {
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "farm", "share", b_id_farm, principal_id, "grantRoleToFarm")
-      return await createInvitation(tx, "farm", b_id_farm, principal_id, target, role)
+      return await createInvitation(
+        tx,
+        "farm",
+        b_id_farm,
+        principal_id,
+        target,
+        role,
+        undefined,
+        target_kind,
+      )
     })
   } catch (err) {
     throw handleError(err, "Exception for grantRoleToFarm", {

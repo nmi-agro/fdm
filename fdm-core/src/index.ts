@@ -203,6 +203,7 @@ export {
   MAX_INVITATIONS_PENDING_PER_TARGET,
   MAX_INVITATIONS_PER_INVITER_PER_HOUR,
 } from "./invitation"
+export type { InvitationTargetKind } from "./invitation"
 export {
   addMeasure,
   getMeasure,
