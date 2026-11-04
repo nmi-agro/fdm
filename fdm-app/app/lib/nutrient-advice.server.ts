@@ -1,13 +1,14 @@
-import type { getFields, Timeframe } from "@nmi-agro/fdm-core"
 import {
   type FarmNutrientAdviceRow,
   NUTRIENT_ADVICE_CONCURRENCY,
   startFarmNutrientAdviceRows as startRows,
 } from "@nmi-agro/fdm-calculator"
+import { checkPermission, type getFields, type Timeframe } from "@nmi-agro/fdm-core"
 import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
 import { toFriendlyAdviceError } from "~/components/blocks/nutrient-advice/overview-errors"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
+import { handleLoaderError } from "./error"
 
 export { NUTRIENT_ADVICE_CONCURRENCY }
 
@@ -30,7 +31,10 @@ export type FarmNutrientAdviceArgs = {
  * Converts a row from `fdm-calculator` to the row shape of the overview table, with a Dutch
  * error message.
  */
-function toFieldNutrientRow(row: FarmNutrientAdviceRow): FieldNutrientRow {
+function toFieldNutrientRow(
+  row: FarmNutrientAdviceRow,
+  has_write_permission: boolean | undefined,
+): FieldNutrientRow {
   const values: FieldNutrientRow["values"] = {}
   for (const [symbol, value] of Object.entries(row.values)) {
     if (value) values[symbol] = { filling: value.dose, advice: value.advice }
@@ -57,6 +61,7 @@ function toFieldNutrientRow(row: FarmNutrientAdviceRow): FieldNutrientRow {
         }
       : null,
     cultivationSuggestion: row.cultivationSuggestion,
+    has_write_permission,
     ...(errorMessage ? { errorMessage } : {}),
     values,
   }
@@ -80,6 +85,26 @@ export function startFarmNutrientAdviceRows(
   args: FarmNutrientAdviceArgs,
   fields: FarmField[],
 ): Promise<FieldNutrientRow>[] {
+  if (fields.length === 0) {
+    return []
+  }
+
+  // Researchers have read-only access: the BRP suggestion is shown to them with an explanation
+  // instead of the accept flow. Checked once per farm, and never throws.
+  const farmWritePermission = checkPermission(
+    fdm,
+    "farm",
+    "write",
+    args.b_id_farm,
+    args.principal_id,
+    "nutrient-advice",
+    false,
+  ).catch((err) => {
+    // Assume there is no farm write permission if the permission check fails.
+    handleLoaderError(err)
+    return false
+  })
+
   return startRows({
     fdm,
     principal_id: args.principal_id,
@@ -88,7 +113,14 @@ export function startFarmNutrientAdviceRows(
     timeframe: args.timeframe,
     fields,
     nmiApiKey: getNmiApiKey(),
-  }).map((row) => row.then(toFieldNutrientRow))
+  }).map(async (row) => {
+    const resolved = await row
+    // Only rows with a crop suggestion need the permission, for the accept flow.
+    const has_write_permission = resolved.cultivationSuggestion
+      ? await farmWritePermission
+      : undefined
+    return toFieldNutrientRow(resolved, has_write_permission)
+  })
 }
 
 /**

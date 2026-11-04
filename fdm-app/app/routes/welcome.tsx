@@ -175,11 +175,13 @@ export default function Welcome() {
               />
               <Field className="mx-auto max-w-75">
                 <FieldLabel>
-                  {profilePictureMode === "toBeRemoved"
-                    ? "Foto niet te gebruiken"
-                    : loaderData.image
-                      ? "Foto"
-                      : "Foto (optioneel)"}
+                  <span key={profilePictureMode}>
+                    {profilePictureMode === "toBeRemoved"
+                      ? "Foto niet te gebruiken"
+                      : loaderData.image
+                        ? "Foto"
+                        : "Foto (optioneel)"}
+                  </span>
                 </FieldLabel>
                 <div
                   className={cn("space-y-2", profilePictureMode === "toBeRemoved" && "opacity-50")}
@@ -245,7 +247,7 @@ export default function Welcome() {
                     <span>Opslaan...</span>
                   </div>
                 ) : (
-                  "Doorgaan"
+                  <span>Doorgaan</span>
                 )}
               </Button>
             </div>

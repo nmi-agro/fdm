@@ -273,7 +273,7 @@ export function AssignmentSelector({
             </DialogClose>
             {canModify ? (
               <Button type="submit" form={formId}>
-                Opslaan
+                <span>Opslaan</span>
                 {fetcher.state !== "idle" ? <Spinner className="ms-2" /> : null}
               </Button>
             ) : (

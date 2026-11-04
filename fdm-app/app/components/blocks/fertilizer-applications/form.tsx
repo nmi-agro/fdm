@@ -433,7 +433,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                     <span>Opslaan...</span>
                   </div>
                 ) : (
-                  (submitLabel ?? (fertilizerApplication ? "Opslaan" : "Voeg toe"))
+                  <span>{submitLabel ?? (fertilizerApplication ? "Opslaan" : "Voeg toe")}</span>
                 )}
               </Button>
             </div>
