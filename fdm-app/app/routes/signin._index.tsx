@@ -204,7 +204,7 @@ export default function SignIn() {
     errorParam === "microsoft_no_email"
       ? "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen."
       : errorParam === "account_not_linked"
-        ? "Er bestaat al een account met dit e-mailadres, maar uw aanbieder heeft het e-mailadres niet bevestigd. Vul uw e-mailadres hieronder in om een aanmeldlink te ontvangen."
+        ? "Er bestaat al een account met dit e-mailadres, maar Microsoft of Google heeft niet bevestigd dat dit e-mailadres van u is. Meld u hieronder aan met een aanmeldlink via uw e-mailadres."
         : null
   // A failed sign-in attempt in this session takes precedence over the redirect error
   const socialSignInError = handlerError ?? redirectError
