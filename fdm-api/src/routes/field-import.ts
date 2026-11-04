@@ -71,7 +71,7 @@ const ACQUIRING_METHODS = [
 const ActionSchema = z
   .enum(ACTIONS)
   .describe(
-    "What to do with the item: `ADD_REMOTE` (add the field from the shapefile), `UPDATE_FROM_REMOTE` (update the field with the shapefile values that differ), `KEEP_LOCAL` (keep the field as it is), `REMOVE_LOCAL` (remove the field), `CLOSE_LOCAL` (end the field on 31 December of the previous year) or `IGNORE` (change nothing).",
+    "What to do with the item: `ADD_REMOTE` (add the field from the shapefile), `UPDATE_FROM_REMOTE` (update the field with the shapefile values that differ), `KEEP_LOCAL` (keep the field; with `values`, only those values change), `REMOVE_LOCAL` (remove the field), `CLOSE_LOCAL` (end the field on 31 December of the previous year) or `IGNORE` (do not add the new field). Each status has one action that changes nothing: `KEEP_LOCAL` for items with a local field, `IGNORE` for new fields from the shapefile.",
   )
 
 const fileField = (description: string) =>
@@ -148,7 +148,7 @@ const ApplyBodySchema = z.object({
     .enum(["ADD_REMOTE", "UPDATE_FROM_REMOTE", "IGNORE"])
     .optional()
     .describe(
-      "Action for items without a choice, where it is allowed for their status: `ADD_REMOTE` adds all new fields, `UPDATE_FROM_REMOTE` adds new fields and updates changed ones. Defaults to `IGNORE`.",
+      "Action for items without a choice, where it is allowed for their status: `ADD_REMOTE` adds all new fields, `UPDATE_FROM_REMOTE` adds new fields and updates changed ones. `IGNORE`, the default, leaves items without a choice unchanged.",
     ),
   review_hash: z
     .string()

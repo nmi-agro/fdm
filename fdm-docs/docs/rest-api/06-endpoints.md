@@ -277,7 +277,7 @@ Fields are imported from an RVO Mijn Percelen shapefile export in two steps. Bot
 | `POST` | `/api/farms/{b_id_farm}/fields/import/apply`   | Apply a choice per field in one transaction       |
 
 1. **Compare** returns one item per field with a `status` (`MATCH`, `NEW_REMOTE`, `NEW_LOCAL`, `CONFLICT` or `EXPIRED_LOCAL`), the differences, the actions that can be chosen and a `review_hash`. Nothing is saved.
-2. **Apply** takes the same files, a `choices` JSON object with an `action` per `item_id` (optionally with `values` that override the name, dates, acquiring method, buffer strip, cultivation or the choice of geometry), an optional `default_action` and the `review_hash`. The server compares again: when the farm changed in between, nothing is saved and the response is `409` with the new review. An action that does not fit an item returns `422` with the `item_ids` involved.
+2. **Apply** takes the same files, a `choices` JSON object with an `action` per `item_id` (optionally with `values` that override the name, dates, acquiring method, buffer strip, cultivation or the choice of geometry), an optional `default_action` and the `review_hash`. The server compares again: when the farm changed in between, nothing is saved and the response is `409` with the new review. An action that does not fit an item returns `422` with the `item_ids` involved. Each status has one action that changes nothing: `KEEP_LOCAL` for items with a field on the farm (with `values`, only those values change) and `IGNORE` for new fields from the shapefile.
 
 New fields get estimated soil parameters after the import, so applying an import counts in the `nmi` rate limit bucket. A cultivation chosen in `values` must be in the catalogues of the farm.
 

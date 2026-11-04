@@ -317,6 +317,21 @@ describe("processRvoImport", () => {
     expect(removeField).not.toHaveBeenCalled()
   })
 
+  it("still accepts IGNORE and NO_ACTION for an item with a local field", async () => {
+    const item: RvoImportReviewItem<any> = {
+      status: RvoImportReviewStatus.CONFLICT,
+      localField: { b_id: "local-1" },
+      diffs: ["b_name"],
+    }
+
+    await processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "IGNORE" }, year)
+    await processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "NO_ACTION" }, year)
+
+    expect(addField).not.toHaveBeenCalled()
+    expect(updateField).not.toHaveBeenCalled()
+    expect(removeField).not.toHaveBeenCalled()
+  })
+
   it("should skip items with no action selected", async () => {
     const item: RvoImportReviewItem<any> = {
       status: RvoImportReviewStatus.NEW_REMOTE,

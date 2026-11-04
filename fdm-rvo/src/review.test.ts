@@ -105,8 +105,26 @@ describe("getAllowedImportActions", () => {
       "ADD_REMOTE",
       "IGNORE",
     ])
-    expect(getAllowedImportActions(RvoImportReviewStatus.EXPIRED_LOCAL)).toContain("CLOSE_LOCAL")
-    expect(getAllowedImportActions(RvoImportReviewStatus.NEW_LOCAL)).toContain("REMOVE_LOCAL")
+    expect(getAllowedImportActions(RvoImportReviewStatus.NEW_LOCAL)).toEqual([
+      "KEEP_LOCAL",
+      "REMOVE_LOCAL",
+    ])
+    expect(getAllowedImportActions(RvoImportReviewStatus.EXPIRED_LOCAL)).toEqual([
+      "CLOSE_LOCAL",
+      "KEEP_LOCAL",
+    ])
+    for (const status of [RvoImportReviewStatus.MATCH, RvoImportReviewStatus.CONFLICT]) {
+      expect(getAllowedImportActions(status)).toEqual(["UPDATE_FROM_REMOTE", "KEEP_LOCAL"])
+    }
+  })
+
+  it("has one action that changes nothing per status", () => {
+    for (const status of Object.values(RvoImportReviewStatus)) {
+      const noChange = getAllowedImportActions(status).filter(
+        (action) => action === "KEEP_LOCAL" || action === "IGNORE",
+      )
+      expect(noChange).toHaveLength(1)
+    }
   })
 })
 
@@ -272,6 +290,16 @@ describe("resolveImportChoices", () => {
       expect(
         issuesOf(() => resolveImportChoices(items, { b3: { action: "UPDATE_FROM_REMOTE" } }, year)),
       ).toEqual([expect.objectContaining({ item_id: "b3", code: "action_not_allowed" })])
+    })
+
+    it("rejects IGNORE for an item with a local field", () => {
+      expect(
+        issuesOf(() =>
+          resolveImportChoices(items, { [getItemId(conflict)]: { action: "IGNORE" } }, year),
+        ),
+      ).toEqual([
+        expect.objectContaining({ item_id: getItemId(conflict), code: "action_not_allowed" }),
+      ])
     })
 
     it("rejects an empty name and an end date before the start date", () => {

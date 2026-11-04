@@ -265,6 +265,14 @@ describe("POST /farms/:b_id_farm/fields/import/apply", () => {
     expect(services.applyRvoImport).not.toHaveBeenCalled()
   })
 
+  it("returns 422 for IGNORE on a field of the farm, which uses KEEP_LOCAL", async () => {
+    const { app, services } = setup()
+    const res = await apply(app, { choices: JSON.stringify({ "b-1": { action: "IGNORE" } }) })
+    expect(res.status).toBe(422)
+    expect((await res.json()).item_ids).toEqual(["b-1"])
+    expect(services.applyRvoImport).not.toHaveBeenCalled()
+  })
+
   it("returns 422 for a cultivation that is not in the catalogues of the farm", async () => {
     const { app, services } = setup()
     const res = await apply(app, {

@@ -87,20 +87,24 @@ export function compareShapefileFields(
 /**
  * Returns the actions that can be chosen for a review item with the given status.
  *
+ * Each status has one action that changes nothing: `KEEP_LOCAL` for items with a local field,
+ * which can also change only the values given with the choice, and `IGNORE` for a new field
+ * from RVO, which is then not added.
+ *
  * @param status - Status of the review item.
- * @returns The allowed actions. `IGNORE` is always allowed and means "change nothing".
+ * @returns The allowed actions.
  */
 export function getAllowedImportActions(status: RvoImportReviewStatus): ImportReviewAction[] {
   switch (status) {
     case RvoImportReviewStatus.NEW_REMOTE:
       return ["ADD_REMOTE", "IGNORE"]
     case RvoImportReviewStatus.NEW_LOCAL:
-      return ["KEEP_LOCAL", "REMOVE_LOCAL", "IGNORE"]
+      return ["KEEP_LOCAL", "REMOVE_LOCAL"]
     case RvoImportReviewStatus.EXPIRED_LOCAL:
-      return ["CLOSE_LOCAL", "KEEP_LOCAL", "IGNORE"]
+      return ["CLOSE_LOCAL", "KEEP_LOCAL"]
     case RvoImportReviewStatus.MATCH:
     case RvoImportReviewStatus.CONFLICT:
-      return ["UPDATE_FROM_REMOTE", "KEEP_LOCAL", "IGNORE"]
+      return ["UPDATE_FROM_REMOTE", "KEEP_LOCAL"]
   }
 }
 
@@ -261,10 +265,11 @@ const VALUE_KEYS = [
  * - `ADD_REMOTE` adds the field with the values from RVO or the shapefile.
  * - `UPDATE_FROM_REMOTE` takes the RVO value for every value that differs, or that is missing
  *   locally. RVO never erases a local value it does not have.
- * - `KEEP_LOCAL` keeps the local values.
+ * - `KEEP_LOCAL` keeps the local values; with {@link ImportChoice.values}, only those values change.
  * - `CLOSE_LOCAL` sets the end date to 31 December of the year before the import year.
  * - `REMOVE_LOCAL` removes the field.
- * - `IGNORE` and `NO_ACTION` change nothing, and so does an item without a choice.
+ * - `IGNORE` does not add a new field from RVO.
+ * - `NO_ACTION` changes nothing, for any item, and so does an item without a choice.
  *
  * Values in {@link ImportChoice.values} override the values of the action, so a client can make
  * the same per-field choices as the review screen of the web app.
