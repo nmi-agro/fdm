@@ -7,7 +7,7 @@
 import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import type { MultiPoint, MultiPolygon, Point, Polygon } from "geojson"
 import { TZDate } from "@date-fns/tz"
-import booleanPointInPolygon from "@turf/boolean-point-in-polygon"
+import { matchSoilAnalysisToField } from "@nmi-agro/fdm-calculator/browser"
 import { getRangeWarning, ReviewedUploadFormSchema } from "./formschema"
 import { REQUIRED_SAMPLING_PARAMETERS } from "./parameter-groups"
 
@@ -93,21 +93,10 @@ export function toDateKey(value: unknown): string | null {
   return `${year}-${month}-${day}`
 }
 
-function isActiveOn(field: BulkField, date: Date | null): boolean {
-  if (!date) return true
-  const start = field.b_start ? new Date(field.b_start) : null
-  const end = field.b_end ? new Date(field.b_end) : null
-  return (!start || start <= date) && (!end || end >= date)
-}
-
-/** Picks the field that existed on the sampling date, or else the first candidate. */
-function preferActive(candidates: BulkField[], date: Date | null): BulkField | undefined {
-  return candidates.find((field) => isActiveOn(field, date)) ?? candidates[0]
-}
-
 /**
  * Finds the field of an analysis: the field that contains the sampling location, and otherwise the
  * field with the same name as in the report. Fields that existed on the sampling date go first.
+ * The rule is shared with the REST API through `matchSoilAnalysisToField` in fdm-calculator.
  */
 export function matchField(
   location: Point | null,
@@ -115,39 +104,12 @@ export function matchField(
   samplingDate: Date | null,
   fields: BulkField[],
 ): Pick<BulkRow, "fieldId" | "matchReason" | "nameConflictFieldId"> {
-  let byLocation: BulkField | undefined
-  if (location) {
-    byLocation = preferActive(
-      fields.filter((field) => {
-        if (!field.geometry) return false
-        try {
-          return booleanPointInPolygon(location, field.geometry)
-        } catch {
-          return false
-        }
-      }),
-      samplingDate,
-    )
+  const match = matchSoilAnalysisToField(location, reportFieldName, samplingDate, fields)
+  return {
+    fieldId: match.b_id,
+    matchReason: match.match_reason,
+    nameConflictFieldId: match.name_conflict_b_id,
   }
-
-  const name = reportFieldName?.toLowerCase().trim()
-  const byName = name
-    ? preferActive(
-        fields.filter((field) => field.b_name.toLowerCase().trim() === name),
-        samplingDate,
-      )
-    : undefined
-
-  if (byLocation) {
-    const sameField = byName?.b_id === byLocation.b_id
-    return {
-      fieldId: byLocation.b_id,
-      matchReason: sameField ? "location-and-name" : "location",
-      nameConflictFieldId: byName && !sameField ? byName.b_id : null,
-    }
-  }
-  if (byName) return { fieldId: byName.b_id, matchReason: "name", nameConflictFieldId: null }
-  return { fieldId: null, matchReason: null, nameConflictFieldId: null }
 }
 
 /**

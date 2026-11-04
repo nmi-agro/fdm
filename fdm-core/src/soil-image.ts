@@ -5,6 +5,7 @@ import type {
   AddSoilImageAnnotationInput,
   AddSoilImageInput,
   SoilImage,
+  SoilImageAnnotation,
   UpdateSoilImageAnnotationInput,
 } from "./soil-image.types"
 import { checkPermission, grantRole } from "./authorization"
@@ -312,5 +313,88 @@ export async function removeSoilImageAnnotation(
     throw handleError(err, "Exception for removeSoilImageAnnotation", {
       a_id_annotation,
     })
+  }
+}
+
+/**
+ * Returns a single soil image with its annotations.
+ *
+ * The caller must have read access to the field of the soil sampling the image belongs to, the
+ * same access `getSoilImages` requires.
+ *
+ * @param fdm - The FDM database instance.
+ * @param principal_id - The ID of the principal performing the operation.
+ * @param a_id_image - The ID of the image.
+ * @returns The image, or `undefined` when no image with this ID exists.
+ */
+export async function getSoilImage(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  a_id_image: schema.soilImageTypeSelect["a_id_image"],
+): Promise<SoilImage | undefined> {
+  try {
+    // The image with the field of its sampling, for the permission check.
+    const [row] = await fdm
+      .select({ image: schema.soilImage, b_id: schema.soilSampling.b_id })
+      .from(schema.soilImage)
+      .innerJoin(
+        schema.soilSampling,
+        eq(schema.soilSampling.b_id_sampling, schema.soilImage.b_id_sampling),
+      )
+      .where(eq(schema.soilImage.a_id_image, a_id_image))
+      .limit(1)
+    if (!row) return undefined
+
+    await checkPermission(fdm, "field", "read", row.b_id, principal_id, "getSoilImage")
+
+    const annotations = await fdm
+      .select()
+      .from(schema.soilImageAnnotating)
+      .where(eq(schema.soilImageAnnotating.a_id_image, a_id_image))
+      .orderBy(schema.soilImageAnnotating.a_image_annotation_order)
+
+    return { ...row.image, annotations }
+  } catch (err) {
+    throw handleError(err, "Exception for getSoilImage", { a_id_image })
+  }
+}
+
+/**
+ * Returns a single annotation of a soil image.
+ *
+ * The caller must have read access to the field of the soil sampling the image belongs to.
+ *
+ * @param fdm - The FDM database instance.
+ * @param principal_id - The ID of the principal performing the operation.
+ * @param a_id_annotation - The ID of the annotation.
+ * @returns The annotation, or `undefined` when no annotation with this ID exists.
+ */
+export async function getSoilImageAnnotation(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  a_id_annotation: schema.soilImageAnnotatingTypeSelect["a_id_annotation"],
+): Promise<SoilImageAnnotation | undefined> {
+  try {
+    // The annotation with the field of the sampling of its image, for the permission check.
+    const [row] = await fdm
+      .select({ annotation: schema.soilImageAnnotating, b_id: schema.soilSampling.b_id })
+      .from(schema.soilImageAnnotating)
+      .innerJoin(
+        schema.soilImage,
+        eq(schema.soilImage.a_id_image, schema.soilImageAnnotating.a_id_image),
+      )
+      .innerJoin(
+        schema.soilSampling,
+        eq(schema.soilSampling.b_id_sampling, schema.soilImage.b_id_sampling),
+      )
+      .where(eq(schema.soilImageAnnotating.a_id_annotation, a_id_annotation))
+      .limit(1)
+    if (!row) return undefined
+
+    await checkPermission(fdm, "field", "read", row.b_id, principal_id, "getSoilImageAnnotation")
+
+    return row.annotation
+  } catch (err) {
+    throw handleError(err, "Exception for getSoilImageAnnotation", { a_id_annotation })
   }
 }

@@ -1,6 +1,7 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MapGeoJSONFeature } from "maplibre-gl"
 import type { MetaFunction } from "react-router"
+import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
 import {
   getCurrentSoilDataForFarm,
   getFields,
@@ -46,7 +47,6 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parameter"
 
 export const meta: MetaFunction = () => {
@@ -338,14 +338,14 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   /** Formats a value of the selected parameter for the tooltip. */
   function renderValue(property: unknown) {
     const value = property as string | number | null | undefined
-    if (value === undefined || value === null) return <p>Geen data</p>
+    if (value === undefined || value === null) return <p key="no-data">Geen data</p>
     if (parameterDescription?.type === "date") {
-      return <p>{formatDate(value as string, "PP", { locale: nl })}</p>
+      return <p key="date">{formatDate(value as string, "PP", { locale: nl })}</p>
     }
     if (selectedParameter === "b_soiltype_agr") {
       const soilType = SHADED_SOIL_TYPES.find((item) => item.value === value)
       return (
-        <p>
+        <p key={`soiltype-${String(value)}`}>
           <span
             className="me-0.5 inline-block size-2.5 rounded align-middle"
             style={{ backgroundColor: soilType?.fill ?? SOIL_ANALYSIS_NO_DATA_COLOR }}
@@ -355,7 +355,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
       )
     }
     return (
-      <p>
+      <p key="value">
         {typeof value === "number"
           ? value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
           : String(value)}{" "}

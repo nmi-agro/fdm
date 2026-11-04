@@ -203,7 +203,9 @@ export function OrganizationSettingsForm({
           <CardFooter className="flex-row justify-end">
             <Button type="submit" disabled={disabled}>
               {isSubmitting && <Spinner />}
-              {organization ? "Bijwerken" : "Aanmaken"}
+              <span key={organization ? "update" : "create"}>
+                {organization ? "Bijwerken" : "Aanmaken"}
+              </span>
             </Button>
           </CardFooter>
         </fetcher.Form>

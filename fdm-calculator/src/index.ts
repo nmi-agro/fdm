@@ -72,6 +72,8 @@ export {
   getBcsScoreColor,
   getBcsScoreLabel,
 } from "./bcs/index"
+export type { BcsAnalysisLike, BcsVisualKey } from "./bcs/visual"
+export { BCS_VISUAL_KEYS, isBcsAnalysis } from "./bcs/visual"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
 export { calcPhDelta } from "./bcs/ph-delta"
 export type { FarmIndicators, FieldIndicators, FieldMeasureOptions } from "./bln3"
@@ -79,6 +81,7 @@ export {
   getFarmIndicators,
   getFieldIndicators,
   getFieldMeasureOptions,
+  getYearTimeframe,
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
   getBln3MeasureAdvice,
@@ -106,6 +109,16 @@ export type {
 } from "./bln3/types"
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
+export { getNitrogenBalanceForFarms, getOrganicMatterBalanceForFarms } from "./balance/farms"
+export { combineFarmMeasureSummaries, getFarmMeasureSummary } from "./bln3/farm-measures"
+export type {
+  CombinedMeasureSummary,
+  CombinedMeasureSummaryItem,
+  FarmMainCultivationArea,
+  FarmMeasureSummary,
+  FarmMeasureSummaryItem,
+} from "./bln3/farm-measures"
+export type { FarmBalanceResult, MultiFarmBalance } from "./balance/farms"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"
@@ -187,6 +200,29 @@ export { getRegion, isFieldInNVGebied } from "./norms/nl/2025/value/stikstofgebr
 export type { NL2025NormsInput, RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"
+export {
+  FARM_NUTRIENT_ADVICE_NUTRIENTS,
+  findMainCultivation,
+  getFarmNutrientAdviceRows,
+  NUTRIENT_ADVICE_CONCURRENCY,
+  startFarmNutrientAdviceRows,
+} from "./nutrient-advice/farm"
+export type {
+  FarmNutrientAdviceErrorCode,
+  FarmNutrientAdviceField,
+  FarmNutrientAdviceInput,
+  FarmNutrientAdviceRow,
+  FarmNutrientAdviceValue,
+  FarmNutrientSymbol,
+} from "./nutrient-advice/farm"
+export {
+  getCultivationSuggestion,
+  getCultivationSuggestionResult,
+} from "./other/cultivation-suggestion"
+export type {
+  CultivationSuggestion,
+  CultivationSuggestionResult,
+} from "./other/cultivation-suggestion"
 export type {
   AggregatedNutrientAdvice,
   InputAggregateNutrientAdviceToFarmLevel,
@@ -202,10 +238,29 @@ export type {
 } from "./nutrient-advice/types"
 export { collectInputForSoilParameterEstimates } from "./estimates/input"
 export { getSoilParameterEstimates, requestSoilParameterEstimates } from "./estimates/index"
+export {
+  addSoilParameterEstimatesToField,
+  getGeometryCentroid,
+  getSoilParameterEstimatesForGeometry,
+} from "./estimates/field"
 export type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./estimates/types"
 export { bln3Client, soilEstimatesClient, soilReaderClient } from "./nmi/client"
+export {
+  extractSoilAnalysesFromPdfs,
+  parseSamplingGeometry,
+  parseSoilReaderField,
+  SoilReaderError,
+} from "./soilreader"
+export type { ExtractedSoilAnalysis } from "./soilreader"
+export { matchSoilAnalysisToField } from "./soilreader/match"
+export type {
+  SoilAnalysisFieldMatch,
+  SoilAnalysisMatchField,
+  SoilAnalysisMatchReason,
+} from "./soilreader/match"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
+export { enrichCurrentSoilDataWithNlv } from "./other/current-soil-data"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"

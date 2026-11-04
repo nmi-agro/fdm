@@ -28,6 +28,7 @@ export type { FarmScores, FieldScoreWithArea, ScoreTier } from "./scoring"
 export {
   aggregateFarmScores,
   computeAreaWeightedAggregation,
+  computeMinimumScores,
   getFieldAggregationScore,
   getScoreTier,
   scoreToDisplay,

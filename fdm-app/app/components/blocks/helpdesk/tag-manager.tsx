@@ -189,7 +189,7 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
                         <span>Verwijderen</span>
                       </div>
                     ) : (
-                      "Verwijderen"
+                      <span>Verwijderen</span>
                     )}
                   </Button>
                 </Form>

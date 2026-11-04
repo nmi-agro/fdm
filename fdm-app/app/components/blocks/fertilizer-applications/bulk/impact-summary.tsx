@@ -169,7 +169,10 @@ function MetricRow({
                   {" "}
                   → {formatKg(after)}
                 </span>
-                <span className="text-muted-foreground">
+                <span
+                  key={after > current ? "increase" : "decrease"}
+                  className="text-muted-foreground"
+                >
                   {" "}
                   ({after > current ? "+" : "−"}
                   {formatKg(Math.abs(after - current))})
@@ -211,7 +214,7 @@ function CoverageFooter({
   return (
     <Collapsible>
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex items-center gap-1 text-xs">
-        {summary}
+        <span key={summary}>{summary}</span>
         {issues.length > 0 && (
           <ChevronDown
             className="size-3 transition-transform group-data-[state=open]:rotate-180"
@@ -270,7 +273,7 @@ function BlockError({ message }: { message: string }) {
         onClick={() => void revalidator.revalidate()}
       >
         {busy ? <Spinner /> : <RotateCw className="size-4" aria-hidden="true" />}
-        Opnieuw proberen
+        <span>Opnieuw proberen</span>
       </Button>
     </div>
   )
@@ -592,7 +595,7 @@ export function SaveVerdict({
           {outcomes.map((outcome) => {
             const label = NORM_DESCRIPTIONS[outcome.key].label
             return outcome.remaining < 0 ? (
-              <li key={outcome.key} className="flex gap-2 text-red-700 dark:text-red-400">
+              <li key={`${outcome.key}-over`} className="flex gap-2 text-red-700 dark:text-red-400">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
                   {label}:{" "}
@@ -603,7 +606,7 @@ export function SaveVerdict({
                 </span>
               </li>
             ) : (
-              <li key={outcome.key} className="text-muted-foreground pl-6">
+              <li key={`${outcome.key}-ok`} className="text-muted-foreground pl-6">
                 {label}: nog{" "}
                 <span className="text-foreground tabular-nums">
                   {formatKg(outcome.remaining)} {unit(outcome.key)}

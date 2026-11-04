@@ -1,3 +1,4 @@
+import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCurrentSoilData,
@@ -39,7 +40,6 @@ import { isBcsAnalysis } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 
 /**
  * Loader function for the soil data page of a specific farm field.

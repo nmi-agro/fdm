@@ -11,6 +11,7 @@ import {
   addFarmToGroup,
   createFarmGroup,
   getFarmGroup,
+  getFarmIdsOfOrganization,
   listFarmGroups,
   removeFarmFromGroup,
   removeFarmGroup,
@@ -731,6 +732,17 @@ describe("Farm group functions", () => {
       await removeFarm(fdm, member_id, b_id_farm)
 
       expect((await getFarmGroup(fdm, member_id, b_id_group)).b_id_farms).toEqual([])
+    })
+  })
+
+  describe("getFarmIdsOfOrganization", () => {
+    it("returns the farms of the organization to a member", async () => {
+      const farmIds = await getFarmIdsOfOrganization(fdm, member_id, b_id_organization)
+      expect(farmIds.sort()).toEqual([b_id_farm_a, b_id_farm_b].sort())
+    })
+
+    it("rejects a user who is not a member", async () => {
+      await expect(getFarmIdsOfOrganization(fdm, outsider_id, b_id_organization)).rejects.toThrow()
     })
   })
 })

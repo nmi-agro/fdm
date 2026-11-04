@@ -201,7 +201,8 @@ export function AgentForm({
           </fieldset>
           <div className="text-end">
             <Button type="submit" disabled={isSubmitting}>
-              Opslaan{isSubmitting && <Spinner />}
+              <span>Opslaan</span>
+              {isSubmitting && <Spinner />}
             </Button>
           </div>
         </fetcher.Form>
@@ -254,7 +255,8 @@ export function AgentFormDialog({
                 </Button>
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
-                Opslaan{isSubmitting && <Spinner />}
+                <span>Opslaan</span>
+                {isSubmitting && <Spinner />}
               </Button>
             </DialogFooter>
           </fetcher.Form>

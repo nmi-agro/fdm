@@ -295,7 +295,7 @@ export function MijnPercelenUploadForm({
                             <span>Uploaden...</span>
                           </div>
                         ) : (
-                          "Uploaden"
+                          <span>Uploaden</span>
                         )}
                       </Button>
                       <NavLink to={backUrl} className="w-full">
