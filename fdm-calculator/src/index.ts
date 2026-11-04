@@ -72,6 +72,8 @@ export {
   getBcsScoreColor,
   getBcsScoreLabel,
 } from "./bcs/index"
+export type { BcsAnalysisLike, BcsVisualKey } from "./bcs/visual"
+export { BCS_VISUAL_KEYS, isBcsAnalysis } from "./bcs/visual"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
 export { calcPhDelta } from "./bcs/ph-delta"
 export type { FarmIndicators, FieldIndicators, FieldMeasureOptions } from "./bln3"

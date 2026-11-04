@@ -56,3 +56,5 @@ export type {
 } from "./nutrient-advice/aggregate"
 export { aggregateNutrientAdviceToFarmLevel } from "./nutrient-advice/aggregate"
 export type { NutrientAdvice } from "./nutrient-advice/types"
+export type { BcsAnalysisLike, BcsVisualKey } from "./bcs/visual"
+export { BCS_VISUAL_KEYS, isBcsAnalysis } from "./bcs/visual"
