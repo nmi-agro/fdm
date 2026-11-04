@@ -100,9 +100,29 @@ export const soilParameterDescriptions = {
   a_zn_cc: "Plant-available zinc (µg Zn/kg). Typical range 5–50000.",
   b_gwl_class: "Groundwater class (Dutch 'grondwatertrap'), for example 'II' or 'VIII'.",
   b_soiltype_agr: "Agricultural soil type, for example 'dekzand', 'zeeklei' or 'veen'.",
+  // Soil condition score (BCS): visual scores from a field assessment, 0, 1 or 2 each.
+  a_ss_bcs:
+    "Soil condition score (BCS): soil structure, judged from clod size and aggregate stability. 0 (poor), 1 (moderate) or 2 (good).",
+  a_sc_bcs:
+    "Soil condition score (BCS): subsoil compaction, judged from resistance when pressing and platy structures. 0 (poor), 1 (moderate) or 2 (good).",
+  a_rd_bcs:
+    "Soil condition score (BCS): rooting, judged from rooting depth, density and branching. 0 (poor), 1 (moderate) or 2 (good).",
+  a_ew_bcs:
+    "Soil condition score (BCS): earthworms, judged from their number and species. 0 (poor), 1 (moderate) or 2 (good).",
+  a_cc_bcs:
+    "Soil condition score (BCS): crop cover, the share of the soil surface covered by vegetation. 0 (poor), 1 (moderate) or 2 (good).",
+  a_gs_bcs:
+    "Soil condition score (BCS): coloured mottles (rust, blue or grey spots that indicate waterlogging). 0 (many), 1 (some) or 2 (none).",
+  a_p_bcs:
+    "Soil condition score (BCS): puddling, water standing on the surface. 0 (none), 1 (some) or 2 (much); a higher score lowers the soil condition.",
+  a_c_bcs:
+    "Soil condition score (BCS): cracks visible in the topsoil. 0 (none), 1 (some) or 2 (many); a higher score lowers the soil condition.",
+  a_rt_bcs:
+    "Soil condition score (BCS): ruts and trampling. 0 (none), 1 (some) or 2 (much); a higher score lowers the soil condition.",
 } as const
 
-type SoilParameterCode = keyof typeof soilParameterDescriptions
+/** Code of a soil parameter that the API accepts and returns. */
+export type SoilParameterCode = keyof typeof soilParameterDescriptions
 type CategoricalSoilParameterCode = "b_gwl_class" | "b_soiltype_agr"
 type NumericSoilParameterCode = Exclude<SoilParameterCode, CategoricalSoilParameterCode>
 

@@ -403,6 +403,70 @@ jobs:
           flags: fdm-api
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  test-storage-reports:
+    name: storage and reports
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [24]
+    permissions:
+      contents: read
+      packages: write
+    # Docker Hub image that `container-job` executes in
+    container: node:${{ matrix.node-version }}-bookworm-slim
+
+    steps:
+      # Include dependencies for codecov
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y git curl gpg
+
+      # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Cache turbo build setup
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Setup pnpm 11
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.8.1
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      # Neither package needs a database.
+      - name: Run tests with coverage
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-storage --filter=@nmi-agro/fdm-reports
+
+      - name: fdm-storage - Upload results to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./fdm-storage/coverage/coverage-final.json
+          flags: fdm-storage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: fdm-reports - Upload results to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./fdm-reports/coverage/coverage-final.json
+          flags: fdm-reports
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   # Label of the container job for fdm-helpdesk
   test-helpdesk:
     name: helpdesk

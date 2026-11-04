@@ -1,4 +1,4 @@
-import { Semaphore } from "../shared/geotiff"
+import { Semaphore } from "../shared/semaphore"
 
 function promiseDelayed<T>(cb: () => Promise<T>, after: number, signal?: AbortSignal | null) {
   if (signal?.aborted) {

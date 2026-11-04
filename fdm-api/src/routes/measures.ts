@@ -4,6 +4,7 @@ import type {
   FdmType,
   getMeasure,
   getMeasures,
+  getMeasuresForFarm,
   Measure,
   removeMeasure,
   updateMeasure,
@@ -11,7 +12,7 @@ import type {
 import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
-import { FieldIdSchema, MeasureIdSchema } from "../fields"
+import { FarmIdSchema, FieldIdSchema, MeasureIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -29,6 +30,7 @@ const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 /** Defines the measure data access functions required by the measure routes. */
 export interface MeasureServices {
   getMeasures: typeof getMeasures
+  getMeasuresForFarm: typeof getMeasuresForFarm
   getMeasure: typeof getMeasure
   addMeasure: typeof addMeasure
   updateMeasure: typeof updateMeasure
@@ -184,6 +186,32 @@ const deleteMeasureRoute = createRoute({
   },
 })
 
+const listFarmMeasuresRoute = createRoute({
+  method: "get",
+  path: "/farms/{b_id_farm}/measures",
+  tags: ["Measures"],
+  summary: "List measures on a farm",
+  description:
+    "Returns the measures on all fields of the farm, sorted by start date. Each item has the `b_id` of its field. Use `from` and `to` to limit the period.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    query: PaginationTimeframeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "A paginated list of measures.",
+      content: {
+        "application/json": {
+          schema: paginatedSchema(MeasureSchema),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+})
+
 function serialiseMeasure(measure: Measure) {
   return {
     b_id_measure: measure.b_id_measure,
@@ -222,6 +250,28 @@ export function registerMeasureRoutes(
   app.use("/measures/*", (c, next) =>
     rateLimitMiddleware(fdm, WRITE_METHODS.has(c.req.method) ? "write" : "general")(c, next),
   )
+
+  const listFarmMeasuresHandler: RouteHandler<typeof listFarmMeasuresRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
+    const byKey = await services.getMeasuresForFarm(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      parseTimeframeQuery(query),
+    )
+    const items = [...byKey.values()].flat()
+    items.sort(
+      (a, b) =>
+        String(serializeDate(a.m_start) ?? "").localeCompare(
+          String(serializeDate(b.m_start) ?? ""),
+        ) || a.b_id_measure.localeCompare(b.b_id_measure),
+    )
+    return c.json(paginatedResponse(items.map(serialiseMeasure), query.limit, query.offset), 200)
+  }
 
   const listMeasuresHandler: RouteHandler<typeof listMeasuresRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
@@ -309,6 +359,7 @@ export function registerMeasureRoutes(
   }
 
   app.openapi(listMeasuresRoute, listMeasuresHandler)
+  app.openapi(listFarmMeasuresRoute, listFarmMeasuresHandler)
   app.openapi(createMeasureRoute, createMeasureHandler)
   app.openapi(getMeasureRoute, getMeasureHandler)
   app.openapi(updateMeasureRoute, updateMeasureHandler)

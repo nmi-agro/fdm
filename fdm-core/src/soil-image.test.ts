@@ -9,6 +9,8 @@ import { addSoilAnalysis, getSoilAnalysis } from "./soil"
 import {
   addSoilImage,
   addSoilImageAnnotation,
+  getSoilImage,
+  getSoilImageAnnotation,
   getSoilImages,
   removeSoilImage,
   removeSoilImageAnnotation,
@@ -177,6 +179,42 @@ describe("Soil Image Functions", () => {
 
       const images = await getSoilImages(fdm, principal_id, b_id_sampling)
       expect(images).toHaveLength(0)
+    })
+  })
+
+  describe("getSoilImage", () => {
+    it("returns the image with its annotations", async () => {
+      const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
+        a_image_path: "soil_image/one.jpg",
+      })
+      const a_id_annotation = await addSoilImageAnnotation(fdm, principal_id, a_id_image, {
+        a_image_annotation_type: "pin",
+        a_image_annotation_coordinates: JSON.stringify({ x: 10, y: 20 }),
+      })
+
+      const image = await getSoilImage(fdm, principal_id, a_id_image)
+      expect(image?.a_image_path).toBe("soil_image/one.jpg")
+      expect(image?.annotations.map((a) => a.a_id_annotation)).toEqual([a_id_annotation])
+
+      const annotation = await getSoilImageAnnotation(fdm, principal_id, a_id_annotation)
+      expect(annotation?.a_id_image).toBe(a_id_image)
+    })
+
+    it("returns undefined for an unknown image or annotation", async () => {
+      expect(await getSoilImage(fdm, principal_id, "unknown")).toBeUndefined()
+      expect(await getSoilImageAnnotation(fdm, principal_id, "unknown")).toBeUndefined()
+    })
+
+    it("requires read access to the field", async () => {
+      const a_id_image = await addSoilImage(fdm, principal_id, b_id_sampling, {
+        a_image_path: "soil_image/two.jpg",
+      })
+      const a_id_annotation = await addSoilImageAnnotation(fdm, principal_id, a_id_image, {
+        a_image_annotation_type: "pin",
+        a_image_annotation_coordinates: { x: 1, y: 2 },
+      })
+      await expect(getSoilImage(fdm, createId(), a_id_image)).rejects.toThrow()
+      await expect(getSoilImageAnnotation(fdm, createId(), a_id_annotation)).rejects.toThrow()
     })
   })
 

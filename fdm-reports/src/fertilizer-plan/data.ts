@@ -10,6 +10,7 @@ import {
   getMainCultivation,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
+  getYearTimeframe,
   NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -29,32 +30,34 @@ import {
 import { generateCalculationHash } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import fs from "node:fs/promises"
-import path from "node:path"
-import type { FieldNormFillings, FieldNormValues } from "~/integrations/calculator"
-import { BemestingsplanData } from "~/components/blocks/pdf/bemestingsplan/types"
-import { getTimeframe } from "~/lib/calendar"
-import { clientConfig } from "~/lib/config"
-import { serverConfig } from "~/lib/config.server"
-import { fdm } from "~/lib/fdm.server"
+import type { FertilizerPlanData, ReportBranding } from "./types"
+import pkg from "../package"
 
-async function getBase64Image(filePath: string | undefined): Promise<string | undefined> {
-  if (!filePath) return undefined
-  try {
-    const ext = path.extname(filePath).toLowerCase().substring(1)
-    const mimeType =
-      ext === "png"
-        ? "image/png"
-        : ext === "jpg" || ext === "jpeg"
-          ? "image/jpeg"
-          : "application/octet-stream"
-    const buffer = await fs.readFile(filePath)
-    return `data:${mimeType};base64,${buffer.toString("base64")}`
-  } catch (e) {
-    if ((e as { code: string })?.code === "ENOENT") return undefined
-    console.warn(`Failed to read image file at ${filePath}`, e)
-    return undefined
-  }
+/** Norm values of a field, as calculated for the fertilizer plan. */
+type FieldNormValues = {
+  manure: GebruiksnormResult
+  phosphate: GebruiksnormResult
+  nitrogen: GebruiksnormResult
+  renure?: GebruiksnormResult
+}
+
+/** Norm fillings of a field, as calculated for the fertilizer plan. */
+type FieldNormFillings = {
+  manure: NormFilling
+  phosphate: NormFilling
+  nitrogen: NormFilling
+  renure?: NormFilling
+}
+
+/**
+ * Returns the timeframe of a calendar year in the Europe/Amsterdam time zone, the same
+ * timeframe that fdm-app uses for a calendar year.
+ *
+ * @param year - The calendar year.
+ * @returns Start (1 January 00:00) and end (31 December 23:59:59.999) of the year.
+ */
+export function getCalendarYearTimeframe(year: number): { start: Date; end: Date } {
+  return getYearTimeframe(year) as { start: Date; end: Date }
 }
 
 function formatDate(date: Date | string | number | undefined): string {
@@ -67,13 +70,24 @@ function isNormYear(year: string): year is "2025" | "2026" {
   return year === "2025" || year === "2026"
 }
 
-export async function collectBemestingsplanInputFromDatabase(
+/**
+ * Collects all data a fertilizer plan of a farm is based on: the farm, its fields with their
+ * cultivations, fertilizer applications and soil data, the catalogues, and the derogation,
+ * organic certification and grazing intention of the year.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The principal requesting the plan. Needs read access to the farm.
+ * @param b_id_farm - The farm.
+ * @param year - Calendar year of the plan.
+ * @returns The input data of the plan.
+ */
+export async function collectFertilizerPlanInput(
   fdm: FdmType,
   principal_id: string,
   b_id_farm: string,
   year: number,
 ) {
-  const timeframe = getTimeframe({ calendar: String(year) })
+  const timeframe = getCalendarYearTimeframe(year)
 
   const [
     farm,
@@ -127,68 +141,59 @@ export async function collectBemestingsplanInputFromDatabase(
   }
 }
 
-export function getBemestingsplanInputHash(input: BemestingsplanInput) {
+/**
+ * Computes a hash of the input data of a fertilizer plan. A saved plan is up to date when the
+ * hash of the current input equals the hash stored with the plan. The hash includes the versions
+ * of `fdm-reports` and `fdm-calculator`, so a new calculation method marks plans as outdated.
+ *
+ * @param input - The input data from {@link collectFertilizerPlanInput}.
+ * @returns The hash.
+ */
+export function getFertilizerPlanInputHash(input: FertilizerPlanInput): string {
   return generateCalculationHash(
     "computeBemestingsplan",
-    `fdm-app:${import.meta.env.PUBLIC_APP_VERSION}|${fdmCalculator.calculatorVersion}`,
+    `fdm-reports:${pkg.version}|${fdmCalculator.calculatorVersion}`,
     input,
   )
 }
 
-type BemestingsplanInput = Awaited<ReturnType<typeof collectBemestingsplanInputFromDatabase>>
+/** The input data of a fertilizer plan, as collected from the database. */
+export type FertilizerPlanInput = Awaited<ReturnType<typeof collectFertilizerPlanInput>>
 
-async function computeBemestingsplanConfig() {
-  // Resolve public directory dynamically to handle both dev (monorepo root) and Docker/prod (app root)
-  let publicDir = path.resolve(process.cwd(), "public")
-  try {
-    const monorepoPublicDir = path.resolve(process.cwd(), "fdm-app", "public")
-    const stat = await fs.stat(monorepoPublicDir)
-    if (stat.isDirectory()) {
-      publicDir = monorepoPublicDir
-    }
-    // oxlint-disable-next-line no-unused-vars - monorepoPublicDir is not assumed to exist in this case
-  } catch (_) {}
-
-  const relativeLogoPath = clientConfig.logomark?.startsWith("/")
-    ? clientConfig.logomark.substring(1)
-    : clientConfig.logomark
-  const logoPathRaw = relativeLogoPath ? path.join(publicDir, relativeLogoPath) : undefined
-  const logoInvertedPathRaw: string | undefined = path.join(
-    publicDir,
-    "fdm-high-resolution-logo-transparent-no-text.png",
-  )
-
-  const coverImagePathRaw: string | undefined = path.join(publicDir, "bemestingsplan_cover.jpg")
-
-  const [logoDataUri, logoInvertedDataUri, coverImageDataUri] = await Promise.all([
-    getBase64Image(logoPathRaw),
-    getBase64Image(logoInvertedPathRaw),
-    getBase64Image(coverImagePathRaw),
-  ])
-
-  return {
-    name: clientConfig.name,
-    logo: logoDataUri,
-    logoInverted: logoInvertedDataUri,
-    coverImage: coverImageDataUri,
-  }
+/** Options for {@link computeFertilizerPlanData}. */
+export interface ComputeFertilizerPlanOptions {
+  /** NMI API key used for the nutrient advice. Without it, fields get no advice. */
+  nmiApiKey: string | undefined
+  /** Name, logos and cover image shown in the PDF. */
+  branding: ReportBranding
 }
 
-export async function computeBemestingsplanData({
-  year,
-  farm,
-  fields,
-  fertilizersCatalogue,
-  cultivationsCatalogue,
-  derogationGranted,
-  has_organic_certification,
-  has_grazing_intention,
-}: BemestingsplanInput): Promise<BemestingsplanData> {
-  const configPromise = computeBemestingsplanConfig()
+/**
+ * Calculates the content of a fertilizer plan: usage norms and their filling, nutrient advice,
+ * planned doses and the organic matter balance, per field and for the farm.
+ *
+ * @param fdm - The FDM instance.
+ * @param input - The input data from {@link collectFertilizerPlanInput}.
+ * @param options - NMI API key and branding.
+ * @returns The data shown in the PDF.
+ */
+export async function computeFertilizerPlanData(
+  fdm: FdmType,
+  {
+    year,
+    farm,
+    fields,
+    fertilizersCatalogue,
+    cultivationsCatalogue,
+    derogationGranted,
+    has_organic_certification,
+    has_grazing_intention,
+  }: FertilizerPlanInput,
+  options: ComputeFertilizerPlanOptions,
+): Promise<FertilizerPlanData> {
+  const pdfFieldsData: FertilizerPlanData["fields"] = []
 
-  const pdfFieldsData: BemestingsplanData["fields"] = []
-
-  const timeframe = getTimeframe({ calendar: String(year) }) as { start: Date; end: Date }
+  const timeframe = getCalendarYearTimeframe(year)
 
   const batchSize = 10
   for (let batchStart = 0; batchStart < fields.length; batchStart += batchSize) {
@@ -246,59 +251,56 @@ export async function computeBemestingsplanData({
               },
             }
 
-            const normForPhosphatePromise = normFunctions.calculateNormForPhosphate(fdm, normInput)
-
             const renurePromise: Promise<GebruiksnormResult | undefined> =
               "calculateNormForRenure" in normFunctions
                 ? normFunctions.calculateNormForRenure(fdm, normInput)
                 : Promise.resolve(undefined)
 
-            const [nitrogen, manure, renure] = await Promise.all([
+            // All norms are awaited together, so a failing norm is handled by the catch below.
+            const [nitrogen, manure, phosphate, renure] = await Promise.all([
               normFunctions.calculateNormForNitrogen(fdm, normInput),
               normFunctions.calculateNormForManure(fdm, normInput),
+              normFunctions.calculateNormForPhosphate(fdm, normInput),
               renurePromise,
             ])
 
+            const fillingInput = {
+              cultivations: cultivations,
+              applications: fertilizerApplications,
+              fertilizers: fertilizersCatalogue,
+              has_organic_certification: has_organic_certification,
+              has_grazing_intention: has_grazing_intention,
+              fosfaatgebruiksnorm: phosphate.normValue,
+              b_centroid: field.b_centroid,
+            }
+            const renureFillingPromise: Promise<NormFilling | undefined> =
+              "calculateFertilizerApplicationFillingForRenure" in normFillingFunctions
+                ? normFillingFunctions.calculateFertilizerApplicationFillingForRenure(
+                    fdm,
+                    fillingInput,
+                  )
+                : Promise.resolve(undefined)
             const [nitrogenFilling, phosphateFilling, manureFilling, renureFilling] =
-              await normForPhosphatePromise.then((fosfaatgebruiksnorm) => {
-                const fillingInput = {
-                  cultivations: cultivations,
-                  applications: fertilizerApplications,
-                  fertilizers: fertilizersCatalogue,
-                  has_organic_certification: has_organic_certification,
-                  has_grazing_intention: has_grazing_intention,
-                  fosfaatgebruiksnorm: fosfaatgebruiksnorm.normValue,
-                  b_centroid: field.b_centroid,
-                }
-                const renureFillingPromise: Promise<NormFilling | undefined> =
-                  "calculateFertilizerApplicationFillingForRenure" in normFillingFunctions
-                    ? normFillingFunctions.calculateFertilizerApplicationFillingForRenure(
-                        fdm,
-                        fillingInput,
-                      )
-                    : Promise.resolve(undefined)
-
-                return Promise.all([
-                  normFillingFunctions.calculateFertilizerApplicationFillingForNitrogen(
-                    fdm,
-                    fillingInput,
-                  ),
-                  normFillingFunctions.calculateFertilizerApplicationFillingForPhosphate(
-                    fdm,
-                    fillingInput,
-                  ),
-                  normFillingFunctions.calculateFertilizerApplicationFillingForManure(
-                    fdm,
-                    fillingInput,
-                  ),
-                  renureFillingPromise,
-                ])
-              })
+              await Promise.all([
+                normFillingFunctions.calculateFertilizerApplicationFillingForNitrogen(
+                  fdm,
+                  fillingInput,
+                ),
+                normFillingFunctions.calculateFertilizerApplicationFillingForPhosphate(
+                  fdm,
+                  fillingInput,
+                ),
+                normFillingFunctions.calculateFertilizerApplicationFillingForManure(
+                  fdm,
+                  fillingInput,
+                ),
+                renureFillingPromise,
+              ])
 
             normsResult = {
               value: {
                 nitrogen: nitrogen,
-                phosphate: await normForPhosphatePromise,
+                phosphate: phosphate,
                 manure: manure,
                 renure: renure,
               },
@@ -334,7 +336,7 @@ export async function computeBemestingsplanData({
                 b_lu_catalogue: mainCultivation.b_lu_catalogue,
                 b_centroid: field.b_centroid,
                 currentSoilData: currentSoilData,
-                nmiApiKey: serverConfig.integrations.nmi?.api_key,
+                nmiApiKey: options.nmiApiKey,
                 b_bufferstrip: field.b_bufferstrip,
               })
 
@@ -632,7 +634,7 @@ export async function computeBemestingsplanData({
 
   const data = {
     generatedAt: new Date().toISOString(),
-    config: await configPromise,
+    config: options.branding,
     farm: {
       name: farm.b_name_farm || "Onbekend",
       kvk: farm.b_businessid_farm || undefined,

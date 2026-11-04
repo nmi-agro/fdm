@@ -299,6 +299,18 @@ importers:
       '@nmi-agro/fdm-core':
         specifier: workspace:*
         version: link:../fdm-core
+      '@nmi-agro/fdm-data':
+        specifier: workspace:*
+        version: link:../fdm-data
+      '@nmi-agro/fdm-reports':
+        specifier: workspace:*
+        version: link:../fdm-reports
+      '@nmi-agro/fdm-rvo':
+        specifier: workspace:*
+        version: link:../fdm-rvo
+      '@nmi-agro/fdm-storage':
+        specifier: workspace:*
+        version: link:../fdm-storage
       '@scalar/hono-api-reference':
         specifier: ^0.12.16
         version: 0.12.16(hono@4.13.14)
@@ -411,9 +423,15 @@ importers:
       '@nmi-agro/fdm-helpdesk':
         specifier: workspace:*
         version: link:../fdm-helpdesk
+      '@nmi-agro/fdm-reports':
+        specifier: workspace:*
+        version: link:../fdm-reports
       '@nmi-agro/fdm-rvo':
         specifier: workspace:^
         version: link:../fdm-rvo
+      '@nmi-agro/fdm-storage':
+        specifier: workspace:*
+        version: link:../fdm-storage
       '@posthog/ai':
         specifier: ^8.17.0
         version: 8.17.0(@langchain/core@1.3.1(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.0(@langchain/core@1.3.1(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@5.59.0(@opentelemetry/api@1.10.0))
@@ -459,9 +477,6 @@ importers:
       '@tanstack/react-table':
         specifier: ^9.3.1
         version: 9.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@terraformer/wkt':
-        specifier: ^2.2.2
-        version: 2.2.2
       '@turf/area':
         specifier: ^7.4.0
         version: 7.4.0
@@ -694,9 +709,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
-      '@types/terraformer__wkt':
-        specifier: ^2.0.3
-        version: 2.0.3
       '@types/validator':
         specifier: ^13.15.10
         version: 13.15.10
@@ -724,6 +736,18 @@ importers:
       '@nmi-agro/fdm-core':
         specifier: workspace:^
         version: link:../fdm-core
+      '@nmi-agro/fdm-data':
+        specifier: workspace:^
+        version: link:../fdm-data
+      '@terraformer/wkt':
+        specifier: ^2.2.2
+        version: 2.2.2
+      '@turf/boolean-point-in-polygon':
+        specifier: ^7.4.0
+        version: 7.4.0
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -733,6 +757,9 @@ importers:
       geotiff:
         specifier: ^3.0.5
         version: 3.0.5
+      proj4:
+        specifier: ^2.22.0
+        version: 2.22.0(geotiff@3.0.5)
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -743,6 +770,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
+      '@types/terraformer__wkt':
+        specifier: ^2.0.3
+        version: 2.0.3
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(vitest@5.0.5)
@@ -935,9 +965,15 @@ importers:
       '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
+      '@nmi-agro/fdm-reports':
+        specifier: workspace:*
+        version: link:../fdm-reports
       '@nmi-agro/fdm-rvo':
         specifier: workspace:*
         version: link:../fdm-rvo
+      '@nmi-agro/fdm-storage':
+        specifier: workspace:*
+        version: link:../fdm-storage
       typedoc:
         specifier: 'catalog:'
         version: 0.28.20(@typescript/typescript6@6.0.2)
@@ -991,6 +1027,58 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
+  fdm-reports:
+    dependencies:
+      '@nmi-agro/fdm-calculator':
+        specifier: workspace:^
+        version: link:../fdm-calculator
+      '@nmi-agro/fdm-core':
+        specifier: workspace:^
+        version: link:../fdm-core
+      '@nmi-agro/fdm-storage':
+        specifier: workspace:^
+        version: link:../fdm-storage
+      '@react-pdf/renderer':
+        specifier: ^4.9.0
+        version: 4.9.0(react@19.3.1)
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+    devDependencies:
+      '@dotenvx/dotenvx':
+        specifier: 'catalog:'
+        version: 2.38.2
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(vitest@5.0.5)
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.3(tsx@4.23.15)(typescript@7.0.2)
+      typedoc:
+        specifier: 'catalog:'
+        version: 0.28.20(typescript@7.0.2)
+      typedoc-plugin-missing-exports:
+        specifier: 'catalog:'
+        version: 4.1.4(typedoc@0.28.20(typescript@7.0.2))
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
   fdm-rvo:
     dependencies:
       '@nmi-agro/fdm-core':
@@ -1009,6 +1097,9 @@ importers:
         specifier: ^7.4.0
         version: 7.4.0
       '@turf/intersect':
+        specifier: ^7.4.0
+        version: 7.4.0
+      '@turf/length':
         specifier: ^7.4.0
         version: 7.4.0
       '@turf/union':
@@ -1039,6 +1130,40 @@ importers:
       typedoc:
         specifier: 'catalog:'
         version: 0.28.20(typescript@7.0.2)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  fdm-storage:
+    dependencies:
+      '@file-type/xml':
+        specifier: ^1.2.0
+        version: 1.2.0
+      '@google-cloud/storage':
+        specifier: ^8.4.0
+        version: 8.4.0(supports-color@8.1.1)
+      file-type:
+        specifier: ^22.2.0
+        version: 22.2.0(supports-color@8.1.1)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(vitest@5.0.5)
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.3(tsx@4.23.15)(typescript@7.0.2)
+      typedoc:
+        specifier: 'catalog:'
+        version: 0.28.20(typescript@7.0.2)
+      typedoc-plugin-missing-exports:
+        specifier: 'catalog:'
+        version: 4.1.4(typedoc@0.28.20(typescript@7.0.2))
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

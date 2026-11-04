@@ -1,33 +1,42 @@
 /** @module */
 
 import {
+  addSoilParameterEstimatesToField,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
   createFunctionsForNorms,
+  extractSoilAnalysesFromPdfs,
   getDoseForField,
   getFarmIndicators,
+  getFarmMeasureSummary,
+  getFarmNutrientAdviceRows,
   getFieldIndicators,
   getFieldMeasureOptions,
   getNitrogenBalanceField,
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice,
+  getNitrogenBalanceForFarms,
   getOrganicMatterBalanceField,
+  getOrganicMatterBalanceForFarms,
 } from "@nmi-agro/fdm-calculator"
 import {
+  acceptInvitation,
   addCultivation,
   addDerogation,
   addFarm,
   addFarmToGroup,
   addFertilizer,
   addFertilizerApplication,
+  addFertilizerToCatalogue,
   addField,
   addHarvest,
   addMeasure,
   addOrganicCertification,
   addSoilAnalysis,
+  addSoilImage,
+  addSoilImageAnnotation,
   createFarmGroup,
+  declineInvitation,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -36,19 +45,24 @@ import {
   getCultivation,
   getCultivations,
   getCultivationsForFarm,
+  getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getCurrentSoilDataPerZone,
   getEnabledCultivationCatalogues,
   getEnabledFertilizerCatalogues,
   getEnabledMeasureCatalogues,
-  // getCultivationsFromCatalogue,
   getFarm,
   getFarmGroup,
+  getFarmIdsOfOrganization,
   getFarms,
   getFertilizer,
   getFertilizerApplication,
   getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
+  getFertilizerPlan,
+  getFertilizerPlans,
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
@@ -57,16 +71,22 @@ import {
   getGrazingIntentions,
   getHarvest,
   getHarvests,
+  getHarvestsForFarm,
   getMeasure,
   getMeasures,
+  getMeasuresForFarm,
   getMeasuresFromCatalogue,
   getOrganicCertification,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
+  getSoilImage,
+  getSoilImageAnnotation,
+  getSoilImages,
   listDerogations,
   listFarmGroups,
   listOrganicCertifications,
+  listPendingInvitationsForUser,
   removeCultivation,
   removeDerogation,
   removeFarm,
@@ -81,17 +101,29 @@ import {
   removeMeasure,
   removeOrganicCertification,
   removeSoilAnalysis,
+  removeSoilImage,
+  removeSoilImageAnnotation,
   renameFarmGroup,
   setGrazingIntention,
   updateCultivation,
   updateFarm,
   updateFarmGroupMembership,
   updateFertilizerApplication,
+  updateFertilizerFromCatalogue,
   updateField,
   updateHarvest,
   updateMeasure,
   updateSoilAnalysis,
+  updateSoilImageAnnotation,
 } from "@nmi-agro/fdm-core"
+import {
+  createFertilizerPlanStatusChecker,
+  establishFertilizerPlan,
+  type ReportBranding,
+  removeFertilizerPlanWithFile,
+} from "@nmi-agro/fdm-reports"
+import { applyRvoImport, reviewShapefileImport } from "@nmi-agro/fdm-rvo"
+import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
 
 /**
@@ -113,6 +145,17 @@ export interface FdmApiConfig {
    * responses. Omit when the API is served from the same origin as the app.
    */
   allowedOrigins?: string[]
+  /**
+   * Storage for uploaded and generated files (soil images, lab reports, fertilizer plans).
+   * Defaults to Google Cloud Storage when `GCS_BUCKET_NAME` is set. When no storage is
+   * available, file endpoints respond with `503 Service Unavailable`.
+   */
+  storage?: FileStorage
+  /**
+   * Name and images shown in generated reports such as the fertilizer plan. Defaults to the
+   * `appName` without images.
+   */
+  reportBranding?: ReportBranding | (() => Promise<ReportBranding>)
 }
 
 /**
@@ -219,11 +262,60 @@ export interface FdmApiServices {
   getDoseForField: typeof getDoseForField
   // Norms
   createFunctionsForNorms: typeof createFunctionsForNorms
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice: typeof getNutrientAdvice
+  // Custom fertilizers
+  addFertilizerToCatalogue: typeof addFertilizerToCatalogue
+  updateFertilizerFromCatalogue: typeof updateFertilizerFromCatalogue
+  // Farm-level lists
+  getFertilizerApplicationsForFarm: typeof getFertilizerApplicationsForFarm
+  getHarvestsForFarm: typeof getHarvestsForFarm
+  getMeasuresForFarm: typeof getMeasuresForFarm
+  // Current soil data per farm
+  getCurrentSoilDataForFarm: typeof getCurrentSoilDataForFarm
+  // Nutrient advice
+  getFarmNutrientAdviceRows: typeof getFarmNutrientAdviceRows
+  // Harvest parameters
+  getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
+  // Invitations
+  listPendingInvitationsForUser: typeof listPendingInvitationsForUser
+  acceptInvitation: typeof acceptInvitation
+  declineInvitation: typeof declineInvitation
+  // Soil images
+  getSoilImages: typeof getSoilImages
+  getSoilImage: typeof getSoilImage
+  addSoilImage: typeof addSoilImage
+  removeSoilImage: typeof removeSoilImage
+  addSoilImageAnnotation: typeof addSoilImageAnnotation
+  getSoilImageAnnotation: typeof getSoilImageAnnotation
+  updateSoilImageAnnotation: typeof updateSoilImageAnnotation
+  removeSoilImageAnnotation: typeof removeSoilImageAnnotation
+  // Lab reports
+  extractSoilAnalysesFromPdfs: typeof extractSoilAnalysesFromPdfs
+  // Field import
+  reviewShapefileImport: typeof reviewShapefileImport
+  applyRvoImport: typeof applyRvoImport
+  // Soil estimates
+  addSoilParameterEstimatesToField: typeof addSoilParameterEstimatesToField
+  // Fertilizer plans
+  establishFertilizerPlan: typeof establishFertilizerPlan
+  removeFertilizerPlanWithFile: typeof removeFertilizerPlanWithFile
+  createFertilizerPlanStatusChecker: typeof createFertilizerPlanStatusChecker
+  // Fertilizer plans (core)
+  getFertilizerPlans: typeof getFertilizerPlans
+  getFertilizerPlan: typeof getFertilizerPlan
+  // Farm group aggregations
+  getNitrogenBalanceForFarms: typeof getNitrogenBalanceForFarms
+  getOrganicMatterBalanceForFarms: typeof getOrganicMatterBalanceForFarms
+  getFarmMeasureSummary: typeof getFarmMeasureSummary
+  // Organizations
+  getFarmIdsOfOrganization: typeof getFarmIdsOfOrganization
+  // Files
+  /** Returns the file storage; `undefined` when no storage is configured. */
+  getStorage: () => FileStorage | undefined
+  /** Returns the name and images shown in generated reports. */
+  getReportBranding: () => Promise<ReportBranding>
 }
 
-const defaultServices: FdmApiServices = {
+const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   getFarms,
   getFarm,
   addFarm,
@@ -308,8 +400,45 @@ const defaultServices: FdmApiServices = {
   getOrganicMatterBalanceField,
   getDoseForField,
   createFunctionsForNorms,
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice,
+  addFertilizerToCatalogue,
+  updateFertilizerFromCatalogue,
+  getFertilizerApplicationsForFarm,
+  getHarvestsForFarm,
+  getMeasuresForFarm,
+  getCurrentSoilDataForFarm,
+  getFarmNutrientAdviceRows,
+  getCultivationsFromCatalogue,
+  listPendingInvitationsForUser,
+  acceptInvitation,
+  declineInvitation,
+  getSoilImages,
+  getSoilImage,
+  addSoilImage,
+  removeSoilImage,
+  addSoilImageAnnotation,
+  getSoilImageAnnotation,
+  updateSoilImageAnnotation,
+  removeSoilImageAnnotation,
+  extractSoilAnalysesFromPdfs,
+  reviewShapefileImport,
+  applyRvoImport,
+  addSoilParameterEstimatesToField,
+  establishFertilizerPlan,
+  removeFertilizerPlanWithFile,
+  createFertilizerPlanStatusChecker,
+  getFertilizerPlans,
+  getFertilizerPlan,
+  getNitrogenBalanceForFarms,
+  getOrganicMatterBalanceForFarms,
+  getFarmMeasureSummary,
+  getFarmIdsOfOrganization,
+  getStorage: () => (isGcsConfigured() ? defaultStorage() : undefined),
+}
+
+let gcsStorage: FileStorage | undefined
+function defaultStorage(): FileStorage {
+  gcsStorage ??= createGcsStorage()
+  return gcsStorage
 }
 
 /**
@@ -335,7 +464,16 @@ export function createFdmApi(
   config: FdmApiConfig,
   services: Partial<FdmApiServices> = {},
 ) {
-  return buildApp(fdm, auth, config, { ...defaultServices, ...services })
+  const branding = config.reportBranding
+  const storage = config.storage
+  const configServices: Pick<FdmApiServices, "getReportBranding"> & Partial<FdmApiServices> = {
+    getReportBranding:
+      typeof branding === "function" ? branding : async () => branding ?? { name: config.appName },
+    ...(storage ? { getStorage: () => storage } : {}),
+  }
+  return buildApp(fdm, auth, config, { ...defaultServices, ...configServices, ...services })
 }
 
 export type { ApiEnv, ApiPrincipalContext } from "./types"
+export type { FileStorage } from "@nmi-agro/fdm-storage"
+export type { ReportBranding } from "@nmi-agro/fdm-reports"
