@@ -9,7 +9,9 @@
  *   SENTRY_RELEASE           — Sentry release tag (defaults to npm_package_version)
  *   FDM_API_ALLOWED_ORIGINS  — comma-separated allowed CORS origins; omit to allow all origins (*)
  *   GCS_BUCKET_NAME          — bucket for uploaded and generated files; omit to disable file endpoints
- *   NMI_API_KEY              — NMI API key for nutrient advice, indicators and lab report reading
+ *   GOOGLE_APPLICATION_CREDENTIALS, GCS_SERVICE_ACCOUNT_EMAIL, GCS_SERVICE_ACCOUNT_KEY
+ *                            — optional GCS credentials; omit to use Application Default Credentials
+ *   NMI_API_KEY              — NMI API key for nutrient advice, indicators, lab report reading and fertilizer plans
  *   FDM_REPORT_LOGO          — path to the logo (PNG or JPEG) shown in generated reports
  *   FDM_REPORT_LOGO_INVERTED — path to the logo for dark backgrounds, such as the report cover
  *   FDM_REPORT_COVER         — path to the cover image (PNG or JPEG) of generated reports

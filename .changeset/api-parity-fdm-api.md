@@ -7,5 +7,6 @@ Add endpoints for the farm data features of the web app: custom fertilizers (`PO
 The standalone fdm-api service needs new configuration for these endpoints. Without it, the endpoints that need a setting below return 503:
 
 - `GCS_BUCKET_NAME`: the bucket for uploaded and generated files. Use the same bucket as fdm-app, so files are shared between both.
+- `GOOGLE_APPLICATION_CREDENTIALS`, `GCS_SERVICE_ACCOUNT_EMAIL` or `GCS_SERVICE_ACCOUNT_KEY` (optional): credentials for the bucket, as in fdm-app. Without them, Application Default Credentials are used.
 - `NMI_API_KEY`: needed for the nutrient advice, reading lab reports, the fertilizer plans and the soil estimates of new fields after an import.
 - `FDM_REPORT_LOGO`, `FDM_REPORT_LOGO_INVERTED` and `FDM_REPORT_COVER` (optional): paths to the logo, the logo for dark backgrounds and the cover image (PNG or JPEG) of the fertilizer plan. The files must be available in the fdm-api container. Without them, the plan shows only the application name.
