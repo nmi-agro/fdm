@@ -251,59 +251,56 @@ export async function computeFertilizerPlanData(
               },
             }
 
-            const normForPhosphatePromise = normFunctions.calculateNormForPhosphate(fdm, normInput)
-
             const renurePromise: Promise<GebruiksnormResult | undefined> =
               "calculateNormForRenure" in normFunctions
                 ? normFunctions.calculateNormForRenure(fdm, normInput)
                 : Promise.resolve(undefined)
 
-            const [nitrogen, manure, renure] = await Promise.all([
+            // All norms are awaited together, so a failing norm is handled by the catch below.
+            const [nitrogen, manure, phosphate, renure] = await Promise.all([
               normFunctions.calculateNormForNitrogen(fdm, normInput),
               normFunctions.calculateNormForManure(fdm, normInput),
+              normFunctions.calculateNormForPhosphate(fdm, normInput),
               renurePromise,
             ])
 
+            const fillingInput = {
+              cultivations: cultivations,
+              applications: fertilizerApplications,
+              fertilizers: fertilizersCatalogue,
+              has_organic_certification: has_organic_certification,
+              has_grazing_intention: has_grazing_intention,
+              fosfaatgebruiksnorm: phosphate.normValue,
+              b_centroid: field.b_centroid,
+            }
+            const renureFillingPromise: Promise<NormFilling | undefined> =
+              "calculateFertilizerApplicationFillingForRenure" in normFillingFunctions
+                ? normFillingFunctions.calculateFertilizerApplicationFillingForRenure(
+                    fdm,
+                    fillingInput,
+                  )
+                : Promise.resolve(undefined)
             const [nitrogenFilling, phosphateFilling, manureFilling, renureFilling] =
-              await normForPhosphatePromise.then((fosfaatgebruiksnorm) => {
-                const fillingInput = {
-                  cultivations: cultivations,
-                  applications: fertilizerApplications,
-                  fertilizers: fertilizersCatalogue,
-                  has_organic_certification: has_organic_certification,
-                  has_grazing_intention: has_grazing_intention,
-                  fosfaatgebruiksnorm: fosfaatgebruiksnorm.normValue,
-                  b_centroid: field.b_centroid,
-                }
-                const renureFillingPromise: Promise<NormFilling | undefined> =
-                  "calculateFertilizerApplicationFillingForRenure" in normFillingFunctions
-                    ? normFillingFunctions.calculateFertilizerApplicationFillingForRenure(
-                        fdm,
-                        fillingInput,
-                      )
-                    : Promise.resolve(undefined)
-
-                return Promise.all([
-                  normFillingFunctions.calculateFertilizerApplicationFillingForNitrogen(
-                    fdm,
-                    fillingInput,
-                  ),
-                  normFillingFunctions.calculateFertilizerApplicationFillingForPhosphate(
-                    fdm,
-                    fillingInput,
-                  ),
-                  normFillingFunctions.calculateFertilizerApplicationFillingForManure(
-                    fdm,
-                    fillingInput,
-                  ),
-                  renureFillingPromise,
-                ])
-              })
+              await Promise.all([
+                normFillingFunctions.calculateFertilizerApplicationFillingForNitrogen(
+                  fdm,
+                  fillingInput,
+                ),
+                normFillingFunctions.calculateFertilizerApplicationFillingForPhosphate(
+                  fdm,
+                  fillingInput,
+                ),
+                normFillingFunctions.calculateFertilizerApplicationFillingForManure(
+                  fdm,
+                  fillingInput,
+                ),
+                renureFillingPromise,
+              ])
 
             normsResult = {
               value: {
                 nitrogen: nitrogen,
-                phosphate: await normForPhosphatePromise,
+                phosphate: phosphate,
                 manure: manure,
                 renure: renure,
               },

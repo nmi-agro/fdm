@@ -339,6 +339,24 @@ describe("computeFertilizerPlanData", () => {
     expect(data.fields[0]?.advice.d_n_req).toBe(0)
   })
 
+  it("adds an error row when a norm fails while other norms are still running", async () => {
+    // The phosphate norm fails before the nitrogen norm settles. The failure must be handled
+    // per field; an unhandled rejection would stop the server process.
+    calculator.createFunctionsForNorms.mockReturnValue({
+      ...normFunctions(true),
+      calculateNormForNitrogen: vi.fn(
+        () => new Promise((resolve) => setTimeout(() => resolve(norm(200)), 20)),
+      ),
+      calculateNormForPhosphate: vi.fn().mockRejectedValue(new Error("no soil data")),
+    })
+    const data = await computeFertilizerPlanData(
+      fdm,
+      input(2026, [field("f1", { cultivations: [mainCultivation] }), field("f2")], null),
+      options,
+    )
+    expect(data.fields.map((f) => f.mainCrop).sort()).toEqual(["Fout bij laden", "Fout bij laden"])
+  })
+
   it("adds a placeholder row for a field that fails", async () => {
     calculator.getOrganicMatterBalanceField.mockRejectedValue(new Error("boom"))
     const data = await computeFertilizerPlanData(
