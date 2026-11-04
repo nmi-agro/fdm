@@ -188,7 +188,7 @@ function isTrueClaim(value: unknown): boolean {
  * following holds:
  *
  * - the `email_verified` claim is `true` (or the string `"true"`);
- * - the `xms_edov` claim is `true`, meaning the tenant owns the email domain;
+ * - the `xms_edov` claim is `true` (or `1`, `"1"`, `"true"`), meaning the tenant owns the email domain;
  * - the address is listed in `verified_primary_email` or `verified_secondary_email`;
  * - the account is a personal Microsoft account (consumer tenant).
  *
@@ -205,7 +205,7 @@ export function isMicrosoftEmailVerified(
 ): boolean {
   if (!email) return false
   if (isTrueClaim(claims.email_verified)) return true
-  if (isTrueClaim(claims.xms_edov)) return true
+  if (isTrueClaim(claims.xms_edov) || claims.xms_edov === "1") return true
 
   const normalizedEmail = email.trim().toLowerCase()
   const verifiedEmails = [claims.verified_primary_email, claims.verified_secondary_email].flatMap(

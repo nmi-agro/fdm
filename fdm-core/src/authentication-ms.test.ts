@@ -467,6 +467,8 @@ describe("createMicrosoftSocialConfig", () => {
     it('rejects email_verified false and "false"', () => {
       expect(isMicrosoftEmailVerified({ email_verified: false }, email)).toBe(false)
       expect(isMicrosoftEmailVerified({ email_verified: "false" }, email)).toBe(false)
+      // email_verified stays strict: the string "1" is not accepted
+      expect(isMicrosoftEmailVerified({ email_verified: "1" }, email)).toBe(false)
     })
 
     it("rejects when no verification claim is present", () => {
@@ -480,6 +482,7 @@ describe("createMicrosoftSocialConfig", () => {
     it("accepts xms_edov when the tenant owns the email domain", () => {
       expect(isMicrosoftEmailVerified({ xms_edov: true }, email)).toBe(true)
       expect(isMicrosoftEmailVerified({ xms_edov: 1 }, email)).toBe(true)
+      expect(isMicrosoftEmailVerified({ xms_edov: "1" }, email)).toBe(true)
       expect(isMicrosoftEmailVerified({ xms_edov: false }, email)).toBe(false)
     })
 
