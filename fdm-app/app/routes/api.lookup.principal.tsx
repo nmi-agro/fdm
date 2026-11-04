@@ -65,7 +65,9 @@ export async function loader({ request, url }: LoaderFunctionArgs) {
     // Map the result to the format expected by AutoComplete
     const autocompletePrincipals: AutocompletePrincipal[] = principals
       .map((p): Omit<AutocompletePrincipal, "value"> & { value: string | null } => ({
-        value: p[valueSubscript],
+        // Users are addressed by email (invitations reject usernames); this is the email the
+        // searcher typed, so returning it reveals nothing new. Organizations use their slug.
+        value: !isHelpdeskLookup && p.type === "user" ? p.email : p[valueSubscript],
         label: p.displayUserName ?? p.username,
         icon: p.type, // Pass the type as the icon identifier
         // A user is only matched on the email the searcher typed, so showing it reveals nothing new

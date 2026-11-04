@@ -36,7 +36,6 @@ type Props<
 > = {
   selectedValue: T | undefined
   onSelectedValueChange: (value: T | undefined) => void
-  onItemSelect?: (value: T) => void
   lookupUrl: string // API endpoint for lookup
   searchParamName?: string // Query parameter name for search term (default: 'identifier')
   excludeValues?: readonly string[] // Optional array of values to filter out
@@ -60,7 +59,6 @@ export function AutoComplete<
 >({
   selectedValue,
   onSelectedValueChange,
-  onItemSelect,
   lookupUrl,
   searchParamName = "identifier", // Default search param name
   excludeValues = EMPTY_EXCLUDE_VALUES,
@@ -152,7 +150,6 @@ export function AutoComplete<
     const selectedItem = items.find((item) => item.value === itemValue)
     if (selectedItem) {
       onSelectedValueChange(selectedItem.value as T)
-      onItemSelect?.(selectedItem.value as T)
       setTyped({ for: selectedItem.value as T, text: selectedItem.label })
       setLastRequested(selectedItem.label) // Prevent unnecessary refetch
       if (form && name) {

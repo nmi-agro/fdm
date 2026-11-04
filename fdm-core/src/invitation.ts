@@ -23,12 +23,6 @@ export const MAX_INVITATIONS_PER_INVITER_PER_HOUR = 20
 export const MAX_INVITATIONS_PENDING_PER_TARGET = 10
 
 /**
- * How an invitation target was identified by the caller.
- * See {@link createInvitation}.
- */
-export type InvitationTargetKind = "email" | "selected"
-
-/**
  * Creates an invitation for a principal or email address to access a resource.
  *
  * If the target is a registered principal, a principal-based invitation is created.
@@ -44,12 +38,10 @@ export type InvitationTargetKind = "email" | "selected"
  * @param target - The username, email, or slug of the invitee.
  * @param role - The role to grant upon acceptance.
  * @param expires - Optional expiry date; defaults to 7 days from now.
- * @param target_kind - How the target was identified. `"email"` means the target was typed in, so a
- *   registered user is only accepted when the target is an email address; organization slugs are
- *   always accepted. `"selected"` means the target was picked from the principal lookup, so a
- *   username is accepted too. When omitted, no restriction is applied (for trusted callers).
  *
- * @throws {Error} If the target is already a member, or target is invalid.
+ * @throws {Error} If the target is already a member, or target is invalid. Registered users can only
+ *   be invited by their email address, so a username that resolves to a user is rejected;
+ *   organizations are identified by their slug.
  */
 export async function createInvitation(
   fdm: FdmType,
@@ -59,7 +51,6 @@ export async function createInvitation(
   target: string,
   role: Role,
   expires?: Date,
-  target_kind?: InvitationTargetKind,
 ): Promise<void> {
   try {
     return await fdm.transaction(async (tx) => {
@@ -72,12 +63,8 @@ export async function createInvitation(
       let targetPrincipalId: string | null = null
 
       if (targetDetails) {
-        // A typed username must not resolve to a user: users are only addressed by email
-        if (
-          target_kind === "email" &&
-          targetDetails.type === "user" &&
-          !isEmail(normalizedTarget)
-        ) {
+        // Users are only addressed by email, so a username must not resolve to a user
+        if (targetDetails.type === "user" && !isEmail(normalizedTarget)) {
           throw new Error("Target must be a valid email address")
         }
 

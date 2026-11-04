@@ -627,7 +627,7 @@ describe("declineInvitation", () => {
     await grantRoleToFarm(
       fdm,
       ownerPrincipalId,
-      "decline_target_principal",
+      "decline_target_principal@example.com",
       principalFarmId,
       "advisor",
     )
@@ -857,7 +857,7 @@ describe("listPendingInvitationsForPrincipal", () => {
   })
 })
 
-describe("createInvitation target kind", () => {
+describe("createInvitation user targets", () => {
   let fdm: FdmServerType
   let ownerPrincipalId: string
   let farmId: string
@@ -911,19 +911,13 @@ describe("createInvitation target kind", () => {
     })
   })
 
-  it("should reject a typed username that resolves to a user", async () => {
+  it("should reject a username that resolves to a user", async () => {
     await expect(
-      grantRoleToFarm(fdm, ownerPrincipalId, "targetkind_invitee", farmId, "advisor", "email"),
+      grantRoleToFarm(fdm, ownerPrincipalId, "targetkind_invitee", farmId, "advisor"),
     ).rejects.toThrow()
   })
 
-  it("should accept a username that was selected from the lookup", async () => {
-    await expect(
-      grantRoleToFarm(fdm, ownerPrincipalId, "targetkind_invitee", farmId, "advisor", "selected"),
-    ).resolves.toBeUndefined()
-  })
-
-  it("should accept a typed email address of a user", async () => {
+  it("should accept the email address of a user", async () => {
     await expect(
       grantRoleToFarm(
         fdm,
@@ -931,7 +925,6 @@ describe("createInvitation target kind", () => {
         "targetkind_invitee@example.com",
         farmId,
         "researcher",
-        "email",
       ),
     ).resolves.toBeUndefined()
   })
