@@ -15,6 +15,7 @@ import type {
 } from "@nmi-agro/fdm-core"
 import type { FileStorage } from "@nmi-agro/fdm-storage"
 import { createRoute, z } from "@hono/zod-openapi"
+import { isBcsAnalysis } from "@nmi-agro/fdm-calculator"
 import { InvalidUploadError, readAndValidateFileUpload } from "@nmi-agro/fdm-storage"
 import { randomUUID } from "node:crypto"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -253,7 +254,7 @@ const uploadSoilImageRoute = createRoute({
   tags: ["Soil Images"],
   summary: "Upload a photo to a soil analysis",
   description:
-    "Adds a photo to a soil condition score (BCS) assessment. Send it as `multipart/form-data` with the photo in the `file` field. Returns 503 when file storage is not configured on the server.",
+    "Adds a photo to a soil condition score (BCS) assessment: a soil analysis with at least one visual score (`a_ss_bcs` to `a_rt_bcs`). Returns 422 for other soil analyses. Send it as `multipart/form-data` with the photo in the `file` field. Returns 503 when file storage is not configured on the server.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   "x-badges": [{ name: "New", color: "#16a34a" }],
   request: {
@@ -438,12 +439,12 @@ export function registerSoilImageRoutes(
     )
   }
 
-  async function requireSampling(principal_id: string, a_id: string): Promise<string> {
+  async function requireAnalysis(principal_id: string, a_id: string) {
     const analysis = await services.getSoilAnalysis(fdm, principal_id, a_id)
     if (!analysis?.b_id_sampling) {
       throw new ApiError(404, "not-found", `Soil analysis '${a_id}' not found.`)
     }
-    return analysis.b_id_sampling
+    return { ...analysis, b_id_sampling: analysis.b_id_sampling }
   }
 
   async function requireImage(principal_id: string, a_id_image: string): Promise<SoilImage> {
@@ -469,7 +470,7 @@ export function registerSoilImageRoutes(
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { a_id } = c.req.valid("param") as { a_id: string }
-    const b_id_sampling = await requireSampling(principal.effectivePrincipalId, a_id)
+    const { b_id_sampling } = await requireAnalysis(principal.effectivePrincipalId, a_id)
     const images = await services.getSoilImages(fdm, principal.effectivePrincipalId, b_id_sampling)
     return c.json(images.map(serialiseImage), 200)
   }
@@ -481,7 +482,16 @@ export function registerSoilImageRoutes(
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const form = c.req.valid("form") as z.infer<typeof UploadSoilImageBodySchema>
     const storage = requireStorage(services.getStorage)
-    const b_id_sampling = await requireSampling(principal.effectivePrincipalId, a_id)
+    const analysis = await requireAnalysis(principal.effectivePrincipalId, a_id)
+    // The web app shows photos only for soil condition score assessments.
+    if (!isBcsAnalysis(analysis)) {
+      throw new ApiError(
+        422,
+        "unprocessable-entity",
+        "Photos can only be added to a soil condition score (BCS) assessment: a soil analysis with at least one visual score (a_ss_bcs to a_rt_bcs).",
+      )
+    }
+    const b_id_sampling = analysis.b_id_sampling
 
     let upload: { buffer: Buffer; mime: string }
     try {

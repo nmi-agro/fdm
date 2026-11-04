@@ -29,7 +29,7 @@ Not available through the API yet: sharing a farm with other users and organizat
 **Soil condition score (BCS)**
 
 - Soil analyses accept and return the nine BCS scores `a_ss_bcs` to `a_rt_bcs` (0, 1 or 2 each).
-- `GET` and `POST /soil-analyses/{a_id}/images` list and upload the photos of an assessment; `GET` and `DELETE /soil-images/{a_id_image}` download and delete one. Annotations on a photo are managed with `POST /soil-images/{a_id_image}/annotations` and `PATCH` and `DELETE /soil-image-annotations/{a_id_annotation}`.
+- `GET` and `POST /soil-analyses/{a_id}/images` list and upload the photos of an assessment (a soil analysis with at least one visual score; uploading to other soil analyses returns 422); `GET` and `DELETE /soil-images/{a_id_image}` download and delete one. Annotations on a photo are managed with `POST /soil-images/{a_id_image}/annotations` and `PATCH` and `DELETE /soil-image-annotations/{a_id_annotation}`.
 
 **Lab reports**
 

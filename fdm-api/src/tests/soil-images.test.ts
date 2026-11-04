@@ -47,10 +47,12 @@ const image = {
   annotations: [annotation],
 }
 
+const bcsAnalysis = { a_id: "a-1", b_id_sampling: "s-1", a_ew_bcs: 1 }
+
 function setup(overrides: Partial<FdmApiServices> = {}) {
   const storage = createMemoryStorage()
   const services = {
-    getSoilAnalysis: vi.fn().mockResolvedValue({ a_id: "a-1", b_id_sampling: "s-1" }),
+    getSoilAnalysis: vi.fn().mockResolvedValue(bcsAnalysis),
     getSoilImages: vi.fn().mockResolvedValue([image]),
     getSoilImage: vi.fn().mockResolvedValue(image),
     addSoilImage: vi.fn(async (_fdm, _p, _s, input, onUpload) => {
@@ -114,6 +116,23 @@ describe("soil images", () => {
       a_image_type: "roots",
       a_image_order: 2,
     })
+  })
+
+  it("rejects a photo for a soil analysis without visual scores with 422", async () => {
+    const { app, storage, services } = setup({
+      getSoilAnalysis: vi
+        .fn()
+        .mockResolvedValue({ a_id: "a-1", b_id_sampling: "s-1", a_ew_bcs: null }),
+    })
+    const res = await app.request("/soil-analyses/a-1/images", {
+      method: "POST",
+      headers,
+      body: uploadForm(PNG),
+    })
+    expect(res.status).toBe(422)
+    expect((await res.json()).type).toContain("unprocessable-entity")
+    expect(services.addSoilImage).not.toHaveBeenCalled()
+    expect(storage.keys()).toEqual([])
   })
 
   it("rejects a file that is not an image with 415", async () => {
