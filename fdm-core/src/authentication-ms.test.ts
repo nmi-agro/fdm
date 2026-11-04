@@ -18,6 +18,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import {
   createMicrosoftClientAssertion,
   createMicrosoftSocialConfig,
+  isMicrosoftEmailVerified,
   type MicrosoftCertConfig,
   type MicrosoftOAuthHelpers,
 } from "./authentication-ms"
@@ -295,6 +296,31 @@ describe("createMicrosoftSocialConfig", () => {
       expect(result?.user.image).toBeUndefined()
     })
 
+    it('does not trust email_verified as the string "false"', async () => {
+      const idToken = await buildIdToken({
+        oid: "user-123",
+        email: "jane@example.com",
+        name: "Jane Doe",
+        email_verified: "false",
+      })
+      global.fetch = fetchReturning(false)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = await cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)
+      expect(result?.user.emailVerified).toBe(false)
+    })
+
+    it("does not trust an email without verification claims", async () => {
+      const idToken = await buildIdToken({
+        oid: "user-123",
+        mail: "jane@example.com",
+        name: "Jane Doe",
+      })
+      global.fetch = fetchReturning(false)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = await cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)
+      expect(result?.user.emailVerified).toBe(false)
+    })
+
     it("returns null when the oid claim is missing", async () => {
       const idToken = await buildIdToken({ sub: "s", email: "a@example.com" })
       global.fetch = fetchReturning(false)
@@ -408,7 +434,78 @@ describe("createMicrosoftSocialConfig", () => {
       expect(result.surname).toBe("Doe")
       expect(result.username).toBe("john")
       expect(result.displayUsername).toBe("John Doe")
+      // No verification claims: the address must not be trusted
+      expect(result.emailVerified).toBe(false)
+    })
+
+    it("marks the email as verified when email_verified is true", async () => {
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = (await cfg.mapProfileToUser?.({
+        email: "john@example.com",
+        name: "John Doe",
+        email_verified: true,
+      } as Partial<MicrosoftEntraIDProfile> as unknown as MicrosoftEntraIDProfile)) as Record<
+        string,
+        unknown
+      >
       expect(result.emailVerified).toBe(true)
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // isMicrosoftEmailVerified
+  // -----------------------------------------------------------------------
+
+  describe("isMicrosoftEmailVerified", () => {
+    const email = "jane@example.com"
+
+    it('accepts email_verified true and "true"', () => {
+      expect(isMicrosoftEmailVerified({ email_verified: true }, email)).toBe(true)
+      expect(isMicrosoftEmailVerified({ email_verified: "true" }, email)).toBe(true)
+    })
+
+    it('rejects email_verified false and "false"', () => {
+      expect(isMicrosoftEmailVerified({ email_verified: false }, email)).toBe(false)
+      expect(isMicrosoftEmailVerified({ email_verified: "false" }, email)).toBe(false)
+    })
+
+    it("rejects when no verification claim is present", () => {
+      expect(isMicrosoftEmailVerified({}, email)).toBe(false)
+    })
+
+    it("rejects when the email is missing", () => {
+      expect(isMicrosoftEmailVerified({ email_verified: true }, undefined)).toBe(false)
+    })
+
+    it("accepts xms_edov when the tenant owns the email domain", () => {
+      expect(isMicrosoftEmailVerified({ xms_edov: true }, email)).toBe(true)
+      expect(isMicrosoftEmailVerified({ xms_edov: 1 }, email)).toBe(true)
+      expect(isMicrosoftEmailVerified({ xms_edov: false }, email)).toBe(false)
+    })
+
+    it("accepts an email listed in verified_primary_email or verified_secondary_email", () => {
+      expect(
+        isMicrosoftEmailVerified({ verified_primary_email: ["Jane@Example.com"] }, email),
+      ).toBe(true)
+      expect(isMicrosoftEmailVerified({ verified_secondary_email: [email] }, email)).toBe(true)
+    })
+
+    it("rejects when the verified email lists do not contain the email", () => {
+      expect(
+        isMicrosoftEmailVerified({ verified_primary_email: ["other@example.com"] }, email),
+      ).toBe(false)
+    })
+
+    it("accepts personal Microsoft accounts (consumer tenant)", () => {
+      expect(isMicrosoftEmailVerified({ tid: "9188040d-6c67-4c5b-b112-36a304b66dad" }, email)).toBe(
+        true,
+      )
+    })
+
+    it("rejects work or school accounts without verification claims", () => {
+      expect(isMicrosoftEmailVerified({ tid: "00000000-0000-0000-0000-000000000001" }, email)).toBe(
+        false,
+      )
     })
   })
 })
