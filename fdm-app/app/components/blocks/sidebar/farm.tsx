@@ -49,7 +49,6 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
-import { clientConfig } from "~/lib/config"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
 
 export type { FieldOption }
@@ -669,16 +668,16 @@ export function SidebarLabs({
   const navigate = useNavigate()
   const [isFarmPickerOpen, setIsFarmPickerOpen] = useState(false)
   // Feature flags only exist in the browser: the server never has a PostHog client, so it cannot
-  // know them. Until hydration has finished, use a fixed value that the server and the browser
-  // agree on, otherwise the Labs items differ between both renders and React reports a hydration
-  // mismatch. With PostHog configured the items stay hidden until the flags are known; without
-  // PostHog there are no flags and the items are always shown.
+  // know them. Until hydration has finished, keep the Labs items hidden on both sides, otherwise
+  // they differ between both renders and React reports a hydration mismatch. The fallback is a
+  // constant on purpose: deriving it from configuration could resolve differently on the server
+  // and in the browser. After hydration the flags decide; without PostHog there are no flags and
+  // the items are shown.
   const isHydrated = useHydrated()
-  const flagFallback = !clientConfig.analytics.posthog
   const gerritFlag = useFeatureFlagEnabled("gerrit")
   const mineralizationFlag = useFeatureFlagEnabled("mineralization")
-  const isGerritEnabled = isHydrated ? (gerritFlag ?? true) : flagFallback
-  const isMineralizationEnabled = isHydrated ? (mineralizationFlag ?? true) : flagFallback
+  const isGerritEnabled = isHydrated && (gerritFlag ?? true)
+  const isMineralizationEnabled = isHydrated && (mineralizationFlag ?? true)
 
   const isFarmSelected = farmId && farmId !== "undefined"
   const isCreateFarmWizard = location.pathname.includes("farm/create")
