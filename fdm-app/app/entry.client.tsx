@@ -103,7 +103,7 @@ if (posthogConfig) {
       before_send: maskPostHogSecrets,
       bootstrap: {
         featureFlags: {
-          gerrit: false,
+          gerrit: true,
           mineralization: false,
         },
       },

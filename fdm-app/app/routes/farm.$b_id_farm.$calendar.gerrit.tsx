@@ -166,17 +166,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const posthog = PostHogClient()
 
-  // If Gerrit is explicitly disabled for this user reject the request
-  let isGerritEnabled = false
+  // Gerrit is enabled by default, matching the Gerrit API routes; reject the request only when the
+  // flag explicitly disables it for this user. Without PostHog there are no flags, so Gerrit stays
+  // enabled. If evaluating the flags fails, the request is blocked (fail-closed).
+  let isGerritEnabled = !posthog
   try {
-    isGerritEnabled =
-      (
-        await posthog?.evaluateFlags(session.principal_id, {
-          flagKeys: ["gerrit"],
-        })
-      )?.isEnabled("gerrit") ?? false
+    if (posthog) {
+      isGerritEnabled =
+        (
+          await posthog.evaluateFlags(session.principal_id, {
+            flagKeys: ["gerrit"],
+          })
+        )?.isEnabled("gerrit") ?? true
+    }
   } catch {
-    // PostHog unavailable — default to blocked (fail-closed)
+    // Flag evaluation failed — default to blocked (fail-closed)
   }
   if (!isGerritEnabled) {
     throw data(null, {
@@ -290,7 +294,8 @@ export default function GerritApp() {
 
   const supportedYears = ["2025", "2026"]
   const isSupportedYear = supportedYears.includes(calendar)
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
+  // Gerrit is enabled by default; only an explicit `false` flag disables it
+  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
 
   // Optimistic usage counter: increments when generation starts, reverts on
   // error. This makes the counter immediately reflect an in-flight request
