@@ -270,6 +270,7 @@ export default function FieldNormsBlock() {
       </Header>
       <main>
         <FarmTitle
+          help="gebruiksruimte"
           title={"Gebruiksruimte"}
           description={`Bekijk de gebruiksruimte en opvulling voor ${loaderData.field.b_name}.`}
         >

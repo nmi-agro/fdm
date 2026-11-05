@@ -71,4 +71,4 @@ In the `hulp` chapter, each `###` heading under `## Veelgestelde vragen {#veelge
 
 ## Help links from the app
 
-Screens link to the manual through the typed registry in `app/lib/manual/help-targets.ts`. A route declares `export const handle: HelpHandle = { help: "bouwplan" }`; `FarmTitle` and the sidebar then link to that target. When you rename a heading that a help target points to, keep its explicit `{#id}`. The tests fail when a help target no longer resolves.
+Screens link to the manual through the typed registry in `app/lib/manual/help-targets.ts`. A route declares `export const handle: HelpHandle = { help: "bouwplan" }`; the sidebar item "Handleiding" then links to that target. Screens that need explaining also show a "?" next to their title (`FarmTitle help="…"`), once per screen. When you rename a heading that a help target points to, keep its explicit `{#id}`. The tests fail when a help target no longer resolves.

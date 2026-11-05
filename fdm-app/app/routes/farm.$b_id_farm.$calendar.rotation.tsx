@@ -368,6 +368,7 @@ export default function FarmRotationIndex() {
         {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
+              help="bouwplan"
               title={`Bouwplan van ${currentFarmName}`}
               description="Dit bedrijf heeft nog geen bouwplan"
             />
@@ -405,6 +406,7 @@ export default function FarmRotationIndex() {
         ) : (
           <>
             <FarmTitle
+              help="bouwplan"
               title={`Bouwplan van ${currentFarmName}`}
               description="Bekijk het bouwplan en voeg gegevens toe."
             />

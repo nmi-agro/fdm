@@ -197,6 +197,7 @@ export default function FertilizerPlanTable() {
       </Header>
       <main>
         <FarmTitle
+          help="bemestingsplan"
           title="Bemestingsplan"
           description="Overzicht van de gegenereerde bemestingsplannen voor dit bedrijf."
         />

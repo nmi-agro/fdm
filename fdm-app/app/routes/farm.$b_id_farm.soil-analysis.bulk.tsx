@@ -106,6 +106,7 @@ export default function BulkSoilAnalysisUploadPage() {
       </Header>
       <main>
         <FarmTitle
+          help="bodemanalyses-uploaden"
           title="Bodemanalyses uploaden"
           description="Upload de PDF-rapporten van meerdere percelen in één keer. Je controleert de koppeling aan de percelen en de waarden voordat ze worden opgeslagen."
         />

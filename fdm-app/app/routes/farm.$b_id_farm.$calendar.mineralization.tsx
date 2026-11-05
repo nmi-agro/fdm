@@ -194,6 +194,7 @@ export default function MineralizationLayout() {
       </Header>
       <main>
         <FarmTitle
+          help="mineralisatie"
           title={title}
           description={description}
           descriptionNode={

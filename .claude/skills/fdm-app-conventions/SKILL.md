@@ -153,7 +153,8 @@ Where a component genuinely cannot be compiled (a third-party hook that returns 
 The public manual (`/manual`) is Markdown in `app/content/manual`: how-to chapters in `chapters/`, agronomic background in `background/`. Its author guide is `app/content/manual/README.md`. Screens link to it as follows:
 
 - **Declare the help target on the route**: `export const handle: HelpHandle = { help: "bouwplan" }` (from `~/lib/manual/help-targets`). Merge it into an existing `handle` instead of adding a second export. The deepest route with `help` wins.
-- **`FarmTitle` shows the "?" link by itself** when a route declares `handle.help`; pass `help={null}` to hide it or `help="…"` to override. Screens without `FarmTitle` pass `help` to `Header` or place `<HelpLink target="…" />` next to their own heading. The sidebar "Handleiding" item follows the same handle.
+- **The sidebar "Handleiding" item follows `handle.help`**, so every screen with a handle gets contextual help without extra UI.
+- **A "?" next to the title is the exception, not the rule.** Add it only on screens whose results or input need explaining (calculations such as balances, gebruiksruimte, advice and indicators; complex input such as the bouwplan, timeline, bulk upload and the farm creation wizard), and only once per screen. Pass `help="…"` to that screen's `FarmTitle`, pass `help` to `Header` for screens without a title block, or place `<HelpLink target="…" />` next to a heading. List, overview and settings pages rely on the sidebar.
 - **Help targets live in `app/lib/manual/help-targets.ts`**, a typed registry of page plus optional anchor. Use an explicit `{#id}` on the heading in the content so the anchor survives a reworded heading. The content tests fail when a target no longer resolves.
 - **Analytics**: `HelpLink` captures `help_link_clicked` (`help_target`, `source`, `from_path`); manual pages capture `manual_page_viewed`, `manual_signup_clicked` and `manual_page_not_found`. Event names are in `MANUAL_EVENTS` (`~/lib/manual/analytics`); keep them stable, because the PostHog dashboard "Handleiding" depends on them.
 - **Keep the chapter in step**: changing a label, flow or page means updating the chapter whose `routes`/`watch` globs list the file, in the same PR. **Bold** text in a chapter must be an existing UI label.
@@ -201,6 +202,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | `{isSubmitting && <Spinner />}` followed by bare text, or a conditional string next to elements | Wrap the text in `<span>`; key conditional text (see "Browser translation") |
 | Editing `fdm-core` and testing here without rebuilding | `pnpm turbo build` first — this app consumes `dist` |
 | A hard-coded `/manual/...` href for in-app help | `handle.help` or `<HelpLink target>` with a registered help target |
+| A "?" on every title block, or several on one screen | One "?" on screens that need explaining; the sidebar covers the rest |
 | Renaming a label or changing a flow without touching the manual | Update the chapter that lists the route in its `routes`/`watch` globs, in the same PR |
 | **Bold** text in the manual that is not a UI label | Plain text, or *italics* for emphasis; bold is reserved for labels |
 | `getSession` in a `/manual` route | The manual is public; read deployment settings via `getManualContext()` |

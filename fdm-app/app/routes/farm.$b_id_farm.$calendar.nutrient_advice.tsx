@@ -156,6 +156,7 @@ export default function FarmBalanceNitrogenBlock() {
       <main>
         {!loaderData.b_id && (
           <FarmTitle
+            help="bemestingsadvies"
             title={"Bemestingsadvies"}
             description={
               "Advies volgens Handboek Bodem en Bemesting (CBAV) en Adviesbasis Bemesting (CBGV)."

@@ -157,6 +157,7 @@ export default function FarmNormsBlock() {
       </Header>
       <main>
         <FarmTitle
+          help="gebruiksruimte"
           title={"Gebruiksruimte"}
           description={"Bekijk de gebruiksruimte en opvulling voor je bedrijf en percelen."}
         >

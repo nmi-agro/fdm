@@ -822,6 +822,7 @@ export default function TimelinePage() {
         {showMobileView ? (
           <>
             <FarmTitle
+              help="tijdlijn"
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gebeurtenissen op je bedrijf."
             />
@@ -839,6 +840,7 @@ export default function TimelinePage() {
         ) : (
           <>
             <FarmTitle
+              help="tijdlijn"
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gewassen, bemestingen, oogsten en bodemanalyses over de percelen."
               rightNode={

@@ -673,6 +673,7 @@ export default function IndicatorsFieldDetail() {
   return (
     <>
       <FarmTitle
+        help="bodemkwaliteit"
         title={field.b_name ?? `Perceel ${b_id}`}
         description={currentCultivationName ?? "Geen teelt geregistreerd"}
         descriptionNode={
