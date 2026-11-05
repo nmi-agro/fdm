@@ -12,7 +12,9 @@
     "start-dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- node ./server.js",
     "db:migrate": "node ./app/lib/fdm-migrate.server.js",
     "check-types": "react-router typegen && tsc --noEmit",
-    "lint": "oxlint --type-aware ."
+    "lint": "oxlint --type-aware .",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@better-auth/api-key": "catalog:",
@@ -86,6 +88,7 @@
     "lodash.throttle": "^4.1.1",
     "lucide-react": "^1.64.0",
     "maplibre-gl": "^6.16.0",
+    "mdast-util-to-string": "^4.0.0",
     "morgan": "^1.12.1",
     "nanoid": "catalog:",
     "next-themes": "^0.4.6",
@@ -105,6 +108,7 @@
     "react-router": "^8.5.1",
     "recharts": "^3.10.1",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
     "remix-hook-form": "7.3.0",
     "remix-toast": "^4.0.0",
     "remix-utils": "^10.0.1",
@@ -112,8 +116,11 @@
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7",
     "tw-shimmer": "^0.4.14",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.2.0",
     "use-image": "^1.1.4",
     "validator": "^13.15.35",
+    "yaml": "^2.9.1",
     "zod": "catalog:",
     "zustand": "^5.0.16"
   },
@@ -132,17 +139,20 @@
     "@types/geojson": "^7946.0.16",
     "@types/lodash.throttle": "^4.1.9",
     "@types/mapbox__geojson-extent": "^1.0.3",
+    "@types/mdast": "^4.0.4",
     "@types/morgan": "^1.9.10",
     "@types/react": "^19.3.0",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-dom": "^19.3.0",
     "@types/validator": "^13.15.10",
+    "@vitest/coverage-v8": "catalog:",
     "oxc-transform-react": "^0.156.0",
     "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
     "typescript": "catalog:",
     "vite": "^8.3.5",
-    "vite-node": "^6.0.0"
+    "vite-node": "^6.0.0",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=24.0.0"
