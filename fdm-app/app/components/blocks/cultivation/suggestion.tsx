@@ -98,11 +98,15 @@ export function CultivationSuggestionBanner({
             Voorstel toevoegen
           </Button>
         ) : (
-          <Button size="sm" asChild>
-            <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
-              Voorstel toevoegen
-            </NavLink>
-          </Button>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={
+              <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
+                Voorstel toevoegen
+              </NavLink>
+            }
+          />
         )}
       </div>
     </div>
@@ -133,11 +137,10 @@ function ReadOnlySuggestionBadge({
             e.preventDefault()
             setOpen(true)
           }}
-          asChild
+          type="button"
+          className="max-w-[10rem] cursor-pointer"
         >
-          <button type="button" className="max-w-[10rem] cursor-pointer">
-            {badge}
-          </button>
+          {badge}
         </TooltipTrigger>
         <TooltipContent>
           <p>
@@ -180,14 +183,16 @@ export function CultivationSuggestionBadge({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink
-            to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
-            className="max-w-[10rem]"
-          >
-            {badge}
-          </NavLink>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <NavLink
+              to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
+              className="max-w-[10rem]"
+            >
+              {badge}
+            </NavLink>
+          }
+        />
         <TooltipContent>
           <p>
             BRP-schatting: {suggestion.b_lu_name} ({calendar}). Klik om toe te voegen als

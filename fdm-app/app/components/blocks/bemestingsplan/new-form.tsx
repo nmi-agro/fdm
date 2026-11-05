@@ -24,7 +24,15 @@ export function NewBemestingsplanForm({ className }: { className?: string }) {
     <fetcher.Form method="post">
       <input type="hidden" name="intent" value="establish_plan" />
       <div className={cn("flex items-center gap-2", className)}>
-        <Select name="year" value={year} onValueChange={setYear}>
+        <Select
+          name="year"
+          value={year}
+          onValueChange={(y) => {
+            if (typeof y === "string") {
+              setYear(y)
+            }
+          }}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Selecteer teeltjaar" />
           </SelectTrigger>
