@@ -50,5 +50,6 @@ Design model: the **Asset–Action** model. Store entities (farms, fields, culti
 - fdm-core function shape: `fn(fdm, principal_id, ...)`. Mutations run in `fdm.transaction(...)`, IDs from `createId()`, access via `checkPermission`/`grantRole` in `src/authorization.ts`, errors wrapped with `handleError(err, message, context)`.
 - fdm-app: don't use `react-router-dom`; respect `.server.ts`/`.client.ts` boundaries. UI is Dutch only (keep copy i18n-ready).
 - Update TSDoc/docs in the same PR; write comments for external readers (no ticket numbers or internal URLs).
+- Changing a user-visible label, flow or page in fdm-app? Update the manual chapter in `fdm-app/app/content/manual` that lists that route, in the same PR (bold text = existing UI label, checked by `pnpm --filter @nmi-agro/fdm-app test`).
 - Revising a PR: edit the existing `.changeset/*.md` rather than adding a duplicate.
 - Never commit real farm/field coordinates, identifiers, personal data or internal log payloads; use synthetic fixtures.

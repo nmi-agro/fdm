@@ -32,6 +32,10 @@ jobs:
             3.  Create Git tags.
 
             You can trigger the workflow from the 'Actions' tab, selecting the '${workflowName}' workflow, and choosing this \`${context.payload.pull_request.head.ref}\` branch.
+
+            Release checklist:
+            - [ ] Review the background pages of the user manual (\`fdm-app/app/content/manual/background\`) and update \`lastReviewed\`.
+            - [ ] Production sets \`FDM_SEO_INDEXING=true\`; after deploying, \`/robots.txt\` has no \`Disallow: /\` and \`/sitemap.xml\` lists the manual.
             `;
             github.rest.issues.createComment({
               issue_number: context.issue.number,

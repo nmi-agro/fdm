@@ -1,13 +1,13 @@
 ---
 name: fdm-app-conventions
-description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, and the conventions that keep this untested 100k-line package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
+description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this mostly untested 100k-line package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
 version: 1.0.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
 ---
 
-`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines, with **no test suite**. Nothing will catch a broken convention for you, so consistency with the surrounding code is the actual safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
+`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its only tests cover the user manual (`app/lib/manual`); nothing else will catch a broken convention for you, so consistency with the surrounding code is the actual safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
 
 **Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement. It does not own how the interface should look or feel — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
 
@@ -148,15 +148,29 @@ Instead, pick the right tool for the shape of the problem, roughly in this order
 
 Where a component genuinely cannot be compiled (a third-party hook that returns a mutable object, for example), opt out explicitly with `"use no memo"` at the top of the component and say why, rather than suppressing an individual lint rule.
 
+## Help links and the user manual
+
+The public manual (`/manual`) is Markdown in `app/content/manual`: how-to chapters in `chapters/`, agronomic background in `background/`. Its author guide is `app/content/manual/README.md`. Screens link to it as follows:
+
+- **Declare the help target on the route**: `export const handle: HelpHandle = { help: "bouwplan" }` (from `~/lib/manual/help-targets`). Merge it into an existing `handle` instead of adding a second export. The deepest route with `help` wins.
+- **`FarmTitle` shows the "?" link by itself** when a route declares `handle.help`; pass `help={null}` to hide it or `help="…"` to override. Screens without `FarmTitle` pass `help` to `Header` or place `<HelpLink target="…" />` next to their own heading. The sidebar "Handleiding" item follows the same handle.
+- **Help targets live in `app/lib/manual/help-targets.ts`**, a typed registry of page plus optional anchor. Use an explicit `{#id}` on the heading in the content so the anchor survives a reworded heading. The content tests fail when a target no longer resolves.
+- **Analytics**: `HelpLink` captures `help_link_clicked` (`help_target`, `source`, `from_path`); manual pages capture `manual_page_viewed`, `manual_signup_clicked` and `manual_page_not_found`. Event names are in `MANUAL_EVENTS` (`~/lib/manual/analytics`); keep them stable, because the PostHog dashboard "Handleiding" depends on them.
+- **Keep the chapter in step**: changing a label, flow or page means updating the chapter whose `routes`/`watch` globs list the file, in the same PR. **Bold** text in a chapter must be an existing UI label.
+- **Manual routes are public**: no `getSession` under `/manual`.
+
 ## Verification
 
-There is no test suite. The available checks are:
+The available checks are:
 
 ```bash
 cd fdm-app && pnpm check-types   # react-router typegen && tsc --noEmit
 pnpm lint                        # oxlint, from the repository root
+pnpm --filter @nmi-agro/fdm-app test   # manual content, label and SEO tests (vitest, no database)
 pnpm --filter fdm-app dev        # http://localhost:5173
 ```
+
+The tests only cover the manual and its help links: content parsing, links and anchors, help targets, and that every bold label still exists in the app source. Rename a button and the test points to the chapter that still uses the old label. `node fdm-app/scripts/manual-route-drift.mjs` (with `BASE_SHA` set) lists chapters whose routes you changed.
 
 `dev` needs a PostgreSQL instance with PostGIS running and reachable through the `POSTGRES_*` variables in `fdm-app/.env`; developers normally run one locally on the machine.
 
@@ -186,3 +200,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | English UI strings | Dutch |
 | `{isSubmitting && <Spinner />}` followed by bare text, or a conditional string next to elements | Wrap the text in `<span>`; key conditional text (see "Browser translation") |
 | Editing `fdm-core` and testing here without rebuilding | `pnpm turbo build` first — this app consumes `dist` |
+| A hard-coded `/manual/...` href for in-app help | `handle.help` or `<HelpLink target>` with a registered help target |
+| Renaming a label or changing a flow without touching the manual | Update the chapter that lists the route in its `routes`/`watch` globs, in the same PR |
+| **Bold** text in the manual that is not a UI label | Plain text, or *italics* for emphasis; bold is reserved for labels |
+| `getSession` in a `/manual` route | The manual is public; read deployment settings via `getManualContext()` |
