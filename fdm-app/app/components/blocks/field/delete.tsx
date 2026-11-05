@@ -67,7 +67,7 @@ export function FieldDeleteDialog({
                   <span>Verwijderen</span>
                 </div>
               ) : (
-                "Verwijderen"
+                <span>Verwijderen</span>
               )}
             </Button>
           </Form>

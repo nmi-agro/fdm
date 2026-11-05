@@ -146,7 +146,7 @@ export function NewFieldsForm({
               className="ml-auto"
             >
               {form.formState.isSubmitting && <Spinner />}
-              Bijwerken
+              <span>Bijwerken</span>
             </Button>
           </CardFooter>
         </Card>

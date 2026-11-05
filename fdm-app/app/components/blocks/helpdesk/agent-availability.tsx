@@ -31,11 +31,13 @@ export function AgentAvailabilityDisplay({
       ) : (
         <CircleCheck className="size-[1.2em] text-green-600" />
       )}
-      {absence
-        ? `${ABSENCE_MESSAGE[absence.reason as keyof typeof ABSENCE_MESSAGE] ?? absence.reason} t/m ${formatDate(absence.end_date, "PP", { locale: nl })}${absence.note ? `: ${absence.note}` : ""}`
-        : worksToday
-          ? "Beschikbaar"
-          : "Werkt vandaag niet"}
+      <span key={absence ? "absent" : worksToday ? "available" : "not-working"}>
+        {absence
+          ? `${ABSENCE_MESSAGE[absence.reason as keyof typeof ABSENCE_MESSAGE] ?? absence.reason} t/m ${formatDate(absence.end_date, "PP", { locale: nl })}${absence.note ? `: ${absence.note}` : ""}`
+          : worksToday
+            ? "Beschikbaar"
+            : "Werkt vandaag niet"}
+      </span>
     </div>
   )
 }

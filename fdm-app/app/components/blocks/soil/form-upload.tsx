@@ -135,7 +135,7 @@ export function SoilAnalysisUploadForm({
                       ) : (
                         <>
                           <FileUp className="text-muted-foreground mb-1 size-7" aria-hidden />
-                          <div className="text-sm font-medium">
+                          <div key={selectedFile?.name ?? "empty"} className="text-sm font-medium">
                             {selectedFile
                               ? selectedFile.name
                               : "Kies het PDF-rapport of sleep het hierheen"}
@@ -175,10 +175,10 @@ export function SoilAnalysisUploadForm({
               {isReading ? (
                 <>
                   <Spinner />
-                  Uitlezen…
+                  <span>Uitlezen…</span>
                 </>
               ) : (
-                "PDF uitlezen"
+                <span>PDF uitlezen</span>
               )}
             </Button>
           </fieldset>

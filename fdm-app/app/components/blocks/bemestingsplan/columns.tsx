@@ -207,7 +207,7 @@ export const columns = [
                           <span>Verwijderen</span>
                         </div>
                       ) : (
-                        "Verwijderen"
+                        <span>Verwijderen</span>
                       )}
                     </Button>
                   </AlertDialogFooter>
@@ -280,7 +280,7 @@ function StatusDisplay({
                   )
                 }}
               >
-                Actualiseren
+                <span>Actualiseren</span>
                 {isSubmitting && <Spinner className="ml-1.5 h-3.5 w-3.5" />}
               </Button>
             }

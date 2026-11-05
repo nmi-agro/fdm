@@ -180,7 +180,7 @@ export function NutrientAdviceOverviewTable({
                 disabled={isRetrying}
               >
                 {isRetrying ? <Spinner className="size-3" /> : null}
-                Opnieuw proberen
+                <span>Opnieuw proberen</span>
               </Button>
             ) : null}
           </AlertDescription>
@@ -188,8 +188,10 @@ export function NutrientAdviceOverviewTable({
       ) : !complete ? (
         <p className="text-muted-foreground flex items-center gap-2 text-sm" role="status">
           <Spinner className="size-3.5" />
-          Advies berekend voor {progress.settled} van {progress.total}{" "}
-          {progress.total === 1 ? "perceel" : "percelen"}…
+          <span key={`${progress.settled}-${progress.total}`}>
+            Advies berekend voor {progress.settled} van {progress.total}{" "}
+            {progress.total === 1 ? "perceel" : "percelen"}…
+          </span>
         </p>
       ) : null}
       {erroredFields.length > 0 ? (

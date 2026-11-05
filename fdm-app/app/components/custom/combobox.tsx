@@ -71,28 +71,27 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
         <Field>
           <FieldLabel>{label}</FieldLabel>
           <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger
-              nativeButton={false}
-              render={
-                <FieldContent>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    name={name}
-                    disabled={disabled}
-                    className="w-full justify-between truncate focus-visible:ring-2"
-                    aria-controls="combobox-options"
-                    aria-haspopup="listbox"
-                  >
+            <PopoverTrigger asChild>
+              <FieldContent>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  name={name}
+                  disabled={disabled}
+                  className="w-full justify-between truncate focus-visible:ring-2"
+                  aria-controls="combobox-options"
+                  aria-haspopup="listbox"
+                >
+                  <span key={String(field.value ?? "")} className="truncate">
                     {options.find((option) => option.value === field.value)?.label ||
                       defaultLabel ||
                       "Begin met typen..."}
-                    <ChevronsUpDown className="opacity-50" />
-                  </Button>
-                </FieldContent>
-              }
-            />
+                  </span>
+                  <ChevronsUpDown className="opacity-50" />
+                </Button>
+              </FieldContent>
+            </PopoverTrigger>
             <PopoverContent id="combobox-options" className="w-full p-0">
               <Command>
                 <CommandInput placeholder="Begin met typen..." className="h-9" />

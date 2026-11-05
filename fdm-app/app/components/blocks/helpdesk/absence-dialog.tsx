@@ -303,7 +303,7 @@ export function AbsenceDialog({
               />
               {canEdit && (
                 <Button type="submit" form={formId} disabled={isSubmitting}>
-                  Opslaan
+                  <span>Opslaan</span>
                   {isSubmitting ? <Spinner className="ms-2" /> : null}
                 </Button>
               )}

@@ -13,7 +13,17 @@ sidebar_position: 4
 | Maximum JSON body size | **5 MB**           | `413 payload-too-large`      |
 | Accepted content type  | `application/json` | `415 unsupported-media-type` |
 
-Requests with a body larger than 5 MB are rejected before processing. The limit applies to all JSON endpoints, including field creation with GeoJSON geometry.
+Requests with a body larger than 5 MB are rejected before processing. The limit applies to all JSON endpoints, including field creation with GeoJSON geometry. A write request without a body, such as accepting an invitation, needs no `Content-Type`.
+
+### File uploads
+
+Upload endpoints accept `multipart/form-data` instead of JSON, with their own limit for the whole request. The type of each file is checked from its contents, not from its name. Let your HTTP client set the `Content-Type` header: it must include the `boundary` of the parts, and a request without it returns `400`.
+
+| Endpoint                                                               | Accepted files                    | Limit                             |
+| ---------------------------------------------------------------------- | --------------------------------- | --------------------------------- |
+| `POST /soil-analyses/{a_id}/images`                                    | JPEG, PNG, WebP or HEIC photo     | **10 MB**                         |
+| `POST /farms/{b_id_farm}/soil-analyses/import/compare` and `.../apply` | 1 to 10 lab report PDFs           | **5 MB per file, 50 MB in total** |
+| `POST /farms/{b_id_farm}/fields/import/compare` and `.../apply`        | `.shp`, `.shx`, `.dbf` and `.prj` | **20 MB**                         |
 
 ```json title="413 response — payload-too-large"
 {
@@ -38,13 +48,15 @@ The coordinate count is the total number of `[longitude, latitude]` pairs across
 
 Rate limits are enforced **per API key**. Limits reset on a rolling one-minute window.
 
-| Request category                             | Limit                                            |
-| -------------------------------------------- | ------------------------------------------------ |
-| General (all GET requests)                   | **120 requests / minute**                        |
-| Write / delete (POST, PATCH, DELETE)         | **30 requests / minute**                         |
-| Calculation endpoints                        | **10 requests / minute**                         |
-| Indicator and measure-option endpoints (NMI) | **10 requests / minute** (separate `nmi` bucket) |
-| Key-management endpoints                     | Subject to the general limit                     |
+| Request category                     | Limit                                            |
+| ------------------------------------ | ------------------------------------------------ |
+| General (all GET requests)           | **120 requests / minute**                        |
+| Write / delete (POST, PATCH, DELETE) | **30 requests / minute**                         |
+| Calculation endpoints                | **10 requests / minute**                         |
+| Endpoints that use the NMI API       | **10 requests / minute** (separate `nmi` bucket) |
+| Key-management endpoints             | Subject to the general limit                     |
+
+The `nmi` bucket covers the indicators and measure options, the nutrient advice, reading lab reports (`POST /farms/{b_id_farm}/soil-analyses/import/compare`), the fertilizer plans of a farm (`/farms/{b_id_farm}/fertilizer-plans`), applying a field import (it requests soil estimates for every new field) and the indicators of a farm group. These requests do not also count in the general or write bucket.
 
 When a limit is exceeded, the API returns `429` with a `Retry-After` header indicating the number of seconds until the limit resets.
 

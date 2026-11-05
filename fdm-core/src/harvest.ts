@@ -1082,3 +1082,20 @@ export function getDefaultsForHarvestParameters(
 
   return defaultHarvestParameters
 }
+
+/**
+ * Returns how often a cultivation can be harvested, as the web app applies it: only grassland
+ * can have multiple harvests (cuts); every other crop that can be harvested is harvested once.
+ *
+ * @param b_lu_harvestable - How often the crop can be harvested according to the catalogue.
+ * @param b_lu_croprotation - Crop rotation category of the crop, for example `grass`.
+ * @returns `none`, `once` or `multiple`.
+ */
+export function getEffectiveHarvestable(
+  b_lu_harvestable: schema.cultivationsCatalogueTypeSelect["b_lu_harvestable"],
+  b_lu_croprotation: string | null | undefined,
+): schema.cultivationsCatalogueTypeSelect["b_lu_harvestable"] {
+  if (b_lu_harvestable === "none") return "none"
+  if (b_lu_croprotation === "grass" && b_lu_harvestable === "multiple") return "multiple"
+  return "once"
+}

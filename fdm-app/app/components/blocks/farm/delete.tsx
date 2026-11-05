@@ -46,7 +46,7 @@ export function FarmDeleteDialog({ farmName, isSubmitting }: FarmDeleteDialogPro
                   <span>Verwijderen</span>
                 </div>
               ) : (
-                "Verwijderen"
+                <span>Verwijderen</span>
               )}
             </Button>
           </Form>

@@ -220,7 +220,10 @@ export default function FarmSettingsPropertiesBlock() {
                       </div>
                       <FieldDescription>
                         {loaderData.farmVerification.isVerified ? (
-                          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                          <span
+                            key="kvk-verified"
+                            className="flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                          >
                             Het KvK-nummer is vergrendeld omdat dit bedrijf hierop is geverifieerd.
                             Wijzig het nummer alleen als het onjuist is.
                             <AlertDialog>
@@ -263,7 +266,9 @@ export default function FarmSettingsPropertiesBlock() {
                             </AlertDialog>
                           </span>
                         ) : (
-                          "Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven"
+                          <span key="kvk-unlocked">
+                            Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven
+                          </span>
                         )}
                       </FieldDescription>
                       <FieldError errors={[fieldState.error]} />
@@ -325,7 +330,7 @@ Wageningen"
               className={cn("m-auto", cn(!loaderData.farmWritePermission ? "invisible" : ""))}
             >
               {form.formState.isSubmitting && <Spinner />}
-              Bijwerken
+              <span>Bijwerken</span>
             </Button>
           </div>
         </Form>

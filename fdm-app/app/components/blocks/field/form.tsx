@@ -115,7 +115,7 @@ export default function FieldDetailsDialog({
                       <span>Opslaan...</span>
                     </div>
                   ) : (
-                    "Opslaan"
+                    <span>Opslaan</span>
                   )}
                 </Button>
               </DialogFooter>

@@ -148,9 +148,9 @@ export function CultivationAddForm({
                     <span>Opslaan...</span>
                   </div>
                 ) : isSuggested ? (
-                  "Bevestigen"
+                  <span key="confirm">Bevestigen</span>
                 ) : (
-                  "Voeg toe"
+                  <span key="add">Voeg toe</span>
                 )}
               </Button>
             </div>

@@ -2,9 +2,9 @@ import {
   cancelInvitationForFarm,
   getFarm,
   grantRoleToFarm,
+  identifyPrincipal,
   isAllowedToShareFarm,
   listPrincipalsForFarm,
-  lookupPrincipal,
   revokePrincipalFromFarm,
   updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
@@ -185,12 +185,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const normalizedTarget = formValues.username.toLowerCase().trim()
         const isEmailTarget = isEmail(normalizedTarget)
 
-        const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-        targetPrincipal = matchedPrincipals.find(
-          (p) =>
-            p.username.toLowerCase() === normalizedTarget ||
-            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-        )
+        targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
 
         const targetEmail = isEmailTarget
           ? normalizedTarget
@@ -258,12 +253,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           const farm = await getFarm(fdm, principalId, b_id_farm)
           const normalizedTarget = formValues.username.toLowerCase().trim()
           const isEmailTarget = isEmail(normalizedTarget)
-          const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-          const targetPrincipal = matchedPrincipals.find(
-            (p) =>
-              p.username.toLowerCase() === normalizedTarget ||
-              (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-          )
+          const targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
           const targetEmail = isEmailTarget
             ? normalizedTarget
             : targetPrincipal?.type === "user"

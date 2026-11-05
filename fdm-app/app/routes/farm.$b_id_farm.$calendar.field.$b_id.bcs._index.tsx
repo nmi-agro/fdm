@@ -216,7 +216,9 @@ export default function FieldBcsOverviewRoute() {
                         render={
                           <Button type="button" variant="destructive" disabled={isDeleting}>
                             <Trash2 className="size-4" />
-                            {isDeleting ? "Verwijderen..." : "Verwijderen"}
+                            <span key={isDeleting ? "deleting" : "idle"}>
+                              {isDeleting ? "Verwijderen..." : "Verwijderen"}
+                            </span>
                           </Button>
                         }
                       />
