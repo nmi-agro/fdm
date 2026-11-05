@@ -66,6 +66,7 @@ In the `hulp` chapter, each `###` heading under `## Veelgestelde vragen {#veelge
 
 - A pull request that changes a user-visible label, flow or page updates the chapter that lists the route in `routes` or `watch`, in the same PR.
 - CI warns (it never fails) when a PR changes a described file without its chapter: `node fdm-app/scripts/manual-route-drift.mjs` with `BASE_SHA` set shows the same locally.
+- The `fdm-user-guide-sync` skill (`.claude/skills/`) updates the affected chapters for you: run it in your PR, or let the weekly routine open a sync PR against `development`.
 - Before every release a maintainer reviews the background pages against the calculations and updates `lastReviewed`.
 
 ## Help links from the app

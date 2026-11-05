@@ -47,6 +47,7 @@ For in-depth domain rules, load the dedicated skill:
 
 - **`fdm-schema`**: Asset–Action rules, table/column naming, migration workflow, anti-patterns.
 - **`fdm-app-conventions`**: UI loaders/actions, server/client boundaries, Zustand stores, error boundaries.
+- **`fdm-user-guide-sync`**: Bring the user guide (`fdm-app/app/content/manual`) in line with code changes; also used by the weekly sync routine.
 - **`fdm-api`**: Hono + `@hono/zod-openapi` endpoints, injectable services, RFC 9457 errors.
 - **`impeccable`** (Claude Code plugin, installed separately): Frontend UX, design tokens, responsive layouts, accessibility.
 
