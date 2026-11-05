@@ -158,7 +158,7 @@ describe("assessPhosphateStatus", () => {
   })
 
   it("should warn in the zone when P-AL leaves it within the stay horizon", () => {
-    const soil = [{ ...SAND, a_p_ox: 3, a_p_al: 30 }]
+    const soil = [{ ...SAND, a_p_ox: 3, a_p_al: 40 }]
     const status = assessPhosphateStatus(withThreshold(makeBalance({ balance: -40, soil }), 30))
     expect(status.aim).toBe("onderhouden")
     expect(status.binding).toBe("p_al")
@@ -174,7 +174,7 @@ describe("assessPhosphateStatus", () => {
     expect(status.verdict).toBe("attention")
   })
 
-  it("should fall back to P-AL 25–45 when the PSD is not reliable for the soil type", () => {
+  it("should fall back to P-AL 35–45 when the PSD is not reliable for the soil type", () => {
     const soil = [{ ...SAND, b_soiltype_agr: "duinzand" as const, a_p_al: 60 }]
     const status = assessPhosphateStatus(makeBalance({ balance: -60, soil }))
     expect(status.aim).toBe("afbouwen")

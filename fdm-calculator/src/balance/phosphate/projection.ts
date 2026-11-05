@@ -31,6 +31,14 @@ export function classifyYears(years: number | null): YearsClass {
 }
 
 /**
+ * P-AL class "Goed" of the Handboek Bodem en Bemesting (mg P2O5 / 100 g, all soil types): 35–45,
+ * with target value 35. Below it the stock is built up for the yield; above 45 it need not be
+ * maintained.
+ */
+export const P_AL_GOOD_MIN = 35
+export const P_AL_GOOD_MAX = 45
+
+/**
  * Years from `from` to `to` at a constant change per year.
  *
  * @param from - Current value.
@@ -124,7 +132,8 @@ export function calculatePhosphateProjection(
       max: Math.max(effective / buffer.min, effective / buffer.max),
     }
     const current = saturation.a_p_al
-    const floor = current > 45 ? 45 : current >= 25 ? 25 : null
+    const floor =
+      current > P_AL_GOOD_MAX ? P_AL_GOOD_MAX : current >= P_AL_GOOD_MIN ? P_AL_GOOD_MIN : null
     let years: ValueWithRange | null = null
     if (floor !== null && effective < 0) {
       const values = [delta.value, delta.min, delta.max].map((d) => yearsTo(current, floor, d))

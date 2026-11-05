@@ -64,7 +64,7 @@ function within(value: number, low = 0.08, high = 0.92): number {
 }
 
 /**
- * The target zone as one picture: building up (below P-AL 25), the target zone, and reducing (above
+ * The target zone as one picture: building up (below P-AL 35), the target zone, and reducing (above
  * the PSD threshold, or P-AL 45 without a usable PSD), with the field's position and the direction
  * of its long-term average balance. Schematic: the three parts are not to scale.
  *

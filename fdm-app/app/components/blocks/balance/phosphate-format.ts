@@ -40,7 +40,7 @@ export const PHOSPHATE_UNIT = "kg P₂O₅/ha"
 /** Horizon (years) of the projection; beyond it the trend is shown as "> 20 jaar". */
 export const PHOSPHATE_HORIZON_YEARS = PHOSPHATE_STATUS_RULES.stay_horizon
 
-/** P-AL bounds (mg P₂O₅ / 100 g): below 25 low (build up), above 45 high. */
+/** P-AL bounds (mg P₂O₅ / 100 g, Handboek class Goed 35–45): below 35 build up, above 45 high. */
 export const P_AL_LOW = PHOSPHATE_STATUS_RULES.p_al_min
 export const P_AL_HIGH = PHOSPHATE_STATUS_RULES.p_al_high
 

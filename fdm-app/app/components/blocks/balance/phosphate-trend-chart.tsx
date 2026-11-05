@@ -75,7 +75,7 @@ function describeMeasurement(point: PhosphateMeasurement, unit: string): string 
  * @param current - Current value.
  * @param deltaPerYear - Change per year at the current balance.
  * @param deltaRange - Optional lowest and highest change per year (uncertainty), shown as a shaded fan.
- * @param bounds - Horizontal reference lines (e.g. the PSD threshold, or P-AL 25).
+ * @param bounds - Horizontal reference lines (e.g. the PSD threshold, or P-AL 35).
  * @param band - Optional target zone on the y axis; without `to` it runs to the top of the chart.
  * @param boundColor - Colour of the bound lines (default: the colour of the PSD threshold).
  * @param bandColor - Colour of the target zone (default: green).

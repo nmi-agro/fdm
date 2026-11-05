@@ -395,7 +395,8 @@ describe("determinePhosphateFrame", () => {
       a_p_al: 20,
       target_balance_min: 20,
     })
-    expect(determinePhosphateFrame(30, 20).name).toBe("onderhouden")
+    expect(determinePhosphateFrame(40, 20).name).toBe("onderhouden")
+    expect(determinePhosphateFrame(30, 20).name).toBe("opbouwen")
     expect(determinePhosphateFrame(50, 20)).toEqual({
       name: "afbouwen",
       a_p_al: 50,
