@@ -1,9 +1,9 @@
 import type { Ticket } from "@nmi-agro/fdm-helpdesk"
 import type { ReactNode } from "react"
+import { cn } from "cn"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { NavLink, useParams } from "react-router"
-import { cn } from "@/app/lib/utils"
 import type { HelpdeskUser } from "./types"
 import { TICKET_STATUS, TicketStatusDot } from "./ticket-status"
 

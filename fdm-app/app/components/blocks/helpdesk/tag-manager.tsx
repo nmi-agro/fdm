@@ -1,9 +1,9 @@
 import type { Tag } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { Trash2 } from "lucide-react"
 import { type SetStateAction, useEffect, useState } from "react"
 import { Form, useFetcher } from "react-router"
 import { toast } from "sonner"
-import { cn } from "@/app/lib/utils"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -119,6 +119,7 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
           <Select
             value={tag.color ?? undefined}
             onValueChange={(value) => {
+              if (typeof value !== "string") return
               const formData = new FormData()
               formData.append("intent", "update_tag")
               formData.append("tag_id", tag.tag_id)
@@ -158,11 +159,13 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
       {canModify && (
         <TableCell className="text-end align-middle">
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" disabled={isSubmitting} title="Verwijderen">
-                <Trash2 />
-              </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+              render={
+                <Button type="button" variant="ghost" disabled={isSubmitting} title="Verwijderen">
+                  <Trash2 />
+                </Button>
+              }
+            />
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>

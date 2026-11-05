@@ -1,25 +1,24 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertTriangle } from "lucide-react"
 import { useEffect } from "react"
-import { useWatch } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { FieldDeleteDialog } from "~/components/blocks/field/delete"
 import { Combobox } from "~/components/custom/combobox"
 import { Alert } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+  Field,
+  FieldLabel,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+} from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
-import { FieldDeleteDialog } from "../field/delete"
 import { FormSchema } from "./schema"
 
 export function NewFieldsForm({
@@ -65,40 +64,35 @@ export function NewFieldsForm({
           <CardContent>
             <Form id="formField" method="POST" onSubmit={form.handleSubmit}>
               <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Naam</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel>Naam</FieldLabel>
+                      <FieldContent>
                         <Input {...field} type="text" required />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_area"
                   disabled={true}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Oppervlak (ha)</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel>Oppervlak (ha)</FieldLabel>
+                      <FieldContent>
                         <Input {...field} value={(field.value as string) ?? ""} type="text" />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_lu_catalogue"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2 items-center gap-4">
+                  render={({ field, fieldState }) => (
+                    <Field className="col-span-2 items-center gap-4">
                       <Combobox
                         options={cultivationOptions}
                         form={form}
@@ -116,24 +110,23 @@ export function NewFieldsForm({
                         </Alert>
                       )}
                       <Input type="hidden" {...field} />
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
-                <FormField
+                <Controller
                   control={form.control}
                   name="b_bufferstrip"
                   render={({ field }) => (
-                    <FormItem className="col-span-2 flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4 shadow">
-                      <FormControl>
+                    <Field className="col-span-2 flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4 shadow">
+                      <div>
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Bufferstrook</FormLabel>
-                        <FormDescription>Is dit perceel een bufferstrook?</FormDescription>
                       </div>
-                    </FormItem>
+                      <div className="space-y-1 leading-none">
+                        <FieldLabel>Bufferstrook</FieldLabel>
+                        <FieldDescription>Is dit perceel een bufferstrook?</FieldDescription>
+                      </div>
+                    </Field>
                   )}
                 />
               </div>
