@@ -255,7 +255,9 @@ export function PhosphateStatusCard({
           <PhosphateCardHeading>Fosfaattoestand</PhosphateCardHeading>
           <CardDescription>
             {fieldName}
-            {status.aim ? ` · ${formatPhosphateAim(status)}` : ""}
+            {status.aim
+              ? `: ${formatPhosphateAim(status).replace(/^./, (c) => c.toLowerCase())}`
+              : ""}
           </CardDescription>
         </div>
         <PhosphateVerdictBadge verdict={status.verdict} />
@@ -277,11 +279,11 @@ export function PhosphateStatusCard({
                     : null,
                 ]
                   .filter(Boolean)
-                  .join(" · ")}
+                  .join(", ")}
               />
               <Fact
                 title="Welke kant"
-                value={`${direction.verb}${direction.meaning ? ` · ${direction.meaning}` : ""}`}
+                value={`${direction.verb}${direction.meaning ? `, ${direction.meaning}` : ""}`}
                 note={
                   projection
                     ? `Gemiddeld saldo ${formatNumberNl(balance.long_term.balance)} ${PHOSPHATE_UNIT} per jaar${range ? ` (${range})` : ""}; netto ${formatNumberNl(projection.balance_effective_per_year)} na vastlegging en uitspoeling.`

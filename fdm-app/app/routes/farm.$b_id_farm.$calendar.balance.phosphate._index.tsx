@@ -504,9 +504,9 @@ function FieldListItem({
             <p className="text-muted-foreground text-xs">
               {status ? PHOSPHATE_VERDICT_TEXT[status.verdict].label : "Fout"}
               {showIndicative && status?.indicative && status.verdict !== "unknown"
-                ? " · indicatief"
-                : ""}{" "}
-              · {formatAreaHa(area)}
+                ? " (indicatief)"
+                : ""}
+              , {formatAreaHa(area)}
             </p>
           </div>
           <div className="text-right">
@@ -519,15 +519,15 @@ function FieldListItem({
         {balance && status && status.verdict !== "unknown" ? (
           <div className="text-muted-foreground space-y-0.5 pl-7 text-sm">
             <p>
-              <span className="text-foreground">{formatPhosphateAim(status)}</span> ·{" "}
+              <span className="text-foreground">{formatPhosphateAim(status)}</span>:{" "}
               <span className="whitespace-nowrap">{formatDecidingValue(balance, status)}</span>
             </p>
             <p>
               {direction?.verb}
-              {direction?.meaning ? ` · ${direction.meaning}` : ""} ·{" "}
+              {direction?.meaning ? `, ${direction.meaning}` : ""}.{" "}
               {inside
-                ? (years ?? `> ${PHOSPHATE_HORIZON_YEARS} jaar`)
-                : (years ?? formatYearsClass(status.years_class))}
+                ? `In de zone: ${years ?? `> ${PHOSPHATE_HORIZON_YEARS} jaar`}.`
+                : `Tot het doel: ${years ?? formatYearsClass(status.years_class)}.`}
             </p>
           </div>
         ) : !balance ? (
@@ -719,8 +719,8 @@ function StatusDistributionCard({
               <PhosphateStatusIcon verdict={v} className="size-4" />
               <span className="font-medium">{PHOSPHATE_VERDICT_TEXT[v].label}</span>
               <span className="text-muted-foreground tabular-nums">
-                {formatAreaHa(statusArea[v].area)} · {statusArea[v].count}{" "}
-                {statusArea[v].count === 1 ? "perceel" : "percelen"}
+                {formatAreaHa(statusArea[v].area)} ({statusArea[v].count}{" "}
+                {statusArea[v].count === 1 ? "perceel" : "percelen"})
               </span>
             </li>
           ))}

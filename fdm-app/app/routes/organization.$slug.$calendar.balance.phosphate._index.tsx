@@ -243,13 +243,13 @@ function getFarmVerdict(shares: ReturnType<typeof getVerdictShares>): PhosphateV
   return "attention"
 }
 
-/** Dutch summary of the shares, e.g. "60 % goed · 25 % aandacht · 15 % bijsturen". */
+/** Dutch summary of the shares, e.g. "60 % goed, 25 % aandacht, 15 % bijsturen". */
 function formatShares(shares: ReturnType<typeof getVerdictShares>): string {
   if (!shares) return ""
   return (["good", "attention", "adjust"] as const)
     .filter((v) => shares[v] > 0)
     .map((v) => `${formatNumberNl(shares[v])} % ${PHOSPHATE_VERDICT_TEXT[v].label.toLowerCase()}`)
-    .join(" · ")
+    .join(", ")
 }
 
 export default function OrganizationBalancePhosphateBlock() {
@@ -307,7 +307,7 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
           </NavLink>
           <p className="text-muted-foreground text-sm">
             {formatNumberNl(totalArea, 1)} ha
-            {shares ? ` · ${formatShares(shares)}` : ""}
+            {shares ? ` (${formatShares(shares)})` : ""}
           </p>
         </div>
         <div className="ml-auto text-right font-medium">

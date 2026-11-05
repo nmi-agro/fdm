@@ -753,7 +753,7 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
                 <div className="space-y-4">
                   <div>
                     <p className="text-3xl font-semibold">{Math.round(data.balance)}</p>
-                    <p className="text-muted-foreground text-sm">Saldo · {data.unit}</p>
+                    <p className="text-muted-foreground text-sm">Saldo in {data.unit}</p>
                     <p className="text-muted-foreground text-sm">{data.aim}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">

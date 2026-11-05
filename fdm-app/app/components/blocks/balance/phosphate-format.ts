@@ -84,7 +84,7 @@ export function formatIndicator(indicator: "psd" | "p_al"): string {
 }
 
 /**
- * Dutch label of the aim with the indicator that sets it, e.g. "Afbouwen · milieu (PSD)".
+ * Dutch label of the aim with the indicator that sets it, e.g. "Afbouwen voor het milieu (PSD)".
  *
  * @param status - The status of the field.
  * @returns The label, or "–" without an aim.
@@ -93,8 +93,8 @@ export function formatPhosphateAim(status: PhosphateStatus): string {
   if (!status.aim) return "–"
   const aim = { opbouwen: "Opbouwen", onderhouden: "Onderhouden", afbouwen: "Afbouwen" }[status.aim]
   if (status.aim === "onderhouden" && !status.conflict) return aim
-  if (status.binding === "psd") return `${aim} · milieu (PSD)`
-  if (status.binding === "p_al") return `${aim} · opbrengst (P-AL)`
+  if (status.binding === "psd") return `${aim} voor het milieu (PSD)`
+  if (status.binding === "p_al") return `${aim} voor de opbrengst (P-AL)`
   return aim
 }
 
@@ -110,8 +110,8 @@ export type PhosphateDirectionText = {
 
 /**
  * Describes the direction of the soil P status against the aim of the field, so a rising arrow is
- * never read without its meaning: "Stijgt · van het doel af" on a field above the environmental
- * threshold, "Stijgt · blijft in de streefzone" on a field inside the zone.
+ * never read without its meaning: "Stijgt, van het doel af" on a field above the environmental
+ * threshold, "Stijgt, blijft in de streefzone" on a field inside the zone.
  *
  * @param status - The status of the field.
  * @returns The direction and its meaning.
@@ -554,6 +554,35 @@ export function getPhosphateAdvice(
 
   if (needed && (notEnoughWithout || (needed.limit === "max" && !status.has_fertilizer_input))) {
     // Lowering the fertilisation is not (or no longer) enough: more removal is the other lever
+    if (inside) {
+      // In the zone the aim is to stay there: the times are until the field leaves the zone, never
+      // a time to reach a goal
+      const removalDetail = `Houdt de ${indicator} langer in de streefzone; voor ${horizon} jaar in de zone zou een saldo van hoogstens ${formatNumberNl(needed.value)} nodig zijn. Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`
+      if (status.has_fertilizer_input) {
+        const leaves = formatYearsBand(yearsWithoutFertilizers(balance, status, fertilizers))
+        return {
+          ...base,
+          options: [
+            {
+              kind: "fertilizer",
+              title: "Minder of geen fosfaatbemesting",
+              detail: `Zonder fosfaatbemesting wordt het saldo circa ${formatSaldo(withoutFertilizers)}; ${leaves ? `de ${indicator} blijft dan naar verwachting nog ${leaves} in de streefzone` : `de ${indicator} blijft dan naar verwachting in de streefzone`}.`,
+            },
+            removalOption(removalDetail),
+          ],
+          timeWithAdvice: null,
+        }
+      }
+      return {
+        ...base,
+        options: [
+          removalOption(
+            `Er wordt al geen fosfaat bemest; bij het huidige saldo verlaat de ${indicator} over ${years} de streefzone. ${removalDetail}`,
+          ),
+        ],
+        timeWithAdvice: null,
+      }
+    }
     if (status.has_fertilizer_input) {
       const without = formatYearsBand(yearsWithoutFertilizers(balance, status, fertilizers))
       return {
