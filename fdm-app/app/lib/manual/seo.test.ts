@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildManualMeta } from "./meta"
+import { buildManualMeta } from "./seo"
 import { buildRobotsTxt, buildSitemapXml, normalizeOrigin } from "./seo"
 
 describe("buildRobotsTxt", () => {

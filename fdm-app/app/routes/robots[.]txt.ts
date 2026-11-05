@@ -1,4 +1,4 @@
-import { getManualContext } from "~/lib/manual/context.server"
+import { getManualContext } from "~/lib/manual/content.server"
 import { buildRobotsTxt, MANUAL_CACHE_CONTROL } from "~/lib/manual/seo"
 
 /**

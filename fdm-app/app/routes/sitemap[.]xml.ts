@@ -1,5 +1,4 @@
-import { manualPages } from "~/lib/manual/content.server"
-import { getManualContext } from "~/lib/manual/context.server"
+import { getManualContext, manualPages } from "~/lib/manual/content.server"
 import { buildSitemapXml, MANUAL_CACHE_CONTROL, type SitemapEntry } from "~/lib/manual/seo"
 
 /** `/sitemap.xml`: the public pages that search engines may index. */

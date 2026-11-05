@@ -1,7 +1,6 @@
 import { Outlet, useLoaderData } from "react-router"
 import { ManualShell } from "~/components/blocks/manual/shell"
-import { getManualNav } from "~/lib/manual/content.server"
-import { getManualContext } from "~/lib/manual/context.server"
+import { getManualContext, getManualNav } from "~/lib/manual/content.server"
 import { MANUAL_CACHE_CONTROL } from "~/lib/manual/seo"
 
 /**

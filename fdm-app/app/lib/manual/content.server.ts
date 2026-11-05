@@ -1,9 +1,15 @@
-import type { ManualNavItem, ManualNavSection, ManualPageView } from "./types"
+import { serverConfig } from "~/lib/config.server"
 import { type ManualToken, substituteTokens } from "./markdown"
-import { type ManualKind, type ManualPage, parseManualFile } from "./parse"
+import {
+  type ManualKind,
+  type ManualNavItem,
+  type ManualNavSection,
+  type ManualPage,
+  type ManualPageView,
+  parseManualFile,
+} from "./parse"
 import { BACKGROUND_SECTIONS, CHAPTER_SECTIONS } from "./schema"
-
-export type { ManualNavItem, ManualNavSection, ManualPageView }
+import { type ManualSeoContext, normalizeOrigin } from "./seo"
 
 const chapterFiles = import.meta.glob<string>("/app/content/manual/chapters/*.md", {
   query: "?raw",
@@ -173,5 +179,18 @@ export function toManualPageView(page: ManualPage, tokens: ManualTokens): Manual
     lastReviewed,
     ...getManualPrevNext(page, tokens),
     related,
+  }
+}
+
+/**
+ * Returns the deployment settings the manual needs: the token values that replace `{{appName}}`
+ * and `{{appUrl}}`, and the SEO context for metadata.
+ */
+export function getManualContext(): { tokens: ManualTokens; seo: ManualSeoContext } {
+  const origin = normalizeOrigin(serverConfig.url)
+  const appName = serverConfig.name && serverConfig.name !== "undefined" ? serverConfig.name : "FDM"
+  return {
+    tokens: { appName, appUrl: origin || "/" },
+    seo: { origin, appName, indexing: serverConfig.seo_indexing },
   }
 }

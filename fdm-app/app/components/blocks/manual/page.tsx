@@ -1,6 +1,14 @@
-import { type ReactNode, useEffect } from "react"
+import { Fragment, type ReactNode, useEffect } from "react"
 import { Link, useLocation } from "react-router"
-import type { ManualPageView } from "~/lib/manual/types"
+import type { ManualPageView } from "~/lib/manual/parse"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "~/components/ui/breadcrumb"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useManualPageView } from "~/hooks/use-manual-page-view"
 import { MANUAL_EVENTS } from "~/lib/manual/analytics"
@@ -17,24 +25,24 @@ import {
 /** A trail of links from the manual index to the current page. */
 export function ManualBreadcrumb({ items }: { items: { href?: string; title: string }[] }) {
   return (
-    <nav aria-label="Kruimelpad">
-      <ol className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 text-sm">
+    <Breadcrumb>
+      <BreadcrumbList>
         {items.map((item, index) => (
-          <li key={item.title} className="flex items-center gap-1.5">
-            {index > 0 ? <span aria-hidden>/</span> : null}
-            {item.href ? (
-              <Link to={item.href} className="hover:text-foreground transition-colors">
-                {item.title}
-              </Link>
-            ) : (
-              <span aria-current="page" className="text-foreground">
-                {item.title}
-              </span>
-            )}
-          </li>
+          <Fragment key={item.title}>
+            {index > 0 ? <BreadcrumbSeparator /> : null}
+            <BreadcrumbItem>
+              {item.href ? (
+                <BreadcrumbLink asChild>
+                  <Link to={item.href}>{item.title}</Link>
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbPage>{item.title}</BreadcrumbPage>
+              )}
+            </BreadcrumbItem>
+          </Fragment>
         ))}
-      </ol>
-    </nav>
+      </BreadcrumbList>
+    </Breadcrumb>
   )
 }
 

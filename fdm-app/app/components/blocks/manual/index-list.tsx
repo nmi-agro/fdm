@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react"
 import { Link } from "react-router"
-import type { ManualNavItem } from "~/lib/manual/types"
+import type { ManualNavItem } from "~/lib/manual/parse"
 
 /** A section of an index page: a heading and its pages with their descriptions. */
 export function ManualIndexSection({

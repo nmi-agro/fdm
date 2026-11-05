@@ -1,8 +1,9 @@
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react"
 import { Link, useLocation } from "react-router"
-import type { ManualHeading } from "~/lib/manual/parse"
-import type { ManualNavItem } from "~/lib/manual/types"
+import type { ManualHeading, ManualNavItem } from "~/lib/manual/parse"
 import { Button } from "~/components/ui/button"
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { clientConfig } from "~/lib/config"
 import { MANUAL_EVENTS } from "~/lib/manual/analytics"
@@ -61,16 +62,18 @@ export function ManualToc({
 export function ManualTocDisclosure({ headings }: { headings: ManualHeading[] }) {
   if (!headings.some((h) => h.depth === 2)) return null
   return (
-    <details className="border-border group mt-6 rounded-lg border px-4 py-3 xl:hidden">
-      <summary className="text-foreground flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium select-none [&::-webkit-details-marker]:hidden">
+    <Collapsible className="group/toc border-border mt-6 rounded-lg border xl:hidden">
+      <CollapsibleTrigger className="text-foreground flex w-full items-center gap-1.5 px-4 py-3 text-sm font-medium">
         <ChevronRight
-          className="text-muted-foreground size-4 transition-transform group-open:rotate-90"
+          className="text-muted-foreground size-4 transition-transform group-data-[state=open]/toc:rotate-90"
           aria-hidden
         />
         <span>Op deze pagina</span>
-      </summary>
-      <ManualToc headings={headings} className="mt-3 [&>p]:hidden" />
-    </details>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-4 pb-3">
+        <ManualToc headings={headings} className="[&>p]:hidden" />
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
@@ -153,19 +156,26 @@ export function ManualSignupCard({
   const { pathname } = useLocation()
   const { capture } = useAnalytics()
   return (
-    <div className={cn("border-border bg-background rounded-xl border p-4", className)}>
-      <p className="text-foreground text-sm font-semibold">Zelf aan de slag?</p>
-      <p className="text-muted-foreground mt-1 mb-4 text-sm leading-6">
-        Vul je percelen, gewassen en bemestingen in. {clientConfig.name} rekent de rest voor je uit.
-      </p>
-      <Button asChild size="sm" className="w-full">
-        <Link
-          to="/signin"
-          onClick={() => capture(MANUAL_EVENTS.signupClicked, { manual_path: pathname, placement })}
-        >
-          Aanmelden
-        </Link>
-      </Button>
-    </div>
+    <Card className={cn("shadow-xs", className)}>
+      <CardHeader className="p-4 pb-3">
+        <CardTitle className="text-sm">Zelf aan de slag?</CardTitle>
+        <CardDescription className="leading-6">
+          Vul je percelen, gewassen en bemestingen in. {clientConfig.name} rekent de rest voor je
+          uit.
+        </CardDescription>
+      </CardHeader>
+      <CardFooter className="p-4 pt-0">
+        <Button asChild size="sm" className="w-full">
+          <Link
+            to="/signin"
+            onClick={() =>
+              capture(MANUAL_EVENTS.signupClicked, { manual_path: pathname, placement })
+            }
+          >
+            Aanmelden
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }

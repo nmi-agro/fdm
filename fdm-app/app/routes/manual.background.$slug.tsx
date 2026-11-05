@@ -1,8 +1,12 @@
 import { data, redirect, useLoaderData } from "react-router"
 import { ManualNotFound, ManualPageLayout } from "~/components/blocks/manual/page"
-import { getManualPage, resolveManualAlias, toManualPageView } from "~/lib/manual/content.server"
-import { getManualContext } from "~/lib/manual/context.server"
-import { buildManualMeta } from "~/lib/manual/meta"
+import {
+  getManualContext,
+  getManualPage,
+  resolveManualAlias,
+  toManualPageView,
+} from "~/lib/manual/content.server"
+import { buildManualMeta } from "~/lib/manual/seo"
 import { MANUAL_CACHE_CONTROL } from "~/lib/manual/seo"
 import type { Route } from "./+types/manual.background.$slug"
 
