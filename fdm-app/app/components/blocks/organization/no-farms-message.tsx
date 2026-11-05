@@ -21,9 +21,7 @@ export function NoFarmsMessage({ action }: { action?: { label: string; to: strin
       </EmptyHeader>
       {action && (
         <EmptyContent>
-          <Button asChild>
-            <NavLink to={action.to}>{action.label}</NavLink>
-          </Button>
+          <Button nativeButton={false} render={<NavLink to={action.to}>{action.label}</NavLink>} />
         </EmptyContent>
       )}
     </Empty>

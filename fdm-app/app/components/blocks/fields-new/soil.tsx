@@ -56,18 +56,27 @@ export function NewFieldSoilAnalysisBlock({
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild className="flex-1 sm:flex-none">
-              <NavLink to={bulkUploadLink}>
-                <FileUp className="mr-2 h-4 w-4" />
-                Bodemanalyses uploaden (pdf)
-              </NavLink>
-            </Button>
-            <Button variant="outline" asChild className="flex-1 sm:flex-none">
-              <NavLink to={`../${b_id}/soil/analysis${location.search}`}>
-                <Keyboard className="mr-2 h-4 w-4" />
-                Handmatig invullen
-              </NavLink>
-            </Button>
+            <Button
+              className="flex-1 sm:flex-none"
+              nativeButton={false}
+              render={
+                <NavLink to={bulkUploadLink}>
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Bodemanalyses uploaden (pdf)
+                </NavLink>
+              }
+            />
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-none"
+              nativeButton={false}
+              render={
+                <NavLink to={`../${b_id}/soil/analysis${location.search}`}>
+                  <Keyboard className="mr-2 h-4 w-4" />
+                  Handmatig invullen
+                </NavLink>
+              }
+            />
           </div>
 
           <Separator />

@@ -1,7 +1,6 @@
-import { useForm } from "react-hook-form"
+import { Form, useForm } from "react-hook-form"
 import type { ScenarioFertilizerOption } from "~/lib/mineralization"
 import { Combobox } from "~/components/custom/combobox"
-import { Form } from "~/components/ui/form"
 
 /**
  * Searchable fertilizer choice, using the same combobox as the fertilizer application form, for a

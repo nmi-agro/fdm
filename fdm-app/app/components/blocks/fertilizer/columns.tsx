@@ -71,11 +71,13 @@ export const columns: ColumnDef<typeof fertilizerTableFeatures, Fertilizer>[] = 
           {isCustom && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="h-5 px-1 py-0">
-                    <Pencil className="text-muted-foreground h-3 w-3" />
-                  </Badge>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Badge variant="outline" className="h-5 px-1 py-0">
+                      <Pencil className="text-muted-foreground h-3 w-3" />
+                    </Badge>
+                  }
+                />
                 <TooltipContent>
                   <p>Eigen meststof</p>
                 </TooltipContent>
@@ -300,7 +302,7 @@ export const columns: ColumnDef<typeof fertilizerTableFeatures, Fertilizer>[] = 
           {isTruncated ? (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                <TooltipTrigger render={badge} />
                 <TooltipContent>
                   <p>{displayLabel}</p>
                 </TooltipContent>
