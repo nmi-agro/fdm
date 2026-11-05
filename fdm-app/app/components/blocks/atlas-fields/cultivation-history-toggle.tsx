@@ -66,17 +66,19 @@ export function CultivationHistoryToggle({
           <CardTitle className="text-xl font-bold">Gewashistorie</CardTitle>
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleCopy}
-                  aria-label="Kopieer naar klembord"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={handleCopy}
+                    aria-label="Kopieer naar klembord"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              />
               <TooltipContent>
                 <p>Kopieer naar klembord</p>
               </TooltipContent>

@@ -115,17 +115,19 @@ export function DatePicker({
           required={required}
         />
         <Popover open={effectiveOpen} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              id="date-picker"
-              variant="ghost"
-              className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
-              disabled={field.disabled}
-            >
-              <CalendarIcon className="size-3.5" />
-              <span className="sr-only">{placeholder ?? "Kies een datum"}</span>
-            </Button>
-          </PopoverTrigger>
+          <PopoverTrigger
+            render={
+              <Button
+                id="date-picker"
+                variant="ghost"
+                className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
+                disabled={field.disabled}
+              >
+                <CalendarIcon className="size-3.5" />
+                <span className="sr-only">{placeholder ?? "Kies een datum"}</span>
+              </Button>
+            }
+          />
           <PopoverContent className="w-auto overflow-hidden p-0" align="end">
             <Calendar
               mode="single"

@@ -74,11 +74,13 @@ export function CultivationHistoryTimeline({
                 <div className="flex items-center gap-2">
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className={cn("cursor-help truncate font-semibold")}>
-                          {cultivation.b_lu_name ?? "Onbekend gewas"}
-                        </p>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <p className={cn("cursor-help truncate font-semibold")}>
+                            {cultivation.b_lu_name ?? "Onbekend gewas"}
+                          </p>
+                        }
+                      />
                       <TooltipContent>
                         <p>{cultivation.b_lu_name ?? "Onbekend gewas"}</p>
                       </TooltipContent>
@@ -169,17 +171,19 @@ export function CultivationHistoryCard({
         </div>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleCopy}
-                aria-label="Kopieer naar klembord"
-              >
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleCopy}
+                  aria-label="Kopieer naar klembord"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
             <TooltipContent>
               <p>Kopieer naar klembord</p>
             </TooltipContent>
