@@ -14,17 +14,6 @@ import {
   ManualTocDisclosure,
 } from "./parts"
 
-const dateFormat = new Intl.DateTimeFormat("nl-NL", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-})
-
-function formatDate(date: string): string {
-  return dateFormat.format(new Date(`${date}T00:00:00Z`))
-}
-
 /** A trail of links from the manual index to the current page. */
 export function ManualBreadcrumb({ items }: { items: { href?: string; title: string }[] }) {
   return (
@@ -116,11 +105,6 @@ export function ManualPageLayout({ page }: { page: ManualPageView }) {
         <p className="text-muted-foreground mt-3 text-xl leading-relaxed text-pretty">
           {page.description}
         </p>
-        {page.lastReviewed ? (
-          <p className="text-muted-foreground mt-3 text-sm">
-            Bijgewerkt op {formatDate(page.lastReviewed)}
-          </p>
-        ) : null}
         {page.inApp ? <ManualInAppPath labels={page.inApp} /> : null}
         <ManualTocDisclosure headings={page.headings} />
         <ManualArticle markdown={page.body} className="border-border mt-8 border-t pt-8" />
