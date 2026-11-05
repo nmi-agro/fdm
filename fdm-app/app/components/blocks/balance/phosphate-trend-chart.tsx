@@ -153,7 +153,7 @@ export function PhosphateTrendChart({
   const y = niceAxis(Math.min(max, Math.max(...values) * 1.1), yMin)
 
   const chartConfig = {
-    value: { label: "Verloop bij dit saldo", color: "var(--chart-2)" },
+    value: { label: "Verloop bij deze balans", color: "var(--chart-2)" },
     range: { label: "Bereik", color: "var(--chart-2)" },
     measured: { label: "Bodemanalyse", color: "var(--foreground)" },
   } satisfies ChartConfig

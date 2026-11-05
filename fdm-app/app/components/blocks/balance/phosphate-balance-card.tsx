@@ -79,16 +79,16 @@ export function PhosphateBalanceCard({
         <div className="flex flex-wrap items-end gap-x-8 gap-y-2">
           {longTerm ? (
             <Figure
-              label={`Gemiddeld saldo${longTerm.years ? ` ${longTerm.years}` : ""}, bepaalt de trend`}
+              label={`Gemiddelde balans${longTerm.years ? ` ${longTerm.years}` : ""}, bepaalt de trend`}
               value={longTerm.balance}
               emphasis
               perYear
             />
           ) : null}
-          <Figure label={`Saldo ${year}`} value={balance} emphasis={!longTerm} />
+          <Figure label={`Balans ${year}`} value={balance} emphasis={!longTerm} />
           {supply !== undefined ? <Figure label="Aanvoer" value={supply} /> : null}
           {removal !== undefined ? <Figure label="Afvoer" value={removal} /> : null}
-          <Figure label="Uitspoeling (schatting, niet in saldo)" value={leaching} digits={1} />
+          <Figure label="Uitspoeling (schatting, niet in de balans)" value={leaching} digits={1} />
         </div>
         <div className="-ml-4">{children}</div>
       </CardContent>

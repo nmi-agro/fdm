@@ -65,10 +65,10 @@ export function PhosphateHelpDialog() {
             <p className="text-foreground font-medium">Fosfaat is een voorraad</p>
             <p>
               Fosfaat verdwijnt nauwelijks naar de lucht of het grondwater. Wat niet met de oogst
-              wordt afgevoerd, blijft in de bodem. Het saldo van één jaar verandert de P-AL maar
-              weinig; over meerdere jaren bepaalt het saldo de voorraad. Een deel van het fosfaat
+              wordt afgevoerd, blijft in de bodem. De balans van één jaar verandert de P-AL maar
+              weinig; over meerdere jaren bepaalt de balans de voorraad. Een deel van het fosfaat
               (ongeveer 20 kg P₂O₅ per ha per jaar op minerale gronden) wordt vastgelegd. Ook bij
-              een saldo van nul daalt de P-AL dus langzaam.
+              een balans van nul daalt de P-AL dus langzaam.
             </p>
           </div>
 
@@ -81,8 +81,8 @@ export function PhosphateHelpDialog() {
               grondwatertrap (zonder P-CaCl₂ geldt 25%). Onder de zone is{" "}
               <strong className="text-foreground">opbouwen</strong> nodig, in de zone{" "}
               <strong className="text-foreground">onderhouden</strong>, erboven{" "}
-              <strong className="text-foreground">afbouwen</strong>. In de zone is een negatief
-              saldo geen probleem zolang het perceel in de zone blijft.
+              <strong className="text-foreground">afbouwen</strong>. In de zone is een negatieve
+              balans geen probleem zolang het perceel in de zone blijft.
             </p>
             <p>
               Ligt de PSD boven de milieugrens terwijl P-AL voor de opbrengst op peil is, dan gaat
@@ -95,7 +95,7 @@ export function PhosphateHelpDialog() {
           <div className="space-y-1.5">
             <p className="text-foreground font-medium">Waar, welke kant, hoe lang</p>
             <p>
-              Het oordeel gebruikt het gemiddelde saldo van de afgelopen jaren (tot 5 jaar, zodat
+              Het oordeel gebruikt de gemiddelde balans van de afgelopen jaren (tot 5 jaar, zodat
               een vruchtwisseling meetelt), na vastlegging en uitspoeling. Precies op de grens komen
               is niet nodig: binnen {R.psd_margin} procentpunt van de PSD-grens of {R.p_al_margin}{" "}
               eenheden P-AL telt als bereikt.
@@ -116,7 +116,7 @@ export function PhosphateHelpDialog() {
               bemesten kan niet; alleen meer afvoer versnelt het afbouwen.
             </p>
             <p>
-              Het advies noemt het gemiddelde saldo dat nodig is om het doel op tijd te halen. Is
+              Het advies noemt de gemiddelde balans die nodig is om het doel op tijd te halen. Is
               daarvoor meer fosfaat nodig dan de fosfaatgebruiksnorm van het perceel, dan staat daar
               een melding bij: de gebruiksnorm geldt op bedrijfsniveau.
             </p>
@@ -128,8 +128,8 @@ export function PhosphateHelpDialog() {
               Bij de afbraak van organische stof komt fosfaat vrij. Op veen is dat veel meer en
               hangt het af van de grondwatertrap. Uit de lucht komt jaarlijks ongeveer 0,7 kg P₂O₅
               per ha. Beide tellen mee als aanvoer. Uitspoeling wordt geschat uit het overschot, de
-              fosfaatverzadiging en de grondwatertrap en telt, net als bij stikstof, niet mee in het
-              saldo.
+              fosfaatverzadiging en de grondwatertrap en telt, net als bij stikstof, niet mee in de
+              balans.
             </p>
           </div>
 
@@ -144,9 +144,9 @@ export function PhosphateHelpDialog() {
               </li>
             </ul>
             <p>
-              De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor het
-              saldo van één perceel al gauw 15 tot 25 kg P₂O₅ per ha onzeker is. De fosfaatbalans is
-              experimenteel: de rekenregels worden nog met de onderzoekers afgestemd. Feedback is
+              De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor de
+              balans van één perceel al gauw 15 tot 25 kg P₂O₅ per ha onzeker is. De fosfaatbalans
+              is experimenteel: de rekenregels worden nog met de onderzoekers afgestemd. Feedback is
               welkom via Ondersteuning.
             </p>
           </div>

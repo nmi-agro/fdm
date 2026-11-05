@@ -164,7 +164,7 @@ export function formatYearsClass(yearsClass: YearsClass): string {
     case "gt_20":
       return "> 20 jaar"
     case "not_reached":
-      return "niet bij huidig saldo"
+      return "niet bij de huidige balans"
   }
 }
 
@@ -246,11 +246,11 @@ export function getPhosphateYearsToThreshold(
   if (psd.current.value > threshold) {
     return psd.delta_per_year < 0
       ? { label: "Onder de milieugrens over", value: formatYearsClass(psd.years_class) }
-      : { label: "Bij het gemiddelde saldo", value: "Blijft boven de milieugrens" }
+      : { label: "Bij de gemiddelde balans", value: "Blijft boven de milieugrens" }
   }
   return psd.delta_per_year > 0
     ? { label: "Boven de milieugrens over", value: formatYearsClass(psd.years_class) }
-    : { label: "Bij het gemiddelde saldo", value: "Blijft onder de milieugrens" }
+    : { label: "Bij de gemiddelde balans", value: "Blijft onder de milieugrens" }
 }
 
 /**
@@ -478,7 +478,7 @@ export function getPhosphateAdvice(
     } else if (psd.delta_per_year > 0 && psd.years !== null && psd.years <= R.stay_horizon) {
       // Below the threshold now, but the balance pushes the PSD over it within the horizon (also
       // while building up P-AL)
-      environment = `Nu onder de milieugrens, maar bij het huidige saldo komt de PSD over ${formatYearsClass(psd.years_class)} erboven.${status.aim === "opbouwen" ? " Houd daar bij het opbouwen rekening mee." : ""}`
+      environment = `Nu onder de milieugrens, maar bij de huidige balans komt de PSD over ${formatYearsClass(psd.years_class)} erboven.${status.aim === "opbouwen" ? " Houd daar bij het opbouwen rekening mee." : ""}`
     } else {
       environment = `Onder de milieugrens: vanuit het milieu is er nu geen beperking.`
     }
@@ -493,10 +493,10 @@ export function getPhosphateAdvice(
     if (pAl < R.p_al_min) {
       agronomic = `Onder ${R.p_al_min} is er te weinig fosfaat voor een goede opbrengst; opbouwen is gunstig.`
     } else if (inside && status.binding === "p_al" && status.verdict !== "good") {
-      agronomic = `Op peil, maar bij het huidige saldo daalt P-AL over ${years} onder ${R.p_al_min}.`
+      agronomic = `Op peil, maar bij de huidige balans daalt P-AL over ${years} onder ${R.p_al_min}.`
     } else if (status.aim === "afbouwen") {
       const floor = formatYearsBand(status.p_al_min_years)
-      agronomic = `Op peil: afbouwen kost geen opbrengst zolang P-AL boven ${R.p_al_min} blijft${floor ? ` (bij het huidige saldo nog ${floor})` : ""}.`
+      agronomic = `Op peil: afbouwen kost geen opbrengst zolang P-AL boven ${R.p_al_min} blijft${floor ? ` (bij de huidige balans nog ${floor})` : ""}.`
     } else {
       agronomic = `Op peil: genoeg fosfaat voor de opbrengst.`
     }
@@ -529,12 +529,12 @@ export function getPhosphateAdvice(
     if (inside) {
       detail =
         status.direction === "down"
-          ? `Een negatief saldo is hier geen probleem; de voorraad blijft langer dan ${R.stay_horizon} jaar in de streefzone.`
-          : `De voorraad blijft bij het huidige saldo langer dan ${R.stay_horizon} jaar in de streefzone.`
+          ? `Een negatieve balans is hier geen probleem; de voorraad blijft langer dan ${R.stay_horizon} jaar in de streefzone.`
+          : `De voorraad blijft bij de huidige balans langer dan ${R.stay_horizon} jaar in de streefzone.`
     } else if (status.years_class === "reached") {
       detail = "De fosfaattoestand zit binnen de marge van het doel."
     } else {
-      detail = `Bij het huidige saldo (${formatSaldo(longTerm)}) is de ${indicator} naar verwachting over ${years} bij het doel.`
+      detail = `Bij de huidige balans (${formatSaldo(longTerm)}) is de ${indicator} naar verwachting over ${years} bij het doel.`
     }
     return {
       ...base,
@@ -557,7 +557,7 @@ export function getPhosphateAdvice(
     if (inside) {
       // In the zone the aim is to stay there: the times are until the field leaves the zone, never
       // a time to reach a goal
-      const removalDetail = `Houdt de ${indicator} langer in de streefzone; voor ${horizon} jaar in de zone zou een saldo van hoogstens ${formatNumberNl(needed.value)} nodig zijn. Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`
+      const removalDetail = `Houdt de ${indicator} langer in de streefzone; voor ${horizon} jaar in de zone zou een balans van hoogstens ${formatNumberNl(needed.value)} nodig zijn. Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`
       if (status.has_fertilizer_input) {
         const leaves = formatYearsBand(yearsWithoutFertilizers(balance, status, fertilizers))
         return {
@@ -566,7 +566,7 @@ export function getPhosphateAdvice(
             {
               kind: "fertilizer",
               title: "Minder of geen fosfaatbemesting",
-              detail: `Zonder fosfaatbemesting wordt het saldo circa ${formatSaldo(withoutFertilizers)}; ${leaves ? `de ${indicator} blijft dan naar verwachting nog ${leaves} in de streefzone` : `de ${indicator} blijft dan naar verwachting in de streefzone`}.`,
+              detail: `Zonder fosfaatbemesting wordt de balans circa ${formatSaldo(withoutFertilizers)}; ${leaves ? `de ${indicator} blijft dan naar verwachting nog ${leaves} in de streefzone` : `de ${indicator} blijft dan naar verwachting in de streefzone`}.`,
             },
             removalOption(removalDetail),
           ],
@@ -577,7 +577,7 @@ export function getPhosphateAdvice(
         ...base,
         options: [
           removalOption(
-            `Er wordt al geen fosfaat bemest; bij het huidige saldo verlaat de ${indicator} over ${years} de streefzone. ${removalDetail}`,
+            `Er wordt al geen fosfaat bemest; bij de huidige balans verlaat de ${indicator} over ${years} de streefzone. ${removalDetail}`,
           ),
         ],
         timeWithAdvice: null,
@@ -591,10 +591,10 @@ export function getPhosphateAdvice(
           {
             kind: "fertilizer",
             title: "Minder of geen fosfaatbemesting",
-            detail: `Zonder fosfaatbemesting wordt het saldo circa ${formatSaldo(withoutFertilizers)}; ${without ? `het doel is dan naar verwachting over ${without} bereikt` : `de ${indicator} komt dan naar verwachting nog niet bij het doel`}.`,
+            detail: `Zonder fosfaatbemesting wordt de balans circa ${formatSaldo(withoutFertilizers)}; ${without ? `het doel is dan naar verwachting over ${without} bereikt` : `de ${indicator} komt dan naar verwachting nog niet bij het doel`}.`,
           },
           removalOption(
-            `Versnelt het afbouwen; voor circa ${horizon} jaar zou een saldo van hoogstens ${formatNumberNl(needed.value)} nodig zijn. Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`,
+            `Versnelt het afbouwen; voor circa ${horizon} jaar zou een balans van hoogstens ${formatNumberNl(needed.value)} nodig zijn. Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`,
           ),
         ],
         timeWithAdvice: without ? `${without} zonder fosfaatbemesting` : null,
@@ -602,8 +602,8 @@ export function getPhosphateAdvice(
     }
     const now =
       status.direction === (status.aim === "opbouwen" ? "up" : "down")
-        ? `Er wordt al geen fosfaat bemest; bij het huidige saldo duurt het ${years}.`
-        : `Er wordt al geen fosfaat bemest; bij het huidige saldo komt de ${indicator} niet bij het doel.`
+        ? `Er wordt al geen fosfaat bemest; bij de huidige balans duurt het ${years}.`
+        : `Er wordt al geen fosfaat bemest; bij de huidige balans komt de ${indicator} niet bij het doel.`
     return {
       ...base,
       options: [
@@ -621,7 +621,7 @@ export function getPhosphateAdvice(
       {
         kind: "fertilizer",
         title: `Fosfaatbemesting van gemiddeld ${verb} ${formatNumberNl(needed.fertilizers)} ${PHOSPHATE_UNIT} per jaar`,
-        detail: `Nu ${formatNumberNl(fertilizers)}. Dat geeft een saldo van ${verb} ${formatSaldo(needed.value)} (nu ${formatNumberNl(longTerm)}); dan ${effect}.`,
+        detail: `Nu ${formatNumberNl(fertilizers)}. Dat geeft een balans van ${verb} ${formatSaldo(needed.value)} (nu ${formatNumberNl(longTerm)}); dan ${effect}.`,
       },
     ]
     if (needed.limit === "max" && status.aim === "afbouwen") options.push(removalOption(null))

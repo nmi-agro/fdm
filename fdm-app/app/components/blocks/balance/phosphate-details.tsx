@@ -181,7 +181,7 @@ export function PhosphateBalanceDetails({
       </AccordionItem>
       <AccordionItem value="leaching">
         <AccordionTrigger>
-          Uitspoeling (niet in saldo): {formatNumberNl(leaching.total, 1)} {PHOSPHATE_UNIT}
+          Uitspoeling (niet in de balans): {formatNumberNl(leaching.total, 1)} {PHOSPHATE_UNIT}
         </AccordionTrigger>
         <AccordionContent>
           <p className="text-muted-foreground ml-4 text-sm">

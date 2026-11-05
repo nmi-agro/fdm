@@ -369,8 +369,8 @@ function FarmBalancePhosphateOverview({
               >
                 <option value="verdict:asc">Oordeel (meest urgent eerst)</option>
                 <option value="area:desc">Oppervlakte (grootste eerst)</option>
-                <option value="saldo:desc">Gemiddeld saldo (hoogste eerst)</option>
-                <option value="saldo:asc">Gemiddeld saldo (laagste eerst)</option>
+                <option value="saldo:desc">Gemiddelde balans (hoogste eerst)</option>
+                <option value="saldo:asc">Gemiddelde balans (laagste eerst)</option>
                 <option value="name:asc">Naam (A–Z)</option>
               </select>
             </label>
@@ -398,7 +398,7 @@ function FarmBalancePhosphateOverview({
                   <TableHead>Waar</TableHead>
                   <TableHead>Richting</TableHead>
                   <TableHead>Hoe lang</TableHead>
-                  {sortHeader("saldo", "Gem. saldo", "right")}
+                  {sortHeader("saldo", "Gem. balans", "right")}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -424,7 +424,7 @@ function FarmBalancePhosphateOverview({
             </Table>
           </div>
           <p className="text-muted-foreground mt-3 text-xs">
-            Gemiddeld saldo in {PHOSPHATE_UNIT} per jaar over de afgelopen jaren; dat bepaalt
+            Gemiddelde balans in {PHOSPHATE_UNIT} per jaar over de afgelopen jaren; die bepaalt
             richting en tijd.
           </p>
         </CardContent>
@@ -513,7 +513,7 @@ function FieldListItem({
             <p className="font-medium tabular-nums">
               {balance ? formatNumberNl(balance.long_term.balance) : "–"}
             </p>
-            <p className="text-muted-foreground text-xs">gem. saldo</p>
+            <p className="text-muted-foreground text-xs">gem. balans</p>
           </div>
         </div>
         {balance && status && status.verdict !== "unknown" ? (

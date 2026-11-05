@@ -180,10 +180,10 @@ function Reference({ href, children }: { href: string; children: ReactNode }) {
   )
 }
 
-/** Note under the trend charts: the trend repeats the long-term average saldo every year. */
+/** Note under the trend charts: the trend repeats the long-term average balance every year. */
 function illustrativeNote(balance: PhosphateBalanceField): string {
   const years = formatLongTermYears(balance.long_term.years)
-  return `Illustratief: het verloop als het gemiddelde saldo${years ? ` van ${years}` : ""} elk jaar terugkomt.`
+  return `Illustratief: het verloop als de gemiddelde balans${years ? ` van ${years}` : ""} elk jaar terugkomt.`
 }
 
 /** Colour of the P-AL floor line: different from the PSD threshold. */
@@ -364,7 +364,7 @@ export function PhosphateStockCard({
           <>
             <Row label="Nu">{formatNumberNl(pAl.current)} mg P₂O₅ / 100 g</Row>
             <Row label="Niveau">{formatPAlLevel(pAl.current)}</Row>
-            <Row label="Verandering bij gemiddeld saldo">
+            <Row label="Verandering bij gemiddelde balans">
               {delta.value > 0 ? "+" : ""}
               {formatNumberNl(delta.value, 1)} per jaar
               {delta.min !== delta.max ? (
@@ -375,7 +375,7 @@ export function PhosphateStockCard({
               ) : null}
             </Row>
             <Row label={below ? `P-AL ${P_AL_LOW} bereikt over` : `P-AL onder ${P_AL_LOW} over`}>
-              {minYears ?? "niet bij huidig saldo"}
+              {minYears ?? "niet bij de huidige balans"}
             </Row>
             <PhosphateTrendChart
               current={pAl.current}
@@ -409,8 +409,8 @@ export function PhosphateStockCard({
                 {formatNumberNl(projection.depth.value * 100)} cm.
               </Detail>
               <Detail title="Berekening">
-                Verandering P-AL per jaar = (gemiddeld saldo + uitspoeling − vastlegging) ÷ buffer.
-                Vastlegging: {formatNumberNl(projection.fixation)} kg P₂O₅/ha/jaar. Buffer:{" "}
+                Verandering P-AL per jaar = (gemiddelde balans + uitspoeling − vastlegging) ÷
+                buffer. Vastlegging: {formatNumberNl(projection.fixation)} kg P₂O₅/ha/jaar. Buffer:{" "}
                 {formatNumberNl(pAl.buffer.value)} kg P₂O₅/ha per eenheid P-AL voor deze grondsoort
                 en laagdikte
                 {pAl.buffer.min !== pAl.buffer.max
@@ -497,7 +497,7 @@ export function PhosphateSaturationCard({
           <>
             <Row label="Nu">{formatNumberNl(psd.current.value)} %</Row>
             <Row label="Milieugrens">{formatNumberNl(psd.threshold.value)} %</Row>
-            <Row label="Verandering bij gemiddeld saldo">
+            <Row label="Verandering bij gemiddelde balans">
               {psd.delta_per_year > 0 ? "+" : ""}
               {formatNumberNl(psd.delta_per_year, Math.abs(psd.delta_per_year) < 0.1 ? 2 : 1)}{" "}
               %-punt per jaar
@@ -527,7 +527,7 @@ export function PhosphateSaturationCard({
                 De milieugrens is de bovengrens van de streefzone; boven de grens is afbouwen nodig,
                 ook als P-AL voor de opbrengst op peil is.
               </Detail>
-              <Detail title="Gemiddeld saldo">
+              <Detail title="Gemiddelde balans">
                 {formatNumberNl(balance.long_term.balance)} kg P₂O₅/ha per jaar
                 {balance.long_term.years.length > 0
                   ? ` over ${formatLongTermYears(balance.long_term.years)}`
@@ -547,7 +547,7 @@ export function PhosphateSaturationCard({
               </Detail>
               <Detail title="Berekening">
                 PSC = 0,5 × (Fe-ox + Al-ox); PSD = P-ox ÷ PSC × 100. Verandering per jaar uit
-                (gemiddeld saldo − uitspoeling − vastlegging) verdeeld over de laag van{" "}
+                (gemiddelde balans − uitspoeling − vastlegging) verdeeld over de laag van{" "}
                 {formatNumberNl(projection.depth.value * 100)} cm met dichtheid{" "}
                 {formatNumberNl(projection.a_density_sa.value, 2)} g/cm³.
               </Detail>

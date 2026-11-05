@@ -286,7 +286,7 @@ export function PhosphateStatusCard({
                 value={`${direction.verb}${direction.meaning ? `, ${direction.meaning}` : ""}`}
                 note={
                   projection
-                    ? `Gemiddeld saldo ${formatNumberNl(balance.long_term.balance)} ${PHOSPHATE_UNIT} per jaar${range ? ` (${range})` : ""}; netto ${formatNumberNl(projection.balance_effective_per_year)} na vastlegging en uitspoeling.`
+                    ? `Gemiddelde balans ${formatNumberNl(balance.long_term.balance)} ${PHOSPHATE_UNIT} per jaar${range ? ` (${range})` : ""}; netto ${formatNumberNl(projection.balance_effective_per_year)} na vastlegging en uitspoeling.`
                     : undefined
                 }
               />
@@ -295,7 +295,7 @@ export function PhosphateStatusCard({
                 value={yearsValue}
                 note={
                   yearsFromAdvice
-                    ? `Bij het huidige saldo niet. ${edge ?? ""}`
+                    ? `Bij de huidige balans niet. ${edge ?? ""}`
                     : (edge ?? undefined)
                 }
               />

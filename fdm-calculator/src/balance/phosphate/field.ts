@@ -512,12 +512,12 @@ export function calculatePhosphateBalanceField(
   const unfertilized = years.filter((y) => !y.hasFertilizers).map((y) => y.year)
   if (unfertilized.length > 0) {
     longTermWarnings.push(
-      `Voor ${formatYears(unfertilized)} is geen bemesting geregistreerd: daarvoor is de gemiddelde bemesting van de andere jaren gebruikt. Voeg de bemesting van eerdere jaren toe voor een beter saldo op lange termijn.`,
+      `Voor ${formatYears(unfertilized)} is geen bemesting geregistreerd: daarvoor is de gemiddelde bemesting van de andere jaren gebruikt. Voeg de bemesting van eerdere jaren toe voor een betere balans op lange termijn.`,
     )
   }
   if (missingDefaults.length > 0) {
     longTermWarnings.push(
-      `Geen standaardopbrengst of fosfaatgehalte bekend voor ${[...new Set(missingDefaults)].join(", ")}: voeg de oogst toe voor een beter saldo op lange termijn.`,
+      `Geen standaardopbrengst of fosfaatgehalte bekend voor ${[...new Set(missingDefaults)].join(", ")}: voeg de oogst toe voor een betere balans op lange termijn.`,
     )
   }
   const long_term: PhosphateLongTermBalance = {
