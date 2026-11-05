@@ -10,6 +10,7 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -29,7 +30,7 @@ import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 
 /** Calculations stream in with their own loading states; the global loader is not needed. */
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "mineralisatie" }
 
 export const meta: MetaFunction = () => {
   return [

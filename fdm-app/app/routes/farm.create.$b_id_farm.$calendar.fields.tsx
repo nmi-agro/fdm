@@ -7,6 +7,7 @@ import {
   Outlet,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { NewFieldsSidebar } from "~/components/blocks/fields-new/sidebar"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
@@ -21,6 +22,9 @@ import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bedrijf-aanmaken" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -116,7 +120,7 @@ export default function Index() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="bedrijf-aanmaken">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
       <main>

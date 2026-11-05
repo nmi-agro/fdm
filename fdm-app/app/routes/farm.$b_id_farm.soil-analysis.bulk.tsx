@@ -7,6 +7,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { AlertCircle, ShieldAlert } from "lucide-react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -22,7 +23,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "bodemanalyses-uploaden" }
 
 export const meta: MetaFunction = () => {
   return [

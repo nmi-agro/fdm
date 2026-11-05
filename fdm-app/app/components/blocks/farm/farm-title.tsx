@@ -1,8 +1,11 @@
 import type { ReactNode } from "react"
 import { NavLink } from "react-router"
+import type { HelpTargetId } from "~/lib/manual/help-targets"
+import { HelpLink } from "~/components/custom/help-link"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
+import { useHelpTarget } from "~/hooks/use-help-target"
 
 interface FarmTitleProps {
   title: string
@@ -16,6 +19,11 @@ interface FarmTitleProps {
     label: string
   }
   children?: ReactNode
+  /**
+   * The manual page that explains this screen, shown as a "?" link. By default it comes from the
+   * route's `handle.help`; pass `null` to hide it.
+   */
+  help?: HelpTargetId | null
 }
 
 export function FarmTitle({
@@ -25,7 +33,10 @@ export function FarmTitle({
   rightNode,
   action,
   children,
+  help,
 }: FarmTitleProps) {
+  const routeHelp = useHelpTarget()
+  const helpTarget = help === undefined ? routeHelp : help
   return (
     <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
@@ -34,6 +45,7 @@ export function FarmTitle({
             <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
               {title}
             </h2>
+            {helpTarget ? <HelpLink target={helpTarget} className="-ml-1" /> : null}
           </div>
           {descriptionNode ?? (
             <p className="text-muted-foreground wrap-break-word">{description}</p>

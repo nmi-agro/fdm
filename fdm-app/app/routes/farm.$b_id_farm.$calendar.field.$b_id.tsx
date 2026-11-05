@@ -14,6 +14,7 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
@@ -32,6 +33,9 @@ import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Perceel | ${clientConfig.name}` },

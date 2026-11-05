@@ -16,6 +16,7 @@ import {
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { BulkFertilizerPage } from "~/components/blocks/fertilizer-applications/bulk/bulk-page"
@@ -39,6 +40,8 @@ import {
 import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
+
+export const handle: HelpHandle = { help: "bemesting" }
 
 export const meta: MetaFunction = () => {
   return [

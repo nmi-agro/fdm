@@ -15,6 +15,7 @@ import { MetaFunction, Outlet, useLoaderData } from "react-router"
 import { redirectWithSuccess, redirectWithWarning } from "remix-toast"
 import { dataWithError } from "remix-toast"
 import z from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { columns } from "@/app/components/blocks/bemestingsplan/columns"
 import { NewBemestingsplanForm } from "@/app/components/blocks/bemestingsplan/new-form"
 import { DataTable } from "@/app/components/blocks/bemestingsplan/table"
@@ -33,6 +34,8 @@ import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getReportBranding } from "~/lib/report-branding.server"
 import { Route } from "./+types/farm.$b_id_farm.bemestingsplan"
+
+export const handle: HelpHandle = { help: "bemestingsplan" }
 
 export const meta: MetaFunction = () => {
   return [

@@ -19,6 +19,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
 import {
   SOIL_ANALYSES_MAP_ID,
@@ -57,6 +58,9 @@ import { fdm } from "~/lib/fdm.server"
  * @throws {Error} If the field ID is missing (HTTP 400).
  * @throws {Error} If the field is not found (HTTP 404).
  */
+
+export const handle: HelpHandle = { help: "bodem" }
+
 export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id

@@ -18,6 +18,7 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import {
   AccessInfoCard,
   type AccessVerificationProvider,
@@ -45,6 +46,9 @@ import { HeaderFarmCreate } from "../components/blocks/header/create-farm"
 import { SidebarInset } from "../components/ui/sidebar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "toegang" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -106,7 +110,7 @@ export default function CreateFarmAccessStep() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="toegang">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
       <main>

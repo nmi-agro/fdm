@@ -24,6 +24,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { buildColumns, type FieldExtended } from "~/components/blocks/fields/columns"
@@ -61,6 +62,8 @@ function chunk<T>(items: T[], size: number): T[][] {
   }
   return chunks
 }
+
+export const handle: HelpHandle = { help: "percelen" }
 
 export const meta: MetaFunction = () => {
   return [

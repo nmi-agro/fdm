@@ -21,6 +21,7 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { ClientOnly } from "remix-utils/client-only"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { generateFeatureClass } from "~/components/blocks/atlas/atlas-functions"
@@ -55,6 +56,9 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen-toevoegen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Nieuw perceel | ${clientConfig.name}` },

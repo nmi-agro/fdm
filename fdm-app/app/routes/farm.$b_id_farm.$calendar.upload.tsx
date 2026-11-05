@@ -1,4 +1,5 @@
 import { type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { genericAction, loader } from "~/components/blocks/mijnpercelen/loader-and-action.server"
 import { UploadMijnPercelenPage } from "~/components/blocks/mijnpercelen/upload-page"
@@ -7,7 +8,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.upload"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "percelen-toevoegen" }
 
 // Meta
 export const meta: MetaFunction = () => {

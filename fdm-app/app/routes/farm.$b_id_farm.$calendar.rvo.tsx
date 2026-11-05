@@ -24,6 +24,7 @@ import {
   ShouldRevalidateFunctionArgs,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -85,6 +86,8 @@ import {
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rvo"
 
 type ReviewItem = RvoImportReviewItem<Field>
+
+export const handle: HelpHandle = { help: "percelen-toevoegen" }
 
 export const meta: Route.MetaFunction = ({ params }) => {
   return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]

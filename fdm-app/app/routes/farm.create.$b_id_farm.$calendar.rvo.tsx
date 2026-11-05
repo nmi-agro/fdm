@@ -23,6 +23,7 @@ import {
   ShouldRevalidateFunctionArgs,
 } from "react-router"
 import { type ZodError } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -68,6 +69,8 @@ import {
 } from "~/lib/rvo.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
+
+export const handle: HelpHandle = { help: "percelen-importeren" }
 
 export const meta: MetaFunction = ({ params }) => {
   const b_id_farm = params.b_id_farm
