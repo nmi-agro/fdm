@@ -124,14 +124,18 @@ export function ManualPageLayout({ page }: { page: ManualPageView }) {
         {page.inApp ? <ManualInAppPath labels={page.inApp} /> : null}
         <ManualTocDisclosure headings={page.headings} />
         <ManualArticle markdown={page.body} className="border-border mt-8 border-t pt-8" />
-        {isBackground ? <ManualSignupCard placement="inline" className="mt-10 xl:hidden" /> : null}
+        <ManualSignupCard placement="inline" className="mt-10 xl:hidden" />
         <ManualRelated items={page.related} />
         <ManualPager prev={page.prev} next={page.next} />
       </main>
       <aside className="hidden w-56 shrink-0 xl:block">
-        <div className="sticky top-22 max-h-[calc(100vh-6.5rem)] space-y-8 overflow-y-auto pb-8">
-          <ManualToc headings={page.headings} />
-          {isBackground ? <ManualSignupCard placement="rail" /> : null}
+        {/* The contents scroll on their own, so the sign-up card stays visible below them. */}
+        <div className="sticky top-22 flex max-h-[calc(100vh-6.5rem)] flex-col gap-8 pb-8">
+          <ManualToc
+            headings={page.headings}
+            className="min-h-0 [scrollbar-width:thin] overflow-y-auto"
+          />
+          <ManualSignupCard placement="rail" className="shrink-0" />
         </div>
       </aside>
     </div>

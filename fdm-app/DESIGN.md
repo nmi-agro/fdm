@@ -246,7 +246,7 @@ The authenticated app is the primary surface and sets the defaults above: it is 
 
 ### User manual (`/manual`)
 
-The manual is a **Read** surface in the public frame: a 56px header with the logomark, a section-grouped left navigation (a sheet on phones), a reading column of about 70 characters and a right rail with "Op deze pagina" and, on background pages, a calm sign-up card. No kicker above the title; a breadcrumb gives the location.
+The manual is a **Read** surface in the public frame: a 56px header with the logomark, a section-grouped left navigation (a sheet on phones), a reading column of about 70 characters and a right rail with "Op deze pagina" and a calm sign-up card that stays visible while the contents list scrolls. Below 1280px the card follows the text. No kicker above the title; a breadcrumb gives the location.
 
 - **Type:** rendered Markdown is set with shadcn typeset (`app/typeset.css`, preset `.typeset-manual`: 16px body, leading 1.75, flow 1.25em). The page title is 30–36px semibold; the lede under it is 20px in muted ink, set apart from the body by a hairline rule.
 - **UI-label chip** (the manual's signature): every UI label in the text renders like the app's own control — 1px border, white fill, weight 500, `rounded-md`, `shadow-xs`, never wrapping. A "Zo vind je het in de app" row strings chips together with chevrons. No hue: chips stay as neutral as the buttons they depict.

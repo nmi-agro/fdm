@@ -19,7 +19,7 @@ OWN-WORLD: fdm-app interior system — white paper, slate ink, hairline borders,
 
 STORY: The reader lands on a question (how is my nitrogen balance calculated / where do I add a harvest), reads a direct answer in a calm 65–75ch column, sees the exact buttons to click, and either continues to the next chapter or signs up from the card.
 
-FIRST VIEWPORT: 56px header (logomark, "Handleiding" breadcrumb, primary button to the app). Three columns on desktop: 256px section-grouped nav (Aan de slag / Gegevens vastleggen / Resultaten / Samenwerken en account, then Achtergrond groups), the article (breadcrumb, 30–36px title, 20px muted lede, then the in-app path row and a hairline before the typeset body of about 70 characters), and a 224px right rail with "Op deze pagina" and, on background pages and the index, a sign-up card. Phone: nav in a sheet from the header, contents as a disclosure above the article.
+FIRST VIEWPORT: 56px header (logomark, "Handleiding" breadcrumb, primary button to the app). Three columns on desktop: 256px section-grouped nav (Aan de slag / Gegevens vastleggen / Resultaten / Samenwerken en account, then Achtergrond groups), the article (breadcrumb, 30–36px title, 20px muted lede, then the in-app path row and a hairline before the typeset body of about 70 characters), and a 224px right rail with "Op deze pagina" (scrolling on its own) and a sign-up card that stays in view, on every page. Phone: nav in a sheet from the header, contents as a disclosure above the article.
 
 FORM: Dealt structure 7 of 7 (labels as app controls), seed: seed:fa192c65283c3539
 
