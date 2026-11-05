@@ -131,13 +131,17 @@ export default function FieldNutrientAdviceIndex() {
             <Button
               variant="default"
               className={cn(!loaderData.farmWritePermission ? "hidden" : "")}
-              asChild
-            >
-              <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Nieuw perceel</NavLink>
-            </Button>
-            <Button variant="outline" asChild>
-              <NavLink to="../">Naar bedrijfsoverzicht</NavLink>
-            </Button>
+
+              nativeButton={false}
+              render={
+                <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Nieuw perceel</NavLink>
+              }
+            />
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<NavLink to="../">Naar bedrijfsoverzicht</NavLink>}
+            />
           </div>
         </EmptyContent>
       </Empty>

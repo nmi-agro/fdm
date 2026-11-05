@@ -82,7 +82,7 @@ export default function ChooseFieldImportMethod() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex grow flex-col justify-between">
-                  <Accordion type="single" collapsible className="w-full">
+                  <Accordion className="w-full">
                     <AccordionItem value="item-1">
                       <AccordionTrigger>
                         Wat heb ik nodig om percelen te importeren vanuit RVO?
@@ -114,7 +114,7 @@ export default function ChooseFieldImportMethod() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex grow flex-col justify-between">
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion className="w-full">
                   <AccordionItem value="item-1">
                     <AccordionTrigger>
                       Hoe download ik een shapefile van mijn.rvo.nl?

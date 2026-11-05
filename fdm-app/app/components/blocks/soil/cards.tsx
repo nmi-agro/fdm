@@ -114,18 +114,20 @@ function SoilDataCard({
         {source !== "nl-other-nmi" ? (
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <NavLink
-                  to={link}
-                  aria-label={`${isEditable ? "Bewerk" : "Bekijk"} de analyse van ${title}`}
-                  className={cn(
-                    "text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-6 shrink-0 items-center justify-center rounded-md transition-colors pointer-coarse:-m-2.5 pointer-coarse:size-10",
-                    FOCUS_RING,
-                  )}
-                >
-                  <EditIcon className="size-3.5" aria-hidden />
-                </NavLink>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <NavLink
+                    to={link}
+                    aria-label={`${isEditable ? "Bewerk" : "Bekijk"} de analyse van ${title}`}
+                    className={cn(
+                      "text-muted-foreground hover:text-foreground hover:bg-accent -m-1 flex size-6 shrink-0 items-center justify-center rounded-md transition-colors pointer-coarse:-m-2.5 pointer-coarse:size-10",
+                      FOCUS_RING,
+                    )}
+                  >
+                    <EditIcon className="size-3.5" aria-hidden />
+                  </NavLink>
+                }
+              />
               <TooltipContent>{isEditable ? "Bewerken" : "Bekijken"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -152,27 +154,29 @@ function SoilDataCard({
         {showCoverage && (
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                {onShowZones ? (
-                  <button
-                    type="button"
-                    className={coverageClassName}
-                    aria-label={`${coverageLabel} Toon de zones op de kaart.`}
-                    {...zoneHighlightHandlers}
-                    onClick={() => onShowZones(zoneIds, { scroll: true })}
-                  >
-                    {coverageContent}
-                  </button>
-                ) : (
-                  <NavLink
-                    to={link}
-                    className={coverageClassName}
-                    aria-label={`${coverageLabel} Bekijk de bemonstering.`}
-                  >
-                    {coverageContent}
-                  </NavLink>
-                )}
-              </TooltipTrigger>
+              {onShowZones ? (
+                <TooltipTrigger
+                  type="button"
+                  className={coverageClassName}
+                  aria-label={`${coverageLabel} Toon de zones op de kaart.`}
+                  {...zoneHighlightHandlers}
+                  onClick={() => onShowZones(zoneIds, { scroll: true })}
+                >
+                  {coverageContent}
+                </TooltipTrigger>
+              ) : (
+                <TooltipTrigger
+                  render={
+                    <NavLink
+                      to={link}
+                      className={coverageClassName}
+                      aria-label={`${coverageLabel} Bekijk de bemonstering.`}
+                    >
+                      {coverageContent}
+                    </NavLink>
+                  }
+                />
+              )}
               <TooltipContent side="bottom" className="max-w-[260px]">
                 De bemonsterde zones dekken {coveragePercentage}% van het perceel. De waarde geldt
                 alleen voor het bemonsterde deel.{" "}

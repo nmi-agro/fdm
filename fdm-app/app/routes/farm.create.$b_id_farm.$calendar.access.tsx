@@ -122,13 +122,16 @@ export default function CreateFarmAccessStep() {
             </div>
 
             <div className="ml-auto">
-              <Button asChild>
-                <NavLink to={`/farm/${b_id_farm}`}>
-                  {" "}
-                  {/* Navigate to the main farm page */}
-                  Voltooien
-                </NavLink>
-              </Button>
+              <Button
+                nativeButton={false}
+                render={
+                  <NavLink to={`/farm/${b_id_farm}`}>
+                    {" "}
+                    {/* Navigate to the main farm page */}
+                    Voltooien
+                  </NavLink>
+                }
+              />
             </div>
           </div>
           <Separator className="my-6" />

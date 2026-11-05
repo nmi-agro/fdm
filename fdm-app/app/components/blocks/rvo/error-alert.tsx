@@ -87,16 +87,17 @@ export function RvoErrorAlert({
           <p>{friendlyMessage}</p>
           {retryPath ? (
             <Button
-              asChild
+              nativeButton={false}
               variant="outline"
               size="sm"
               className="w-fit border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-900"
-            >
-              <Link to={retryPath}>
-                <RefreshCw className="mr-2 h-3 w-3" />
-                {retryLabel}
-              </Link>
-            </Button>
+              render={
+                <Link to={retryPath}>
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                  {retryLabel}
+                </Link>
+              }
+            />
           ) : onRetry ? (
             <Button
               type="button"
