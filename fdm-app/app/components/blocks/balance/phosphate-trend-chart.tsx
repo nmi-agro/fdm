@@ -25,35 +25,68 @@ export type PhosphateMeasurement = {
   source?: string
 }
 
-/** Year classes shown as bands on the time axis (the uncertainty does not allow single years). */
-const YEAR_CLASSES = [
-  { from: 0, to: 5, label: "< 5 jaar" },
-  { from: 5, to: 10, label: "5–10" },
-  { from: 10, to: 20, label: "10–20" },
-]
+/** Font size of the labels inside the chart (px): readable next to the 11px axis ticks. */
+const LABEL_FONT_SIZE = 11
+
+/**
+ * Start of the time axis (years before "nu", whole 5-year steps) for a set of measured points, so
+ * charts shown side by side can share one time axis.
+ *
+ * @param measurements - The measured points.
+ * @returns The start of the axis: 0 without points, otherwise the oldest point rounded down to 5.
+ */
+export function getTrendChartStart(measurements: PhosphateMeasurement[]): number {
+  if (measurements.length === 0) return 0
+  return Math.floor(Math.min(...measurements.map((m) => m.year)) / 5) * 5
+}
+
+/** A round upper limit for the y axis and its ticks (steps of 5, 10 or 20). */
+function niceAxis(maxValue: number, minValue: number): { max: number; ticks: number[] } {
+  const span = Math.max(maxValue - minValue, 1)
+  const step = span <= 25 ? 5 : span <= 60 ? 10 : 20
+  const top = Math.ceil(maxValue / step) * step
+  const ticks: number[] = []
+  for (let tick = minValue; tick <= top; tick += step) ticks.push(tick)
+  return { max: top, ticks }
+}
+
+/** Sampling date as "12 maart 2023". */
+function formatSamplingDate(date: Date): string {
+  return new Date(date).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+/** Accessible description of a measured point, e.g. "Bodemanalyse 12 maart 2023, Eurofins: 37". */
+function describeMeasurement(point: PhosphateMeasurement, unit: string): string {
+  const date = point.date ? ` ${formatSamplingDate(point.date)}` : ""
+  const source = point.source ? `, ${point.source}` : ""
+  return `Bodemanalyse${date}${source}: ${formatNumberNl(point.value)}${unit}`
+}
 
 /**
  * Illustrative trend of a soil P indicator over the next 20 years if the long-term average balance
  * is repeated every year: a straight line from the current value (with an optional fan for the
- * uncertainty), the target zone shaded, the bound(s) as horizontal lines and the year classes as
- * bands. Not a prediction: the change per year is uncertain.
+ * uncertainty), the target zone ("streefzone") shaded, the bound(s) as horizontal lines and, before
+ * "nu", the dated soil analyses as points. Not a prediction: the change per year is uncertain.
  *
  * @param current - Current value.
  * @param deltaPerYear - Change per year at the current balance.
  * @param deltaRange - Optional lowest and highest change per year (uncertainty), shown as a shaded fan.
- * @param bounds - Horizontal reference lines (e.g. the PSD threshold, or P-AL 25 and 45).
- * @param band - Optional shaded range on the y axis: the target zone (e.g. P-AL 25–45, or PSD below
- *   the threshold).
+ * @param bounds - Horizontal reference lines (e.g. the PSD threshold, or P-AL 25).
+ * @param band - Optional target zone on the y axis; without `to` it runs to the top of the chart.
  * @param boundColor - Colour of the bound lines (default: the colour of the PSD threshold).
- * @param bandColor - Colour of the band (default: `boundColor`), e.g. green for the safe side of a
- *   threshold.
- * @param unit - Unit for the tooltip-free labels (e.g. "%").
+ * @param bandColor - Colour of the target zone (default: green).
+ * @param unit - Unit of the values in labels (e.g. " %").
  * @param min - Lower limit of the indicator (values are clamped).
  * @param max - Upper limit of the indicator (values are clamped).
  * @param measurements - Optional soil analyses in the past, as years before "nu" (negative) and
- *   value; shown as points (with a tooltip of sampling date and laboratory), with the time axis
- *   extended backwards.
- * @param className - Height of the chart (default `h-56`, the same for PSD and P-AL so they can be compared).
+ *   value; shown as points with a tooltip (sampling date, laboratory, value) on hover and focus.
+ * @param xMin - Start of the time axis (years before "nu"); pass the same value to charts shown side
+ *   by side (see `getTrendChartStart`). Defaults to the start for `measurements`.
+ * @param className - Height of the chart (default `h-56`, the same for PSD and P-AL).
  */
 export function PhosphateTrendChart({
   current,
@@ -62,24 +95,26 @@ export function PhosphateTrendChart({
   bounds,
   band,
   boundColor = "var(--chart-1)",
-  bandColor,
+  bandColor = "var(--color-green-600)",
   unit,
   min = 0,
   max = Number.POSITIVE_INFINITY,
   measurements = [],
+  xMin,
   className = "h-56",
 }: {
   current: number
   deltaPerYear: number
   deltaRange?: { min: number; max: number }
   bounds: { value: number; label: string }[]
-  band?: { from: number; to: number; label?: string }
+  band?: { from: number; to?: number; label?: string }
   boundColor?: string
   bandColor?: string
   unit: string
   min?: number
   max?: number
   measurements?: PhosphateMeasurement[]
+  xMin?: number
   className?: string
 }): JSX.Element {
   // Recharts' ComposedChart only has axis tooltips (they snap to the trend line), so the measured
@@ -104,74 +139,85 @@ export function PhosphateTrendChart({
     ...bounds.map((b) => b.value),
     ...measurements.map((m) => m.value),
   ]
-  // Extend the time axis backwards to the oldest measurement (whole 5-year steps)
-  const xMin =
-    measurements.length > 0 ? Math.floor(Math.min(...measurements.map((m) => m.year)) / 5) * 5 : 0
-  const ticks = [
-    ...(xMin < 0 ? Array.from({ length: -xMin / 5 }, (_, i) => xMin + i * 5) : []),
+  const start = Math.min(xMin ?? 0, getTrendChartStart(measurements))
+  const xTicks = [
+    ...(start < 0 ? Array.from({ length: -start / 5 }, (_, i) => start + i * 5) : []),
     0,
     5,
     10,
+    15,
     20,
   ]
   // Start at the lower limit (0): a zoomed axis makes a slow change look steep
-  const yMin = Number.isFinite(min) ? min : Math.floor(Math.min(...values) * 0.8)
-  const yMax = Math.ceil(Math.max(...values) * 1.15)
+  const yMin = Number.isFinite(min) ? min : Math.floor(Math.min(...values))
+  const y = niceAxis(Math.min(max, Math.max(...values) * 1.1), yMin)
 
   const chartConfig = {
     value: { label: "Verloop bij dit saldo", color: "var(--chart-2)" },
     range: { label: "Bereik", color: "var(--chart-2)" },
-    measured: { label: "Gemeten", color: "var(--foreground)" },
+    measured: { label: "Bodemanalyse", color: "var(--foreground)" },
   } satisfies ChartConfig
+  const isHovered = (point: PhosphateMeasurement) =>
+    hovered?.point.year === point.year && hovered.point.value === point.value
 
   return (
     <div className="relative">
       <ChartContainer config={chartConfig} className={cn("aspect-auto w-full", className)}>
-        <ComposedChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
-          {YEAR_CLASSES.map((yc, i) => (
-            <ReferenceArea
-              key={yc.label}
-              x1={yc.from}
-              x2={yc.to}
-              fill="var(--color-muted-foreground)"
-              fillOpacity={i % 2 === 0 ? 0.06 : 0.12}
-              label={{ value: yc.label, position: "insideTop", fontSize: 10 }}
-            />
-          ))}
           {band ? (
             <ReferenceArea
               y1={band.from}
-              y2={band.to}
-              fill={bandColor ?? boundColor}
-              fillOpacity={bandColor ? 0.12 : 0.08}
+              y2={band.to ?? y.max}
+              fill={bandColor}
+              fillOpacity={0.1}
               ifOverflow="extendDomain"
               label={
                 band.label
-                  ? { value: band.label, position: "insideBottomLeft", fontSize: 10 }
+                  ? {
+                      value: band.label,
+                      position: "insideBottomRight",
+                      fontSize: LABEL_FONT_SIZE,
+                      fill: "var(--color-green-800)",
+                    }
                   : undefined
               }
+            />
+          ) : null}
+          {start < 0 ? (
+            <ReferenceLine
+              x={0}
+              stroke="var(--border)"
+              label={{
+                value: "verloop vanaf nu",
+                position: "insideTopLeft",
+                fontSize: LABEL_FONT_SIZE,
+                fill: "var(--muted-foreground)",
+              }}
             />
           ) : null}
           <XAxis
             dataKey="year"
             type="number"
-            domain={[xMin, PHOSPHATE_HORIZON_YEARS]}
-            ticks={ticks}
+            domain={[start, PHOSPHATE_HORIZON_YEARS]}
+            ticks={xTicks}
+            interval="preserveStartEnd"
+            minTickGap={8}
             tickFormatter={(year: number) =>
               year === 0 ? "nu" : year > 0 ? `+${year} jr` : `${year} jr`
             }
             tickLine={false}
             axisLine={false}
-            fontSize={11}
+            fontSize={LABEL_FONT_SIZE}
           />
           <YAxis
-            domain={[yMin, yMax]}
+            domain={[yMin, y.max]}
+            ticks={y.ticks}
             tickFormatter={(v: number) => formatNumberNl(v)}
             tickLine={false}
             axisLine={false}
             width={36}
-            fontSize={11}
+            fontSize={LABEL_FONT_SIZE}
           />
           {bounds.map((b) => (
             <ReferenceLine
@@ -181,8 +227,9 @@ export function PhosphateTrendChart({
               strokeDasharray="6 4"
               label={{
                 value: `${b.label} ${formatNumberNl(b.value)}${unit}`,
-                position: "insideBottomRight",
-                fontSize: 10,
+                position: "insideTopLeft",
+                fontSize: LABEL_FONT_SIZE,
+                fill: "var(--foreground)",
               }}
             />
           ))}
@@ -217,26 +264,37 @@ export function PhosphateTrendChart({
                 if (cx === undefined || cy === undefined || !point) return <g />
                 const show = () => setHovered({ x: cx, y: cy, point })
                 const hide = () => setHovered(null)
+                const active = isHovered(point)
                 return (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={
-                      hovered?.point.year === point.year && hovered.point.value === point.value
-                        ? 6
-                        : 4.5
-                    }
-                    fill="var(--color-measured)"
-                    stroke="var(--background)"
-                    strokeWidth={1.5}
-                    className="cursor-pointer outline-none"
-                    tabIndex={0}
-                    aria-label={describeMeasurement(point, unit)}
-                    onMouseEnter={show}
-                    onMouseLeave={hide}
-                    onFocus={show}
-                    onBlur={hide}
-                  />
+                  <g>
+                    {active ? (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={9}
+                        fill="none"
+                        stroke="var(--ring)"
+                        strokeWidth={2}
+                      />
+                    ) : null}
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={active ? 6 : 4.5}
+                      fill="var(--color-measured)"
+                      stroke="var(--background)"
+                      strokeWidth={1.5}
+                      className="cursor-pointer outline-none"
+                      tabIndex={0}
+                      role="img"
+                      aria-label={describeMeasurement(point, unit)}
+                      onMouseEnter={show}
+                      onMouseLeave={hide}
+                      onFocus={show}
+                      onBlur={hide}
+                      onClick={show}
+                    />
+                  </g>
                 )
               }}
             />
@@ -247,9 +305,10 @@ export function PhosphateTrendChart({
         <div
           className="bg-background pointer-events-none absolute z-10 rounded-md border px-3 py-2 text-xs whitespace-nowrap shadow-md"
           style={{
-            left: hovered.x,
+            // Keep the tooltip inside the chart: the points are on the left (the past)
+            left: Math.max(hovered.x, 96),
             top: hovered.y,
-            transform: "translate(-50%, calc(-100% - 10px))",
+            transform: "translate(-50%, calc(-100% - 12px))",
           }}
           role="tooltip"
         >
@@ -259,7 +318,7 @@ export function PhosphateTrendChart({
           {hovered.point.source ? (
             <p className="text-muted-foreground">{hovered.point.source}</p>
           ) : null}
-          <p className="mt-1 font-medium">
+          <p className="mt-1 font-medium tabular-nums">
             {formatNumberNl(hovered.point.value)}
             {unit}
           </p>
@@ -267,20 +326,4 @@ export function PhosphateTrendChart({
       ) : null}
     </div>
   )
-}
-
-/** Sampling date as "12 maart 2023". */
-function formatSamplingDate(date: Date): string {
-  return new Date(date).toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  })
-}
-
-/** Accessible description of a measured point, e.g. "Bodemanalyse 12 maart 2023, Eurofins: 37". */
-function describeMeasurement(point: PhosphateMeasurement, unit: string): string {
-  const date = point.date ? ` ${formatSamplingDate(point.date)}` : ""
-  const source = point.source ? `, ${point.source}` : ""
-  return `Bodemanalyse${date}${source}: ${formatNumberNl(point.value)}${unit}`
 }

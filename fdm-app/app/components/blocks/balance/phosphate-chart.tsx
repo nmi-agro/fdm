@@ -180,7 +180,11 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
     })
 
   return (
-    <ChartContainer config={chartConfig} onMouseLeave={() => setFocus(undefined)}>
+    <ChartContainer
+      config={chartConfig}
+      className="aspect-auto h-44 w-full"
+      onMouseLeave={() => setFocus(undefined)}
+    >
       <BarChart accessibilityLayer data={[chartData]} layout="vertical" margin={{ left: -20 }}>
         <XAxis type="number" />
         <YAxis
@@ -247,7 +251,7 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
             <use
               href={`#${svgId}_${focus}`}
               fill="none"
-              stroke="black"
+              stroke="var(--foreground)"
               strokeWidth={5}
               style={{ pointerEvents: "none" }}
             />

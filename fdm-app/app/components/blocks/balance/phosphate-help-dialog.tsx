@@ -145,8 +145,9 @@ export function PhosphateHelpDialog() {
             </ul>
             <p>
               De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor het
-              saldo van één perceel al gauw 15 tot 25 kg P₂O₅ per ha onzeker is. De rekenregels zijn
-              een prototype en worden nog met de onderzoekers afgestemd.
+              saldo van één perceel al gauw 15 tot 25 kg P₂O₅ per ha onzeker is. De fosfaatbalans is
+              experimenteel: de rekenregels worden nog met de onderzoekers afgestemd. Feedback is
+              welkom via Ondersteuning.
             </p>
           </div>
 

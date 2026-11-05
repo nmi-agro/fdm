@@ -46,39 +46,59 @@ function BalanceCardSkeleton({ figures = 2 }: { figures?: number }) {
 }
 
 /**
- * Loading state of the phosphate field page, in the layout of the page: the status card on top,
- * the PSD and P-AL cards side by side, then the balance and its terms.
+ * Loading state of the phosphate field page, in the layout of the page: the status card (zone strip
+ * and three facts), the PSD and P-AL cards side by side, what to do, then the balance and its terms.
  */
 export function PhosphateFieldFallback() {
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Fosfaatbalans wordt berekend">
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
+    <div
+      className="@container/soil space-y-4"
+      aria-busy="true"
+      aria-label="Fosfaatbalans wordt berekend"
+    >
+      <Card className="@container/status">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-3">
           <div className="space-y-2">
             <Skeleton className="h-5 w-36" />
             <Skeleton className="h-4 w-48" />
           </div>
           <Skeleton className="h-6 w-24 rounded-md" />
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="space-y-2">
-            <Skeleton className="h-4 w-full max-w-2xl" />
-            <Skeleton className="h-4 w-full max-w-xl" />
+            <Skeleton className="h-3 w-full rounded-full" />
+            <div className="flex justify-between">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+            </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-4 @2xl/status:grid-cols-3">
             {[...Array(3)].map((_, i) => (
-              <div key={`fact-${i}`} className="space-y-2 rounded-lg border p-3">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-32" />
+              <div key={`fact-${i}`} className="space-y-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-5 w-40" />
                 <Skeleton className="h-3 w-full" />
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 @3xl/soil:grid-cols-2">
         <SoilCardSkeleton />
         <SoilCardSkeleton />
+      </div>
+      <Card>
+        <CardHeader className="space-y-2 pb-3">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-4 w-full max-w-xl" />
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-4 w-72 max-w-full" />
+          <Skeleton className="h-4 w-full max-w-2xl" />
+        </CardContent>
+      </Card>
+      <div className="grid gap-4 @3xl/soil:grid-cols-2">
         <BalanceCardSkeleton figures={3} />
         <Card className="self-start">
           <CardHeader>

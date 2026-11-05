@@ -24,8 +24,18 @@ export function formatNumberNl(value: number | null | undefined, decimals = 0): 
   }).format(value)
 }
 
+/**
+ * Formats a field area in Dutch notation, e.g. "9,49 ha".
+ *
+ * @param area - Area (ha).
+ * @returns The formatted area.
+ */
+export function formatAreaHa(area: number | null | undefined): string {
+  return `${formatNumberNl(area, 2)} ha`
+}
+
 /** Unit of the phosphate balance terms. */
-export const PHOSPHATE_UNIT = "kg P₂O₅ / ha"
+export const PHOSPHATE_UNIT = "kg P₂O₅/ha"
 
 /** Horizon (years) of the projection; beyond it the trend is shown as "> 20 jaar". */
 export const PHOSPHATE_HORIZON_YEARS = PHOSPHATE_STATUS_RULES.stay_horizon
@@ -88,6 +98,53 @@ export function formatPhosphateAim(status: PhosphateStatus): string {
   return aim
 }
 
+/** Direction of the soil P status and what it means for the aim of the field. */
+export type PhosphateDirectionText = {
+  /** "Stijgt", "Daalt" or "Stabiel" */
+  verb: string
+  /** What the direction means for the aim, e.g. "naar het doel" (empty when unknown) */
+  meaning: string
+  /** Whether the direction helps (`toward`), hurts (`away`) or is fine either way (`neutral`) */
+  tone: "toward" | "away" | "neutral"
+}
+
+/**
+ * Describes the direction of the soil P status against the aim of the field, so a rising arrow is
+ * never read without its meaning: "Stijgt · van het doel af" on a field above the environmental
+ * threshold, "Stijgt · blijft in de streefzone" on a field inside the zone.
+ *
+ * @param status - The status of the field.
+ * @returns The direction and its meaning.
+ */
+export function describePhosphateDirection(status: PhosphateStatus): PhosphateDirectionText {
+  const verb = { up: "Stijgt", down: "Daalt", stable: "Stabiel" }[status.direction]
+  if (status.verdict === "unknown" || !status.aim) return { verb, meaning: "", tone: "neutral" }
+  if (status.aim === "afbouwen" || status.aim === "opbouwen") {
+    const toward = status.aim === "afbouwen" ? "down" : "up"
+    if (status.direction === toward) return { verb, meaning: "naar het doel", tone: "toward" }
+    if (status.direction === "stable") {
+      return {
+        verb,
+        meaning: status.aim === "afbouwen" ? "blijft boven het doel" : "blijft onder het doel",
+        tone: "away",
+      }
+    }
+    return { verb, meaning: "van het doel af", tone: "away" }
+  }
+  if (status.conflict) {
+    return status.direction === "up"
+      ? { verb, meaning: "PSD verder boven de milieugrens", tone: "away" }
+      : { verb, meaning: "", tone: "neutral" }
+  }
+  if (status.verdict === "good")
+    return { verb, meaning: "blijft in de streefzone", tone: "neutral" }
+  return {
+    verb,
+    meaning: status.binding === "psd" ? "richting de milieugrens" : "richting de ondergrens",
+    tone: "away",
+  }
+}
+
 /**
  * Dutch label of a years class.
  *
@@ -107,7 +164,7 @@ export function formatYearsClass(yearsClass: YearsClass): string {
     case "gt_20":
       return "> 20 jaar"
     case "not_reached":
-      return "niet bij dit saldo"
+      return "niet bij huidig saldo"
   }
 }
 
@@ -120,12 +177,14 @@ export function formatYearsClass(yearsClass: YearsClass): string {
  */
 export function formatYearsBand(years: ValueWithRange | null): string | null {
   if (!years) return null
-  if (years.value <= 0) return "nu al"
+  if (years.value <= 0) return "binnen de marge"
   const horizon = PHOSPHATE_HORIZON_YEARS
   const low = Math.max(1, Math.round(years.min))
   const high = Math.round(years.max)
   if (low > horizon) return `> ${horizon} jaar`
-  if (high - low >= 2) return `circa ${low}–${high > horizon ? `> ${horizon}` : high} jaar`
+  if (high - low >= 2) {
+    return high > horizon ? `circa ${low} jaar of langer` : `circa ${low}–${high} jaar`
+  }
   if (years.value < 5) return "< 5 jaar"
   if (years.value < 10) return "5–10 jaar"
   if (years.value <= horizon) return "10–20 jaar"
@@ -133,7 +192,7 @@ export function formatYearsBand(years: ValueWithRange | null): string | null {
 }
 
 /**
- * Dutch description of the years in the long-term average balance, e.g. "2022–2026 (5 jaar)".
+ * Dutch description of the years in the long-term average balance, e.g. "2022–2026, 5 jaar".
  *
  * @param years - The calendar years with data.
  * @returns The description, or an empty string without years.
@@ -142,8 +201,21 @@ export function formatLongTermYears(years: number[]): string {
   if (years.length === 0) return ""
   const first = years[0]
   const last = years[years.length - 1]
-  const range = first === last ? `${first}` : `${first}–${last}`
-  return `${range} (${years.length} ${years.length === 1 ? "jaar" : "jaar met gegevens"})`
+  if (first === last) return `${first}`
+  return `${first}–${last}, ${years.length} jaar met gegevens`
+}
+
+/**
+ * The range of years in the long-term average balance, e.g. "2022–2026".
+ *
+ * @param years - The calendar years with data.
+ * @returns The range, or an empty string without years.
+ */
+export function formatLongTermRange(years: number[]): string {
+  if (years.length === 0) return ""
+  const first = years[0]
+  const last = years[years.length - 1]
+  return first === last ? `${first}` : `${first}–${last}`
 }
 
 /**
@@ -173,12 +245,12 @@ export function getPhosphateYearsToThreshold(
   if (!psd || threshold === null || threshold === undefined) return null
   if (psd.current.value > threshold) {
     return psd.delta_per_year < 0
-      ? { label: "Onder de grens over", value: formatYearsClass(psd.years_class) }
-      : { label: "Bij het gemiddelde saldo", value: "Blijft boven de grens" }
+      ? { label: "Onder de milieugrens over", value: formatYearsClass(psd.years_class) }
+      : { label: "Bij het gemiddelde saldo", value: "Blijft boven de milieugrens" }
   }
   return psd.delta_per_year > 0
-    ? { label: "Boven de grens over", value: formatYearsClass(psd.years_class) }
-    : { label: "Bij het gemiddelde saldo", value: "Blijft onder de grens" }
+    ? { label: "Boven de milieugrens over", value: formatYearsClass(psd.years_class) }
+    : { label: "Bij het gemiddelde saldo", value: "Blijft onder de milieugrens" }
 }
 
 /**
@@ -198,11 +270,25 @@ export function formatSaturationSource(source: PhosphateSaturationSource): strin
   }
 }
 
-/** Dutch name of the reason a field is left out of the phosphate balance. */
+/** Dutch name of the reason a field is left out of the phosphate balance (in a sentence). */
 export const PHOSPHATE_EXCLUSION_LABEL: Record<FieldExclusionReason, string> = {
   bufferstrip: "bufferstrook",
-  nature: "natuur",
+  nature: "natuurperceel",
   landscape_element: "landschapselement",
+}
+
+/** Dutch heading per exclusion reason (plural, for groups of fields). */
+export const PHOSPHATE_EXCLUSION_GROUP: Record<FieldExclusionReason, string> = {
+  bufferstrip: "Bufferstroken",
+  nature: "Natuurpercelen",
+  landscape_element: "Landschapselementen",
+}
+
+/** Dutch title of the message on an excluded field. */
+export const PHOSPHATE_EXCLUSION_TITLE: Record<FieldExclusionReason, string> = {
+  bufferstrip: "Bufferstrook: geen fosfaatbalans",
+  nature: "Natuurperceel: geen fosfaatbalans",
+  landscape_element: "Landschapselement: geen fosfaatbalans",
 }
 
 /** Source code of NMI soil estimates (BodemSchat): not a laboratory measurement. */
@@ -210,7 +296,7 @@ export const NMI_ESTIMATE_SOURCE = "nl-other-nmi"
 
 /** Long-term average balance as "−8 kg P₂O₅/ha per jaar". */
 function formatSaldo(value: number): string {
-  return `${formatNumberNl(value)} kg P₂O₅/ha per jaar`
+  return `${formatNumberNl(value)} ${PHOSPHATE_UNIT} per jaar`
 }
 
 /**
@@ -231,7 +317,7 @@ export function getPhosphateIndicativeReason(
   }
   if (saturation.soil_note) return saturation.soil_note
   if (projection.psd.threshold.source !== "field") {
-    return "Geen P-CaCl₂ bekend: de algemene grens van 25 % is gebruikt."
+    return "Geen P-CaCl₂ bekend: de algemene milieugrens van 25 % is gebruikt."
   }
   const pAlMeasured =
     saturation.a_p_al_source !== null &&
@@ -242,20 +328,88 @@ export function getPhosphateIndicativeReason(
     : "De fosfaatverzadiging en P-AL zijn geschat (NMI BodemSchat), niet uit een bodemanalyse."
 }
 
-/** Diagnosis and action for a field, in Dutch. */
-export type PhosphateAdvice = {
-  /** Where the field is relative to the target zone, and why that matters */
-  diagnosis: string
-  /** What to do, with the needed long-term average balance when it applies */
-  action: string | null
-  /** Extra context, e.g. that reducing for the environment does not cost yield */
-  notes: string[]
+/**
+ * Years until the deciding indicator reaches its aim (with margin) when the phosphate fertilisation
+ * stops: the change per year scales with the effective balance, which drops by the average
+ * fertilizer supply.
+ *
+ * @param balance - The phosphate balance of the field.
+ * @param status - Its status.
+ * @param fertilizers - Average fertilizer supply per year (kg P₂O₅ / ha).
+ * @returns The years with range, or `null` when the aim is not reached without fertilisation.
+ */
+function yearsWithoutFertilizers(
+  balance: PhosphateBalanceField,
+  status: PhosphateStatus,
+  fertilizers: number,
+): ValueWithRange | null {
+  const R = PHOSPHATE_STATUS_RULES
+  const projection = balance.projection
+  if (!projection || projection.balance_effective_per_year === 0) return null
+  const scale =
+    (projection.balance_effective_per_year - fertilizers) / projection.balance_effective_per_year
+  let current: number
+  let deltas: number[]
+  let edge: number
+  const threshold = projection.psd?.threshold.value ?? null
+  if (status.binding === "psd" && projection.psd && threshold !== null) {
+    current = projection.psd.current.value
+    deltas = [projection.psd.delta_per_year]
+    edge = threshold + R.psd_margin
+  } else if (status.binding === "p_al" && projection.p_al) {
+    current = projection.p_al.current
+    const d = projection.p_al.delta_per_year
+    deltas = [d.value, d.min, d.max]
+    edge = status.aim === "opbouwen" ? R.p_al_min - R.p_al_margin : R.p_al_high + R.p_al_margin
+  } else {
+    return null
+  }
+  const years = deltas.map((delta) => {
+    const perYear = delta * scale
+    const t = perYear === 0 ? -1 : (edge - current) / perYear
+    return t > 0 ? t : null
+  })
+  const [value] = years
+  if (value === null || value === undefined) return null
+  const valid = years.filter((t): t is number => t !== null)
+  return { value, min: Math.min(...valid), max: Math.max(...valid) }
+}
+
+/** One option in the advice: a short title and one line of explanation. */
+export type PhosphateAdviceOption = {
+  /** What kind of lever it is (for the icon) */
+  kind: "fertilizer" | "removal" | "keep" | "advisor" | "data"
+  title: string
+  detail: string | null
 }
 
 /**
- * Builds the advice for a field from its status: one diagnosis sentence (where), one action
- * sentence (direction, speed and what to do), plus notes. It never asks to lower a fertilisation
- * that is not there, and quotes the needed long-term average balance next to the current one.
+ * Advice for a field, in Dutch, split so the environmental and the agronomic view do not mix: the
+ * goal in one line, one sentence per view (PSD for the environment, P-AL for the crop), and a short
+ * list of options phrased as possibilities, not instructions.
+ */
+export type PhosphateAdvice = {
+  /** The goal for this field in one line */
+  goal: string
+  /** The environmental view (PSD against the milieugrens), or `null` without a usable PSD */
+  environment: string | null
+  /** The agronomic view (P-AL against the lower bound for the crop), or `null` without P-AL */
+  agronomic: string | null
+  /** What could be done, most relevant first */
+  options: PhosphateAdviceOption[]
+  /**
+   * Time to the aim when the first option is followed, e.g. "circa 10 jaar met aangepaste
+   * bemesting"; `null` when the current saldo already gets there or no fixed horizon applies
+   */
+  timeWithAdvice: string | null
+}
+
+/**
+ * Builds the advice for a field from its status: the goal, the environmental view (PSD), the
+ * agronomic view (P-AL) and the options. The fertilisation option is given in the lever the user
+ * controls (average fertilizer supply per year, kg P₂O₅/ha), with the saldo it gives as the
+ * secondary figure. It never suggests lowering a fertilisation that is not there, and says when even
+ * no phosphate fertilisation is not enough.
  *
  * @param balance - The phosphate balance of the field.
  * @param status - Its status.
@@ -267,93 +421,193 @@ export function getPhosphateAdvice(
 ): PhosphateAdvice {
   const R = PHOSPHATE_STATUS_RULES
   const psd = balance.projection?.psd ?? null
+  const threshold = psd?.threshold.value ?? null
+  const usePsd = psd !== null && threshold !== null && balance.saturation.psd_valid
   const pAl = balance.projection?.p_al?.current ?? null
-  const current = formatSaldo(balance.long_term.balance)
+  const longTerm = balance.long_term.balance
+  // Results cached by an earlier build may lack the long-term fertilizer average
+  const fertilizers = Number.isFinite(balance.long_term.fertilizers)
+    ? balance.long_term.fertilizers
+    : balance.supply.fertilizers.total
   const years = formatYearsBand(status.years) ?? formatYearsClass(status.years_class)
   const indicator = status.binding ? formatIndicator(status.binding) : "fosfaattoestand"
-  const needed = status.balance_needed
-  const neededText = needed
-    ? `${needed.limit === "max" ? "hoogstens" : "minstens"} ${formatSaldo(needed.value)} (nu ${current})`
-    : null
-  const notes: string[] = []
+  const inside = status.aim === "onderhouden" && !status.conflict
+  const removalOption = (detail: string | null): PhosphateAdviceOption => ({
+    kind: "removal",
+    title: "Meer fosfaat afvoeren",
+    detail:
+      detail ??
+      "Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.",
+  })
 
   if (status.verdict === "unknown" || !status.aim) {
     return {
-      diagnosis: "Onvoldoende bodemgegevens (P-AL of fosfaatverzadiging) voor een oordeel.",
-      action: "Voeg een recente bodemanalyse met P-AL toe.",
-      notes,
+      goal: "Er is te weinig bodeminformatie voor een oordeel over dit perceel.",
+      environment: null,
+      agronomic: null,
+      options: [
+        {
+          kind: "data",
+          title: "Een bodemanalyse met P-AL laten doen",
+          detail: "Daarmee kan de fosfaattoestand worden beoordeeld.",
+        },
+      ],
+      timeWithAdvice: null,
     }
   }
 
-  // Where
-  let diagnosis: string
-  if (status.aim === "afbouwen" && status.binding === "psd" && psd) {
-    diagnosis = `De fosfaatverzadiging (PSD ${formatNumberNl(psd.current.value)} %) ligt boven de milieugrens van ${formatNumberNl(psd.threshold.value)} %: afbouwen is nodig.`
+  // Goal
+  let goal: string
+  if (status.aim === "afbouwen" && status.binding === "psd") {
+    goal = `De fosfaatverzadiging omlaag brengen naar de milieugrens, zonder dat P-AL onder ${R.p_al_min} komt.`
   } else if (status.aim === "afbouwen") {
-    diagnosis = `P-AL (${formatNumberNl(pAl)}) is hoog: afbouwen kan zonder opbrengstverlies.`
+    goal = `De hoge fosfaatvoorraad afbouwen naar P-AL ${R.p_al_high} of lager.`
   } else if (status.aim === "opbouwen") {
-    diagnosis = `P-AL (${formatNumberNl(pAl)}) ligt onder ${R.p_al_min}: opbouwen is nodig voor de opbrengst.`
+    goal = `De fosfaatvoorraad opbouwen naar P-AL ${R.p_al_min} of hoger, voor de opbrengst.`
   } else if (status.conflict) {
-    diagnosis = `De PSD ligt boven de milieugrens, terwijl P-AL (${formatNumberNl(pAl)}) laag is voor de opbrengst. Opbouwen belast het milieu, afbouwen kost opbrengst.`
+    goal = "Milieu en opbrengst vragen hier iets anders; dit perceel vraagt maatwerk."
   } else {
-    const psdPart =
-      psd && psd.threshold.value !== null && balance.saturation.psd_valid
-        ? ` en PSD ${formatNumberNl(psd.current.value)} % onder de grens van ${formatNumberNl(psd.threshold.value)} %`
-        : ""
-    diagnosis = `In de streefzone: P-AL ${formatNumberNl(pAl)} (vanaf ${R.p_al_min})${psdPart}.`
+    goal = "De fosfaatvoorraad in de streefzone houden."
   }
 
-  // Direction, speed and what to do
-  let action: string | null = null
-  const outside = status.aim !== "onderhouden"
-  const noInput =
-    "Er wordt geen fosfaat bemest; alleen meer afvoer, zoals gewasresten afvoeren of een gewas met een hoge fosfaatafvoer, laat de voorraad sneller dalen."
-  if (status.aim === "onderhouden" && status.conflict) {
-    action =
-      status.direction === "up"
-        ? "De PSD stijgt verder. Houd de aanvoer gelijk aan afvoer plus vastlegging en bespreek dit perceel met een adviseur."
-        : "Houd de aanvoer gelijk aan afvoer plus vastlegging en bespreek dit perceel met een adviseur."
-  } else if (outside) {
-    if (status.verdict === "good") {
-      action =
-        status.years_class === "reached"
-          ? "Vrijwel op doel (binnen de marge); houd het huidige saldo aan."
-          : `Het gemiddelde saldo (${current}) brengt de ${indicator} in ${years} bij het doel. Houd dit vast.`
-    } else if (status.verdict === "attention") {
-      if (status.aim === "afbouwen" && !status.has_fertilizer_input) {
-        action = `De ${indicator} daalt, maar het duurt ${years} tot het doel. ${noInput}`
-      } else {
-        action = `De ${indicator} gaat de goede kant op, maar traag (${years}). Een gemiddeld saldo van ${neededText} haalt het doel in circa ${R.reach_horizon} jaar.`
-      }
+  // Environmental view (PSD)
+  let environment: string | null = null
+  if (usePsd && psd && threshold !== null) {
+    if (psd.current.value > threshold) {
+      environment = `De bodem zit boven de milieugrens: fosfaat kan naar sloot en grondwater gaan, dus afbouwen is wenselijk.`
+    } else if (psd.delta_per_year > 0 && psd.years !== null && psd.years <= R.stay_horizon) {
+      // Below the threshold now, but the balance pushes the PSD over it within the horizon (also
+      // while building up P-AL)
+      environment = `Nu onder de milieugrens, maar bij het huidige saldo komt de PSD over ${formatYearsClass(psd.years_class)} erboven.${status.aim === "opbouwen" ? " Houd daar bij het opbouwen rekening mee." : ""}`
     } else {
-      const trend =
-        status.direction === "stable"
-          ? "blijft gelijk"
-          : status.aim === "afbouwen"
-            ? "stijgt"
-            : "daalt"
-      if (status.aim === "afbouwen" && !status.has_fertilizer_input) {
-        action = `De ${indicator} ${trend}, terwijl die al boven het doel ligt. ${noInput}`
-      } else {
-        action = `De ${indicator} ${trend}, terwijl die al ${status.aim === "afbouwen" ? "boven" : "onder"} het doel ligt. ${status.aim === "afbouwen" ? "Verlaag" : "Verhoog"} het gemiddelde saldo naar ${neededText} om in circa ${R.reach_horizon} jaar bij het doel te komen.`
+      environment = `Onder de milieugrens: vanuit het milieu is er nu geen beperking.`
+    }
+  } else if (balance.projection?.psd || balance.saturation.psd_valid === false) {
+    environment =
+      "Voor deze grond is de fosfaatverzadiging niet bruikbaar; het oordeel gebruikt alleen P-AL."
+  }
+
+  // Agronomic view (P-AL)
+  let agronomic: string | null = null
+  if (pAl !== null) {
+    if (pAl < R.p_al_min) {
+      agronomic = `Onder ${R.p_al_min} is er te weinig fosfaat voor een goede opbrengst; opbouwen is gunstig.`
+    } else if (inside && status.binding === "p_al" && status.verdict !== "good") {
+      agronomic = `Op peil, maar bij het huidige saldo daalt P-AL over ${years} onder ${R.p_al_min}.`
+    } else if (status.aim === "afbouwen") {
+      const floor = formatYearsBand(status.p_al_min_years)
+      agronomic = `Op peil: afbouwen kost geen opbrengst zolang P-AL boven ${R.p_al_min} blijft${floor ? ` (bij het huidige saldo nog ${floor})` : ""}.`
+    } else {
+      agronomic = `Op peil: genoeg fosfaat voor de opbrengst.`
+    }
+  }
+
+  const base = { goal, environment, agronomic }
+
+  // Options
+  if (status.aim === "onderhouden" && status.conflict) {
+    return {
+      ...base,
+      options: [
+        {
+          kind: "fertilizer",
+          title: "Aanvoer rond afvoer plus vastlegging",
+          detail: "Zo blijft de voorraad ongeveer gelijk.",
+        },
+        {
+          kind: "advisor",
+          title: "Bespreken met een adviseur",
+          detail: "Opbouwen belast het milieu en afbouwen kan opbrengst kosten.",
+        },
+      ],
+      timeWithAdvice: null,
+    }
+  }
+
+  if (status.verdict === "good") {
+    let detail: string
+    if (inside) {
+      detail =
+        status.direction === "down"
+          ? `Een negatief saldo is hier geen probleem; de voorraad blijft langer dan ${R.stay_horizon} jaar in de streefzone.`
+          : `De voorraad blijft bij het huidige saldo langer dan ${R.stay_horizon} jaar in de streefzone.`
+    } else if (status.years_class === "reached") {
+      detail = "De fosfaattoestand zit binnen de marge van het doel."
+    } else {
+      detail = `Bij het huidige saldo (${formatSaldo(longTerm)}) is de ${indicator} naar verwachting over ${years} bij het doel.`
+    }
+    return {
+      ...base,
+      options: [{ kind: "keep", title: "De huidige fosfaatbemesting aanhouden", detail }],
+      timeWithAdvice: null,
+    }
+  }
+
+  const needed = status.balance_needed
+  const horizon = inside ? R.stay_horizon : R.reach_horizon
+  const effect = inside
+    ? `blijft de ${indicator} naar verwachting ${horizon} jaar in de streefzone`
+    : `komt de ${indicator} naar verwachting in circa ${horizon} jaar bij het doel`
+  const withoutFertilizers = longTerm - fertilizers
+  const notEnoughWithout =
+    needed !== null && needed.limit === "max" && needed.value < withoutFertilizers
+
+  if (needed && (notEnoughWithout || (needed.limit === "max" && !status.has_fertilizer_input))) {
+    // Lowering the fertilisation is not (or no longer) enough: more removal is the other lever
+    if (status.has_fertilizer_input) {
+      const without = formatYearsBand(yearsWithoutFertilizers(balance, status, fertilizers))
+      return {
+        ...base,
+        options: [
+          {
+            kind: "fertilizer",
+            title: "Minder of geen fosfaatbemesting",
+            detail: `Zonder fosfaatbemesting wordt het saldo circa ${formatSaldo(withoutFertilizers)}; ${without ? `het doel is dan naar verwachting over ${without} bereikt` : `de ${indicator} komt dan naar verwachting nog niet bij het doel`}.`,
+          },
+          removalOption(
+            `Versnelt het afbouwen; voor circa ${horizon} jaar zou een saldo van hoogstens ${formatNumberNl(needed.value)} nodig zijn. Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`,
+          ),
+        ],
+        timeWithAdvice: without ? `${without} zonder fosfaatbemesting` : null,
       }
     }
-  } else if (status.verdict === "good") {
-    action =
-      status.direction === "down"
-        ? `Bij dit saldo blijft het perceel langer dan ${R.stay_horizon} jaar in de streefzone; een negatief saldo is hier geen probleem.`
-        : `Bij dit saldo blijft het perceel langer dan ${R.stay_horizon} jaar in de streefzone.`
-  } else if (status.binding === "p_al") {
-    action = `Bij dit saldo daalt P-AL over ${years} onder ${R.p_al_min}. Een gemiddeld saldo van ${neededText} houdt P-AL ${R.stay_horizon} jaar in de zone.`
-  } else {
-    action = `Bij dit saldo komt de ${indicator} over ${years} boven de grens. Een gemiddeld saldo van ${neededText} houdt de ${indicator} ${R.stay_horizon} jaar in de zone.`
+    const now =
+      status.direction === (status.aim === "opbouwen" ? "up" : "down")
+        ? `Er wordt al geen fosfaat bemest; bij het huidige saldo duurt het ${years}.`
+        : `Er wordt al geen fosfaat bemest; bij het huidige saldo komt de ${indicator} niet bij het doel.`
+    return {
+      ...base,
+      options: [
+        removalOption(
+          `${now} Bijvoorbeeld door gewasresten af te voeren of een gewas met een hoge fosfaatafvoer te telen.`,
+        ),
+      ],
+      timeWithAdvice: null,
+    }
   }
 
-  if (status.aim === "afbouwen" && status.conflict) {
-    const floor = formatYearsBand(status.p_al_min_years)
-    notes.push(
-      `Voor de opbrengst is P-AL (${formatNumberNl(pAl)}) op peil; afbouwen kost geen opbrengst zolang P-AL boven ${R.p_al_min} blijft${floor ? ` (bij dit saldo nog ${floor})` : ""}.`,
-    )
+  if (needed) {
+    const verb = needed.limit === "max" ? "hoogstens" : "minstens"
+    const options: PhosphateAdviceOption[] = [
+      {
+        kind: "fertilizer",
+        title: `Fosfaatbemesting van gemiddeld ${verb} ${formatNumberNl(needed.fertilizers)} ${PHOSPHATE_UNIT} per jaar`,
+        detail: `Nu ${formatNumberNl(fertilizers)}. Dat geeft een saldo van ${verb} ${formatSaldo(needed.value)} (nu ${formatNumberNl(longTerm)}); dan ${effect}.`,
+      },
+    ]
+    if (needed.limit === "max" && status.aim === "afbouwen") options.push(removalOption(null))
+    return {
+      ...base,
+      options,
+      timeWithAdvice: inside
+        ? `> ${horizon} jaar met aangepaste bemesting`
+        : `circa ${horizon} jaar met aangepaste bemesting`,
+    }
   }
-  return { diagnosis, action, notes }
+
+  return {
+    ...base,
+    options: [{ kind: "keep", title: "De huidige fosfaatbemesting aanhouden", detail: null }],
+    timeWithAdvice: null,
+  }
 }

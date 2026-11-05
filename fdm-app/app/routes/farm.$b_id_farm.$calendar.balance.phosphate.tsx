@@ -4,6 +4,7 @@ import {
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
+  NavLink,
   Outlet,
   useLoaderData,
   useParams,
@@ -12,7 +13,7 @@ import { PhosphateHelpDialog } from "~/components/blocks/balance/phosphate-help-
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { Badge } from "~/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -165,17 +166,38 @@ export default function FarmBalancePhosphateBlock() {
         />
       </Header>
       <main>
-        <div className="space-y-6 px-10 py-5 pb-0">
+        <div className="space-y-6 px-4 py-5 pb-0 sm:px-6 lg:px-10">
           <div className="flex flex-wrap items-center gap-4">
             <div className="space-y-0.5 ">
-              <h2 className="text-2xl font-bold tracking-tight">Fosfaat</h2>
+              <h2 className="text-3xl font-semibold tracking-tight">Fosfaat</h2>
             </div>
-            <Badge
-              variant="outline"
-              title="De rekenregels worden nog afgestemd; waarden zijn voorlopig"
-            >
-              Prototype
-            </Badge>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="focus-visible:ring-ring/50 hover:bg-muted rounded-md border px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px]"
+                >
+                  Experimenteel
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 space-y-2 text-sm">
+                <p className="font-medium">De fosfaatbalans is experimenteel</p>
+                <p className="text-muted-foreground">
+                  De rekenregels en grenswaarden worden nog met de onderzoekers afgestemd. Gebruik
+                  de uitkomsten als richting, niet als vaststaand advies; ze kunnen nog veranderen.
+                </p>
+                <p className="text-muted-foreground">
+                  Klopt iets niet of mist u iets? Uw feedback helpt ons de fosfaatbalans te
+                  verbeteren.
+                </p>
+                <NavLink
+                  to={`/support/new?context_farm_id=${loaderData.b_id_farm}`}
+                  className="inline-flex font-medium underline underline-offset-4"
+                >
+                  Feedback sturen via Ondersteuning
+                </NavLink>
+              </PopoverContent>
+            </Popover>
             <PhosphateHelpDialog />
           </div>
           <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">

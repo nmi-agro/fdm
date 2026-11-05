@@ -15,8 +15,7 @@ import {
   Sprout,
 } from "lucide-react"
 import { InfoTip } from "~/components/blocks/fertilizer-applications/bulk/info-tip"
-import { Badge } from "~/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { cn } from "~/lib/utils"
 import {
@@ -31,19 +30,42 @@ import {
   P_AL_LOW,
   PHOSPHATE_VERDICT_TEXT,
 } from "./phosphate-format"
-import { type PhosphateMeasurement, PhosphateTrendChart } from "./phosphate-trend-chart"
+import {
+  getTrendChartStart,
+  type PhosphateMeasurement,
+  PhosphateTrendChart,
+} from "./phosphate-trend-chart"
 
-/** Icon and colours per verdict: never colour alone, always with an icon and a label. */
+/**
+ * Icon and colours per verdict: never colour alone, always with an icon and a label. Text and
+ * icons use the -700/-800 shades so they meet WCAG AA on their light tint.
+ */
 const VERDICT_STYLE = {
-  good: { Icon: CircleCheck, className: "bg-green-100 text-green-600" },
-  attention: { Icon: CircleAlert, className: "bg-amber-100 text-amber-600" },
-  adjust: { Icon: CircleX, className: "bg-red-100 text-red-600" },
-  unknown: { Icon: CircleHelp, className: "bg-muted text-muted-foreground" },
+  good: {
+    Icon: CircleCheck,
+    icon: "bg-green-100 text-green-700",
+    badge: "border-green-700/30 bg-green-50 text-green-800",
+  },
+  attention: {
+    Icon: CircleAlert,
+    icon: "bg-amber-100 text-amber-700",
+    badge: "border-amber-700/30 bg-amber-50 text-amber-800",
+  },
+  adjust: {
+    Icon: CircleX,
+    icon: "bg-red-100 text-red-700",
+    badge: "border-red-700/30 bg-red-50 text-red-800",
+  },
+  unknown: {
+    Icon: CircleHelp,
+    icon: "bg-muted text-muted-foreground",
+    badge: "border-border bg-muted text-muted-foreground",
+  },
 } as const
 
 /**
- * Status icon of a field: green check (good), amber alert (attention), red cross (adjust) or a grey
- * question mark (unknown), with the verdict as accessible label.
+ * Status icon of a field: check (good), alert (attention), cross (adjust) or question mark
+ * (unknown), with the verdict and its meaning as accessible label.
  *
  * @param verdict - The verdict of the field.
  * @param className - Extra classes (size).
@@ -55,19 +77,20 @@ export function PhosphateStatusIcon({
   verdict: PhosphateVerdict
   className?: string
 }) {
-  const { Icon, className: colour } = VERDICT_STYLE[verdict]
+  const { Icon, icon } = VERDICT_STYLE[verdict]
   const text = PHOSPHATE_VERDICT_TEXT[verdict]
   return (
     <Icon
       role="img"
       aria-label={`${text.label}: ${text.description}`}
-      className={cn("shrink-0 rounded-full p-0", colour, className)}
+      className={cn("shrink-0 rounded-full p-0", icon, className)}
     />
   )
 }
 
 /**
- * Verdict as a badge with icon and label (e.g. "Aandacht").
+ * Verdict as a quiet outlined badge with icon and label (e.g. "Aandacht"). Its meaning opens on
+ * hover, keyboard focus and tap.
  *
  * @param verdict - The verdict of the field.
  * @param className - Extra classes.
@@ -79,21 +102,28 @@ export function PhosphateVerdictBadge({
   verdict: PhosphateVerdict
   className?: string
 }) {
-  const { Icon, className: colour } = VERDICT_STYLE[verdict]
+  const { Icon, badge } = VERDICT_STYLE[verdict]
   const text = PHOSPHATE_VERDICT_TEXT[verdict]
   return (
-    <span
-      title={text.description}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-sm font-medium",
-        colour,
-        className,
-      )}
-    >
-      <Icon className="size-4" aria-hidden="true" />
-      {text.label}
-    </span>
+    <InfoTip content={`${text.description}.`} className="max-w-xs">
+      <button
+        type="button"
+        className={cn(
+          "focus-visible:ring-ring/50 inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm font-medium outline-none focus-visible:ring-[3px]",
+          badge,
+          className,
+        )}
+      >
+        <Icon className="size-4" aria-hidden="true" />
+        {text.label}
+      </button>
+    </InfoTip>
   )
+}
+
+/** Heading of a phosphate card (a real heading, so the page can be navigated by headings). */
+export function PhosphateCardHeading({ children }: { children: ReactNode }) {
+  return <h3 className="text-base leading-tight font-semibold">{children}</h3>
 }
 
 /** A label-value row. */
@@ -156,8 +186,8 @@ function illustrativeNote(balance: PhosphateBalanceField): string {
   return `Illustratief: het verloop als het gemiddelde saldo${years ? ` van ${years}` : ""} elk jaar terugkomt.`
 }
 
-/** Colour of the P-AL levels: different from the PSD threshold. */
-const P_AL_LEVEL_COLOR = "var(--color-sky-600)"
+/** Colour of the P-AL floor line: different from the PSD threshold. */
+const P_AL_LEVEL_COLOR = "var(--color-sky-700)"
 
 /** Laboratories and estimates by their `a_source` code (as in the fdm-core soil analysis options). */
 const SOIL_SOURCE_LABELS: Record<string, string> = {
@@ -247,13 +277,36 @@ function IndicatorPurpose({ kind }: { kind: "agronomic" | "environmental" }) {
   )
 }
 
-/** Small badge on the soil card whose bound sets the aim of the field. */
+/** Small badge on the soil card whose bound sets the aim of the field; explained on focus or tap. */
 function BindingBadge() {
   return (
-    <Badge variant="secondary" title="Deze indicator bepaalt het oordeel en het advies">
-      bepalend
-    </Badge>
+    <InfoTip
+      content="Deze indicator bepaalt het oordeel en het advies voor dit perceel."
+      className="max-w-xs"
+    >
+      <button
+        type="button"
+        className="bg-secondary text-secondary-foreground focus-visible:ring-ring/50 shrink-0 rounded-md px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px]"
+      >
+        bepalend
+      </button>
+    </InfoTip>
   )
+}
+
+/**
+ * Start of the shared time axis of the PSD and P-AL charts: the oldest P-AL soil analysis shown,
+ * so both charts put "nu" at the same place.
+ *
+ * @param soilAnalyses - The soil analyses of the field.
+ * @param calendarYear - The selected calendar year.
+ * @returns The start (years before "nu", 0 without analyses).
+ */
+export function getPhosphateChartStart(
+  soilAnalyses: PhosphateFieldInput["soilAnalyses"],
+  calendarYear: number,
+): number {
+  return getTrendChartStart(getMeasuredPAl(soilAnalyses, calendarYear))
 }
 
 /**
@@ -264,17 +317,20 @@ function BindingBadge() {
  * @param balance - The phosphate balance of the field.
  * @param soilAnalyses - The soil analyses of the field (for the measured points).
  * @param calendarYear - The selected calendar year.
+ * @param chartStart - Start of the shared time axis (see `getPhosphateChartStart`).
  * @param className - Extra classes for the card.
  */
 export function PhosphateStockCard({
   balance,
   soilAnalyses = [],
   calendarYear,
+  chartStart,
   className,
 }: {
   balance: PhosphateBalanceField
   soilAnalyses?: PhosphateFieldInput["soilAnalyses"]
   calendarYear?: number
+  chartStart?: number
   className?: string
 }) {
   const projection = balance.projection
@@ -288,11 +344,17 @@ export function PhosphateStockCard({
       ? formatYearsBand(status.years)
       : null
     : formatYearsBand(status.p_al_min_years)
+  // Without a usable PSD, P-AL 25–45 is the whole target zone; otherwise only its floor counts
+  const pAlOnly = !(
+    projection?.psd &&
+    projection.psd.threshold.value !== null &&
+    balance.saturation.psd_valid
+  )
   return (
     <Card className={cn("flex flex-col", className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
         <div className="space-y-1">
-          <CardTitle className="text-base font-semibold">Bodemvoorraad (P-AL)</CardTitle>
+          <PhosphateCardHeading>Bodemvoorraad (P-AL)</PhosphateCardHeading>
           <IndicatorPurpose kind="agronomic" />
         </div>
         {status.binding === "p_al" ? <BindingBadge /> : null}
@@ -312,8 +374,8 @@ export function PhosphateStockCard({
                 </span>
               ) : null}
             </Row>
-            <Row label={below ? `P-AL ${P_AL_LOW} bereikt over` : `Onder ${P_AL_LOW} over`}>
-              {minYears ?? "niet bij dit saldo"}
+            <Row label={below ? `P-AL ${P_AL_LOW} bereikt over` : `P-AL onder ${P_AL_LOW} over`}>
+              {minYears ?? "niet bij huidig saldo"}
             </Row>
             <PhosphateTrendChart
               current={pAl.current}
@@ -321,12 +383,13 @@ export function PhosphateStockCard({
               deltaRange={delta.min !== delta.max ? { min: delta.min, max: delta.max } : undefined}
               bounds={[
                 { value: P_AL_LOW, label: "ondergrens gewas" },
-                { value: P_AL_HIGH, label: "hoog >" },
+                ...(pAlOnly ? [{ value: P_AL_HIGH, label: "hoog" }] : []),
               ]}
-              band={{ from: P_AL_LOW, to: P_AL_HIGH, label: "gemiddeld" }}
+              band={{ from: P_AL_LOW, to: pAlOnly ? P_AL_HIGH : undefined, label: "streefzone" }}
               boundColor={P_AL_LEVEL_COLOR}
               unit=""
               measurements={measurements}
+              xMin={chartStart}
             />
             <p className="text-muted-foreground text-xs">
               {illustrativeNote(balance)}
@@ -392,14 +455,17 @@ const PSD_DEFINITION =
  * details for advisors. The verdict and advice are on the status card.
  *
  * @param balance - The phosphate balance of the field.
+ * @param chartStart - Start of the shared time axis (see `getPhosphateChartStart`).
  * @param className - Extra classes for the card (e.g. `h-full` to match the height of a card next
  *   to it).
  */
 export function PhosphateSaturationCard({
   balance,
+  chartStart,
   className,
 }: {
   balance: PhosphateBalanceField
+  chartStart?: number
   className?: string
 }) {
   const projection = balance.projection
@@ -410,18 +476,18 @@ export function PhosphateSaturationCard({
     <Card className={cn("flex flex-col", className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
         <div className="space-y-1">
-          <CardTitle className="flex items-center gap-1.5 text-base font-semibold">
-            Fosfaatverzadiging (PSD)
+          <div className="flex items-center gap-1.5">
+            <PhosphateCardHeading>Fosfaatverzadiging (PSD)</PhosphateCardHeading>
             <InfoTip content={PSD_DEFINITION} className="max-w-xs">
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground -m-1 rounded-sm p-1"
-                aria-label={PSD_DEFINITION}
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 -m-1 rounded-sm p-1 outline-none focus-visible:ring-[3px]"
+                aria-label="Wat is de fosfaatverzadiging?"
               >
                 <Info className="size-4" aria-hidden="true" />
               </button>
             </InfoTip>
-          </CardTitle>
+          </div>
           <IndicatorPurpose kind="environmental" />
         </div>
         {status.binding === "psd" ? <BindingBadge /> : null}
@@ -430,7 +496,7 @@ export function PhosphateSaturationCard({
         {projection && psd ? (
           <>
             <Row label="Nu">{formatNumberNl(psd.current.value)} %</Row>
-            <Row label="Grenswaarde">{formatNumberNl(psd.threshold.value)} %</Row>
+            <Row label="Milieugrens">{formatNumberNl(psd.threshold.value)} %</Row>
             <Row label="Verandering bij gemiddeld saldo">
               {psd.delta_per_year > 0 ? "+" : ""}
               {formatNumberNl(psd.delta_per_year, Math.abs(psd.delta_per_year) < 0.1 ? 2 : 1)}{" "}
@@ -442,10 +508,10 @@ export function PhosphateSaturationCard({
                 current={psd.current.value}
                 deltaPerYear={psd.delta_per_year}
                 bounds={[{ value: psd.threshold.value, label: "milieugrens" }]}
-                band={{ from: 0, to: psd.threshold.value, label: "onder de milieugrens" }}
-                bandColor="var(--color-green-600)"
+                band={{ from: 0, to: psd.threshold.value, label: "streefzone" }}
                 unit=" %"
                 max={100}
+                xMin={chartStart}
               />
             ) : null}
             <p className="text-muted-foreground text-xs">{illustrativeNote(balance)}</p>
