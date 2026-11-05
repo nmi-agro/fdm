@@ -1,3 +1,4 @@
+import { computeMinimumScores } from "@nmi-agro/fdm-calculator/browser"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { Map as MapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
@@ -21,12 +22,7 @@ import {
   type FieldBln3Score,
   getIndicatorsForFarm,
 } from "~/integrations/bln3.server"
-import {
-  AGG_IDS,
-  type AggregationId,
-  computeAreaWeightedAggregation,
-  getFieldAggregationScore,
-} from "~/lib/aggregations"
+import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -66,51 +62,7 @@ export type FarmScoreUpdate = { b_id_farm: string; farmScore: FieldBln3Score }
  * in a farm, keeping both `score01` and `index01` for table display.
  */
 export function computeFarmMinScores(fieldScores: FieldBln3Score[]): Bln3Score {
-  const aggregations: Record<string, number> = {}
-  const indicators: Record<string, FarmMinIndicatorScore> = {}
-
-  for (const fs of fieldScores) {
-    if (fs.error || !fs.score) continue
-
-    // Aggregation scores (0–1 scale)
-    for (const aggId of AGG_IDS) {
-      const scoreVal = getFieldAggregationScore(fs.score, aggId)
-      if (scoreVal !== null) {
-        aggregations[aggId] =
-          aggregations[aggId] === undefined
-            ? scoreVal
-            : Math.min(aggregations[aggId] as number, scoreVal)
-      }
-    }
-
-    // Individual indicator scores — keep score01 + index01 for the pair
-    // with the minimum score
-    for (const ind of fs.score.indicators) {
-      if (ind.score == null || Number.isNaN(ind.score)) continue
-      const existing = indicators[ind.indicator_id]
-      if (existing === undefined || ind.score < existing.minScore) {
-        indicators[ind.indicator_id] = {
-          minScore: ind.score,
-          minIndex: ind.index ?? ind.score,
-        }
-      }
-    }
-  }
-
-  return {
-    aggregations: Object.entries(aggregations).map(([aggregation_id, score]) => ({
-      aggregation_id,
-      score,
-    })),
-    indicators: Object.entries(indicators).map(([indicator_id, { minScore, minIndex }]) => ({
-      indicator_id,
-      score: minScore,
-      index: minIndex,
-      status: 0,
-      target: 0,
-      impact: 0,
-    })),
-  }
+  return computeMinimumScores(fieldScores.map((fs) => (fs.error ? null : fs.score)))
 }
 
 export async function loader({ request, params, url }: Route.LoaderArgs) {

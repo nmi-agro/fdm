@@ -1,5 +1,5 @@
 import { Text, View } from "@react-pdf/renderer"
-import { pdfStyles } from "./bemestingsplan/styles"
+import { pdfStyles } from "../fertilizer-plan/pdf/styles"
 
 export const PdfTable = ({ children, style }: { children: React.ReactNode; style?: any }) => (
   <View style={[pdfStyles.table, style]}>{children}</View>

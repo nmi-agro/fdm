@@ -8,10 +8,12 @@ import {
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { processRvoImport } from "./process"
+import { ImportChoiceError } from "./review"
 import { type RvoImportReviewItem, RvoImportReviewStatus } from "./types"
 
 // Mock fdm-core
-vi.mock("@nmi-agro/fdm-core", () => ({
+vi.mock("@nmi-agro/fdm-core", async (importOriginal) => ({
+  toFdmDateString: (await importOriginal<typeof import("@nmi-agro/fdm-core")>()).toFdmDateString,
   addField: vi.fn(),
   updateField: vi.fn(),
   removeField: vi.fn(),
@@ -91,8 +93,8 @@ describe("processRvoImport", () => {
       expect.anything(), // geometry
       expect.any(Date), // start
       "nl_01",
-      undefined, // end
-      undefined, // b_bufferstrip (no mestData in test)
+      null, // end
+      false, // b_bufferstrip: no mestData in test, so it defaults to false
     )
     expect(addCultivation).toHaveBeenCalled()
     expect(onFieldAdded).toHaveBeenCalledWith(mockFdm, "new-field-id", expect.anything())
@@ -137,8 +139,8 @@ describe("processRvoImport", () => {
       expect.anything(),
       expect.any(Date),
       "nl_01",
-      null,
-      undefined, // b_bufferstrip (no mestData in test)
+      undefined, // b_end is unchanged
+      undefined, // b_bufferstrip: no mestData in test, so the local value is kept
     )
     // No cultivation change implies no cultivation update call unless localCultivation differs or is missing
     expect(removeCultivation).not.toHaveBeenCalled()
@@ -254,16 +256,18 @@ describe("processRvoImport", () => {
 
     // Should update field with end date = Dec 31st of previous year (2024)
     const expectedCloseDate = new Date(Date.UTC(year - 1, 11, 31))
+    // Only the end date changes; fdm-core keeps the other values.
     expect(updateField).toHaveBeenCalledWith(
       mockFdm,
       principalId,
       "local-1",
-      "Field 1",
-      "rvo-1",
-      {},
-      item.localField?.b_start,
-      "purchase",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       expectedCloseDate,
+      undefined,
     )
   })
 
@@ -284,16 +288,18 @@ describe("processRvoImport", () => {
 
     await processRvoImport(mockFdm, principalId, farmId, [item], choices, year)
 
+    // Only the end date changes; fdm-core keeps the other values.
     expect(updateField).toHaveBeenCalledWith(
       mockFdm,
       principalId,
       "local-1",
-      "Field 1",
-      "rvo-1",
-      {},
-      expect.any(Date), // Should convert to Date
-      "purchase",
-      expect.any(Date),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      new Date(Date.UTC(year - 1, 11, 31)),
+      undefined,
     )
   })
 
@@ -306,6 +312,23 @@ describe("processRvoImport", () => {
     const choices = { "local-1": "KEEP_LOCAL" as const }
 
     await processRvoImport(mockFdm, principalId, farmId, [item], choices, year)
+
+    expect(addField).not.toHaveBeenCalled()
+    expect(updateField).not.toHaveBeenCalled()
+    expect(removeField).not.toHaveBeenCalled()
+  })
+
+  it("rejects IGNORE for an item with a local field, and accepts NO_ACTION", async () => {
+    const item: RvoImportReviewItem<any> = {
+      status: RvoImportReviewStatus.CONFLICT,
+      localField: { b_id: "local-1" },
+      diffs: ["b_name"],
+    }
+
+    await expect(
+      processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "IGNORE" }, year),
+    ).rejects.toBeInstanceOf(ImportChoiceError)
+    await processRvoImport(mockFdm, principalId, farmId, [item], { "local-1": "NO_ACTION" }, year)
 
     expect(addField).not.toHaveBeenCalled()
     expect(updateField).not.toHaveBeenCalled()
@@ -380,7 +403,7 @@ describe("processRvoImport", () => {
     expect(updateField).not.toHaveBeenCalled()
   })
 
-  it("should process CLOSE_LOCAL action with b_start undefined (fieldStart becomes undefined)", async () => {
+  it("should process CLOSE_LOCAL action when the local start date is unknown", async () => {
     const item: RvoImportReviewItem<any> = {
       status: RvoImportReviewStatus.EXPIRED_LOCAL,
       localField: {
@@ -398,16 +421,18 @@ describe("processRvoImport", () => {
     await processRvoImport(mockFdm, principalId, farmId, [item], choices, year)
 
     const expectedCloseDate = new Date(Date.UTC(year - 1, 11, 31))
+    // Only the end date changes; fdm-core keeps the other values.
     expect(updateField).toHaveBeenCalledWith(
       mockFdm,
       principalId,
       "local-1",
-      "Field 1",
-      "rvo-1",
-      {},
       undefined,
-      "purchase",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       expectedCloseDate,
+      undefined,
     )
   })
 })

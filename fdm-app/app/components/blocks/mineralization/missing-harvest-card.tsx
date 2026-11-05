@@ -117,7 +117,7 @@ export function MissingHarvestCard({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <Button type="submit" disabled={busy || !harvestDate || partlyFilled}>
                 {busy ? <Spinner /> : null}
-                Oogst opslaan
+                <span>Oogst opslaan</span>
               </Button>
               {partlyFilled ? (
                 <p className="text-muted-foreground text-xs" aria-live="polite">

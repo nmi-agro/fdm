@@ -86,6 +86,9 @@ export {
   addFarmToGroup,
   createFarmGroup,
   getFarmGroup,
+  getFarmIdsOfFarmGroupInYear,
+  getFarmIdsOfOrganization,
+  isFarmGroupMembershipInYear,
   listFarmGroups,
   removeFarmFromGroup,
   removeFarmGroup,
@@ -126,6 +129,7 @@ export {
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
+  getFertilizerTypesByRvoCode,
   removeFertilizer,
   removeFertilizerApplication,
   updateFertilizerApplication,
@@ -177,6 +181,7 @@ export {
 export {
   addHarvest,
   getDefaultsForHarvestParameters,
+  getEffectiveHarvestable,
   getHarvest,
   getHarvestableTypeOfCultivation,
   getHarvests,
@@ -225,7 +230,13 @@ export {
   removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.types"
-export { getPrincipal, getPrincipals, lookupPrincipal } from "./principal"
+export {
+  getPrincipal,
+  getPrincipals,
+  identifyPrincipal,
+  lookupPrincipal,
+  type LookupPrincipalOptions,
+} from "./principal"
 export {
   addSoilAnalysis,
   getCurrentSoilData,
@@ -273,6 +284,8 @@ export type {
 export {
   addSoilImage,
   addSoilImageAnnotation,
+  getSoilImage,
+  getSoilImageAnnotation,
   getSoilImages,
   removeSoilImage,
   removeSoilImageAnnotation,

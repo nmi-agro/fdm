@@ -8,15 +8,17 @@ packages:
   - fdm-agents
   - fdm-api
   - fdm-helpdesk
+  - fdm-storage
+  - fdm-reports
 
 catalog:
-  "@better-auth/api-key": 1.7.14
-  "@better-auth/core": 1.7.14
+  "@better-auth/api-key": 1.7.16
+  "@better-auth/core": 1.7.16
   "@types/node": ^26.6.6
   "@dotenvx/dotenvx": ^2.38.2
   jose: ^6.2.13
   "@vitest/coverage-v8": 5.0.5
-  better-auth: 1.7.14
+  better-auth: 1.7.16
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   nanoid: ^6.0.2
@@ -33,6 +35,10 @@ blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - "@nmi-agro/*"
+  # Temporary: Better Auth 1.7.16 security release (2026-11-03). Remove once matured.
+  - better-auth
+  - "@better-auth/*"
+  - better-call
 allowBuilds:
   "@geomatico/maplibre-cog-protocol": true
   "@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d": true
@@ -43,6 +49,8 @@ allowBuilds:
   "@nmi-agro/fdm-data@file:fdm-data": true
   "@nmi-agro/fdm-helpdesk@file:fdm-helpdesk": true
   "@nmi-agro/fdm-rvo@file:fdm-rvo": true
+  "@nmi-agro/fdm-storage@file:fdm-storage": true
+  "@nmi-agro/fdm-reports@file:fdm-reports": true
   "@sentry-internal/node-cpu-profiler": true
   "@sentry/cli": true
   "@sentry/node-cpu-profiler": true

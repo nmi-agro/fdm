@@ -203,7 +203,7 @@ export default function OrganicCertificationSettings() {
                     {organicCertification.b_organic_traces}
                   </a>
                 ) : (
-                  "Onbekend"
+                  <span>Onbekend</span>
                 )}
               </span>
             </div>
@@ -265,7 +265,7 @@ export default function OrganicCertificationSettings() {
                           <span>Verwijderen...</span>
                         </div>
                       ) : (
-                        "Verwijderen"
+                        <span>Verwijderen</span>
                       )}
                     </Button>
                   </Form>
@@ -357,7 +357,7 @@ export default function OrganicCertificationSettings() {
                           <span>Toevoegen</span>
                         </div>
                       ) : (
-                        "Toevoegen"
+                        <span>Toevoegen</span>
                       )}
                     </Button>
                   </DialogFooter>

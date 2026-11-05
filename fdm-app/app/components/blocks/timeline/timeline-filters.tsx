@@ -57,7 +57,9 @@ export function TimelineFiltersPopover({
       <PopoverTrigger asChild>
         <Button size="lg" variant="outline">
           <Filter className="size-4" />
-          {isPeriodFiltered ? periodLabel : "Filters"}
+          <span key={isPeriodFiltered ? `period-${periodLabel}` : "filters"}>
+            {isPeriodFiltered ? periodLabel : "Filters"}
+          </span>
           {activeFilterCount > 0 && (
             <Badge
               className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"

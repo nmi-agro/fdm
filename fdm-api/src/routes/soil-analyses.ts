@@ -4,22 +4,35 @@ import type {
   CurrentSoilData,
   FdmType,
   getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
+  getSoilImages,
   removeSoilAnalysis,
   SoilAnalysis,
   SoilZone,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
+import type { FileStorage } from "@nmi-agro/fdm-storage"
 import { createRoute, z } from "@hono/zod-openapi"
+import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
+import { FileNotFoundError } from "@nmi-agro/fdm-storage"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
-import { FarmIdSchema, FieldIdSchema, SoilAnalysisIdSchema, soilParameterShape } from "../fields"
+import {
+  FarmIdSchema,
+  FieldIdSchema,
+  SoilAnalysisIdSchema,
+  type SoilParameterCode,
+  soilParameterDescriptions,
+  soilParameterShape,
+} from "../fields"
 import { assertGeoJsonCoordinates } from "../guards"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
+  binaryResponse,
   commonErrorResponses,
   DateStringSchema,
   GeoJsonMultiPointSchema,
@@ -29,11 +42,13 @@ import {
   paginatedResponse,
   paginatedSchema,
   parseTimeframeQuery,
+  problemResponseDefinition,
   SamplingZoneGeometrySchema,
   SoilAnalysisDataSchema,
   serializeDate,
   writeErrorResponses,
 } from "../schemas"
+import { requireStorage } from "../storage"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
@@ -49,6 +64,8 @@ export interface SoilAnalysisServices {
   getCurrentSoilData: typeof getCurrentSoilData
   /** Returns current soil data per sampling zone for a field visible to the authenticated principal. */
   getCurrentSoilDataPerZone: typeof getCurrentSoilDataPerZone
+  /** Returns current soil data for every field of a farm visible to the authenticated principal. */
+  getCurrentSoilDataForFarm: typeof getCurrentSoilDataForFarm
   /** Returns a single soil analysis visible to the authenticated principal. */
   getSoilAnalysis: typeof getSoilAnalysis
   /** Creates a new soil analysis on an existing field. */
@@ -57,6 +74,10 @@ export interface SoilAnalysisServices {
   updateSoilAnalysis: typeof updateSoilAnalysis
   /** Permanently deletes a soil analysis. */
   removeSoilAnalysis: typeof removeSoilAnalysis
+  /** Returns the photos of a soil sampling, to delete their files with the analysis. */
+  getSoilImages: typeof getSoilImages
+  /** Returns the file storage; `undefined` when no storage is configured. */
+  getStorage: () => FileStorage | undefined
 }
 
 const SoilAnalysisSchema = z
@@ -79,13 +100,24 @@ const SoilAnalysisSchema = z
     b_sampling_geometry_zone: GeoJsonMultiPolygonSchema.nullable().describe(
       "Area the analysis represents (WGS84); null when it represents the whole field.",
     ),
+    has_document: z
+      .boolean()
+      .describe(
+        "True when the lab report (PDF) of this analysis is stored, for analyses imported with `POST /farms/{b_id_farm}/soil-analyses/import/apply`. Download it with `GET /soil-analyses/{a_id}/document`.",
+      ),
   })
   .openapi("SoilAnalysis")
 
 const CurrentSoilDataSourceSchema = z
   .object({
-    a_id: SoilAnalysisIdSchema.describe("Unique identifier of the soil analysis."),
-    a_source: z.string().describe("Laboratory or dataset that produced the soil analysis."),
+    a_id: SoilAnalysisIdSchema.describe(
+      "Unique identifier of the soil analysis. For a calculated value, the analysis of the newest input.",
+    ),
+    a_source: z
+      .string()
+      .describe(
+        "Laboratory or dataset that produced the soil analysis, or `calculated` for a value derived from other parameters (see `d_n_supply_base` in CurrentSoilDataItem).",
+      ),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     a_depth_upper: z
       .number()
@@ -115,7 +147,7 @@ const CurrentSoilDataItemSchema = z
     parameter: z
       .string()
       .describe(
-        "Code of the soil parameter, e.g. 'a_som_loi'. See the SoilAnalysis schema for the meaning and unit of each parameter.",
+        "Code of the soil parameter, e.g. 'a_som_loi'. See the SoilAnalysis schema for the meaning and unit of each parameter. When no analysis has a nitrogen supplying capacity (`d_n_supply_base`, kg N/ha), it is calculated from `a_som_loi`, `a_clay_mi` and `a_cn_fr`, with one source of type `calculated` and `coverage` `null`; the web app shows the same value.",
       ),
     value: z
       .union([z.number(), z.string(), z.null()])
@@ -135,6 +167,17 @@ const CurrentSoilDataItemSchema = z
       .describe("Contributing soil analyses, newest first."),
   })
   .openapi("CurrentSoilDataItem")
+
+const FarmCurrentSoilDataSchema = z
+  .object({
+    b_id: FieldIdSchema.describe("Unique identifier of the field."),
+    items: z
+      .array(CurrentSoilDataItemSchema)
+      .describe(
+        "Current value of each soil parameter of the field. Empty when the field has no soil data.",
+      ),
+  })
+  .openapi("FarmCurrentSoilData")
 
 const SoilZoneSchema = z
   .object({
@@ -160,7 +203,8 @@ const SamplingGeometriesBodySchema = z.object({
     ),
 })
 
-const CreateSoilAnalysisBodySchema = z
+/** Body of a new soil analysis; also used for each analysis of a lab report import. */
+export const CreateSoilAnalysisBodySchema = z
   .object({
     a_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     a_source: z.string().describe("Identifying source or lab that performed the analysis."),
@@ -180,6 +224,25 @@ const UpdateSoilAnalysisBodySchema = z
   .merge(SoilAnalysisDataSchema)
   .merge(SamplingGeometriesBodySchema)
   .openapi("UpdateSoilAnalysis")
+
+const soilAnalysisDocumentRoute = createRoute({
+  method: "get",
+  path: "/soil-analyses/{a_id}/document",
+  tags: ["Soil Analyses"],
+  summary: "Download the lab report of a soil analysis",
+  description:
+    "Returns the lab report (PDF) stored with the soil analysis. Returns 404 when the analysis has no report (`has_document` is false).",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: { params: z.object({ a_id: SoilAnalysisIdSchema }) },
+  responses: {
+    200: binaryResponse("application/pdf", "The lab report."),
+    ...commonErrorResponses,
+    503: problemResponseDefinition(
+      "Service unavailable — file storage is not configured on this server.",
+    ),
+  },
+})
 
 const listSoilAnalysesRoute = createRoute({
   method: "get",
@@ -222,6 +285,32 @@ const listFarmSoilAnalysesRoute = createRoute({
       content: {
         "application/json": {
           schema: paginatedSchema(SoilAnalysisSchema),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+})
+
+const farmCurrentSoilDataRoute = createRoute({
+  method: "get",
+  path: "/farms/{b_id_farm}/current-soil-data",
+  tags: ["Soil Analyses"],
+  summary: "Get current soil data for all fields of a farm",
+  description:
+    "Returns the current value of each soil parameter for every field of the farm, in one request. The values are the same as `GET /fields/{b_id}/current-soil-data` per field. The list is paginated by field. Use `from` and `to` to use only analyses from that period.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    query: PaginationTimeframeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "A paginated list of fields with their current soil data.",
+      content: {
+        "application/json": {
+          schema: paginatedSchema(FarmCurrentSoilDataSchema),
         },
       },
     },
@@ -281,7 +370,8 @@ const createSoilAnalysisRoute = createRoute({
   path: "/fields/{b_id}/soil-analyses",
   tags: ["Soil Analyses"],
   summary: "Create a soil analysis",
-  description: "Creates a new soil analysis on the specified field.",
+  description:
+    "Creates a new soil analysis on the specified field from the values in the body. To add analyses from lab report PDFs and keep the report with them, use the import in two steps: `POST /farms/{b_id_farm}/soil-analyses/import/compare` and `.../apply`.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id: FieldIdSchema }),
@@ -357,6 +447,16 @@ const deleteSoilAnalysisRoute = createRoute({
   },
 })
 
+/** Returns every soil parameter of an analysis, with `null` for parameters without a value. */
+function serialiseSoilParameters(sa: SoilAnalysis) {
+  const source = sa as unknown as Partial<Record<SoilParameterCode, number | string | null>>
+  const values: Record<string, number | string | null> = {}
+  for (const code of Object.keys(soilParameterDescriptions) as SoilParameterCode[]) {
+    values[code] = source[code] ?? null
+  }
+  return values
+}
+
 function serialiseSoilAnalysis(sa: SoilAnalysis) {
   return {
     a_id: sa.a_id,
@@ -366,50 +466,16 @@ function serialiseSoilAnalysis(sa: SoilAnalysis) {
     a_depth_upper: sa.a_depth_upper,
     a_depth_lower: sa.a_depth_lower,
     b_sampling_date: serializeDate(sa.b_sampling_date),
-    a_al_ox: sa.a_al_ox ?? null,
-    a_c_of: sa.a_c_of ?? null,
-    a_ca_co: sa.a_ca_co ?? null,
-    a_ca_co_po: sa.a_ca_co_po ?? null,
-    a_caco3_if: sa.a_caco3_if ?? null,
-    a_cec_co: sa.a_cec_co ?? null,
-    a_clay_mi: sa.a_clay_mi ?? null,
-    a_cn_fr: sa.a_cn_fr ?? null,
-    a_com_fr: sa.a_com_fr ?? null,
-    a_cu_cc: sa.a_cu_cc ?? null,
-    a_density_sa: sa.a_density_sa ?? null,
-    a_fe_ox: sa.a_fe_ox ?? null,
-    a_k_cc: sa.a_k_cc ?? null,
-    a_k_co: sa.a_k_co ?? null,
-    a_k_co_po: sa.a_k_co_po ?? null,
-    a_mg_cc: sa.a_mg_cc ?? null,
-    a_mg_co: sa.a_mg_co ?? null,
-    a_mg_co_po: sa.a_mg_co_po ?? null,
-    a_n_pmn: sa.a_n_pmn ?? null,
-    a_n_rt: sa.a_n_rt ?? null,
-    a_nh4_cc: sa.a_nh4_cc ?? null,
-    a_nmin_cc: sa.a_nmin_cc ?? null,
-    a_no3_cc: sa.a_no3_cc ?? null,
-    a_p_al: sa.a_p_al ?? null,
-    a_p_cc: sa.a_p_cc ?? null,
-    a_p_ox: sa.a_p_ox ?? null,
-    a_p_rt: sa.a_p_rt ?? null,
-    a_p_sg: sa.a_p_sg ?? null,
-    a_p_wa: sa.a_p_wa ?? null,
-    a_ph_cc: sa.a_ph_cc ?? null,
-    a_s_rt: sa.a_s_rt ?? null,
-    a_sand_mi: sa.a_sand_mi ?? null,
-    a_silt_mi: sa.a_silt_mi ?? null,
-    a_som_loi: sa.a_som_loi ?? null,
-    a_zn_cc: sa.a_zn_cc ?? null,
-    b_gwl_class: sa.b_gwl_class ?? null,
-    b_soiltype_agr: sa.b_soiltype_agr ?? null,
+    ...serialiseSoilParameters(sa),
     b_sampling_geometry: sa.b_sampling_geometry ?? null,
     b_sampling_geometry_zone: sa.b_sampling_geometry_zone ?? null,
+    has_document: Boolean((sa as { a_file_path?: string | null }).a_file_path),
   }
 }
 
 function serialiseCurrentSoilData(currentSoilData: CurrentSoilData) {
-  return currentSoilData.map((item) => ({
+  // Same NLV fallback as the web app, so both show the same value.
+  return enrichCurrentSoilDataWithNlv(currentSoilData).map((item) => ({
     parameter: item.parameter,
     value: item.value ?? null,
     is_aggregated: item.is_aggregated,
@@ -445,7 +511,13 @@ function serialiseSoilZones(zones: SoilZone[]) {
  * @throws {ApiError} 422 when a geometry is empty, has a position outside WGS84, or has an invalid
  * polygon or ring.
  */
-function assertSamplingGeometries(body: {
+/**
+ * Checks the sampling geometries of a soil analysis body.
+ *
+ * @param body - Body with optional `b_sampling_geometry` and `b_sampling_geometry_zone`.
+ * @throws {ApiError} 422 when a geometry is invalid.
+ */
+export function assertSamplingGeometries(body: {
   b_sampling_geometry?: unknown
   b_sampling_geometry_zone?: unknown
 }): void {
@@ -604,6 +676,29 @@ export function registerSoilAnalysisRoutes(
     return c.json(serialiseCurrentSoilData(currentSoilData), 200)
   }
 
+  const getFarmCurrentSoilDataHandler: RouteHandler<typeof farmCurrentSoilDataRoute> = async (
+    c,
+  ) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
+    const soilDataByField = await services.getCurrentSoilDataForFarm(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      parseTimeframeQuery(query),
+    )
+    const items = [...soilDataByField]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([b_id, currentSoilData]) => ({
+        b_id,
+        items: serialiseCurrentSoilData(currentSoilData),
+      }))
+    return c.json(paginatedResponse(items, query.limit, query.offset), 200)
+  }
+
   const getCurrentSoilDataZonesHandler: RouteHandler<typeof currentSoilDataZonesRoute> = async (
     c,
   ) => {
@@ -647,6 +742,38 @@ export function registerSoilAnalysisRoutes(
     }
     c.header("Location", `${new URL(c.req.url).origin}/soil-analyses/${a_id}`)
     return c.json(serialiseSoilAnalysis(analysis), 201)
+  }
+
+  const soilAnalysisDocumentHandler: RouteHandler<typeof soilAnalysisDocumentRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { a_id } = c.req.valid("param") as { a_id: string }
+    const storage = requireStorage(services.getStorage)
+    const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
+    if (!analysis?.a_id) {
+      throw new ApiError(404, "not-found", `Soil analysis '${a_id}' not found.`)
+    }
+    const filePath = (analysis as { a_file_path?: string | null }).a_file_path
+    if (!filePath) {
+      throw new ApiError(404, "not-found", `Soil analysis '${a_id}' has no lab report.`)
+    }
+    let file: Awaited<ReturnType<FileStorage["download"]>>
+    try {
+      file = await storage.download(filePath)
+    } catch (err) {
+      if (err instanceof FileNotFoundError) {
+        throw new ApiError(
+          404,
+          "not-found",
+          `The lab report of soil analysis '${a_id}' is missing.`,
+        )
+      }
+      throw err
+    }
+    return c.body(new Uint8Array(file.buffer), 200, {
+      "content-type": "application/pdf",
+      "content-disposition": `attachment; filename="soil-analysis-${a_id}.pdf"`,
+    }) as never
   }
 
   const getSoilAnalysisHandler: RouteHandler<typeof getSoilAnalysisRoute> = async (c) => {
@@ -694,12 +821,40 @@ export function registerSoilAnalysisRoutes(
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { a_id } = c.req.valid("param") as { a_id: string }
+    // Collect the files of the analysis (lab report and BCS photos) before it is removed.
+    const analysis = await services.getSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
+    const files: string[] = []
+    const reportPath = (analysis as { a_file_path?: string | null } | undefined)?.a_file_path
+    if (reportPath) files.push(reportPath)
+    if (analysis?.b_id_sampling) {
+      const images = await services.getSoilImages(
+        fdm,
+        principal.effectivePrincipalId,
+        analysis.b_id_sampling,
+      )
+      files.push(...images.map((image) => image.a_image_path))
+    }
+
     await services.removeSoilAnalysis(fdm, principal.effectivePrincipalId, a_id)
+
+    // The analysis is removed; a file that cannot be deleted is only logged.
+    const storage = services.getStorage()
+    if (storage) {
+      await Promise.all(
+        files.map((path) =>
+          storage.delete(path).catch((err: unknown) => {
+            console.warn(`[fdm-api] could not delete ${path} of soil analysis ${a_id}:`, err)
+          }),
+        ),
+      )
+    }
     return c.newResponse(null, 204)
   }
 
   app.openapi(listSoilAnalysesRoute, listSoilAnalysesHandler)
+  app.openapi(soilAnalysisDocumentRoute, soilAnalysisDocumentHandler)
   app.openapi(listFarmSoilAnalysesRoute, listFarmSoilAnalysesHandler)
+  app.openapi(farmCurrentSoilDataRoute, getFarmCurrentSoilDataHandler)
   app.openapi(currentSoilDataRoute, getCurrentSoilDataHandler)
   app.openapi(currentSoilDataZonesRoute, getCurrentSoilDataZonesHandler)
   app.openapi(createSoilAnalysisRoute, createSoilAnalysisHandler)

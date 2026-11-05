@@ -1,14 +1,27 @@
 import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 
-export interface BemestingsplanData {
+/**
+ * Name and images shown in a report. Images are data URIs (for example
+ * `data:image/png;base64,...`), so rendering needs no file or network access.
+ */
+export interface ReportBranding {
+  /** Name of the application, shown on the cover and in the footer. */
+  name: string
+  /** Logo shown on light backgrounds. */
+  logo?: string
+  /** Logo shown on dark backgrounds, such as the cover. */
+  logoInverted?: string
+  /** Image on the cover page. */
+  coverImage?: string
+}
+
+/**
+ * The content of a fertilizer plan PDF, as calculated by `computeFertilizerPlanData`.
+ */
+export interface FertilizerPlanData {
   /** ISO timestamp of when this PDF's data was computed, shown as the "generated on" date. */
   generatedAt: string
-  config: {
-    name: string
-    logo?: string
-    logoInverted?: string
-    coverImage?: string
-  }
+  config: ReportBranding
   farm: {
     name: string
     kvk?: string

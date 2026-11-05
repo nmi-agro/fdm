@@ -1,4 +1,3 @@
-import { ApiError } from "@google-cloud/storage"
 import {
   getFarm,
   getFertilizerPlan,
@@ -9,7 +8,7 @@ import {
 import { data } from "react-router"
 import { getBemestingsplanDownloadName } from "~/components/blocks/bemestingsplan/util"
 import { getSoilAnalysisDownloadName } from "~/components/blocks/soil/download"
-import { downloadObject } from "~/integrations/gcs.server"
+import { downloadObject, FileNotFoundError } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -84,7 +83,7 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
 
       return new Response(new Uint8Array(buffer), { headers })
     } catch (gcsError) {
-      if (gcsError instanceof ApiError && gcsError.code === 404) {
+      if (gcsError instanceof FileNotFoundError) {
         return data("Not Found", { status: 404 })
       }
       throw gcsError

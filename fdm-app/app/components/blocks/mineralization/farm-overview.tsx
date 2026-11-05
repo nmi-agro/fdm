@@ -119,14 +119,16 @@ function countOutcomes(fields: FarmOverviewField[], outcomes: FarmOverviewProps[
 export function FarmSummary({ fields, outcomes }: Pick<FarmOverviewProps, "fields" | "outcomes">) {
   const counts = countOutcomes(fields, outcomes)
   const calculable = counts.ok + counts.missingHarvest + counts.error + counts.pending
+  const calculatedLabel =
+    counts.ok === calculable
+      ? `${plural(calculable, "perceel", "percelen")} berekend`
+      : `${counts.ok} van ${plural(calculable, "perceel", "percelen")} berekend`
 
   return (
     <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
       <span className="text-foreground inline-flex items-center gap-1.5">
         {counts.pending > 0 ? <Spinner /> : null}
-        {counts.ok === calculable
-          ? `${plural(calculable, "perceel", "percelen")} berekend`
-          : `${counts.ok} van ${plural(calculable, "perceel", "percelen")} berekend`}
+        <span key={calculatedLabel}>{calculatedLabel}</span>
       </span>
       {counts.missingHarvest > 0 ? (
         <>
@@ -141,7 +143,7 @@ export function FarmSummary({ fields, outcomes }: Pick<FarmOverviewProps, "field
         </>
       ) : null}
       <span aria-hidden>·</span>
-      <span>
+      <span key={counts.attention}>
         {counts.attention === 1 ? "1 perceel vraagt" : `${counts.attention} percelen vragen`}{" "}
         aandacht
       </span>
@@ -213,14 +215,17 @@ export function FarmAttentionList({ fields, outcomes, fieldHref, harvestHref }: 
           <p className="text-muted-foreground flex items-center gap-2 text-sm">
             {pending ? (
               <>
-                <Spinner /> Percelen worden berekend…
+                <Spinner />
+                <span>Percelen worden berekend…</span>
               </>
             ) : (
               <>
                 <CircleCheck className="size-4" aria-hidden />
-                {missingHarvests.length > 0
-                  ? "Geen signalen bij de berekende percelen."
-                  : "Geen percelen die nu aandacht vragen."}
+                <span key={missingHarvests.length > 0 ? "calculated" : "none"}>
+                  {missingHarvests.length > 0
+                    ? "Geen signalen bij de berekende percelen."
+                    : "Geen percelen die nu aandacht vragen."}
+                </span>
               </>
             )}
           </p>
@@ -252,7 +257,7 @@ export function FarmAttentionList({ fields, outcomes, fieldHref, harvestHref }: 
                     disabled={revalidator.state !== "idle"}
                   >
                     {revalidator.state !== "idle" ? <Spinner /> : null}
-                    Opnieuw berekenen
+                    <span>Opnieuw berekenen</span>
                   </Button>
                 ) : (
                   <Button
@@ -601,7 +606,7 @@ export function FarmFieldTable({
                     {/* The reason sits under the name, so the number columns stay aligned */}
                     <TableCell>
                       {name}
-                      <span className="text-muted-foreground block text-xs">
+                      <span key={outcome.status} className="text-muted-foreground block text-xs">
                         {outcome.status === "missing_harvest"
                           ? `Wacht op ${getHarvestTerm(
                               outcome.mainCultivation.b_lu_croprotation,

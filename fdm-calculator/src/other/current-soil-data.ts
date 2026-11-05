@@ -1,16 +1,22 @@
 import type { CurrentSoilData } from "@nmi-agro/fdm-core"
-import { calculateNlv } from "@nmi-agro/fdm-calculator"
+import { calculateNlv } from "./nlv-supply"
 
 /**
- * Enriches current soil data with the calculated base Nitrogen Supplying Capacity (d_n_supply_base / NLV)
- * if it is not already present and if soil organic matter (a_som_loi) is available.
+ * Adds the base nitrogen supplying capacity (`d_n_supply_base`, NLV) to current soil data when
+ * it has no measured value, by calculating it from soil organic matter (`a_som_loi`), clay
+ * (`a_clay_mi`) and the C/N ratio (`a_cn_fr`). Items for `d_n_supply_base` without a value are
+ * removed. When one of the three inputs is missing, no NLV is added.
  *
  * The NLV is a field-level calculation from soil organic matter, clay and C/N (for fields with
  * zones their area-weighted means): it gets one source "calculated" ("Berekend") and no coverage of
  * its own.
  *
- * @param currentSoilData The current soil parameter measurements for a field.
- * @returns The enriched CurrentSoilData array.
+ * @param currentSoilData - The current soil parameter values of a field.
+ * @returns A new array with the NLV added when it could be calculated.
+ * @example
+ * ```ts
+ * const soil = enrichCurrentSoilDataWithNlv(await getCurrentSoilData(fdm, principal_id, b_id))
+ * ```
  */
 export function enrichCurrentSoilDataWithNlv(currentSoilData: CurrentSoilData): CurrentSoilData {
   const data = currentSoilData.filter(

@@ -49,15 +49,21 @@
   },
   "dependencies": {
     "@nmi-agro/fdm-core": "workspace:^",
+    "@nmi-agro/fdm-data": "workspace:^",
+    "@terraformer/wkt": "^2.2.2",
+    "@turf/boolean-point-in-polygon": "^7.4.0",
+    "@types/geojson": "^7946.0.16",
     "date-fns": "^4.4.0",
     "decimal.js": "^10.6.0",
     "geotiff": "^3.0.5",
+    "proj4": "^2.22.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
     "@nmi-agro/fdm-core": "workspace:*",
     "@types/node": "catalog:",
+    "@types/terraformer__wkt": "^2.0.3",
     "@vitest/coverage-v8": "catalog:",
     "postgres": "^3.4.9",
     "tsdown": "catalog:",

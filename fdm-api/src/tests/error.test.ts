@@ -148,6 +148,19 @@ describe("createErrorHandler", () => {
     expect(res.status).toBe(403)
   })
 
+  it("names multipart/form-data when a multipart body cannot be read", async () => {
+    const app = makeTestApp()
+    const res = await app.request("/http-exception-400", {
+      headers: { "content-type": "multipart/form-data; boundary=x" },
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).detail).toBe(
+      "The request body could not be read as multipart/form-data.",
+    )
+    const json = await app.request("/http-exception-400")
+    expect((await json.json()).detail).toBe("Request body contains invalid JSON.")
+  })
+
   it("maps a 400 HTTPException (malformed JSON) to 400 validation-failed", async () => {
     const app = makeTestApp()
     const res = await app.request("/http-exception-400")

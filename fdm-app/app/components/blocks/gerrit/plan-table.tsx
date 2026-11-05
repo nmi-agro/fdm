@@ -160,7 +160,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
           <input type="hidden" name="plan" value={JSON.stringify(plan)} />
           <Button type="submit" size="sm" disabled={isSaving}>
             {isSaving ? <Spinner className="mr-2" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-            Plan definitief maken en toepassen
+            <span>Plan definitief maken en toepassen</span>
           </Button>
         </Form>
       </CardHeader>

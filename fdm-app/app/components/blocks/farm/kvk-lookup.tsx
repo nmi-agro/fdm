@@ -91,7 +91,9 @@ export function KvkLookupButton({
       onClick={onLookup}
     >
       {isLoading ? <Spinner /> : <Search />}
-      {isLoading ? "Ophalen..." : "Ophalen uit KvK"}
+      <span key={isLoading ? "loading" : "idle"}>
+        {isLoading ? "Ophalen..." : "Ophalen uit KvK"}
+      </span>
     </Button>
   )
 }

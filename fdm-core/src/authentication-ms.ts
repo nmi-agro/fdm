@@ -165,6 +165,65 @@ export async function createMicrosoftClientAssertion(
 }
 
 /**
+ * Tenant ID that Microsoft Entra ID uses for personal Microsoft accounts
+ * (outlook.com, hotmail.com, live.com). Microsoft verifies the email address
+ * of these accounts itself.
+ */
+const MICROSOFT_CONSUMER_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad"
+
+/**
+ * Returns `true` only for the boolean `true`, the string `"true"` or the number `1`.
+ * Any other value, including the string `"false"`, counts as not verified.
+ */
+function isTrueClaim(value: unknown): boolean {
+  return value === true || value === "true" || value === 1
+}
+
+/**
+ * Determines whether Microsoft Entra ID vouches for the email address in an id_token.
+ *
+ * Work and school accounts let tenant administrators set the `email`/`mail`
+ * attribute to any value, so the address is only trusted when Microsoft states
+ * that it is verified. The address counts as verified when any of the
+ * following holds:
+ *
+ * - the `email_verified` claim is `true` (or the string `"true"`);
+ * - the `xms_edov` claim is `true` (or `1`, `"1"`, `"true"`), meaning the tenant owns the email domain;
+ * - the address is listed in `verified_primary_email` or `verified_secondary_email`;
+ * - the account is a personal Microsoft account (consumer tenant).
+ *
+ * The `xms_edov`, `verified_primary_email` and `verified_secondary_email` claims are
+ * optional claims that must be enabled in the Entra ID app registration.
+ *
+ * @param claims The decoded id_token claims.
+ * @param email The email address that will be stored for the user.
+ * @returns `true` if the email address may be treated as verified.
+ */
+export function isMicrosoftEmailVerified(
+  claims: Record<string, unknown>,
+  email: string | undefined,
+): boolean {
+  if (!email) return false
+  if (isTrueClaim(claims.email_verified)) return true
+  if (isTrueClaim(claims.xms_edov) || claims.xms_edov === "1") return true
+
+  const normalizedEmail = email.trim().toLowerCase()
+  const verifiedEmails = [claims.verified_primary_email, claims.verified_secondary_email].flatMap(
+    (value) => (Array.isArray(value) ? value : typeof value === "string" ? [value] : []),
+  )
+  if (
+    verifiedEmails.some(
+      (verified) =>
+        typeof verified === "string" && verified.trim().toLowerCase() === normalizedEmail,
+    )
+  ) {
+    return true
+  }
+
+  return claims.tid === MICROSOFT_CONSUMER_TENANT_ID
+}
+
+/**
  * Helpers that `createMicrosoftSocialConfig` needs from `fdm-core/authentication`.
  * Passed as parameters to avoid a circular import between the two modules.
  */
@@ -185,7 +244,9 @@ export interface MicrosoftOAuthHelpers {
  *
  * Accounts are identified by the stable `oid` claim of the id_token. The FDM
  * user fields (first name, surname, username, display username) are mapped from
- * the id_token claims.
+ * the id_token claims. The email address is only marked as verified when the
+ * claims say so (see {@link isMicrosoftEmailVerified}); an unverified address is
+ * never linked implicitly to an existing account.
  *
  * @param config Certificate configuration (client ID, tenant, private key, cert/thumbprint).
  * @param helpers FDM user-mapping helpers, passed to avoid a circular dependency.
@@ -204,7 +265,7 @@ export function createMicrosoftSocialConfig(
     return {
       name,
       email,
-      emailVerified: true,
+      emailVerified: isMicrosoftEmailVerified(profile as Record<string, unknown>, email),
       firstname,
       surname,
       username: await helpers.createUsername(email),
@@ -256,11 +317,6 @@ export function createMicrosoftSocialConfig(
         (claims.displayName as string | undefined) ||
         email.split("@")[0]
 
-      const emailVerified =
-        claims.email_verified !== undefined
-          ? Boolean(claims.email_verified)
-          : !!(email && (claims.verified_primary_email as string[] | undefined)?.includes(email))
-
       const mapped = await mapProfileToUser({ ...claims, email, name })
       return {
         user: {
@@ -268,7 +324,7 @@ export function createMicrosoftSocialConfig(
           name,
           email,
           image: picture,
-          emailVerified: mapped.emailVerified ?? emailVerified,
+          emailVerified: isMicrosoftEmailVerified(claims as Record<string, unknown>, email),
         },
         data: claims,
       }

@@ -1,0 +1,64 @@
+{
+  "name": "@nmi-agro/fdm-storage",
+  "version": "0.0.0",
+  "private": false,
+  "description": "File storage for FDM: a storage interface with a Google Cloud Storage implementation and upload validation",
+  "homepage": "https://svenvw.github.io/fdm/",
+  "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+  "license": "MIT",
+  "author": {
+    "name": "Sven Verweij",
+    "email": "37927107+SvenVw@users.noreply.github.com",
+    "url": "https://github.com/SvenVw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nmi-agro/fdm.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "coverage": "vitest run --coverage",
+    "document": "typedoc",
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage",
+    "watch": "vitest"
+  },
+  "dependencies": {
+    "@file-type/xml": "^1.2.0",
+    "@google-cloud/storage": "^8.4.0",
+    "file-type": "^22.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typedoc": "catalog:",
+    "typedoc-plugin-missing-exports": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@12.8.1"
+}

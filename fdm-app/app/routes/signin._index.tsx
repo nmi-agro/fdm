@@ -203,11 +203,17 @@ export default function SignIn() {
   const redirectError =
     errorParam === "microsoft_no_email"
       ? "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen."
-      : null
+      : errorParam === "account_not_linked"
+        ? "Er bestaat al een account met dit e-mailadres, maar Microsoft of Google heeft niet bevestigd dat dit e-mailadres van u is. Meld u hieronder aan met een aanmeldlink via uw e-mailadres."
+        : null
   // A failed sign-in attempt in this session takes precedence over the redirect error
   const socialSignInError = handlerError ?? redirectError
 
   const socialProviderNewUserCallbackUrl = modifySearchParams("/welcome", (searchParams) =>
+    searchParams.set("redirectTo", redirectTo),
+  )
+  // Send OAuth errors (e.g. `account_not_linked`) back to this page so they can be explained
+  const socialProviderErrorCallbackUrl = modifySearchParams("/signin", (searchParams) =>
     searchParams.set("redirectTo", redirectTo),
   )
 
@@ -306,6 +312,7 @@ export default function SignIn() {
                                 provider: "microsoft",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
+                                errorCallbackURL: socialProviderErrorCallbackUrl,
                               })
                             } catch (error) {
                               handleSignInError("Microsoft", error)
@@ -346,7 +353,7 @@ export default function SignIn() {
                                   fill="#FFBA08"
                                 />
                               </svg>
-                              Aanmelden met Microsoft
+                              <span>Aanmelden met Microsoft</span>
                             </>
                           )}
                         </Button>
@@ -366,6 +373,7 @@ export default function SignIn() {
                                 provider: "google",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
+                                errorCallbackURL: socialProviderErrorCallbackUrl,
                                 // prompt: "select_account",
                               })
                             } catch (error) {
@@ -409,7 +417,7 @@ export default function SignIn() {
                                   d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
                                 />
                               </svg>
-                              Aanmelden met Google
+                              <span>Aanmelden met Google</span>
                             </>
                           )}
                         </Button>
@@ -499,7 +507,7 @@ export default function SignIn() {
                                   <span>Aanmelden...</span>
                                 </div>
                               ) : (
-                                "Aanmelden met e-mail"
+                                <span>Aanmelden met e-mail</span>
                               )}
                             </Button>
                           </div>
