@@ -225,3 +225,175 @@ describe("DELETE /fertilizers/:p_id", () => {
     expect(res.status).toBe(403)
   })
 })
+
+describe("POST /farms/:b_id_farm/fertilizers/custom", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  const customFertilizer = { ...baseFertilizer, p_source: "farm-1", p_type_rvo: "11" }
+
+  function services() {
+    return {
+      getFertilizers: vi.fn().mockResolvedValue([{ p_type_rvo: "11", p_type: "manure" }]),
+      addFertilizerToCatalogue: vi.fn().mockResolvedValue("cat-custom"),
+      addFertilizer: vi.fn().mockResolvedValue("p-custom"),
+      getFertilizer: vi.fn().mockResolvedValue({ ...customFertilizer, p_id: "p-custom" }),
+    }
+  }
+
+  it("creates and acquires a custom fertilizer", async () => {
+    validKey()
+    const s = services()
+    const app = makeApp(s)
+    const res = await app.request("/farms/farm-1/fertilizers/custom", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        p_name_nl: "Eigen drijfmest",
+        p_type_rvo: "11",
+        p_n_rt: 4.2,
+        p_acquiring_amount: 1000,
+        p_acquiring_date: "2026-03-01",
+      }),
+    })
+    expect(res.status).toBe(201)
+    expect(res.headers.get("location")).toContain("/fertilizers/p-custom")
+    const properties = s.addFertilizerToCatalogue.mock.calls[0]?.[3]
+    expect(properties).toMatchObject({
+      p_name_nl: "Eigen drijfmest",
+      p_n_rt: 4.2,
+      p_p_rt: null,
+      p_type: "manure",
+      p_app_amount_unit: "kg/ha",
+    })
+    expect(s.addFertilizer).toHaveBeenCalledWith(
+      mockFdm,
+      "user-1",
+      "cat-custom",
+      "farm-1",
+      1000,
+      new Date("2026-03-01"),
+    )
+  })
+
+  it("uses the given p_type and unit", async () => {
+    validKey()
+    const s = services()
+    const app = makeApp(s)
+    await app.request("/farms/farm-1/fertilizers/custom", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        p_name_nl: "Kunstmest",
+        p_type: "mineral",
+        p_app_amount_unit: "l/ha",
+      }),
+    })
+    expect(s.getFertilizers).not.toHaveBeenCalled()
+    expect(s.addFertilizerToCatalogue.mock.calls[0]?.[3]).toMatchObject({
+      p_type: "mineral",
+      p_app_amount_unit: "l/ha",
+    })
+  })
+
+  it("returns 400 without a name", async () => {
+    validKey()
+    const app = makeApp(services())
+    const res = await app.request("/farms/farm-1/fertilizers/custom", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_n_rt: 4 }),
+    })
+    expect(res.status).toBe(400)
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+  })
+
+  it("returns 403 without write access", async () => {
+    validKey()
+    const s = services()
+    s.addFertilizerToCatalogue.mockRejectedValue(new Error("Permission denied"))
+    const app = makeApp(s)
+    const res = await app.request("/farms/farm-1/fertilizers/custom", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_name_nl: "X" }),
+    })
+    expect(res.status).toBe(403)
+  })
+
+  it("returns 401 without an API key", async () => {
+    const app = makeApp(services())
+    const res = await app.request("/farms/farm-1/fertilizers/custom", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ p_name_nl: "X" }),
+    })
+    expect(res.status).toBe(401)
+  })
+})
+
+describe("PATCH /fertilizers/:p_id", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("updates a custom fertilizer", async () => {
+    validKey()
+    const getFertilizer = vi
+      .fn()
+      .mockResolvedValueOnce({ ...baseFertilizer, p_id: "p-1", p_source: "farm-1" })
+      .mockResolvedValueOnce({ ...baseFertilizer, p_id: "p-1", p_source: "farm-1", p_n_rt: 5 })
+    const updateFertilizerFromCatalogue = vi.fn().mockResolvedValue(undefined)
+    const app = makeApp({ getFertilizer, updateFertilizerFromCatalogue })
+    const res = await app.request("/fertilizers/p-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_n_rt: 5 }),
+    })
+    expect(res.status).toBe(200)
+    expect((await res.json()).p_n_rt).toBe(5)
+    expect(updateFertilizerFromCatalogue).toHaveBeenCalledWith(
+      mockFdm,
+      "user-1",
+      "farm-1",
+      "cat-1",
+      { p_n_rt: 5 },
+    )
+  })
+
+  it("returns 422 for a fertilizer from a standard catalogue", async () => {
+    validKey()
+    const getFertilizer = vi
+      .fn()
+      .mockResolvedValue({ ...baseFertilizer, p_id: "p-1", p_source: "baat" })
+    const updateFertilizerFromCatalogue = vi.fn()
+    const app = makeApp({ getFertilizer, updateFertilizerFromCatalogue })
+    const res = await app.request("/fertilizers/p-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_n_rt: 5 }),
+    })
+    expect(res.status).toBe(422)
+    expect((await res.json()).type).toContain("unprocessable-entity")
+    expect(updateFertilizerFromCatalogue).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 for a missing fertilizer", async () => {
+    validKey()
+    const app = makeApp({ getFertilizer: vi.fn().mockResolvedValue(undefined) })
+    const res = await app.request("/fertilizers/missing", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_n_rt: 5 }),
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 400 for an empty body", async () => {
+    validKey()
+    const app = makeApp({ getFertilizer: vi.fn() })
+    const res = await app.request("/fertilizers/p-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({}),
+    })
+    expect(res.status).toBe(400)
+  })
+})

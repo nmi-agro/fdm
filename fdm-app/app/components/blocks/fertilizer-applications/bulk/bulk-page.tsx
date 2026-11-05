@@ -333,7 +333,7 @@ export function BulkFertilizerPage({
               disabled={Boolean(submitDisabledReason) || isSubmitting}
             >
               {isSubmitting ? <Spinner /> : null}
-              {submitLabel}
+              <span key={submitLabel}>{submitLabel}</span>
             </Button>
           </div>
         </div>

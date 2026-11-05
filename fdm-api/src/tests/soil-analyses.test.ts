@@ -485,6 +485,7 @@ describe("DELETE /soil-analyses/:a_id", () => {
 
   it("returns 204 on success", async () => {
     const app = makeApp({
+      getSoilAnalysis: vi.fn().mockResolvedValue({ ...baseSoilAnalysis, b_id_sampling: null }),
       removeSoilAnalysis: vi.fn().mockResolvedValue(undefined),
     })
     const res = await app.request("/soil-analyses/sa-1", {
@@ -496,6 +497,7 @@ describe("DELETE /soil-analyses/:a_id", () => {
 
   it("returns 403 when principal lacks permission", async () => {
     const app = makeApp({
+      getSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")),
       removeSoilAnalysis: vi.fn().mockRejectedValue(new Error("Permission denied")),
     })
     const res = await app.request("/soil-analyses/sa-1", {
@@ -652,5 +654,40 @@ describe("GET /fields/:b_id/current-soil-data/zones", () => {
     const app = makeApp()
     const res = await app.request("/fields/field-1/current-soil-data/zones")
     expect(res.status).toBe(401)
+  })
+})
+
+describe("soil condition score (BCS) parameters", () => {
+  beforeEach(() => {
+    validKey()
+  })
+
+  it("accepts BCS scores when creating an analysis and returns them", async () => {
+    const addSoilAnalysis = vi.fn().mockResolvedValue("sa-bcs")
+    const app = makeApp({
+      addSoilAnalysis,
+      getSoilAnalysis: vi
+        .fn()
+        .mockResolvedValue({ ...baseSoilAnalysis, a_id: "sa-bcs", a_ss_bcs: 2, a_p_bcs: 0 }),
+    })
+    const res = await app.request("/fields/field-1/soil-analyses", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        a_date: "2026-05-01",
+        a_source: "nl-other-nmi",
+        a_depth_lower: 30,
+        b_sampling_date: "2026-05-01",
+        a_ss_bcs: 2,
+        a_p_bcs: 0,
+      }),
+    })
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.a_ss_bcs).toBe(2)
+    expect(body.a_p_bcs).toBe(0)
+    expect(body.a_rt_bcs).toBeNull()
+    const analysisData = addSoilAnalysis.mock.calls[0]?.[7]
+    expect(analysisData).toMatchObject({ a_ss_bcs: 2, a_p_bcs: 0 })
   })
 })

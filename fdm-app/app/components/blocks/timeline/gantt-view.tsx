@@ -1768,9 +1768,11 @@ export const TimelineGanttView = forwardRef<
           <AlertDialogHeader>
             <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDelete
-                ? `Weet je zeker dat je ${pendingDelete.label} wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
-                : null}
+              {pendingDelete ? (
+                <span key={pendingDelete.label}>
+                  {`Weet je zeker dat je ${pendingDelete.label} wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`}
+                </span>
+              ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

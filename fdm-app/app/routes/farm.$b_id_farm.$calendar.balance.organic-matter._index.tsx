@@ -294,7 +294,7 @@ function FarmBalanceOrganicMatterOverview({
                     </div>
                     <div className="ml-auto font-medium">
                       {fieldResult.balance ? (
-                        `${fieldResult.balance.balance}`
+                        <span>{`${fieldResult.balance.balance}`}</span>
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">

@@ -307,7 +307,7 @@ export function AssignGroupsDialog({
         {groups.length > 0 && (
           <p className="text-sm" aria-live="polite">
             {hasChanges ? (
-              `Hiermee ${summary.join(" en ")}.`
+              <span>{`Hiermee ${summary.join(" en ")}.`}</span>
             ) : (
               <span className="text-muted-foreground">Wijzig eerst een of meer groepen.</span>
             )}

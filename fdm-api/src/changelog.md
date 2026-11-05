@@ -2,6 +2,59 @@ Notable changes to the REST API, newest first. Operations that were added recent
 
 ## 0.4.0
 
+### New endpoints for more features of the web app
+
+The API now covers more of the farm data features of the web app. Logic that was only in the web app moved to the shared libraries, so the API and the web app return the same results.
+
+Not available through the API yet: sharing a farm with other users and organizations, the RVO import (it needs an interactive eHerkenning login), the map layers of the atlas, mineralization, the AI assistant and organization, account and API key management.
+
+**Fertilizers**
+
+- `POST /farms/{b_id_farm}/fertilizers/custom` creates a fertilizer with its own composition and acquires it for the farm.
+- `PATCH /fertilizers/{p_id}` updates a custom fertilizer. Fertilizers from a standard catalogue return 422.
+
+**Lists per farm**
+
+- `GET /farms/{b_id_farm}/fertilizer-applications`, `/harvests`, `/measures` and `/current-soil-data` return the records of all fields of a farm in one request, with the usual `from`, `to`, `limit` and `offset` query parameters.
+
+**Calculations**
+
+- `GET /farms/{b_id_farm}/calculations/nutrient-advice` and `GET /fields/{b_id}/calculations/nutrient-advice` return the nutrient advice, the dose already applied and the remaining advice per nutrient, for the main cultivation of the year. A field that cannot be calculated has `error` set; the other fields are still returned.
+- `GET /cultivations/{b_lu}/harvest-parameters` returns the parameters a harvest needs and their default values.
+
+**Invitations**
+
+- `GET /invitations` lists the pending farm invitations of the owner of the API key. `POST /invitations/{invitation_id}/accept` and `.../decline` respond to one.
+
+**Soil condition score (BCS)**
+
+- Soil analyses accept and return the nine BCS scores `a_ss_bcs` to `a_rt_bcs` (0, 1 or 2 each).
+- `GET` and `POST /soil-analyses/{a_id}/images` list and upload the photos of an assessment (a soil analysis with at least one visual score; uploading to other soil analyses returns 422); `GET` and `DELETE /soil-images/{a_id_image}` download and delete one. Annotations on a photo are managed with `POST /soil-images/{a_id_image}/annotations` and `PATCH` and `DELETE /soil-image-annotations/{a_id_annotation}`.
+
+**Lab reports**
+
+- `POST /farms/{b_id_farm}/soil-analyses/import/compare` reads soil analyses from up to ten lab report PDFs and suggests the field of each analysis, without saving. `POST /farms/{b_id_farm}/soil-analyses/import/apply` takes the same files and the checked analyses (one `analyses` field with a JSON array, or one field per analysis) and saves them in one transaction, each with a copy of its report. Download the report with `GET /soil-analyses/{a_id}/document`; soil analyses report `has_document`.
+
+**Field import from a shapefile**
+
+- `POST /farms/{b_id_farm}/fields/import/compare` compares an RVO Mijn Percelen shapefile export with the fields of the farm, without saving.
+- `POST /farms/{b_id_farm}/fields/import/apply` applies a choice per field in one transaction. When the farm changed since the compare step, it returns 409 with the new review.
+
+**Fertilizer plans**
+
+- `GET` and `POST /farms/{b_id_farm}/fertilizer-plans` list and generate the yearly fertilizer plan (bemestingsplan). `GET /fertilizer-plans/{p_id_plan}`, `GET .../pdf` and `DELETE` return, download and delete a plan. Each plan reports whether it still matches the current data.
+
+**Farm groups and organizations**
+
+- `GET /farm-groups/{b_id_group}/calculations/nitrogen-balance`, `.../organic-matter-balance`, `/indicators` and `/measures` return the results of the farms in a group for a year, for all farms together and per farm.
+- `GET /organizations/{organization_id}/...` with the same four paths returns the same for all farms of an organization. The owner of the API key must be a member.
+
+### Changed
+
+- `GET /fields/{b_id}/current-soil-data` includes the nitrogen supplying capacity (`d_n_supply_base`) calculated from organic matter, clay and C/N when no analysis has it, with one source of type `calculated`. The web app shows the same value.
+- File uploads use `multipart/form-data` on the upload endpoints above, with a size limit per endpoint. The `Content-Type` header must include the boundary; a `multipart/form-data` body without it returns 400. All other write requests still require `application/json`.
+- A write request without a body, such as accepting an invitation, no longer needs a `Content-Type` header.
+
 ### Breaking: current soil data lists its sources
 
 `GET /fields/{b_id}/current-soil-data` returns per parameter the contributing soil analyses in `sources`, instead of a single `a_id`, `b_sampling_date`, `a_source` and depth. Each source has its `a_id`, `a_source`, `b_sampling_date`, `a_depth_upper`, `a_depth_lower`, `value` and `area_fraction`, newest first. New fields per parameter:

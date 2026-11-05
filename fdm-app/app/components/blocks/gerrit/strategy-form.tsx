@@ -353,12 +353,12 @@ export function StrategyForm({
               {isGenerating ? (
                 <>
                   <Spinner className="mr-3 h-5 w-5" />
-                  Gerrit (AI) berekent het plan...
+                  <span>Gerrit (AI) berekent het plan...</span>
                 </>
               ) : isRateLimited ? (
-                "Dagelijks limiet bereikt"
+                <span key="rate-limited">Dagelijks limiet bereikt</span>
               ) : (
-                "Bemestingsplan genereren"
+                <span key="generate">Bemestingsplan genereren</span>
               )}
             </Button>
           </form>

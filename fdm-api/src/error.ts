@@ -96,6 +96,24 @@ export function problemResponse(
   )
 }
 
+/**
+ * Returns the messages of an error and of every error in its `cause` chain, outermost first.
+ * fdm-core wraps errors with a generic message and keeps the original as `cause`; use this to
+ * map a known original message to a specific HTTP status.
+ *
+ * @param err - The caught error.
+ * @returns The messages of the chain. Empty for a value that is not an `Error`.
+ */
+export function getErrorMessages(err: unknown): string[] {
+  const messages: string[] = []
+  let current: unknown = err
+  while (current instanceof Error) {
+    messages.push(current.message)
+    current = current.cause
+  }
+  return messages
+}
+
 const PERMISSION_MESSAGES = new Set([
   "Permission denied",
   "Principal does not have permission to perform this action",
@@ -118,11 +136,17 @@ function isPermissionDenied(err: unknown): boolean {
 export function createErrorHandler(appUrl: string): ErrorHandler {
   return (err, c) => {
     if (err instanceof HTTPException && err.status === 400) {
+      // Hono throws this when it cannot parse the body; name the format the client sent.
+      const isMultipart = (c.req.header("content-type") ?? "")
+        .toLowerCase()
+        .startsWith("multipart/form-data")
       return problemResponse(
         c,
         400,
         "validation-failed",
-        "Request body contains invalid JSON.",
+        isMultipart
+          ? "The request body could not be read as multipart/form-data."
+          : "Request body contains invalid JSON.",
         appUrl,
       )
     }

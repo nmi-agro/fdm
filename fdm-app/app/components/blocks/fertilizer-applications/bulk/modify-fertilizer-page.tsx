@@ -428,7 +428,7 @@ export function ModifyFertilizerPage({
             </p>
             <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
               {isSubmitting ? <Spinner /> : null}
-              {submitLabel}
+              <span key={submitLabel}>{submitLabel}</span>
             </Button>
           </div>
         </div>

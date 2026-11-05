@@ -123,9 +123,11 @@ function ReleaseSection({
             className="text-muted-foreground hover:text-foreground mt-1 h-auto px-0 py-1"
             aria-controls={contentId}
           >
-            {isOpen
-              ? "Verberg wijzigingen"
-              : `Toon ${pluralize(release.items.length, "wijziging", "wijzigingen")}`}
+            <span key={isOpen ? "open" : "closed"}>
+              {isOpen
+                ? "Verberg wijzigingen"
+                : `Toon ${pluralize(release.items.length, "wijziging", "wijzigingen")}`}
+            </span>
             <ChevronDown
               aria-hidden="true"
               className={cn("transition-transform", isOpen && "rotate-180")}

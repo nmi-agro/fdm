@@ -255,7 +255,7 @@ export function ProfilePictureManager({
               {currentPicture ? "Annuleren" : "Kies een andere afbeelding"}
             </Button>
             <Button type="submit" disabled={isUploading}>
-              Opslaan
+              <span>Opslaan</span>
               {isUploading ? <Spinner /> : undefined}
             </Button>
           </>
@@ -264,7 +264,7 @@ export function ProfilePictureManager({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button type="button" variant="destructive" disabled={isDeleting}>
-                  Verwijderen
+                  <span>Verwijderen</span>
                   {isDeleting ? <Spinner /> : undefined}
                 </Button>
               </AlertDialogTrigger>

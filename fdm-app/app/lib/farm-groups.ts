@@ -138,6 +138,8 @@ function getCalendarYear(calendar: string | undefined | null): number | undefine
  * The end date is the first day the farm is no longer part of the group, so a period that ends on
  * 1 January does not reach into that year.
  *
+ * Mirrors `isFarmGroupMembershipInYear` of fdm-core, so it can be used in client components.
+ *
  * @param membership - The period.
  * @param calendar - The selected calendar, a year such as `"2025"` or `"all"`.
  * @returns `true` when the period overlaps the year, and always for anything but a year.
@@ -184,26 +186,6 @@ export function getMembershipCoverage(
 export function formatCalendarLabel(calendar: string | undefined | null): string {
   const year = getCalendarYear(calendar)
   return year === undefined ? "alle jaren" : String(year)
-}
-
-/**
- * Returns the ids of the farms that are part of a group in the selected calendar year.
- *
- * @param memberships - All periods of the group.
- * @param calendar - The selected calendar, a year such as `"2025"` or `"all"`.
- * @returns The unique farm ids, in the order of the periods.
- */
-export function getFarmIdsInCalendar(
-  memberships: (PeriodDates & { b_id_farm: string })[],
-  calendar: string | undefined | null,
-): string[] {
-  return [
-    ...new Set(
-      memberships
-        .filter((membership) => isMembershipInCalendar(membership, calendar))
-        .map((membership) => membership.b_id_farm),
-    ),
-  ]
 }
 
 /**

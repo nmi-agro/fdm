@@ -9,7 +9,8 @@ const srcDir = dirname(fileURLToPath(import.meta.url))
 const FORBIDDEN = [/^@nmi-agro\/fdm-core$/, /^drizzle-orm/, /^postgres$/, /^geotiff$/, /^node:/]
 
 /** Packages that are known to be safe in the browser. */
-const ALLOWED = [/^decimal\.js$/, /^date-fns/, /^zod$/]
+// Turf modules are plain geometry functions without Node or network dependencies.
+const ALLOWED = [/^decimal\.js$/, /^date-fns/, /^zod$/, /^@turf\//]
 
 // Matches runtime `import ... from "x"`, `export ... from "x"` and side-effect `import "x"`.
 // Type-only imports and exports are skipped, because they are erased at build time.

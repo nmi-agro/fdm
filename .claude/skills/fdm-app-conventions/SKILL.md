@@ -114,6 +114,16 @@ Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
 
+### Browser translation
+
+Users translate the Dutch UI with the browser (Chrome, Edge). The translator replaces text nodes with its own `<font>` nodes. When React later inserts or removes a sibling, it uses the original text node as a reference, and `insertBefore` or `removeChild` throws — the user gets an error page. A text node whose string changes also stops updating. The app must keep working under translation, so never solve this with `translate="no"`. Instead:
+
+- Wrap text in an element when it sits next to an element that is added, removed or swapped: `{isSubmitting && <Spinner />}<span>Opslaan</span>`, not `{isSubmitting && <Spinner />}Opslaan`.
+- Give conditional text its own keyed element, so React replaces it instead of patching a translated node: `<span key={isLoading ? "loading" : "idle"}>{isLoading ? "Ophalen..." : "Ophalen uit KvK"}</span>`.
+- In a ternary or fragment, never let a branch be bare text next to (or instead of) an element: `{isSubmitting ? <Spinner /> : <span>Opslaan</span>}`.
+- Text that appears or disappears goes in an element that mounts and unmounts as a whole.
+- Radix Select portals the selected item's text into the trigger. `ui/select.tsx` therefore wraps the item text and the placeholder in a `<span>`; keep that when regenerating the shadcn component. A custom picker trigger (such as `custom/combobox.tsx`) shows its value in a `<span>` keyed by the value.
+
 ## State
 
 Server state belongs in loaders; it is not copied into a store. Zustand stores in `app/store/` are for genuine client state that must outlive a component or cross the tree — selected field, calendar selection, filters, form drafts.
@@ -174,4 +184,5 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Ref-compare against a "previous value", or a `setTimeout`-deferred `setState`, to dodge a compiler lint error | Pick the matching pattern from "Client-side state and the React Compiler" |
 | A lazy `useState(() => window…)` initializer for a client-only value | `useSyncExternalStore` with an explicit server snapshot |
 | English UI strings | Dutch |
+| `{isSubmitting && <Spinner />}` followed by bare text, or a conditional string next to elements | Wrap the text in `<span>`; key conditional text (see "Browser translation") |
 | Editing `fdm-core` and testing here without rebuilding | `pnpm turbo build` first — this app consumes `dist` |

@@ -5,6 +5,7 @@ import type {
   FertilizerApplication,
   getFertilizerApplication,
   getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
   removeFertilizerApplication,
   updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
@@ -12,6 +13,7 @@ import { createRoute, z } from "@hono/zod-openapi"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import {
+  FarmIdSchema,
   FertilizerAppAmountSchema,
   FertilizerApplicationIdSchema,
   FertilizerIdSchema,
@@ -34,6 +36,7 @@ const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 /** Defines the fertilizer application data access functions required by the fertilizer application routes. */
 export interface FertilizerApplicationServices {
   getFertilizerApplications: typeof getFertilizerApplications
+  getFertilizerApplicationsForFarm: typeof getFertilizerApplicationsForFarm
   getFertilizerApplication: typeof getFertilizerApplication
   addFertilizerApplication: typeof addFertilizerApplication
   updateFertilizerApplication: typeof updateFertilizerApplication
@@ -70,6 +73,10 @@ const FertilizerApplicationSchema = z
     p_app_id: FertilizerApplicationIdSchema,
   })
   .openapi("FertilizerApplication")
+
+const FarmFertilizerApplicationSchema = FertilizerApplicationSchema.extend({
+  b_id: FieldIdSchema.describe("Unique identifier of the field the fertilizer was applied on."),
+}).openapi("FarmFertilizerApplication")
 
 const CreateFertilizerApplicationBodySchema = z
   .object({
@@ -208,6 +215,32 @@ const deleteFertilizerApplicationRoute = createRoute({
   },
 })
 
+const listFarmFertilizerApplicationsRoute = createRoute({
+  method: "get",
+  path: "/farms/{b_id_farm}/fertilizer-applications",
+  tags: ["Fertilizer Applications"],
+  summary: "List fertilizer applications on a farm",
+  description:
+    "Returns the fertilizer applications on all fields of the farm, sorted by application date. Each item has the `b_id` of its field. Use `from` and `to` to limit the period.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    query: PaginationTimeframeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "A paginated list of fertilizer applications.",
+      content: {
+        "application/json": {
+          schema: paginatedSchema(FarmFertilizerApplicationSchema),
+        },
+      },
+    },
+    ...commonErrorResponses,
+  },
+})
+
 function serialiseFertilizerApplication(application: FertilizerApplication) {
   return {
     p_id: application.p_id,
@@ -247,6 +280,41 @@ export function registerFertilizerApplicationRoutes(
   app.use("/fertilizer-applications/*", (c, next) =>
     rateLimitMiddleware(fdm, WRITE_METHODS.has(c.req.method) ? "write" : "general")(c, next),
   )
+
+  const listFarmFertilizerApplicationsHandler: RouteHandler<
+    typeof listFarmFertilizerApplicationsRoute
+  > = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
+    const byKey = await services.getFertilizerApplicationsForFarm(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      parseTimeframeQuery(query),
+    )
+    const items = [...byKey].flatMap(([b_id, applications]) =>
+      applications.map((application) => ({ ...application, b_id })),
+    )
+    items.sort(
+      (a, b) =>
+        String(serializeDate(a.p_app_date)).localeCompare(String(serializeDate(b.p_app_date))) ||
+        a.p_app_id.localeCompare(b.p_app_id),
+    )
+    return c.json(
+      paginatedResponse(
+        items.map((application) => ({
+          ...serialiseFertilizerApplication(application),
+          b_id: application.b_id,
+        })),
+        query.limit,
+        query.offset,
+      ),
+      200,
+    )
+  }
 
   const listFertilizerApplicationsHandler: RouteHandler<
     typeof listFertilizerApplicationsRoute
@@ -374,6 +442,7 @@ export function registerFertilizerApplicationRoutes(
   }
 
   app.openapi(listFertilizerApplicationsRoute, listFertilizerApplicationsHandler)
+  app.openapi(listFarmFertilizerApplicationsRoute, listFarmFertilizerApplicationsHandler)
   app.openapi(createFertilizerApplicationRoute, createFertilizerApplicationHandler)
   app.openapi(getFertilizerApplicationRoute, getFertilizerApplicationHandler)
   app.openapi(updateFertilizerApplicationRoute, updateFertilizerApplicationHandler)
