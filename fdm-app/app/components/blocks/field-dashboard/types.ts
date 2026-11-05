@@ -134,16 +134,18 @@ export interface FieldDashboardPhosphateBalanceSummary {
   balance: number
   supply: number
   removal: number
-  /** Whether the balance fits the PSD aim (same rule as the icons on the balance pages) */
-  status: "on_track" | "off_track" | "unknown"
+  /** Verdict of the soil phosphorus status (same rule as the icons on the balance pages) */
+  status: "good" | "attention" | "adjust" | "unknown"
+  /** Aim of the field, e.g. "Afbouwen · milieu (PSD)", or "–" */
+  aim: string
   /** Phosphorus saturation degree now (%), or `null` */
   psd: number | null
   /** Field-specific PSD threshold (%), or `null` */
   threshold: number | null
   /** Years until the threshold is crossed at this balance, as label and class, or `null` */
   years: { label: string; value: string } | null
-  /** Whether the PSD comes from a laboratory measurement or an estimate */
-  psdSource: "meting" | "schatting" | null
+  /** Whether the PSD comes from a soil analysis or an estimate */
+  psdSource: "bodemanalyse" | "schatting" | null
   unit: string
 }
 

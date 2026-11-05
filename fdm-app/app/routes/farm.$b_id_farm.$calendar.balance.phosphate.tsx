@@ -1,4 +1,5 @@
-import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getFieldExclusionReason, getMainCultivation } from "@nmi-agro/fdm-calculator"
+import { getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -14,7 +15,7 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -90,9 +91,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     })
 
     // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    const [fields, cultivations] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+    // Buffer strips, nature and landscape elements have no phosphate balance, so they are not offered
+    const year = Number(getCalendar(params))
     const fieldOptions = fields
-      .filter((field) => !field.b_bufferstrip)
+      .filter((field) => {
+        const main = getMainCultivation(cultivations.get(field.b_id) ?? [], year)
+        return (
+          getFieldExclusionReason({
+            b_bufferstrip: field.b_bufferstrip,
+            b_lu_croprotation: main?.b_lu_croprotation,
+            b_lu_catalogue: main?.b_lu_catalogue,
+          }) === null
+        )
+      })
       .map((field) => {
         if (!field?.b_id || !field?.b_name) {
           throw new Error("Invalid field data structure")
@@ -130,7 +145,7 @@ export default function FarmBalancePhosphateBlock() {
   const action = b_id
     ? {
         to: `/farm/${loaderData.b_id_farm}/${calendar}/balance/phosphate`,
-        label: "Terug naar fosfaat",
+        label: "Terug naar fosfaatbalans",
         disabled: false,
       }
     : {

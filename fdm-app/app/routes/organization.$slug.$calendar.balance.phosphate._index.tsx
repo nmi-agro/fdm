@@ -3,10 +3,10 @@ import {
   calculatePhosphateBalanceFieldsToFarm,
   collectInputForPhosphateBalanceForFarms,
   type PhosphateBalance,
-  type PhosphateBalanceFieldResult,
+  type PhosphateVerdict,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
-import { CircleAlert, CircleCheck, CircleX } from "lucide-react"
+import { CircleAlert } from "lucide-react"
 import { Suspense, use } from "react"
 import {
   data,
@@ -24,10 +24,11 @@ import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-bala
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import {
   formatNumberNl,
-  getPhosphateTrendStatus,
   PHOSPHATE_UNIT,
+  PHOSPHATE_VERDICT_TEXT,
 } from "~/components/blocks/balance/phosphate-format"
-import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { PhosphateOrganizationFallback } from "~/components/blocks/balance/phosphate-skeletons"
+import { PhosphateStatusIcon } from "~/components/blocks/balance/phosphate-soil"
 import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -216,43 +217,39 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
 }
 
 /**
- * Share of the area (%) of the fields whose balance fits the PSD aim (the green check on the farm
- * page), among the fields whose status is known. `null` when no status is known.
+ * Share of the judged area (%) per verdict of a farm or organisation. `null` when no field is
+ * judged.
  */
-function getShareOnTrack(fields: PhosphateBalanceFieldResult[]): number | null {
-  let known = 0
-  let onTrack = 0
-  for (const field of fields) {
-    if (!field.balance || field.b_bufferstrip || field.b_area <= 0) continue
-    const status = getPhosphateTrendStatus(field.balance)
-    if (status === "unknown") continue
-    known += field.b_area
-    if (status === "on_track") onTrack += field.b_area
+function getVerdictShares(
+  statusArea: PhosphateBalance["status_area"],
+): Record<"good" | "attention" | "adjust", number> | null {
+  const known = statusArea.good.area + statusArea.attention.area + statusArea.adjust.area
+  if (known <= 0) return null
+  return {
+    good: (statusArea.good.area / known) * 100,
+    attention: (statusArea.attention.area / known) * 100,
+    adjust: (statusArea.adjust.area / known) * 100,
   }
-  return known > 0 ? (onTrack / known) * 100 : null
 }
 
-/** Check when at least half of the area is on track, cross otherwise, orange when unknown. */
-function ShareOnTrackIcon({ share }: { share: number | null }) {
-  if (share === null) {
-    return (
-      <CircleAlert
-        aria-label="Fosfaatverzadiging onbekend"
-        className="h-6 w-6 shrink-0 rounded-full bg-orange-100 p-0 text-orange-500"
-      />
-    )
-  }
-  return share >= 50 ? (
-    <CircleCheck
-      aria-label="De meeste percelen passen bij het doel voor de fosfaatverzadiging"
-      className="h-6 w-6 shrink-0 rounded-full bg-green-100 p-0 text-green-500"
-    />
-  ) : (
-    <CircleX
-      aria-label="De meeste percelen passen niet bij het doel voor de fosfaatverzadiging"
-      className="h-6 w-6 shrink-0 rounded-full bg-red-100 p-0 text-red-500"
-    />
-  )
+/**
+ * Verdict of a farm from the area of its fields: good when at least half of the judged area is
+ * good, adjust when more area needs adjustment than is good, attention otherwise.
+ */
+function getFarmVerdict(shares: ReturnType<typeof getVerdictShares>): PhosphateVerdict {
+  if (!shares) return "unknown"
+  if (shares.good >= 50) return "good"
+  if (shares.adjust > shares.good) return "adjust"
+  return "attention"
+}
+
+/** Dutch summary of the shares, e.g. "60 % goed · 25 % aandacht · 15 % bijsturen". */
+function formatShares(shares: ReturnType<typeof getVerdictShares>): string {
+  if (!shares) return ""
+  return (["good", "attention", "adjust"] as const)
+    .filter((v) => shares[v] > 0)
+    .map((v) => `${formatNumberNl(shares[v])} % ${PHOSPHATE_VERDICT_TEXT[v].label.toLowerCase()}`)
+    .join(" · ")
 }
 
 export default function OrganizationBalancePhosphateBlock() {
@@ -264,7 +261,7 @@ export default function OrganizationBalancePhosphateBlock() {
       <h2 className="text-2xl font-bold tracking-tight">Fosfaat</h2>
       <Suspense
         key={`${loaderData.organization.id},${location.search}`}
-        fallback={<NitrogenBalanceFallback />}
+        fallback={<PhosphateOrganizationFallback />}
       >
         <OrganizationBalancePhosphateOverview {...loaderData} />
       </Suspense>
@@ -289,17 +286,19 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
   const asyncData = use(loaderData.asyncData)
   const { combinedResult, farmResults } = asyncData
   const hasErrors = farmResults.some((r) => r.phosphateBalanceResult.hasErrors)
-  const orgShare = getShareOnTrack(combinedResult.fields)
+  const orgShares = getVerdictShares(combinedResult.status_area)
 
   const createFarmRow = ({ farm, totalArea, phosphateBalanceResult }: FarmResult) => {
     const href = `/farm/${farm.b_id_farm}/${params.calendar}/balance/phosphate`
-    const share = getShareOnTrack(phosphateBalanceResult.fields)
+    const shares = phosphateBalanceResult.errorMessage
+      ? null
+      : getVerdictShares(phosphateBalanceResult.status_area)
     const delta = phosphateBalanceResult.errorMessage
       ? undefined
       : phosphateBalanceResult.balance - combinedResult.balance
     return (
       <div className="flex grow items-center" key={farm.b_id_farm}>
-        <ShareOnTrackIcon share={phosphateBalanceResult.errorMessage ? null : share} />
+        <PhosphateStatusIcon verdict={getFarmVerdict(shares)} className="h-6 w-6" />
         <div className="ml-4 space-y-1">
           <NavLink to={href}>
             <p className="text-sm leading-none font-medium hover:underline">
@@ -308,7 +307,7 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
           </NavLink>
           <p className="text-muted-foreground text-sm">
             {formatNumberNl(totalArea, 1)} ha
-            {share !== null ? ` · ${formatNumberNl(share)} % van de oppervlakte op koers` : ""}
+            {shares ? ` · ${formatShares(shares)}` : ""}
           </p>
         </div>
         <div className="ml-auto text-right font-medium">
@@ -371,11 +370,9 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
             <BufferStripInfo />
           </CardTitle>
           <CardDescription>
-            ✓ als op minstens de helft van de oppervlakte de fosfaatverzadiging binnen 20 jaar onder
-            de grens komt of blijft.
-            {orgShare !== null
-              ? ` Alle geselecteerde bedrijven samen: ${formatNumberNl(orgShare)} % op koers.`
-              : ""}
+            Oordeel per bedrijf uit de oppervlakte van de percelen: goed als minstens de helft goed
+            is.
+            {orgShares ? ` Alle geselecteerde bedrijven samen: ${formatShares(orgShares)}.` : ""}
           </CardDescription>
         </CardHeader>
         <CardContent>
