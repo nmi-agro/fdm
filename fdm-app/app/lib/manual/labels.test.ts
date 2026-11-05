@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import allowlist from "../../content/manual/label-allowlist.json"
 import { manualPages } from "./content.server"
-import { createLabelMatcher, extractUiStrings, normalizeLabel } from "./labels"
+import { createLabelMatcher, extractUiStrings, normalizeLabel, stripComments } from "./labels"
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..")
 const repoRoot = resolve(appRoot, "..")
@@ -52,6 +52,55 @@ describe("extractUiStrings", () => {
     expect(extractUiStrings(source)).toEqual(
       expect.arrayContaining(["Bouwplan", "Oogst", "toevoegen", "Snede toevoegen"]),
     )
+  })
+})
+
+describe("stripComments", () => {
+  it("ignores commented-out UI", () => {
+    const source = `// <Badge>Geverifieerd</Badge>
+      /* const label = "Verificatiehouder" */
+      <div>{/* <span>Oud label</span> */}<span>Nieuw label</span></div>`
+    const strings = extractUiStrings(source)
+    expect(strings).not.toContain("Geverifieerd")
+    expect(strings).not.toContain("Verificatiehouder")
+    expect(strings).not.toContain("Oud label")
+    expect(strings).toContain("Nieuw label")
+  })
+
+  it("keeps strings and URLs that contain comment markers", () => {
+    const strings = extractUiStrings(`const a = "Zie https://example.org"
+      <a>Ga naar https://example.org/hulp</a>
+      const b = "a // b"`)
+    expect(strings).toEqual(
+      expect.arrayContaining([
+        "Zie https://example.org",
+        "Ga naar https://example.org/hulp",
+        "a // b",
+      ]),
+    )
+  })
+
+  it("keeps JSX text next to a JSX comment together", () => {
+    const source = `<Button>
+      {" "}
+      {/* Navigate to the farm page */}
+      Voltooien
+    </Button>`
+    expect(extractUiStrings(source)).toContain("Voltooien")
+  })
+
+  it("does not swallow code between a doc comment and a later JSX comment", () => {
+    const source = `interface Props {
+      /** Doc comment */
+      rows: Row[]
+    }
+    const tab = <Tab>Per ha</Tab>
+    const x = <div>{/* note */}</div>`
+    expect(extractUiStrings(source)).toContain("Per ha")
+  })
+
+  it("keeps line numbers by preserving line breaks in block comments", () => {
+    expect(stripComments("a\n/* x\ny */\nb").split("\n")).toHaveLength(4)
   })
 })
 

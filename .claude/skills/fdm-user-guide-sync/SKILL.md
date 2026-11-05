@@ -72,7 +72,7 @@ The guide speaks as a calm, competent agronomic colleague who explains the app: 
    pnpm exec oxfmt <changed files>
    ```
 
-   The label test lists every bold text that is not an existing UI label. Fix the text; add to `label-allowlist.json` only when the label truly exists but is composed at runtime, and give a reason.
+   The label test lists every bold text that is not an existing UI label (code comments don't count). A green test only proves the labels exist somewhere in the source, not that they are on the screen the chapter describes: check that yourself in the diff and the route's components. Fix the text; add to `label-allowlist.json` only when the label truly exists but is composed at runtime, and give a reason.
 
 6. **Changeset.** Add a patch changeset for `@nmi-agro/fdm-app` ("Update the user guide for …"), or update the PR's existing one.
 

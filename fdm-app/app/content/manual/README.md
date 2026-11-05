@@ -52,6 +52,8 @@ Sections for chapters: `Aan de slag`, `Gegevens vastleggen`, `Resultaten`, `Same
 
 **Bold** text is shown as an app-style button and must be a label that exists in the app (a button, tab, menu item, field label or status). The label test fails when a bold text cannot be found in the source of fdm-app, fdm-core, fdm-data or fdm-calculator. Short labels (fewer than 3 words and under 20 characters) must match a whole string exactly; longer labels may match part of a string.
 
+The test ignores code comments, so commented-out UI does not count. It does not know which screen a label belongs to: a label removed from one screen still passes when the same text appears elsewhere, and short labels such as "Opslaan" almost always pass. A green test means no stale or misspelled labels, not that the steps are still correct; that is what the route-drift warning and review are for.
+
 Use plain text or _italics_ for emphasis. If bold text really is a label that the test cannot find (for example because the app composes it at runtime), add it to `label-allowlist.json` with a reason. Unused allowlist entries fail the test.
 
 ### Screenshots

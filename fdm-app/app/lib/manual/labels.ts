@@ -32,13 +32,61 @@ const JSX_TEXT = />([^<>{}]*(?:\{\s*["'] ["']\s*\}[^<>{}]*)*)</g
 const TEMPLATE_PART = /`([^`]*)`/g
 
 /**
+ * Removes `//` and `/* *\/` comments (including JSX `{/* *\/}` comments) from TypeScript source,
+ * so commented-out UI does not count as an existing label. Strings are kept intact: quotes are
+ * tracked, `"` and `'` strings end at a line break, and `//` directly after `:` is kept, so URLs
+ * such as `https://…` in JSX text survive.
+ *
+ * @param source - The contents of a `.ts` or `.tsx` file.
+ * @returns The source without comments; line breaks are kept.
+ */
+export function stripComments(raw: string): string {
+  // JSX comments go with their braces, so the text around them stays one JSX text.
+  const source = raw.replace(/\{\s*\/\*(?:(?!\*\/)[\s\S])*\*\/\s*\}/g, (comment) =>
+    comment.replace(/[^\n]/g, ""),
+  )
+  let out = ""
+  let quote: string | undefined
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i]
+    const next = source[i + 1]
+    if (quote) {
+      out += char
+      if (char === "\\") {
+        out += next ?? ""
+        i++
+      } else if (char === quote || (char === "\n" && quote !== "`")) {
+        quote = undefined
+      }
+      continue
+    }
+    if (char === "/" && next === "*") {
+      const end = source.indexOf("*/", i + 2)
+      const comment = source.slice(i, end === -1 ? source.length : end + 2)
+      out += comment.replace(/[^\n]/g, "")
+      i += comment.length - 1
+      continue
+    }
+    if (char === "/" && next === "/" && source[i - 1] !== ":") {
+      const end = source.indexOf("\n", i)
+      i = (end === -1 ? source.length : end) - 1
+      continue
+    }
+    if (char === '"' || char === "'" || char === "`") quote = char
+    out += char
+  }
+  return out
+}
+
+/**
  * Extracts the texts a source file can show to users: string literals, the literal parts of
- * template strings and JSX text.
+ * template strings and JSX text. Comments are removed first ({@link stripComments}).
  *
  * @param source - The contents of a `.ts` or `.tsx` file.
  * @returns The normalised, non-empty texts.
  */
-export function extractUiStrings(source: string): string[] {
+export function extractUiStrings(raw: string): string[] {
+  const source = stripComments(raw)
   const out: string[] = []
   const push = (value: string | undefined) => {
     if (!value) return

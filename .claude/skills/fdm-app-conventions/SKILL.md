@@ -171,7 +171,7 @@ pnpm --filter @nmi-agro/fdm-app test   # manual content, label and SEO tests (vi
 pnpm --filter fdm-app dev        # http://localhost:5173
 ```
 
-The tests only cover the manual and its help links: content parsing, links and anchors, help targets, and that every bold label still exists in the app source. Rename a button and the test points to the chapter that still uses the old label. `node fdm-app/scripts/manual-route-drift.mjs` (with `BASE_SHA` set) lists chapters whose routes you changed.
+The tests only cover the manual and its help links: content parsing, links and anchors, help targets, and that every bold label still exists in the app source outside comments. That check does not know which screen a label is on, so it catches stale and misspelled labels, not outdated steps. Rename a button and the test points to the chapter that still uses the old label. `node fdm-app/scripts/manual-route-drift.mjs` (with `BASE_SHA` set) lists chapters whose routes you changed.
 
 `dev` needs a PostgreSQL instance with PostGIS running and reachable through the `POSTGRES_*` variables in `fdm-app/.env`; developers normally run one locally on the machine.
 
