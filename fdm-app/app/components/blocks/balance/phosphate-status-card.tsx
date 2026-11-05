@@ -25,6 +25,7 @@ import { cn } from "~/lib/utils"
 import {
   describePhosphateDirection,
   formatLongTermRange,
+  hasLongTermAverage,
   formatNumberNl,
   formatPAlLevel,
   formatPhosphateAim,
@@ -286,7 +287,9 @@ export function PhosphateStatusCard({
                 value={`${direction.verb}${direction.meaning ? `, ${direction.meaning}` : ""}`}
                 note={
                   projection
-                    ? `Gemiddelde balans ${formatNumberNl(balance.long_term.balance)} ${PHOSPHATE_UNIT} per jaar${range ? ` (${range})` : ""}; netto ${formatNumberNl(projection.balance_effective_per_year)} na vastlegging en uitspoeling.`
+                    ? hasLongTermAverage(balance)
+                      ? `Gemiddelde balans ${formatNumberNl(balance.long_term.balance)} ${PHOSPHATE_UNIT} per jaar${range ? ` (${range})` : ""}; netto ${formatNumberNl(projection.balance_effective_per_year)} na vastlegging en uitspoeling.`
+                      : `Balans ${range} ${formatNumberNl(balance.long_term.balance)} ${PHOSPHATE_UNIT} (geen gegevens van eerdere jaren); netto ${formatNumberNl(projection.balance_effective_per_year)} na vastlegging en uitspoeling.`
                     : undefined
                 }
               />

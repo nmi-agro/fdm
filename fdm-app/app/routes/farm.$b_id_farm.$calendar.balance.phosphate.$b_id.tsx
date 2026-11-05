@@ -11,7 +11,10 @@ import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-war
 import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-balance-card"
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import { PhosphateBalanceDetails } from "~/components/blocks/balance/phosphate-details"
-import { formatLongTermRange } from "~/components/blocks/balance/phosphate-format"
+import {
+  formatLongTermRange,
+  hasLongTermAverage,
+} from "~/components/blocks/balance/phosphate-format"
 import { PhosphateFieldFallback } from "~/components/blocks/balance/phosphate-skeletons"
 import {
   getPhosphateChartStart,
@@ -272,10 +275,15 @@ function PhosphateBalance({
             year={calendar}
             balance={result.balance}
             leaching={result.leaching.total}
-            longTerm={{
-              balance: result.long_term.balance,
-              years: formatLongTermRange(result.long_term.years),
-            }}
+            // Without registered data for earlier years the trend uses the balance of this year only
+            longTerm={
+              hasLongTermAverage(result)
+                ? {
+                    balance: result.long_term.balance,
+                    years: formatLongTermRange(result.long_term.years),
+                  }
+                : undefined
+            }
           >
             <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
           </PhosphateBalanceCard>

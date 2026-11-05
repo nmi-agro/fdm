@@ -96,9 +96,10 @@ export function PhosphateHelpDialog() {
             <p className="text-foreground font-medium">Waar, welke kant, hoe lang</p>
             <p>
               Het oordeel gebruikt de gemiddelde balans van de afgelopen jaren (tot 5 jaar, zodat
-              een vruchtwisseling meetelt), na vastlegging en uitspoeling. Precies op de grens komen
-              is niet nodig: binnen {R.psd_margin} procentpunt van de PSD-grens of {R.p_al_margin}{" "}
-              eenheden P-AL telt als bereikt.
+              een vruchtwisseling meetelt), na vastlegging en uitspoeling. Alleen jaren met
+              geregistreerde bemesting of oogst tellen mee; zonder die gegevens gebruikt het oordeel
+              de balans van dit jaar. Precies op de grens komen is niet nodig: binnen {R.psd_margin}{" "}
+              procentpunt van de PSD-grens of {R.p_al_margin} eenheden P-AL telt als bereikt.
             </p>
             <ul className="list-disc space-y-1 pl-5">
               {(["good", "attention", "adjust"] as const).map((verdict) => (

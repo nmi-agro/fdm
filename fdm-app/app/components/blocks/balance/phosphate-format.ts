@@ -206,6 +206,30 @@ export function formatLongTermYears(years: number[]): string {
 }
 
 /**
+ * Whether the trend uses an average over several years. Without registered data for earlier years
+ * the calculator uses only the balance of the selected year.
+ *
+ * @param balance - The phosphate balance of the field.
+ * @returns `true` when the long-term balance covers more than one year.
+ */
+export function hasLongTermAverage(balance: PhosphateBalanceField): boolean {
+  return balance.long_term.years.length > 1
+}
+
+/**
+ * Dutch name of the balance that drives the trend: "gemiddelde balans" over several years, or
+ * "balans 2026" when only the selected year has data.
+ *
+ * @param balance - The phosphate balance of the field.
+ * @returns The name, in lower case.
+ */
+export function formatTrendBalanceName(balance: PhosphateBalanceField): string {
+  if (hasLongTermAverage(balance)) return "gemiddelde balans"
+  const [year] = balance.long_term.years
+  return year === undefined ? "balans" : `balans ${year}`
+}
+
+/**
  * The range of years in the long-term average balance, e.g. "2022–2026".
  *
  * @param years - The calendar years with data.

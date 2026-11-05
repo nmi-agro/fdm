@@ -98,8 +98,12 @@ export type PhosphateBalanceInput = {
 
 /**
  * Long-term average balance of a field (kg P2O5 / ha / year), over this year and the earlier years
- * with a cultivation (crop rotation, e.g. from the BRP history). Used for the projection.
+ * with a cultivation (crop rotation, e.g. from the BRP history) and registered data. Used for the
+ * projection.
  *
+ * - An earlier year counts only when it has registered fertilizer applications or harvests. Without
+ *   any earlier year with data, `years` holds only this year and the balance is the balance of this
+ *   year; a warning asks the user to add the data of the earlier years.
  * - Removal, mineralisation and deposition are averaged over all these years. In earlier years, a
  *   cultivation without a registered harvest gets the default yield and phosphate content of the
  *   cultivation catalogue (NMI API).
@@ -114,7 +118,7 @@ export type PhosphateLongTermBalance = {
   fertilizers: number
   /** Leaching of the average balance (negative) */
   leaching: number
-  /** Calendar years included in the average, oldest first */
+  /** Calendar years included in the average, oldest first (only this year without earlier data) */
   years: number[]
   /** Years whose fertilizer applications are used for the average supply */
   fertilizer_years: number[]

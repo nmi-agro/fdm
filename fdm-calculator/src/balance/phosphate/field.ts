@@ -466,9 +466,19 @@ export function calculatePhosphateBalanceField(
   ]
   const estimatedRemovalYears: number[] = []
   const missingDefaults: string[] = []
+  const yearsWithoutData: number[] = []
   for (const past of withCultivationHistory(input, currentYear, cultivationDetails)) {
     if (past.fieldInput.cultivations.length === 0) continue
     const year = yearOfTimeFrame(past.timeFrame)
+    // Only years with registered data count: a crop (e.g. from the BRP history) alone would give an
+    // average of estimated removal and borrowed fertilisation
+    if (
+      past.fieldInput.fertilizerApplications.length === 0 &&
+      past.fieldInput.harvests.length === 0
+    ) {
+      yearsWithoutData.push(year)
+      continue
+    }
     const pastTerms = calculateFieldTerms(
       past.fieldInput,
       fertilizerDetails,
@@ -509,6 +519,13 @@ export function calculatePhosphateBalanceField(
   const longTermFertilizers = mean(fertilizedYears.map((y) => y.fertilizers))
   const longTermBalance = longTermFertilizers.add(mean(years.map((y) => y.rest)))
   const longTermWarnings: string[] = []
+  if (yearsWithoutData.length > 0) {
+    longTermWarnings.push(
+      years.length === 1
+        ? `Voor ${formatYears(yearsWithoutData)} zijn geen bemesting en oogst geregistreerd: de trend gebruikt alleen de balans van ${currentYear}. Voeg de bemesting en oogsten van eerdere jaren toe voor een gemiddelde balans over de vruchtwisseling.`
+        : `Voor ${formatYears(yearsWithoutData)} zijn geen bemesting en oogst geregistreerd: deze jaren tellen niet mee in de gemiddelde balans. Voeg de bemesting en oogsten van die jaren toe voor een betere balans op lange termijn.`,
+    )
+  }
   const unfertilized = years.filter((y) => !y.hasFertilizers).map((y) => y.year)
   if (unfertilized.length > 0) {
     longTermWarnings.push(

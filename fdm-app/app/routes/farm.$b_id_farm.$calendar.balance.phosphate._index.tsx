@@ -424,8 +424,9 @@ function FarmBalancePhosphateOverview({
             </Table>
           </div>
           <p className="text-muted-foreground mt-3 text-xs">
-            Gemiddelde balans in {PHOSPHATE_UNIT} per jaar over de afgelopen jaren; die bepaalt
-            richting en tijd.
+            Gemiddelde balans in {PHOSPHATE_UNIT} per jaar over de afgelopen jaren met gegevens
+            (zonder gegevens van eerdere jaren: de balans van {calendar}); die bepaalt richting en
+            tijd.
           </p>
         </CardContent>
       </Card>
@@ -438,7 +439,14 @@ function FarmBalancePhosphateOverview({
             leaching={phosphateBalanceResult.leaching}
             supply={phosphateBalanceResult.supply}
             removal={phosphateBalanceResult.removal}
-            longTerm={{ balance: phosphateBalanceResult.long_term_balance, years: "" }}
+            longTerm={
+              // Only when at least one field averages over earlier years with data
+              phosphateBalanceResult.fields.some(
+                (f) => (f.balance?.long_term.years.length ?? 0) > 1,
+              )
+                ? { balance: phosphateBalanceResult.long_term_balance, years: "" }
+                : undefined
+            }
             description={`Gemiddelde per ha over de percelen van ${farm.b_name_farm}. Percelen kunnen verschillende doelen hebben; beoordeel de toestand per perceel.`}
           >
             <PhosphateBalanceChart type="farm" balance={phosphateBalanceResult} />

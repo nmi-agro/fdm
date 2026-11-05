@@ -115,8 +115,8 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.projection?.balance_effective_per_year).toBeCloseTo(20.2 * 0.94 - 20)
   })
 
-  it("should average the balance over the rotation, with default yields for missing harvests", () => {
-    const pastYear = (year: number, tspAmount: number | null) => ({
+  it("should average the balance over the years with data, with default yields for missing harvests", () => {
+    const pastYear = (year: number, tspAmount: number | null, harvested = false) => ({
       timeFrame: { start: new Date(`${year}-01-01`), end: new Date(`${year}-12-31`) },
       fieldInput: {
         ...input.fields[0],
@@ -128,7 +128,7 @@ describe("calculatePhosphateBalanceField", () => {
             b_lu_end: new Date(`${year}-09-01`),
           },
         ],
-        harvests: [],
+        harvests: harvested ? [harvest(`c${year}`, 12000, null)] : [],
         fertilizerApplications: (tspAmount
           ? [{ p_app_id: `p${year}`, p_id_catalogue: "tsp", p_app_amount: tspAmount }]
           : []) as PhosphateBalanceInput["fields"][number]["fertilizerApplications"],
@@ -148,43 +148,80 @@ describe("calculatePhosphateBalanceField", () => {
       fertilizerDetails: input.fertilizerDetails,
       cultivationDetails: input.cultivationDetails,
       timeFrame: input.timeFrame,
-      history: [pastYear(2024, 100), pastYear(2023, null), noCrop],
+      history: [pastYear(2024, 100), pastYear(2023, null, true), pastYear(2021, null), noCrop],
     })
+    // 2021 has a crop but no registered fertilisation or harvest: left out
     expect(result.long_term.years).toEqual([2023, 2024, 2025])
     expect(result.long_term.fertilizer_years).toEqual([2024, 2025])
-    expect(result.long_term.estimated_removal_years).toEqual([2023, 2024])
+    expect(result.long_term.estimated_removal_years).toEqual([2024])
     // Fertilizers: mean of 2025 (64.5) and 2024 (45, over 366 days)
     const fertilizers = (64.5 + (45 * 365) / 366) / 2
-    // Rest: 2025 −45 + 0.7; 2024 and 2023: default harvest −48, residues −6, deposition 0.7
+    // Rest: 2025 −45 + 0.7; 2024 default harvest −48, residues −6, deposition 0.7;
+    // 2023 registered harvest 12 000 kg × 4 g/kg −48, residues −6, deposition 0.7
     const rest = (-44.3 + (-53.3 * 365) / 366 - 53.3) / 3
     expect(result.long_term.balance).toBeCloseTo(fertilizers + rest, 1)
-    expect(result.long_term.warnings[0]).toMatch(/Voor 2023 is geen bemesting geregistreerd/)
+    expect(result.long_term.warnings[0]).toMatch(
+      /Voor 2021 zijn geen bemesting en oogst geregistreerd: deze jaren tellen niet mee/,
+    )
+    expect(result.long_term.warnings[1]).toMatch(/Voor 2023 is geen bemesting geregistreerd/)
     expect(result.balance).toBeCloseTo(20.2)
     expect(result.projection?.balance_effective_per_year).toBeCloseTo(
       result.long_term.balance + result.long_term.leaching - 20,
     )
   })
 
-  it("should use the crop history (BRP) for earlier years without registered cultivations", () => {
+  it("should use only this year when no earlier year has registered data", () => {
     const result = calculatePhosphateBalanceField({
       fieldInput: {
         ...input.fields[0],
         cultivation_history: [
           { year: 2024, b_lu_catalogue: "nl_2014" },
           { year: 2023, b_lu_catalogue: "nl_2014" },
-          { year: 2019, b_lu_catalogue: "nl_2014" },
         ],
       },
       fertilizerDetails: input.fertilizerDetails,
       cultivationDetails: input.cultivationDetails,
       timeFrame: input.timeFrame,
     })
-    // 2019 is outside the 5 years; 2024 and 2023: default harvest −48, deposition 0.7, no fertilizers
-    expect(result.long_term.years).toEqual([2023, 2024, 2025])
-    expect(result.long_term.estimated_removal_years).toEqual([2023, 2024])
-    expect(result.long_term.fertilizer_years).toEqual([2025])
-    const rest = (-44.3 + (-47.3 * 365) / 366 - 47.3) / 3
-    expect(result.long_term.balance).toBeCloseTo(64.5 + rest, 1)
+    // The BRP crops of 2023 and 2024 have no registered fertilisation or harvest
+    expect(result.long_term.years).toEqual([2025])
+    expect(result.long_term.estimated_removal_years).toEqual([])
+    expect(result.long_term.balance).toBeCloseTo(result.balance)
+    expect(result.long_term.warnings).toEqual([
+      "Voor 2023 en 2024 zijn geen bemesting en oogst geregistreerd: de trend gebruikt alleen de balans van 2025. Voeg de bemesting en oogsten van eerdere jaren toe voor een gemiddelde balans over de vruchtwisseling.",
+    ])
+  })
+
+  it("should use the crop history (BRP) for an earlier year with fertilisation but no registered cultivation", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: {
+        ...input.fields[0],
+        cultivation_history: [{ year: 2024, b_lu_catalogue: "nl_2014" }],
+      },
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+      history: [
+        {
+          timeFrame: { start: new Date("2024-01-01"), end: new Date("2024-12-31") },
+          fieldInput: {
+            ...input.fields[0],
+            cultivations: [],
+            harvests: [],
+            fertilizerApplications: [
+              { p_app_id: "p2024", p_id_catalogue: "tsp", p_app_amount: 100 },
+            ] as PhosphateBalanceInput["fields"][number]["fertilizerApplications"],
+          },
+        },
+      ],
+    })
+    // 2024: BRP crop with the default harvest −48 (no residues), deposition 0.7, TSP 45
+    expect(result.long_term.years).toEqual([2024, 2025])
+    expect(result.long_term.estimated_removal_years).toEqual([2024])
+    expect(result.long_term.fertilizer_years).toEqual([2024, 2025])
+    const fertilizers = (64.5 + (45 * 365) / 366) / 2
+    const rest = (-44.3 + (-47.3 * 365) / 366) / 2
+    expect(result.long_term.balance).toBeCloseTo(fertilizers + rest, 1)
   })
 
   it("should ask for the harvest when no default yield or phosphate content is known", () => {
