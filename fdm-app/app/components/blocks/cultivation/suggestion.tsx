@@ -137,11 +137,10 @@ function ReadOnlySuggestionBadge({
             e.preventDefault()
             setOpen(true)
           }}
-          asChild
+          type="button"
+          className="max-w-[10rem] cursor-pointer"
         >
-          <button type="button" className="max-w-[10rem] cursor-pointer">
-            {badge}
-          </button>
+          {badge}
         </TooltipTrigger>
         <TooltipContent>
           <p>

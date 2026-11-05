@@ -70,58 +70,60 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
       render={({ field, fieldState }) => (
         <Field>
           <FieldLabel>{label}</FieldLabel>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <FieldContent>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  name={name}
-                  disabled={disabled}
-                  className="w-full justify-between truncate focus-visible:ring-2"
-                  aria-controls="combobox-options"
-                  aria-haspopup="listbox"
-                >
-                  <span key={String(field.value ?? "")} className="truncate">
-                    {options.find((option) => option.value === field.value)?.label ||
-                      defaultLabel ||
-                      "Begin met typen..."}
-                  </span>
-                  <ChevronsUpDown className="opacity-50" />
-                </Button>
-              </FieldContent>
-            </PopoverTrigger>
-            <PopoverContent id="combobox-options" className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Begin met typen..." className="h-9" />
-                <CommandList>
-                  <CommandEmpty>Niks gevonden</CommandEmpty>
-                  <CommandGroup>
-                    {options.map((option: optionType) => (
-                      <CommandItem
-                        value={option.label}
-                        key={option.value}
-                        disabled={disabled}
-                        onSelect={(_value) => {
-                          form.setValue(name, option.value as FieldPathValue<TFieldValues, TName>)
-                          setOpen(false)
-                        }}
-                      >
-                        <p className="w-87.5 text-pretty">{option.label}</p>
-                        <Check
-                          className={cn(
-                            "ml-auto",
-                            option.value === field.value ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <FieldContent>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    name={name}
+                    disabled={disabled}
+                    className="w-full justify-between truncate focus-visible:ring-2"
+                    aria-controls="combobox-options"
+                    aria-haspopup="listbox"
+                  >
+                    <span key={String(field.value ?? "")} className="truncate">
+                      {options.find((option) => option.value === field.value)?.label ||
+                        defaultLabel ||
+                        "Begin met typen..."}
+                    </span>
+                    <ChevronsUpDown className="opacity-50" />
+                  </Button>
+                }
+              />
+              <PopoverContent id="combobox-options" className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Begin met typen..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>Niks gevonden</CommandEmpty>
+                    <CommandGroup>
+                      {options.map((option: optionType) => (
+                        <CommandItem
+                          value={option.label}
+                          key={option.value}
+                          disabled={disabled}
+                          onSelect={(_value) => {
+                            form.setValue(name, option.value as FieldPathValue<TFieldValues, TName>)
+                            setOpen(false)
+                          }}
+                        >
+                          <p className="w-87.5 text-pretty">{option.label}</p>
+                          <Check
+                            className={cn(
+                              "ml-auto",
+                              option.value === field.value ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </FieldContent>
           <FieldError errors={[fieldState.error]} />
         </Field>
       )}
