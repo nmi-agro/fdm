@@ -1,6 +1,31 @@
 import { describe, expect, it } from "vitest"
 import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 
+describe("calculatePhosphateSaturation sources", () => {
+  it("should report the source of P-AL separately from the source of the PSD", () => {
+    const result = calculatePhosphateSaturation(
+      [
+        {
+          a_p_al: 37,
+          a_source: "nl-rva-l122",
+          b_sampling_date: new Date("2025-03-01"),
+          b_soiltype_agr: "dekzand",
+        },
+        {
+          a_p_ox: 12,
+          a_fe_ox: 29,
+          a_al_ox: 36,
+          a_source: "nl-other-nmi",
+          b_sampling_date: new Date("2024-01-01"),
+        },
+      ],
+      false,
+    )
+    expect(result.analysis_sources).toEqual(["nl-other-nmi"])
+    expect(result.a_p_al_source).toBe("nl-rva-l122")
+  })
+})
+
 describe("calculatePhosphateSaturation", () => {
   it("should calculate the PSD from the oxalate data with alpha_max 0.5 and no range", () => {
     const result = calculatePhosphateSaturation(

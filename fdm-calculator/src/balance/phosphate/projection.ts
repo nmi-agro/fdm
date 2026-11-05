@@ -30,12 +30,34 @@ export function classifyYears(years: number | null): YearsClass {
   return "gt_20"
 }
 
-/** Years from `from` to `to` at `perYear`; 0 when already past it in the direction of change. */
-function yearsTo(from: number, to: number, perYear: number): number | null {
+/**
+ * Years from `from` to `to` at a constant change per year.
+ *
+ * @param from - Current value.
+ * @param to - Level to reach.
+ * @param perYear - Change per year.
+ * @returns The years; 0 when already past `to` in the direction of change; `null` when `to` is not
+ *   reached (no change, or a change away from it).
+ */
+export function yearsTo(from: number, to: number, perYear: number): number | null {
   if (perYear === 0) return null
   const t = (to - from) / perYear
   if (t >= 0) return t
   return perYear < 0 ? 0 : null
+}
+
+/**
+ * Phosphate balance (kg P2O5 / ha / year) that changes the PSD by one percentage point per year in
+ * the sampled layer (van Doorn 2026, Eq. 5.7): `PSC / 100 · ρ · d · 0.31 · P_TO_P2O5`.
+ *
+ * @param psc - Phosphorus sorption capacity (mmol / kg).
+ * @param a_density_sa - Bulk density (g / cm³).
+ * @param depth - Thickness of the sampled layer (m).
+ * @returns kg P2O5 / ha per PSD percentage point.
+ */
+export function kgP2O5PerPsdPoint(psc: number, a_density_sa: number, depth: number): number {
+  const kgPPerMmol = a_density_sa * 1000 * depth * 0.31
+  return (psc / 100) * kgPPerMmol * P_TO_P2O5
 }
 
 /**
@@ -124,9 +146,8 @@ export function calculatePhosphateProjection(
   // PSD track
   let psd: PhosphateProjection["psd"] = null
   if (saturation.psc && saturation.psd) {
-    const kgPPerMmol = a_density_sa.value * 1000 * depth.value * 0.31
-    const delta_p_ox = effective / P_TO_P2O5 / kgPPerMmol
-    const delta_per_year = (delta_p_ox / saturation.psc) * 100
+    const delta_per_year =
+      effective / kgP2O5PerPsdPoint(saturation.psc, a_density_sa.value, depth.value)
     const years =
       threshold.value === null
         ? null

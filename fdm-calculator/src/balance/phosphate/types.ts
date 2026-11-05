@@ -7,6 +7,7 @@ import type {
   Harvest,
   SoilAnalysis,
 } from "@nmi-agro/fdm-core"
+import type { FieldExclusionReason } from "../../shared/field-exclusion"
 
 /**
  * Soil parameters used by the phosphate balance prototype.
@@ -109,6 +110,8 @@ export type PhosphateBalanceInput = {
 export type PhosphateLongTermBalance = {
   /** Average balance per year */
   balance: number
+  /** Average fertilizer supply per year, over the years with registered fertilizer applications */
+  fertilizers: number
   /** Leaching of the average balance (negative) */
   leaching: number
   /** Calendar years included in the average, oldest first */
@@ -139,7 +142,7 @@ export type ValueWithRange = { value: number; min: number; max: number }
 /** Phosphorus saturation of the topsoil. */
 export type PhosphateSaturation = {
   source: PhosphateSaturationSource
-  /** Sources (`a_source`) of the soil analyses the values were taken from */
+  /** Sources (`a_source`) of the soil analyses the PSD (and PSC) were taken from */
   analysis_sources: string[]
   b_soiltype_agr: SoilAnalysis["b_soiltype_agr"] | null
   alpha_max: number
@@ -151,6 +154,8 @@ export type PhosphateSaturation = {
   a_p_ox: number | null
   /** P-AL (mg P2O5 / 100 g), when available */
   a_p_al: number | null
+  /** Source (`a_source`) of the soil analysis P-AL was taken from, or `null` */
+  a_p_al_source: string | null
   /** Whether the oxalate-based PSD is meaningful for this soil type (shown with a warning when not) */
   psd_valid: boolean
   /** Soil-type note on the reliability of the PSD (e.g. peat, dalgrond), or `null` (Dutch, for display) */
@@ -213,6 +218,64 @@ export type PhosphateProjection = {
     years: number | null
     years_class: YearsClass
   } | null
+}
+
+/**
+ * Overall judgement of a field: `good` when the soil P status is in the target zone and stays there,
+ * or reaches it soon; `attention` when it moves the right way but slowly, or will leave the zone
+ * within the horizon; `adjust` when it moves away from the zone or leaves it soon; `unknown` without
+ * PSD and P-AL.
+ */
+export type PhosphateVerdict = "good" | "attention" | "adjust" | "unknown"
+
+/**
+ * Status of the soil phosphorus of a field relative to its target zone, with the direction and the
+ * speed of the long-term average balance. See `assessPhosphateStatus`.
+ */
+export type PhosphateStatus = {
+  /** What the balance should do: build up below the zone, maintain inside it, reduce above it */
+  aim: "opbouwen" | "onderhouden" | "afbouwen" | null
+  /**
+   * The indicator whose bound sets the aim, or that is crossed first when the status is inside the
+   * zone: `psd` (environmental threshold) or `p_al` (agronomic bound)
+   */
+  binding: "psd" | "p_al" | null
+  /**
+   * The PSD is above the environmental threshold while P-AL is not high (≤ 45): reducing is needed
+   * for the environment, not for the yield
+   */
+  conflict: boolean
+  /** Direction of the soil P status at the long-term average balance (after fixation) */
+  direction: "up" | "stable" | "down"
+  verdict: PhosphateVerdict
+  /**
+   * Years until the zone (with its margin) is reached, or, inside the zone, until it is left; `null`
+   * when that does not happen at the current balance
+   */
+  years: ValueWithRange | null
+  years_class: YearsClass
+  /**
+   * Years until P-AL declines to the agronomic minimum when the balance mines the soil, or `null`.
+   * Shown when reducing for the environment, as the room left before the yield is at stake.
+   */
+  p_al_min_years: ValueWithRange | null
+  /**
+   * Long-term average balance (kg P2O5 / ha / year) that reaches the zone within the reach horizon
+   * (outside the zone), or keeps the status in the zone for the stay horizon (inside the zone, when
+   * it would leave it sooner); `null` when the current balance is fine. `limit` says whether the
+   * balance should be at most (`max`) or at least (`min`) this value. `fertilizers` is the average
+   * fertilizer supply per year that gives this balance at the current removal, mineralisation and
+   * deposition (0 when even no fertilizer gives a higher balance); compare it with the phosphate
+   * application standard before using it as advice.
+   */
+  balance_needed: { value: number; limit: "max" | "min"; fertilizers: number } | null
+  /** Whether fertilizers supply phosphate in the long-term average (there is something to lower) */
+  has_fertilizer_input: boolean
+  /**
+   * The judgement is indicative: the PSD is less reliable for this soil type, the threshold is the
+   * general 25%, the soil data are NMI estimates only, or the PSD is missing and only P-AL is used
+   */
+  indicative: boolean
 }
 
 /** Phosphate supply by the fertilizers of one type (kg P2O5 / ha for the timeframe). */
@@ -283,13 +346,17 @@ export type PhosphateBalanceField = {
   warnings: string[]
 }
 
-/** Result of one field within the farm balance: the balance, or the error that prevented it. */
+/**
+ * Result of one field within the farm balance: the balance, the error that prevented it, or why the
+ * field is left out (`exclusion`: buffer strip, nature or landscape element; no balance and no error).
+ */
 export type PhosphateBalanceFieldResult = {
   b_id: string
   b_area: number
   b_bufferstrip: boolean
   balance?: PhosphateBalanceField
   errorMessage?: string
+  exclusion?: FieldExclusionReason
 }
 
 /** Phosphate balance of a farm: area-weighted averages per ha, plus the field results. */
@@ -301,6 +368,8 @@ export type PhosphateBalance = {
   leaching: number
   /** Long-term average balance per year (area-weighted over the fields) */
   long_term_balance: number
+  /** Area (ha) and number of fields per verdict (see `assessPhosphateStatus`), without buffer strips */
+  status_area: Record<PhosphateVerdict, { area: number; count: number }>
   /** Area-weighted averages per ha of the terms of the balance (kg P2O5 / ha) */
   terms: {
     supply: {
