@@ -275,6 +275,13 @@ export function formatConditions(
     }))
 }
 
+/**
+ * Describes the value of a condition in words: the labels of the allowed values, or the
+ * numeric range ("tussen 18 en 50", "ten minste 80", "ten hoogste 18").
+ *
+ * @param condition - A single applicability condition.
+ * @returns The condition value as Dutch text, or "—" when it has no values or bounds.
+ */
 function formatConditionValue(condition: CatalogueMeasureCondition): string {
   if (condition.values && condition.values.length > 0) {
     return condition.values

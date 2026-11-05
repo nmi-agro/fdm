@@ -28,6 +28,9 @@ import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
 import { getEffectTypeInfo, getImpactedIndicators, MEASURE_COST_LEVELS } from "~/lib/measure-labels"
 import { cn } from "~/lib/utils"
 
+/**
+ * Sets the page title and description of the measures catalogue.
+ */
 export const meta: MetaFunction = () => {
   return [
     { title: `Maatregelencatalogus | ${clientConfig.name}` },

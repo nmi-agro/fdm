@@ -34,6 +34,11 @@ const apiMeasure = {
   ],
 }
 
+/**
+ * Replaces `fetch` with a stub that returns the given measures in the NMI API envelope.
+ *
+ * @param measures - Measures to return as `data.measures`.
+ */
 function mockApi(measures: unknown[]) {
   vi.stubGlobal(
     "fetch",

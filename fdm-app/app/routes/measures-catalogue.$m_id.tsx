@@ -30,6 +30,9 @@ import {
   getMeasureReferences,
 } from "~/lib/measure-labels"
 
+/**
+ * Sets the page title and description from the name and summary of the measure.
+ */
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   const name = loaderData?.measure.m_name ?? "Maatregel"
   return [
@@ -343,6 +346,9 @@ export default function MeasureCatalogueDetail() {
   )
 }
 
+/**
+ * Small bordered block with a caption, used for the costs, effect and references of a measure.
+ */
 function FactCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2 rounded-lg border p-4">
