@@ -1,5 +1,5 @@
 import type { Geometry } from "geojson"
-import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
+import { enrichCurrentSoilDataWithNlv, NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
   calculateDose,
   calculateNitrogenBalance,
@@ -86,7 +86,6 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getIndicatorInfo, getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
-import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {

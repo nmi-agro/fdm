@@ -159,12 +159,12 @@ export function SoilAnalysesList({
                         {isDeleting ? (
                           <>
                             <Spinner />
-                            Verwijderen…
+                            <span>Verwijderen…</span>
                           </>
                         ) : (
                           <>
                             <Trash2 aria-hidden />
-                            Verwijder
+                            <span>Verwijder</span>
                           </>
                         )}
                       </Button>

@@ -114,11 +114,11 @@ export function MessageComposer({
             >
               <span className="min-w-0 flex-1">
                 {is_internal ? (
-                  <>
+                  <span key="internal">
                     Nieuw <i className="italic">intern</i> bericht
-                  </>
+                  </span>
                 ) : (
-                  "Nieuw bericht"
+                  <span key="external">Nieuw bericht</span>
                 )}
               </span>
               {showAgentControls && (
@@ -224,7 +224,7 @@ export function MessageComposer({
             </Field>
           </fieldset>
           <Button type="submit" className="ms-auto block min-w-0" disabled={isSubmitting}>
-            Versturen
+            <span>Versturen</span>
             {isSubmitting && <Spinner />}
           </Button>
         </Message>

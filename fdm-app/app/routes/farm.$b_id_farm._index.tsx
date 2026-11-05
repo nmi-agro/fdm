@@ -870,12 +870,12 @@ export default function FarmDashboardIndex() {
                             {showMissingCultivationDetails ? (
                               <>
                                 <ChevronUp className="h-3.5 w-3.5" />
-                                Verberg details
+                                <span key="hide">Verberg details</span>
                               </>
                             ) : (
                               <>
                                 <ChevronDown className="h-3.5 w-3.5" />
-                                Details per perceel
+                                <span key="show">Details per perceel</span>
                               </>
                             )}
                           </button>
@@ -891,7 +891,12 @@ export default function FarmDashboardIndex() {
                                   b_id={field.b_id}
                                   b_name={field.b_name}
                                   result={field.result}
-                                  onAccept={() => handleOpenReviewForSingleField(field.b_id)}
+                                  onAccept={
+                                    loaderData.farmWritePermission
+                                      ? () => handleOpenReviewForSingleField(field.b_id)
+                                      : undefined
+                                  }
+                                  canWrite={loaderData.farmWritePermission}
                                 />
                                 {field.result.status !== "suggested" && (
                                   <NavLink
@@ -1029,9 +1034,11 @@ export default function FarmDashboardIndex() {
                 onClick={toggleAllFields}
                 className="text-primary cursor-pointer text-xs font-medium hover:underline"
               >
-                {selectedFieldIds.length === suggestedFields.length
-                  ? "Alles deselecteren"
-                  : "Alles selecteren"}
+                <span key={selectedFieldIds.length === suggestedFields.length ? "none" : "all"}>
+                  {selectedFieldIds.length === suggestedFields.length
+                    ? "Alles deselecteren"
+                    : "Alles selecteren"}
+                </span>
               </button>
             </div>
 
@@ -1132,10 +1139,12 @@ export default function FarmDashboardIndex() {
                 {isAcceptingAll ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Toevoegen...
+                    <span>Toevoegen...</span>
                   </>
                 ) : (
-                  `Bevestigen en toevoegen (${selectedFieldIds.length})`
+                  <span key={selectedFieldIds.length}>
+                    {`Bevestigen en toevoegen (${selectedFieldIds.length})`}
+                  </span>
                 )}
               </Button>
             </fetcher.Form>

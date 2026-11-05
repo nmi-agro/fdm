@@ -4,10 +4,10 @@ import { nl } from "date-fns/locale"
 import {
   getApplicationAmountTotalUnitLabel,
   getApplicationAmountUnitLabel,
-} from "~/components/blocks/fertilizer-applications/utils"
-import type { BemestingsplanData } from "./types"
-import { PdfCard } from "../PdfCard"
-import { PdfTable, PdfTableCell, PdfTableHeader, PdfTableRow } from "../PdfTable"
+} from "../units"
+import type { FertilizerPlanData } from "../types"
+import { PdfCard } from "../../pdf/PdfCard"
+import { PdfTable, PdfTableCell, PdfTableHeader, PdfTableRow } from "../../pdf/PdfTable"
 import { pdfStyles } from "./styles"
 
 const Footer = ({
@@ -70,7 +70,7 @@ const soilTypeLabels: Record<string, string> = {
   maasklei: "Maasklei",
 }
 
-const FrontPage = ({ data }: { data: BemestingsplanData }) => (
+const FrontPage = ({ data }: { data: FertilizerPlanData }) => (
   <Page size="A4" style={pdfStyles.frontPage}>
     <View
       style={{
@@ -244,7 +244,7 @@ const UsageBar = ({
   )
 }
 
-const TableOfContents = ({ data }: { data: BemestingsplanData }) => (
+const TableOfContents = ({ data }: { data: FertilizerPlanData }) => (
   <Page size="A4" style={pdfStyles.page}>
     <View style={pdfStyles.header}>
       <View>
@@ -443,7 +443,7 @@ const TableOfContents = ({ data }: { data: BemestingsplanData }) => (
   </Page>
 )
 
-export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
+export const FertilizerPlanPdf = ({ data }: { data: FertilizerPlanData }) => (
   <Document title={`Bemestingsplan ${data.year} - ${data.farm.name}`}>
     {/* Page 1: Front Page */}
     <FrontPage data={data} />

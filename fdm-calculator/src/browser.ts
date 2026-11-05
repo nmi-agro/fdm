@@ -16,6 +16,12 @@
  * @module browser
  */
 export * from "./bln3/postprocessing"
+export { matchSoilAnalysisToField } from "./soilreader/match"
+export type {
+  SoilAnalysisFieldMatch,
+  SoilAnalysisMatchField,
+  SoilAnalysisMatchReason,
+} from "./soilreader/match"
 export {
   calculateNitrogenBalanceField,
   calculateNitrogenBalancesFieldToFarm,
@@ -50,3 +56,5 @@ export type {
 } from "./nutrient-advice/aggregate"
 export { aggregateNutrientAdviceToFarmLevel } from "./nutrient-advice/aggregate"
 export type { NutrientAdvice } from "./nutrient-advice/types"
+export type { BcsAnalysisLike, BcsVisualKey } from "./bcs/visual"
+export { BCS_VISUAL_KEYS, isBcsAnalysis } from "./bcs/visual"

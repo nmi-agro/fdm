@@ -442,12 +442,12 @@ export function BulkSoilAnalysisReview({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button" variant="ghost" disabled={saving !== null}>
-                Andere PDF's kiezen
+                Terug naar PDF's kiezen
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Andere PDF's kiezen?</AlertDialogTitle>
+                <AlertDialogTitle>Terug naar PDF's kiezen?</AlertDialogTitle>
                 <AlertDialogDescription>
                   {counts.saved > 0
                     ? `De ${counts.saved} opgeslagen analyses blijven bewaard. Wat nog niet is opgeslagen, inclusief je aanpassingen, gaat verloren.`
@@ -456,7 +456,7 @@ export function BulkSoilAnalysisReview({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Verder controleren</AlertDialogCancel>
-                <AlertDialogAction onClick={onBack}>Andere PDF's kiezen</AlertDialogAction>
+                <AlertDialogAction onClick={onBack}>Terug naar PDF's kiezen</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

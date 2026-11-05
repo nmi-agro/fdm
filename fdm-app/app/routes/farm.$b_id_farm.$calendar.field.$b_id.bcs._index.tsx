@@ -209,7 +209,9 @@ export default function FieldBcsOverviewRoute() {
                       <AlertDialogTrigger asChild>
                         <Button type="button" variant="destructive" disabled={isDeleting}>
                           <Trash2 className="size-4" />
-                          {isDeleting ? "Verwijderen..." : "Verwijderen"}
+                          <span key={isDeleting ? "deleting" : "idle"}>
+                            {isDeleting ? "Verwijderen..." : "Verwijderen"}
+                          </span>
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

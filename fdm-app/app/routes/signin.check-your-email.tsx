@@ -192,7 +192,7 @@ export default function SignIn() {
                 <span>Verifiëren...</span>
               </div>
             ) : (
-              "Verifiëren"
+              <span>Verifiëren</span>
             )}
           </Button>
         </Form>
@@ -214,11 +214,21 @@ export default function SignIn() {
                 className="text-muted-foreground h-auto p-0 text-xs"
                 disabled={resendFetcher.state !== "idle" || resendCooldown > 0}
               >
-                {resendCooldown > 0
-                  ? `Nieuwe code opnieuw versturen (${resendCooldown}s)`
-                  : resendFetcher.state !== "idle"
-                    ? "Code versturen..."
-                    : "Geen code ontvangen? Opnieuw versturen"}
+                <span
+                  key={
+                    resendCooldown > 0
+                      ? `cooldown-${resendCooldown}`
+                      : resendFetcher.state !== "idle"
+                        ? "sending"
+                        : "idle"
+                  }
+                >
+                  {resendCooldown > 0
+                    ? `Nieuwe code opnieuw versturen (${resendCooldown}s)`
+                    : resendFetcher.state !== "idle"
+                      ? "Code versturen..."
+                      : "Geen code ontvangen? Opnieuw versturen"}
+                </span>
               </Button>
               {resendFetcher.data && "error" in resendFetcher.data && (
                 <p className="text-destructive text-xs" role="alert">
