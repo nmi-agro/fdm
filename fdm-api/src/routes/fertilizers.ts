@@ -1,7 +1,5 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type {
-  addFertilizer,
-  FdmType,
   Fertilizer,
   FertilizerCatalogue,
   getFertilizer,
@@ -10,6 +8,14 @@ import type {
   removeFertilizer,
 } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
+import {
+  type addFertilizer,
+  type addFertilizerToCatalogue,
+  type FdmType,
+  getFertilizerTypesByRvoCode,
+  type updateFertilizerFromCatalogue,
+} from "@nmi-agro/fdm-core"
+import { fertilizerCatalogueNames } from "@nmi-agro/fdm-data"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FertilizerIdSchema } from "../fields"
@@ -76,6 +82,8 @@ const FERTILIZER_NUMERIC_FIELDS = [
 export interface FertilizerServices {
   getFertilizers: typeof getFertilizers
   addFertilizer: typeof addFertilizer
+  addFertilizerToCatalogue: typeof addFertilizerToCatalogue
+  updateFertilizerFromCatalogue: typeof updateFertilizerFromCatalogue
   getFertilizer: typeof getFertilizer
   removeFertilizer: typeof removeFertilizer
   getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
@@ -101,6 +109,43 @@ const CreateFertilizerBodySchema = z
     p_acquiring_date: DateStringSchema.optional().nullable().describe("Date in YYYY-MM-DD format."),
   })
   .openapi("CreateFertilizer")
+
+/** Properties of a custom fertilizer that a client can set. */
+const customFertilizerShape = FertilizerCatalogueSchema.omit({
+  p_id_catalogue: true,
+  p_source: true,
+}).shape
+
+type CustomFertilizerKey = keyof typeof customFertilizerShape
+
+const optionalCustomFertilizerShape = Object.fromEntries(
+  Object.entries(customFertilizerShape).map(([key, schema]) => [key, schema.optional()]),
+) as { [K in CustomFertilizerKey]: z.ZodOptional<(typeof customFertilizerShape)[K]> }
+
+const CreateCustomFertilizerBodySchema = z
+  .object({
+    ...optionalCustomFertilizerShape,
+    p_name_nl: customFertilizerShape.p_name_nl,
+    p_acquiring_amount: z
+      .number()
+      .min(0)
+      .optional()
+      .nullable()
+      .describe("Amount of the product acquired by the farm (kg). Omit or `null` when unknown."),
+    p_acquiring_date: DateStringSchema.optional()
+      .nullable()
+      .describe(
+        "Date the product was acquired, in YYYY-MM-DD format. Omit or `null` when unknown.",
+      ),
+  })
+  .openapi("CreateCustomFertilizer")
+
+const UpdateCustomFertilizerBodySchema = z
+  .object(optionalCustomFertilizerShape)
+  .refine((body) => Object.keys(body).length > 0, {
+    message: "Provide at least one property to update.",
+  })
+  .openapi("UpdateCustomFertilizer")
 
 const listFertilizersRoute = createRoute({
   method: "get",
@@ -145,6 +190,60 @@ const createFertilizerRoute = createRoute({
   responses: {
     201: {
       description: "Fertilizer acquired.",
+      content: { "application/json": { schema: FertilizerSchema } },
+    },
+    ...writeErrorResponses,
+  },
+})
+
+const createCustomFertilizerRoute = createRoute({
+  method: "post",
+  path: "/farms/{b_id_farm}/fertilizers/custom",
+  tags: ["Fertilizers"],
+  summary: "Create a custom fertilizer",
+  description:
+    "Creates a fertilizer with its own composition, available only to this farm, and acquires it for the farm. Properties that are omitted are stored as unknown (`null`). When `p_type` is omitted, it is derived from the other fertilizers of the farm with the same `p_type_rvo`. When `p_app_amount_unit` is omitted, `kg/ha` is used.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    body: {
+      content: {
+        "application/json": { schema: CreateCustomFertilizerBodySchema },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      description: "Custom fertilizer created and acquired.",
+      content: { "application/json": { schema: FertilizerSchema } },
+    },
+    ...writeErrorResponses,
+  },
+})
+
+const updateCustomFertilizerRoute = createRoute({
+  method: "patch",
+  path: "/fertilizers/{p_id}",
+  tags: ["Fertilizers"],
+  summary: "Update a custom fertilizer",
+  description:
+    "Updates the properties of a custom fertilizer, one created with `POST /farms/{b_id_farm}/fertilizers/custom`. Only the properties in the body change. Fertilizers from a standard catalogue cannot be changed and return `422`.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ p_id: FertilizerIdSchema }),
+    body: {
+      content: {
+        "application/json": { schema: UpdateCustomFertilizerBodySchema },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "The updated fertilizer.",
       content: { "application/json": { schema: FertilizerSchema } },
     },
     ...writeErrorResponses,
@@ -280,6 +379,88 @@ export function registerFertilizerRoutes(
     return c.json(serialiseFertilizer(fertilizer), 201)
   }
 
+  const createCustomFertilizerHandler: RouteHandler<typeof createCustomFertilizerRoute> = async (
+    c,
+  ) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const body = c.req.valid("json") as z.infer<typeof CreateCustomFertilizerBodySchema>
+    const { p_acquiring_amount, p_acquiring_date, ...properties } = body
+
+    const catalogueProperties: Record<string, unknown> = {}
+    for (const key of Object.keys(customFertilizerShape) as CustomFertilizerKey[]) {
+      catalogueProperties[key] = properties[key] ?? null
+    }
+    if (properties.p_type === undefined && properties.p_type_rvo) {
+      // Same rule as the web app: take the type of a fertilizer of the farm with this RVO code.
+      const fertilizers = await services.getFertilizers(
+        fdm,
+        principal.effectivePrincipalId,
+        b_id_farm,
+      )
+      catalogueProperties.p_type =
+        getFertilizerTypesByRvoCode(fertilizers)[properties.p_type_rvo] ?? null
+    }
+    catalogueProperties.p_app_amount_unit = properties.p_app_amount_unit ?? "kg/ha"
+
+    const p_id_catalogue = await services.addFertilizerToCatalogue(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      catalogueProperties as Parameters<typeof addFertilizerToCatalogue>[3],
+    )
+    const p_id = await services.addFertilizer(
+      fdm,
+      principal.effectivePrincipalId,
+      p_id_catalogue,
+      b_id_farm,
+      p_acquiring_amount ?? undefined,
+      p_acquiring_date ? new Date(p_acquiring_date) : undefined,
+    )
+    const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
+    const createdUrl = new URL(c.req.url)
+    const basePath = createdUrl.pathname.replace(/\/+farms\/.*$/, "")
+    c.header("Location", `${createdUrl.origin}${basePath}/fertilizers/${p_id}`)
+    return c.json(serialiseFertilizer(fertilizer), 201)
+  }
+
+  const updateCustomFertilizerHandler: RouteHandler<typeof updateCustomFertilizerRoute> = async (
+    c,
+  ) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { p_id } = c.req.valid("param") as { p_id: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const body = c.req.valid("json") as z.infer<typeof UpdateCustomFertilizerBodySchema>
+
+    const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
+    if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
+      throw new ApiError(404, "not-found", `Fertilizer '${p_id}' not found.`)
+    }
+    // A custom fertilizer is in the catalogue of its own farm, so its source is a farm ID.
+    // fdm-core only updates catalogue items whose source is the given farm and checks write
+    // access to that farm.
+    if ((fertilizerCatalogueNames as readonly string[]).includes(fertilizer.p_source)) {
+      throw new ApiError(
+        422,
+        "unprocessable-entity",
+        "Only custom fertilizers can be updated. This fertilizer is from a standard catalogue.",
+      )
+    }
+
+    await services.updateFertilizerFromCatalogue(
+      fdm,
+      principal.effectivePrincipalId,
+      fertilizer.p_source,
+      fertilizer.p_id_catalogue,
+      body as Parameters<typeof updateFertilizerFromCatalogue>[4],
+    )
+    const updated = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
+    return c.json(serialiseFertilizer(updated), 200)
+  }
+
   const getFertilizerHandler: RouteHandler<typeof getFertilizerRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
@@ -301,6 +482,8 @@ export function registerFertilizerRoutes(
 
   app.openapi(listFertilizersRoute, listFertilizersHandler)
   app.openapi(createFertilizerRoute, createFertilizerHandler)
+  app.openapi(createCustomFertilizerRoute, createCustomFertilizerHandler)
+  app.openapi(updateCustomFertilizerRoute, updateCustomFertilizerHandler)
   app.openapi(getFertilizerRoute, getFertilizerHandler)
   app.openapi(deleteFertilizerRoute, deleteFertilizerHandler)
 }

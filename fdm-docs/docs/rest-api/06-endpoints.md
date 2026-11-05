@@ -130,7 +130,7 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 | `GET`    | `/api/fields/{b_id}/current-soil-data`       | Get the current value of each soil parameter | `getCurrentSoilData`        |
 | `GET`    | `/api/fields/{b_id}/current-soil-data/zones` | Get the current soil data per sampling zone  | `getCurrentSoilDataPerZone` |
 
-Soil analyses accept and return the optional sampling geometries `b_sampling_geometry` (GeoJSON `MultiPoint`) and `b_sampling_geometry_zone` (GeoJSON `Polygon` or `MultiPolygon` on input, `MultiPolygon` on output), both in WGS84. The current soil data lists the contributing analyses per parameter in `sources`, and combines sampling zones by area; see [Soil analyses](../core-concepts/07-soil-analyses.md#current-soil-data-and-sampling-zones).
+To add soil analyses from lab report PDFs and keep the report, use the [lab report import](#soil-condition-score-and-lab-reports). Soil analyses accept and return the optional sampling geometries `b_sampling_geometry` (GeoJSON `MultiPoint`) and `b_sampling_geometry_zone` (GeoJSON `Polygon` or `MultiPolygon` on input, `MultiPolygon` on output), both in WGS84. The current soil data lists the contributing analyses per parameter in `sources`, and combines sampling zones by area; see [Soil analyses](../core-concepts/07-soil-analyses.md#current-soil-data-and-sampling-zones).
 
 ---
 
@@ -158,21 +158,21 @@ Farm groups are named, organization-scoped groupings of farms. The API key owner
 
 ## Calculations
 
-Calculation endpoints operate on **stored FDM resource identifiers** — they do not accept standalone calculation payloads that are not linked to stored data.
+Calculation endpoints operate on **stored FDM resource identifiers** — they do not accept standalone calculation payloads. They are `GET` requests and share a stricter rate limit of **10 requests per minute per key** (`calc` bucket); the nutrient advice uses the NMI API and counts in the `nmi` bucket instead.
 
-Calculation endpoints use `POST` because calculations may be expensive and may require option bodies. They are subject to stricter rate limits (10 requests per minute per key).
+| Method | Path                                                         | Description                                                                |
+| ------ | ------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/nitrogen-balance`       | Nitrogen balance of a farm (`start`, `end`, optional `effective_nitrogen`) |
+| `GET`  | `/api/fields/{b_id}/calculations/nitrogen-balance`           | Nitrogen balance of a field                                                |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/organic-matter-balance` | Organic matter balance of a farm (`start`, `end`)                          |
+| `GET`  | `/api/fields/{b_id}/calculations/organic-matter-balance`     | Organic matter balance of a field                                          |
+| `GET`  | `/api/fields/{b_id}/calculations/dose`                       | Nutrient dose applied with fertilizers on a field                          |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/norms`                  | Usage norms per field of a farm (`year`: 2025 or 2026)                     |
+| `GET`  | `/api/fields/{b_id}/calculations/norms`                      | Usage norms of a field                                                     |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/nutrient-advice`        | Nutrient advice, dose and remaining advice per field (`year`)              |
+| `GET`  | `/api/fields/{b_id}/calculations/nutrient-advice`            | Nutrient advice, dose and remaining advice of a field (`year`)             |
 
-| Method | Path                                                   | Description                                |
-| ------ | ------------------------------------------------------ | ------------------------------------------ |
-| `POST` | `/api/farms/{b_id_farm}/calculations/nitrogen-balance` | Nitrogen balance for a farm                |
-| `POST` | `/api/fields/{b_id}/calculations/nitrogen-balance`     | Nitrogen balance for a field               |
-| `POST` | `/api/fields/{b_id}/calculations/dose`                 | Fertilizer dose recommendation for a field |
-
-:::info
-
-Calculation endpoint schemas are documented once the response format is stable. See the interactive docs at `/api/docs` for the latest schemas.
-
-:::
+The nutrient advice is for the main cultivation of the year: the cultivation present longest between 15 May and 15 July. A field that cannot be calculated is returned with an `error` code (`no_cultivation`, `no_main_cultivation`, `farm_data_unavailable` or `advice_failed`); the other fields are still calculated. Without an NMI configuration on the server the endpoints return `503`.
 
 ---
 
@@ -193,6 +193,130 @@ Scores are on the normalized indicator scale (0..1, higher is better).
 - **Measure options:** `/measures/catalogue` lists catalogue candidates, not adopted measures. Farm-only entries and sources not enabled for the farm are left out; inapplicable, active, conflicting and non-recommended field-level entries stay visible. `applicability.status` is `applicable`, `not yet applicable`, `inapplicable` or `unknown` (no result; never treated as applicable). `selectable` is a hint; creating the measure with `POST /fields/{b_id}/measures` is validated again.
 - **Predicted impacts:** `predicted_impacts` holds the positive impacts over all indicators, also for options that are not recommended. `recommendation` is `null` unless the option is among the top five applicable, not-yet-adopted, non-conflicting options; `indicator_impacts` then holds the impacts on the weak (non-green) indicators used for ranking, and `aggregate_impact` their sum. Predicted impacts are advice for this field and year, not stored on the measure. The upstream advice service is experimental.
 - **Errors:** `400` for a missing or invalid `year`, `401`, `403`, `404`, `429`, and `503` when scores, applicability or advice are unavailable or the server has no NMI configuration. Responses never contain upstream error details, credentials or coordinates.
+
+---
+
+## Lists per farm
+
+These endpoints return the records of all fields or cultivations of a farm in one request. They accept the `from` and `to` query parameters (YYYY-MM-DD) to limit the period, and `limit` and `offset` for pagination.
+
+| Method | Path                                             | Description                                              | `fdm-core` mapping                 |
+| ------ | ------------------------------------------------ | -------------------------------------------------------- | ---------------------------------- |
+| `GET`  | `/api/farms/{b_id_farm}/fertilizer-applications` | Fertilizer applications of all fields, with their `b_id` | `getFertilizerApplicationsForFarm` |
+| `GET`  | `/api/farms/{b_id_farm}/harvests`                | Harvests of all cultivations, with their `b_lu`          | `getHarvestsForFarm`               |
+| `GET`  | `/api/farms/{b_id_farm}/measures`                | Measures of all fields, with their `b_id`                | `getMeasuresForFarm`               |
+| `GET`  | `/api/farms/{b_id_farm}/current-soil-data`       | Current soil data per field, paginated by field          | `getCurrentSoilDataForFarm`        |
+
+Current soil data, per field and per farm, includes the nitrogen supplying capacity (`d_n_supply_base`) calculated from organic matter, clay and C/N when no analysis has it. Its single source has `a_source: "calculated"`.
+
+---
+
+## Fertilizers and harvests
+
+| Method  | Path                                          | Description                                                         |
+| ------- | --------------------------------------------- | ------------------------------------------------------------------- |
+| `POST`  | `/api/farms/{b_id_farm}/fertilizers/custom`   | Create a fertilizer with its own composition and acquire it         |
+| `PATCH` | `/api/fertilizers/{p_id}`                     | Update a custom fertilizer (`422` for a standard catalogue product) |
+| `GET`   | `/api/cultivations/{b_lu}/harvest-parameters` | Parameters a harvest needs and their default values                 |
+
+---
+
+## Invitations
+
+| Method | Path                                       | Description                                          |
+| ------ | ------------------------------------------ | ---------------------------------------------------- |
+| `GET`  | `/api/invitations`                         | Pending farm invitations of the owner of the API key |
+| `POST` | `/api/invitations/{invitation_id}/accept`  | Accept an invitation                                 |
+| `POST` | `/api/invitations/{invitation_id}/decline` | Decline an invitation                                |
+
+Sharing a farm (inviting others, changing roles, revoking access) is not available through the API yet.
+
+---
+
+## Soil condition score and lab reports
+
+Soil analyses accept and return the soil condition score (BCS) parameters `a_ss_bcs` to `a_rt_bcs`. The photos of an assessment and their annotations have their own endpoints. Photos can only be added to an assessment: a soil analysis with at least one visual score. Lab reports are imported in two steps, like the field import: **compare** reads the PDFs (field `files`) and suggests the field of each analysis without saving; **apply** takes the same files and the analyses to save, and saves them in one transaction with a copy of the report. Send the analyses as one `analyses` field with a JSON array, or as one `analyses` field per analysis with a JSON object. Each analysis has its `file_index`, the `b_id` of its field, an `a_date` and the checked values; an item of the compare step can be sent back with `b_id` and `a_date` added. The reports are not read again in the apply step.
+
+| Method   | Path                                                  | Description                                                 |
+| -------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| `GET`    | `/api/soil-analyses/{a_id}/images`                    | Photos of a soil analysis with their annotations            |
+| `POST`   | `/api/soil-analyses/{a_id}/images`                    | Upload a photo (`multipart/form-data`, field `file`)        |
+| `GET`    | `/api/soil-images/{a_id_image}`                       | Download a photo                                            |
+| `DELETE` | `/api/soil-images/{a_id_image}`                       | Delete a photo and its annotations                          |
+| `POST`   | `/api/soil-images/{a_id_image}/annotations`           | Add an annotation (pin, circle, arrow or freehand line)     |
+| `PATCH`  | `/api/soil-image-annotations/{a_id_annotation}`       | Update an annotation                                        |
+| `DELETE` | `/api/soil-image-annotations/{a_id_annotation}`       | Delete an annotation                                        |
+| `POST`   | `/api/farms/{b_id_farm}/soil-analyses/import/compare` | Read lab report PDFs and suggest the field of each analysis |
+| `POST`   | `/api/farms/{b_id_farm}/soil-analyses/import/apply`   | Save the checked analyses, each with a copy of its report   |
+| `GET`    | `/api/soil-analyses/{a_id}/document`                  | Download the lab report of a soil analysis                  |
+
+Reading lab reports uses the NMI API and counts in the `nmi` bucket. File endpoints return `503` when the server has no file storage configured.
+
+```ts
+const form = new FormData()
+form.append("files", new Blob([pdf], { type: "application/pdf" }), "report.pdf")
+form.append("analyses", JSON.stringify({ ...item, b_id: "<field id>", a_date: "2026-03-20" }))
+
+// Do not set Content-Type yourself: the client adds it with the boundary of the parts.
+await fetch(`${baseUrl}/api/farms/${b_id_farm}/soil-analyses/import/apply`, {
+  method: "POST",
+  headers: { Authorization: `Bearer ${apiKey}` },
+  body: form,
+})
+```
+
+---
+
+## Field import
+
+Fields are imported from an RVO Mijn Percelen shapefile export in two steps. Both steps take the `.shp`, `.shx`, `.dbf` and `.prj` files and the `year` as `multipart/form-data`.
+
+| Method | Path                                           | Description                                       |
+| ------ | ---------------------------------------------- | ------------------------------------------------- |
+| `POST` | `/api/farms/{b_id_farm}/fields/import/compare` | Compare the shapefile with the fields of the farm |
+| `POST` | `/api/farms/{b_id_farm}/fields/import/apply`   | Apply a choice per field in one transaction       |
+
+1. **Compare** returns one item per field with a `status` (`MATCH`, `NEW_REMOTE`, `NEW_LOCAL`, `CONFLICT` or `EXPIRED_LOCAL`), the differences, the actions that can be chosen and a `review_hash`. Nothing is saved.
+2. **Apply** takes the same files, a `choices` JSON object with an `action` per `item_id` (optionally with `values` that override the name, dates, acquiring method, buffer strip, cultivation or the choice of geometry), an optional `default_action` and the `review_hash`. The server compares again: when the farm changed in between, nothing is saved and the response is `409` with the new review. An action that does not fit an item returns `422` with the `item_ids` involved. Each status has one action that changes nothing: `KEEP_LOCAL` for items with a field on the farm (with `values`, only those values change) and `IGNORE` for new fields from the shapefile.
+
+New fields get estimated soil parameters after the import, so applying an import counts in the `nmi` rate limit bucket. A cultivation chosen in `values` must be in the catalogues of the farm.
+
+---
+
+## Fertilizer plans
+
+| Method   | Path                                      | Description                                           |
+| -------- | ----------------------------------------- | ----------------------------------------------------- |
+| `GET`    | `/api/farms/{b_id_farm}/fertilizer-plans` | Saved plans with their status (`fresh`, `expired`)    |
+| `POST`   | `/api/farms/{b_id_farm}/fertilizer-plans` | Generate the plan of a year (body `{ "year": 2026 }`) |
+| `GET`    | `/api/fertilizer-plans/{p_id_plan}`       | A plan with its status                                |
+| `GET`    | `/api/fertilizer-plans/{p_id_plan}/pdf`   | Download the PDF                                      |
+| `DELETE` | `/api/fertilizer-plans/{p_id_plan}`       | Delete a plan and its PDF                             |
+
+A plan is `expired` when the data of the farm or the calculation method changed since it was generated. The list and the generation count in the `nmi` bucket.
+
+---
+
+## Farm group and organization results
+
+Balances, indicators and measures of several farms: for all selected farms together (`total`) and per farm (`farms`). They take a `year` and an optional, repeatable `b_id_farm` to narrow the farms.
+
+| Method | Path                                                                       | Description                               |
+| ------ | -------------------------------------------------------------------------- | ----------------------------------------- |
+| `GET`  | `/api/farm-groups/{b_id_group}/calculations/nitrogen-balance`              | Nitrogen balance of the farms of a group  |
+| `GET`  | `/api/farm-groups/{b_id_group}/calculations/organic-matter-balance`        | Organic matter balance                    |
+| `GET`  | `/api/farm-groups/{b_id_group}/indicators`                                 | Area-weighted and lowest indicator scores |
+| `GET`  | `/api/farm-groups/{b_id_group}/measures`                                   | Measures and main cultivations            |
+| `GET`  | `/api/organizations/{organization_id}/calculations/nitrogen-balance`       | Same, for the farms of an organization    |
+| `GET`  | `/api/organizations/{organization_id}/calculations/organic-matter-balance` |                                           |
+| `GET`  | `/api/organizations/{organization_id}/indicators`                          |                                           |
+| `GET`  | `/api/organizations/{organization_id}/measures`                            |                                           |
+
+- **Farm group:** a farm counts when it is part of the group at some point in the year.
+- **Organization:** all farms the organization has access to. The owner of the API key must be a member of the organization; the results are calculated with the access of the organization, as in the organization overview of the web app.
+- **Totals:** the balances are calculated over all fields of the selected farms together. The indicator total is area-weighted over all eligible fields, with the lowest score per indicator. The measure total lists each measure once, with the farms that have it and the number of fields.
+
+A farm that cannot be calculated is reported with an `error` and left out of the total; the other farms are still returned.
 
 ---
 

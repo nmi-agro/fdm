@@ -1,5 +1,32 @@
 # Changelog fdm-app
 
+## 0.39.6
+
+### Patch Changes
+
+- [#917](https://github.com/nmi-agro/fdm/pull/917) [`300a018`](https://github.com/nmi-agro/fdm/commit/300a0185e41d5cd2b47932d9a11f203f72e77cfb) Thanks [@SvenVw](https://github.com/SvenVw)! - Update Better Auth to 1.7.16. When a Google or Microsoft sign-in cannot be linked to an existing account because the provider did not confirm the email address, the sign-in page now explains this and offers a sign-in link by email.
+- Updated dependencies [[`300a018`](https://github.com/nmi-agro/fdm/commit/300a0185e41d5cd2b47932d9a11f203f72e77cfb)]:
+  - @nmi-agro/fdm-core@0.39.1
+  - @nmi-agro/fdm-agents@0.6.1
+
+## 0.39.5
+
+### Patch Changes
+
+- [#906](https://github.com/nmi-agro/fdm/pull/906) [`7131ba8`](https://github.com/nmi-agro/fdm/commit/7131ba85bf5bf137767a2227010e97742b2c0915) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - People with the Researcher role on a farm now see the BRP cultivation suggestions, but they won't be able to accept it through the user interface, and instead they will see a message instructing them to ask the farm owner to apply the suggestion. This change applies to the farm dashboard, fields table, and the nutrient advice table (if it shows a suggestion at all).
+
+## 0.39.4
+
+### Patch Changes
+
+- [#905](https://github.com/nmi-agro/fdm/pull/905) [`533d76a`](https://github.com/nmi-agro/fdm/commit/533d76aa36c61fe1e62c51fe30be5a254225922f) Thanks [@SvenVw](https://github.com/SvenVw)! - Opening a link to an organization invitation that can no longer be used now explains why, instead of showing the error page: the invitation has expired, was already accepted, was rejected earlier, or was cancelled by the organization. Invitations that do not exist or are meant for another account show "Uitnodiging niet beschikbaar". The "Terug naar mijn organisaties" button on these messages now works as well.
+
+## 0.39.3
+
+### Patch Changes
+
+- [#903](https://github.com/nmi-agro/fdm/pull/903) [`931a0f0`](https://github.com/nmi-agro/fdm/commit/931a0f014742d4011fe274accb3d11190ddb43ef) Thanks [@SvenVw](https://github.com/SvenVw)! - Pages no longer crash with an error page when the browser translates the app, for example on the KvK lookup and when selecting fields on the map. Choosing a value in a dropdown no longer crashes the page, and the cultivation picker shows the chosen cultivation again. Labels next to icons and spinners now also update correctly in a translated page.
+
 ## 0.39.2
 
 ### Patch Changes

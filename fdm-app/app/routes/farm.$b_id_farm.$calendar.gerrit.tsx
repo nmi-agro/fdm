@@ -65,6 +65,7 @@ import {
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -166,17 +167,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const posthog = PostHogClient()
 
-  // If Gerrit is explicitly disabled for this user reject the request
-  let isGerritEnabled = false
+  // Gerrit is enabled by default, matching the Gerrit API routes; reject the request only when the
+  // flag explicitly disables it for this user. Without PostHog there are no flags, so Gerrit stays
+  // enabled. If evaluating the flags fails, the request is blocked (fail-closed).
+  let isGerritEnabled = !posthog
   try {
-    isGerritEnabled =
-      (
-        await posthog?.evaluateFlags(session.principal_id, {
-          flagKeys: ["gerrit"],
-        })
-      )?.isEnabled("gerrit") ?? false
+    if (posthog) {
+      isGerritEnabled =
+        (
+          await posthog.evaluateFlags(session.principal_id, {
+            flagKeys: ["gerrit"],
+          })
+        )?.isEnabled("gerrit", { defaultValue: true }) ?? true
+    }
   } catch {
-    // PostHog unavailable — default to blocked (fail-closed)
+    // Flag evaluation failed — default to blocked (fail-closed)
   }
   if (!isGerritEnabled) {
     throw data(null, {
@@ -290,7 +295,12 @@ export default function GerritApp() {
 
   const supportedYears = ["2025", "2026"]
   const isSupportedYear = supportedYears.includes(calendar)
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
+  // Gerrit is enabled by default; only an explicit `false` flag disables it. Until hydration has
+  // finished, keep it enabled so the browser renders the same markup as the server, which has no
+  // feature flags.
+  const isHydrated = useHydrated()
+  const gerritFlag = useFeatureFlagEnabled("gerrit")
+  const isGerritEnabled = isHydrated ? (gerritFlag ?? true) : true
 
   // Optimistic usage counter: increments when generation starts, reverts on
   // error. This makes the counter immediately reflect an in-flight request

@@ -36,7 +36,8 @@ const YearQuerySchema = z.object({
     ),
 })
 
-const IndicatorScoreSchema = z
+/** Shared with the farm group routes. */
+export const IndicatorScoreSchema = z
   .object({
     indicator_id: z.string().describe("indicator identifier, e.g. `C_N`."),
     status: z.number().describe("Current value of the indicator, in the unit of the indicator."),
@@ -47,7 +48,8 @@ const IndicatorScoreSchema = z
   })
   .openapi("IndicatorScore")
 
-const AggregationScoreSchema = z
+/** Shared with the farm group routes. */
+export const AggregationScoreSchema = z
   .object({
     aggregation_id: z.string().describe("aggregation identifier, e.g. `S_BLN`."),
     score: z.number().describe("Normalized aggregation score (0..1); higher is better."),
@@ -74,7 +76,8 @@ const FieldIndicatorsSchema = z
   })
   .openapi("FieldIndicators")
 
-const FarmIndicatorsSchema = z
+/** Shared with the farm group routes. */
+export const FarmIndicatorsSchema = z
   .object({
     b_id_farm: FarmIdSchema,
     year: z.number().int().describe("Calendar year the results apply to."),
@@ -291,7 +294,13 @@ const fieldMeasureOptionsRoute = createRoute({
  * server-side under the same `error_id` as the response. Other errors (permissions, missing
  * resources) pass through to the central error handler.
  */
-async function guardIndicators<T>(work: () => Promise<T>): Promise<T> {
+/**
+ * Runs an indicator calculation and turns a missing NMI configuration into a 503 response.
+ *
+ * @param work - The calculation.
+ * @returns The result of the calculation.
+ */
+export async function guardIndicators<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work()
   } catch (err) {

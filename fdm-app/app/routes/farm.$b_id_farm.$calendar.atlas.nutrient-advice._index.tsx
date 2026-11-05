@@ -265,9 +265,10 @@ export default function FarmAtlasNutrientAdviceBlock() {
                 <AtlasTooltipHeader>
                   <p className="text-foreground font-semibold">{feature.properties.b_name}</p>
                   <p className="text-muted-foreground mt-0.5">
-                    {feature.properties.b_area != null &&
-                      `${Number(feature.properties.b_area).toLocaleString("nl-NL")} ha`}
-                    {row?.b_lu_name ? ` · ${row.b_lu_name}` : null}
+                    {feature.properties.b_area != null && (
+                      <span>{`${Number(feature.properties.b_area).toLocaleString("nl-NL")} ha`}</span>
+                    )}
+                    {row?.b_lu_name ? <span>{` · ${row.b_lu_name}`}</span> : null}
                   </p>
                 </AtlasTooltipHeader>
                 {/* `block` overrides the default flex row of AtlasTooltipContent, so the body

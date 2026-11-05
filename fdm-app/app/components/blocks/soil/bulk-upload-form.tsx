@@ -144,7 +144,7 @@ export function BulkSoilAnalysisUploadForm({
       >
         <div className="flex flex-col items-center gap-1 px-4 text-center">
           <FileUp aria-hidden className="text-muted-foreground mb-1 size-7" />
-          <p className="text-sm font-medium">
+          <p key={files.length > 0 ? "more" : "empty"} className="text-sm font-medium">
             {files.length > 0
               ? "Meer PDF's toevoegen"
               : "Kies de PDF-rapporten of sleep ze hierheen"}
@@ -163,7 +163,9 @@ export function BulkSoilAnalysisUploadForm({
                 aria-hidden
                 className="size-4 transition-transform group-data-[state=closed]:-rotate-90"
               />
-              {files.length === 1 ? "1 PDF gekozen" : `${files.length} PDF's gekozen`}
+              <span key={files.length}>
+                {files.length === 1 ? "1 PDF gekozen" : `${files.length} PDF's gekozen`}
+              </span>
               <span className="text-muted-foreground font-normal">
                 ({formatFileSize(totalSize)})
               </span>
@@ -214,9 +216,12 @@ export function BulkSoilAnalysisUploadForm({
               <Spinner />
               PDF's worden uitgelezen
             </span>
-            <span className="text-muted-foreground tabular-nums">
+            <span
+              key={`${progress.done}-${progress.failed}`}
+              className="text-muted-foreground tabular-nums"
+            >
               {progress.done} van {files.length}
-              {progress.failed > 0 && ` · ${progress.failed} niet gelukt`}
+              {progress.failed > 0 && <span> · {progress.failed} niet gelukt</span>}
             </span>
           </div>
           <Progress value={(progress.done / Math.max(files.length, 1)) * 100} className="h-2" />
@@ -252,12 +257,12 @@ export function BulkSoilAnalysisUploadForm({
           {isReading ? (
             <>
               <Spinner />
-              Uitlezen…
+              <span>Uitlezen…</span>
             </>
           ) : files.length > 1 ? (
-            `${files.length} PDF's uitlezen`
+            <span key={`many-${files.length}`}>{`${files.length} PDF's uitlezen`}</span>
           ) : (
-            "PDF uitlezen"
+            <span key="one">PDF uitlezen</span>
           )}
         </Button>
       </div>

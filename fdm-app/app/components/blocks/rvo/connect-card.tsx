@@ -245,11 +245,11 @@ export function RvoConnectCard({
               {isImporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Verbinden met RVO…
+                  <span>Verbinden met RVO…</span>
                 </>
               ) : (
                 <>
-                  Verbinden met RVO
+                  <span>Verbinden met RVO</span>
                   <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" />
                 </>
               )}

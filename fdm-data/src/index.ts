@@ -18,7 +18,7 @@ export type {
   CatalogueCultivationName,
 } from "./cultivations/d"
 export { hashCultivation } from "./cultivations/hash"
-export { getFertilizersCatalogue } from "./fertilizers"
+export { fertilizerCatalogueNames, getFertilizersCatalogue } from "./fertilizers"
 export type {
   ApplicationMethods,
   CatalogueFertilizer,

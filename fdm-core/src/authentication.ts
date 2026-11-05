@@ -50,7 +50,8 @@ export function createFdmAuth(
         return {
           name: profile.name,
           email: profile.email,
-          emailVerified: true,
+          // Only trust the address when Google reports it as verified
+          emailVerified: profile.email_verified === true,
           image: profile.picture,
           firstname: profile.given_name,
           surname: profile.family_name,

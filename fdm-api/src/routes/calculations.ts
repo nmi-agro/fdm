@@ -10,20 +10,21 @@ import type {
   NitrogenBalanceFieldNumeric,
   NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
-import type { FdmType, getField } from "@nmi-agro/fdm-core"
+import type { FdmType, getField, getFields } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
 import {
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // NmiApiError,
   type createFunctionsForNorms,
+  FARM_NUTRIENT_ADVICE_NUTRIENTS,
+  type FarmNutrientAdviceRow,
+  type getFarmNutrientAdviceRows,
+  getYearTimeframe,
   NormNotApplicableError,
-  // getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { rateLimitMiddleware } from "../rate-limit"
-import { commonErrorResponses, DateStringSchema } from "../schemas"
+import { commonErrorResponses, DateStringSchema, ProblemDetailsSchema } from "../schemas"
 
 // ---------------------------------------------------------------------------
 // Services
@@ -51,8 +52,13 @@ export interface CalculationServices {
   getDoseForField: typeof getDoseForField
   // Norms & calculation functions
   createFunctionsForNorms: typeof createFunctionsForNorms
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // getNutrientAdvice: typeof getNutrientAdvice
+  // Nutrient advice
+  /** Calculates the nutrient advice, dose and remaining advice per field of a farm. */
+  getFarmNutrientAdviceRows: typeof getFarmNutrientAdviceRows
+  /** Returns the fields of a farm. */
+  getFields: typeof getFields
+  /** Resolves the server-side NMI API key; `undefined` when not configured. */
+  getNmiApiKey: () => string | undefined
   // Additional FDM core data fetching
   getCultivations: typeof import("@nmi-agro/fdm-core").getCultivations
   getCurrentSoilData: typeof import("@nmi-agro/fdm-core").getCurrentSoilData
@@ -250,7 +256,8 @@ const NitrogenBalanceFieldResultSchema = z
   })
   .openapi("NitrogenBalanceFieldResult")
 
-const NitrogenBalanceSchema = z
+/** Nitrogen or organic matter balance of a farm, shared with the farm group routes. */
+export const NitrogenBalanceSchema = z
   .object({
     balance: z.number().describe("Weighted average nitrogen balance across all fields in kg N/ha"),
     supply: z
@@ -306,6 +313,7 @@ const NitrogenBalanceSchema = z
       .array(z.string())
       .describe("Error messages of the fields for which the calculation failed."),
   })
+  .describe("Nitrogen balance (kg N/ha) of a farm or a group of farms, with the result per field.")
   .openapi("NitrogenBalance")
 
 // ---------------------------------------------------------------------------
@@ -400,7 +408,8 @@ const OrganicMatterBalanceFieldResultSchema = z
   })
   .openapi("OrganicMatterBalanceFieldResult")
 
-const OrganicMatterBalanceSchema = z
+/** Nitrogen or organic matter balance of a farm, shared with the farm group routes. */
+export const OrganicMatterBalanceSchema = z
   .object({
     balance: z
       .number()
@@ -417,6 +426,9 @@ const OrganicMatterBalanceSchema = z
       .array(z.string())
       .describe("Error messages of the fields for which the calculation failed."),
   })
+  .describe(
+    "Organic matter balance (kg EOC/ha) of a farm or a group of farms, with the result per field.",
+  )
   .openapi("OrganicMatterBalance")
 
 // ---------------------------------------------------------------------------
@@ -466,29 +478,111 @@ const FarmNormsSchema = z
 // Nutrient advice schema
 // ---------------------------------------------------------------------------
 
-// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-// const NutrientAdviceSchema = z
-//     .object({
-//         b_id: z.string(),
-//         d_n_req: z.number().describe("Nitrogen requirement (kg N/ha)"),
-//         d_n_norm: z.number().describe("Nitrogen norm (kg N/ha)"),
-//         d_n_norm_man: z.number().describe("Nitrogen norm from animal manure (kg N/ha)"),
-//         d_p_norm: z.number().describe("Phosphate norm (kg P2O5/ha)"),
-//         d_p_req: z.number().describe("Phosphate requirement (kg P2O5/ha)"),
-//         d_k_req: z.number().describe("Potassium requirement (kg K2O/ha)"),
-//         d_c_req: z.number().describe("Carbon requirement (kg C/ha)"),
-//         d_ca_req: z.number().describe("Calcium requirement (kg Ca/ha)"),
-//         d_s_req: z.number().describe("Sulfur requirement (kg S/ha)"),
-//         d_mg_req: z.number().describe("Magnesium requirement (kg Mg/ha)"),
-//         d_cu_req: z.number().describe("Copper requirement (kg Cu/ha)"),
-//         d_zn_req: z.number().describe("Zinc requirement (kg Zn/ha)"),
-//         d_co_req: z.number().describe("Cobalt requirement (kg Co/ha)"),
-//         d_mn_req: z.number().describe("Manganese requirement (kg Mn/ha)"),
-//         d_mo_req: z.number().describe("Molybdenum requirement (kg Mo/ha)"),
-//         d_na_req: z.number().describe("Sodium requirement (kg Na/ha)"),
-//         d_b_req: z.number().describe("Boron requirement (kg B/ha)"),
-//     })
-//     .openapi("NutrientAdvice")
+const NutrientAdviceValueSchema = z.object({
+  advice: z.number().describe("Advised amount of the nutrient, per hectare."),
+  dose: z
+    .number()
+    .describe("Amount of the nutrient already applied with fertilizers in the year, per hectare."),
+  remaining: z
+    .number()
+    .describe(
+      "`advice - dose`, per hectare. A negative value means more was applied than advised.",
+    ),
+})
+
+const NutrientAdviceValuesSchema = z
+  .object(
+    Object.fromEntries(
+      FARM_NUTRIENT_ADVICE_NUTRIENTS.map((nutrient) => [
+        nutrient.symbol,
+        NutrientAdviceValueSchema.optional().describe(
+          `Advice, dose and remaining advice of ${nutrient.symbol}, in ${nutrient.unit}.`,
+        ),
+      ]),
+    ),
+  )
+  .openapi("NutrientAdviceValues")
+
+const FieldNutrientAdviceSchema = z
+  .object({
+    b_id: FieldIdSchema.describe("Unique identifier of the field."),
+    b_name: z.string().describe("Name of the field."),
+    b_area: z.number().describe("Area of the field (ha)."),
+    b_lu_catalogue: z
+      .string()
+      .nullable()
+      .describe(
+        "Cultivation catalogue code of the main cultivation of the year that the advice is for. `null` when the field has no main cultivation.",
+      ),
+    b_lu_name: z
+      .string()
+      .nullable()
+      .describe("Name of the main cultivation. `null` when the field has no main cultivation."),
+    suggested_b_lu_catalogue: z
+      .string()
+      .nullable()
+      .describe(
+        "Cultivation catalogue code of a suggested main cultivation, based on the crop registered for this location in the Dutch crop registration (BRP). Only set when the field has no main cultivation; otherwise `null`.",
+      ),
+    nutrients: NutrientAdviceValuesSchema.describe(
+      "Advice, dose and remaining advice per nutrient. Empty when `error` is set.",
+    ),
+    error: z
+      .object({
+        code: z
+          .enum(["no_cultivation", "no_main_cultivation", "farm_data_unavailable", "advice_failed"])
+          .describe(
+            "Why the advice could not be calculated: `no_cultivation` (no cultivation in the year), `no_main_cultivation` (no cultivation between 15 May and 15 July), `farm_data_unavailable` (the data of the farm could not be read) or `advice_failed` (the dose or the advice could not be calculated).",
+          ),
+        message: z.string().describe("Description of the problem."),
+      })
+      .nullable()
+      .describe("Set when the advice of this field could not be calculated; otherwise `null`."),
+  })
+  .openapi("FieldNutrientAdvice")
+
+const FarmNutrientAdviceSchema = z
+  .object({
+    b_id_farm: FarmIdSchema.describe("Unique identifier of the farm."),
+    year: z.number().int().describe("Calendar year the advice is for."),
+    hasErrors: z
+      .boolean()
+      .describe("True when the advice of one or more fields could not be calculated."),
+    fields: z
+      .array(FieldNutrientAdviceSchema)
+      .describe("Nutrient advice per field. A field that failed has `error` set."),
+  })
+  .openapi("FarmNutrientAdvice")
+
+const NutrientAdviceYearQuerySchema = z.object({
+  year: z
+    .string()
+    .regex(/^\d{4}$/, "year must be a four-digit calendar year.")
+    .describe(
+      "Calendar year (four digits, e.g. 2026). The main cultivation is the cultivation present longest between 15 May and 15 July of this year; the dose counts the fertilizer applications of this year.",
+    ),
+})
+
+const ERROR_MESSAGES: Record<NonNullable<FarmNutrientAdviceRow["error"]>["code"], string> = {
+  no_cultivation: "The field has no cultivation in this year.",
+  no_main_cultivation: "The field has no main cultivation in this year.",
+  farm_data_unavailable: "The data of the farm could not be read.",
+  advice_failed: "The nutrient advice could not be calculated for this field.",
+}
+
+function serialiseNutrientAdviceRow(row: FarmNutrientAdviceRow) {
+  return {
+    b_id: row.b_id,
+    b_name: row.b_name,
+    b_area: row.b_area,
+    b_lu_catalogue: row.mainCultivation?.b_lu_catalogue ?? null,
+    b_lu_name: row.mainCultivation?.b_lu_name ?? null,
+    suggested_b_lu_catalogue: row.cultivationSuggestion?.b_lu_catalogue ?? null,
+    nutrients: row.values,
+    // Only fixed messages: the underlying error can contain details of external services.
+    error: row.error ? { code: row.error.code, message: ERROR_MESSAGES[row.error.code] } : null,
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -685,26 +779,57 @@ const fieldNormsRoute = createRoute({
   },
 })
 
-// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-// const fieldNutrientAdviceRoute = createRoute({
-//     method: "get",
-//     path: "/fields/{b_id}/calculations/nutrient-advice",
-//     summary: "Get nutrient advice for a field",
-//     description:
-//         "Returns AI-powered NPK and micro-nutrient recommendations for the field based on current soil data and cultivation. Requires NMI API key to be configured on the server.",
-//     tags: ["Calculations"],
-//     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-//     request: {
-//         params: z.object({ b_id: FieldIdSchema }),
-//     },
-//     responses: {
-//         200: {
-//             description: "Nutrient advice",
-//             content: { "application/json": { schema: NutrientAdviceSchema } },
-//         },
-//         ...commonErrorResponses,
-//     },
-// })
+const nutrientAdviceResponses = {
+  ...commonErrorResponses,
+  503: {
+    description: "Service unavailable — nutrient advice is not configured on this server.",
+    content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+  },
+}
+
+const farmNutrientAdviceRoute = createRoute({
+  method: "get",
+  path: "/farms/{b_id_farm}/calculations/nutrient-advice",
+  summary: "Get nutrient advice for all fields on a farm",
+  description:
+    "Returns the nutrient advice, the dose already applied with fertilizers and the remaining advice for every field of the farm, for the main cultivation of the year. The advice comes from the NMI nutrient advice service and is the same as in the web app. A field whose advice cannot be calculated is returned with `error` set; the other fields are still calculated. Counts towards the NMI rate limit.",
+  tags: ["Calculations"],
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id_farm: FarmIdSchema }),
+    query: NutrientAdviceYearQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Nutrient advice per field.",
+      content: { "application/json": { schema: FarmNutrientAdviceSchema } },
+    },
+    ...nutrientAdviceResponses,
+  },
+})
+
+const fieldNutrientAdviceRoute = createRoute({
+  method: "get",
+  path: "/fields/{b_id}/calculations/nutrient-advice",
+  summary: "Get nutrient advice for a field",
+  description:
+    "Returns the nutrient advice, the dose already applied with fertilizers and the remaining advice for the field, for the main cultivation of the year. The result is the same as for this field in `GET /farms/{b_id_farm}/calculations/nutrient-advice`. When the advice cannot be calculated, `error` is set. Counts towards the NMI rate limit.",
+  tags: ["Calculations"],
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: z.object({ b_id: FieldIdSchema }),
+    query: NutrientAdviceYearQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Nutrient advice of the field.",
+      content: { "application/json": { schema: FieldNutrientAdviceSchema } },
+    },
+    ...nutrientAdviceResponses,
+  },
+})
 
 async function calculateNormResults(
   fdm: FdmType,
@@ -742,24 +867,6 @@ async function calculateNormResults(
   return { nitrogen, manure, phosphate }
 }
 
-// [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-// /** Converts an NmiApiError into an ApiError with appropriate HTTP status. */
-// function toApiError(err: unknown): never {
-//     if (err instanceof NmiApiError) {
-//         if (err.status === 422) {
-//             throw new ApiError(422, "unprocessable-entity", err.message)
-//         }
-//         if (err.status === 408) {
-//             throw new ApiError(504, "gateway-timeout", err.message)
-//         }
-//         if (err.status === 503) {
-//             throw new ApiError(503, "service-unavailable", err.message)
-//         }
-//         throw new ApiError(502, "bad-gateway", err.message)
-//     }
-//     throw err
-// }
-
 // ---------------------------------------------------------------------------
 // registerCalculationRoutes
 // ---------------------------------------------------------------------------
@@ -787,6 +894,13 @@ export function registerCalculationRoutes(
     rateLimitMiddleware(fdm, "calc")(c, next),
   )
   app.use("/fields/:b_id/calculations/*", (c, next) => rateLimitMiddleware(fdm, "calc")(c, next))
+  // The nutrient advice calls the NMI API and counts in the "nmi" bucket instead.
+  app.use("/farms/:b_id_farm/calculations/nutrient-advice", (c, next) =>
+    rateLimitMiddleware(fdm, "nmi")(c, next),
+  )
+  app.use("/fields/:b_id/calculations/nutrient-advice", (c, next) =>
+    rateLimitMiddleware(fdm, "nmi")(c, next),
+  )
 
   // --- Farm-level nitrogen balance ---
   const farmNitrogenBalanceHandler: RouteHandler<typeof farmNitrogenBalanceRoute> = async (c) => {
@@ -1082,46 +1196,81 @@ export function registerCalculationRoutes(
     )
   }
 
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // const fieldNutrientAdviceHandler: RouteHandler<typeof fieldNutrientAdviceRoute> = async (c) => {
-  //     const principal = c.get("principal") as unknown as ApiPrincipalContext
-  //     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-  //     const { b_id } = c.req.valid("param") as { b_id: string }
-  //
-  //     const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
-  //     if (!field) {
-  //         throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
-  //     }
-  //
-  //     if (!field.b_centroid && !field.b_bufferstrip) {
-  //         throw new ApiError(422, "unprocessable-entity", `Field '${b_id}' has no centroid coordinates.`)
-  //     }
-  //
-  //     const nmiApiKey = process.env.NMI_API_KEY
-  //     if (!nmiApiKey && !field.b_bufferstrip) {
-  //         throw new ApiError(503, "service-unavailable", "NMI API key is not configured on this server.")
-  //     }
-  //
-  //     const [cultivations, soilData] = await Promise.all([
-  //         services.getCultivations(fdm, principal.effectivePrincipalId, b_id),
-  //         services.getCurrentSoilData(fdm, principal.effectivePrincipalId, b_id),
-  //     ])
-  //
-  //     const b_lu_catalogue = cultivations[0]?.b_lu_catalogue ?? ""
-  //
-  //     try {
-  //         const advice = await services.getNutrientAdvice(fdm, {
-  //             b_lu_catalogue,
-  //             b_centroid: field.b_centroid as [number, number],
-  //             currentSoilData: soilData as Parameters<typeof services.getNutrientAdvice>[1]["currentSoilData"],
-  //             nmiApiKey: nmiApiKey ?? "",
-  //             b_bufferstrip: field.b_bufferstrip ?? false,
-  //         })
-  //         return c.json({ b_id, ...advice } as z.infer<typeof NutrientAdviceSchema>, 200)
-  //     } catch (err) {
-  //         toApiError(err)
-  //     }
-  // }
+  function requireNmiApiKey(): string {
+    const nmiApiKey = services.getNmiApiKey()
+    if (!nmiApiKey) {
+      throw new ApiError(
+        503,
+        "service-unavailable",
+        "Nutrient advice is not configured on this server.",
+      )
+    }
+    return nmiApiKey
+  }
+
+  const farmNutrientAdviceHandler: RouteHandler<typeof farmNutrientAdviceRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { year } = c.req.valid("query") as { year: string }
+    const nmiApiKey = requireNmiApiKey()
+    const yearNumber = Number.parseInt(year, 10)
+    const timeframe = getYearTimeframe(yearNumber)
+
+    const fields = await services.getFields(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+      timeframe,
+    )
+    const rows = await services.getFarmNutrientAdviceRows({
+      fdm,
+      principal_id: principal.effectivePrincipalId,
+      b_id_farm,
+      year: yearNumber,
+      timeframe,
+      fields,
+      nmiApiKey,
+    })
+    return c.json(
+      {
+        b_id_farm,
+        year: yearNumber,
+        hasErrors: rows.some((row) => row.error !== undefined),
+        fields: rows.map(serialiseNutrientAdviceRow),
+      } as z.infer<typeof FarmNutrientAdviceSchema>,
+      200,
+    )
+  }
+
+  const fieldNutrientAdviceHandler: RouteHandler<typeof fieldNutrientAdviceRoute> = async (c) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id } = c.req.valid("param") as { b_id: string }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { year } = c.req.valid("query") as { year: string }
+    const nmiApiKey = requireNmiApiKey()
+
+    const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
+    if (!field) {
+      throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
+    }
+    const yearNumber = Number.parseInt(year, 10)
+    const [row] = await services.getFarmNutrientAdviceRows({
+      fdm,
+      principal_id: principal.effectivePrincipalId,
+      b_id_farm: field.b_id_farm,
+      year: yearNumber,
+      timeframe: getYearTimeframe(yearNumber),
+      fields: [field],
+      nmiApiKey,
+    })
+    if (!row) {
+      throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
+    }
+    return c.json(serialiseNutrientAdviceRow(row) as z.infer<typeof FieldNutrientAdviceSchema>, 200)
+  }
 
   app.openapi(farmNitrogenBalanceRoute, farmNitrogenBalanceHandler)
   app.openapi(farmOrganicMatterBalanceRoute, farmOrganicMatterBalanceHandler)
@@ -1130,6 +1279,6 @@ export function registerCalculationRoutes(
   app.openapi(fieldDoseRoute, fieldDoseHandler)
   app.openapi(farmNormsRoute, farmNormsHandler)
   app.openapi(fieldNormsRoute, fieldNormsHandler)
-  // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
-  // app.openapi(fieldNutrientAdviceRoute, fieldNutrientAdviceHandler)
+  app.openapi(farmNutrientAdviceRoute, farmNutrientAdviceHandler)
+  app.openapi(fieldNutrientAdviceRoute, fieldNutrientAdviceHandler)
 }

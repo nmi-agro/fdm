@@ -1526,3 +1526,23 @@ function extendFertilizerApplication<
     p_app_id: app.p_app_id,
   }
 }
+
+/**
+ * Maps RVO fertilizer codes (`p_type_rvo`) to the fertilizer type (`p_type`) of existing
+ * fertilizers with that code, for example to derive the type of a new custom fertilizer from
+ * its RVO code.
+ *
+ * @param fertilizers - Fertilizers to learn the mapping from, for example the fertilizers of a farm.
+ * @returns The fertilizer type per RVO code. Codes without a fertilizer of a known type are absent.
+ */
+export function getFertilizerTypesByRvoCode(
+  fertilizers: { p_type_rvo?: string | null; p_type?: string | null }[],
+): Record<string, string> {
+  const types: Record<string, string> = {}
+  for (const fertilizer of fertilizers) {
+    if (fertilizer.p_type_rvo && fertilizer.p_type) {
+      types[fertilizer.p_type_rvo] = fertilizer.p_type
+    }
+  }
+  return types
+}

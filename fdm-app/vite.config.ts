@@ -127,6 +127,8 @@ export default defineConfig((env) => {
         "@nmi-agro/fdm-agents",
         "@nmi-agro/fdm-api",
         "@nmi-agro/fdm-helpdesk",
+        "@nmi-agro/fdm-storage",
+        "@nmi-agro/fdm-reports",
       ],
       // Pre-bundle heavy transitive deps that workspace packages pull in,
       // so they are processed once rather than on every cold dev start.

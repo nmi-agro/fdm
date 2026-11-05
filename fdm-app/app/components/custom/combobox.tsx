@@ -83,9 +83,11 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
                   aria-controls="combobox-options"
                   aria-haspopup="listbox"
                 >
-                  {options.find((option) => option.value === field.value)?.label ||
-                    defaultLabel ||
-                    "Begin met typen..."}
+                  <span key={String(field.value ?? "")} className="truncate">
+                    {options.find((option) => option.value === field.value)?.label ||
+                      defaultLabel ||
+                      "Begin met typen..."}
+                  </span>
                   <ChevronsUpDown className="opacity-50" />
                 </Button>
               </FormControl>

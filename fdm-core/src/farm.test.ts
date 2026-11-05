@@ -38,6 +38,7 @@ describe("Farm Functions", () => {
   let fdm: FdmServerType
   let principal_id: string
   let target_username: string
+  let target_email: string
   let target_id: string
   let b_id_farm: string
   let farmName: string
@@ -81,6 +82,7 @@ describe("Farm Functions", () => {
 
     // Create target_username
     target_username = "user15"
+    target_email = "user15@example.com"
     const target = await fdmAuth.api.signUpEmail({
       headers: undefined,
       body: {
@@ -324,7 +326,7 @@ describe("Farm Functions", () => {
 
   describe("grantRoleToFarm", () => {
     it("should create an invitation for a principal for a given farm", async () => {
-      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor")
 
       // Verify invitation was created (not a direct role grant)
       const invitations = await fdm
@@ -356,7 +358,7 @@ describe("Farm Functions", () => {
     it("should throw an error if the principal does not have share permission", async () => {
       const other_principal_id = createId()
       await expect(
-        grantRoleToFarm(fdm, other_principal_id, target_username, b_id_farm, "advisor"),
+        grantRoleToFarm(fdm, other_principal_id, target_email, b_id_farm, "advisor"),
       ).rejects.toThrowError("Principal does not have permission to perform this action")
     })
 
@@ -371,7 +373,7 @@ describe("Farm Functions", () => {
       }
 
       await expect(
-        grantRoleToFarm(asFdm(fdmMock), principal_id, target_username, b_id_farm, "advisor"),
+        grantRoleToFarm(asFdm(fdmMock), principal_id, target_email, b_id_farm, "advisor"),
       ).rejects.toThrowError("Exception for grantRoleToFarm")
     })
 
@@ -385,7 +387,7 @@ describe("Farm Functions", () => {
     it("should throw an error if target is already a member of the farm", async () => {
       // target_id already has advisor role from the first test
       await expect(
-        grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor"),
+        grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor"),
       ).rejects.toThrowError("Exception for grantRoleToFarm")
     })
 
@@ -473,7 +475,7 @@ describe("Farm Functions", () => {
     })
 
     it("should retain point-in-time farm verifications after access is revoked", async () => {
-      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor")
       const invitation = (
         await fdm
           .select()
@@ -518,7 +520,7 @@ describe("Farm Functions", () => {
         ...fdm,
         revokePrincipal: mockRevokePrincipal,
       }
-      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor")
 
       await expect(
         revokePrincipalFromFarm(asFdm(fdmMock), principal_id, target_username, b_id_farm),
@@ -621,7 +623,7 @@ describe("Farm Functions", () => {
         "Pending Lane",
         "20003",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, pendingFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, pendingFarmId, "advisor")
 
       const principals = await listPrincipalsForFarm(fdm, principal_id, pendingFarmId)
       const pending = principals.find((p) => p.status === "pending")
@@ -740,7 +742,7 @@ describe("Farm Functions", () => {
       await grantRoleToFarm(
         fdm,
         testPrincipalId,
-        target_username, // Using an existing target_username from outer scope
+        target_email, // Using an existing target_email from outer scope
         testFarmId,
         "advisor",
       )
@@ -848,7 +850,7 @@ describe("Farm Functions", () => {
     })
 
     it("should accept a pending invitation and grant the role", async () => {
-      await grantRoleToFarm(fdm, principal_id, target_username, invitationFarmId, "researcher")
+      await grantRoleToFarm(fdm, principal_id, target_email, invitationFarmId, "researcher")
 
       const rows = await fdm
         .select()
@@ -885,7 +887,7 @@ describe("Farm Functions", () => {
         "Other Lane",
         "22222",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, otherFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, otherFarmId, "advisor")
       const rows = await fdm
         .select()
         .from(authZSchema.invitation)
@@ -921,7 +923,7 @@ describe("Farm Functions", () => {
         "Decline Lane",
         "33333",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, declineFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, declineFarmId, "advisor")
       const rows = await fdm
         .select()
         .from(authZSchema.invitation)
@@ -954,7 +956,7 @@ describe("Farm Functions", () => {
         "Another Decline Lane",
         "44444",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, anotherFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, anotherFarmId, "advisor")
       const rows = await fdm
         .select()
         .from(authZSchema.invitation)
@@ -989,7 +991,7 @@ describe("Farm Functions", () => {
         "List Lane",
         "55555",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, listFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, listFarmId, "advisor")
     })
 
     it("should return pending invitations for a farm", async () => {
@@ -1020,7 +1022,7 @@ describe("Farm Functions", () => {
         "Cancel Lane",
         "77001",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, cancelFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, cancelFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(fdm, principal_id, cancelFarmId)
       cancelInvitationId = invitations[0].invitation_id
     })
@@ -1055,7 +1057,7 @@ describe("Farm Functions", () => {
         "Cancel Lane 2",
         "77002",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, anotherCancelFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, anotherCancelFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(
         fdm,
         principal_id,
@@ -1084,7 +1086,7 @@ describe("Farm Functions", () => {
         "Update Lane",
         "88001",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, updateInvFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, updateInvFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(fdm, principal_id, updateInvFarmId)
       updateInvitationId = invitations[0].invitation_id
     })
@@ -1125,7 +1127,7 @@ describe("Farm Functions", () => {
         "Update Lane 2",
         "88002",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, anotherUpdateFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, anotherUpdateFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(
         fdm,
         principal_id,
