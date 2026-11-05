@@ -21,6 +21,7 @@ import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
   data,
+  Link,
   type LoaderFunctionArgs,
   type MetaFunction,
   useFetcher,
@@ -41,6 +42,10 @@ import {
 } from "~/components/blocks/measures/formschema"
 import { ImpactSummary } from "~/components/blocks/measures/impact-summary"
 import { IndicatorAttention } from "~/components/blocks/measures/indicator-attention"
+import {
+  getMeasureCataloguePath,
+  MeasureDetailLink,
+} from "~/components/blocks/measures/measure-detail-link"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import {
   AlertDialog,
@@ -773,7 +778,13 @@ export default function MeasuresFieldDetail() {
                       <span className="text-muted-foreground shrink-0 font-mono text-xs">
                         {m.m_id.replace("bln_", "")}
                       </span>
-                      <span className="truncate text-sm font-medium">{m.m_name}</span>
+                      <Link
+                        to={getMeasureCataloguePath(m.m_id)}
+                        className="truncate text-sm font-medium hover:underline"
+                      >
+                        {m.m_name}
+                      </Link>
+                      <MeasureDetailLink m_id={m.m_id} m_name={m.m_name} icon="external" />
                     </div>
                     {m.m_summary && (
                       <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-relaxed">

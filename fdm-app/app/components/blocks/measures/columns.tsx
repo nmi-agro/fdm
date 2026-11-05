@@ -16,6 +16,7 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { MeasureDetailLink } from "./measure-detail-link"
 import { measuresTableFeatures } from "./table-features"
 
 export type MeasureTableRow = {
@@ -49,7 +50,14 @@ export function getColumns(
       header: "Maatregel",
       cell: ({ row }) => (
         <div>
-          <p className="text-sm font-medium">{row.original.m_name}</p>
+          <p className="flex items-center gap-1 text-sm font-medium">
+            <span>{row.original.m_name}</span>
+            <MeasureDetailLink
+              m_id={row.original.m_id}
+              m_name={row.original.m_name}
+              icon="external"
+            />
+          </p>
           <p className="text-muted-foreground font-mono text-xs">
             {row.original.m_id.replace("bln_", "")}
           </p>

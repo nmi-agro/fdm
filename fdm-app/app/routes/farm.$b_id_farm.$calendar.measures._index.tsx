@@ -43,6 +43,7 @@ import {
   type MeasureDateFormValues,
   MeasureDateSchema,
 } from "~/components/blocks/measures/formschema"
+import { MeasureDetailLink } from "~/components/blocks/measures/measure-detail-link"
 import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -293,6 +294,12 @@ function GroupedRecommendations({
                   {group.m_id.replace("bln_", "")}
                 </span>
                 <span className="font-medium">{group.m_name}</span>
+                <MeasureDetailLink
+                  m_id={group.m_id}
+                  m_name={group.m_name}
+                  icon="external"
+                  className="self-center"
+                />
                 {index === 0 && (
                   <span className="text-muted-foreground text-xs">
                     (grootste verwachte verbetering)
