@@ -21,6 +21,25 @@ The content, its frontmatter and its writing rules are described in `fdm-app/app
 
 For the weekly routine, `<git-ref>` is the newest commit on `development` whose message contains `[user-guide-sync]`. When there is none, use the commit from 7 days ago: `git rev-list -1 --before="7 days ago" origin/development`.
 
+## Tone of voice
+
+The guide speaks as a calm, competent agronomic colleague who explains the app: plain-spoken, substantiated and quietly confident. It is professional but informal, never corporate and never hype. Every edit, however small, keeps that voice, so a synced paragraph reads like the text around it.
+
+- **Dutch, addressed as "je".** The guide uses "je/jij/jouw", not "u/uw", even where the app's own screens use "u". Use "{{appName}}" for the product and "de app" for the software.
+- **Short, active sentences.** One instruction per sentence; lead with the action: "Klik op **Opslaan**." Steps are numbered lists; options and outcomes are bullets or tables.
+- **Explain why, briefly.** One sentence of reason when it helps the reader decide: "Waarom die gegevens? Ze bepalen hoeveel stikstof er met de oogst afgaat."
+- **Honest about limits.** Say what is estimated, indicative or not (yet) supported, and when RVO or the regulations take precedence. Never promise outcomes, and never claim more than the app does.
+- **Agronomic vocabulary as farmers and advisors use it**: perceel, bouwplan, gebruiksruimte, bemesting, snede, bufferstrook. Explain a technical term the first time it appears on a page; don't translate it into English.
+- **Metric units, Dutch number format**: "30 m³/ha", "0,5", "1.250 kg N/ha", "15 minuten".
+- **No filler, exclamation marks, emoji or marketing**: no "eenvoudig", "snel en makkelijk", "revolutionair", "Let op!!".
+
+| Instead of | Write |
+|---|---|
+| "U kunt eenvoudig een bemesting toevoegen!" | "Klik op **Toevoegen** om een bemesting in te voeren." |
+| "Deze geavanceerde functie berekent nauwkeurig uw stikstofbalans." | "{{appName}} rekent de stikstofbalans per perceel uit. De uitkomst is zo goed als de gegevens die je invult." |
+| "De gebruikersinterface toont de nutrient advice per field." | "Je ziet het bemestingsadvies per perceel." |
+| "Dit werkt altijd." (unverified) | Leave the sentence out, or say under which conditions it works. |
+
 ## Process
 
 1. **Find the affected chapters.** Run the drift script with the diff from the table:
@@ -39,7 +58,7 @@ For the weekly routine, `<git-ref>` is the newest commit on `development` whose 
 
 3. **Edit the chapter.** Keep the scope minimal.
    - Use the exact label from the code in **bold**. Bold is reserved for UI labels; everything else is plain text.
-   - Keep `{{appName}}`, the explicit `{#id}`s and the reader-facing tone ("je", Dutch, short sentences).
+   - Keep `{{appName}}` and the explicit `{#id}`s, and write in the [tone of voice](#tone-of-voice) above.
    - Update `inApp`, `routes` and `watch` when pages moved. Every glob must still match a file.
    - Set `updated:` to today's date on every chapter you change.
    - Don't rewrite paragraphs the diff does not touch, and don't restyle.
