@@ -2,12 +2,17 @@ import type { MeasureCatalogue } from "@nmi-agro/fdm-core"
 import { getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
 import fuzzysort from "fuzzysort"
 import { ChevronRight, Search, X } from "lucide-react"
-import { useMemo, useState } from "react"
-import { type LoaderFunctionArgs, type MetaFunction, Link, useLoaderData } from "react-router"
+import { useEffect, useMemo, useState } from "react"
+import {
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  Link,
+  useLoaderData,
+  useSearchParams,
+} from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderMeasuresCatalogue } from "~/components/blocks/header/measures-catalogue"
 import { MeasureCostIndicator } from "~/components/blocks/measures/measure-cost-indicator"
-import { getMeasureCataloguePath } from "~/components/blocks/measures/measure-detail-link"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
@@ -19,14 +24,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { Switch } from "~/components/ui/switch"
 import { getSession } from "~/lib/auth.server"
+import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
 import { getEffectTypeInfo, getImpactedIndicators, MEASURE_COST_LEVELS } from "~/lib/measure-labels"
+import {
+  CATALOGUE_CALENDAR_PARAM,
+  CATALOGUE_FARM_PARAM,
+  CATALOGUE_NO_FARM,
+  getMeasureCataloguePath,
+} from "~/lib/measures-catalogue"
+import { getCatalogueFarmData } from "~/lib/measures-catalogue.server"
 import { cn } from "~/lib/utils"
+import { useCalendarStore } from "~/store/calendar"
+import { useFarmStore } from "~/store/farm"
 
 /**
  * Sets the page title and description of the measures catalogue.
@@ -43,14 +57,27 @@ export const meta: MetaFunction = () => {
 }
 
 /**
- * Loads the full measures catalogue. The catalogue is the same for every user, so only a
- * signed-in session is required.
+ * Loads the full measures catalogue and, when a farm is selected, on how many fields of that
+ * farm each measure is applied in the selected year.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
-    await getSession(request)
-    const catalogue = await getMeasuresFromCatalogue(fdm)
-    return { catalogue }
+    const session = await getSession(request)
+    const [catalogue, farmData] = await Promise.all([
+      getMeasuresFromCatalogue(fdm),
+      getCatalogueFarmData(session.principal_id, new URL(request.url)),
+    ])
+    const appliedCount: Record<string, number> = {}
+    for (const [m_id, fields] of farmData.appliedFields) {
+      appliedCount[m_id] = new Set(fields.map((field) => field.b_id)).size
+    }
+    return {
+      catalogue,
+      farms: farmData.farms,
+      farm: farmData.farm,
+      calendar: farmData.calendar,
+      appliedCount,
+    }
   } catch (error) {
     throw handleLoaderError(error)
   }
@@ -76,20 +103,52 @@ type CatalogueRow = MeasureCatalogue & {
   code: string
   indicatorCount: number
   ecosysteemdiensten: Set<Ecosysteemdienst>
+  appliedFieldCount: number
 }
 
 /**
  * Renders the measures catalogue: a searchable, filterable and sortable list of all
- * measures, each linking to its detail page.
+ * measures, each linking to its detail page. With a farm selected, measures applied on that
+ * farm are marked and can be filtered.
  */
 export default function MeasuresCatalogueIndex() {
-  const { catalogue } = useLoaderData<typeof loader>()
+  const { catalogue, farms, farm, calendar, appliedCount } = useLoaderData<typeof loader>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const lastFarmId = useFarmStore((state) => state.farmId)
+  const lastCalendar = useCalendarStore((state) => state.calendar)
   const [query, setQuery] = useState("")
   const [sortMode, setSortMode] = useState<SortMode>("name")
   const [effectType, setEffectType] = useState<string>("all")
   const [costLevel, setCostLevel] = useState<string>("all")
   const [theme, setTheme] = useState<Ecosysteemdienst | "all">("all")
-  const [showInactive, setShowInactive] = useState(false)
+  const [status, setStatus] = useState<"all" | "applied">("all")
+
+  // Without an explicit choice, start with the farm and year the user last worked on
+  const hasFarmParam = searchParams.has(CATALOGUE_FARM_PARAM)
+  useEffect(() => {
+    if (hasFarmParam || !lastFarmId) return
+    if (!farms.some((item) => item.b_id_farm === lastFarmId)) return
+    setSearchParams(
+      { [CATALOGUE_FARM_PARAM]: lastFarmId, [CATALOGUE_CALENDAR_PARAM]: lastCalendar },
+      { replace: true },
+    )
+  }, [hasFarmParam, lastFarmId, lastCalendar, farms, setSearchParams])
+
+  const farmContext = farm ? { b_id_farm: farm.b_id_farm, calendar } : undefined
+
+  const selectFarm = (value: string) => {
+    setStatus("all")
+    setSearchParams(
+      value === CATALOGUE_NO_FARM
+        ? { [CATALOGUE_FARM_PARAM]: CATALOGUE_NO_FARM }
+        : { [CATALOGUE_FARM_PARAM]: value, [CATALOGUE_CALENDAR_PARAM]: calendar },
+    )
+  }
+
+  const selectCalendar = (value: string) => {
+    if (!farm) return
+    setSearchParams({ [CATALOGUE_FARM_PARAM]: farm.b_id_farm, [CATALOGUE_CALENDAR_PARAM]: value })
+  }
 
   const rows = useMemo((): CatalogueRow[] => {
     return catalogue.map((item) => {
@@ -103,11 +162,10 @@ export default function MeasuresCatalogueIndex() {
             .map((indicator) => indicator.ecosysteemdienst)
             .filter((value): value is Ecosysteemdienst => value !== null),
         ),
+        appliedFieldCount: appliedCount[item.m_id] ?? 0,
       }
     })
-  }, [catalogue])
-
-  const inactiveCount = rows.filter((row) => row.m_status === "inactive").length
+  }, [catalogue, appliedCount])
 
   const sorted = useMemo(() => {
     const items = [...rows]
@@ -120,18 +178,15 @@ export default function MeasuresCatalogueIndex() {
   const filtered = useMemo((): CatalogueRow[] => {
     const passesFilters = sorted.filter(
       (row) =>
-        (showInactive || row.m_status !== "inactive") &&
+        // Measures no longer in the catalogue only show when the farm still uses them
+        (row.m_status !== "inactive" || row.appliedFieldCount > 0) &&
+        (status === "all" || row.appliedFieldCount > 0) &&
         (effectType === "all" || row.m_effect_type === effectType) &&
         (costLevel === "all" || String(row.m_effect_costs) === costLevel) &&
         (theme === "all" || row.ecosysteemdiensten.has(theme)),
     )
-    // Inactive measures go to the bottom, keeping the chosen order within each group
-    const ordered = [
-      ...passesFilters.filter((row) => row.m_status !== "inactive"),
-      ...passesFilters.filter((row) => row.m_status === "inactive"),
-    ]
-    if (!query.trim()) return ordered
-    const targets = ordered.map((row, index) => ({
+    if (!query.trim()) return passesFilters
+    const targets = passesFilters.map((row, index) => ({
       index,
       name: row.m_name,
       code: row.code,
@@ -143,14 +198,19 @@ export default function MeasuresCatalogueIndex() {
     })
     // Keep the chosen sort order instead of the fuzzy score order
     const matched = new Set(results.map((r) => r.obj.index))
-    return ordered.filter((_, index) => matched.has(index))
-  }, [query, sorted, effectType, costLevel, theme, showInactive])
+    return passesFilters.filter((_, index) => matched.has(index))
+  }, [query, sorted, status, effectType, costLevel, theme])
 
   const hasFilters =
-    query.trim().length > 0 || effectType !== "all" || costLevel !== "all" || theme !== "all"
+    query.trim().length > 0 ||
+    status !== "all" ||
+    effectType !== "all" ||
+    costLevel !== "all" ||
+    theme !== "all"
 
   const resetFilters = () => {
     setQuery("")
+    setStatus("all")
     setEffectType("all")
     setCostLevel("all")
     setTheme("all")
@@ -169,6 +229,70 @@ export default function MeasuresCatalogueIndex() {
             op welke indicatoren hij effect heeft en wanneer hij van toepassing is.
           </p>
         </div>
+
+        {farms.length > 0 && (
+          <div className="bg-muted/30 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="measures-catalogue-farm" className="text-muted-foreground text-sm">
+                Bedrijf
+              </Label>
+              <Select value={farm?.b_id_farm ?? CATALOGUE_NO_FARM} onValueChange={selectFarm}>
+                <SelectTrigger id="measures-catalogue-farm" className="h-8 w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CATALOGUE_NO_FARM}>Geen bedrijf</SelectItem>
+                  {farms.map((item) => (
+                    <SelectItem key={item.b_id_farm} value={item.b_id_farm}>
+                      {item.b_name_farm ?? item.b_id_farm}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {farm && (
+              <>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="measures-catalogue-calendar"
+                    className="text-muted-foreground text-sm"
+                  >
+                    Jaar
+                  </Label>
+                  <Select value={calendar} onValueChange={selectCalendar}>
+                    <SelectTrigger id="measures-catalogue-calendar" className="h-8 w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getCalendarSelection().map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label
+                    htmlFor="measures-catalogue-status"
+                    className="text-muted-foreground text-sm"
+                  >
+                    Status
+                  </Label>
+                  <Select value={status} onValueChange={(v) => setStatus(v as "all" | "applied")}>
+                    <SelectTrigger id="measures-catalogue-status" className="h-8 w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle maatregelen</SelectItem>
+                      <SelectItem value="applied">Toegepast op dit bedrijf</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -268,36 +392,22 @@ export default function MeasuresCatalogueIndex() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted-foreground text-sm" aria-live="polite">
-              {filtered.length === 1
-                ? "1 maatregel gevonden"
-                : `${filtered.length} maatregelen gevonden`}
-              {hasFilters && (
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  onClick={resetFilters}
-                  className="ml-2 h-auto p-0"
-                >
-                  Filters wissen
-                </Button>
-              )}
-            </p>
-            {inactiveCount > 0 && (
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="measures-catalogue-inactive"
-                  checked={showInactive}
-                  onCheckedChange={setShowInactive}
-                />
-                <Label htmlFor="measures-catalogue-inactive" className="text-sm font-normal">
-                  Inactieve maatregelen tonen
-                </Label>
-              </div>
+          <p className="text-muted-foreground text-sm" aria-live="polite">
+            {filtered.length === 1
+              ? "1 maatregel gevonden"
+              : `${filtered.length} maatregelen gevonden`}
+            {hasFilters && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={resetFilters}
+                className="ml-2 h-auto p-0"
+              >
+                Filters wissen
+              </Button>
             )}
-          </div>
+          </p>
         </div>
 
         {filtered.length === 0 ? (
@@ -310,11 +420,11 @@ export default function MeasuresCatalogueIndex() {
           <ul className="divide-y overflow-hidden rounded-lg border">
             {filtered.map((row) => {
               const isInactive = row.m_status === "inactive"
-              const effectType = getEffectTypeInfo(row.m_effect_type)
+              const effectInfo = getEffectTypeInfo(row.m_effect_type)
               return (
                 <li key={row.m_id}>
                   <Link
-                    to={getMeasureCataloguePath(row.m_id)}
+                    to={getMeasureCataloguePath(row.m_id, farmContext)}
                     className={cn(
                       "hover:bg-muted/50 focus-visible:bg-muted/50 flex items-start gap-3 px-4 py-3 transition-colors focus-visible:outline-none",
                       isInactive && "opacity-60",
@@ -333,6 +443,17 @@ export default function MeasuresCatalogueIndex() {
                         </p>
                       )}
                       <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                        {row.appliedFieldCount > 0 && (
+                          <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                              aria-hidden="true"
+                            />
+                            {row.appliedFieldCount === 1
+                              ? "Toegepast op 1 perceel"
+                              : `Toegepast op ${row.appliedFieldCount} percelen`}
+                          </span>
+                        )}
                         <MeasureCostIndicator costs={row.m_effect_costs} />
                         {row.indicatorCount > 0 && (
                           <span>
@@ -341,9 +462,13 @@ export default function MeasuresCatalogueIndex() {
                               : `${row.indicatorCount} indicatoren`}
                           </span>
                         )}
-                        {effectType && (
-                          <Badge variant="outline" className="text-xs">
-                            {effectType.label}
+                        {effectInfo && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                            title={effectInfo.description || undefined}
+                          >
+                            {effectInfo.label}
                           </Badge>
                         )}
                         <Badge variant="outline" className="text-xs">

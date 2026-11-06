@@ -6,7 +6,6 @@ import { data, type LoaderFunctionArgs, type MetaFunction, Link, useLoaderData }
 import { Header } from "~/components/blocks/header/base"
 import { HeaderMeasuresCatalogue } from "~/components/blocks/header/measures-catalogue"
 import { MeasureCostIndicator } from "~/components/blocks/measures/measure-cost-indicator"
-import { getMeasureCataloguePath } from "~/components/blocks/measures/measure-detail-link"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -29,6 +28,12 @@ import {
   getImpactedIndicators,
   getMeasureReferences,
 } from "~/lib/measure-labels"
+import {
+  type CatalogueFarmContext,
+  getMeasureCataloguePath,
+  getMeasuresCataloguePath,
+} from "~/lib/measures-catalogue"
+import { getCatalogueFarmData } from "~/lib/measures-catalogue.server"
 
 /**
  * Sets the page title and description from the name and summary of the measure.
@@ -54,11 +59,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     if (!m_id) {
       throw data("Maatregel ID is verplicht", { status: 400 })
     }
-    await getSession(request)
+    const session = await getSession(request)
 
-    const [measure, catalogue] = await Promise.all([
+    const [measure, catalogue, farmData] = await Promise.all([
       getMeasureFromCatalogue(fdm, m_id),
       getMeasuresFromCatalogue(fdm),
+      getCatalogueFarmData(session.principal_id, new URL(request.url)),
     ])
     if (!measure) {
       throw data("Maatregel niet gevonden", { status: 404 })
@@ -84,7 +90,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }))
       .sort((a, b) => a.m_id.localeCompare(b.m_id, "nl", { numeric: true }))
 
-    return { measure, conflicts, variants }
+    return {
+      measure,
+      conflicts,
+      variants,
+      farm: farmData.farm,
+      calendar: farmData.calendar,
+      appliedFields: farmData.appliedFields.get(measure.m_id) ?? [],
+    }
   } catch (error) {
     throw handleLoaderError(error)
   }
@@ -98,10 +111,24 @@ function getMeasureCode(m_id: string): string {
 const SOURCE_LABELS: Record<string, string> = { bln: "BLN3" }
 
 /**
+ * Formats the period in which a measure is applied, e.g. "1-3-2026 – doorlopend".
+ *
+ * @param start - First day of the measure, or `null` when unknown.
+ * @param end - Last day of the measure, or `null` when it is ongoing.
+ */
+function formatPeriod(start: Date | string | null, end: Date | string | null): string {
+  const formatDate = (value: Date | string) => format(new Date(value), "d-M-yyyy", { locale: nl })
+  const from = start ? formatDate(start) : "?"
+  return `${from} – ${end ? formatDate(end) : "doorlopend"}`
+}
+
+/**
  * Renders the detail page of a single measure in the catalogue.
  */
 export default function MeasureCatalogueDetail() {
-  const { measure, conflicts, variants } = useLoaderData<typeof loader>()
+  const { measure, conflicts, variants, farm, calendar, appliedFields } =
+    useLoaderData<typeof loader>()
+  const farmContext = farm ? { b_id_farm: farm.b_id_farm, calendar } : undefined
   const sourceLabel = SOURCE_LABELS[measure.m_source] ?? measure.m_source
   const lastChanged = measure.updated ?? measure.created
   const isInactive = measure.m_status === "inactive"
@@ -117,7 +144,7 @@ export default function MeasureCatalogueDetail() {
       </Header>
       <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 md:px-6">
         <Link
-          to="/measures-catalogue"
+          to={getMeasuresCataloguePath(farmContext)}
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -166,7 +193,14 @@ export default function MeasureCatalogueDetail() {
           </FactCard>
           <FactCard title="Effect">
             {effectType ? (
-              <p className="text-sm font-medium">{effectType.label}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{effectType.label}</p>
+                {effectType.description && (
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    {effectType.description}
+                  </p>
+                )}
+              </div>
             ) : (
               <span className="text-muted-foreground text-sm">Onbekend</span>
             )}
@@ -201,6 +235,48 @@ export default function MeasureCatalogueDetail() {
             )}
           </FactCard>
         </div>
+
+        {farm && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                {appliedFields.length > 0 && (
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                )}
+                Op {farm.b_name_farm ?? "uw bedrijf"} in {calendar}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appliedFields.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Deze maatregel is in {calendar} op geen enkel perceel van dit bedrijf toegepast.
+                </p>
+              ) : (
+                <ul className="divide-y rounded-md border">
+                  {appliedFields.map((field, index) => (
+                    <li key={`${field.b_id}-${index}`}>
+                      <Link
+                        to={`/farm/${farm.b_id_farm}/${calendar}/measures/${field.b_id}`}
+                        className="hover:bg-muted/50 flex items-center gap-2 px-3 py-2 text-sm transition-colors"
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {field.b_name ?? field.b_id}
+                        </span>
+                        <span className="text-muted-foreground shrink-0 text-xs">
+                          {formatPeriod(field.m_start, field.m_end)}
+                        </span>
+                        <ChevronRight
+                          className="text-muted-foreground h-4 w-4 shrink-0"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -318,7 +394,7 @@ export default function MeasureCatalogueDetail() {
                   Deze maatregel kan niet tegelijk met de volgende maatregelen op hetzelfde perceel
                   worden genomen.
                 </p>
-                <MeasureList items={conflicts} />
+                <MeasureList items={conflicts} context={farmContext} />
               </>
             )}
           </CardContent>
@@ -330,7 +406,7 @@ export default function MeasureCatalogueDetail() {
               <CardTitle className="text-base">Andere varianten van deze maatregel</CardTitle>
             </CardHeader>
             <CardContent>
-              <MeasureList items={variants} />
+              <MeasureList items={variants} context={farmContext} />
             </CardContent>
           </Card>
         )}
@@ -359,15 +435,22 @@ function FactCard({ title, children }: { title: string; children: React.ReactNod
 }
 
 /**
- * List of linked catalogue measures; inactive measures are marked.
+ * List of linked catalogue measures; inactive measures are marked. The links keep the
+ * selected farm and year.
  */
-function MeasureList({ items }: { items: { m_id: string; m_name: string; inactive: boolean }[] }) {
+function MeasureList({
+  items,
+  context,
+}: {
+  items: { m_id: string; m_name: string; inactive: boolean }[]
+  context?: CatalogueFarmContext
+}) {
   return (
     <ul className="divide-y rounded-md border">
       {items.map((item) => (
         <li key={item.m_id}>
           <Link
-            to={getMeasureCataloguePath(item.m_id)}
+            to={getMeasureCataloguePath(item.m_id, context)}
             className="hover:bg-muted/50 flex items-center gap-2 px-3 py-2 text-sm transition-colors"
           >
             <span className="text-muted-foreground shrink-0 font-mono text-xs">

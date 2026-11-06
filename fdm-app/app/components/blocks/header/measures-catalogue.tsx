@@ -1,3 +1,4 @@
+import { useLocation } from "react-router"
 import {
   BreadcrumbItem,
   BreadcrumbLink,
@@ -7,13 +8,14 @@ import {
 
 /**
  * Breadcrumbs for the measures catalogue: the catalogue itself and, on a detail page,
- * the measure that is shown.
+ * the measure that is shown. The link back to the catalogue keeps the selected farm and year.
  */
 export function HeaderMeasuresCatalogue({ measureName }: { measureName?: string }) {
+  const { search } = useLocation()
   return (
     <>
       <BreadcrumbItem className={measureName ? "hidden xl:block" : undefined}>
-        <BreadcrumbLink href="/measures-catalogue">Maatregelencatalogus</BreadcrumbLink>
+        <BreadcrumbLink href={`/measures-catalogue${search}`}>Maatregelencatalogus</BreadcrumbLink>
       </BreadcrumbItem>
       {measureName ? (
         <>

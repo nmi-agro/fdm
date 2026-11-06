@@ -779,7 +779,7 @@ export default function MeasuresFieldDetail() {
                         {m.m_id.replace("bln_", "")}
                       </span>
                       <Link
-                        to={getMeasureCataloguePath(m.m_id)}
+                        to={getMeasureCataloguePath(m.m_id, { b_id_farm, calendar })}
                         className="truncate text-sm font-medium hover:underline"
                       >
                         {m.m_name}

@@ -2,7 +2,9 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-New Maatregelencatalogus at `/measures-catalogue`: a searchable list of all soil measures with filters on effect type, costs (laag, gemiddeld, hoog) and theme, sortable by name or code. Each measure shows its cost level, the number of indicators it affects and its effect type. Measures that are no longer in the catalogue are hidden unless "Inactieve maatregelen tonen" is switched on, and are marked as no longer available.
+New Maatregelencatalogus at `/measures-catalogue`: a searchable list of all soil measures with filters on effect type, costs (laag, gemiddeld, hoog) and theme, sortable by name or code. Each measure shows its cost level, the number of indicators it affects and its effect type, with a short explanation of the effect type. Measures that are no longer in the catalogue are hidden.
+
+A farm and year can be selected in the catalogue; it starts with the farm and year last opened. Measures applied on at least one field of that farm in that year get a green dot with the number of fields, and the "Status" filter shows only those measures. The detail page then lists the fields where the measure is applied, with its period and a link to the measures of that field. The farm and year are carried along when the catalogue is opened from a farm.
 
 The detail page of a measure shows the summary, the cost level, the effect type, the references (IDs in related schemes and a link to the source), the description, the indicators the measure affects with their theme and the range of effect sizes from the catalogue, the applicability conditions as a readable table, the conflicting measures that are in the catalogue and the other variants of the same measure.
 

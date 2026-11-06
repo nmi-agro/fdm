@@ -38,11 +38,12 @@ export function getMeasureCostLevel(
 const EFFECT_TYPES: Record<string, { label: string; description: string }> = {
   qual: {
     label: "Kwalitatief",
-    description: "Deze maatregel heeft een vast effect op de bodemindicatoren.",
+    description: "Het effect op elke indicator is een vaste waarde, gelijk voor alle percelen.",
   },
   classed: {
     label: "Geclassificeerd",
-    description: "Het effect van deze maatregel hangt af van de omstandigheden op het perceel.",
+    description:
+      "Het effect op een indicator hangt af van de omstandigheden op het perceel, zoals grondsoort, gewas of fosfaattoestand.",
   },
   quant: {
     label: "Kwantitatief",

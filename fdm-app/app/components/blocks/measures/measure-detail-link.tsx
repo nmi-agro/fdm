@@ -1,21 +1,15 @@
 import { ExternalLink, Info } from "lucide-react"
-import { Link } from "react-router"
+import { Link, useParams } from "react-router"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
 import { cn } from "~/lib/utils"
 
-/**
- * Returns the path of the detail page of a measure in the measures catalogue.
- *
- * @param m_id - Catalogue ID of the measure, e.g. `bln_BM7`.
- * @returns The path, e.g. `/measures-catalogue/bln_BM7`.
- */
-export function getMeasureCataloguePath(m_id: string): string {
-  return `/measures-catalogue/${encodeURIComponent(m_id)}`
-}
+export { getMeasureCataloguePath }
 
 /**
  * Icon link that opens the detail page of a measure in a new tab, so the user keeps the
- * current page (for example an open dialog or a filled-in form).
+ * current page (for example an open dialog or a filled-in form). On a farm page the farm and
+ * calendar year are passed along, so the detail page shows where the measure is applied.
  *
  * @param props.m_id - Catalogue ID of the measure.
  * @param props.m_name - Name of the measure, used in the accessible label.
@@ -33,13 +27,14 @@ export function MeasureDetailLink({
   icon?: "info" | "external"
   className?: string
 }) {
+  const { b_id_farm, calendar } = useParams()
   const Icon = icon === "info" ? Info : ExternalLink
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <Link
-            to={getMeasureCataloguePath(m_id)}
+            to={getMeasureCataloguePath(m_id, { b_id_farm, calendar })}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Open details voor ${m_name} in nieuw tabblad`}
