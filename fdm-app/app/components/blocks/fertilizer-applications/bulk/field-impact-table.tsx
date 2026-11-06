@@ -316,7 +316,11 @@ export function FieldImpactTable({
           {/* The cards have no column headers, so sorting gets its own control there */}
           <Select
             value={`${sort.key}:${sort.desc ? "desc" : "asc"}`}
+            items={SORT_OPTIONS}
             onValueChange={(value) => {
+              if (typeof value !== "string") {
+                return
+              }
               const [key, direction] = value.split(":") as [SortKey, string]
               setSort({ key, desc: direction === "desc" })
             }}
@@ -333,19 +337,21 @@ export function FieldImpactTable({
             </SelectContent>
           </Select>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                Kolommen
-                <ChevronDown className="size-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" size="sm">
+                  Kolommen
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Kolommen tonen</DropdownMenuLabel>
               {BASE_COLUMNS.slice(0, -1).map((key) => (
                 <DropdownMenuCheckboxItem
                   key={key}
                   checked={isShown(key)}
-                  onSelect={(event) => event.preventDefault()}
+                  closeOnClick={false}
                   onCheckedChange={(checked) => toggleColumn(key, checked === true)}
                 >
                   {COLUMN_LABELS[key]}
@@ -361,7 +367,7 @@ export function FieldImpactTable({
                     <DropdownMenuCheckboxItem
                       key={key}
                       checked={isShown(key)}
-                      onSelect={(event) => event.preventDefault()}
+                      closeOnClick={false}
                       onCheckedChange={(checked) => toggleColumn(key, checked === true)}
                     >
                       {NORM_HEADERS[key].full}
@@ -372,7 +378,7 @@ export function FieldImpactTable({
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
                 checked={isShown("status")}
-                onSelect={(event) => event.preventDefault()}
+                closeOnClick={false}
                 onCheckedChange={(checked) => toggleColumn("status", checked === true)}
               >
                 {COLUMN_LABELS.status}
@@ -472,7 +478,8 @@ export function FieldImpactTable({
                 <TableHead className="w-10">
                   <Checkbox
                     aria-label="Alle percelen meenemen"
-                    checked={allIncluded ? true : someIncluded ? "indeterminate" : false}
+                    checked={allIncluded}
+                    indeterminate={!allIncluded && someIncluded}
                     disabled={disabled}
                     onCheckedChange={(checked) =>
                       onSetIncluded?.(

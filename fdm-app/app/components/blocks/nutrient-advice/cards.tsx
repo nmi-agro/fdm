@@ -94,16 +94,18 @@ export function NutrientCard({
 
         {fertilizerApplications.length > 0 && numberOfApplicationsForNutrient > 0 ? (
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="h-auto w-full justify-between p-0">
-                <span className="text-sm font-medium">Bemestingen</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
+            <CollapsibleTrigger
+              render={
+                <Button variant="ghost" className="h-auto w-full justify-between p-0">
+                  <span className="text-sm font-medium">Bemestingen</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              }
+            />
             <CollapsibleContent className="mt-3 space-y-2">
               <Separator />
               <div className="space-y-3">
@@ -161,12 +163,18 @@ export function NutrientCard({
         ) : (
           <div className="flex items-center justify-between gap-2">
             <p className="text-muted-foreground text-sm">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
-            <Button variant="ghost" size="sm" className="h-auto shrink-0 p-0" asChild>
-              <NavLink to={to} className="flex items-center gap-1">
-                <CirclePlus className="h-3.5 w-3.5" />
-                Toevoegen
-              </NavLink>
-            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto shrink-0 p-0"
+              nativeButton={false}
+              render={
+                <NavLink to={to} className="flex items-center gap-1">
+                  <CirclePlus className="h-3.5 w-3.5" />
+                  Toevoegen
+                </NavLink>
+              }
+            />
           </div>
         )}
       </CardContent>

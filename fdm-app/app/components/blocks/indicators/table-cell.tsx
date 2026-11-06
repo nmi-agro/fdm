@@ -46,33 +46,35 @@ export const HeatmapCell = memo(function HeatmapCell({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="relative flex items-center justify-center">
-          {/* Coloured score circle */}
-          <div
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-              color ? "text-white" : "text-muted-foreground bg-muted",
-            )}
-            style={
-              color
-                ? {
-                    backgroundColor: color,
-                  }
-                : undefined
-            }
-          >
-            {display !== null ? display : "—"}
-          </div>
+      <TooltipTrigger
+        render={
+          <div className="relative flex items-center justify-center">
+            {/* Coloured score circle */}
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                color ? "text-white" : "text-muted-foreground bg-muted",
+              )}
+              style={
+                color
+                  ? {
+                      backgroundColor: color,
+                    }
+                  : undefined
+              }
+            >
+              {display !== null ? display : "—"}
+            </div>
 
-          {/* Delta badge (top-right corner) */}
-          {delta !== null && (
-            <span className="absolute -top-1 -right-1 rounded-full bg-green-500 px-1 text-xs leading-tight font-bold text-white">
-              +{delta}
-            </span>
-          )}
-        </div>
-      </TooltipTrigger>
+            {/* Delta badge (top-right corner) */}
+            {delta !== null && (
+              <span className="absolute -top-1 -right-1 rounded-full bg-green-500 px-1 text-xs leading-tight font-bold text-white">
+                +{delta}
+              </span>
+            )}
+          </div>
+        }
+      />
       <TooltipContent side="top" className="max-w-[200px] text-center">
         <p className="font-semibold">{indicator.name}</p>
         {verdict ? (

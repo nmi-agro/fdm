@@ -10,10 +10,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 export function FarmVerificationInfo({ className }: { className?: string }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button type="button" className={className} aria-label="Wat betekent geverifieerd?">
-          <Info className="text-muted-foreground h-3.5 w-3.5" />
-        </button>
+      <TooltipTrigger type="button" className={className} aria-label="Wat betekent geverifieerd?">
+        <Info className="text-muted-foreground h-3.5 w-3.5" />
       </TooltipTrigger>
       <TooltipContent className="max-w-70">
         Een bedrijf wordt geverifieerd zodra u met eHerkenning bij RVO een succesvolle opvraag doet

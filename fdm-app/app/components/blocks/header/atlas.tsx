@@ -29,11 +29,15 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
 
   function makeOption(info: AvailableAtlasLayerInfo) {
     return (
-      <DropdownMenuCheckedRadioItem value={info.value} className="cursor-pointer" asChild>
-        <NavLink key={info.value} to={info.url} className="w-full">
-          {info.label}
-        </NavLink>
-      </DropdownMenuCheckedRadioItem>
+      <DropdownMenuCheckedRadioItem
+        value={info.value}
+        className="cursor-pointer"
+        render={
+          <NavLink key={info.value} to={info.url} className="w-full">
+            {info.label}
+          </NavLink>
+        }
+      />
     )
   }
 

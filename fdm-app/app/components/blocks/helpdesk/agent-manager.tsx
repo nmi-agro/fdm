@@ -1,12 +1,12 @@
 import type { AgentAvailabilityStatus } from "@nmi-agro/fdm-helpdesk"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { Pencil, User, Users } from "lucide-react"
 import { useId, useMemo, type ComponentProps } from "react"
 import { Controller } from "react-hook-form"
 import { NavLink, useFetcher } from "react-router"
 import { useRemixForm, RemixFormProvider } from "remix-hook-form"
 import z from "zod"
-import { cn } from "@/app/lib/utils"
 import { useAgentManagerFilterStore } from "@/app/store/agent-manager-filter"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
@@ -44,8 +44,8 @@ export type HelpdeskUserExtended = HelpdeskUser & {
 }
 
 export const agentRoles = [
-  { name: "agent", label: "Medewerker" },
-  { name: "admin", label: "Beheerder" },
+  { value: "agent", label: "Medewerker" },
+  { value: "admin", label: "Beheerder" },
 ] as const
 
 type RoleDescription = (typeof agentRoles)[number]
@@ -129,7 +129,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
   const fetcher = useFetcher()
   const isSubmitting = fetcher.state !== "idle"
 
-  const defaultRole = roles[0].name
+  const defaultRole = roles[0].value
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onSubmit",
     resolver: zodResolver(FormSchema),
@@ -179,7 +179,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
                   <RoleSelect
                     defaultValue={defaultRole}
                     onValueChange={(value) =>
-                      form.setValue("role", value as RoleDescription["name"])
+                      form.setValue("role", value as RoleDescription["value"])
                     }
                     roles={roles}
                   />
@@ -225,14 +225,19 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       {canModify ? (
         <>
           <TableCell>
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
-              <NavLink
-                to={`/support/settings/agents/${principal.principal_id}`}
-                aria-label={`Bewerk medewerker ${principal.displayUserName}`}
-              >
-                <Pencil />
-              </NavLink>
-            </Button>
+            <Button
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground"
+              nativeButton={false}
+              render={
+                <NavLink
+                  to={`/support/settings/agents/${principal.principal_id}`}
+                  aria-label={`Bewerk medewerker ${principal.displayUserName}`}
+                >
+                  <Pencil />
+                </NavLink>
+              }
+            />
           </TableCell>
           <TableCell className="align-middle">
             {principal.isActive ? (
@@ -240,6 +245,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
                 roles={roles}
                 value={principal.role}
                 onValueChange={(value) => {
+                  if (typeof value !== "string") return
                   const formData = new FormData()
                   formData.append("intent", "update_agent_role")
                   formData.append("principal_id", principal.principal_id)
@@ -274,7 +280,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       ) : (
         <>
           <TableCell>
-            {roles.find((role) => role.name === principal.role)?.label ?? "Gebruiker"}
+            {roles.find((role) => role.value === principal.role)?.label ?? "Gebruiker"}
           </TableCell>
         </>
       )}
@@ -289,13 +295,13 @@ function RoleSelect(
 ) {
   const { roles, ...selectProps } = props
   return (
-    <Select {...selectProps}>
+    <Select items={roles} {...selectProps}>
       <SelectTrigger className="min-w-50">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {roles.map((item) => (
-          <SelectItem key={item.name} value={item.name}>
+          <SelectItem key={item.value} value={item.value}>
             {item.label}
           </SelectItem>
         ))}

@@ -172,7 +172,14 @@ function CutSeasonTableRow({
         {row.derivedYieldClass ? (
           <span className="text-sm">{CUT_YIELD_CLASS_LABELS[row.derivedYieldClass]}</span>
         ) : (
-          <Select value={variant.yieldclass} onValueChange={onSelectYieldClass}>
+          <Select
+            value={variant.yieldclass}
+            onValueChange={(value) => {
+              if (typeof value === "string") {
+                onSelectYieldClass(value)
+              }
+            }}
+          >
             <SelectTrigger className="h-8 w-48" aria-label={`Snedezwaarte voor snede ${row.cut}`}>
               <SelectValue />
             </SelectTrigger>

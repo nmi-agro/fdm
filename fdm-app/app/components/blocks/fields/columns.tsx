@@ -63,13 +63,8 @@ export function buildColumns(
       id: "select",
       header: ({ table }) => (
         <Checkbox
-          checked={
-            table.getIsAllRowsSelected()
-              ? true
-              : table.getIsSomeRowsSelected()
-                ? "indeterminate"
-                : false
-          }
+          checked={table.getIsAllRowsSelected()}
+          indeterminate={table.getIsSomeRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
         />
@@ -300,12 +295,14 @@ export function buildColumns(
 
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {/* <DropdownMenuLabel>Acties</DropdownMenuLabel>
                           <DropdownMenuItem

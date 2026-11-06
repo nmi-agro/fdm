@@ -124,6 +124,13 @@ export function FertilizerForm({
               <Select
                 onValueChange={field.onChange}
                 value={field.value ? String(field.value) : undefined}
+                items={param.options?.map((option) => ({
+                  value: option.value ?? "",
+                  label:
+                    param.parameter === "p_app_amount_unit"
+                      ? option.label
+                      : `${option.label} (${option.value ?? ""})`,
+                }))}
                 disabled={!editable}
               >
                 <SelectTrigger className="h-9">
@@ -269,14 +276,20 @@ export function FertilizerForm({
                   sjabloon om een eigen variant aan te maken.
                 </span>
                 {p_id && (
-                  <Button variant="outline" size="sm" className="shrink-0 font-semibold" asChild>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Gebruik als sjabloon
-                    </NavLink>
-                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 font-semibold"
+                    nativeButton={false}
+                    render={
+                      <NavLink
+                        to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Gebruik als sjabloon
+                      </NavLink>
+                    }
+                  />
                 )}
               </AlertDescription>
             </Alert>
