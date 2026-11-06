@@ -35,6 +35,8 @@ Onder **Gebruiksruimte** zie je hoeveel je volgens de mestregels mag bemesten, e
 | Stikstof uit dierlijke mest | kg N    | De norm voor dierlijke mest: 170 kg N/ha voor alle bedrijven            |
 | Renure                      | kg N    | Extra ruimte voor Renure-producten: 80 kg N/ha bovenop dierlijke mest   |
 
+![De gebruiksruimte van een bedrijf per norm](screenshot:gebruiksruimte-bedrijf)
+
 Per norm zie je de **Ruimte** (wat je mag), de **Opvulling** (wat je al hebt gebruikt) en een balkje met het percentage. Zo zie je in één oogopslag hoeveel ruimte er nog over is.
 
 ## Waar hangt het van af? {#afhankelijkheden}
@@ -45,6 +47,8 @@ Per norm zie je de **Ruimte** (wat je mag), de **Opvulling** (wat je al hebt geb
 - de regio (klei, veen, löss of zand) en of het perceel in een NV-gebied, grondwaterbeschermingsgebied of Natura 2000-gebied ligt;
 - de fosfaattoestand uit je bodemanalyse (P-CaCl₂ en P-Al);
 - of je grasland beweidt of alleen maait.
+
+![De gebruiksruimte van één perceel, met de onderbouwing per norm](screenshot:gebruiksruimte-perceel)
 
 Voor 2025 telt ook mee of je bedrijf derogatie had (instelbaar onder **Instellingen** → **Derogatie**).
 

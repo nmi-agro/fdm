@@ -65,7 +65,36 @@ Use plain text or _italics_ for emphasis. If bold text really is a label that th
 
 ### Screenshots
 
-Images only use the `screenshot:` scheme: `![De bouwplantabel met één gewas opengeklapt](screenshot:bouwplan-tabel)`. The alt text becomes the caption. Screenshot files (`screenshots/<id>.webp`, optional sizes in `screenshots/manifest.json`) are generated separately; until a file exists, the page renders nothing in production and a placeholder in development.
+Images only use the `screenshot:` scheme: `![De bouwplantabel met één gewas opengeklapt](screenshot:bouwplan-tabel)`. The alt text becomes the caption. Until the image exists, the page renders nothing in production and a placeholder in development.
+
+Screenshots are never made by hand. A Playwright run captures them from the current app with a synthetic demo farm (`fdm-app/e2e/seed`), always for the current year and under the name "MINAS2". It captures a 1920 × 1080 screen and writes `screenshots/<id>.webp` (WebP) and `screenshots/manifest.json` with the size of each image.
+
+**Adding a screenshot**
+
+1. Put `![Alt text](screenshot:<id>)` in the page. Ids are lowercase words with hyphens, such as `balans-stikstof`.
+2. Add a capture definition for the id in `screenshots/capture.ts` (types in `app/lib/manual/capture-types.ts`):
+
+   ```ts
+   "balans-stikstof": {
+     route: "/farm/{farm}/{year}/balance/nitrogen", // {farm}, {year} and {field:<key>} are filled in
+     ready: { role: "heading", name: "Stikstofbalans" }, // must be visible, or the run fails
+     steps: [{ click: { role: "tab", name: "Per perceel" } }], // optional: open a tab, expand a row
+     element: { selector: "main" }, // optional: capture one element instead of the viewport
+     map: true, // optional: wait until the map has loaded its tiles
+   },
+   ```
+
+   Choose a `ready` element that only appears when the page loaded correctly, so an error or empty state never ends up in the manual. Field keys are in `fdm-app/e2e/seed/demo-farm.ts`; extend the seed (`e2e/seed/index.ts`) when a page needs data that the demo farm lacks.
+
+3. `pnpm --filter @nmi-agro/fdm-app test` checks that every id has a definition and every definition is used. The capture run checks it again before it starts.
+
+**Running the capture locally**
+
+Follow the steps under "Tests" in `fdm-app/README.md` (an empty PostGIS database, `.env.e2e` with an `NMI_API_KEY`, a build and `e2e:install`), then run `pnpm --filter @nmi-agro/fdm-app screenshots`. An image that has not changed is left alone, so the pull request only contains real changes. Outside maps, more than 40 changed pixels count as a change, so a changed label or number always shows up. Inside a map up to 2 % of the pixels may change, because tiles render slightly differently between runs. Images without a definition are removed. Review every new or changed image before you commit it.
+
+**In CI**
+
+The workflow `.github/workflows/manual-screenshots.yml` runs the capture on `development`, on demand and after every fdm-app release. When images changed, it opens or updates the pull request `docs(fdm-app): update the manual screenshots`, listing the added, changed and removed images. A maintainer reviews the images before merging.
 
 ### Frequently asked questions
 

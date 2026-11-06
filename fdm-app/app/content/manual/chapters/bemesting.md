@@ -54,6 +54,8 @@ Klik op **Voeg toe**. Pas je een bestaande gift aan, dan heet de knop **Opslaan*
 
 Zodra je een meststof, hoeveelheid en datum hebt gekozen, rekent {{appName}} uit wat de gift doet. Je ziet "Effect berekenen…" en daarna een samenvatting naast het formulier. Er is nog niets opgeslagen: je kunt de hoeveelheid of de meststof aanpassen en direct zien wat er verandert.
 
+![Het bemestingsformulier met ernaast het effect van de gift](screenshot:bemesting-effect)
+
 De samenvatting heeft drie onderdelen, elk met een link naar de pagina met alle details:
 
 | Onderdeel            | Wat zie je?                                                                                                                                                               |
@@ -87,6 +89,8 @@ Zo pas je de hoeveelheid aan of laat je een perceel weg voordat je opslaat.
 
 Onder **Meststoffen** in de zijbalk zie je alle meststoffen van het bedrijf, met hun gehaltes aan onder meer stikstof, N-werking, fosfaat, kali en droge stof, en de mestcode van RVO. Producten die je zelf hebt toegevoegd, herken je aan het label **Eigen meststof**.
 
+![De meststoffenlijst van een bedrijf, met de gehaltes per meststof](screenshot:meststoffen-lijst)
+
 ## Een eigen meststof toevoegen {#meststof-toevoegen}
 
 Gebruik je eigen drijfmest of een product met een eigen analyse? Voeg het dan toe als eigen meststof. Dat loont: de gebruiksruimte, het bemestingsadvies en de stikstofbalans rekenen dan met jouw gehaltes in plaats van met standaardwaarden.
@@ -96,6 +100,8 @@ Gebruik je eigen drijfmest of een product met een eigen analyse? Voeg het dan to
 3. Vul de **Naam**, de **Mestcode (RVO)** en de **Voorkeurseenheid** in (kg/ha, ton/ha, l/ha of m³/ha), en vink aan hoe je de meststof toedient.
 4. Vul de gehaltes in, bijvoorbeeld uit je mestanalyse. Vul je stikstof in, dan vraagt de app ook de **N-werking**. Kies je liters of kubieke meters als eenheid, dan is ook de **Dichtheid** nodig.
 5. Klik op **Meststof opslaan**.
+
+![Het formulier voor een eigen meststof](screenshot:meststof-toevoegen)
 
 Producten uit de standaardlijst kun je niet wijzigen, maar wel kopiëren met **Gebruik als sjabloon**.
 

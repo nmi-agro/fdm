@@ -33,6 +33,8 @@ Klik in de zijbalk op **Atlas** en kies een kaartlaag. Op een kaart wissel je va
 - **Terug naar percelen**: zoom terug naar de percelen van je eigen bedrijf.
 - **Kies kaartstijl**: wissel tussen bijvoorbeeld satelliet en topografische kaart.
 
+![De Atlas met de percelen van het demobedrijf, omlijnd, op de gewaspercelen uit het BRP](screenshot:atlas-gewaspercelen)
+
 ## De kaartlagen {#kaartlagen}
 
 | Kaartlaag         | Wat zie je?                                                                                                       | Bedrijf nodig? |
@@ -60,6 +62,8 @@ Deze gegevens zijn schattingen van NMI op basis van landelijke bestanden, geen m
 Op de **Bodemkaart** klik je op een vlak om te zien welke bodem daar ligt, met de bodemcode en een korte beschrijving. Deze kaart werkt het best met de satellietondergrond.
 
 De **Hoogtekaart** laat met kleuren zien waar het hoger en lager ligt. De kleurschaal past zich aan het stuk kaart aan dat je bekijkt, zodat je ook kleine hoogteverschillen binnen een perceel ziet. Beweeg met je muis over de kaart om de precieze hoogte te zien. Zoom ver genoeg in voor het meeste detail.
+
+![De Hoogtekaart rond de percelen van het demobedrijf](screenshot:atlas-hoogtekaart)
 
 ## Bodemanalyses op de kaart {#bodemanalyses-op-de-kaart}
 

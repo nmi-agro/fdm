@@ -30,6 +30,8 @@ De balansen laten zien wat er op je bedrijf binnenkomt en weer afgaat. {{appName
 
 De stikstofbalans zet de aanvoer af tegen de afvoer en de emissie, in kg N per hectare.
 
+![De stikstofbalans van een bedrijf, met aanvoer, afvoer en emissie](screenshot:balans-stikstof)
+
 | Post    | Wat valt eronder?                                                                                                                                      |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Aanvoer | Kunstmest, dierlijke mest, compost, overige meststoffen, binding door vlinderbloemigen (fixatie), depositie uit de lucht en mineralisatie uit de bodem |
@@ -45,6 +47,8 @@ Hoe de posten en het doel worden bepaald, lees je in [Stikstofbalans](/manual/ba
 ## Organische-stofbalans {#organische-stofbalans}
 
 De organische-stofbalans laat zien of het organischestofgehalte van je bodem op peil blijft. De aanvoer komt uit bemesting (mest, compost), gewassen en gewasresten. Daar staat de afbraak in de bodem tegenover. Is de balans positief, dan bouw je organische stof op; is hij negatief, dan neemt het gehalte af.
+
+![De organische-stofbalans van een bedrijf](screenshot:balans-organische-stof)
 
 Meer over de berekening lees je in [Organische-stofbalans](/manual/background/organische-stofbalans).
 

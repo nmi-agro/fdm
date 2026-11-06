@@ -42,6 +42,8 @@ Een bedrijf heeft altijd minstens één eigenaar.
 2. Zoek de persoon of organisatie onder **Zoek naar een gebruiker of organisatie**. Heeft diegene nog geen account? Typ dan het e-mailadres; er gaat een uitnodiging naartoe.
 3. Kies de rol en klik op **Uitnodigen**.
 
+![Toegang tot een bedrijf delen met een gebruiker of organisatie](screenshot:toegang-delen)
+
 De ander ziet de uitnodiging op **Mijn bedrijven** en klikt op **Accepteren**. Wil je iemand later een andere rol geven of de toegang intrekken? Dat doe je in dezelfde lijst.
 
 ## Organisaties {#organisaties}

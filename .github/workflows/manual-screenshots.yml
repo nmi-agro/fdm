@@ -1,0 +1,126 @@
+name: Manual screenshots
+
+# Captures the screenshots of the user manual (fdm-app/app/content/manual) from the current app
+# with a synthetic demo farm, and opens or updates a pull request when images changed.
+#
+# Runs on demand and after every fdm-app release (started from release.yml). It never runs for
+# pull requests, so the API keys below are never exposed to forks.
+#
+# Needs these repository settings:
+# - secret NMI_API_KEY: for nutrient advice, BLN3 indicators and soil estimates;
+# - secret MAPTILER_API_KEY (optional): map tiles; without it OpenStreetMap tiles are used;
+# - variable SCREENSHOTS_APP_CLIENT_ID and secret SCREENSHOTS_APP_PRIVATE_KEY: a GitHub App with
+#   contents and pull-requests write access, so that CI runs on the pull request it opens.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: manual-screenshots
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    name: Capture
+    # The pull request targets development, so only capture from development.
+    if: github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      TZ: Europe/Amsterdam
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.8.1
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Build fdm-app
+        run: pnpm turbo run build --filter=@nmi-agro/fdm-app...
+
+      - name: Install Chromium
+        run: pnpm --filter @nmi-agro/fdm-app exec playwright install --with-deps chromium
+
+      - name: Generate session secrets
+        run: |
+          for name in BETTER_AUTH_SECRET FDM_SESSION_SECRET; do
+            value=$(openssl rand -hex 32)
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Capture screenshots
+        run: pnpm --filter @nmi-agro/fdm-app exec playwright test --project=screenshots
+        env:
+          CI: true
+          NMI_API_KEY: ${{ secrets.NMI_API_KEY }}
+          PUBLIC_MAP_PROVIDER: ${{ secrets.MAPTILER_API_KEY != '' && 'maptiler' || 'osm' }}
+          PUBLIC_MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: manual-screenshots-report
+          path: |
+            fdm-app/e2e/.output/report
+            fdm-app/e2e/.output/test-results
+          retention-days: 14
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.SCREENSHOTS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SCREENSHOTS_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Open or update the screenshot pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: chore/manual-screenshots
+          base: development
+          add-paths: fdm-app/app/content/manual/screenshots/**
+          commit-message: "docs(fdm-app): update the manual screenshots"
+          title: "docs(fdm-app): update the manual screenshots"
+          body-path: fdm-app/e2e/.output/screenshots/summary.md
+          delete-branch: true

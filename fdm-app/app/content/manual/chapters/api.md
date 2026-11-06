@@ -44,6 +44,8 @@ De API geeft je dezelfde gegevens en berekeningen als de app:
 3. Geef de sleutel bij **Naam** een herkenbare naam, bijvoorbeeld de naam van je dashboard, en klik op **Aanmaken**.
 4. Klik op **Kopiëren** en bewaar de sleutel op een veilige plek. Je ziet hem maar één keer; daarna is hij niet meer op te vragen.
 
+![De pagina API-sleutels in het account](screenshot:api-sleutels)
+
 Behandel een sleutel als een wachtwoord: deel hem niet en zet hem niet in code die anderen kunnen zien. Gebruik je een sleutel niet meer, of vertrouw je het niet? Klik dan op **Sleutel intrekken** en bevestig met **Intrekken**. Koppelingen die die sleutel gebruiken, werken daarna direct niet meer.
 
 ## Inloggen met je sleutel {#authenticatie}

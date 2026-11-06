@@ -1,0 +1,9 @@
+{
+  "//": "Used by Playwright only. It resolves the workspace packages to their built dist (unlike ../tsconfig.json, which maps them to src for type checking).",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "~/*": ["../app/*"]
+    }
+  }
+}

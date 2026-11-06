@@ -53,6 +53,29 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
     pnpm start
 ```
 
+## Tests
+
+- **Unit tests** (`pnpm test`) cover pure modules, such as the user manual's content checks. They need no database.
+- **End-to-end runs** use Playwright (`playwright.config.ts`, code in `e2e/`). The app runs as a production build (`node server.js`) against an empty PostGIS database:
+  - `e2e/seed` creates a synthetic user and farm through `fdm-core` (variant `minimal` or `demo`). It refuses to run when the database already contains farms.
+  - `e2e/support/auth.ts` signs in through the normal magic-link flow and reads the one-time code from the database, so no test-only login mode is needed.
+  - The `screenshots` project captures the user manual's screenshots; see `app/content/manual/README.md`.
+
+To run them locally:
+
+1. Create an empty database with PostGIS, for example `fdm_e2e` (`CREATE EXTENSION postgis;`).
+2. Create `fdm-app/.env.e2e` from `.env.e2e.example` and point `POSTGRES_*` at that database.
+3. Build the app and its packages, and install Chromium once:
+
+   ```bash
+   pnpm turbo run build --filter=@nmi-agro/fdm-app...
+   pnpm --filter @nmi-agro/fdm-app e2e:install
+   ```
+
+4. Run a project, for example `pnpm --filter @nmi-agro/fdm-app screenshots`. Drop and recreate the database before the next run.
+
+Starting the server can take a few minutes. To try changes quickly, keep the server running in a second terminal (`pnpm exec dotenvx run -f .env.e2e -- sh -c "node ./app/lib/fdm-migrate.server.js && node ./server.js"`, with the environment that `playwright.config.ts` gives the app (`appEnv`)). Playwright reuses it. After the first run, set `E2E_REUSE_SEED=1` to keep the seeded farm, and add `--grep <id>` to capture a single screenshot.
+
 ## Key Functionalities
 
 - **Farm Management:** Create, view, update, and delete farm records, including adding and removing associated fields. Manage farm details and their associated data using the application.

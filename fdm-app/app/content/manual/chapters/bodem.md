@@ -37,6 +37,8 @@ Als je percelen importeert, vult {{appName}} vaak al bodemwaarden in met een sch
 - **Geschat met NMI BodemSchat**: een schatting.
 - **Berekend**: afgeleid uit andere waarden.
 
+![De bodemgegevens van een perceel, met per waarde de bron](screenshot:bodem-perceel)
+
 Heb je labanalyses? Voeg ze dan zeker toe, zodat de berekeningen op jouw eigen meetwaarden draaien. In [Bodemanalyse](/manual/background/bodemanalyse) lees je welke waarden waarvoor worden gebruikt.
 
 ## Alle analyses in één keer uploaden {#bodemanalyses-uploaden}
@@ -48,6 +50,8 @@ Je begint op een van deze plekken:
 - op het bedrijfsdashboard onder **Acties**: **Upload bodemanalyses**;
 - tijdens het aanmaken van een bedrijf, in de stap Percelen: **Bodemanalyses uploaden (pdf)**;
 - op de bodempagina van een perceel, bij "Rapporten voor meerdere percelen?": **Meerdere PDF's uploaden**.
+
+![Bodemanalyses voor meerdere percelen tegelijk uploaden](screenshot:bodemanalyses-uploaden)
 
 Het uploaden gaat in vier stappen:
 
@@ -88,6 +92,8 @@ Ga op de perceelpagina naar **Bodem** en klik op **Bodemanalyse toevoegen**. Heb
 | **Nmin-bemonstering**      | Je hebt een Nmin-meting: nitraat-N en ammonium-N, of de N-voorraad in kg N/ha.                                            |
 | **Analyse voor derogatie** | Je hebt een analyse voor de derogatie. Vanaf 2026 staat deze onder **Meer opties**.                                       |
 | **Alle bodemparameters**   | Je wilt andere of extra parameters invullen. Deze staat onder **Meer opties**.                                            |
+
+![De keuze van het soort bodemanalyse bij het toevoegen](screenshot:bodemanalyse-toevoegen)
 
 Bij handmatig invoeren zijn **Laboratorium**, **Datum** en **Bemonsterde laag (onderkant)** verplicht. De rest vul je in voor zover je het weet.
 

@@ -24,6 +24,8 @@ De tijdlijn laat het hele jaar van je bedrijf in één beeld zien: per perceel e
 
 Open **Tijdlijn** in de zijbalk. Met **Dagelijks**, **Maandelijks** of **Kwartaal** zoom je in of uit, en **Vandaag** brengt je terug naar de huidige datum. Onder **Filters** kies je wat je wilt zien: gewassen, bemesting, oogst en bodemanalyses, en of bufferstroken en toekomstige gebeurtenissen meedoen.
 
+![De tijdlijn met per perceel de gewassen, bemestingen en oogsten](screenshot:tijdlijn)
+
 ## Direct bewerken {#bewerken}
 
 Je kunt in de tijdlijn ook meteen dingen aanpassen:
