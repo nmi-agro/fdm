@@ -1,5 +1,4 @@
 import type { FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
-import { Popover as PopoverPrimitive } from "@base-ui/react"
 import { Command as CommandPrimitive } from "cmdk"
 import { Check, User, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -194,6 +193,9 @@ export function AutoComplete<
     }
   }
 
+  // Anchor for the PopoverContent. Needs to be a state in order to create rerenders.
+  const [anchor, setAnchor] = useState<HTMLDivElement | null>(null)
+
   return (
     <div className={cn("flex items-center", className)}>
       <Popover
@@ -213,7 +215,7 @@ export function AutoComplete<
         }}
       >
         <Command shouldFilter={false} className="w-full">
-          <PopoverPrimitive.Positioner className="relative w-full">
+          <div ref={setAnchor} className="relative w-full">
             <CommandPrimitive.Input
               asChild
               value={inputValue}
@@ -255,11 +257,12 @@ export function AutoComplete<
                 <X className="size-3.5" />
               </button>
             )}
-          </PopoverPrimitive.Positioner>
+          </div>
           {!open && <CommandList aria-hidden="true" className="hidden" />}
           <PopoverContent
+            anchor={anchor}
             initialFocus={false}
-            className="w-(--radix-popover-trigger-width) p-0"
+            className="w-(--anchor-width) p-0"
             render={
               <CommandList>
                 {isLoading && (
