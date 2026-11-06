@@ -23,6 +23,13 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
   return createFdmApi(mockFdm, mockAuth, config, services)
 }
 
+/** Mimics fdm-core: the range error wrapped by `handleError` as the `cause`. */
+function outOfRangeError() {
+  const cause = new Error("Applied amount must be greater than 0 and at most 100000 kg/ha")
+  cause.name = "AppAmountOutOfRangeError"
+  return new Error("Exception for addFertilizerApplication", { cause })
+}
+
 const baseApplication = {
   p_id: "fert-1",
   p_id_catalogue: "cat-1",
@@ -117,6 +124,48 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
       }),
     })
     expect(res.status).toBe(403)
+  })
+
+  it.each([0, -5])("returns 400 for an amount of %s", async (amount) => {
+    const addFertilizerApplication = vi.fn()
+    const app = makeApp({ addFertilizerApplication })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: amount,
+        p_app_method: "injecteren",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(400)
+    expect(addFertilizerApplication).not.toHaveBeenCalled()
+  })
+
+  it("returns 422 when the amount converts to more than 100,000 kg/ha", async () => {
+    const app = makeApp({
+      addFertilizerApplication: vi.fn().mockRejectedValue(outOfRangeError()),
+    })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: 200,
+        p_app_method: "injecteren",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(422)
+    const body = await res.json()
+    expect(body.type).toBe("https://test.example.com/problems/unprocessable-entity")
   })
 })
 
@@ -224,6 +273,41 @@ describe("PATCH /fertilizer-applications/:p_app_id", () => {
       body: JSON.stringify({ p_app_amount_display: 45 }),
     })
     expect(res.status).toBe(403)
+  })
+
+  it("returns 422 when the amount is out of range after conversion", async () => {
+    const app = makeApp({
+      getFertilizerApplication: vi.fn().mockResolvedValue(baseApplication),
+      updateFertilizerApplication: vi.fn().mockRejectedValue(outOfRangeError()),
+    })
+    const res = await app.request("/fertilizer-applications/app-1", {
+      method: "PATCH",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ p_app_amount_display: 5000 }),
+    })
+    expect(res.status).toBe(422)
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+  })
+
+  it("keeps the stored amount when only the date changes", async () => {
+    const updateFertilizerApplication = vi.fn().mockResolvedValue(undefined)
+    const app = makeApp({
+      getFertilizerApplication: vi.fn().mockResolvedValue(baseApplication),
+      updateFertilizerApplication,
+    })
+    const res = await app.request("/fertilizer-applications/app-1", {
+      method: "PATCH",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ p_app_date: "2024-04-01" }),
+    })
+    expect(res.status).toBe(200)
+    expect(updateFertilizerApplication.mock.calls[0][4]).toBeNull()
   })
 })
 

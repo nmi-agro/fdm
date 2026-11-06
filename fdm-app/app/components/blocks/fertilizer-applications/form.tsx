@@ -36,6 +36,7 @@ import {
   FormSchema,
   FormSchemaModify,
   type FormSchemaPartial,
+  withAppAmountRange,
 } from "./formschema"
 
 /**
@@ -106,7 +107,10 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   const form = useRemixForm<FieldFertilizerFormValues>({
     mode: "onTouched",
     resolver: zodResolver(
-      schema ?? (fertilizerApplication ? FormSchemaModify : FormSchema),
+      withAppAmountRange(
+        schema ?? (fertilizerApplication ? FormSchemaModify : FormSchema),
+        options,
+      ),
     ) as never,
     defaultValues: {
       intent: intent,

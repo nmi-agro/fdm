@@ -83,3 +83,67 @@ export function fromKgPerHa(
       return null
   }
 }
+
+/**
+ * Maximum applied amount of a fertilizer application, in kg/ha (inclusive).
+ *
+ * The applied amount (`p_app_amount`) must be greater than 0 and at most this value.
+ * @alpha
+ */
+export const P_APP_AMOUNT_MAX = 100_000
+
+/**
+ * Error thrown when the applied amount of a fertilizer application, converted to kg/ha, is not
+ * greater than 0 or is greater than {@link P_APP_AMOUNT_MAX}.
+ *
+ * Callers can recognise it with `instanceof` or by its `name`, also when it is the `cause` of a
+ * wrapping error.
+ * @alpha
+ */
+export class AppAmountOutOfRangeError extends Error {
+  /** The applied amount in kg/ha that was rejected. */
+  public readonly p_app_amount: number
+
+  /**
+   * @param p_app_amount The rejected applied amount in kg/ha.
+   */
+  constructor(p_app_amount: number) {
+    super(
+      `Applied amount must be greater than 0 and at most ${P_APP_AMOUNT_MAX} kg/ha, received ${p_app_amount} kg/ha`,
+    )
+    this.name = "AppAmountOutOfRangeError"
+    this.p_app_amount = p_app_amount
+  }
+}
+
+/**
+ * Checks whether an applied amount in kg/ha lies in the accepted range
+ * (0 < `p_app_amount` ≤ {@link P_APP_AMOUNT_MAX}).
+ *
+ * @param p_app_amount The applied amount in kg/ha.
+ * @returns `true` when the amount is accepted.
+ * @alpha
+ */
+export function isAppAmountInRange(p_app_amount: number): boolean {
+  return Number.isFinite(p_app_amount) && p_app_amount > 0 && p_app_amount <= P_APP_AMOUNT_MAX
+}
+
+/**
+ * Returns the maximum applied amount in the display unit of a fertilizer, so that a form can
+ * check the entered value and show the limit in the unit the user sees.
+ *
+ * The lower bound is exclusive 0 in every unit.
+ *
+ * @param unit The display unit of the fertilizer (`p_app_amount_unit`).
+ * @param density The density of the fertilizer in kg/l. Required for volume-based units.
+ * @returns The maximum in the display unit, or `null` when the density needed for the
+ * conversion is missing.
+ * @alpha
+ */
+export function getAppAmountDisplayRange(
+  unit: AppAmountUnit,
+  density?: number | Decimal | null,
+): { max: number } | null {
+  const max = fromKgPerHa(P_APP_AMOUNT_MAX, unit, density)
+  return max === null ? null : { max }
+}

@@ -101,6 +101,16 @@ const PERMISSION_MESSAGES = new Set([
   "Principal does not have permission to perform this action",
 ])
 
+/**
+ * Checks whether an error or any error in its `cause` chain has the given `name`, for example an
+ * fdm-core validation error wrapped by `handleError`.
+ */
+function hasErrorName(err: unknown, name: string): boolean {
+  if (!(err instanceof Error)) return false
+  if (err.name === name) return true
+  return hasErrorName(err.cause, name)
+}
+
 function isPermissionDenied(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   if (PERMISSION_MESSAGES.has(err.message)) return true
@@ -128,6 +138,15 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
     }
     if (err instanceof ApiError) {
       return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras, err.errorId)
+    }
+    if (hasErrorName(err, "AppAmountOutOfRangeError")) {
+      return problemResponse(
+        c,
+        422,
+        "unprocessable-entity",
+        "The application amount must be greater than 0 and at most 100,000 kg/ha after conversion to kg/ha.",
+        appUrl,
+      )
     }
     if (isPermissionDenied(err)) {
       return problemResponse(

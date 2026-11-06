@@ -281,6 +281,19 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
 }
 
 /**
+ * Recursively checks whether an error or any error in its cause chain has the given `name`.
+ *
+ * @param error - The caught value.
+ * @param name - The error name to look for, e.g. `"AppAmountOutOfRangeError"`.
+ * @returns `true` if the error or one of its causes has that name.
+ */
+export function containsErrorName(error: unknown, name: string): boolean {
+  if (!(error instanceof Error)) return false
+  if (error.name === name) return true
+  return containsErrorName(error.cause, name)
+}
+
+/**
  * Checks whether a caught value is a `remix-toast` response that already carries a toast, rather
  * than an error.
  *
@@ -358,6 +371,14 @@ export async function handleActionError(error: unknown) {
       null,
       "Een bedrijf moet minimaal één eigenaar hebben. Wijs eerst een andere eigenaar aan voordat je deze rol wijzigt.",
     )
+  }
+
+  // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)
+  if (containsErrorName(error, "AppAmountOutOfRangeError")) {
+    console.warn("Fertilizer application amount out of range:", error)
+    const userMessage =
+      "De hoeveelheid moet groter zijn dan 0 en mag niet groter zijn dan 100.000 kg/ha. Controleer de ingevoerde hoeveelheid."
+    return dataWithWarning({ warning: userMessage }, userMessage, { status: 400 })
   }
 
   // Handle 'data' thrown errors (and real thrown `Response` objects)
