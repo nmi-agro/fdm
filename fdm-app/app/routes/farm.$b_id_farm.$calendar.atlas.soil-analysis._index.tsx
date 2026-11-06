@@ -518,8 +518,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
             <SelectTrigger className="h-8 w-full text-xs">
               {parameterDescription?.name}
             </SelectTrigger>
-            {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
-            <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
+            {/* var(--available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
+            <SelectContent className="max-h-[min(var(--available-height,100vh),calc(var(--anchor-height,0)+100*var(--spacing)))]">
               {soilParameterOptions.map((opt) => {
                 return (
                   <SelectItem key={opt.parameter} value={opt.parameter}>

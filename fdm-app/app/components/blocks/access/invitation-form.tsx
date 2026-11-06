@@ -16,6 +16,7 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
+import { FARM_ROLES } from "./principal-row"
 
 // Define the type for the principal object based on usage
 type Principal = {
@@ -142,6 +143,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
             <Select
               defaultValue={form.getValues("role")}
               name="role"
+              items={FARM_ROLES}
               onValueChange={(value) =>
                 form.setValue("role", value as "owner" | "advisor" | "researcher")
               }
@@ -150,9 +152,11 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
                 <SelectValue placeholder="Selecteer rol" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owner">Eigenaar</SelectItem>
-                <SelectItem value="advisor">Adviseur</SelectItem>
-                <SelectItem value="researcher">Onderzoeker</SelectItem>
+                {FARM_ROLES.map((desc) => (
+                  <SelectItem key={desc.value} value={desc.value}>
+                    {desc.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button

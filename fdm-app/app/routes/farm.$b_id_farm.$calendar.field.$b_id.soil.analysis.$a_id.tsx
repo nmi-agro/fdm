@@ -181,9 +181,7 @@ export default function FarmFieldSoilAnalysisBlock() {
       <div className="flex flex-wrap items-center justify-end gap-2 empty:hidden">
         {soilAnalysis.a_file_path && (
           <Dialog>
-            <DialogTrigger asChild>
-              <ViewPdfButton variant="outline" size="sm" />
-            </DialogTrigger>
+            <DialogTrigger render={<ViewPdfButton variant="outline" size="sm" />} />
             <PdfViewerDialogContent
               downloadUrl={`/api/soil-analysis/download/${soilAnalysis.a_id}.pdf`}
               filename={getSoilAnalysisDownloadName(
@@ -196,12 +194,16 @@ export default function FarmFieldSoilAnalysisBlock() {
           </Dialog>
         )}
         {soilAnalysisWritePermission && !isEditing && (
-          <Button asChild size="sm">
-            <NavLink to={{ search: "?modus=bewerken" }}>
-              <Pencil />
-              Bewerken
-            </NavLink>
-          </Button>
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={
+              <NavLink to={{ search: "?modus=bewerken" }}>
+                <Pencil />
+                Bewerken
+              </NavLink>
+            }
+          />
         )}
       </div>
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)] xl:items-start">
@@ -212,9 +214,11 @@ export default function FarmFieldSoilAnalysisBlock() {
               soilParameterDescription={soilParameterDescription}
               action="."
               secondaryAction={
-                <Button asChild variant="ghost">
-                  <NavLink to={{ search: "" }}>Annuleren</NavLink>
-                </Button>
+                <Button
+                  variant="ghost"
+                  nativeButton={false}
+                  render={<NavLink to={{ search: "" }}>Annuleren</NavLink>}
+                />
               }
             />
           ) : (

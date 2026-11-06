@@ -134,8 +134,8 @@ export function DatePicker<TFieldValues extends FieldValues>({
     <Controller
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <Field className="flex flex-col">
+      render={({ field, fieldState }) => (
+        <Field className="flex flex-col" data-invalid={!isInputValid || fieldState.invalid}>
           <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
           <div className="relative flex gap-2">
             <FieldContent>
@@ -145,6 +145,10 @@ export function DatePicker<TFieldValues extends FieldValues>({
                 placeholder="Kies een datum"
                 className="bg-background pr-10"
                 disabled={disabled}
+                aria-invalid={!isInputValid || fieldState.invalid}
+                aria-describedby={
+                  !isInputValid || fieldState.error ? `${field.name}-error` : undefined
+                }
                 onChange={(e) => setValue(e.target.value)}
                 onBlur={(e) => {
                   const text = e.target.value
@@ -221,7 +225,9 @@ export function DatePicker<TFieldValues extends FieldValues>({
             </Popover>
           </div>
           <FieldDescription>{description}</FieldDescription>
-          <FieldError>{!isInputValid ? "Ongeldige datum" : null}</FieldError>
+          <FieldError id={`${field.name}-error`}>
+            {!isInputValid ? "Ongeldige datum" : (fieldState.error?.message ?? null)}
+          </FieldError>
         </Field>
       )}
     />

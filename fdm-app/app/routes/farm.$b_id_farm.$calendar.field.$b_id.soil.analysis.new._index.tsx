@@ -113,12 +113,17 @@ export default function FarmFieldSoilAnalysisNewBlock() {
           Upload de PDF's van meerdere percelen van dit bedrijf in één keer.
         </p>
       </div>
-      <Button asChild variant="outline" className="max-sm:w-full pointer-coarse:h-11">
-        <NavLink to={`/farm/${b_id_farm}/soil-analysis/bulk`}>
-          <Files aria-hidden />
-          Meerdere PDF's uploaden
-        </NavLink>
-      </Button>
+      <Button
+        variant="outline"
+        className="max-sm:w-full pointer-coarse:h-11"
+        nativeButton={false}
+        render={
+          <NavLink to={`/farm/${b_id_farm}/soil-analysis/bulk`}>
+            <Files aria-hidden />
+            Meerdere PDF's uploaden
+          </NavLink>
+        }
+      />
     </div>
   )
 

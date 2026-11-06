@@ -30,12 +30,16 @@ export default function TicketViewerNoSelection() {
           Hier ziet u alle tickets die u heeft aangemaakt. Selecteer een ticket om het gesprek te
           bekijken of te vervolgen.
         </EmptyDescription>
-        <Button asChild className="mt-2">
-          <NavLink to="/support/new">
-            <Plus className="size-4" />
-            Nieuw ticket aanmaken
-          </NavLink>
-        </Button>
+        <Button
+          className="mt-2"
+          nativeButton={false}
+          render={
+            <NavLink to="/support/new">
+              <Plus className="size-4" />
+              Nieuw ticket aanmaken
+            </NavLink>
+          }
+        />
       </EmptyContent>
     </Empty>
   )

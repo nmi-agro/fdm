@@ -75,10 +75,13 @@ export function TicketComposer({
                   </FieldDescription>
                   <Select
                     value={field.value ?? "NO_SELECTION"}
-                    items={farmOptions?.map((opt) => ({
-                      value: opt.b_id_farm,
-                      label: opt.b_name_farm,
-                    }))}
+                    items={[
+                      { value: "NO_SELECTION", label: "Geen specifiek bedrijf" },
+                      ...(farmOptions ?? []).map((opt) => ({
+                        value: opt.b_id_farm,
+                        label: opt.b_name_farm,
+                      })),
+                    ]}
                     onValueChange={(value) => {
                       field.onChange(value === "NO_SELECTION" ? null : value)
                     }}

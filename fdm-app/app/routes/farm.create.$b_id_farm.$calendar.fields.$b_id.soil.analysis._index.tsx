@@ -76,13 +76,18 @@ export default function FarmFieldSoilOverviewBlock() {
             Upload het PDF-rapport van het lab, of voer de waarden zelf in.
           </p>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
-          <NavLink to={`../${location.search}`}>
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={
+            <NavLink to={`../${location.search}`}>
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          }
+        />
       </div>
       <Separator />
       <SoilAnalysisFormSelection uploadHref="./upload" />

@@ -200,7 +200,17 @@ export function AutoComplete<
     <div className={cn("flex items-center", className)}>
       <Popover
         open={open}
-        onOpenChange={(value, { reason }) => {
+        onOpenChange={(value, { reason, event, cancel }) => {
+          // A press inside the input wrapper is not an outside press: keep the suggestions open.
+          if (
+            !value &&
+            reason === "outside-press" &&
+            event.target instanceof Node &&
+            anchor?.contains(event.target)
+          ) {
+            cancel()
+            return
+          }
           if (
             !value &&
             (reason === "trigger-hover" ||

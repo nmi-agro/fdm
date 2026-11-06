@@ -825,18 +825,20 @@ export default function MeasuresFieldDetail() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive h-8 w-8"
-                            title="Verwijderen"
-                            aria-label={`${m.m_name} verwijderen`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialogTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-destructive h-8 w-8"
+                              title="Verwijderen"
+                              aria-label={`${m.m_name} verwijderen`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>

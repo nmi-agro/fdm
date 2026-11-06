@@ -352,18 +352,17 @@ function YearSwitcher({ calendar, pathname }: { calendar: string; pathname: stri
         }
       />
 
-      <DropdownMenuContent
-        align="start"
-        render={
-          <>
-            {years.map((year) => (
-              <DropdownMenuItem key={year}>
-                <NavLink to={pathname.replace(`/${calendar}/`, `/${year}/`)}>{year}</NavLink>
-              </DropdownMenuItem>
-            ))}
-          </>
-        }
-      />
+      <DropdownMenuContent align="start">
+        {years.map((year) => (
+          <DropdownMenuItem
+            key={year}
+            render={<NavLink to={pathname.replace(`/${calendar}/`, `/${year}/`)} />}
+            nativeButton={false}
+          >
+            {year}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
     </DropdownMenu>
   )
 }

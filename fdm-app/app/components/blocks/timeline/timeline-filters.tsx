@@ -54,23 +54,25 @@ export function TimelineFiltersPopover({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button size="lg" variant="outline">
-          <Filter className="size-4" />
-          <span key={isPeriodFiltered ? `period-${periodLabel}` : "filters"}>
-            {isPeriodFiltered ? periodLabel : "Filters"}
-          </span>
-          {activeFilterCount > 0 && (
-            <Badge
-              className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
-              key={activeFilterCount}
-              variant="secondary"
-            >
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button size="lg" variant="outline">
+            <Filter className="size-4" />
+            <span key={isPeriodFiltered ? `period-${periodLabel}` : "filters"}>
+              {isPeriodFiltered ? periodLabel : "Filters"}
+            </span>
+            {activeFilterCount > 0 && (
+              <Badge
+                className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
+                key={activeFilterCount}
+                variant="secondary"
+              >
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+        }
+      />
       <PopoverContent align={align} className="w-64 space-y-4">
         {period && (
           <div className="space-y-2">
@@ -87,7 +89,11 @@ export function TimelineFiltersPopover({
               )}
             </div>
             <Select
-              onValueChange={(value) => period.onChange(value === ALL_PERIOD_VALUE ? "" : value)}
+              onValueChange={(value) => {
+                if (typeof value === "string") {
+                  period.onChange(value === ALL_PERIOD_VALUE ? "" : value)
+                }
+              }}
               value={period.value === "" ? ALL_PERIOD_VALUE : period.value}
             >
               <SelectTrigger className="w-full">
