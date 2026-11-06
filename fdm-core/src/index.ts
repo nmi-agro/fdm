@@ -212,12 +212,13 @@ export {
   addMeasure,
   getMeasure,
   getMeasures,
+  getMeasureFromCatalogue,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
   removeMeasure,
   updateMeasure,
 } from "./measure"
-export type { Measure, MeasureCatalogue } from "./measure.types"
+export type { Measure, MeasureCatalogue, MeasureCatalogueDetails } from "./measure.types"
 export { runMigration } from "./migrate"
 export {
   addOrganicCertification,

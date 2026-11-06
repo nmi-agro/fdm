@@ -35,6 +35,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { getIndicatorInfo } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
+import { MeasureDetailLink } from "./measure-detail-link"
 
 type DatePreset = "doorlopend" | "einde_teeltseizoen" | "vaste_einddatum"
 type DialogStep = "select" | "configure"
@@ -439,9 +440,11 @@ export function AddMeasureDialog({
     )
   }, [opportunityMap, effectiveTopOpportunities, impactFor])
 
-  // Hide farm-level measures (via catalogue field or fallback message check)
+  // Hide farm-level measures (via catalogue field or fallback message check) and measures
+  // that are no longer in the source catalogue
   const fieldLevelCatalogue = useMemo(() => {
     return catalogue.filter((item) => {
+      if (item.m_status === "inactive") return false
       if (item.m_stage_applicability === "farm") return false
       const info = computedApplicabilityMap?.[item.m_id]
       if (info?.message && /Toepasbaarheidsniveau.*'farm'/i.test(info.message)) {
@@ -455,7 +458,8 @@ export function AddMeasureDialog({
   const filteredCatalogue = useMemo(() => {
     if (!query.trim()) return fieldLevelCatalogue
     const targets = fieldLevelCatalogue.map(
-      (item, i) => `[${i}] ${item.m_name} ${item.m_id} ${item.m_description ?? ""}`,
+      (item, i) =>
+        `[${i}] ${item.m_name} ${item.m_id} ${item.m_summary ?? ""} ${item.m_description ?? ""}`,
     )
     const results = fuzzysort.go(query, targets, { threshold: -10000 })
     return results
@@ -775,106 +779,114 @@ export function AddMeasureDialog({
                       : []
 
                     return (
-                      <button
+                      <div
                         key={item.m_id}
-                        type="button"
-                        disabled={isBlocked}
-                        onClick={() => {
-                          if (!isBlocked) {
-                            handleSelectMeasure(item)
-                          }
-                        }}
-                        className={cn(
-                          "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
-                          "hover:bg-muted/50",
-                          isBlocked && "cursor-not-allowed opacity-50",
-                        )}
+                        className="hover:bg-muted/50 flex items-start transition-colors"
                       >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                              {item.m_id.replace("bln_", "")}
-                            </span>
-                            <span className="truncate text-sm font-medium">{item.m_name}</span>
-                            {isRecommended && (
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-500/50 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                              >
-                                <Sparkles className="mr-1 h-3 w-3" aria-hidden="true" />
-                                Aanbevolen
-                              </Badge>
-                            )}
-                            {appInfo?.applicability === "not yet applicable" && (
-                              <Badge
-                                variant="outline"
-                                className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                              >
-                                Niet toepasbaar
-                              </Badge>
-                            )}
-                            {appInfo?.applicability === "inapplicable" && (
-                              <Badge
-                                variant="outline"
-                                className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
-                              >
-                                {fields ? "Niet toepasbaar voor uw percelen" : "Niet mogelijk"}
-                              </Badge>
-                            )}
-                            {hasPartialApplicability && (
-                              <Badge
-                                variant="outline"
-                                className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                              >
-                                Toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
-                                {appInfo.applicableFieldNames!.length === 1
-                                  ? "perceel"
-                                  : "percelen"}
-                              </Badge>
-                            )}
-                          </div>
-                          {isRecommended && topIndicators.length > 0 && (
-                            <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-400">
-                              Verbetert vooral: {topIndicators.join(", ")}
-                            </p>
+                        <button
+                          type="button"
+                          disabled={isBlocked}
+                          onClick={() => {
+                            if (!isBlocked) {
+                              handleSelectMeasure(item)
+                            }
+                          }}
+                          className={cn(
+                            "flex min-w-0 flex-1 items-start gap-3 py-3 pl-4 text-left",
+                            isBlocked && "cursor-not-allowed opacity-50",
                           )}
-                          {/* Impact bar (true 0-1 scale) only together with the
-                              "Aanbevolen" badge and its "Verbetert vooral"
-                              explanation — a bar alone is meaningless chrome. */}
-                          {isRecommended && impact > 0 && (
-                            <div className="bg-muted mt-1.5 h-1 w-24 overflow-hidden rounded-full">
-                              <div
-                                className="h-full rounded-full bg-emerald-500"
-                                style={{ width: `${barWidth}%` }}
-                              />
-                            </div>
-                          )}
-                          {isAlreadyActive && (
-                            <p className="text-muted-foreground mt-0.5 text-xs">
-                              Al actief op dit perceel
-                            </p>
-                          )}
-                          {conflicts && (
-                            <div className="mt-1 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
-                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                              <span>
-                                Conflicteert met actieve maatregel:{" "}
-                                <strong>{conflicts.join(", ")}</strong>
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground shrink-0 font-mono text-xs">
+                                {item.m_id.replace("bln_", "")}
                               </span>
+                              <span className="truncate text-sm font-medium">{item.m_name}</span>
+                              {isRecommended && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-500/50 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                >
+                                  <Sparkles className="mr-1 h-3 w-3" aria-hidden="true" />
+                                  Aanbevolen
+                                </Badge>
+                              )}
+                              {appInfo?.applicability === "not yet applicable" && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                >
+                                  Niet toepasbaar
+                                </Badge>
+                              )}
+                              {appInfo?.applicability === "inapplicable" && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
+                                >
+                                  {fields ? "Niet toepasbaar voor uw percelen" : "Niet mogelijk"}
+                                </Badge>
+                              )}
+                              {hasPartialApplicability && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                >
+                                  Toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
+                                  {appInfo.applicableFieldNames!.length === 1
+                                    ? "perceel"
+                                    : "percelen"}
+                                </Badge>
+                              )}
                             </div>
-                          )}
-                          {!fields &&
-                            appInfo?.applicability === "not yet applicable" &&
-                            appInfo.message && (
-                              <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
-                                {appInfo.message}
+                            {isRecommended && topIndicators.length > 0 && (
+                              <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-400">
+                                Verbetert vooral: {topIndicators.join(", ")}
                               </p>
                             )}
-                          {!fields && appInfo?.isInapplicable && appInfo.message && (
-                            <p className="text-destructive mt-0.5 text-xs">{appInfo.message}</p>
-                          )}
-                        </div>
-                      </button>
+                            {/* Impact bar (true 0-1 scale) only together with the
+                              "Aanbevolen" badge and its "Verbetert vooral"
+                              explanation — a bar alone is meaningless chrome. */}
+                            {isRecommended && impact > 0 && (
+                              <div className="bg-muted mt-1.5 h-1 w-24 overflow-hidden rounded-full">
+                                <div
+                                  className="h-full rounded-full bg-emerald-500"
+                                  style={{ width: `${barWidth}%` }}
+                                />
+                              </div>
+                            )}
+                            {isAlreadyActive && (
+                              <p className="text-muted-foreground mt-0.5 text-xs">
+                                Al actief op dit perceel
+                              </p>
+                            )}
+                            {conflicts && (
+                              <div className="mt-1 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
+                                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                <span>
+                                  Conflicteert met actieve maatregel:{" "}
+                                  <strong>{conflicts.join(", ")}</strong>
+                                </span>
+                              </div>
+                            )}
+                            {!fields &&
+                              appInfo?.applicability === "not yet applicable" &&
+                              appInfo.message && (
+                                <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+                                  {appInfo.message}
+                                </p>
+                              )}
+                            {!fields && appInfo?.isInapplicable && appInfo.message && (
+                              <p className="text-destructive mt-0.5 text-xs">{appInfo.message}</p>
+                            )}
+                          </div>
+                        </button>
+                        <MeasureDetailLink
+                          m_id={item.m_id}
+                          m_name={item.m_name}
+                          className="mt-2.5 mr-3 ml-1"
+                        />
+                      </div>
                     )
                   })}
                 </div>
@@ -890,11 +902,18 @@ export function AddMeasureDialog({
             <div className="bg-muted/30 space-y-1 rounded-md border p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold">
-                    <span className="text-muted-foreground mr-2 font-mono text-xs">
-                      {selected.m_id.replace("bln_", "")}
+                  <p className="flex items-center gap-1 text-sm font-semibold">
+                    <span>
+                      <span className="text-muted-foreground mr-2 font-mono text-xs">
+                        {selected.m_id.replace("bln_", "")}
+                      </span>
+                      {selected.m_name}
                     </span>
-                    {selected.m_name}
+                    <MeasureDetailLink
+                      m_id={selected.m_id}
+                      m_name={selected.m_name}
+                      icon="external"
+                    />
                   </p>
                   {(selected.m_summary ?? selected.m_description) && (
                     <p className="text-muted-foreground mt-1 text-xs leading-relaxed">

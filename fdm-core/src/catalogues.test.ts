@@ -22,6 +22,7 @@ import {
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
+import { createId } from "./id"
 
 describe("Catalogues", () => {
   let fdm: FdmType
@@ -769,6 +770,72 @@ describe("Measures Catalogue Sync", () => {
 
     // updated timestamp should not have changed
     expect(rowsAfter[0].updated).toEqual(rowsBefore[0].updated)
+  })
+
+  it("should store the effect fields of a measure", async () => {
+    const source = `test_${createId()}`
+    const enriched = {
+      ...measureA,
+      m_id: `${source}_BM1`,
+      m_source: source,
+      m_effect_costs: 2,
+      m_effect_type: "classed",
+      m_impacts_score: ["S_SW_PLEA", "S_NUT_N"],
+      m_applicability: [{ variable: "B_LU_BBWP", values: ["gras_permanent"] }],
+      m_effect_size: [
+        {
+          comment: "Low P",
+          conditions: [{ variable: "A_P_AL", max: 18 }],
+          impacts: [{ key: "S_SW_PLEA", value: 0.05 }],
+        },
+      ],
+      m_origin: "BBWP",
+      m_external_ids: { bbwp: "B150" },
+    }
+    await syncMeasuresCatalogueArray(fdm, [enriched])
+
+    const rows = await fdm
+      .select()
+      .from(schema.measuresCatalogue)
+      .where(eq(schema.measuresCatalogue.m_id, enriched.m_id))
+    expect(rows[0].m_effect_costs).toBe(2)
+    expect(rows[0].m_effect_type).toBe("classed")
+    expect(rows[0].m_impacts_score).toEqual(["S_SW_PLEA", "S_NUT_N"])
+    expect(rows[0].m_applicability).toEqual(enriched.m_applicability)
+    expect(rows[0].m_effect_size).toEqual(enriched.m_effect_size)
+    expect(rows[0].m_origin).toBe("BBWP")
+    expect(rows[0].m_external_ids).toEqual({ bbwp: "B150" })
+    expect(rows[0].m_status).toBe("active")
+  })
+
+  it("should mark missing entries of the same source inactive and reactivate them", async () => {
+    const source = `test_${createId()}`
+    const first = { ...measureA, m_id: `${source}_BM1`, m_source: source }
+    const second = { ...measureB, m_id: `${source}_BM2`, m_source: source }
+    const otherSource = { ...measureA, m_id: `other_${createId()}`, m_source: `other_${source}` }
+    await syncMeasuresCatalogueArray(fdm, [first, second, otherSource])
+
+    const statusOf = async (m_id: string) =>
+      (
+        await fdm
+          .select({ m_status: schema.measuresCatalogue.m_status })
+          .from(schema.measuresCatalogue)
+          .where(eq(schema.measuresCatalogue.m_id, m_id))
+      )[0]?.m_status
+
+    // Without the option nothing is deactivated
+    await syncMeasuresCatalogueArray(fdm, [first])
+    expect(await statusOf(second.m_id)).toBe("active")
+
+    // With the option only missing entries of the same source are deactivated
+    await syncMeasuresCatalogueArray(fdm, [first], { deactivateMissing: true })
+    expect(await statusOf(first.m_id)).toBe("active")
+    expect(await statusOf(second.m_id)).toBe("inactive")
+    expect(await statusOf(otherSource.m_id)).toBe("active")
+
+    // An entry that returns is active again
+    await syncMeasuresCatalogueArray(fdm, [first, second], { deactivateMissing: true })
+    expect(await statusOf(second.m_id)).toBe("active")
   })
 
   // Stub `fetch` instead of mocking `@nmi-agro/fdm-data`: with `isolate: false`,

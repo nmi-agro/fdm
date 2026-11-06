@@ -1,4 +1,4 @@
-import { ArrowLeft, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
+import { ArrowLeft, ClipboardList, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
 import { Button } from "~/components/ui/button"
@@ -67,6 +67,24 @@ export function SidebarPlatform() {
               <SidebarMenuButton onClick={openCookieSettings}>
                 <Cookie />
                 <span>Cookies</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Naslag</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname.startsWith("/measures-catalogue")}
+              >
+                <NavLink to="/measures-catalogue">
+                  <ClipboardList />
+                  <span>Maatregelencatalogus</span>
+                </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

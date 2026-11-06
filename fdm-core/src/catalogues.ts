@@ -11,7 +11,7 @@ import {
   hashFertilizer,
   hashMeasure,
 } from "@nmi-agro/fdm-data"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, notInArray } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
@@ -745,29 +745,41 @@ async function syncCultivationCatalogue(fdm: FdmType) {
 
 async function syncMeasuresCatalogue(fdm: FdmType, nmiApiKey: string): Promise<void> {
   const measures = await getMeasuresCatalogue("bln", nmiApiKey)
-  return syncMeasuresCatalogueArray(fdm, measures)
+  return syncMeasuresCatalogueArray(fdm, measures, { deactivateMissing: true })
 }
 
 /**
  * Synchronizes the measures catalogue with the provided array of catalogue items.
+ *
+ * New items are inserted and changed items (detected by their hash) are updated. Every item
+ * in `measures` gets `m_status = "active"`. With `deactivateMissing`, entries of the same
+ * source (`m_source`) that are not in `measures` get `m_status = "inactive"`: they stay in
+ * the catalogue because fields may still use them, but should no longer be offered. Only
+ * use `deactivateMissing` with the complete catalogue of a source.
  *
  * Public so that tests and custom data injection can call it directly without a live API key.
  * Mirrors {@link syncFertilizerCatalogueArray}.
  *
  * @param fdm The FDM instance providing the connection to the database.
  * @param measures Array of catalogue items (in pandex naming convention from fdm-data).
+ * @param options.deactivateMissing When `true`, mark entries of the same source that are not
+ *   in `measures` as inactive. Defaults to `false`.
  */
 export async function syncMeasuresCatalogueArray(
   fdm: FdmType,
   measures: CatalogueMeasure,
+  options: { deactivateMissing?: boolean } = {},
 ): Promise<void> {
   await fdm.transaction(async (tx) => {
     try {
       for (const catalogueItem of measures) {
         const hash = await hashMeasure(catalogueItem)
-        const item = { ...catalogueItem, hash }
+        const item = { ...catalogueItem, hash, m_status: "active" }
         const existing = await tx
-          .select({ hash: schema.measuresCatalogue.hash })
+          .select({
+            hash: schema.measuresCatalogue.hash,
+            m_status: schema.measuresCatalogue.m_status,
+          })
           .from(schema.measuresCatalogue)
           .where(eq(schema.measuresCatalogue.m_id, item.m_id))
           .limit(1)
@@ -777,13 +789,31 @@ export async function syncMeasuresCatalogueArray(
           if (
             existing[0].hash === null ||
             existing[0].hash === undefined ||
-            existing[0].hash !== item.hash
+            existing[0].hash !== item.hash ||
+            existing[0].m_status !== "active"
           ) {
             await tx
               .update(schema.measuresCatalogue)
               .set({ ...item, updated: new Date() })
               .where(eq(schema.measuresCatalogue.m_id, item.m_id))
           }
+        }
+      }
+
+      if (options.deactivateMissing && measures.length > 0) {
+        const sources = [...new Set(measures.map((item) => item.m_source))]
+        for (const source of sources) {
+          const ids = measures.filter((item) => item.m_source === source).map((item) => item.m_id)
+          await tx
+            .update(schema.measuresCatalogue)
+            .set({ m_status: "inactive", updated: new Date() })
+            .where(
+              and(
+                eq(schema.measuresCatalogue.m_source, source),
+                eq(schema.measuresCatalogue.m_status, "active"),
+                notInArray(schema.measuresCatalogue.m_id, ids),
+              ),
+            )
         }
       }
     } catch (error) {
