@@ -6,12 +6,12 @@ import type {
   Ticket as TicketT,
   AgentAvailabilityStatus,
 } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleDot } from "lucide-react"
 import { useEffect, useId } from "react"
 import { useNavigation, useSubmit } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Message } from "~/components/blocks/helpdesk/message"
 import { Spinner } from "~/components/ui/spinner"
 import type { HelpdeskUser } from "./types"

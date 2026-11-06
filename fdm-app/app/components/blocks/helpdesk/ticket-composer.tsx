@@ -75,6 +75,13 @@ export function TicketComposer({
                   </FieldDescription>
                   <Select
                     value={field.value ?? "NO_SELECTION"}
+                    items={[
+                      { value: "NO_SELECTION", label: "Geen specifiek bedrijf" },
+                      ...(farmOptions ?? []).map((opt) => ({
+                        value: opt.b_id_farm,
+                        label: opt.b_name_farm,
+                      })),
+                    ]}
                     onValueChange={(value) => {
                       field.onChange(value === "NO_SELECTION" ? null : value)
                     }}
@@ -141,9 +148,11 @@ export function TicketComposer({
               }}
             />
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button variant="outline" asChild>
-                <NavLink to="/support">Annuleren</NavLink>
-              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<NavLink to="/support">Annuleren</NavLink>}
+              />
               <Button type="submit">Verzenden</Button>
             </div>
           </CardContent>

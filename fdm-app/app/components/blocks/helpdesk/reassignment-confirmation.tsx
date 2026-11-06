@@ -67,9 +67,7 @@ export function SubmitButtonWithReassignmentConfirmation({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <div>
-        <AlertDialogTrigger asChild>
-          <Button {...buttonProps} type="button" />
-        </AlertDialogTrigger>
+        <AlertDialogTrigger render={<Button {...buttonProps} type="button" />} />
         <input
           ref={hiddenSubmitRef}
           type={type === "submit" ? "submit" : "button"}

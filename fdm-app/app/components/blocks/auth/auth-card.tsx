@@ -60,9 +60,12 @@ export function AuthCard({
           {footer !== undefined ? (
             footer
           ) : (
-            <Button asChild variant="ghost" className="text-muted-foreground w-full">
-              <NavLink to={backLink}>{backLabel}</NavLink>
-            </Button>
+            <Button
+              variant="ghost"
+              className="text-muted-foreground w-full"
+              nativeButton={false}
+              render={<NavLink to={backLink}>{backLabel}</NavLink>}
+            />
           )}
         </CardFooter>
       )}

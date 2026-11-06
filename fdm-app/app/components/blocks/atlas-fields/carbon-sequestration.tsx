@@ -49,14 +49,12 @@ export function CarbonSequestrationCard({
           </CardTitle>
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Meer informatie over koolstofvastlegging"
-                  className="cursor-help"
-                >
-                  <HelpCircle className="text-muted-foreground h-4 w-4" />
-                </button>
+              <TooltipTrigger
+                type="button"
+                aria-label="Meer informatie over koolstofvastlegging"
+                className="cursor-help"
+              >
+                <HelpCircle className="text-muted-foreground h-4 w-4" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="text-xs">
@@ -161,10 +159,10 @@ export function CarbonSequestrationCard({
         </div>
 
         {/* Methodology Collapsible */}
-        <Collapsible className="space-y-2">
+        <Collapsible className="group/collapsible space-y-2">
           <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase transition-colors">
             Toelichting
-            <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+            <ChevronDown className="h-3 w-3 transition-transform group-data-open/collapsible:rotate-180" />
           </CollapsibleTrigger>
           <CollapsibleContent className="bg-muted/50 text-muted-foreground space-y-2 rounded-lg border p-4 text-xs leading-relaxed">
             <p>

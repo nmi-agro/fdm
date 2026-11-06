@@ -37,9 +37,7 @@ export function CultivationAddFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button>Gewas toevoegen</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button>Gewas toevoegen</Button>} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>

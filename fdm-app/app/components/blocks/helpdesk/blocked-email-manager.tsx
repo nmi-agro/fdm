@@ -1,13 +1,13 @@
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { EmailBlock } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { MailX, User, Users } from "lucide-react"
 import { useId, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
@@ -154,9 +154,7 @@ export function AddBlockedEmailForm() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild onClick={resetForm}>
-        <Button>Nieuw toevoegen</Button>
-      </DialogTrigger>
+      <DialogTrigger onClick={resetForm} render={<Button>Nieuw toevoegen</Button>} />
       <DialogContent>
         <RemixFormProvider {...form}>
           <Form
@@ -213,11 +211,13 @@ export function AddBlockedEmailForm() {
               />
             </fieldset>
             <DialogFooter className="gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Sluiten
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Sluiten
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={isSubmitting}>
                 <span>Toevoegen</span>
                 {isSubmitting && <Spinner />}

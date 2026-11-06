@@ -122,9 +122,7 @@ export function DataTable<TData extends Fertilizer>({
         />
         <div className="flex shrink-0 items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">Kolommen</Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger render={<Button variant="outline">Kolommen</Button>} />
             <DropdownMenuContent align="end" className="max-h-100 overflow-y-auto">
               {table
                 .getAllColumns()
@@ -144,13 +142,16 @@ export function DataTable<TData extends Fertilizer>({
             </DropdownMenuContent>
           </DropdownMenu>
           <div className={cn(!canAddItem ? "hidden" : "")}>
-            <Button asChild>
-              <NavLink to={"./new"}>
-                <Plus className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Meststof toevoegen</span>
-                <span className="sm:hidden">Toevoegen</span>
-              </NavLink>
-            </Button>
+            <Button
+              nativeButton={false}
+              render={
+                <NavLink to={"./new"}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Meststof toevoegen</span>
+                  <span className="sm:hidden">Toevoegen</span>
+                </NavLink>
+              }
+            />
           </div>
         </div>
       </div>

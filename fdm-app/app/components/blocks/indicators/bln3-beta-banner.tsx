@@ -13,15 +13,17 @@ export function Bln3BetaBanner() {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge
-            variant="secondary"
-            className="cursor-help gap-1 border-amber-500/20 bg-amber-500/10 font-medium text-amber-600 hover:bg-amber-500/20"
-          >
-            <Info className="h-3 w-3" />
-            In ontwikkeling
-          </Badge>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Badge
+              variant="secondary"
+              className="cursor-help gap-1 border-amber-500/20 bg-amber-500/10 font-medium text-amber-600 hover:bg-amber-500/20"
+            >
+              <Info className="h-3 w-3" />
+              In ontwikkeling
+            </Badge>
+          }
+        />
         <TooltipContent className="max-w-[300px] p-3 text-sm">
           De BLN3-scores en de lijst van maatregelen zijn nog in ontwikkeling en kunnen worden
           gewijzigd. De getoonde scores zijn niet definitief en de lijst van maatregelen is niet
