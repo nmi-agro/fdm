@@ -680,11 +680,17 @@ function FieldMineralizationResult(
                 )
               }
             />
-            <Button asChild variant="link" size="sm" className="text-muted-foreground">
-              <a href={`#${USED_INPUT_ID}`} onClick={() => setUsedInputOpen(true)}>
-                Welke gegevens zijn gebruikt?
-              </a>
-            </Button>
+            <Button
+              variant="link"
+              size="sm"
+              className="text-muted-foreground"
+              nativeButton={false}
+              render={
+                <a href={`#${USED_INPUT_ID}`} onClick={() => setUsedInputOpen(true)}>
+                  Welke gegevens zijn gebruikt?
+                </a>
+              }
+            />
           </div>
           {isCurrentYear && growingUnavailable ? (
             <p className="text-muted-foreground text-xs">
@@ -757,13 +763,12 @@ function FieldMineralizationResult(
                   ) : null}
                 </div>
                 <Button
-                  asChild
                   variant="outline"
                   size="sm"
                   className="shrink-0 self-start sm:self-center"
-                >
-                  <a href={`#${SCENARIO_PANEL_ID}`}>Naar scenario</a>
-                </Button>
+                  nativeButton={false}
+                  render={<a href={`#${SCENARIO_PANEL_ID}`}>Naar scenario</a>}
+                />
               </div>
             ) : null}
           </CardHeader>

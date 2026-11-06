@@ -199,20 +199,27 @@ export default function UserSettingsApiKeys() {
       <div className="space-y-6 px-4 pb-8 md:px-8">
         <div className="flex justify-end gap-2">
           {clientConfig.apiUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={`${clientConfig.apiUrl}/docs`} target="_blank" rel="noopener noreferrer">
-                <BookOpenIcon className="mr-2 h-4 w-4" />
-                API-documentatie
-              </a>
-            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={
+                <a href={`${clientConfig.apiUrl}/docs`} target="_blank" rel="noopener noreferrer">
+                  <BookOpenIcon className="mr-2 h-4 w-4" />
+                  API-documentatie
+                </a>
+              }
+            />
           )}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Nieuwe sleutel
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger
+              render={
+                <Button size="sm">
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Nieuwe sleutel
+                </Button>
+              }
+            />
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>API-sleutel aanmaken</DialogTitle>
@@ -360,16 +367,18 @@ export default function UserSettingsApiKeys() {
                     </div>
 
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive shrink-0"
-                          title="Sleutel intrekken"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive shrink-0"
+                            title="Sleutel intrekken"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Sleutel intrekken?</AlertDialogTitle>

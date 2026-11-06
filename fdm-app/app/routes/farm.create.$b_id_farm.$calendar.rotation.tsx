@@ -72,13 +72,16 @@ export default function FarmCreateRotationIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button asChild>
-                  <NavLink
-                    to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
-                  >
-                    Maak een perceel
-                  </NavLink>
-                </Button>
+                <Button
+                  nativeButton={false}
+                  render={
+                    <NavLink
+                      to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
+                    >
+                      Maak een perceel
+                    </NavLink>
+                  }
+                />
               </div>
             </div>
           </>

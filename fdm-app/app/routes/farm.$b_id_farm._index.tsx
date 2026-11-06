@@ -911,7 +911,14 @@ export default function FarmDashboardIndex() {
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-sm">Jaar</p>
-                      <Select value={calendar} onValueChange={(value) => setCalendar(value)}>
+                      <Select
+                        value={calendar}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setCalendar(value)
+                          }
+                        }}
+                      >
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Selecteer een jaar" />
                         </SelectTrigger>
@@ -934,54 +941,85 @@ export default function FarmDashboardIndex() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="space-y-1">
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings">
-                          <Home className="mr-2 h-4 w-4" />
-                          Bedrijf
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="fertilizers">
-                          <Shapes className="mr-2 h-4 w-4" />
-                          Meststoffen
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/derogation">
-                          <ChevronUp className="mr-2 h-4 w-4" />
-                          Derogatie
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/organic-certification">
-                          <ScrollText className="mr-2 h-4 w-4" />
-                          Bio-certificaat
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/grazing-intention">
-                          <Icon iconNode={cowHead} className="mr-2 h-4 w-4" />
-                          Beweiding
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/access">
-                          <UserRoundCheck className="mr-2 h-4 w-4" />
-                          Toegang
-                        </NavLink>
-                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        nativeButton={false}
+                        render={
+                          <NavLink to="settings">
+                            <Home className="mr-2 h-4 w-4" />
+                            Bedrijf
+                          </NavLink>
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        nativeButton={false}
+                        render={
+                          <NavLink to="fertilizers">
+                            <Shapes className="mr-2 h-4 w-4" />
+                            Meststoffen
+                          </NavLink>
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        nativeButton={false}
+                        render={
+                          <NavLink to="settings/derogation">
+                            <ChevronUp className="mr-2 h-4 w-4" />
+                            Derogatie
+                          </NavLink>
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        nativeButton={false}
+                        render={
+                          <NavLink to="settings/organic-certification">
+                            <ScrollText className="mr-2 h-4 w-4" />
+                            Bio-certificaat
+                          </NavLink>
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        nativeButton={false}
+                        render={
+                          <NavLink to="settings/grazing-intention">
+                            <Icon iconNode={cowHead} className="mr-2 h-4 w-4" />
+                            Beweiding
+                          </NavLink>
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        nativeButton={false}
+                        render={
+                          <NavLink to="settings/access">
+                            <UserRoundCheck className="mr-2 h-4 w-4" />
+                            Toegang
+                          </NavLink>
+                        }
+                      />
                     </div>
                     <Separator className="my-3" />
                     <Button
                       variant="ghost"
                       className="hover:text-destructive hover:bg-destructive/10 w-full justify-start"
-                      asChild
-                    >
-                      <NavLink to="settings/delete">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Verwijderen
-                      </NavLink>
-                    </Button>
+                      nativeButton={false}
+                      render={
+                        <NavLink to="settings/delete">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Verwijderen
+                        </NavLink>
+                      }
+                    />
                   </CardContent>
                 </Card>
               </div>

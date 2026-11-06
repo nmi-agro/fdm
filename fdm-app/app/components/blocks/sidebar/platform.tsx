@@ -20,14 +20,17 @@ export function SidebarPlatform() {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="p-0">
-                <NavLink to="/farm">
-                  <Button variant="default" className="w-full justify-start">
-                    <ArrowLeft className="" />
-                    <span>Terug naar bedrijven</span>
-                  </Button>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                className="p-0"
+                render={
+                  <NavLink to="/farm">
+                    <Button variant="default" className="w-full justify-start">
+                      <ArrowLeft className="" />
+                      <span>Terug naar bedrijven</span>
+                    </Button>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
@@ -37,31 +40,36 @@ export function SidebarPlatform() {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={location.pathname === "/user/settings/profile"}>
-                <NavLink to="/user/settings/profile">
-                  <User />
-                  <span>Profiel</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={location.pathname === "/user/settings/api-keys"}>
-                <NavLink to="/user/settings/api-keys">
-                  <KeyRound />
-                  <span>API-sleutels</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={location.pathname === "/user/settings/profile"}
+                render={
+                  <NavLink to="/user/settings/profile">
+                    <User />
+                    <span>Profiel</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
-                className="hover:text-muted-foreground active:text-muted-foreground hover:bg-transparent active:bg-transparent"
-              >
-                <span className="text-muted-foreground flex cursor-default items-center gap-2">
-                  <Languages />
-                  <span>Taal</span>
-                </span>
-              </SidebarMenuButton>
+                isActive={location.pathname === "/user/settings/api-keys"}
+                render={
+                  <NavLink to="/user/settings/api-keys">
+                    <KeyRound />
+                    <span>API-sleutels</span>
+                  </NavLink>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={
+                  <span className="hover:text-muted-foreground active:text-muted-foreground text-muted-foreground flex cursor-default items-center gap-2 hover:bg-transparent active:bg-transparent">
+                    <Languages />
+                    <span>Taal</span>
+                  </span>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={openCookieSettings}>
@@ -77,12 +85,15 @@ export function SidebarPlatform() {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={location.pathname.includes("/about/whats-new")}>
-                <NavLink to={"/about/whats-new"}>
-                  <Sparkles />
-                  <span>Wat is er nieuw?</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={location.pathname.includes("/about/whats-new")}
+                render={
+                  <NavLink to={"/about/whats-new"}>
+                    <Sparkles />
+                    <span>Wat is er nieuw?</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
