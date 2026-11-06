@@ -97,6 +97,7 @@ jobs:
         run: pnpm --filter @nmi-agro/fdm-app exec playwright test --project=screenshots
         env:
           CI: true
+          E2E_SUITE: screenshots
           NMI_API_KEY: ${{ secrets.NMI_API_KEY }}
           PUBLIC_MAP_PROVIDER: ${{ secrets.MAPTILER_API_KEY != '' && 'maptiler' || 'osm' }}
           PUBLIC_MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}

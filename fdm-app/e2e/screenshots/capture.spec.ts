@@ -13,13 +13,11 @@ import type { DemoFarmIds } from "../seed/demo-farm"
 import { captures } from "../../app/content/manual/screenshots/capture"
 import { loadManualPagesFromDisk } from "../../app/lib/manual/load-from-disk.server"
 import { collectScreenshotIds, compareScreenshotIds } from "../../app/lib/manual/screenshot-ids"
+import { ERROR_TEXTS } from "../support/app"
 import { APP_ROOT, BASE_URL } from "../support/env"
 import { saveScreenshot } from "./images"
 import { DUMMY_PDF, mockSoilReader, SOIL_REPORT_FILES } from "./mocks"
 import { DEMO_FARM_FILE, RESULTS_DIR, SCREENSHOTS_DIR, SIGNED_OUT_STATE_FILE } from "./paths"
-
-/** Texts of the app's error pages. A capture that shows one of them fails. */
-const ERROR_TEXTS = ["Oeps, er lijkt iets mis te zijn.", "Deze pagina is niet beschikbaar"]
 
 /** Turns off transitions and the text cursor, which animations: "disabled" does not cover. */
 const STILL_CSS = `*, *::before, *::after {

@@ -39,6 +39,8 @@ import {
   DEMO_USER,
   type DemoFarmIds,
   type DemoFieldKey,
+  type SeededFieldRecords,
+  type SeedUser,
   type SeedVariant,
   demoYear,
 } from "./demo-farm"
@@ -264,55 +266,72 @@ function date(year: number, month: number, day: number): Date {
 }
 
 /**
- * Creates the demo user, or fails when it already exists.
+ * Signs up a user with a complete profile, so the app does not ask for a name first. Fails when
+ * the e-mail address or username is taken.
  *
  * @param fdm - The database connection.
+ * @param user - The user to create (default: {@link DEMO_USER}).
  * @returns The user id, used as principal for everything else.
  */
-async function createDemoUser(fdm: Fdm): Promise<string> {
+export async function createSeedUser(fdm: Fdm, user: SeedUser = DEMO_USER): Promise<string> {
   // Only the seed signs up with a password; the app itself signs in through magic links.
   const auth = createFdmAuth(fdm, undefined, undefined, undefined, true)
-  const { user } = await auth.api.signUpEmail({
+  const { user: created } = await auth.api.signUpEmail({
     body: {
-      email: DEMO_USER.email,
-      name: `${DEMO_USER.firstname} ${DEMO_USER.surname}`,
-      username: DEMO_USER.username,
+      email: user.email,
+      name: `${user.firstname} ${user.surname}`,
+      username: user.username,
       password: randomBytes(24).toString("base64url"),
     } as NonNullable<Parameters<typeof auth.api.signUpEmail>[0]>["body"],
   })
-  await updateUserProfile(fdm, user.id, DEMO_USER.firstname, DEMO_USER.surname, "nl-NL")
-  return user.id
+  await updateUserProfile(fdm, created.id, user.firstname, user.surname, "nl-NL")
+  return created.id
 }
 
 /** The fields of the `minimal` variant. */
 const MINIMAL_FIELDS: readonly DemoFieldKey[] = ["grasland-huiskavel", "tarwe"]
 
+/** Options of {@link seedFarm}. */
+export interface SeedOptions {
+  /** `minimal` (two fields) or `demo` (five fields, the default). */
+  variant?: SeedVariant
+  /** The year of the farm data (default: the current year, see {@link demoYear}). */
+  year?: number
+  /** The owner of the farm (default: {@link DEMO_USER}). */
+  user?: SeedUser
+  /**
+   * Refuse to seed into a database that already contains farms (default `true`). Tests that
+   * create their own user per test, such as the loader and action tests, turn it off.
+   */
+  requireEmptyDatabase?: boolean
+}
+
 /**
- * Seeds the demo user and farm.
+ * Seeds a user and its farm.
  *
- * @param fdm - A connection to an empty, migrated database with synced catalogues.
- * @param options - `variant` (default `demo`) and `year` (default: the current year, see
- *   {@link demoYear}).
+ * @param fdm - A connection to a migrated database with synced catalogues; empty unless
+ *   `requireEmptyDatabase` is `false`.
+ * @param options - See {@link SeedOptions}.
  * @returns The ids that the tests need to fill in routes.
- * @throws When the database already contains farms.
+ * @throws When `requireEmptyDatabase` is on and the database already contains farms.
  */
-export async function seedFarm(
-  fdm: Fdm,
-  options: { variant?: SeedVariant; year?: number } = {},
-): Promise<DemoFarmIds> {
+export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<DemoFarmIds> {
   const variant = options.variant ?? "demo"
   const year = options.year ?? demoYear()
-  const existing = await fdm
-    .select({ b_id_farm: fdmSchema.farms.b_id_farm })
-    .from(fdmSchema.farms)
-    .limit(1)
-  if (existing.length > 0) {
-    throw new Error(
-      "The database already contains farms. Seed the demo farm into an empty database only.",
-    )
+  const user = options.user ?? DEMO_USER
+  if (options.requireEmptyDatabase ?? true) {
+    const existing = await fdm
+      .select({ b_id_farm: fdmSchema.farms.b_id_farm })
+      .from(fdmSchema.farms)
+      .limit(1)
+    if (existing.length > 0) {
+      throw new Error(
+        "The database already contains farms. Seed the demo farm into an empty database only.",
+      )
+    }
   }
 
-  const principal = await createDemoUser(fdm)
+  const principal = await createSeedUser(fdm, user)
 
   // The same steps as creating a farm in the app (farm.create._index.tsx).
   const b_id_farm = await addFarm(
@@ -348,6 +367,7 @@ export async function seedFarm(
   }
 
   const fields: DemoFarmIds["fields"] = {}
+  const records: DemoFarmIds["records"] = {}
   const seeded = variant === "demo" ? FIELDS : FIELDS.filter((f) => MINIMAL_FIELDS.includes(f.key))
   for (const field of seeded) {
     const b_id = await addField(
@@ -361,6 +381,13 @@ export async function seedFarm(
       "nl_01",
     )
     fields[field.key] = b_id
+    const fieldRecords: SeededFieldRecords = {
+      cultivations: [],
+      harvests: [],
+      applications: [],
+      soilAnalyses: [],
+    }
+    records[field.key] = fieldRecords
 
     for (const cultivation of field.cultivations) {
       const [startMonth, startDay, startOffset = 0] = cultivation.start
@@ -373,19 +400,21 @@ export async function seedFarm(
         date(year + startOffset, startMonth, startDay),
         end ? date(year + (end[2] ?? 0), end[0], end[1]) : undefined,
       )
+      fieldRecords.cultivations.push(b_lu)
       for (const harvest of cultivation.harvests ?? []) {
-        await addHarvest(
+        const b_id_harvesting = await addHarvest(
           fdm,
           principal,
           b_lu,
           date(year, harvest.date[0], harvest.date[1]),
           harvest.properties,
         )
+        fieldRecords.harvests.push(b_id_harvesting)
       }
     }
 
     for (const application of field.applications) {
-      await addFertilizerApplication(
+      const p_app_id = await addFertilizerApplication(
         fdm,
         principal,
         b_id,
@@ -394,6 +423,7 @@ export async function seedFarm(
         application.method,
         date(year, application.date[0], application.date[1]),
       )
+      fieldRecords.applications.push(p_app_id)
     }
 
     // In the current year: the balances only use soil analyses sampled in the calendar year.
@@ -410,7 +440,7 @@ export async function seedFarm(
         })()
       : [[fieldOutline, field.soil.data]]
     for (const [zone, data] of zones) {
-      await addSoilAnalysis(
+      const a_id = await addSoilAnalysis(
         fdm,
         principal,
         date(year, 1, 20),
@@ -420,8 +450,18 @@ export async function seedFarm(
         date(year, 1, 20),
         { ...data, b_sampling_geometry: samplingPoints(zone), b_sampling_geometry_zone: zone },
       )
+      fieldRecords.soilAnalyses.push(a_id)
     }
   }
 
-  return { variant, farm: b_id_farm, fields, year, email: DEMO_USER.email }
+  return {
+    variant,
+    farm: b_id_farm,
+    fields,
+    records,
+    fertilizers: Object.fromEntries(fertilizers),
+    year,
+    email: user.email,
+    principalId: principal,
+  }
 }
