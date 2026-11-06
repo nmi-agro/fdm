@@ -42,7 +42,7 @@ const formDefaultValues = {
 } as const
 
 const senderRoleOptions = [
-  { value: "admin", label: "als medewerker" },
+  { value: "agent", label: "als medewerker" },
   { value: "customer", label: "als gebruiker" },
 ]
 
@@ -174,7 +174,6 @@ export function MessageComposer({
                                 {desc.label}
                               </SelectItem>
                             ))}
-                            <SelectItem value="customer">als gebruiker</SelectItem>
                           </SelectContent>
                         </Select>
                         <FieldError errors={[fieldState.error]} />
