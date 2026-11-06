@@ -20,7 +20,6 @@ jobs:
       contents: write
       packages: write
       pull-requests: write # Required for the status check
-      actions: write # Required to start the manual screenshot run
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v7
@@ -114,18 +113,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.FDM_PACKAGES_TOKEN }}
-
-      # Releases created with GITHUB_TOKEN do not trigger other workflows, except through
-      # workflow_dispatch. So after an fdm-app release, start the manual screenshot run here.
-      - name: Refresh manual screenshots after an fdm-app release
-        if: github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          if git tag --points-at HEAD | grep -q '^@nmi-agro/fdm-app@'; then
-            gh workflow run manual-screenshots.yml --ref development
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   verify-versioning:
     name: Verify Versioning
