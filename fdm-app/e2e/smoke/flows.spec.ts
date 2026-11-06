@@ -4,9 +4,11 @@
  *
  * Every flow fails on an error page, a 5xx response or an error in the browser.
  */
+import { createFdmServer, updateRoleOfPrincipalAtFarm } from "@nmi-agro/fdm-core"
 import { expect, type Locator, type Page, test } from "@playwright/test"
 import { ERROR_TEXTS, guardPage, latestChangelogVersion, type PageGuard } from "../support/app"
 import { dismissNotices, signInWithMagicLink } from "../support/auth"
+import { databaseOptions } from "../support/env"
 import { SIGNED_OUT_STATE_FILE } from "./paths"
 import { readSmokeFarm } from "./smoke-farm"
 
@@ -125,8 +127,45 @@ test("share a farm and accept the invitation", async ({ page, browser }) => {
     await invitee.goto("/farm")
     await invitee.getByRole("button", { name: "Accepteren" }).first().click()
     await expect(invitee.getByText("Demobedrijf De Proefhoeve").first()).toBeVisible()
+
+    // A refused action shows a friendly message, not the error page: the invitee opens the farm
+    // properties as an advisor, loses write access while the page is open, and then saves.
+    await invitee.goto(`/farm/${farm.farm}/settings/properties`)
+    await expect(invitee.getByRole("button", { name: "Bijwerken" })).toBeVisible()
+    await setFarmRole(farm.principalId, farm.invitee, farm.farm, "researcher")
+    await invitee.getByRole("button", { name: "Bijwerken" }).click()
+    const refused = invitee.getByText("U heeft helaas geen rechten om dit te doen.")
+    // The app currently shows this toast twice; first() keeps the check on the message itself.
+    await expect(refused.first()).toBeVisible()
+    for (const text of ERROR_TEXTS) {
+      await expect(invitee.getByText(text), "A refused action shows no error page").toHaveCount(0)
+    }
     expect(inviteeGuard.problems(), "The invitee's pages should load without errors").toEqual([])
   } finally {
     await context.close()
   }
 })
+
+/**
+ * Changes the role of a user at a farm directly in the database, as if the owner did it in
+ * another browser.
+ *
+ * @param owner - The principal id of the farm's owner.
+ * @param email - The e-mail address of the user whose role changes.
+ * @param b_id_farm - The farm.
+ * @param role - The new role.
+ */
+async function setFarmRole(
+  owner: string,
+  email: string,
+  b_id_farm: string,
+  role: "owner" | "advisor" | "researcher",
+): Promise<void> {
+  const { host, port, user, password, database } = databaseOptions()
+  const fdm = createFdmServer(host, port, user, password, database, 1)
+  try {
+    await updateRoleOfPrincipalAtFarm(fdm, owner, email, b_id_farm, role)
+  } finally {
+    await (fdm as unknown as { $client: { end: () => Promise<void> } }).$client.end()
+  }
+}
