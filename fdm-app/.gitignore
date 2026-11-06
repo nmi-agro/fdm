@@ -11,3 +11,7 @@ node_modules
 .env.sentry-build-plugin
 
 /secrets
+
+# End-to-end tests and manual screenshots (local settings and working files)
+.env.e2e
+/e2e/.output

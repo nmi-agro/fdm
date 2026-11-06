@@ -36,6 +36,8 @@ Elk perceel heeft een eigen pagina met alles wat erbij hoort: gewassen, oogsten,
 
 Ga naar **Percelen** in de zijbalk en klik op een perceel, of kies het via **Kies een perceel**. In de percelentabel kun je zoeken op naam, gewas of meststof.
 
+![De percelentabel van een bedrijf](screenshot:percelen-lijst)
+
 ## Wat staat er op de perceelpagina? {#perceelpagina}
 
 | Onderdeel              | Wat je er vindt                                                                                                                                                                                                                                                                                                            |
@@ -48,6 +50,8 @@ Ga naar **Percelen** in de zijbalk en klik op een perceel, of kies het via **Kie
 | **Gegevens**           | Naam, eigendom of pacht, bufferstrook en de periode dat het perceel in gebruik is.                                                                                                                                                                                                                                         |
 | **Verwijderen**        | Het perceel verwijderen, met alles wat erbij hoort.                                                                                                                                                                                                                                                                        |
 
+![Het overzicht van een graslandperceel, met tegels voor gewas, bemesting, bodem en resultaten](screenshot:perceel-pagina)
+
 Het Overzicht is een fijne plek om te zien wat er nog ontbreekt. Een lege tegel betekent meestal dat er een stukje informatie mist voor een berekening.
 
 ## Een gewas toevoegen {#gewas-toevoegen}
@@ -55,6 +59,8 @@ Het Overzicht is een fijne plek om te zien wat er nog ontbreekt. Een lege tegel 
 1. Ga naar **Gewassen** en klik op **Gewas toevoegen**.
 2. Kies het **Gewas** en vul de **Zaaidatum** in. Een **Einddatum** is optioneel.
 3. Klik op **Voeg toe**.
+
+![De gewassen van een perceel, met de knop om een gewas toe te voegen](screenshot:gewas-toevoegen)
 
 Soms doet {{appName}} al een voorstel op basis van de BRP-registratie, bijvoorbeeld "We denken dat hier wintertarwe geteeld werd". Klopt dat? Klik dan op **Voorstel toevoegen** en bevestig.
 

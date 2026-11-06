@@ -37,6 +37,8 @@ Elke indicator krijgt een score van 0 tot 100.
 | 40 tot 70   | Matig, aandacht gewenst  |
 | Onder 40    | Onvoldoende, actie nodig |
 
+![De scores van de BLN-bodemkwaliteit voor een bedrijf](screenshot:bodemkwaliteit-scores)
+
 Op bedrijfsniveau zie je een boom van thema's en indicatoren, de zwakste thema's en indicatoren, en welke percelen het meest bijdragen aan een lage score. Onder **Waar te beginnen** staan maatregelen die voor je bedrijf het meeste opleveren. Op perceelniveau zie je alle indicatoren met de aanbevolen maatregelen per indicator.
 
 Met de schakelaar **Met maatregelen** / **Zonder maatregelen** zie je hoe de score verandert als je de aanbevolen maatregelen neemt. Met **Invoergegevens BLN3** zie je welke gegevens zijn gebruikt.
@@ -51,6 +53,8 @@ Neem je al maatregelen om je bodem te verbeteren? Leg ze dan vast onder **Maatre
 2. Kies de percelen waarop de maatregel geldt.
 3. Kies de periode: **Doorlopend**, tot het einde van het teeltseizoen, of tot een vaste datum.
 4. Sla op.
+
+![De maatregelen voor bodemkwaliteit, met de verwachte impact](screenshot:maatregelen)
 
 ## Goed om te weten {#goed-om-te-weten}
 

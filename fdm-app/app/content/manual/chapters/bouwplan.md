@@ -25,6 +25,8 @@ Het bouwplan is dé manier om snel te werken. Heb je tien percelen met consumpti
 
 Open **Bouwplan** in de zijbalk. Je ziet een tabel met per gewas één regel: het gewas, de zaai- en einddatum, de oogst- of maaidata, variëteit, gewasresten, de meststoffen die je hebt gebruikt, het aantal percelen en de totale oppervlakte. Klap een gewas open om de afzonderlijke percelen te zien.
 
+![De bouwplantabel met één gewas opengeklapt](screenshot:bouwplan-tabel)
+
 Met **Bekijk** kies je welke kolommen je wilt zien. Met het zoekveld zoek je op gewas, meststof of datum.
 
 ## Gegevens direct in de tabel aanpassen {#tabel-aanpassen}

@@ -27,12 +27,16 @@ Het bemestingsadvies vertelt je hoeveel een gewas nodig heeft voor een goede opb
 
 Open **Bemestingsadvies** in de zijbalk. Je ziet een tabel met per perceel het advies per nutriënt. Met **Per ha** of **Totaal** wissel je tussen het advies per hectare en het totaal voor het perceel.
 
+![Het bemestingsadvies per perceel voor het hele bedrijf](screenshot:bemestingsadvies-overzicht)
+
 ## Het advies per perceel {#advies-per-perceel}
 
 Klik op een perceel voor het volledige advies. Bovenaan staan twee kaarten:
 
 - **Risico voor opbrengst**: bij welke nutriënten je minder geeft dan het advies. Dat kan opbrengst kosten.
 - **Risico voor milieu**: bij welke nutriënten je meer geeft dan het advies. Dat kan verliezen naar het milieu geven.
+
+![Het bemestingsadvies voor één perceel](screenshot:bemestingsadvies-perceel)
 
 Daaronder staat het advies in drie groepen:
 
@@ -47,6 +51,8 @@ Per nutriënt zie je een balk met wat je hebt gegeven tegenover het advies, en d
 ## Grasland: advies per snede {#grasland}
 
 Bij grasland krijg je het stikstofadvies per snede. Je geeft per snede aan of het om beweiden of maaien gaat en hoe zwaar de snede is, van lichte beweiding tot zware maaisnede. Het advies past zich daarop aan.
+
+![Het stikstofadvies per snede voor een graslandperceel](screenshot:bemestingsadvies-grasland)
 
 ## Let op {#let-op}
 

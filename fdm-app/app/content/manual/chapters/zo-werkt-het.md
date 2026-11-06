@@ -81,6 +81,8 @@ Klik je op een bedrijf, dan kom je op het dashboard. Dit is je startpunt:
 - Onder **Apps** staan kaarten naar Atlas, Stikstofbalans, OS Balans, Bemestingsadvies, Gebruiksruimte en Bemestingsplan.
 - Onder **Acties** vind je de dingen die je vaak doet als je gegevens wilt toevoegen, zoals **Nieuwe percelen**, **Ophalen bij RVO**, **RVO Shapefile uploaden** en **Upload bodemanalyses**.
 
+![Het bedrijfsdashboard van een demobedrijf, met de apps en de acties](screenshot:bedrijf-dashboard)
+
 Op een laptop of grotere monitor werkt {{appName}} het prettigst. Op je telefoon kun je ook veel, maar sommige onderdelen, zoals de kaarten en de tijdlijn, zijn daar beperkter.
 
 ## Over deze handleiding
