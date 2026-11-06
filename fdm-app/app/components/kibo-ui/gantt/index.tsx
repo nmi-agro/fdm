@@ -541,8 +541,7 @@ export const GanttSidebarHeader: FC = () => (
     style={{ height: "var(--gantt-header-height)" }}
   >
     {/* <Checkbox className="shrink-0" /> */}
-    <p className="flex-1 truncate text-left">Issues</p>
-    <p className="shrink-0">Duration</p>
+    <p className="flex-1 truncate text-left">Percelen</p>
   </div>
 )
 
@@ -1369,7 +1368,7 @@ export type GanttTodayProps = {
 }
 
 export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
-  const label = "Today"
+  const label = "Vandaag"
   const date = useMemo(() => new Date(), [])
   const gantt = useContext(GanttContext)
   const differenceIn = useMemo(() => getDifferenceIn(gantt.range), [gantt.range])

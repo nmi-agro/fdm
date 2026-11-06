@@ -136,7 +136,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
       name={name}
       render={({ field }) => (
         <Field className="flex flex-col">
-          <FieldLabel>{label}</FieldLabel>
+          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
           <div className="relative flex gap-2">
             <FieldContent>
               <Input
