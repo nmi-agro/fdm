@@ -48,6 +48,7 @@
     "drizzle-orm": "catalog:",
     "hono": "^4.13.16",
     "nanoid": "catalog:",
+    "postgres": "^4.0.0",
     "zod": "catalog:"
   },
   "devDependencies": {
