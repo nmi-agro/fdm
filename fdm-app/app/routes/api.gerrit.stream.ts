@@ -36,6 +36,9 @@ export async function loader({ request, url }: LoaderFunctionArgs) {
   if (!b_id_farm || !calendar) {
     return new Response("Missing parameters", { status: 400 })
   }
+  if (!/^\d{4}$/.test(calendar)) {
+    return new Response("Invalid calendar", { status: 400 })
+  }
 
   const posthog = PostHogClient()
   const flags = posthog ? await posthog.evaluateFlags(session.principal_id) : null

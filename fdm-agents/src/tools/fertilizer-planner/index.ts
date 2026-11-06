@@ -10,8 +10,8 @@ import {
   calculateOrganicMatterBalanceField,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
-  createFunctionsForNorms,
-  createUncachedFunctionsForFertilizerApplicationFilling,
+  createFunctionsForNormsForYear,
+  createUncachedFunctionsForFertilizerApplicationFillingForYear,
   getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -231,7 +231,8 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       const calendar =
         (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
 
-      const normFunctions = createFunctionsForNorms("NL", calendar as any)
+      // Years without own norms use the newest norms provisionally
+      const normFunctions = createFunctionsForNormsForYear("NL", Number.parseInt(calendar, 10))
       const results = await Promise.all(
         input.b_ids.map(async (b_id: string) => {
           try {
@@ -259,7 +260,11 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         }),
       )
       // Must return an object (not array) — Gemini rejects array as top-level function_response.
-      return { normsPerField: results }
+      return {
+        normsPerField: results,
+        normsYear: normFunctions.normsYear,
+        provisional: normFunctions.provisional,
+      }
     },
     {
       name: "getFarmLegalNorms",
@@ -390,10 +395,11 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         getFertilizers(fdm, principalId, b_id_farm),
       ])
 
-      const normFuncs = createFunctionsForNorms("NL", calendar as any)
-      const fillFuncs = createUncachedFunctionsForFertilizerApplicationFilling(
+      // Years without own norms use the newest norms provisionally
+      const normFuncs = createFunctionsForNormsForYear("NL", Number.parseInt(calendar, 10))
+      const fillFuncs = createUncachedFunctionsForFertilizerApplicationFillingForYear(
         "NL",
-        calendar as any,
+        Number.parseInt(calendar, 10),
       )
 
       const fieldResults = await Promise.all(
