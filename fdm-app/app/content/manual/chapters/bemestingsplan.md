@@ -18,7 +18,7 @@ related:
   - bemestingsadvies
 ---
 
-Wil je het plan op papier, of meegeven aan een teler of controleur? Maak dan een bemestingsplan als PDF.
+Wil je het plan op papier, of meegeven aan een teler of controleur? Maak dan een bemestingsplan als PDF. Heb je nog geen bemestingen ingevoerd? Laat dan [Gerrit](/manual/gerrit) een plan voorstellen.
 
 1. Klik op het bedrijfsdashboard op **Bemestingsplan**.
 2. Kies het teeltjaar en genereer het plan.

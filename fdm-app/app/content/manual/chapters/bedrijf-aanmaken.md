@@ -36,15 +36,15 @@ Een bedrijf zet je op met een wizard van vijf stappen: bedrijfsgegevens, percele
 
 ## Wat heb je nodig? {#voorbereiding}
 
-| Wat                              | Nodig voor                                                                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bedrijfsnaam en startjaar        | Altijd                                                                                                                                          |
-| KvK-nummer en eHerkenning        | Percelen ophalen bij RVO. Je logt in met de eHerkenning van het bedrijf, of met die van je eigen organisatie als je bij RVO een machtiging hebt |
-| Shapefile uit mijn.rvo.nl        | Percelen uploaden zonder eHerkenning                                                                                                            |
-| Niets                            | Percelen aanklikken op de kaart                                                                                                                 |
-| Labrapporten als PDF (optioneel) | Bodemanalyses in één keer toevoegen                                                                                                             |
+Om te beginnen heb je alleen de naam van je bedrijf nodig en het jaar waarmee je wilt starten. Heb je je KvK-nummer bij de hand, dan vult {{appName}} je bedrijfsgegevens voor je in.
 
-Weet je niet welke manier je moet kiezen voor je percelen? Heb je eHerkenning, haal ze dan op bij RVO: dat is het meest compleet. Anders is de shapefile een goed alternatief. De kaart is handig voor een paar percelen of om snel te beginnen.
+Voor je percelen kies je in stap 2 een van deze drie manieren:
+
+- [Ophalen bij RVO](#rvo): je hebt je KvK-nummer en eHerkenning nodig, van het bedrijf zelf of van je eigen organisatie met een machtiging bij RVO. Zo neem je je registratie bij RVO in één keer compleet over.
+- [Een shapefile uploaden](#shapefile): je hebt een shapefile van je percelen uit mijn.rvo.nl nodig. Handig als je geen eHerkenning bij de hand hebt.
+- [Aanklikken op de kaart](#kaart): je hoeft alleen te weten waar je percelen liggen. Handig om snel te beginnen of als je maar een paar percelen hebt.
+
+Heb je labrapporten van je bodemanalyses als PDF? Houd die ook bij de hand: in stap 3 upload je ze in één keer voor al je percelen.
 
 ## Stap 1: Bedrijfsgegevens {#stappen}
 

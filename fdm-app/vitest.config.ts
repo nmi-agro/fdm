@@ -10,6 +10,9 @@ export default defineConfig({
     environment: "node",
     include: ["app/**/*.test.ts"],
     testTimeout: 30000,
+    // The manual's content loader uses `import.meta.glob`. A cached transform of that module does
+    // not notice a newly added Markdown file, so a new chapter would stay invisible to the tests.
+    fsModuleCache: false,
     coverage: {
       include: ["app/lib/manual/**"],
     },

@@ -55,7 +55,7 @@ export const helpTargets = {
   maatregelen: { kind: "chapter", slug: "bodemkwaliteit", anchor: "maatregelen" },
   labs: { kind: "chapter", slug: "labs" },
   mineralisatie: { kind: "chapter", slug: "labs", anchor: "mineralisatie" },
-  gerrit: { kind: "chapter", slug: "labs", anchor: "gerrit" },
+  gerrit: { kind: "chapter", slug: "gerrit" },
   bemestingsplan: { kind: "chapter", slug: "bemestingsplan" },
   samenwerken: { kind: "chapter", slug: "samenwerken" },
   toegang: { kind: "chapter", slug: "samenwerken", anchor: "toegang" },
@@ -71,6 +71,7 @@ export const helpTargets = {
   "achtergrond-bln3-bodemkwaliteit": { kind: "background", slug: "bln3-bodemkwaliteit" },
   "achtergrond-bodemanalyse": { kind: "background", slug: "bodemanalyse" },
   "achtergrond-mineralisatie": { kind: "background", slug: "mineralisatie" },
+  "achtergrond-gerrit": { kind: "background", slug: "gerrit" },
 } as const satisfies Record<string, HelpTarget>
 
 /** The id of a help target, such as `"bouwplan"`. */
