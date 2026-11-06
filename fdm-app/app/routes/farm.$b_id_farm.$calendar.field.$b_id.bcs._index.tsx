@@ -21,6 +21,7 @@ import {
   useParams,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { BCS_COLOR_CLASSES, type BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 import {
   AlertDialog,
@@ -73,6 +74,8 @@ function getBcsPath(params: ActionFunctionArgs["params"]) {
   const { b_id, b_id_farm, calendar } = getRouteParams(params)
   return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
 }
+
+export const handle: HelpHandle = { help: "bodemconditiescore" }
 
 export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {

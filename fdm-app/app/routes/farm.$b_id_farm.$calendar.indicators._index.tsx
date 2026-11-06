@@ -267,6 +267,7 @@ export default function IndicatorsFarmIndex() {
   return (
     <>
       <FarmTitle
+        help="bodemkwaliteit"
         title="Indicatoren"
         description="BLN3 bodemkwaliteitsindicatoren voor alle percelen op dit bedrijf."
         rightNode={

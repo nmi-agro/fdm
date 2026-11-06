@@ -19,6 +19,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION } from "~/components/blocks/cultivation/suggestion"
@@ -39,6 +40,9 @@ function parseValidDate(value: string | null): Date | undefined {
 }
 
 // Meta
+
+export const handle: HelpHandle = { help: "gewassen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Gewas - Perceel | ${clientConfig.name}` },

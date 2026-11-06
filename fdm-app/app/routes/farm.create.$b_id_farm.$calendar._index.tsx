@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { getFarm } from "@nmi-agro/fdm-core"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import {
@@ -20,6 +21,9 @@ import { cn } from "~/lib/utils"
 import { getSession } from "../lib/auth.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen-importeren" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -62,7 +66,7 @@ export default function ChooseFieldImportMethod() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="percelen-importeren">
         <HeaderFarmCreate b_name_farm={farm.b_name_farm} />
       </Header>
       <main className="flex flex-1 flex-col items-center justify-center p-4">

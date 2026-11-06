@@ -1,0 +1,47 @@
+name: User manual
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  manual:
+    name: User manual checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.8.1
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm i --frozen-lockfile
+
+      # Content, label and SEO tests. They need no database and no build; a stale UI label
+      # in the manual fails this step.
+      - name: Test the manual
+        run: pnpm --filter @nmi-agro/fdm-app test
+
+      # Warns, never fails: lists manual pages whose routes changed in this PR.
+      - name: Check route drift
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node fdm-app/scripts/manual-route-drift.mjs

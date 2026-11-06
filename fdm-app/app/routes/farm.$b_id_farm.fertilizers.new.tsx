@@ -8,6 +8,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { redirectWithError } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
@@ -18,6 +19,8 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
 import type { Route } from "./+types/farm.$b_id_farm.fertilizers.new"
+
+export const handle: HelpHandle = { help: "meststoffen" }
 
 export const meta: MetaFunction = () => {
   return [

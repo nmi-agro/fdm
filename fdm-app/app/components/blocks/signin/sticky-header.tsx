@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useScroll } from "framer-motion"
 import { useEffect, useState } from "react"
+import { Link } from "react-router"
 import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 
@@ -37,7 +38,12 @@ export function StickyHeader() {
               </div>
               <span className="font-semibold">{clientConfig.name}</span>
             </div>
-            <Button onClick={scrollToTop}>Aanmelden</Button>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost">
+                <Link to="/manual">Handleiding</Link>
+              </Button>
+              <Button onClick={scrollToTop}>Aanmelden</Button>
+            </div>
           </div>
         </motion.header>
       )}

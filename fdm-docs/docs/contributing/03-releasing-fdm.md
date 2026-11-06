@@ -48,6 +48,8 @@ On this `release/*` branch, you can perform any final tasks before the release. 
 
 - Add or update blog posts.
 - Update a "What's New" section in the application.
+- Review the background pages of the user manual (`fdm-app/app/content/manual/background`) against the calculations in this release, and update their `lastReviewed` date. The `fdm-user-guide-sync` skill in `release` mode lists which calculations changed per page, to prepare that review. Any maintainer can do this; ask someone with agronomic expertise when a calculation changed.
+- Check that production sets `FDM_SEO_INDEXING=true`. Without it, `robots.txt` blocks all crawling and the sign-in page and the manual drop out of search results. After deploying, check that `/robots.txt` does not contain `Disallow: /` and that `/sitemap.xml` lists the manual.
 - Run code formatters or linters.
 - Perform any other final checks or documentation updates.
 

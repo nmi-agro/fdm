@@ -82,6 +82,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 ```
 
+Search-engine indexing of the public pages (sign-in, privacy and the user manual at `/manual`) is off unless `FDM_SEO_INDEXING=true`. Leave it unset locally, on forks and on staging: `robots.txt` then blocks all crawling and the manual pages carry a `noindex` tag. A production deployment must set `FDM_SEO_INDEXING=true` to stay in search results.
+
 ### 4. Configure `.env` for `fdm-api` (Optional)
 
 If you are developing or testing the REST API:

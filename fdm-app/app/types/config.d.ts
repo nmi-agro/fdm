@@ -2,6 +2,11 @@ export interface ServerConfig {
   name: string
   url: string
   privacy_url: string | undefined
+  /**
+   * Whether search engines may index the public pages (`FDM_SEO_INDEXING=true`). Off by default,
+   * so forks and staging environments are not indexed.
+   */
+  seo_indexing: boolean
   datasets_url: string
   auth: {
     fdm_session_secret: string

@@ -14,6 +14,7 @@ import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
@@ -37,6 +38,8 @@ import { cn } from "~/lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation"
 
 const dutchCollator = new Intl.Collator("nl-NL", { sensitivity: "base", usage: "sort" })
+
+export const handle: HelpHandle = { help: "bouwplan" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -365,6 +368,7 @@ export default function FarmRotationIndex() {
         {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
+              help="bouwplan"
               title={`Bouwplan van ${currentFarmName}`}
               description="Dit bedrijf heeft nog geen bouwplan"
             />
@@ -402,6 +406,7 @@ export default function FarmRotationIndex() {
         ) : (
           <>
             <FarmTitle
+              help="bouwplan"
               title={`Bouwplan van ${currentFarmName}`}
               description="Bekijk het bouwplan en voeg gegevens toe."
             />
