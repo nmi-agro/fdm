@@ -63,6 +63,7 @@ export function AuthCard({
             <Button
               variant="ghost"
               className="text-muted-foreground w-full"
+              nativeButton={false}
               render={<NavLink to={backLink}>{backLabel}</NavLink>}
             />
           )}

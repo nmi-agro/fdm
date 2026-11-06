@@ -164,7 +164,7 @@ export function FieldSelectionDialog({
             <FieldCheckboxList fields={withCrop} selected={selected} onToggle={toggle} />
           )}
           {withoutCrop.length > 0 && (
-            <Accordion type="single" collapsible>
+            <Accordion multiple={false} collapsible>
               <AccordionItem value="without-crop">
                 <AccordionTrigger className="text-sm">
                   Percelen zonder {cultivationName || "dit gewas"}
