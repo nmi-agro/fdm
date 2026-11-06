@@ -399,17 +399,40 @@ export async function getPhosphateBalanceForField({
   fieldResult: PhosphateBalanceFieldResult
   fieldInput: PhosphateFieldInput
 }> {
-  const { fields, ...rest } = await addPhosphateCropHistory(
+  const collected = await collectInputForPhosphateBalance(
     fdm,
     principal_id,
     b_id_farm,
-    await collectInputForPhosphateBalance(fdm, principal_id, b_id_farm, timeframe, b_id),
+    timeframe,
+    b_id,
   )
-
-  if (fields.length === 0) {
+  if (collected.fields.length === 0) {
     throw new Error(`Field ${b_id} not found for farm ${b_id_farm}`)
   }
+  const base = {
+    b_id: b_id,
+    b_area: collected.fields[0].field.b_area ?? 0,
+    b_bufferstrip: collected.fields[0].field.b_bufferstrip ?? false,
+  }
+  const exclusion = getPhosphateFieldExclusion(collected.fields[0], collected.timeFrame)
+  if (exclusion) return { fieldResult: { ...base, exclusion }, fieldInput: collected.fields[0] }
 
+  // The crop history needs the cultivation catalogue; when that lookup fails, the field page shows
+  // its calculation-error state instead of failing the whole page
+  let withHistory: typeof collected
+  try {
+    withHistory = await addPhosphateCropHistory(fdm, principal_id, b_id_farm, collected)
+  } catch (error) {
+    return {
+      fieldResult: {
+        ...base,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      fieldInput: collected.fields[0],
+    }
+  }
+
+  const { fields, ...rest } = withHistory
   const fieldInput = fields[0]
   const { history: historyYears, ...details } = rest
   const history = (historyYears ?? []).flatMap((year) =>
@@ -417,13 +440,6 @@ export async function getPhosphateBalanceForField({
       .filter((f) => f.field.b_id === b_id)
       .map((past) => ({ timeFrame: year.timeFrame, fieldInput: past })),
   )
-  const base = {
-    b_id: b_id,
-    b_area: fieldInput.field.b_area ?? 0,
-    b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
-  }
-  const exclusion = getPhosphateFieldExclusion(fieldInput, details.timeFrame)
-  if (exclusion) return { fieldResult: { ...base, exclusion }, fieldInput }
   try {
     const balance = await getPhosphateBalanceField(fdm, {
       fieldInput,
