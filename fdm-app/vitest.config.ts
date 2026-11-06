@@ -58,6 +58,9 @@ export default defineConfig({
           // database connection.
           isolate: false,
           maxWorkers: process.env.CI ? 2 : undefined,
+          // Runs after the unit tests, as its own group: projects with different worker limits
+          // cannot share a group.
+          sequence: { groupOrder: 1 },
           testTimeout: 60000,
           hookTimeout: 120000,
         },
