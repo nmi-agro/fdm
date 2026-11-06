@@ -30,9 +30,11 @@ import {
 } from "./season-plan-rules"
 
 // Synthetic fixtures only.
+/** Start of a calendar day in Europe/Amsterdam. */
 const day = (year: number, month: number, d: number) => startOfDayInFdmTimeZone(year, month, d)
 
 let counter = 0
+/** Creates a synthetic cultivation with a unique `b_lu`. */
 function cultivation(
   b_id: string,
   b_lu_catalogue: string,
@@ -64,6 +66,7 @@ function arable(
   return cultivation(b_id, b_lu_catalogue, rotation, day(year, 4, 1), day(year, 9, 15))
 }
 
+/** Creates a synthetic field. */
 function field(
   b_id: string,
   b_start: Date,
@@ -73,6 +76,7 @@ function field(
   return { b_id, b_name: `Perceel ${b_id}`, b_start, b_end, b_bufferstrip: bufferstrip }
 }
 
+/** Creates farm data with the given fields and no other records. */
 function emptyData(fields: SeasonPlanField[]): SeasonPlanData {
   return {
     fields,
@@ -83,6 +87,7 @@ function emptyData(fields: SeasonPlanField[]): SeasonPlanData {
   }
 }
 
+/** Creates a synthetic measure on field `f1`. */
 function measure(
   b_id_measure: string,
   m_id: string,

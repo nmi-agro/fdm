@@ -75,6 +75,7 @@ async function collectSeasonPlanData(
   }
 }
 
+/** Throws when the year is not an integer. */
 function assertYear(year: number): void {
   if (!Number.isInteger(year)) {
     throw new Error(`Invalid year: ${year}`)

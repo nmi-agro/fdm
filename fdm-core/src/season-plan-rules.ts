@@ -139,12 +139,14 @@ export function getYearTimeframe(year: number): { start: Date; end: Date } {
   }
 }
 
+/** Returns whether a moment lies within a timeframe (inclusive); `false` for a missing moment. */
 function isWithin(date: Date | null | undefined, timeframe: Timeframe): boolean {
   if (!date || !timeframe.start || !timeframe.end) return false
   const time = date.getTime()
   return time >= timeframe.start.getTime() && time <= timeframe.end.getTime()
 }
 
+/** Returns whether a year is a leap year in the Gregorian calendar. */
 function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
 }
@@ -212,6 +214,7 @@ export function getMainCultivation<T extends SeasonPlanCultivation>(
   return findHoofdteelt(cultivations, year, true)
 }
 
+/** Converts the main cultivation of a year to a history entry. */
 function toHistoryEntry(cultivation: SeasonPlanCultivation, year: number): SeasonPlanHistoryEntry {
   return {
     year,
@@ -413,6 +416,7 @@ export function groupMeasures(
   const target = getYearTimeframe(targetYear)
   const previous = getYearTimeframe(targetYear - 1)
   const groups: SeasonPlanMeasureGroups = { ongoing: [], expiring: [], ended: [] }
+  /** Whether a measure applies during (a part of) the target year. */
   const continues = (measure: SeasonPlanMeasure) =>
     (!measure.m_start || measure.m_start.getTime() <= target.end.getTime()) &&
     (!measure.m_end || adjustEndDateAtYearStart(measure.m_end).getTime() >= target.start.getTime())
@@ -518,11 +522,13 @@ export function evaluateSeasonPlanProgress(
   const progress = new Map<SeasonPlanStep, SeasonPlanStepProgress>(
     SEASON_PLAN_STEPS.map((step) => [step, { step, done: true, pending: [], notices: [] }]),
   )
+  /** Records an item that blocks completion of a step. */
   const block = (step: SeasonPlanStep, id: string) => {
     const entry = progress.get(step) as SeasonPlanStepProgress
     entry.pending.push(id)
     entry.done = false
   }
+  /** Records an item of a step that is shown to the user but does not block completion. */
   const notice = (step: SeasonPlanStep, id: string) => {
     ;(progress.get(step) as SeasonPlanStepProgress).notices.push(id)
   }
@@ -663,6 +669,7 @@ function findFertilizerTemplate(
   targetYear: number,
   rules: SeasonPlanRules,
 ): SeasonPlanFertilizerTemplate | null {
+  /** Builds the template of a field and year when that year had the same main cultivation. */
   const build = (fieldId: string, year: number): SeasonPlanFertilizerTemplate | null => {
     const main = getMainCultivation(data.cultivations.get(fieldId) ?? [], year)
     if (!main || main.b_lu_catalogue !== b_lu_catalogue) return null

@@ -28,6 +28,7 @@ import {
 } from "./season-plan"
 
 // Synthetic fixtures only.
+/** Start of a calendar day in Europe/Amsterdam. */
 const day = (year: number, month: number, d: number) => startOfDayInFdmTimeZone(year, month, d)
 
 const geometry = {
@@ -126,6 +127,26 @@ describe("Season plan", () => {
   let b_id_new: string
   let p_id: string
   let wheat: string
+  let grass: string
+
+  /**
+   * Adds a field with grassland sown in 2015 without end date, so the cultivation starts before
+   * every timeframe used by the season plan and continues into the target year.
+   */
+  async function addPermanentGrassland() {
+    const b_id_grass = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Perceel D",
+      "source-d",
+      geometry,
+      day(2015, 1, 1),
+      "nl_01",
+    )
+    const b_lu_grass = await addCultivation(fdm, principal_id, grass, b_id_grass, day(2015, 3, 1))
+    return { b_id_grass, b_lu_grass }
+  }
 
   beforeEach(async () => {
     fdm = createFdmServer(
@@ -147,6 +168,16 @@ describe("Season plan", () => {
       b_lu_source,
       b_lu_name: "Wintertarwe",
       b_lu_croprotation: "cereal",
+    })
+    grass = `sp_grass_${suffix}`
+    await addCultivationToCatalogue(fdm, {
+      ...cultivationDetails,
+      b_lu_catalogue: grass,
+      b_lu_source,
+      b_lu_name: "Grasland, blijvend",
+      b_lu_croprotation: "grass",
+      b_lu_harvestable: "multiple",
+      b_lu_harvestcat: "HC020",
     })
     await enableCultivationCatalogue(fdm, principal_id, b_id_farm, b_lu_source)
 
@@ -225,6 +256,20 @@ describe("Season plan", () => {
       expect(progress.firstIncompleteStep).toBe("fertilizers")
     })
 
+    it("recognises grassland that started before the timeframe and has no end date", async () => {
+      const { b_lu_grass, b_id_grass } = await addPermanentGrassland()
+      const progress = await getSeasonPlanProgress(fdm, principal_id, b_id_farm, 2027)
+      expect(progress.fieldStatus.get(b_id_grass)).toBe("kept")
+      const cultivations = progress.steps.find((s) => s.step === "cultivations")
+      expect(cultivations?.pending).not.toContain(b_id_grass)
+      // Grassland is harvested multiple times, so a harvest in 2027 is expected
+      expect(progress.steps.find((s) => s.step === "harvests")?.pending).toContain(b_lu_grass)
+      // Grassland is not arable land, so no catch crop is asked for
+      expect(progress.steps.find((s) => s.step === "catch_crops")?.notices).not.toContain(
+        b_id_grass,
+      )
+    })
+
     it("rejects a year that is not an integer", async () => {
       await expect(getSeasonPlanProgress(fdm, principal_id, b_id_farm, 2027.5)).rejects.toThrow()
     })
@@ -265,6 +310,18 @@ describe("Season plan", () => {
       const added = proposal.fields.find((f) => f.b_id === b_id_new)
       expect(added?.fieldType).toBe("new")
       expect(added?.fertilizerTemplate).toBeNull()
+    })
+
+    it("classifies grassland without end date as permanent", async () => {
+      const { b_id_grass } = await addPermanentGrassland()
+      const proposal = await getSeasonPlanProposal(fdm, principal_id, b_id_farm, 2027)
+      const grassField = proposal.fields.find((f) => f.b_id === b_id_grass)
+      expect(grassField?.fieldType).toBe("permanent")
+      expect(grassField?.sourceYear).toBe(2026)
+      expect(grassField?.history.map((h) => h.year)).toEqual([2021, 2022, 2023, 2024, 2025, 2026])
+      expect(grassField?.suggested?.b_lu_catalogue).toBe(grass)
+      expect(grassField?.current?.b_lu_catalogue).toBe(grass)
+      expect(grassField?.rotationWarnings).toEqual([])
     })
 
     it("proposes the fertilizer template of the crop recorded for the target year", async () => {
