@@ -39,8 +39,9 @@ interface BuildAsset {
 const LIST_SCRIPT = `
 const build = await import("./build/server/index.js")
 const routes = Object.values(build.routes).map(({ id, parentId, path, index }) => ({ id, parentId, path, index }))
-process.stdout.write(JSON.stringify({ routes, assets: build.assets.routes }))
-process.exit(0)
+// Exit once the output is written: on Linux, stdout to a pipe is asynchronous, and exiting
+// earlier cuts the list short. The server modules keep handles open, so exit explicitly.
+process.stdout.write(JSON.stringify({ routes, assets: build.assets.routes }), () => process.exit(0))
 `
 
 /**
