@@ -217,12 +217,6 @@ const MemberRow = ({
   )
 }
 
-const ORGANIZATION_ROLES = [
-  { value: "owner", label: "Eigenaar" },
-  { value: "admin", label: "Beheerder" },
-  { value: "member", label: "Lid" },
-]
-
 const MemberAction = ({
   member,
   permissions,
@@ -250,26 +244,14 @@ const MemberAction = ({
     <fetcher.Form method="post" className="flex items-center space-x-4">
       <Spinner className={cn(fetcher.state !== "submitting" && "invisible")} />
       <input type="hidden" name="memberId" value={member.id} />
-      <Select
-        name="role"
-        value={role}
-        items={ORGANIZATION_ROLES}
-        onValueChange={(value) => {
-          if (typeof value === "string") {
-            submitRoleChange(value)
-          }
-        }}
-        disabled={disabled}
-      >
+      <Select name="role" value={role} onValueChange={submitRoleChange} disabled={disabled}>
         <SelectTrigger className="ml-auto w-27.5">
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
-          {ORGANIZATION_ROLES.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
+          <SelectItem value="owner">Eigenaar</SelectItem>
+          <SelectItem value="admin">Beheerder</SelectItem>
+          <SelectItem value="member">Lid</SelectItem>
         </SelectContent>
       </Select>
       {permissions.canRemoveUser ? (
