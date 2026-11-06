@@ -34,7 +34,7 @@
     "watch": "vitest"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.5",
+    "@hono/node-server": "^2.1.6",
     "@hono/zod-openapi": "^1.6.3",
     "@nmi-agro/fdm-calculator": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
@@ -42,17 +42,17 @@
     "@nmi-agro/fdm-reports": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:*",
     "@nmi-agro/fdm-storage": "workspace:*",
-    "@scalar/hono-api-reference": "^0.12.16",
+    "@scalar/hono-api-reference": "^0.12.17",
     "@sentry/node": "^11.10.0",
     "@sentry/profiling-node": "^11.10.0",
     "drizzle-orm": "catalog:",
-    "hono": "^4.13.14",
+    "hono": "^4.13.16",
     "nanoid": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
-    "@scalar/openapi-parser": "^0.29.18",
+    "@scalar/openapi-parser": "^0.29.19",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",
