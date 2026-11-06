@@ -1,34 +1,40 @@
 import { getFarm, getField } from "@nmi-agro/fdm-core"
-import { TriangleAlert } from "lucide-react"
-import { Suspense, use, useState } from "react"
+import { Suspense, use } from "react"
 import {
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
   useLoaderData,
-  useLocation,
 } from "react-router"
 import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
 import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-balance-card"
 import { PhosphateBalanceChart } from "~/components/blocks/balance/phosphate-chart"
 import { PhosphateBalanceDetails } from "~/components/blocks/balance/phosphate-details"
 import {
+  formatLongTermRange,
+  hasLongTermAverage,
+} from "~/components/blocks/balance/phosphate-format"
+import { PhosphateFieldFallback } from "~/components/blocks/balance/phosphate-skeletons"
+import {
+  getPhosphateChartStart,
+  PhosphateCardHeading,
   PhosphateSaturationCard,
   PhosphateStockCard,
 } from "~/components/blocks/balance/phosphate-soil"
-import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import {
+  PhosphateCalculationError,
+  PhosphateExcludedField,
+} from "~/components/blocks/balance/phosphate-states"
+import {
+  PhosphateAdviceCard,
+  PhosphateStatusCard,
+} from "~/components/blocks/balance/phosphate-status-card"
 import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card"
-import { getPhosphateBalanceForField } from "~/integrations/calculator"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
+import { getFieldNormValues, getPhosphateBalanceForField } from "~/integrations/calculator"
+import { isNormsCalendar } from "~/integrations/farm-norms.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -52,7 +58,9 @@ export const meta: MetaFunction = () => {
 
 /**
  * Loads the farm and field, and (deferred) the phosphate balance of the field for the selected
- * calendar year. The calculation is skipped when the field is not in use in that year.
+ * calendar year with its phosphate application standard (to warn when the advice needs more
+ * phosphate than the standard allows). The calculation is skipped when the field is not in use in
+ * that year.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -84,13 +92,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
+    // The standard is only used for a warning: without it (other years, missing soil data) the page
+    // still works
+    const calendar = params.calendar ?? ""
+    const phosphateNorm: Promise<number | null> = isNormsCalendar(calendar)
+      ? getFieldNormValues({ fdm, principal_id: session.principal_id, b_id, calendar })
+          .then((norms) => norms.phosphate.normValue)
+          .catch(() => null)
+      : Promise.resolve(null)
+
     const phosphateBalanceResult = getPhosphateBalanceForField({
       fdm,
       principal_id: session.principal_id,
       b_id_farm,
       b_id,
       timeframe,
-    }).then(({ fieldResult, fieldInput }) => {
+    }).then(async ({ fieldResult, fieldInput }) => {
       let errorId: string | undefined
       if (fieldResult.errorMessage) {
         errorId = reportError(
@@ -108,7 +125,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           },
         )
       }
-      return { fieldResult: { ...fieldResult, errorId }, fieldInput }
+      return {
+        fieldResult: { ...fieldResult, errorId },
+        fieldInput,
+        phosphateNorm: await phosphateNorm,
+      }
     })
 
     return {
@@ -143,7 +164,7 @@ export default function FarmBalancePhosphateFieldBlock() {
     <div className="space-y-4">
       <Suspense
         key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}`}
-        fallback={<NitrogenBalanceFallback />}
+        fallback={<PhosphateFieldFallback />}
       >
         <PhosphateBalance
           {...loaderData}
@@ -161,47 +182,30 @@ function PhosphateBalance({
 }: Awaited<ReturnType<typeof loader>> & {
   phosphateBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["phosphateBalanceResult"]>
 }) {
-  const { fieldResult, fieldInput } = use(phosphateBalanceResult)
-  const location = useLocation()
-  const page = location.pathname
+  const { fieldResult, fieldInput, phosphateNorm } = use(phosphateBalanceResult)
   const calendar = useCalendarStore((state) => state.calendar)
-  // Computed once, not on every render: only shown in the error branch's debug dump below.
-  const [errorTimestamp] = useState(() => new Date())
+  const fieldBase = `/farm/${farm.b_id_farm}/${calendar}/field/${field.b_id}`
 
-  if (field.b_bufferstrip) {
+  if (field.b_bufferstrip || fieldResult.exclusion === "bufferstrip") {
     return <BufferStripWarning b_id={field.b_id} />
+  }
+
+  if (fieldResult.exclusion) {
+    return (
+      <PhosphateExcludedField
+        exclusion={fieldResult.exclusion}
+        calendar={calendar}
+        cultivationHref={`${fieldBase}/cultivation`}
+      />
+    )
   }
 
   if (fieldResult.errorMessage) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>Helaas is het niet mogelijk om je balans uit te rekenen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-muted-foreground">
-              <p>
-                Er is helaas wat misgegaan. Probeer opnieuw of neem contact op met Ondersteuning en
-                deel de volgende foutmelding:
-              </p>
-              <div className="mt-8 w-full max-w-2xl">
-                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                  {JSON.stringify(
-                    {
-                      errorId: fieldResult.errorId,
-                      page: page,
-                      timestamp: errorTimestamp,
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PhosphateCalculationError
+        message={`De fosfaatbalans van ${field.b_name} kon niet worden berekend.`}
+        errorId={fieldResult.errorId}
+      />
     )
   }
 
@@ -238,44 +242,61 @@ function PhosphateBalance({
     ...result.long_term.warnings,
   ]
 
+  const chartStart = getPhosphateChartStart(fieldInput.soilAnalyses, Number(calendar))
+
   return (
-    <>
-      {warnings.map((warning) => (
-        <p key={warning} className="text-muted-foreground flex items-start gap-2 text-sm">
-          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-hidden />
-          {warning}
-        </p>
-      ))}
-      {/* Two columns on large screens: PSD next to the balance (same height), P-AL next to the
-          terms. On small screens: PSD, P-AL, balance, terms. */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PhosphateSaturationCard balance={result} className="order-1 h-full" />
-        <div className="order-3 *:h-full lg:order-2">
-          <PhosphateBalanceCard
-            year={calendar}
-            balance={result.balance}
-            leaching={result.leaching.total}
-          >
-            <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
-          </PhosphateBalanceCard>
-        </div>
-        <div className="order-2 self-start lg:order-3">
+    <div className="space-y-4">
+      <PhosphateStatusCard balance={result} fieldName={field.b_name} />
+      {/* The soil indicators side by side (same height and time axis, so they can be compared),
+          then what to do, then the balance and its terms. On small screens everything stacks. */}
+      <div className="@container/soil space-y-4">
+        <div className="grid gap-4 @3xl/soil:grid-cols-2">
+          <PhosphateSaturationCard balance={result} chartStart={chartStart} className="h-full" />
           <PhosphateStockCard
             balance={result}
             soilAnalyses={fieldInput.soilAnalyses}
             calendarYear={Number(calendar)}
+            chartStart={chartStart}
+            className="h-full"
           />
         </div>
-        <Card className="order-4 self-start">
-          <CardHeader>
-            <CardTitle>Posten</CardTitle>
-            <CardDescription />
-          </CardHeader>
-          <CardContent>
-            <PhosphateBalanceDetails balanceData={result} fieldInput={fieldInput} />
-          </CardContent>
-        </Card>
+        <PhosphateAdviceCard
+          balance={result}
+          phosphateNorm={phosphateNorm}
+          warnings={warnings}
+          links={{
+            soil: `${fieldBase}/soil`,
+            fertilizer: `${fieldBase}/fertilizer`,
+            cultivation: `${fieldBase}/cultivation`,
+          }}
+        />
+        <div className="grid gap-4 @3xl/soil:grid-cols-2">
+          <PhosphateBalanceCard
+            year={calendar}
+            balance={result.balance}
+            leaching={result.leaching.total}
+            // Without registered data for earlier years the trend uses the balance of this year only
+            longTerm={
+              hasLongTermAverage(result)
+                ? {
+                    balance: result.long_term.balance,
+                    years: formatLongTermRange(result.long_term.years),
+                  }
+                : undefined
+            }
+          >
+            <PhosphateBalanceChart type="field" balance={result} fieldInput={fieldInput} />
+          </PhosphateBalanceCard>
+          <Card>
+            <CardHeader>
+              <PhosphateCardHeading>Posten</PhosphateCardHeading>
+            </CardHeader>
+            <CardContent>
+              <PhosphateBalanceDetails balanceData={result} fieldInput={fieldInput} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </>
+    </div>
   )
 }

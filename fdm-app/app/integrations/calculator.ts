@@ -13,6 +13,7 @@ import {
   getNutrientAdvice,
   getOrganicMatterBalanceField,
   getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
   getSoilParameterEstimates,
   GROENE_BRAAK,
   type NitrogenBalanceFieldResultNumeric,
@@ -421,6 +422,8 @@ export async function getPhosphateBalanceForField({
     b_area: fieldInput.field.b_area ?? 0,
     b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
   }
+  const exclusion = getPhosphateFieldExclusion(fieldInput, details.timeFrame)
+  if (exclusion) return { fieldResult: { ...base, exclusion }, fieldInput }
   try {
     const balance = await getPhosphateBalanceField(fdm, {
       fieldInput,

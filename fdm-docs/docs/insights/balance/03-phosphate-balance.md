@@ -152,7 +152,7 @@ The PSD is taken from the first available source:
 1. `a_p_ox`, `a_fe_ox` and `a_al_ox` of the most recent soil analysis that has all three (measured, or NMI estimates).
 2. `a_p_sg` as delivered.
 
-Without either, the PSD is missing (it is not estimated from P-AL), and the field status is shown as unknown.
+Without either, the PSD is missing (it is not estimated from P-AL), and the field status is based on P-AL only (Section 3.4.4).
 
 When Fe-ox and Al-ox are missing, the median values of the soil type are used for the PSC. Notes are returned for soils where the PSD is less reliable: calcareous sand (`duinzand`) and calcareous marine clay, and peat, dalgrond and moerige klei (oxalate also dissolves organically bound Fe and Al, so the PSD is probably underestimated).
 
@@ -178,6 +178,7 @@ The projection shows what happens to the soil if the long-term average balance i
 **Long-term average balance.** The balance is averaged over the selected year and up to four years before it, so a crop rotation (for example potatoes in one year and cereals in the next) is taken into account:
 
 - **Years:** the selected year and every earlier year with a cultivation on the field. Registered cultivations are collected with the input (`history`; `collectInputForPhosphateBalance` collects four earlier years by default, `historyYears: 4`). For years without registered cultivations, the crop history of the field (`cultivation_history`, in the app the BRP crops from the NMI API, as on the field dashboard) is used.
+- **Only years with data:** an earlier year counts only when it has registered fertilizer applications or harvests; a crop alone (e.g. from the BRP history) is not enough. Without any such year, the trend uses the balance of the selected year only, and a warning asks the user to add the fertilisation and harvests of the earlier years. The app then shows the balance of the year instead of an average.
 - **Removal, mineralisation and deposition** are averaged over these years. In earlier years, a crop without a registered harvest gets the default yield and phosphate content of the cultivation catalogue (NMI API): once for a crop that is harvested once, every year for grassland. When no default is known, the app asks the user to add the harvest.
 - **Fertilizer supply** is averaged over the years with registered fertilizer applications (the selected year always counts), because missing applications in earlier years usually mean "not registered" rather than "not fertilized". The app asks the user to add the fertilizer applications of those years.
 - The leaching of the average balance and the average balance itself (`long_term`) are used for the projection. The earlier years use the same soil data and parameters as the selected year.
@@ -193,15 +194,42 @@ effective balance (kg P₂O₅ / ha / year) = long-term balance + long-term leac
 
 The time until the PSD crosses the field threshold (back below it, or above it) is reported as a class: `reached`, `< 5`, `5–10`, `10–20`, `> 20` years, or `not_reached` at this balance.
 
-In the app, a field is shown as **on track** (✓) when the projected PSD after 20 years is at or below the field threshold: it stays below, or comes below within 20 years. Otherwise it is **off track** (✗), also when the PSD is above the threshold and decreases too slowly to reach it within 20 years. Without PSD or threshold the status is unknown.
+#### 3.4.4. Status and Advice
 
-The field page adds a short recommendation: lower the current phosphate fertilisation when the field is off track (✗, also when the PSD decreases but stays above the threshold after 20 years); keep the fertilisation at its current level when it is on track (✓). The recommendation is a direction, not an amount, because the change per year is uncertain.
+`assessPhosphateStatus(balance)` judges a field from its long-term average balance: where the soil phosphorus is relative to a target zone, which way it goes and how long it takes. It is a pure function of the field result (also exported from `@nmi-agro/fdm-calculator/browser`), so the rules can be tuned without recalculating cached balances. The rules are in `PHOSPHATE_STATUS_RULES` (_draft_).
+
+**Target zone.** The lower bound is agronomic: P-AL ≥ 25, enough for the yield. The upper bound is environmental: the PSD at or below the field threshold (Section 3.4.2). When the PSD is missing or not reliable for the soil type (`psd_valid` is false, e.g. calcareous sand), P-AL 25–45 is the zone.
+
+| Position                                  | Aim (`aim`)   | Bound that sets it (`binding`)  |
+| ----------------------------------------- | ------------- | ------------------------------- |
+| PSD above the threshold                   | `afbouwen`    | `psd`                           |
+| P-AL below 25                             | `opbouwen`    | `p_al`                          |
+| P-AL above 45, no usable PSD              | `afbouwen`    | `p_al`                          |
+| In the zone                               | `onderhouden` | the bound crossed first, if any |
+| PSD above the threshold and P-AL below 25 | `onderhouden` | `psd`, with `conflict`          |
+
+When the PSD is above the threshold while P-AL is not high (≤ 45), the environment comes first and `conflict` is set: reducing is needed for the environment, not for the yield. `p_al_min_years` gives the years until P-AL reaches 25 at the current balance. When the PSD is above the threshold and P-AL is also below 25, no single direction is right; the field is flagged for an advisor.
+
+**Close enough.** Exact targets are not needed. Within 2 PSD percentage points of the threshold, or 3 P-AL units of a P-AL bound, counts as reached. The direction is `stable` when the effective balance (Section 3.4.3) is within ±1 kg P₂O₅ / ha / year.
+
+**Verdict.**
+
+- Outside the zone: `good` when the zone (with its margin) is reached within 10 years, `attention` when the direction is right but slower, `adjust` when the direction is wrong or there is no change.
+- Inside the zone: `good` when the status stays in the zone for more than 20 years (so a deficit on a rich soil is good), `attention` when it leaves the zone within 5–20 years, `adjust` within 5 years.
+- `unknown` without P-AL and PSD.
+
+`years` (with a range from the P-AL buffer) gives the time to reach the zone, or to leave it when inside. `indicative` is set when the PSD is not usable or less reliable for the soil type, the threshold is the general 25%, or the soil data are NMI estimates only.
+
+**Needed balance.** When the verdict is not `good`, `balance_needed` gives the long-term average balance that reaches the zone edge in 10 years (outside the zone), or keeps the status in the zone for 20 years (inside the zone), as a maximum or minimum. It inverts the projection with the same buffer, PSC, bulk density, depth, fixation and the current leaching. `balance_needed.fertilizers` is the average fertilizer supply per year that gives this balance at the current removal, mineralisation and deposition. The app compares it with the phosphate application standard (fosfaatgebruiksnorm) of the field and warns when the standard is lower; the standard applies at farm level. The needed balance is a guide for the direction and size of a change, not a fertilisation advice.
+
+**Advice text.** The app builds one diagnosis and one action sentence from the aim, verdict and needed balance. It does not advise lowering the fertilisation when no phosphate fertilizer is applied (`has_fertilizer_input` is false); then only more removal (e.g. removing crop residues, crops with a high phosphate offtake) speeds up the reduction.
 
 ## 4. Field, Farm and Organisation Level Balance
 
 - **Field balance:** `Supply − Removal` as above, in kg P₂O₅ / ha for the time frame. Results are cached per field (`getPhosphateBalanceField`) and recalculated after a calculator release.
-- **Farm balance:** the area-weighted average per ha of the balance, supply, removal, leaching and their terms over all fields that could be calculated. Buffer strips and fields that failed are left out; a failing field is reported in `fields[].errorMessage` without failing the farm. Fields are calculated in batches of 50.
-- **Organisation:** the app calculates the farm balance of each selected farm and the area-weighted average over all their fields. Per farm, it shows the share of the area that is on track.
+- **Farm balance:** the area-weighted average per ha of the balance, supply, removal, leaching and their terms over all fields that could be calculated. Buffer strips, nature and landscape elements (see below) and fields that failed are left out; a failing field is reported in `fields[].errorMessage` without failing the farm. Fields are calculated in batches of 50.
+- **Excluded fields:** buffer strips, and fields whose main cultivation of the year is a landscape element (BRP codes of the landscape elements) or a nature cultivation (`b_lu_croprotation` is `nature`), are not calculated (`getPhosphateFieldExclusion`, the same rule as the mineralisation). They are not farmed for production, so a balance and a soil phosphorus aim say little about them. Their field result has `exclusion` with the reason, no `balance` and no `errorMessage`.
+- **Organisation:** the app calculates the farm balance of each selected farm and the area-weighted average over all their fields. Per farm, it shows the share of the area per verdict, and judges the farm as good when at least half of the judged area is good.
 - **Long-term average:** per field as in Section 3.4.3; the farm and organisation show the area-weighted average of the fields (`long_term_balance`).
 
 ## 5. Output
@@ -209,6 +237,7 @@ The field page adds a short recommendation: lower the current phosphate fertilis
 The farm output (`PhosphateBalance`) provides:
 
 - `balance`, `supply`, `removal`, `leaching` and `long_term_balance` (kg P₂O₅ / ha, area-weighted), and `terms` with the supply per fertilizer type, mineralisation and deposition, and the removal by harvests and residues.
+- `status_area`: the area (ha) and number of fields per verdict of `assessPhosphateStatus`, without buffer strips.
 - `fields`: per field the ID, area, buffer strip flag and either the `balance` (`PhosphateBalanceField`) or an `errorMessage`.
 - `hasErrors`, `fieldErrorMessages`, and `errorMessage` when no balance could be calculated at all (e.g. `No fields in input`).
 
@@ -216,7 +245,7 @@ The field output (`PhosphateBalanceField`) contains:
 
 - `balance`, `supply` (total, fertilizers per type with their applications, mineralisation with its track and notes, deposition) and `removal` (total, harvests, residues).
 - `leaching` (total, saturation class, fraction, groundwater factor and factor).
-- `long_term` (average balance and leaching per year, and the years included).
+- `long_term` (average balance, fertilizer supply and leaching per year, and the years included).
 - `saturation` (source, PSC, PSD, P-ox, P-AL, soil-type note and warnings) and `projection` (effective balance, fixation, depth, bulk density, P-AL track and PSD track with threshold and year class).
 - `warnings`: missing data that make the removal incomplete.
 

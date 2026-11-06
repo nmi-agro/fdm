@@ -1,3 +1,4 @@
+import { PHOSPHATE_STATUS_RULES as R } from "@nmi-agro/fdm-calculator/browser"
 import { HelpCircle } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import {
@@ -8,6 +9,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { clientConfig } from "~/lib/config"
+import { PHOSPHATE_VERDICT_TEXT } from "./phosphate-format"
 
 const references: { text: string; href: string }[] = [
   {
@@ -38,7 +40,8 @@ const references: { text: string; href: string }[] = [
 
 /**
  * Help dialog explaining why the phosphate balance is read differently from the nitrogen balance:
- * the soil stock decides whether a surplus or a deficit is desirable.
+ * the soil stock decides whether a surplus or a deficit is desirable. Explains the target zone, the
+ * three verdicts and their margins and horizons (taken from the calculator rules).
  */
 export function PhosphateHelpDialog() {
   return (
@@ -62,40 +65,61 @@ export function PhosphateHelpDialog() {
             <p className="text-foreground font-medium">Fosfaat is een voorraad</p>
             <p>
               Fosfaat verdwijnt nauwelijks naar de lucht of het grondwater. Wat niet met de oogst
-              wordt afgevoerd, blijft in de bodem. Het saldo van één jaar verandert de P-AL maar
-              weinig; over meerdere jaren bepaalt het saldo de voorraad. Een deel van het fosfaat
+              wordt afgevoerd, blijft in de bodem. De balans van één jaar verandert de P-AL maar
+              weinig; over meerdere jaren bepaalt de balans de voorraad. Een deel van het fosfaat
               (ongeveer 20 kg P₂O₅ per ha per jaar op minerale gronden) wordt vastgelegd. Ook bij
-              een saldo van nul daalt de P-AL dus langzaam.
+              een balans van nul daalt de P-AL dus langzaam.
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-foreground font-medium">Opbouwen, onderhouden of afbouwen</p>
+            <p className="text-foreground font-medium">De streefzone</p>
             <p>
-              Of een overschot of een tekort goed is, hangt af van de voorraad. Bij een lage P-AL
-              (onder 25) is opbouwen gewenst, tussen 25 en 45 onderhouden en boven 45 afbouwen. Bij
-              afbouwen is een <strong className="text-foreground">negatief saldo goed</strong>.
+              Elk perceel wordt beoordeeld tegen een streefzone met twee grenzen. De ondergrens is
+              landbouwkundig: P-AL {R.p_al_min}, genoeg voor de opbrengst. De bovengrens is de
+              milieugrens voor de fosfaatverzadiging (PSD), per perceel berekend uit P-CaCl₂ en de
+              grondwatertrap (zonder P-CaCl₂ geldt 25%). Onder de zone is{" "}
+              <strong className="text-foreground">opbouwen</strong> nodig, in de zone{" "}
+              <strong className="text-foreground">onderhouden</strong>, erboven{" "}
+              <strong className="text-foreground">afbouwen</strong>. In de zone is een negatieve
+              balans geen probleem zolang het perceel in de zone blijft.
+            </p>
+            <p>
+              Ligt de PSD boven de milieugrens terwijl P-AL voor de opbrengst op peil is, dan gaat
+              het milieu voor: afbouwen kost dan geen opbrengst zolang P-AL boven {R.p_al_min}{" "}
+              blijft. Zonder bruikbare PSD (bijvoorbeeld kalkrijk zand) is P-AL {R.p_al_min}–
+              {R.p_al_high} de zone en is het oordeel indicatief.
             </p>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-foreground font-medium">Afbouwen is vaak de juiste keuze</p>
+            <p className="text-foreground font-medium">Waar, welke kant, hoe lang</p>
             <p>
-              Op ongeveer 84% van de Nederlandse landbouwgrond ligt de fosfaatverzadiging boven het
-              landbouwkundige streefniveau en op ongeveer 94% boven de milieugrens. De streefwaarden
-              zijn afgestemd op 99% van de maximale opbrengst van het meest gevoelige gewas
-              (aardappel). Afbouwen van een rijke bodem kost daarom weinig opbrengst.
+              Het oordeel gebruikt de gemiddelde balans van de afgelopen jaren (tot 5 jaar, zodat
+              een vruchtwisseling meetelt), na vastlegging en uitspoeling. Alleen jaren met
+              geregistreerde bemesting of oogst tellen mee; zonder die gegevens gebruikt het oordeel
+              de balans van dit jaar. Precies op de grens komen is niet nodig: binnen {R.psd_margin}{" "}
+              procentpunt van de PSD-grens of {R.p_al_margin} eenheden P-AL telt als bereikt.
             </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <p className="text-foreground font-medium">Fosfaatverzadiging (milieu)</p>
+            <ul className="list-disc space-y-1 pl-5">
+              {(["good", "attention", "adjust"] as const).map((verdict) => (
+                <li key={verdict}>
+                  <span className="text-foreground font-medium">
+                    {PHOSPHATE_VERDICT_TEXT[verdict].label}
+                  </span>
+                  : {PHOSPHATE_VERDICT_TEXT[verdict].description.toLowerCase()}.
+                </li>
+              ))}
+            </ul>
             <p>
-              De fosfaatverzadigingsgraad (PSD) is het deel van de bindingscapaciteit van de bodem
-              dat al met fosfaat gevuld is. De grenswaarde wordt per perceel berekend uit P-CaCl₂ en
-              de grondwatertrap; zonder P-CaCl₂ geldt 25%. Een perceel krijgt een ✓ als de PSD bij
-              het gemiddelde saldo van de afgelopen jaren (tot 5 jaar, zodat een vruchtwisseling
-              meetelt) over 20 jaar onder de grens ligt, anders een ✗.
+              Voorbeeld: PSD 26% bij een grens van 20%, P-AL 37 en geen fosfaatbemesting. De PSD
+              daalt, maar trager dan {R.reach_horizon} jaar tot de grens: <em>Aandacht</em>. Minder
+              bemesten kan niet; alleen meer afvoer versnelt het afbouwen.
+            </p>
+            <p>
+              Het advies noemt de gemiddelde balans die nodig is om het doel op tijd te halen. Is
+              daarvoor meer fosfaat nodig dan de fosfaatgebruiksnorm van het perceel, dan staat daar
+              een melding bij: de gebruiksnorm geldt op bedrijfsniveau.
             </p>
           </div>
 
@@ -105,8 +129,8 @@ export function PhosphateHelpDialog() {
               Bij de afbraak van organische stof komt fosfaat vrij. Op veen is dat veel meer en
               hangt het af van de grondwatertrap. Uit de lucht komt jaarlijks ongeveer 0,7 kg P₂O₅
               per ha. Beide tellen mee als aanvoer. Uitspoeling wordt geschat uit het overschot, de
-              fosfaatverzadiging en de grondwatertrap en telt, net als bij stikstof, niet mee in het
-              saldo.
+              fosfaatverzadiging en de grondwatertrap en telt, net als bij stikstof, niet mee in de
+              balans.
             </p>
           </div>
 
@@ -121,9 +145,10 @@ export function PhosphateHelpDialog() {
               </li>
             </ul>
             <p>
-              De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor het
-              saldo van één perceel al gauw 15 tot 25 kg P₂O₅ per ha onzeker is. De rekenregels zijn
-              een prototype en worden nog met de onderzoekers afgestemd.
+              De uitkomsten zijn indicatief. Opbrengsten en mestgehalten variëren, waardoor de
+              balans van één perceel al gauw 15 tot 25 kg P₂O₅ per ha onzeker is. De fosfaatbalans
+              is experimenteel: de rekenregels worden nog met de onderzoekers afgestemd. Feedback is
+              welkom via Ondersteuning.
             </p>
           </div>
 

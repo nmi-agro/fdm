@@ -10,6 +10,7 @@ export {
   calculatePhosphateBalanceFieldsToFarm,
   determinePhosphateFrame,
   getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
 } from "./field"
 export type { PhosphateBalanceFieldCalculationInput } from "./field"
 export {
@@ -25,6 +26,12 @@ export {
   getPeatGroundwaterFactor,
   PHOSPHATE_DEPOSITION_PER_YEAR,
 } from "./mineralization"
-export { calculatePhosphateProjection, classifyYears } from "./projection"
+export {
+  calculatePhosphateProjection,
+  classifyYears,
+  kgP2O5PerPsdPoint,
+  yearsTo,
+} from "./projection"
 export { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
+export { assessPhosphateStatus, PHOSPHATE_STATUS_RULES, PHOSPHATE_VERDICT_ORDER } from "./status"
 export type * from "./types"

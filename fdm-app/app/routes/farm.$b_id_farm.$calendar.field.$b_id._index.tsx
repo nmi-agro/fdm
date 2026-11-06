@@ -48,7 +48,8 @@ import type {
 } from "~/components/blocks/field-dashboard/types"
 import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import {
-  getPhosphateTrendStatus,
+  formatPhosphateAim,
+  getPhosphateStatus,
   getPhosphateYearsToThreshold,
   NMI_ESTIMATE_SOURCE,
 } from "~/components/blocks/balance/phosphate-format"
@@ -141,10 +142,12 @@ async function computeFieldBalanceResult<TData>(options: {
   isBufferstrip: boolean
   bufferstripMessage: string
   collectInput: () => Promise<unknown>
-  calculate: (
-    input: unknown,
-  ) => Promise<{ fields: Array<{ b_id: string; errorMessage?: string; balance?: unknown }> }>
+  calculate: (input: unknown) => Promise<{
+    fields: Array<{ b_id: string; errorMessage?: string; balance?: unknown; exclusion?: string }>
+  }>
   b_id: string
+  /** Message when the calculator leaves the field out (e.g. nature), or `undefined` */
+  exclusionMessage?: (exclusion: string) => string
   missingParamsMessage: string
   genericErrorMessage: string
   emptyMessage: string
@@ -164,6 +167,7 @@ async function computeFieldBalanceResult<TData>(options: {
     mapResult,
     reportTags,
     reportContext,
+    exclusionMessage,
   } = options
 
   if (isBufferstrip) {
@@ -182,6 +186,10 @@ async function computeFieldBalanceResult<TData>(options: {
           ? missingParamsMessage
           : genericErrorMessage,
       )
+    }
+
+    if (fieldResult?.exclusion && exclusionMessage) {
+      return buildUnavailableResult(exclusionMessage(fieldResult.exclusion))
     }
 
     if (!fieldResult?.balance) {
@@ -911,6 +919,12 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       computeFieldBalanceResult<FieldDashboardPhosphateBalanceSummary>({
         isBufferstrip: !!field.b_bufferstrip,
         bufferstripMessage: "Bufferstroken hebben geen fosfaatbalans.",
+        exclusionMessage: (exclusion) =>
+          exclusion === "landscape_element"
+            ? "Landschapselementen hebben geen fosfaatbalans."
+            : exclusion === "nature"
+              ? "Natuurpercelen hebben geen fosfaatbalans."
+              : "Bufferstroken hebben geen fosfaatbalans.",
         collectInput: async () =>
           addPhosphateCropHistory(
             fdm,
@@ -934,17 +948,19 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           "Dit perceel was niet in gebruik in dit jaar, dus er is geen fosfaatbalans beschikbaar.",
         mapResult: (fieldResult) => {
           const balance = fieldResult.balance as PhosphateBalanceField
+          const status = getPhosphateStatus(balance)
           const psd = balance.projection?.psd ?? null
           const estimated = balance.saturation.analysis_sources.includes(NMI_ESTIMATE_SOURCE)
           return {
             balance: balance.balance,
             supply: balance.supply.total,
             removal: balance.removal.total,
-            status: getPhosphateTrendStatus(balance),
+            status: status.verdict,
+            aim: formatPhosphateAim(status),
             psd: psd?.current.value ?? null,
             threshold: psd?.threshold.value ?? null,
             years: getPhosphateYearsToThreshold(balance),
-            psdSource: psd ? (estimated ? "schatting" : "meting") : null,
+            psdSource: psd ? (estimated ? "schatting" : "bodemanalyse") : null,
             unit: "kg P₂O₅/ha",
           }
         },
