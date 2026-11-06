@@ -181,6 +181,22 @@ export {
   createUncachedFunctionsForFertilizerApplicationFilling,
 } from "./norms"
 export type {
+  FillingFunctionsForYear,
+  NormsFunctionsForYear,
+  NormsYear,
+  NormsYearFdmCoreOperations,
+  NormsYearResolution,
+  UncachedFillingFunctionsForYear,
+} from "./norms/years"
+export {
+  createFunctionsForFertilizerApplicationFillingForYear,
+  createFunctionsForNormsForYear,
+  createUncachedFunctionsForFertilizerApplicationFillingForYear,
+  LATEST_NORMS_YEAR,
+  NORMS_YEARS,
+  resolveNormsYear,
+} from "./norms/years"
+export type {
   AggregatedNormFillingsToFarmLevel,
   AggregatedNormsToFarmLevel,
   InputAggregateNormFillingsToFarmLevel,
