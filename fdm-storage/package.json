@@ -46,7 +46,7 @@
   "dependencies": {
     "@file-type/xml": "^1.2.0",
     "@google-cloud/storage": "^8.4.0",
-    "file-type": "^22.2.0"
+    "file-type": "^22.3.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
