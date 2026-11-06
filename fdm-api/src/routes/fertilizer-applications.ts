@@ -48,10 +48,13 @@ const FertilizerApplicationSchema = z
   })
   .openapi("FertilizerApplication")
 
+const APP_AMOUNT_DISPLAY_DESCRIPTION =
+  "Application amount in the display unit (`p_app_amount_unit` of the fertilizer). Must be greater than 0. Converted to kg/ha, the amount may be at most 100,000 kg/ha; a larger amount is rejected with 422."
+
 const CreateFertilizerApplicationBodySchema = z
   .object({
     p_id: z.string().describe("Fertilizer identifier."),
-    p_app_amount_display: z.number().describe("Application amount in the display unit."),
+    p_app_amount_display: z.number().positive().describe(APP_AMOUNT_DISPLAY_DESCRIPTION),
     p_app_method: z.string().nullable().describe("Application method."),
     p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
   })
@@ -62,9 +65,12 @@ const UpdateFertilizerApplicationBodySchema = z
     p_id: z.string().optional().describe("Fertilizer identifier."),
     p_app_amount_display: z
       .number()
+      .positive()
       .nullable()
       .optional()
-      .describe("Application amount in the display unit."),
+      .describe(
+        `${APP_AMOUNT_DISPLAY_DESCRIPTION} When omitted and the fertilizer is not changed, the stored amount is kept.`,
+      ),
     p_app_method: z.string().nullable().optional().describe("Application method."),
     p_app_date: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
   })
@@ -325,7 +331,10 @@ export function registerFertilizerApplicationRoutes(
       body.p_id !== undefined ? body.p_id : existing.p_id,
       body.p_app_amount_display !== undefined
         ? body.p_app_amount_display
-        : existing.p_app_amount_display,
+        : body.p_id === undefined || body.p_id === existing.p_id
+          ? // Same fertilizer and no new amount: keep the stored amount in kg/ha
+            null
+          : existing.p_app_amount_display,
       body.p_app_method !== undefined ? body.p_app_method : existing.p_app_method,
       body.p_app_date !== undefined ? new Date(body.p_app_date) : existing.p_app_date,
     )
