@@ -55,7 +55,7 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
 
 ## Tests
 
-The app has three kinds of tests. CI runs all of them in the `app` job of `.github/workflows/tests.yml`, after a production build (`react-router build`), which itself catches server-only imports in client code and invalid route exports.
+The app has three kinds of tests. CI runs all of them in the `app` check (`.github/workflows/fdm-app.yml`, on every pull request, including pull requests from forks), after a production build (`react-router build`), which itself catches server-only imports in client code and invalid route exports.
 
 | Kind              | Where                                | Command                 | Needs                                                        |
 | ----------------- | ------------------------------------ | ----------------------- | ------------------------------------------------------------ |
@@ -79,7 +79,7 @@ Create `fdm-app/.env.test` with the `POSTGRES_*` settings of a **separate test d
 
 Playwright (`playwright.config.ts`, code in `e2e/`) runs the app as a production build (`node server.js`) against an empty PostGIS database. `E2E_SUITE` picks the suite:
 
-- `smoke` (`pnpm e2e`, runs on every push): `e2e/smoke/routes.spec.ts` visits every GET route of the build and fails on an error page, a 5xx response or an error in the browser; `e2e/smoke/flows.spec.ts` runs the critical flows. External services are off: the app gets no API keys and the browser cannot reach other origins.
+- `smoke` (`pnpm e2e`, runs on every pull request): `e2e/smoke/routes.spec.ts` visits every GET route of the build and fails on an error page, a 5xx response or an error in the browser; `e2e/smoke/flows.spec.ts` runs the critical flows. External services are off: the app gets no API keys and the browser cannot reach other origins.
 - `screenshots` (`pnpm screenshots`): captures the user manual's screenshots; see `app/content/manual/README.md`.
 
 Shared code:
