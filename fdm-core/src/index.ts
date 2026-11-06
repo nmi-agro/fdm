@@ -159,6 +159,8 @@ export {
   startOfDayInFdmTimeZone,
   toFdmDateString,
 } from "./date"
+export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./hoofdteelt"
+export { findHoofdteelt, GROENE_BRAAK } from "./hoofdteelt"
 export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 export { fromKgPerHa, toKgPerHa } from "./fertilizer-application-unit-conversion"
 export {
@@ -299,3 +301,46 @@ export type {
 } from "./soil-image.types"
 export type { Timeframe } from "./timeframe.d"
 export { fdmSchema }
+export {
+  closeOngoingMeasuresOfField,
+  copyFertilizerApplications,
+  getSeasonPlanProgress,
+  getSeasonPlanProposal,
+  resolveSeasonPlanTarget,
+} from "./season-plan"
+export {
+  buildSeasonPlanProposal,
+  detectRotationCycle,
+  evaluateSeasonPlanProgress,
+  findSeasonPlanRules,
+  resolveSeasonPlanRules,
+  resolveSeasonPlanTargetFromData,
+  SEASON_PLAN_STEPS,
+  seasonPlanRules,
+  shiftDateToYear,
+} from "./season-plan-rules"
+export type {
+  ResolvedSeasonPlanRules,
+  SeasonPlanCropRotation,
+  SeasonPlanCultivation,
+  SeasonPlanData,
+  SeasonPlanFertilizerApplication,
+  SeasonPlanFertilizerTemplate,
+  SeasonPlanField,
+  SeasonPlanFieldProposal,
+  SeasonPlanFieldStatus,
+  SeasonPlanFieldType,
+  SeasonPlanHarvest,
+  SeasonPlanHistoryEntry,
+  SeasonPlanMeasure,
+  SeasonPlanMeasureGroups,
+  SeasonPlanOptions,
+  SeasonPlanProgress,
+  SeasonPlanProposal,
+  SeasonPlanProposedApplication,
+  SeasonPlanRotationWarning,
+  SeasonPlanRules,
+  SeasonPlanStep,
+  SeasonPlanStepProgress,
+  SeasonPlanTarget,
+} from "./season-plan.types"
