@@ -81,6 +81,7 @@ Screenshots are never made by hand. A Playwright run captures them from the curr
      steps: [{ click: { role: "tab", name: "Per perceel" } }], // optional: open a tab, expand a row
      element: { selector: "main" }, // optional: capture one element instead of the viewport
      map: true, // optional: wait until the map has loaded its tiles
+     mock: "soil-reader", // optional: made-up lab reports for the upload review (e2e/screenshots/mocks.ts)
    },
    ```
 

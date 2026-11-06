@@ -12,7 +12,7 @@
  * - `demo`: five fields, covering every page that the user manual documents.
  */
 
-import type { FeatureCollection, Polygon } from "geojson"
+import type { FeatureCollection, MultiPolygon, Polygon } from "geojson"
 import {
   addCultivation,
   addFarm,
@@ -42,6 +42,7 @@ import {
   type SeedVariant,
   demoYear,
 } from "./demo-farm"
+import { samplingPoints, splitWestEast } from "./sampling"
 
 type Fdm = ReturnType<typeof createFdmServer>
 
@@ -76,6 +77,8 @@ interface DemoField {
   soil: {
     depthLower: number
     data: NonNullable<Parameters<typeof addSoilAnalysis>[7]>
+    /** Values for the eastern half, when the field is sampled as two zones (west and east). */
+    eastZone?: Partial<NonNullable<Parameters<typeof addSoilAnalysis>[7]>>
   }
 }
 
@@ -150,7 +153,7 @@ const FIELDS: DemoField[] = [
       { fertilizer: "slurry", amount: 20, method: "slotted coulter", date: [5, 20] },
       { fertilizer: "can", amount: 150, method: "broadcasting", date: [7, 1] },
     ],
-    soil: { depthLower: 10, data: SANDY_SOIL },
+    soil: { depthLower: 10, data: SANDY_SOIL, eastZone: { a_p_al: 29, a_ph_cc: 5.0 } },
   },
   {
     key: "grasland-achter",
@@ -394,16 +397,30 @@ export async function seedFarm(
     }
 
     // In the current year: the balances only use soil analyses sampled in the calendar year.
-    await addSoilAnalysis(
-      fdm,
-      principal,
-      date(year, 1, 20),
-      "other",
-      b_id,
-      field.soil.depthLower,
-      date(year, 1, 20),
-      field.soil.data,
-    )
+    // Each analysis has its subsample locations and the zone it represents: the whole field, or
+    // the western and eastern half of it.
+    const fieldOutline = outline(field.key)
+    const zones: [Polygon | MultiPolygon, typeof field.soil.data][] = field.soil.eastZone
+      ? (() => {
+          const [west, east] = splitWestEast(fieldOutline)
+          return [
+            [west, field.soil.data],
+            [east, { ...field.soil.data, ...field.soil.eastZone }],
+          ]
+        })()
+      : [[fieldOutline, field.soil.data]]
+    for (const [zone, data] of zones) {
+      await addSoilAnalysis(
+        fdm,
+        principal,
+        date(year, 1, 20),
+        "other",
+        b_id,
+        field.soil.depthLower,
+        date(year, 1, 20),
+        { ...data, b_sampling_geometry: samplingPoints(zone), b_sampling_geometry_zone: zone },
+      )
+    }
   }
 
   return { variant, farm: b_id_farm, fields, year, email: DEMO_USER.email }

@@ -15,6 +15,7 @@ import { loadManualPagesFromDisk } from "../../app/lib/manual/load-from-disk.ser
 import { collectScreenshotIds, compareScreenshotIds } from "../../app/lib/manual/screenshot-ids"
 import { APP_ROOT, BASE_URL } from "../support/env"
 import { saveScreenshot } from "./images"
+import { DUMMY_PDF, mockSoilReader, SOIL_REPORT_FILES } from "./mocks"
 import { DEMO_FARM_FILE, RESULTS_DIR, SCREENSHOTS_DIR, SIGNED_OUT_STATE_FILE } from "./paths"
 
 /** Texts of the app's error pages. A capture that shows one of them fails. */
@@ -105,6 +106,7 @@ async function capture(page: Page, id: string, definition: CaptureDefinition): P
   })
 
   if (definition.viewport) await page.setViewportSize(definition.viewport)
+  if (definition.mock === "soil-reader") await mockSoilReader(page, getDemoFarm())
   await page.clock.setFixedTime(runStart)
 
   const path = resolvePlaceholders(definition.route)
@@ -122,7 +124,12 @@ async function capture(page: Page, id: string, definition: CaptureDefinition): P
     else if ("hover" in step) await locate(page, step.hover).hover()
     else if ("fill" in step) await locate(page, step.fill).fill(resolvePlaceholders(step.value))
     else if ("type" in step) await page.keyboard.type(step.type)
-    else if ("press" in step) await page.keyboard.press(step.press)
+    else if ("upload" in step) {
+      if (definition.mock !== "soil-reader") throw new Error(`${id}: upload needs a mock`)
+      await locate(page, step.upload).setInputFiles(
+        SOIL_REPORT_FILES.map((name) => ({ name, mimeType: "application/pdf", buffer: DUMMY_PDF })),
+      )
+    } else if ("press" in step) await page.keyboard.press(step.press)
     else if ("waitFor" in step) await expect(locate(page, step.waitFor)).toBeVisible()
     else await expect(locate(page, step.waitForHidden)).toBeHidden()
   }

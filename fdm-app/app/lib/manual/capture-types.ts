@@ -54,6 +54,7 @@ export type CaptureRole =
  * - `click`, `hover`: act on an element.
  * - `fill`: replace the text of a form field; `{year}` in `value` becomes the current year.
  * - `type`: type text with the keyboard, for example into a search field that just opened.
+ * - `upload`: put the files of the definition's `mock` into a file input.
  * - `press`: press a key, such as `"Tab"` or `"Escape"`.
  * - `waitFor`, `waitForHidden`: wait until an element appears or disappears.
  */
@@ -62,6 +63,7 @@ export type CaptureStep =
   | { hover: CaptureTarget }
   | { fill: CaptureTarget; value: string }
   | { type: string }
+  | { upload: CaptureTarget }
   | { press: string }
   | { waitFor: CaptureTarget }
   | { waitForHidden: CaptureTarget }
@@ -97,4 +99,10 @@ export interface CaptureDefinition {
   fullPage?: boolean
   /** Capture the page as a visitor who is not signed in, such as the sign-in page. */
   signedOut?: boolean
+  /**
+   * Answer a reading service with made-up results, so the screenshot never shows a real file:
+   *
+   * - `soil-reader`: lab reports for the bulk upload of soil analyses (`fdm-app/e2e/screenshots/mocks.ts`).
+   */
+  mock?: "soil-reader"
 }

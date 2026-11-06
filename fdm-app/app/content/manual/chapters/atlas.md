@@ -69,6 +69,8 @@ De **Hoogtekaart** laat met kleuren zien waar het hoger en lager ligt. De kleurs
 
 Kies een parameter, bijvoorbeeld organische stof, pH of P-Al. Je percelen kleuren dan van laag naar hoog. Zo zie je in één oogopslag welke percelen achterblijven. Percelen zonder analyse staan als **Geen data** in de legenda. Klik op een perceel en daarna op **Bekijk analyse** om de analyse zelf te openen.
 
+![De bodemanalyses op de kaart, per zone gekleurd naar het organischestofgehalte](screenshot:atlas-bodemanalyses)
+
 ## Indicatoren op de kaart {#indicatoren-op-de-kaart}
 
 Kies een score, zoals de gemiddelde score of de chemische, fysische of biologische bodemkwaliteit. Je percelen kleuren naar hun score. Via **Meer details** spring je naar de indicatorpagina van dat perceel (zie [Bodemkwaliteit](/manual/bodemkwaliteit)).
