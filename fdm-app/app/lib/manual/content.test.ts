@@ -151,6 +151,28 @@ describe("manual content", () => {
     expect(errors).toEqual([])
   })
 
+  it("shows the usage-norms disclaimer wherever the norms are explained", () => {
+    const disclaimer =
+      "De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur."
+    const required = new Set([
+      "chapter/gebruiksruimte",
+      "chapter/bemesting",
+      "chapter/bemestingsplan",
+      "chapter/gerrit",
+      "background/gebruiksruimte",
+      "background/gerrit",
+    ])
+    const missing = manualPages
+      .filter(
+        (page) =>
+          required.has(`${page.kind}/${page.slug}`) ||
+          page.headings.some((h) => /gebruiksruimte|gebruiksnorm/i.test(h.text)),
+      )
+      .filter((page) => !page.body.replace(/\s+/g, " ").includes(disclaimer))
+      .map((page) => page.file)
+    expect(missing, "Neem de disclaimer over de gebruiksnormen letterlijk op").toEqual([])
+  })
+
   it("has frequently asked questions on the help chapter", () => {
     expect(getManualPage("chapter", "hulp")?.faq.length).toBeGreaterThan(0)
   })

@@ -29,6 +29,8 @@ The guide speaks as a calm, competent agronomic colleague who explains the app: 
 - **Short, active sentences.** One instruction per sentence; lead with the action: "Klik op **Opslaan**." Steps are numbered lists; options and outcomes are bullets or tables.
 - **Explain why, briefly.** One sentence of reason when it helps the reader decide: "Waarom die gegevens? Ze bepalen hoeveel stikstof er met de oogst afgaat."
 - **Honest about limits.** Say what is estimated, indicative or not (yet) supported, and when RVO or the regulations take precedence. Never promise outcomes, and never claim more than the app does.
+- **Current year first.** Lead with the rules and values of the current year; earlier years go in a short "Verschillen in <jaar>" section at the end.
+- **Usage-norms disclaimer.** Pages that explain gebruiksnormen keep the fixed disclaimer from `fdm-app/app/content/manual/README.md` word for word. When `norms-disclaimer.tsx` changes its list of unsupported situations, update `background/gebruiksruimte.md#niet-ondersteund` in the same sync.
 - **Agronomic vocabulary as farmers and advisors use it**: perceel, bouwplan, gebruiksruimte, bemesting, snede, bufferstrook. Explain a technical term the first time it appears on a page; don't translate it into English.
 - **Metric units, Dutch number format**: "30 m³/ha", "0,5", "1.250 kg N/ha", "15 minuten".
 - **No filler, exclamation marks, emoji or marketing**: no "eenvoudig", "snel en makkelijk", "revolutionair", "Let op!!".
@@ -85,6 +87,15 @@ Background pages (`content/manual/background/`) explain calculations. Their accu
 - List the changes in `fdm-calculator/src` since the previous release, per background page, using each page's `watch` globs.
 - For each page, write a short summary for the reviewer: which constants, formulas or inputs changed, and which paragraphs of the page they touch.
 - **Never change `lastReviewed`.** A maintainer sets it after the review. Propose text changes in the report, not in the files, unless the user asks for them.
+
+## Current year first
+
+The guide always describes the current year's rules as the main text; earlier years are secondary.
+
+- **Leading text.** Tables, values and examples (norms, derogation, Renure, Gerrit's years) show the current year. Mention a year range current year first: "2026 en 2025".
+- **Earlier years.** Rules that only applied to an earlier year that the app still calculates go in one short section at the end of the page, `## Verschillen in <jaar> {#<jaar>}`, with a link to it from the intro. Don't interleave old-year exceptions through the main text.
+- **When a new year starts** (for example when `fdm-calculator/src/norms/nl/<jaar>` is added): rewrite the leading text to the new year's rules, move the old year's rules into a "Verschillen in <jaar>" section, drop years the app no longer calculates, and update `lastReviewed` only after a maintainer has reviewed the background pages.
+- In `release` mode, flag every page whose leading text still describes a previous year.
 
 ## Weekly routine
 

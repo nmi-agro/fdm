@@ -69,6 +69,8 @@ De ligging van je percelen gaat niet naar het model. Volgens de afspraken met de
 - Een taalmodel kan zich vergissen of een minder logische keuze maken. Daarom is elk plan een voorstel dat jij of je adviseur controleert.
 - De controleur toetst de normen op bedrijfsniveau. Op één perceel kan het plan dus boven de norm voor dat perceel uitkomen, zolang het bedrijf als geheel binnen de ruimte blijft. Een overschrijding wordt rood gemarkeerd, maar niet tegengehouden.
 - Gerrit kent alleen de gegevens in {{appName}}: wat er niet is ingevuld, kan Gerrit ook niet meenemen.
-- Gerrit werkt alleen voor 2025 en 2026.
+- Gerrit werkt alleen voor 2026 en 2025.
+
+> De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.
 
 Hoe je Gerrit gebruikt, lees je in [Gerrit, de AI-bemestingsassistent](/manual/gerrit).

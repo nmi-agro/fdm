@@ -36,3 +36,5 @@ Wil je het plan op papier, of meegeven aan een teler of controleur? Maak dan een
 Verander je daarna iets aan de gegevens, dan krijgt het plan de status **Verouderd**. Klik op **Actualiseren** voor een nieuwe versie.
 
 Het bemestingsplan is gebaseerd op de gegevens die je zelf hebt ingevoerd en de regels op het moment van maken. De eindverantwoordelijkheid ligt bij de teler.
+
+> De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.

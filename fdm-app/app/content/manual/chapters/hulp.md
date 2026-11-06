@@ -46,7 +46,9 @@ Kijk of het juiste jaar is gekozen onder **Kalender**.
 
 ### Ik zie geen gebruiksruimte.
 
-De gebruiksruimte is er voor 2025 en 2026. Kies een van die jaren.
+{{appName}} rekent de gebruiksruimte uit voor 2026 en 2025. Kies een van die jaren onder **Kalender**.
+
+> De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.
 
 ### De balans zegt dat bodemgegevens ontbreken.
 

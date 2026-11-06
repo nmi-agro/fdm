@@ -154,7 +154,7 @@ Via **Instellingen** op de bedrijfspagina pas je de bedrijfsgegevens aan. Eigena
 | Tabblad             | Wat stel je in?                                                                                                                                           |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Gegevens**        | Bedrijfsnaam, KvK-nummer, adres en postcode.                                                                                                              |
-| **Derogatie**       | Per jaar aan of uit, voor 2020 tot en met 2025. Vanaf 2026 bestaat derogatie niet meer. Dit telt mee in de gebruiksruimte.                                |
+| **Derogatie**       | Vanaf 2026 bestaat derogatie niet meer. Voor 2020 tot en met 2025 zet je hem per jaar aan of uit; dat telt mee in de gebruiksruimte van die jaren.        |
 | **Bio-certificaat** | Start- en einddatum, TRACES- en SKAL-nummer van je biologische certificaat.                                                                               |
 | **Beweiding**       | Per jaar of je weidt of van plan bent te weiden. Dit telt mee in de berekeningen.                                                                         |
 | **Toegang**         | Wie mag er meekijken of meewerken (zie [Samenwerken](/manual/samenwerken)).                                                                               |

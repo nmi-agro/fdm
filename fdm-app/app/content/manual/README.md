@@ -12,6 +12,13 @@ The pages are parsed once when the server starts (`app/lib/manual/content.server
 - Dutch, professional but informal, addressed to the reader as "je". Metric units and Dutch number formatting (0,5; 1.250 kg).
 - Say honestly what the app can and cannot do. Mark estimates as estimates and say when the regulations or RVO take precedence.
 - Never include personal data, real farm or field names, identifiers, coordinates or author names.
+- **Current year first.** Describe the rules and values of the current year. Earlier years that the app still calculates go in a short section at the end, such as `## Verschillen in 2025 {#2025}`. When a new year starts, move the old year's rules into that section.
+- **Usage-norms disclaimer.** Every page that explains the usage norms (gebruiksruimte) includes this note verbatim; a test enforces it for those pages and for any heading about gebruiksruimte or gebruiksnormen:
+
+  > De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.
+
+  The list of situations the app does not support lives on the background page `gebruiksruimte#niet-ondersteund` and mirrors `NormsDisclaimer` in `app/components/blocks/norms/norms-disclaimer.tsx`; keep both in step.
+
 - Use `{{appName}}` for the product name and `{{appUrl}}` for its URL. The repository is white-label, so never hard-code a name. Other `{{tokens}}` fail the tests.
 
 ## Frontmatter

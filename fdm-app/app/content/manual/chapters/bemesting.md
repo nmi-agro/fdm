@@ -62,7 +62,9 @@ De samenvatting heeft drie onderdelen, elk met een link naar de pagina met alle 
 | **Bemestingsadvies** | Per nutriënt, zoals werkzame stikstof, fosfaat en kali, hoe de bemesting zich na deze gift verhoudt tot het advies                                                        |
 | **Stikstofbalans**   | Aanvoer, afvoer en emissie, en het stikstofoverschot na deze gift                                                                                                         |
 
-Bij één perceel wissel je bij de gebruiksruimte tussen **Gebruiksruimte perceel** en **Gebruiksruimte bedrijf**. Op perceelniveau zijn de normen indicatief: de wettelijke gebruiksruimte geldt voor het hele bedrijf. In [Gebruiksruimte](/manual/background/gebruiksruimte) lees je waarom.
+Bij één perceel wissel je bij de gebruiksruimte tussen **Gebruiksruimte perceel** en **Gebruiksruimte bedrijf**. De wettelijke gebruiksruimte geldt voor het hele bedrijf; een perceel kan dus boven zijn eigen norm uitkomen. In [Gebruiksruimte](/manual/background/gebruiksruimte) lees je hoe de normen worden bepaald.
+
+> De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.
 
 ### Voor meerdere percelen tegelijk {#effect-meerdere-percelen}
 
