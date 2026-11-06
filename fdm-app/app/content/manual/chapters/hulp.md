@@ -2,7 +2,7 @@
 title: Hulp nodig?
 description: Stel een vraag via Ondersteuning, volg je tickets en vind snel een antwoord op de meest gestelde vragen over {{appName}}.
 section: Samenwerken en account
-order: 3
+order: 4
 inApp:
   - Ondersteuning
 routes:

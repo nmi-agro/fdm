@@ -57,7 +57,7 @@ import { fdm } from "~/lib/fdm.server"
 
 // Meta
 
-export const handle: HelpHandle = { help: "percelen-toevoegen" }
+export const handle: HelpHandle = { help: "kaart" }
 
 export const meta: MetaFunction = () => {
   return [

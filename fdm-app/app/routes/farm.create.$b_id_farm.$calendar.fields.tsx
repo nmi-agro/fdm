@@ -23,7 +23,7 @@ import { cn } from "~/lib/utils"
 
 // Meta
 
-export const handle: HelpHandle = { help: "bedrijf-aanmaken" }
+export const handle: HelpHandle = { help: "percelen-controleren" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -120,7 +120,7 @@ export default function Index() {
 
   return (
     <SidebarInset>
-      <Header action={undefined} help="bedrijf-aanmaken">
+      <Header action={undefined} help="percelen-controleren">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
       <main>

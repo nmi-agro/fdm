@@ -107,7 +107,7 @@ describe("manual content", () => {
         } else if (link.value.startsWith("/")) {
           const error = checkInternalLink(link.value)
           if (error) errors.push(`${where(page, link.line)}: ${error}`)
-        } else if (!/^(https:\/\/|mailto:|\{\{appUrl\}\})/.test(link.value)) {
+        } else if (!/^(https:\/\/|mailto:|\{\{(appUrl|apiDocsUrl)\}\})/.test(link.value)) {
           errors.push(`${where(page, link.line)}: link "${link.value}" moet https of /manual zijn`)
         }
       }

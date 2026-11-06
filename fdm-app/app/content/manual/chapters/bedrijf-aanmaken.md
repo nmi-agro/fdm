@@ -1,6 +1,6 @@
 ---
 title: Een bedrijf aanmaken
-description: Zet in vijf stappen een bedrijf op, haal je percelen op bij RVO, via een shapefile of op de kaart, en beheer de bedrijfsinstellingen.
+description: Zet stap voor stap een bedrijf op, haal je percelen op via RVO en eHerkenning, een shapefile of de kaart, en upload je bodemanalyses.
 section: Aan de slag
 order: 3
 inApp:
@@ -13,54 +13,139 @@ routes:
   - farm.$b_id_farm.$calendar.field.new.*
   - farm.$b_id_farm.settings*
 watch:
+  - fdm-app/app/components/blocks/header/create-farm.tsx
   - fdm-app/app/components/blocks/rvo/**
   - fdm-app/app/components/blocks/fields-new/**
   - fdm-app/app/components/blocks/mijnpercelen/**
+  - fdm-core/src/field.ts
 keywords:
-  - bedrijf toevoegen
+  - bedrijf aanmaken
   - percelen importeren
-  - RVO
-  - shapefile
-  - eHerkenning
+  - RVO eHerkenning
+  - shapefile Mijn Percelen
+  - BRP percelen kaart
+  - bodemanalyses PDF
 related:
   - aan-de-slag
-  - percelen
+  - bodem
+  - bouwplan
   - samenwerken
 ---
 
-Een nieuw bedrijf zet je op in vijf stappen. Geen zorgen als je nog niet alles bij de hand hebt: alles wat je in deze wizard invult, kun je later nog aanvullen of aanpassen.
+Een bedrijf zet je op met een wizard van vijf stappen: bedrijfsgegevens, percelen, perceelseigenschappen en bodem, bouwplan en toegang. Je hoeft niet alles in één keer af te maken. Alles wat je in de wizard invult, kun je later aanvullen of aanpassen.
 
-## De vijf stappen {#stappen}
+## Wat heb je nodig? {#voorbereiding}
 
-Klik op **Mijn bedrijven** op **Nieuw bedrijf** (of **Bedrijf aanmaken**).
+| Wat                              | Nodig voor                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bedrijfsnaam en startjaar        | Altijd                                                                                                                                          |
+| KvK-nummer en eHerkenning        | Percelen ophalen bij RVO. Je logt in met de eHerkenning van het bedrijf, of met die van je eigen organisatie als je bij RVO een machtiging hebt |
+| Shapefile uit mijn.rvo.nl        | Percelen uploaden zonder eHerkenning                                                                                                            |
+| Niets                            | Percelen aanklikken op de kaart                                                                                                                 |
+| Labrapporten als PDF (optioneel) | Bodemanalyses in één keer toevoegen                                                                                                             |
 
-1. **Algemene gegevens**. Vul de **Bedrijfsnaam** in en kies het **Kalenderjaar** waarmee je wilt beginnen. Het **KvK-nummer** is optioneel, maar vul het gerust meteen in: je hebt het nodig om percelen bij RVO op te halen. Onder Instellingen geef je aan of het bedrijf derogatie heeft (alleen voor jaren vóór 2026), of je van plan bent te weiden en of het bedrijf biologisch gecertificeerd is. Klik op **Volgende**.
-2. **Percelen importeren**. Kies hoe je je percelen binnenhaalt. Er zijn [drie manieren](#percelen-importeren).
-3. **Percelen**. Loop je percelen langs. Pas waar nodig de **Naam** aan, controleer het **Hoofdgewas** en vink **Bufferstrook** aan als het een bufferstrook is. Klik per perceel op **Bijwerken**. Hier voeg je ook direct bodemanalyses toe (zie [Bodem](/manual/bodem)).
-4. **Bouwplan**. Je ziet je gewassen op een rij. Vul hier zaaidata, oogsten en bemestingen aan, voor meerdere percelen tegelijk (zie [Bouwplan](/manual/bouwplan)). Klik op **Doorgaan**.
-5. **Toegang instellen (Optioneel)**. Wil je een adviseur of collega laten meekijken? Nodig ze hier alvast uit. Klik op **Voltooien** en je bedrijf staat klaar.
+Weet je niet welke manier je moet kiezen voor je percelen? Heb je eHerkenning, haal ze dan op bij RVO: dat is het meest compleet. Anders is de shapefile een goed alternatief. De kaart is handig voor een paar percelen of om snel te beginnen.
 
-Tijdens stap 3 zie je per perceel een groen vinkje als er een gemeten bodemanalyse is, en een oranje icoon als de bodemgegevens geschat zijn of ontbreken. Bovenaan zie je hoeveel percelen al een analyse hebben, bijvoorbeeld "8 van 12 met bodemanalyse".
+## Stap 1: Bedrijfsgegevens {#stappen}
 
-## Drie manieren om percelen te importeren {#percelen-importeren}
+Klik op **Mijn bedrijven** op **Nieuw bedrijf** (of **Bedrijf aanmaken** als je nog geen bedrijven hebt).
 
-| Manier                    | Wat heb je nodig?                                                                       | Hoe werkt het?                                                                                                                                                                                                                                                                |
-| ------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Importeren vanuit RVO** | Een KvK-nummer en eHerkenning met een machtiging voor dat KvK-nummer                    | Klik op **Verbinden met RVO** en log in met eHerkenning. Je krijgt een overzicht van je percelen zoals ze bij RVO staan. Klik op **Opslaan en verder**. Let op: ververs de pagina niet tijdens de import, anders moet je opnieuw inloggen. Deze functie is nog experimenteel. |
-| **Upload Shapefile**      | De shapefile van je percelen uit mijn.rvo.nl: vier bestanden (.shp, .shx, .dbf en .prj) | Klik op **Bestand uploaden**, sleep de vier bestanden in het vak en klik op **Uploaden**. Controleer de percelen en klik op **Opslaan en verder**. Een shapefile weet niet welke percelen bufferstrook zijn; dat vink je zelf aan.                                            |
-| **Selecteer op de kaart** | Niets                                                                                   | Klik op **Naar de kaart**, zoek je bedrijf op en zoom in tot je de percelen ziet. Klik de percelen aan die bij je bedrijf horen en klik op **Sla geselecteerde percelen op**. Het hoofdgewas komt uit de Basisregistratie Gewaspercelen (BRP).                                |
+1. Vul het **KvK-nummer** in. Zie je de knop **Ophalen uit KvK**, klik er dan op: {{appName}} vult de naam en het adres in uit het Handelsregister. Controleer ze en pas ze zo nodig aan. Liever zelf invullen? Kies "Sla deze stap over en vul de gegevens zelf in".
+2. Controleer de **Bedrijfsnaam** en vul eventueel **Adres** en **Postcode** in.
+3. Kies het **Kalenderjaar**: het jaar waarmee je begint met invoeren.
+4. Geef onder Instellingen aan wat voor je bedrijf geldt: derogatie (alleen voor jaren vóór 2026), een voornemen tot weiden en of het bedrijf biologisch gecertificeerd is. Bij biologisch vul je eventueel het **SKAL-nummer** en **TRACES-nummer** in.
+5. Klik op **Volgende**.
 
-Een shapefile download je uit mijn.rvo.nl via Registratie en meldingen doorgeven → Percelen registreren → Registreren en wijzigen → Wijzigen. Kies het jaar en de peildatum, klik op het downloadpijltje en kies Shape.
+## Stap 2: Percelen toevoegen {#percelen-importeren}
 
-Na het importeren zie je een tabel met per perceel een status, zoals **Alleen bij RVO**, **Niet meer bij RVO**, **Verschil** of **Gelijk**. Per perceel kies je wat je wilt doen, bijvoorbeeld **Toevoegen** of **Negeren**.
+Je kiest hoe je de percelen van je bedrijf binnenhaalt. Bij alle drie de manieren krijgen je percelen een hoofdgewas, en vult {{appName}} de bodemgegevens alvast in met een schatting, zodat je direct verder kunt.
+
+### Importeren vanuit RVO met eHerkenning {#rvo}
+
+Met deze manier haal je je percelen op zoals ze bij RVO geregistreerd staan, met gewas, ingangsdatum en bufferstroken. De functie is nog in ontwikkeling.
+
+1. Klik op **Importeren vanuit RVO**.
+2. Kies met welke eHerkenning je inlogt: die van het bedrijf zelf, of die van je eigen organisatie als je een machtiging hebt.
+3. Klik op **Verbinden met RVO** en log in met eHerkenning.
+4. Je komt terug in {{appName}} met een overzicht van je percelen. Controleer het (zie [de vergelijking controleren](#vergelijking)) en klik op **Opslaan en verder**.
+
+Heeft het bedrijf nog geen KvK-nummer, dan zie je eerst **KvK-nummer toevoegen**. Ververs de pagina niet tijdens de import: dan wordt de verbinding verbroken en moet je opnieuw inloggen. Zie je deze manier niet, dan is de koppeling met RVO in deze omgeving niet beschikbaar; gebruik dan de shapefile.
+
+### RVO-shapefile uploaden {#shapefile}
+
+Heb je geen eHerkenning bij de hand, download dan een shapefile uit mijn.rvo.nl:
+
+1. Log in op mijn.rvo.nl.
+2. Ga via "Registratie en meldingen doorgeven" naar "Percelen registreren".
+3. Klik onder "Mijn percelen" op "Registreren en wijzigen" en ga naar "Wijzigen".
+4. Klik op de datum en kies het jaar en de peildatum.
+5. Klik op het pijltje naar beneden en kies "Shape". De download start.
+
+Upload de shapefile daarna in {{appName}}:
+
+1. Klik op **Bestand uploaden**.
+2. Controleer het kalenderjaar bovenaan. Klopt het niet, kies dan een ander jaar.
+3. Sleep de vier bestanden in het vak: .shp, .shx, .dbf en .prj. Ze zijn alle vier nodig, en elk bestand mag maximaal 5 MB zijn.
+4. Klik op **Uploaden**, controleer de percelen en klik op **Opslaan en verder**.
+
+Een shapefile zegt niet welke percelen bufferstroken zijn. {{appName}} schat dat aan de hand van de vorm en de naam van het perceel. Controleer de kolom **Bufferstrook** dus even voordat je opslaat.
+
+### Selecteren op de kaart {#kaart}
+
+Op de kaart klik je je percelen aan uit de Basisregistratie Gewaspercelen (BRP). Je hebt niets nodig.
+
+1. Klik op **Naar de kaart**.
+2. Zoek je bedrijf op met **Zoek naar een locatie...** en zoom in. Pas als je ver genoeg bent ingezoomd, kun je percelen selecteren.
+3. Klik de percelen aan die bij je bedrijf horen. Nog een keer klikken haalt een perceel weer weg.
+4. Klik op **Sla geselecteerde percelen op**.
+
+De percelen krijgen de namen "Perceel 1", "Perceel 2" enzovoort; die pas je in de volgende stap aan. Het hoofdgewas komt uit de BRP van het gekozen jaar.
+
+### De vergelijking met RVO controleren {#vergelijking}
+
+Na een import via RVO of een shapefile zie je per perceel een status. Elke regel volgt standaard RVO; per regel kies je zo nodig iets anders:
+
+| Status                | Wat betekent het?                             | Je kunt kiezen uit                                   |
+| --------------------- | --------------------------------------------- | ---------------------------------------------------- |
+| **Alleen bij RVO**    | Het perceel staat nog niet in {{appName}}     | **Toevoegen** of **Negeren**                         |
+| **Verschil**          | De gegevens bij RVO wijken af                 | **Gebruik RVO** of de gegevens in {{appName}} houden |
+| **Niet meer bij RVO** | Het perceel staat niet meer in je registratie | **Afsluiten** of **Behouden**                        |
+| Alleen in {{appName}} | Het perceel staat niet bij RVO                | **Verwijderen** of **Behouden**                      |
+| **Gelijk**            | Niets te doen                                 |                                                      |
+
+Wil je een naam, gewas of bufferstrook zelf aanpassen, zet dan **Waarden zelf aanpassen** aan.
+
+## Stap 3: Percelen en bodem controleren {#percelen-controleren}
+
+Je ziet links al je percelen en bovenaan hoeveel er al een bodemanalyse hebben, bijvoorbeeld "8 van 12 met bodemanalyse". Een groen vinkje betekent dat er een gemeten analyse is; een oranje icoon dat de bodemgegevens geschat zijn of ontbreken.
+
+1. Klik een perceel aan. Pas waar nodig de **Naam** aan, controleer het **Hoofdgewas** en vink **Bufferstrook** aan als het een bufferstrook is. Klik op **Bijwerken**.
+2. Kijk naar de kaart **Bodem**. Staat er **Schatting**, dan rekent {{appName}} nog met geschatte waarden.
+3. Heb je labrapporten? Klik dan op **Bodemanalyses uploaden (pdf)** en upload ze voor alle percelen tegelijk. {{appName}} leest ze uit en koppelt ze zelf aan de juiste percelen; zie [Bodemanalyses in één keer uploaden](/manual/bodem#bodemanalyses-uploaden). Een enkele analyse typ je over met **Handmatig invullen**.
+4. Klik op **Doorgaan**.
+
+Eigen bodemanalyses maken de berekeningen een stuk nauwkeuriger. Je kunt ze ook later nog toevoegen.
+
+## Stap 4: Bouwplan {#bouwplan}
+
+Je ziet je gewassen op een rij. Vul zaaidata, oogsten en bemestingen in voor alle percelen met hetzelfde gewas tegelijk (zie [Bouwplan](/manual/bouwplan)). Klik op **Doorgaan**.
+
+## Stap 5: Toegang instellen {#toegang}
+
+Wil je een adviseur of collega laten meekijken? Nodig ze hier alvast uit (zie [Samenwerken](/manual/samenwerken)). Dit is optioneel. Klik op **Voltooien** en je bedrijf staat klaar.
 
 ## Later percelen toevoegen {#percelen-toevoegen}
 
-Komt er een perceel bij? Op het bedrijfsdashboard vind je **Nieuwe percelen** (via de kaart), **RVO Shapefile uploaden** en **Ophalen bij RVO**. In de percelentabel staat ook **Nieuw perceel**.
+Komt er een perceel bij, of heb je je registratie bij RVO aangepast? Op het bedrijfsdashboard vind je onder **Acties**:
 
-Bij RVO en de shapefile vergelijkt {{appName}} wat er al in de app staat met wat RVO heeft. Per verschil kies je: toevoegen of negeren, verwijderen of behouden, afsluiten of behouden, of de gegevens van RVO of van {{appName}} aanhouden. Klik daarna op **Wijzigingen toepassen**.
+- **Ophalen bij RVO**: percelen opnieuw ophalen met eHerkenning.
+- **RVO Shapefile uploaden**: een nieuwe shapefile uploaden.
+- **Nieuwe percelen**: percelen aanklikken op de kaart.
+- **Upload bodemanalyses**: labrapporten voor meerdere percelen tegelijk uploaden.
 
-> Let op: bij **Ophalen bij RVO** staat een perceel dat alleen in {{appName}} staat standaard op **Verwijderen**. Kijk de lijst dus even goed na voordat je op Wijzigingen toepassen klikt.
+Bij RVO en de shapefile vergelijkt {{appName}} wat er al in de app staat met wat RVO heeft, met dezelfde [statussen](#vergelijking). Klik daarna op **Wijzigingen toepassen** en bevestig met **Bevestigen**. Verwijder je percelen, dan heet die knop **Bevestigen en verwijderen**.
+
+> Let op: een perceel dat alleen in {{appName}} staat, staat standaard op **Verwijderen**. Kijk de lijst dus goed na voordat je bevestigt.
 
 ## Bedrijfsinstellingen {#bedrijfsinstellingen}
 

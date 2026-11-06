@@ -47,11 +47,13 @@ Na het inloggen kom je op **Mijn bedrijven**. Wat je daar ziet, hangt af van je 
 
 Onderaan de pagina staan ook snelkoppelingen naar de Atlas-kaarten (Percelen, Hoogtekaart, Bodemkaart). Die kun je ook zonder eigen bedrijf gebruiken.
 
-## En dan?
+## Je bedrijf inrichten {#inrichten}
 
-Heb je een bedrijf, dan is dit een goede volgorde om het compleet te maken:
+Dit is de snelste route naar een compleet bedrijf:
 
-1. Controleer je [percelen](/manual/percelen) en het hoofdgewas.
-2. Voeg [bodemanalyses](/manual/bodem) toe, of upload je labrapporten in één keer.
-3. Vul in het [bouwplan](/manual/bouwplan) zaaidata, oogsten en bemestingen in.
-4. Bekijk de [balansen](/manual/balansen), de [gebruiksruimte](/manual/gebruiksruimte) en het [bemestingsadvies](/manual/bemestingsadvies).
+1. [Maak een bedrijf aan](/manual/bedrijf-aanmaken#stappen) met je bedrijfsnaam en, als je die hebt, je KvK-nummer.
+2. Haal je percelen binnen. Kies de manier die bij je past: [ophalen bij RVO met eHerkenning](/manual/bedrijf-aanmaken#rvo), [een shapefile uit mijn.rvo.nl uploaden](/manual/bedrijf-aanmaken#shapefile) of [aanklikken op de kaart](/manual/bedrijf-aanmaken#kaart).
+3. Controleer per perceel de naam, het hoofdgewas en of het een bufferstrook is.
+4. [Upload je labrapporten in één keer](/manual/bodem#bodemanalyses-uploaden). {{appName}} koppelt ze zelf aan de juiste percelen.
+5. Vul in het [bouwplan](/manual/bouwplan) zaaidata, oogsten en bemestingen in. Bij elke bemesting zie je [direct wat die doet](/manual/bemesting#effect) voor je gebruiksruimte, het bemestingsadvies en de stikstofbalans.
+6. Bekijk de [balansen](/manual/balansen), de [gebruiksruimte](/manual/gebruiksruimte) en het [bemestingsadvies](/manual/bemestingsadvies).

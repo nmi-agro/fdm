@@ -34,7 +34,7 @@ Het idee is simpel. Jij vult in wat je weet: welke percelen je hebt, wat erop gr
 | Bodemanalyses       | [Bodemkwaliteit](/manual/bodemkwaliteit) volgens BLN3                                         |
 | Maatregelen         | Een [bemestingsplan](/manual/bemestingsplan) als PDF, en kaarten in de [Atlas](/manual/atlas) |
 
-Alle uitkomsten rekenen met dezelfde gegevens. Vul je één keer een bemesting in, dan zie je die terug in de balans, de gebruiksruimte, het advies en het bemestingsplan.
+Alle uitkomsten rekenen met dezelfde gegevens. Vul je één keer een bemesting in, dan zie je die terug in de balans, de gebruiksruimte, het advies en het bemestingsplan. Je hoeft niet eens op te slaan om dat te zien: terwijl je een bemesting invult, laat {{appName}} [direct het effect zien](/manual/bemesting#effect) op de gebruiksruimte, het bemestingsadvies en de stikstofbalans.
 
 ## Voor wie is {{appName}}? {#voor-wie}
 

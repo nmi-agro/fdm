@@ -87,7 +87,7 @@ import type { Route } from "./+types/farm.$b_id_farm.$calendar.rvo"
 
 type ReviewItem = RvoImportReviewItem<Field>
 
-export const handle: HelpHandle = { help: "percelen-toevoegen" }
+export const handle: HelpHandle = { help: "rvo" }
 
 export const meta: Route.MetaFunction = ({ params }) => {
   return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]

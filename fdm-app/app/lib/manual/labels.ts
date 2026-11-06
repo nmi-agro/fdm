@@ -29,6 +29,8 @@ export function normalizeLabel(text: string): string {
  */
 const QUOTED = [/"((?:[^"\\\n]|\\.)*)"/g, /'((?:[^'\\\n]|\\.)*)'/g]
 const JSX_TEXT = />([^<>{}]*(?:\{\s*["'] ["']\s*\}[^<>{}]*)*)</g
+/** JSX text after an expression, such as the label in `{icon} Opnieuw</Button>`. */
+const JSX_TEXT_AFTER_EXPRESSION = /\}([^<>{}=;()]+)</g
 const TEMPLATE_PART = /`([^`]*)`/g
 
 /**
@@ -100,6 +102,7 @@ export function extractUiStrings(raw: string): string[] {
     for (const part of match[1].split(/\$\{[^}]*\}/)) push(part)
   }
   for (const match of source.matchAll(JSX_TEXT)) push(match[1])
+  for (const match of source.matchAll(JSX_TEXT_AFTER_EXPRESSION)) push(match[1])
   return out
 }
 

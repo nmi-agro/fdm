@@ -8,7 +8,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.upload"
 
-export const handle: HelpHandle = { hideNavigationProgress: true, help: "percelen-toevoegen" }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "shapefile" }
 
 // Meta
 export const meta: MetaFunction = () => {

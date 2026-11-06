@@ -8,7 +8,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/farm.create.$b_id_farm.$calendar.upload"
 
-export const handle: HelpHandle = { hideNavigationProgress: true, help: "percelen-importeren" }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "shapefile" }
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -35,7 +35,7 @@ export default function CreateWithMijnPercelenPage() {
 
   return (
     <SidebarInset>
-      <Header action={undefined} help="percelen-importeren">
+      <Header action={undefined} help="shapefile">
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>
       <UploadMijnPercelenPage

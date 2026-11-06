@@ -70,7 +70,7 @@ import {
 
 type ReviewItem = RvoImportReviewItem<Field>
 
-export const handle: HelpHandle = { help: "percelen-importeren" }
+export const handle: HelpHandle = { help: "rvo" }
 
 export const meta: MetaFunction = ({ params }) => {
   const b_id_farm = params.b_id_farm

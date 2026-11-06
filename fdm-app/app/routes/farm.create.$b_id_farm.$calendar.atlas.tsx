@@ -54,7 +54,7 @@ import { fdm } from "~/lib/fdm.server"
 
 // Meta
 
-export const handle: HelpHandle = { help: "percelen-importeren" }
+export const handle: HelpHandle = { help: "kaart" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -205,7 +205,7 @@ export default function Index() {
 
   return (
     <SidebarInset>
-      <Header action={undefined} help="percelen-importeren">
+      <Header action={undefined} help="kaart">
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>
       <main>

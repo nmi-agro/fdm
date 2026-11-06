@@ -1,6 +1,6 @@
 ---
 title: Bodem
-description: Voeg bodemanalyses toe of upload je labrapporten in één keer, zie wat gemeten en wat geschat is, en leg een BodemConditieScore vast.
+description: Upload je labrapporten in één keer en laat ze automatisch aan je percelen koppelen, of voeg één analyse toe. Plus de BodemConditieScore.
 section: Gegevens vastleggen
 order: 3
 inApp:
@@ -10,12 +10,15 @@ routes:
   - farm.$b_id_farm.$calendar.field.$b_id.soil*
   - farm.$b_id_farm.$calendar.field.$b_id.bcs*
   - farm.$b_id_farm.soil-analysis.bulk.tsx
+  - farm.create.$b_id_farm.$calendar.fields_.$b_id.soil-analysis.bulk.tsx
 watch:
   - fdm-app/app/components/blocks/soil/**
   - fdm-app/app/components/blocks/soil-visual/**
+  - fdm-calculator/src/soilreader/**
 keywords:
   - bodemanalyse
   - labrapport uploaden
+  - bodemanalyses PDF koppelen
   - BodemSchat
   - BodemConditieScore
   - Nmin
@@ -36,23 +39,48 @@ Als je percelen importeert, vult {{appName}} vaak al bodemwaarden in met een sch
 
 Heb je labanalyses? Voeg ze dan zeker toe, zodat de berekeningen op jouw eigen meetwaarden draaien. In [Bodemanalyse](/manual/background/bodemanalyse) lees je welke waarden waarvoor worden gebruikt.
 
-## Alle analyses van het bedrijf in één keer uploaden {#bodemanalyses-uploaden}
+## Alle analyses in één keer uploaden {#bodemanalyses-uploaden}
 
-Heb je een stapel PDF's van het lab voor verschillende percelen? Upload ze dan in één keer via de bedrijfspagina. {{appName}} leest de rapporten uit en zoekt zelf uit welk rapport bij welk perceel hoort.
+Heb je een stapel PDF-rapporten van het lab, voor verschillende percelen? Upload ze dan in één keer. {{appName}} leest de rapporten uit en zoekt zelf uit welk rapport bij welk perceel hoort. Een rapport mag meerdere percelen bevatten. Er wordt niets opgeslagen voordat jij de resultaten hebt gecontroleerd.
 
-1. Ga naar het bedrijfsdashboard en klik onder **Acties** op **Upload bodemanalyses**.
-2. Sleep alle PDF-bestanden in het uploadvak (maximaal 5 MB per bestand) en klik op de knop om ze uit te lezen, bijvoorbeeld "12 PDF's uitlezen".
-3. Je komt bij de stap **Controleren en koppelen**. {{appName}} koppelt elk rapport eerst aan een perceel op basis van de locatie van het monsterpunt, en anders op basis van de perceelnaam.
-4. Controleer per rapport het perceel en de datum. Klopt iets niet, kies dan het goede perceel of vul de datum in. Rapporten zonder perceel of datum worden overgeslagen.
-5. Klik op de knop om op te slaan, bijvoorbeeld "12 analyses opslaan".
+Je begint op een van deze plekken:
 
-Dit werkt ook tijdens het aanmaken van een nieuw bedrijf, via **Bodemanalyses uploaden (pdf)** in de stap Percelen.
+- op het bedrijfsdashboard onder **Acties**: **Upload bodemanalyses**;
+- tijdens het aanmaken van een bedrijf, in de stap Percelen: **Bodemanalyses uploaden (pdf)**;
+- op de bodempagina van een perceel, bij "Rapporten voor meerdere percelen?": **Meerdere PDF's uploaden**.
 
-{{appName}} kan rapporten lezen van onder meer Eurofins Agro, HLB, ALNN, Altic, Dumea, Fertilab, Koch, Roba, SoilTech en Laboratorium Zeeuws-Vlaanderen. Kijk de uitgelezen waarden altijd even na.
+Het uploaden gaat in vier stappen:
+
+1. **PDF's kiezen**. Sleep de rapporten in het vak of klik om ze te kiezen. Alleen PDF, maximaal 5 MB per bestand. Klik daarna op de knop om ze uit te lezen, bijvoorbeeld "12 PDF's uitlezen".
+2. **Uitlezen**. {{appName}} leest de rapporten één voor één uit. Je ziet hoeveel er klaar zijn en hoeveel niet lukten.
+3. **Controleren en koppelen**. Je krijgt een lijst met per analyse de status, het rapport, de datum en het gekoppelde perceel. Loop vooral de regels langs onder **Aandacht nodig** (zie hieronder).
+4. **Opslaan**. Klik op de knop om op te slaan, bijvoorbeeld "12 analyses opslaan". Regels die nog aandacht nodig hebben, worden overgeslagen.
+
+### Hoe koppelt {{appName}} een rapport aan een perceel? {#koppelen}
+
+1. Op locatie: staat het monsterpunt op het rapport binnen een perceel, dan wordt de analyse aan dat perceel gekoppeld. Dat is de betrouwbaarste koppeling.
+2. Op naam: lukt dat niet, dan zoekt {{appName}} een perceel met precies dezelfde naam als op het rapport.
+
+Bij elke regel zie je hoe de koppeling tot stand kwam, bijvoorbeeld "Gekoppeld op locatie" of "Gekoppeld op naam". Wijzen de locatie en de naam naar verschillende percelen, dan wint de locatie en krijg je een waarschuwing. Klopt de koppeling niet, kies dan het goede perceel met **Kies een perceel**.
+
+Tip: geef je percelen in {{appName}} dezelfde namen als bij het lab. Dan lukt de koppeling op naam ook als er geen monsterpunt op het rapport staat.
+
+### Rapporten die aandacht nodig hebben {#aandacht}
+
+Met de filters **Aandacht nodig**, **Klaar**, **Opgeslagen** en **Alles** loop je de lijst snel door.
+
+- **Geen perceel gekoppeld**: kies zelf het perceel. Tot dan wordt de analyse niet opgeslagen.
+- **Datum ontbreekt**: vul de datum in. Staan er meer analyses zonder datum in hetzelfde rapport, dan kun je die datum voor allemaal tegelijk invullen.
+- Dubbele analyse: een analyse met hetzelfde perceel, dezelfde datum en diepte als een andere regel of als een analyse die al in {{appName}} staat. Een analyse die al bestaat, staat standaard uitgevinkt.
+- **Mislukt**: probeer het opnieuw met **Opnieuw**. Lukt het nog steeds niet, controleer dan of het rapport van een ondersteund lab komt.
+
+Met **Bekijken** open je de analyse naast het originele PDF-rapport. Zo controleer je de uitgelezen waarden en pas je ze aan voordat je opslaat.
+
+{{appName}} kan rapporten lezen van Eurofins Agro, HLB, ALNN, Altic, Dumea, Fertilab, Koch, Roba, SoilTech en Laboratorium Zeeuws-Vlaanderen. Kijk de uitgelezen waarden altijd even na.
 
 ## Een analyse voor één perceel toevoegen {#analyse-toevoegen}
 
-Ga op de perceelpagina naar **Bodem** en klik op **Bodemanalyse toevoegen**. Heb je een PDF van het lab voor dit perceel? Upload die dan meteen op deze pagina. Geen PDF, of een lab dat nog niet wordt ondersteund? Kies onder **Zelf invoeren** het formulier dat bij je analyse past:
+Ga op de perceelpagina naar **Bodem** en klik op **Bodemanalyse toevoegen**. Heb je een PDF van het lab voor dit perceel? Sleep die in het vak en klik op **PDF uitlezen**. Je ziet dan de uitgelezen waarden; controleer ze en sla de analyse op. Geen PDF, of een lab dat nog niet wordt ondersteund? Kies onder **Zelf invoeren** het formulier dat bij je analyse past:
 
 | Keuze                      | Wanneer gebruik je dit?                                                                                                   |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |

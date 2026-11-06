@@ -1,3 +1,4 @@
+import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { type ManualToken, substituteTokens } from "./markdown"
 import {
@@ -10,6 +11,9 @@ import {
 } from "./parse"
 import { BACKGROUND_SECTIONS, CHAPTER_SECTIONS } from "./schema"
 import { type ManualSeoContext, normalizeOrigin } from "./seo"
+
+/** The public developer guide of the FDM REST API. */
+export const API_GUIDE_URL = "https://nmi-agro.github.io/fdm/docs/rest-api/overview"
 
 const chapterFiles = import.meta.glob<string>("/app/content/manual/chapters/*.md", {
   query: "?raw",
@@ -189,8 +193,15 @@ export function toManualPageView(page: ManualPage, tokens: ManualTokens): Manual
 export function getManualContext(): { tokens: ManualTokens; seo: ManualSeoContext } {
   const origin = normalizeOrigin(serverConfig.url)
   const appName = serverConfig.name && serverConfig.name !== "undefined" ? serverConfig.name : "FDM"
+  const apiUrl = normalizeOrigin(clientConfig.apiUrl)
   return {
-    tokens: { appName, appUrl: origin || "/" },
+    tokens: {
+      appName,
+      appUrl: origin || "/",
+      // The interactive reference of this deployment's REST API, as linked from the API keys
+      // page; without an API URL, the public developer guide.
+      apiDocsUrl: apiUrl ? `${apiUrl}/docs` : API_GUIDE_URL,
+    },
     seo: { origin, appName, indexing: serverConfig.seo_indexing },
   }
 }

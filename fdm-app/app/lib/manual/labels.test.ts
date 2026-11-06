@@ -104,6 +104,16 @@ describe("stripComments", () => {
   })
 })
 
+describe("JSX text after an expression", () => {
+  it("finds a label that follows an icon expression", () => {
+    const source = `<Button>
+      {retrying ? <Spinner /> : <RotateCcw aria-hidden />}
+      Opnieuw
+    </Button>`
+    expect(extractUiStrings(source)).toContain("Opnieuw")
+  })
+})
+
 describe("createLabelMatcher", () => {
   const match = createLabelMatcher(["Bemesting", "Klik hier om een bemesting toe te voegen"])
 
