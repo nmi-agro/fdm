@@ -6,12 +6,12 @@ sidebar_position: 2
 
 # Authentication
 
-The FDM REST API uses **user-owned API keys** managed through the Developer Settings page in the FDM application. API keys are issued per user and inherit the effective FDM access of the user who owns them.
+The FDM REST API uses **user-owned API keys** managed on the API keys page ("API-sleutels") in the FDM application. API keys are issued per user and inherit the effective FDM access of the user who owns them.
 
 ## Creating an API key
 
-1. Navigate to **Account → Developer Settings → API Keys**.
-2. Click **Create API key** and give the key a name.
+1. Open the user menu, choose **Account** and go to **API-sleutels** (API keys).
+2. Click **Nieuwe sleutel** (new key), give the key a name and click **Aanmaken** (create).
 3. Copy the raw key immediately — it is shown **only once** and cannot be retrieved afterwards.
 4. Store the key securely (e.g., a secrets manager or environment variable). Never commit it to source control.
 
@@ -89,7 +89,7 @@ The raw API key is shown **once** at creation time. After that, only the key pre
 
 To rotate a key:
 
-1. Create a new API key in Developer Settings.
+1. Create a new API key on the **API-sleutels** page.
 2. Update your integration to use the new key.
 3. Verify the new key works.
 4. Revoke the old key.
@@ -100,7 +100,7 @@ There is no atomic swap — plan for a brief window where both old and new keys 
 
 If a key is compromised:
 
-1. **Immediately revoke it** in Developer Settings.
+1. **Immediately revoke it** on the **API-sleutels** page (**Sleutel intrekken**).
 2. Review the audit log for requests made with the compromised key.
 3. Create a replacement key.
 4. Notify the FDM team if sensitive farm data was exposed.
