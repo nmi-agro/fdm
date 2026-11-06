@@ -72,7 +72,7 @@ The guide speaks as a calm, competent agronomic colleague who explains the app: 
 5. **Verify.**
 
    ```bash
-   pnpm --filter @nmi-agro/fdm-app test
+   pnpm --filter @nmi-agro/fdm-app test:unit
    pnpm exec oxfmt <changed files>
    ```
 

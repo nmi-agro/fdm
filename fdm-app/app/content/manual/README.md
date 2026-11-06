@@ -5,7 +5,7 @@ This folder holds the public, Dutch user manual of fdm-app, served at `/manual`.
 - **Chapters** (`chapters/<slug>.md`, URL `/manual/<slug>`): how to use a part of the app.
 - **Background pages** (`background/<slug>.md`, URL `/manual/background/<slug>`, headed "Achtergrond"): what an agronomic result means and how it is calculated. They are written for farmers, advisors and policy staff, and must be complete on their own.
 
-The pages are parsed once when the server starts (`app/lib/manual/content.server.ts`) and checked by `pnpm --filter @nmi-agro/fdm-app test`.
+The pages are parsed once when the server starts (`app/lib/manual/content.server.ts`) and checked by `pnpm --filter @nmi-agro/fdm-app test:unit`.
 
 ## Writing style
 
@@ -87,7 +87,7 @@ Screenshots are never made by hand. A Playwright run captures them from the curr
 
    Choose a `ready` element that only appears when the page loaded correctly, so an error or empty state never ends up in the manual. Field keys are in `fdm-app/e2e/seed/demo-farm.ts`; extend the seed (`e2e/seed/index.ts`) when a page needs data that the demo farm lacks.
 
-3. `pnpm --filter @nmi-agro/fdm-app test` checks that every id has a definition and every definition is used. The capture run checks it again before it starts.
+3. `pnpm --filter @nmi-agro/fdm-app test:unit` checks that every id has a definition and every definition is used. The capture run checks it again before it starts.
 
 **Running the capture locally**
 
