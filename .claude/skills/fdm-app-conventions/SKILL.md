@@ -1,13 +1,13 @@
 ---
 name: fdm-app-conventions
-description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this mostly untested 100k-line package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
+description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this large, lightly tested package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
 version: 1.0.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
 ---
 
-`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its only tests cover the user manual (`app/lib/manual`); nothing else will catch a broken convention for you, so consistency with the surrounding code is the actual safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
+`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its tests are young: unit tests for a few modules in `app/lib` and `app/store`, loader and action tests for a few routes (`test/`), and a Playwright smoke suite that opens every page (`e2e/smoke`). They catch a crashing page, not a broken convention, so consistency with the surrounding code is still the main safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
 
 **Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement. It does not own how the interface should look or feel — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
 
@@ -167,11 +167,15 @@ The available checks are:
 ```bash
 cd fdm-app && pnpm check-types   # react-router typegen && tsc --noEmit
 pnpm lint                        # oxlint, from the repository root
-pnpm --filter @nmi-agro/fdm-app test   # manual content, label and SEO tests (vitest, no database)
+pnpm --filter @nmi-agro/fdm-app test:unit         # unit tests, incl. manual content, labels and SEO (no database)
+pnpm --filter @nmi-agro/fdm-app test:integration  # loader/action tests against PostGIS (.env.test)
+pnpm --filter @nmi-agro/fdm-app e2e               # Playwright smoke suite (.env.e2e, built app, empty DB)
 pnpm --filter fdm-app dev        # http://localhost:5173
 ```
 
-The tests only cover the manual and its help links: content parsing, links and anchors, help targets, and that every bold label still exists in the app source outside comments. That check does not know which screen a label is on, so it catches stale and misspelled labels, not outdated steps. Rename a button and the test points to the chapter that still uses the old label. `node fdm-app/scripts/manual-route-drift.mjs` (with `BASE_SHA` set) lists chapters whose routes you changed.
+Where the tests live and how to run them locally is described under "Tests" in `fdm-app/README.md`. When you add a route with a param, the smoke crawler fails until `e2e/smoke/route-params.ts` can fill it in or skips the route with a reason. Put unit tests next to the module (`app/lib/<module>.test.ts`), never in `app/routes`, where every file becomes a route.
+
+The manual tests cover the manual and its help links: content parsing, links and anchors, help targets, and that every bold label still exists in the app source outside comments. That check does not know which screen a label is on, so it catches stale and misspelled labels, not outdated steps. Rename a button and the test points to the chapter that still uses the old label. `node fdm-app/scripts/manual-route-drift.mjs` (with `BASE_SHA` set) lists chapters whose routes you changed.
 
 `dev` needs a PostgreSQL instance with PostGIS running and reachable through the `POSTGRES_*` variables in `fdm-app/.env`; developers normally run one locally on the machine.
 

@@ -558,3 +558,104 @@ jobs:
           files: ./fdm-helpdesk/coverage/coverage-final.json
           flags: fdm-helpdesk
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  # fdm-app: production build, unit and loader/action tests, and the Playwright smoke suite.
+  # Runs on the runner itself (not in a container), so Playwright can install Chromium with its
+  # system dependencies.
+  test-app:
+    name: app
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Europe/Amsterdam
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.8.1
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+
+      # Runs `react-router build`, which catches server-only imports in client code, invalid
+      # route module exports and bundler errors that the type check does not see.
+      - name: Build fdm-app
+        run: pnpm turbo run build --filter=@nmi-agro/fdm-app...
+
+      - name: Run unit and loader/action tests with coverage
+        run: pnpm --filter @nmi-agro/fdm-app test-coverage
+        env:
+          CI: true
+          POSTGRES_DB: postgres
+
+      - name: fdm-app - Upload results to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./fdm-app/coverage/coverage-final.json
+          flags: fdm-app
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # The smoke suite seeds its own farm and needs an empty database.
+      - name: Create the end-to-end database
+        run: psql "postgresql://postgres:postgres@localhost:5432/postgres" -c 'CREATE DATABASE e2e TEMPLATE template_postgis'
+
+      - name: Install Chromium
+        run: pnpm --filter @nmi-agro/fdm-app exec playwright install --with-deps chromium
+
+      - name: Generate session secrets
+        run: |
+          for name in BETTER_AUTH_SECRET FDM_SESSION_SECRET; do
+            value=$(openssl rand -hex 32)
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Run the smoke suite
+        run: pnpm --filter @nmi-agro/fdm-app exec playwright test
+        env:
+          CI: true
+          E2E_SUITE: smoke
+          POSTGRES_DB: e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fdm-app-playwright-report
+          path: |
+            fdm-app/e2e/.output/report
+            fdm-app/e2e/.output/test-results
+          retention-days: 14
