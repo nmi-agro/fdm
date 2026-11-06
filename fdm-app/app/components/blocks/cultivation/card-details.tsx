@@ -171,6 +171,7 @@ export function CultivationDetailsCard({
                       )}
                     >
                       <Checkbox
+                        id={field.name}
                         checked={Boolean(field.value)}
                         onCheckedChange={field.onChange}
                         disabled={
@@ -178,7 +179,7 @@ export function CultivationDetailsCard({
                         }
                       />
                       <div className="space-y-1 leading-none">
-                        <FieldLabel>Gewasresten achterlaten</FieldLabel>
+                        <FieldLabel htmlFor={field.name}>Gewasresten achterlaten</FieldLabel>
                         <FieldError errors={[fieldState.error]} />
                       </div>
                     </Field>

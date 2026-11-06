@@ -103,6 +103,7 @@ export const columns = [
         <Button
           variant="link"
           className="h-auto p-0 text-left font-medium"
+          nativeButton={false}
           render={
             isDeleting ? (
               <span>{contents}</span>

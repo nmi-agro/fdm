@@ -45,7 +45,10 @@ export function GroupPicker({
   return (
     <Select
       value={value}
-      items={groups.map((item) => ({ value: item.b_id_group, label: item.b_name_group }))}
+      items={[
+        { value: ALL_FARMS, label: "Alle bedrijven" },
+        ...groups.map((item) => ({ value: item.b_id_group, label: item.b_name_group })),
+      ]}
       onValueChange={(newValue) => {
         setSearchParams((previous) => {
           const next = new URLSearchParams(previous)
