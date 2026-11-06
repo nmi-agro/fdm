@@ -407,7 +407,12 @@ export async function handleActionError(error: unknown) {
   if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
     const userMessage = "U heeft helaas geen rechten om dit te doen."
-    return dataWithWarning({ warning: userMessage }, { message: userMessage, status: 403 })
+    // The status goes both in the toast (read by the root for analytics) and on the response.
+    return dataWithWarning(
+      { warning: userMessage },
+      { message: userMessage, status: 403 },
+      { status: 403 },
+    )
   }
 
   if (
@@ -420,6 +425,7 @@ export async function handleActionError(error: unknown) {
     return dataWithError(
       { warning: userMessage, errorId },
       { message: userMessage, status: 400, errorId },
+      { status: 400 },
     )
   }
 
