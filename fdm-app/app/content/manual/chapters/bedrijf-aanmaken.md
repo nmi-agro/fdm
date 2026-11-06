@@ -50,11 +50,15 @@ Heb je labrapporten van je bodemanalyses als PDF? Houd die ook bij de hand: in s
 
 Klik op **Mijn bedrijven** op **Nieuw bedrijf** (of **Bedrijf aanmaken** als je nog geen bedrijven hebt).
 
+![De eerste stap van een nieuw bedrijf: het KvK-nummer invullen](screenshot:bedrijf-aanmaken-gegevens)
+
 1. Vul het **KvK-nummer** in. Zie je de knop **Ophalen uit KvK**, klik er dan op: {{appName}} vult de naam en het adres in uit het Handelsregister. Controleer ze en pas ze zo nodig aan. Liever zelf invullen? Kies "Sla deze stap over en vul de gegevens zelf in".
 2. Controleer de **Bedrijfsnaam** en vul eventueel **Adres** en **Postcode** in.
 3. Kies het **Kalenderjaar**: het jaar waarmee je begint met invoeren.
 4. Geef onder Instellingen aan wat voor je bedrijf geldt: derogatie (alleen voor jaren vóór 2026), een voornemen tot weiden en of het bedrijf biologisch gecertificeerd is. Bij biologisch vul je eventueel het **SKAL-nummer** en **TRACES-nummer** in.
 5. Klik op **Volgende**.
+
+![De bedrijfsgegevens, opgehaald uit het KvK Handelsregister (een testbedrijf)](screenshot:bedrijf-aanmaken-kvk-opgehaald)
 
 ## Stap 2: Percelen toevoegen {#percelen-importeren}
 
@@ -88,6 +92,8 @@ Upload de shapefile daarna in {{appName}}:
 3. Sleep de vier bestanden in het vak: .shp, .shx, .dbf en .prj. Ze zijn alle vier nodig, en elk bestand mag maximaal 5 MB zijn.
 4. Klik op **Uploaden**, controleer de percelen en klik op **Opslaan en verder**.
 
+![Het uploaden van een RVO-shapefile bij een nieuw bedrijf](screenshot:bedrijf-aanmaken-shapefile)
+
 Een shapefile zegt niet welke percelen bufferstroken zijn. {{appName}} schat dat aan de hand van de vorm en de naam van het perceel. Controleer de kolom **Bufferstrook** dus even voordat je opslaat.
 
 ### Selecteren op de kaart {#kaart}
@@ -98,6 +104,8 @@ Op de kaart klik je je percelen aan uit de Basisregistratie Gewaspercelen (BRP).
 2. Zoek je bedrijf op met **Zoek naar een locatie...** en zoom in. Pas als je ver genoeg bent ingezoomd, kun je percelen selecteren.
 3. Klik de percelen aan die bij je bedrijf horen. Nog een keer klikken haalt een perceel weer weg.
 4. Klik op **Sla geselecteerde percelen op**.
+
+![Percelen selecteren op de kaart bij een nieuw bedrijf](screenshot:bedrijf-aanmaken-kaart)
 
 De percelen krijgen de namen "Perceel 1", "Perceel 2" enzovoort; die pas je in de volgende stap aan. Het hoofdgewas komt uit de BRP van het gekozen jaar.
 
@@ -124,15 +132,21 @@ Je ziet links al je percelen en bovenaan hoeveel er al een bodemanalyse hebben, 
 3. Heb je labrapporten? Klik dan op **Bodemanalyses uploaden (pdf)** en upload ze voor alle percelen tegelijk. {{appName}} leest ze uit en koppelt ze zelf aan de juiste percelen; zie [Bodemanalyses in één keer uploaden](/manual/bodem#bodemanalyses-uploaden). Een enkele analyse typ je over met **Handmatig invullen**.
 4. Klik op **Doorgaan**.
 
+![Stap 3: de percelen en hun bodemgegevens controleren](screenshot:bedrijf-aanmaken-percelen)
+
 Eigen bodemanalyses maken de berekeningen een stuk nauwkeuriger. Je kunt ze ook later nog toevoegen.
 
 ## Stap 4: Bouwplan {#bouwplan}
 
 Je ziet je gewassen op een rij. Vul zaaidata, oogsten en bemestingen in voor alle percelen met hetzelfde gewas tegelijk (zie [Bouwplan](/manual/bouwplan)). Klik op **Doorgaan**.
 
+![Stap 4: het bouwplan van het nieuwe bedrijf](screenshot:bedrijf-aanmaken-bouwplan)
+
 ## Stap 5: Toegang instellen {#toegang}
 
 Wil je een adviseur of collega laten meekijken? Nodig ze hier alvast uit (zie [Samenwerken](/manual/samenwerken)). Dit is optioneel. Klik op **Voltooien** en je bedrijf staat klaar.
+
+![Stap 5: anderen toegang geven tot het nieuwe bedrijf](screenshot:bedrijf-aanmaken-toegang)
 
 ## Later percelen toevoegen {#percelen-toevoegen}
 
@@ -159,3 +173,5 @@ Via **Instellingen** op de bedrijfspagina pas je de bedrijfsgegevens aan. Eigena
 | **Beweiding**       | Per jaar of je weidt of van plan bent te weiden. Dit telt mee in de berekeningen.                                                                         |
 | **Toegang**         | Wie mag er meekijken of meewerken (zie [Samenwerken](/manual/samenwerken)).                                                                               |
 | **Verwijderen**     | Het hele bedrijf verwijderen, inclusief alle percelen, gewassen, bemestingen, bodemanalyses en oogsten. Alleen de eigenaar kan dit, en het is definitief. |
+
+![De instellingen van een bedrijf, op het tabblad met de bedrijfsgegevens](screenshot:bedrijfsinstellingen)

@@ -30,4 +30,6 @@ Klik op je naam onderaan de zijbalk en kies **Account**.
 - **Cookies**: pas je cookie-instellingen aan.
 - **API-sleutels**: voor wie {{appName}} wil koppelen aan een eigen systeem of dashboard (zie [Koppelen met de API](/manual/api)).
 
+![Het profiel in het account van de gebruiker](screenshot:account-profiel)
+
 Wil je {{appName}} koppelen aan je eigen software? Dat doe je met een API-sleutel. Hoe je een sleutel maakt en waar de documentatie staat, lees je in [Koppelen met de API](/manual/api).

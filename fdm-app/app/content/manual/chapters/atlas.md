@@ -33,6 +33,8 @@ Klik in de zijbalk op **Atlas** en kies een kaartlaag. Op een kaart wissel je va
 - **Terug naar percelen**: zoom terug naar de percelen van je eigen bedrijf.
 - **Kies kaartstijl**: wissel tussen bijvoorbeeld satelliet en topografische kaart.
 
+![De Atlas met de percelen van het demobedrijf, omlijnd, op de gewaspercelen uit het BRP](screenshot:atlas-gewaspercelen)
+
 ## De kaartlagen {#kaartlagen}
 
 | Kaartlaag         | Wat zie je?                                                                                                       | Bedrijf nodig? |
@@ -61,9 +63,13 @@ Op de **Bodemkaart** klik je op een vlak om te zien welke bodem daar ligt, met d
 
 De **Hoogtekaart** laat met kleuren zien waar het hoger en lager ligt. De kleurschaal past zich aan het stuk kaart aan dat je bekijkt, zodat je ook kleine hoogteverschillen binnen een perceel ziet. Beweeg met je muis over de kaart om de precieze hoogte te zien. Zoom ver genoeg in voor het meeste detail.
 
+![De Hoogtekaart rond de percelen van het demobedrijf](screenshot:atlas-hoogtekaart)
+
 ## Bodemanalyses op de kaart {#bodemanalyses-op-de-kaart}
 
 Kies een parameter, bijvoorbeeld organische stof, pH of P-Al. Je percelen kleuren dan van laag naar hoog. Zo zie je in één oogopslag welke percelen achterblijven. Percelen zonder analyse staan als **Geen data** in de legenda. Klik op een perceel en daarna op **Bekijk analyse** om de analyse zelf te openen.
+
+![De bodemanalyses op de kaart, per zone gekleurd naar het organischestofgehalte](screenshot:atlas-bodemanalyses)
 
 ## Indicatoren op de kaart {#indicatoren-op-de-kaart}
 

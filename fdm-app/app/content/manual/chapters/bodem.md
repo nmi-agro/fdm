@@ -37,7 +37,13 @@ Als je percelen importeert, vult {{appName}} vaak al bodemwaarden in met een sch
 - **Geschat met NMI BodemSchat**: een schatting.
 - **Berekend**: afgeleid uit andere waarden.
 
+![De bodemgegevens van een perceel, met per waarde de bron](screenshot:bodem-perceel)
+
 Heb je labanalyses? Voeg ze dan zeker toe, zodat de berekeningen op jouw eigen meetwaarden draaien. In [Bodemanalyse](/manual/background/bodemanalyse) lees je welke waarden waarvoor worden gebruikt.
+
+Op de kaart naast de waarden zie je waar de monsters zijn genomen en voor welk deel van het perceel elke analyse geldt. Heeft een perceel analyses voor meerdere zones, dan zie je per waarde het gemiddelde van die zones.
+
+![De bodemgegevens van een perceel met twee zones, met op de kaart de monsterpunten per zone](screenshot:bodemanalyse-monsterpunten)
 
 ## Alle analyses in één keer uploaden {#bodemanalyses-uploaden}
 
@@ -48,6 +54,8 @@ Je begint op een van deze plekken:
 - op het bedrijfsdashboard onder **Acties**: **Upload bodemanalyses**;
 - tijdens het aanmaken van een bedrijf, in de stap Percelen: **Bodemanalyses uploaden (pdf)**;
 - op de bodempagina van een perceel, bij "Rapporten voor meerdere percelen?": **Meerdere PDF's uploaden**.
+
+![Bodemanalyses voor meerdere percelen tegelijk uploaden](screenshot:bodemanalyses-uploaden)
 
 Het uploaden gaat in vier stappen:
 
@@ -63,6 +71,8 @@ Het uploaden gaat in vier stappen:
 
 Bij elke regel zie je hoe de koppeling tot stand kwam, bijvoorbeeld "Gekoppeld op locatie" of "Gekoppeld op naam". Wijzen de locatie en de naam naar verschillende percelen, dan wint de locatie en krijg je een waarschuwing. Klopt de koppeling niet, kies dan het goede perceel met **Kies een perceel**.
 
+![Alle uitgelezen labrapporten met per regel het gekoppelde perceel en de status (voorbeeldrapporten)](screenshot:bodemanalyses-controleren)
+
 Tip: geef je percelen in {{appName}} dezelfde namen als bij het lab. Dan lukt de koppeling op naam ook als er geen monsterpunt op het rapport staat.
 
 ### Rapporten die aandacht nodig hebben {#aandacht}
@@ -73,6 +83,8 @@ Met de filters **Aandacht nodig**, **Klaar**, **Opgeslagen** en **Alles** loop j
 - **Datum ontbreekt**: vul de datum in. Staan er meer analyses zonder datum in hetzelfde rapport, dan kun je die datum voor allemaal tegelijk invullen.
 - Dubbele analyse: een analyse met hetzelfde perceel, dezelfde datum en diepte als een andere regel of als een analyse die al in {{appName}} staat. Een analyse die al bestaat, staat standaard uitgevinkt.
 - **Mislukt**: probeer het opnieuw met **Opnieuw**. Lukt het nog steeds niet, controleer dan of het rapport van een ondersteund lab komt.
+
+![Het filter Aandacht nodig: een rapport met een afwijkende perceelnaam en een rapport dat niet kon worden uitgelezen](screenshot:bodemanalyses-aandacht)
 
 Met **Bekijken** open je de analyse naast het originele PDF-rapport. Zo controleer je de uitgelezen waarden en pas je ze aan voordat je opslaat.
 
@@ -88,6 +100,8 @@ Ga op de perceelpagina naar **Bodem** en klik op **Bodemanalyse toevoegen**. Heb
 | **Nmin-bemonstering**      | Je hebt een Nmin-meting: nitraat-N en ammonium-N, of de N-voorraad in kg N/ha.                                            |
 | **Analyse voor derogatie** | Je hebt een analyse voor de derogatie. Vanaf 2026 staat deze onder **Meer opties**.                                       |
 | **Alle bodemparameters**   | Je wilt andere of extra parameters invullen. Deze staat onder **Meer opties**.                                            |
+
+![De keuze van het soort bodemanalyse bij het toevoegen](screenshot:bodemanalyse-toevoegen)
 
 Bij handmatig invoeren zijn **Laboratorium**, **Datum** en **Bemonsterde laag (onderkant)** verplicht. De rest vul je in voor zover je het weet.
 

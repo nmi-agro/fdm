@@ -67,6 +67,8 @@ The guide speaks as a calm, competent agronomic colleague who explains the app: 
 
 4. **Help targets.** When a heading that a help target in `fdm-app/app/lib/manual/help-targets.ts` points to was renamed, keep its `{#id}`. When a route's purpose changed, check its `handle.help`.
 
+   **Screenshots.** Never add image files by hand. A new `![…](screenshot:<id>)` needs a capture definition in `fdm-app/app/content/manual/screenshots/capture.ts`. Removing the last use of an id means removing its definition too. When a page changed, check that the `ready` element and the `steps` of its definitions still exist. The images themselves are updated by the `manual-screenshots` workflow, not by the sync PR.
+
 5. **Verify.**
 
    ```bash

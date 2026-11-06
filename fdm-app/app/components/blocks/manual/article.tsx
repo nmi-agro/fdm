@@ -3,6 +3,7 @@ import { ExternalLink, Info, Link2 } from "lucide-react"
 import ReactMarkdown, { type Components } from "react-markdown"
 import { Link } from "react-router"
 import remarkGfm from "remark-gfm"
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { manualUrlTransform, remarkHeadingIds } from "~/lib/manual/markdown"
 import { getScreenshot } from "~/lib/manual/screenshots"
 import { cn } from "~/lib/utils"
@@ -49,16 +50,38 @@ function Screenshot({ src, alt }: { src?: string; alt?: string }) {
       </figure>
     )
   }
+  // Screenshots are captured at full screen size, so the article shows them scaled down. Clicking
+  // one opens it at full size.
   return (
     <figure>
-      <img
-        src={screenshot.src}
-        alt={alt ?? ""}
-        width={screenshot.width}
-        height={screenshot.height}
-        loading="lazy"
-        className="border-border w-full border"
-      />
+      <Dialog>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            aria-label={alt ? `Vergroot afbeelding: ${alt}` : "Vergroot afbeelding"}
+            className="focus-visible:ring-ring block w-full cursor-zoom-in rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            <img
+              src={screenshot.src}
+              alt={alt ?? ""}
+              width={screenshot.width}
+              height={screenshot.height}
+              loading="lazy"
+              className="border-border w-full border"
+            />
+          </button>
+        </DialogTrigger>
+        <DialogContent className="w-[96vw] max-w-[96vw] p-2 pt-10 sm:max-w-[96vw]">
+          <DialogTitle className="sr-only">{alt || "Afbeelding"}</DialogTitle>
+          <img
+            src={screenshot.src}
+            alt={alt ?? ""}
+            width={screenshot.width}
+            height={screenshot.height}
+            className="h-auto max-h-[85vh] w-full object-contain"
+          />
+        </DialogContent>
+      </Dialog>
       {alt ? <figcaption>{alt}</figcaption> : null}
     </figure>
   )

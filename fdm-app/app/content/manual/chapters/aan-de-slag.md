@@ -31,6 +31,8 @@ Inloggen kan met je Microsoft- of Google-account, of met een code die je per e-m
 3. Bij e-mail krijg je een bericht met een link en een code van 6 cijfers. Klik op de link, of typ de code in onder **Of vul de code in**. Code en link werken 15 minuten en maar één keer.
 4. Geen mail gekregen? Kijk even in je spam, klik op **Geen code ontvangen? Opnieuw versturen** of kies **Ander e-mailadres gebruiken**.
 
+![De aanmeldpagina met aanmelden via Microsoft, Google of e-mail](screenshot:aanmelden)
+
 Uitloggen doe je via je naam onderaan de zijbalk en dan **Uitloggen**.
 
 ## Je profiel invullen {#profiel}
@@ -44,6 +46,8 @@ Na het inloggen kom je op **Mijn bedrijven**. Wat je daar ziet, hangt af van je 
 - Nog geen bedrijven? Klik op **Bedrijf aanmaken**. In [Een bedrijf aanmaken](/manual/bedrijf-aanmaken) lees je hoe dat gaat.
 - Ben je uitgenodigd? Dan staat de uitnodiging onder **Openstaande uitnodigingen**. Klik op **Accepteren** en het bedrijf verschijnt in je lijst.
 - Heb je al bedrijven? Elk bedrijf staat op een kaart met je rol erbij: **Eigenaar**, **Adviseur** of **Onderzoeker**. Bedrijven waar je via een organisatie bij kunt, staan apart onder **Bedrijven van uw organisaties**.
+
+![Mijn bedrijven, met één bedrijf en de rol van de gebruiker](screenshot:mijn-bedrijven)
 
 Onderaan de pagina staan ook snelkoppelingen naar de Atlas-kaarten (Percelen, Hoogtekaart, Bodemkaart). Die kun je ook zonder eigen bedrijf gebruiken.
 
