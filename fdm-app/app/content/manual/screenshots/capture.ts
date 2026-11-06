@@ -10,9 +10,21 @@ export const captures = {
     route: "/farm/{farm}?calendar={year}",
     ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
   },
+  // The KvK step only appears when the app has a KvK API key; the run uses the KvK test
+  // environment (see playwright.config.ts).
   "bedrijf-aanmaken-gegevens": {
     route: "/farm/create",
-    ready: { text: "Bedrijf toevoegen", exact: true },
+    ready: { text: "Begin met je KvK-nummer" },
+  },
+  // 68750110 is a fictional company in the KvK test environment.
+  "bedrijf-aanmaken-kvk-opgehaald": {
+    route: "/farm/create",
+    ready: { text: "Begin met je KvK-nummer" },
+    steps: [
+      { fill: { placeholder: "12345678" }, value: "68750110" },
+      { click: { role: "button", name: "Ophalen uit KvK" } },
+      { waitFor: { text: "Gegevens ingevuld vanuit het KvK Handelsregister" } },
+    ],
   },
   "perceel-pagina": {
     route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
@@ -180,5 +192,38 @@ export const captures = {
   "api-sleutels": {
     route: "/user/settings/api-keys",
     ready: { text: "Nieuwe sleutel" },
+  },
+  // A soil analysis with its sampling locations and zone: the Huiskavel is sampled as two zones.
+  "bodemanalyse-monsterpunten": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}/soil",
+    ready: { text: "Gemiddelde van 2 zones" },
+    map: true,
+  },
+  "atlas-bodemanalyses": {
+    route: "/farm/{farm}/{year}/atlas/soil-analysis",
+    ready: { selector: ".maplibregl-canvas" },
+    map: true,
+  },
+  // The review after reading lab reports; the reports are made up (see e2e/screenshots/mocks.ts).
+  "bodemanalyses-controleren": {
+    route: "/farm/{farm}/soil-analysis/bulk",
+    ready: { selector: "input[type=file]" },
+    mock: "soil-reader",
+    steps: [
+      { upload: { selector: "input[type=file]" } },
+      { click: { role: "button", name: "PDF's uitlezen" } },
+      { click: { role: "button", name: "Alles" } },
+      { waitFor: { text: "Bodemanalyse Lange akker.pdf" } },
+    ],
+  },
+  "bodemanalyses-aandacht": {
+    route: "/farm/{farm}/soil-analysis/bulk",
+    ready: { selector: "input[type=file]" },
+    mock: "soil-reader",
+    steps: [
+      { upload: { selector: "input[type=file]" } },
+      { click: { role: "button", name: "PDF's uitlezen" } },
+      { click: { role: "button", name: "Aandacht nodig" } },
+    ],
   },
 } satisfies Record<string, CaptureDefinition>

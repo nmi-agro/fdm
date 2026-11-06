@@ -11,6 +11,10 @@
     "width": 1920,
     "height": 1080
   },
+  "atlas-bodemanalyses": {
+    "width": 1920,
+    "height": 1080
+  },
   "atlas-gewaspercelen": {
     "width": 1920,
     "height": 1080
@@ -36,6 +40,10 @@
     "height": 1080
   },
   "bedrijf-aanmaken-kaart": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-kvk-opgehaald": {
     "width": 1920,
     "height": 1080
   },
@@ -79,7 +87,19 @@
     "width": 1920,
     "height": 1080
   },
+  "bodemanalyse-monsterpunten": {
+    "width": 1920,
+    "height": 1080
+  },
   "bodemanalyse-toevoegen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyses-aandacht": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyses-controleren": {
     "width": 1920,
     "height": 1080
   },

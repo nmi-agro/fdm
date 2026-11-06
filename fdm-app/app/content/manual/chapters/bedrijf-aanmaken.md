@@ -50,13 +50,15 @@ Heb je labrapporten van je bodemanalyses als PDF? Houd die ook bij de hand: in s
 
 Klik op **Mijn bedrijven** op **Nieuw bedrijf** (of **Bedrijf aanmaken** als je nog geen bedrijven hebt).
 
-![De eerste stap van een nieuw bedrijf: de bedrijfsgegevens](screenshot:bedrijf-aanmaken-gegevens)
+![De eerste stap van een nieuw bedrijf: het KvK-nummer invullen](screenshot:bedrijf-aanmaken-gegevens)
 
 1. Vul het **KvK-nummer** in. Zie je de knop **Ophalen uit KvK**, klik er dan op: {{appName}} vult de naam en het adres in uit het Handelsregister. Controleer ze en pas ze zo nodig aan. Liever zelf invullen? Kies "Sla deze stap over en vul de gegevens zelf in".
 2. Controleer de **Bedrijfsnaam** en vul eventueel **Adres** en **Postcode** in.
 3. Kies het **Kalenderjaar**: het jaar waarmee je begint met invoeren.
 4. Geef onder Instellingen aan wat voor je bedrijf geldt: derogatie (alleen voor jaren vóór 2026), een voornemen tot weiden en of het bedrijf biologisch gecertificeerd is. Bij biologisch vul je eventueel het **SKAL-nummer** en **TRACES-nummer** in.
 5. Klik op **Volgende**.
+
+![De bedrijfsgegevens, opgehaald uit het KvK Handelsregister (een testbedrijf)](screenshot:bedrijf-aanmaken-kvk-opgehaald)
 
 ## Stap 2: Percelen toevoegen {#percelen-importeren}
 

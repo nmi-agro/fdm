@@ -27,6 +27,10 @@ const appEnv: Record<string, string> = {
   PUBLIC_FDM_URL: BASE_URL,
   BETTER_AUTH_URL: BASE_URL,
   FDM_SEO_INDEXING: "false",
+  // Always the KvK test environment, with the test key that KvK publishes for it: lookups then
+  // return fictional test companies, never real ones.
+  KVK_API_KEY: "l7xx1f2691f2520d487b902f4e0b57a0b197",
+  KVK_API_BASE_URL: "https://api.kvk.nl/test/api",
 }
 // No e-mail, error reporting or analytics from test runs.
 for (const name of ["POSTMARK_API_KEY", "SENTRY_AUTH_TOKEN", "POSTHOG_PERSONAL_API_KEY"]) {
