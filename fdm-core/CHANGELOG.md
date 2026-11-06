@@ -1,5 +1,11 @@
 # Changelog fdm-core
 
+## 0.39.2
+
+### Patch Changes
+
+- [#933](https://github.com/nmi-agro/fdm/pull/933) [`e87b8c4`](https://github.com/nmi-agro/fdm/commit/e87b8c4a017f8ab07a14b935ead018ba0a7f47ac) Thanks [@SvenVw](https://github.com/SvenVw)! - `addFertilizerApplication` and `updateFertilizerApplication` now reject an applied amount that, converted to kg/ha, is not greater than 0 or is greater than 100,000 kg/ha. The thrown error has an `AppAmountOutOfRangeError` as its `cause`, which carries the unit of the fertilizer and the maximum in that unit. Existing records outside this range can still be read, and `updateFertilizerApplication` without a new amount keeps the stored amount. Adds `P_APP_AMOUNT_MAX`, `isAppAmountInRange`, `getAppAmountDisplayRange` and `AppAmountOutOfRangeError`.
+
 ## 0.39.1
 
 ### Patch Changes
