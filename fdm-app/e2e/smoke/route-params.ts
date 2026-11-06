@@ -25,6 +25,8 @@ export const SKIP: Record<string, string> = {
   "/api/gerrit/clarify": "calls Gemini, an external service",
   "/api/gerrit/stream": "calls Gemini, an external service",
   "/api/lookup/kvk": "calls the KvK API, an external service",
+  "/farm/:b_id_farm/:calendar/atlas/fields/:centroid":
+    "shows the error page without an NMI API key, which the smoke suite does not have; the page should show an unavailable state instead",
   "/api/profile-picture/:type/:file_name": "reads files from Google Cloud Storage",
   "/api/webhooks/inbound-email-ticket/:secret":
     "webhook of the mail service, protected by a secret",

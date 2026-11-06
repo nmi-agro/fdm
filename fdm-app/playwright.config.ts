@@ -57,8 +57,11 @@ const SMOKE_OFF = [
   "LANGSMITH_API_KEY",
   "LANGSMITH_TRACING",
 ]
+// Playwright starts the web server with this process's environment plus `webServer.env`, so a
+// setting is only gone when it is removed from both.
 for (const name of SUITE === "smoke" ? [...ALWAYS_OFF, ...SMOKE_OFF] : ALWAYS_OFF) {
   delete appEnv[name]
+  delete process.env[name]
 }
 // Public settings are emptied rather than removed: when one is missing at runtime, the server
 // falls back to the value built into the app, but the browser does not, and the page fails to
