@@ -91,7 +91,7 @@ export async function computePlanMetrics(
 ) {
   // Years without own norms (planned ahead) use the newest norms provisionally. Years before the
   // first norm year fall back to 2025, as before.
-  const parsedYear = Number.parseInt(calendar, 10)
+  const parsedYear = /^\d{4}$/.test(calendar) ? Number(calendar) : Number.NaN
   if (!Number.isInteger(parsedYear) || parsedYear < 2025) {
     console.warn(
       `[computePlanMetrics] Unsupported calendar value "${calendar}"; falling back to "2025".`,

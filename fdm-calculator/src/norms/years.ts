@@ -38,6 +38,7 @@ import {
   isOrganicCertificationValid,
   type PrincipalId,
   shiftDateToYear,
+  startOfDayInFdmTimeZone,
   type Timeframe,
   toFdmDateString,
 } from "@nmi-agro/fdm-core"
@@ -164,6 +165,17 @@ export function shiftFillingInput(
       ...application,
       p_app_date: shiftDateByYears(application.p_app_date, years),
     })),
+  }
+}
+
+/**
+ * Returns the timeframe of a calendar year in Europe/Amsterdam, from 1 January 00:00 up to and
+ * including 31 December 23:59:59.999, independent of the time zone of the server.
+ */
+function getYearTimeframeInFdmTimeZone(year: number): Timeframe {
+  return {
+    start: startOfDayInFdmTimeZone(year, 1, 1),
+    end: new Date(startOfDayInFdmTimeZone(year + 1, 1, 1).getTime() - 1),
   }
 }
 
@@ -312,10 +324,7 @@ export async function collectFillingInputForYear(
   targetYear: number,
   operations: NormsYearFdmCoreOperations = defaultOperations,
 ): Promise<NL2026NormsFillingInput> {
-  const timeframe: Timeframe = {
-    start: new Date(targetYear, 0, 1),
-    end: new Date(targetYear, 11, 31, 23, 59, 59, 999),
-  }
+  const timeframe = getYearTimeframeInFdmTimeZone(targetYear)
   const field = await operations.getField(fdm, principal_id, b_id)
   if (!field) {
     throw new Error(`Field with id ${b_id} not found`)
@@ -369,10 +378,7 @@ export async function collectFillingInputForYearForFarm(
   targetYear: number,
   operations: NormsYearFdmCoreOperations = defaultOperations,
 ): Promise<Map<string, NL2026NormsFillingInput>> {
-  const timeframe: Timeframe = {
-    start: new Date(targetYear, 0, 1),
-    end: new Date(targetYear, 11, 31, 23, 59, 59, 999),
-  }
+  const timeframe = getYearTimeframeInFdmTimeZone(targetYear)
   const [
     farmFields,
     has_grazing_intention,

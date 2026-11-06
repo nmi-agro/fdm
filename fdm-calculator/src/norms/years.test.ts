@@ -1,5 +1,5 @@
 import type { FdmType, Field, Timeframe } from "@nmi-agro/fdm-core"
-import { startOfDayInFdmTimeZone } from "@nmi-agro/fdm-core"
+import { startOfDayInFdmTimeZone, toFdmDateString } from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
 import type { NL2026NormsFillingInput } from "./nl/2026/filling/types"
 import type { NL2026NormsInput, NL2026NormsInputForCultivation } from "./nl/2026/value/types"
@@ -263,8 +263,9 @@ describe("provisional filling functions", () => {
       2027,
     )
     const applications = calls.find((c) => c.name === "getFertilizerApplications")?.timeframe
-    expect(applications?.start?.getFullYear()).toBe(2027)
-    expect(applications?.end?.getFullYear()).toBe(2027)
+    expect(applications?.start?.getTime()).toBe(day(2027, 1, 1).getTime())
+    expect(applications?.end?.getTime()).toBe(day(2028, 1, 1).getTime() - 1)
+    expect(applications?.end && toFdmDateString(applications.end)).toBe("2027-12-31")
   })
 
   it("move the input to the norm year before calculating", () => {
