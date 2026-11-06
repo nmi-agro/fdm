@@ -56,6 +56,12 @@ export const FormSchemaPartialModify = FormSchemaPartial.extend({
   }),
 })
 
+/**
+ * Maximum applied amount in kg/ha, the same as `P_APP_AMOUNT_MAX` in fdm-core. Kept here
+ * because browser code cannot import fdm-core at runtime.
+ */
+export const APP_AMOUNT_MAX_KG_PER_HA = 100_000
+
 /** Minimal fertilizer option needed to check the applied amount. */
 export interface AppAmountRangeOption {
   /** The fertilizer id (`p_id`). */

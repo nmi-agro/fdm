@@ -1452,7 +1452,14 @@ describe("Fertilizer Data Model", () => {
         "broadcasting",
         new Date("2024-03-15"),
       ).catch((err: unknown) => err)
-      expect((error as Error).cause).toBeInstanceOf(AppAmountOutOfRangeError)
+      const cause = (error as Error).cause
+      expect(cause).toBeInstanceOf(AppAmountOutOfRangeError)
+      // The maximum is reported in the unit of the fertilizer
+      expect((cause as AppAmountOutOfRangeError).p_app_amount_unit).toBe("l/ha")
+      expect((cause as AppAmountOutOfRangeError).p_app_amount_display_max).toBeCloseTo(
+        100_000 / 1.2,
+        6,
+      )
     })
 
     it("should reject updating to an out-of-range amount and keep the stored amount", async () => {

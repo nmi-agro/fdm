@@ -747,7 +747,7 @@ export async function addFertilizerApplication(
       fertilizer.p_density,
     )
     if (!isAppAmountInRange(p_app_amount)) {
-      throw new AppAmountOutOfRangeError(p_app_amount)
+      throw new AppAmountOutOfRangeError(p_app_amount, fertilizer)
     }
 
     await fdm.insert(schema.fertilizerApplication).values({
@@ -812,7 +812,7 @@ export async function updateFertilizerApplication(
         ? toKgPerHa(p_app_amount_display, fertilizer.p_app_amount_unit, fertilizer.p_density)
         : undefined
     if (p_app_amount !== undefined && !isAppAmountInRange(p_app_amount)) {
-      throw new AppAmountOutOfRangeError(p_app_amount)
+      throw new AppAmountOutOfRangeError(p_app_amount, fertilizer)
     }
     await fdm
       .update(schema.fertilizerApplication)

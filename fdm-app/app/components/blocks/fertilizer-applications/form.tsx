@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
-import { useEffect, useId, useRef } from "react"
+import { useEffect, useId, useMemo, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -104,14 +104,17 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   const generatedFormId = useId()
   const formId = id ?? generatedFormId
   const { calendar } = useCalendarStore()
+  const isModify = !!fertilizerApplication
+  const resolver = useMemo(
+    () =>
+      zodResolver(
+        withAppAmountRange(schema ?? (isModify ? FormSchemaModify : FormSchema), options),
+      ) as never,
+    [schema, isModify, options],
+  )
   const form = useRemixForm<FieldFertilizerFormValues>({
     mode: "onTouched",
-    resolver: zodResolver(
-      withAppAmountRange(
-        schema ?? (fertilizerApplication ? FormSchemaModify : FormSchema),
-        options,
-      ),
-    ) as never,
+    resolver,
     defaultValues: {
       intent: intent,
       b_id: b_id,

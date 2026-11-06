@@ -25,7 +25,10 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
 
 /** Mimics fdm-core: the range error wrapped by `handleError` as the `cause`. */
 function outOfRangeError() {
-  const cause = new Error("Applied amount must be greater than 0 and at most 100000 kg/ha")
+  const cause = Object.assign(
+    new Error("Applied amount must be greater than 0 and at most 100000 kg/ha"),
+    { p_app_amount_unit: "m3/ha", p_app_amount_display_max: 100 / 1.05 },
+  )
   cause.name = "AppAmountOutOfRangeError"
   return new Error("Exception for addFertilizerApplication", { cause })
 }
@@ -166,6 +169,7 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
     expect(res.status).toBe(422)
     const body = await res.json()
     expect(body.type).toBe("https://test.example.com/problems/unprocessable-entity")
+    expect(body.detail).toContain("95.23 m3/ha")
   })
 })
 

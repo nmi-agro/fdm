@@ -103,16 +103,36 @@ export const P_APP_AMOUNT_MAX = 100_000
 export class AppAmountOutOfRangeError extends Error {
   /** The applied amount in kg/ha that was rejected. */
   public readonly p_app_amount: number
+  /** The display unit of the fertilizer, when known. */
+  public readonly p_app_amount_unit?: AppAmountUnit
+  /** The maximum in the display unit of the fertilizer, or `null` when it cannot be computed. */
+  public readonly p_app_amount_display_max: number | null
+  /** The name of the fertilizer, when known. */
+  public readonly p_name_nl?: string | null
 
   /**
    * @param p_app_amount The rejected applied amount in kg/ha.
+   * @param fertilizer The unit, density and name of the fertilizer, to report the maximum in the
+   * unit the user sees.
    */
-  constructor(p_app_amount: number) {
+  constructor(
+    p_app_amount: number,
+    fertilizer?: {
+      p_app_amount_unit: AppAmountUnit
+      p_density?: number | null
+      p_name_nl?: string | null
+    },
+  ) {
     super(
       `Applied amount must be greater than 0 and at most ${P_APP_AMOUNT_MAX} kg/ha, received ${p_app_amount} kg/ha`,
     )
     this.name = "AppAmountOutOfRangeError"
     this.p_app_amount = p_app_amount
+    this.p_app_amount_unit = fertilizer?.p_app_amount_unit
+    this.p_app_amount_display_max = fertilizer
+      ? (getAppAmountDisplayRange(fertilizer.p_app_amount_unit, fertilizer.p_density)?.max ?? null)
+      : null
+    this.p_name_nl = fertilizer?.p_name_nl
   }
 }
 
