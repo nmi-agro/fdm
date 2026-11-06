@@ -123,7 +123,6 @@ Daarnaast geldt: ontbreken de gewassen van vorig jaar, dan kan {{appName}} niet 
 Voor 2025 rekent {{appName}} met de regels van dat jaar. De belangrijkste verschillen met 2026:
 
 - Derogatie: de dierlijke-mestnorm was 170 kg N/ha zonder derogatie. Met derogatie was hij 200 kg N/ha, 190 kg N/ha in een NV-gebied, en 170 kg N/ha in of nabij Natura 2000, in een grondwaterbeschermingsgebied of in een derogatievrije zone. Of je bedrijf derogatie had, stel je in onder **Instellingen** → **Derogatie**.
-- Graslandkortingen: voor derogatiebedrijven golden de kortingen op grasland ook op klei en veen, niet alleen op zand en löss.
 - Renure: er was nog geen aparte Renure-norm.
 
 Hoe je de gebruiksruimte in {{appName}} bekijkt, lees je in [Gebruiksruimte](/manual/gebruiksruimte).
