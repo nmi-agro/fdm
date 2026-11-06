@@ -95,7 +95,10 @@ Follow the steps under "Tests" in `fdm-app/README.md` (an empty PostGIS database
 
 **In CI**
 
-The workflow `.github/workflows/manual-screenshots.yml` runs the capture on `development`, on demand and after every fdm-app release. When images changed, it opens or updates the pull request `docs(fdm-app): update the manual screenshots`, listing the added, changed and removed images. A maintainer reviews the images before merging.
+The workflow `.github/workflows/manual-screenshots.yml` runs the capture on a branch and, when images changed, opens or updates the pull request `docs(fdm-app): update the manual screenshots` into that same branch, listing the added, changed and removed images. A maintainer reviews the images before merging.
+
+- **Release and hotfix branches:** opening a release or hotfix pull request to `main` starts the capture on that branch, so the release ships with screenshots of its own version. Merge the screenshot pull request before running the Release workflow: that workflow adds the version commit, which must be the last commit on the branch.
+- **`development`:** start the workflow by hand from the Actions tab, for example after a large UI change.
 
 ### Frequently asked questions
 

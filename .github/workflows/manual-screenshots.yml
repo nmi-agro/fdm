@@ -3,8 +3,12 @@ name: Manual screenshots
 # Captures the screenshots of the user manual (fdm-app/app/content/manual) from the current app
 # with a synthetic demo farm, and opens or updates a pull request when images changed.
 #
-# Runs on demand and after every fdm-app release (started from release.yml). It never runs for
-# pull requests, so the API keys below are never exposed to forks.
+# Runs on demand on development, and on release and hotfix branches: when a release or hotfix
+# pull request to main is opened, release-comment.yml starts it on that branch. The screenshot
+# pull request then targets the branch it ran on, so a release ships with screenshots of its own
+# version. Merge it before running the Release workflow, which must add the last commit.
+#
+# It never runs for pull requests, so the API keys below are never exposed to forks.
 #
 # Needs these repository settings:
 # - secret NMI_API_KEY: for nutrient advice, BLN3 indicators and soil estimates;
@@ -17,14 +21,17 @@ on:
 permissions: {}
 
 concurrency:
-  group: manual-screenshots
+  group: manual-screenshots-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   capture:
     name: Capture
-    # The pull request targets development, so only capture from development.
-    if: github.ref == 'refs/heads/development'
+    # The pull request targets the branch the run started on.
+    if: >-
+      github.ref == 'refs/heads/development' ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      startsWith(github.ref, 'refs/heads/hotfix/')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -113,12 +120,18 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
+      # One screenshot branch per base branch, such as chore/manual-screenshots-release-0.40.0.
+      - name: Name the screenshot branch
+        id: branch
+        shell: bash
+        run: echo "name=chore/manual-screenshots-${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
       - name: Open or update the screenshot pull request
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.app-token.outputs.token }}
-          branch: chore/manual-screenshots
-          base: development
+          branch: ${{ steps.branch.outputs.name }}
+          base: ${{ github.ref_name }}
           add-paths: fdm-app/app/content/manual/screenshots/**
           commit-message: "docs(fdm-app): update the manual screenshots"
           title: "docs(fdm-app): update the manual screenshots"
