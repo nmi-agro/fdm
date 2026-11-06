@@ -28,6 +28,9 @@ export function SidebarOrganizationApps() {
   const omBalanceLink = params.slug
     ? `/organization/${params.slug}/${calendar}/balance/organic-matter`
     : undefined
+  const phosphateBalanceLink = params.slug
+    ? `/organization/${params.slug}/${calendar}/balance/phosphate`
+    : undefined
   const indicatorsLink = params.slug
     ? `/organization/${params.slug}/${calendar}/indicators`
     : undefined
@@ -114,6 +117,18 @@ export function SidebarOrganizationApps() {
                       >
                         <NavLink to={omBalanceLink}>
                           <span>Organische stof</span>
+                        </NavLink>
+                      </SidebarMenuSubButton>
+                    ) : null}
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    {phosphateBalanceLink ? (
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={location.pathname.includes(phosphateBalanceLink)}
+                      >
+                        <NavLink to={phosphateBalanceLink}>
+                          <span>Fosfaat</span>
                         </NavLink>
                       </SidebarMenuSubButton>
                     ) : null}

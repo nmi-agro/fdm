@@ -51,7 +51,18 @@ async function main() {
       schema: schema,
     })
     const nmiApiKey = process.env.NMI_API_KEY
+    if (!nmiApiKey) {
+      console.warn(
+        "NMI_API_KEY is not set: the phosphate contents of crops cannot be retrieved, the phosphate removal in the balance will be 0 ⚠️",
+      )
+    }
     await syncCatalogues(fdm, { nmiApiKey })
+    const [phosphate] = await client`
+      select count(*)::int as total, count(b_lu_p_harvestable)::int as with_phosphate
+      from "fdm"."cultivations_catalogue" where b_lu_source = 'brp'`
+    console.log(
+      `Cultivation catalogue: ${phosphate.with_phosphate} of ${phosphate.total} BRP crops have a phosphate content`,
+    )
     console.log("Sync completed ✅")
   } catch (error) {
     console.error("Error during migration/sync 🚨:", error)

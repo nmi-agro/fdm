@@ -4,9 +4,12 @@ import {
   calculateDose,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
+  calculatePhosphateBalance,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
+  collectInputForPhosphateBalance,
   getNutrientAdvice,
+  type PhosphateBalanceField,
   getSoilParameterEstimates,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -41,8 +44,14 @@ import type {
   FieldDashboardNormSummary,
   FieldDashboardNutrientAdviceSummary,
   FieldDashboardOrganicMatterBalanceSummary,
+  FieldDashboardPhosphateBalanceSummary,
 } from "~/components/blocks/field-dashboard/types"
 import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
+import {
+  getPhosphateTrendStatus,
+  getPhosphateYearsToThreshold,
+  NMI_ESTIMATE_SOURCE,
+} from "~/components/blocks/balance/phosphate-format"
 import {
   buildFieldDashboardRegistry,
   FIELD_DASHBOARD_SECTIONS,
@@ -61,7 +70,7 @@ import {
 } from "~/components/blocks/soil/download"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getIndicatorsForField } from "~/integrations/bln3.server"
-import { getNorms } from "~/integrations/calculator"
+import { addPhosphateCropHistory, getNorms } from "~/integrations/calculator"
 import { getMapStyle } from "~/integrations/map"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getFieldAggregationScore } from "~/lib/aggregations"
@@ -898,6 +907,51 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         reportContext: { b_id, b_id_farm, timeframe, userId: session.principal_id },
       })
 
+    const phosphateBalancePromise =
+      computeFieldBalanceResult<FieldDashboardPhosphateBalanceSummary>({
+        isBufferstrip: !!field.b_bufferstrip,
+        bufferstripMessage: "Bufferstroken hebben geen fosfaatbalans.",
+        collectInput: async () =>
+          addPhosphateCropHistory(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            await collectInputForPhosphateBalance(
+              fdm,
+              session.principal_id,
+              b_id_farm,
+              timeframe,
+              b_id,
+            ),
+          ),
+        calculate: (input) =>
+          calculatePhosphateBalance(fdm, input as Parameters<typeof calculatePhosphateBalance>[1]),
+        b_id,
+        missingParamsMessage:
+          "Voor dit perceel ontbreken bodemparameters die nodig zijn voor de fosfaatbalans.",
+        genericErrorMessage: "De fosfaatbalans kon niet berekend worden voor dit perceel.",
+        emptyMessage:
+          "Dit perceel was niet in gebruik in dit jaar, dus er is geen fosfaatbalans beschikbaar.",
+        mapResult: (fieldResult) => {
+          const balance = fieldResult.balance as PhosphateBalanceField
+          const psd = balance.projection?.psd ?? null
+          const estimated = balance.saturation.analysis_sources.includes(NMI_ESTIMATE_SOURCE)
+          return {
+            balance: balance.balance,
+            supply: balance.supply.total,
+            removal: balance.removal.total,
+            status: getPhosphateTrendStatus(balance),
+            psd: psd?.current.value ?? null,
+            threshold: psd?.threshold.value ?? null,
+            years: getPhosphateYearsToThreshold(balance),
+            psdSource: psd ? (estimated ? "schatting" : "meting") : null,
+            unit: "kg P₂O₅/ha",
+          }
+        },
+        reportTags: { page: "field-dashboard", scope: "loader", tile: "phosphate-balance" },
+        reportContext: { b_id, b_id_farm, timeframe, userId: session.principal_id },
+      })
+
     const dashboardData: FieldDashboardData = {
       b_id,
       b_id_farm,
@@ -968,6 +1022,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         fieldCultivationColors: fieldCultivationColorsPromise,
         nitrogenBalance: nitrogenBalancePromise,
         organicMatterBalance: organicMatterBalancePromise,
+        phosphateBalance: phosphateBalancePromise,
       },
     }
 

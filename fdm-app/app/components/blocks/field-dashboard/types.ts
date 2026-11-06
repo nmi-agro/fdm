@@ -130,6 +130,23 @@ export interface FieldDashboardOrganicMatterBalanceSummary {
   unit: string
 }
 
+export interface FieldDashboardPhosphateBalanceSummary {
+  balance: number
+  supply: number
+  removal: number
+  /** Whether the balance fits the PSD aim (same rule as the icons on the balance pages) */
+  status: "on_track" | "off_track" | "unknown"
+  /** Phosphorus saturation degree now (%), or `null` */
+  psd: number | null
+  /** Field-specific PSD threshold (%), or `null` */
+  threshold: number | null
+  /** Years until the threshold is crossed at this balance, as label and class, or `null` */
+  years: { label: string; value: string } | null
+  /** Whether the PSD comes from a laboratory measurement or an estimate */
+  psdSource: "meting" | "schatting" | null
+  unit: string
+}
+
 export interface FieldDashboardBlnAggregationSummary {
   id: string
   label: string
@@ -201,6 +218,7 @@ export interface FieldDashboardData {
     fieldCultivationColors: Promise<Record<string, string | null>>
     nitrogenBalance: Promise<AsyncTileResult<FieldDashboardNitrogenBalanceSummary>>
     organicMatterBalance: Promise<AsyncTileResult<FieldDashboardOrganicMatterBalanceSummary>>
+    phosphateBalance: Promise<AsyncTileResult<FieldDashboardPhosphateBalanceSummary>>
   }
 }
 

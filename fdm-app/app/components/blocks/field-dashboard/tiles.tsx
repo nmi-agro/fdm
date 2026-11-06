@@ -707,6 +707,87 @@ export function FieldDashboardOrganicMatterBalanceTile({
   )
 }
 
+/** Dutch label and colours of the phosphate trend status (same rule as the balance pages). */
+const PHOSPHATE_STATUS_BADGE = {
+  on_track: {
+    label: "Op koers",
+    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  },
+  off_track: {
+    label: "Niet op koers",
+    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  },
+  unknown: {
+    label: "Verzadiging onbekend",
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  },
+} as const
+
+/**
+ * Phosphate balance tile: the saldo, whether it fits the PSD aim, the PSD now and its threshold, the
+ * years until the threshold is crossed (as a class) and whether the PSD is measured or estimated.
+ */
+export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDashboardTileProps) {
+  return (
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
+      <Await
+        resolve={dashboard.asyncInsights.phosphateBalance}
+        errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
+      >
+        {(result) =>
+          renderAsyncState(tile.title, tile.detailHref, result, (data) => {
+            const badge = PHOSPHATE_STATUS_BADGE[data.status]
+            return (
+              <FieldDashboardTile
+                title={tile.title}
+                detailHref={tile.detailHref}
+                statusBadge={
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
+                      badge.className,
+                    )}
+                  >
+                    {data.status === "on_track" ? <CheckCircle2 className="size-3.5" /> : null}
+                    {badge.label}
+                  </span>
+                }
+              >
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-3xl font-semibold">{Math.round(data.balance)}</p>
+                    <p className="text-muted-foreground text-sm">Saldo · {data.unit}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-muted-foreground text-xs uppercase">Verzadiging (PSD)</p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {data.psd === null ? "–" : `${Math.round(data.psd)} %`}
+                        {data.threshold === null ? "" : ` / grens ${Math.round(data.threshold)} %`}
+                      </p>
+                      {data.psdSource ? (
+                        <p className="text-muted-foreground text-xs">{data.psdSource}</p>
+                      ) : null}
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-muted-foreground text-xs uppercase">
+                        {data.years?.label ?? "Grens"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">{data.years?.value ?? "–"}</p>
+                    </div>
+                  </div>
+                </div>
+              </FieldDashboardTile>
+            )
+          })
+        }
+      </Await>
+    </Suspense>
+  )
+}
+
 export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashboardTileProps) {
   if (dashboard.soil.parameterCards.length === 0) {
     return (

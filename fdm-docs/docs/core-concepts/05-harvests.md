@@ -31,6 +31,8 @@ While storing crop-specific parameters is essential for data fidelity, many agro
 - `b_lu_yield`: The dry matter yield in kilograms per hectare (kg DM/ha).
 - `b_lu_n_harvestable`: The nitrogen content of the harvested product in grams of nitrogen per kilogram of dry matter (g N/kg DM).
 
+The phosphate content of the harvested product (`b_lu_p_harvestable`, g P₂O₅ / kg DM) can also be stored in `harvestable_analyses`. It is not derived through the harvest categories below and is not asked in the harvest form: when it is not stored for a harvest, calculations such as the [phosphate balance](../insights/balance/03-phosphate-balance.md) use the default of the cultivation catalogue, which is retrieved from the NMI API (see [Cultivations](./04-cultivations.md)).
+
 To bridge the gap between the various measured parameters and these standardized values, FDM uses a system of **Harvest Categories** (`b_lu_harvestcat`). Each cultivation in the FDM catalogue is assigned to a harvest category. This category determines which parameters are expected at harvest and, crucially, defines the formulas used to calculate the standardized `b_lu_yield` and `b_lu_n_harvestable`.
 
 ### Example of Harvest Categories and Formulas
