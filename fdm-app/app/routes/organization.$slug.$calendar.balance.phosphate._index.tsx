@@ -177,11 +177,20 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
               }
               return { farm, totalArea: farm.b_area_farm, phosphateBalanceResult }
             } catch (error) {
+              // Report the details; the deferred payload only carries a generic message with the code
+              const errorId = reportError(
+                error,
+                {
+                  page: "organization/{slug}/{calendar}/balance/phosphate/_index",
+                  scope: "loader",
+                },
+                { b_id_farm: farm.b_id_farm, timeframe, userId: session.principal_id },
+              )
               return {
                 farm,
                 totalArea: farm.b_area_farm,
                 phosphateBalanceResult: failedFarmResult(
-                  error instanceof Error ? error.message : String(error),
+                  `De fosfaatbalans van dit bedrijf kon niet worden berekend (foutcode ${errorId}).`,
                 ),
               }
             }

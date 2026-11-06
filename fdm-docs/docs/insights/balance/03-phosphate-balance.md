@@ -34,7 +34,7 @@ The calculations are performed for a user-defined **Time Frame**, normally one c
 
 ## 2. Required Input Data
 
-- **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips get a balance of zero and are left out of the farm average.
+- **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips are not calculated: their field result has `exclusion` instead of a balance, and they are left out of the farm average (Section 4).
 - **Cultivation Data (per field):**
   - Crop type (`b_lu_catalogue`) and crop rotation group (`b_lu_croprotation`). A field with a cultivation in the `grass` rotation group is treated as grassland (sampling depth 0–10 cm), otherwise as arable land (0–25 cm).
   - Crop residue management (`m_cropresidue`): `false` means the residues are removed from the field.
@@ -208,14 +208,14 @@ The time until the PSD crosses the field threshold (back below it, or above it) 
 | In the zone                               | `onderhouden` | the bound crossed first, if any |
 | PSD above the threshold and P-AL below 35 | `onderhouden` | `psd`, with `conflict`          |
 
-When the PSD is above the threshold while P-AL is not high (≤ 45), the environment comes first and `conflict` is set: reducing is needed for the environment, not for the yield. `p_al_min_years` gives the years until P-AL reaches 35 at the current balance. When the PSD is above the threshold and P-AL is also below 35, no single direction is right; the field is flagged for an advisor.
+When the PSD is above the threshold while P-AL is not high (≤ 45), the environment comes first and `conflict` is set: reducing is needed for the environment, not for the yield. `p_al_min_years` gives the years until P-AL reaches 35 at the current balance. When the PSD is above the threshold and P-AL is also below 35, no single direction is right and the zone cannot be reached. The app then does not choose a goal: it shows what the balance does to both indicators (PSD towards or away from the threshold, P-AL towards or away from 35) and the effect of a lower or a higher balance.
 
 **Close enough.** Exact targets are not needed. Within 2 PSD percentage points of the threshold, or 3 P-AL units of a P-AL bound, counts as reached. The direction is `stable` when the effective balance (Section 3.4.3) is within ±1 kg P₂O₅ / ha / year.
 
 **Verdict.**
 
 - Outside the zone: `good` when the zone (with its margin) is reached within 10 years, `attention` when the direction is right but slower, `adjust` when the direction is wrong or there is no change.
-- Inside the zone: `good` when the status stays in the zone for more than 20 years (so a deficit on a rich soil is good), `attention` when it leaves the zone within 5–20 years, `adjust` within 5 years.
+- Inside the zone: `good`, unless the PSD crosses the field threshold: `attention` when that happens within 5–20 years, `adjust` within 5 years. A P-AL that declines towards 35 keeps the verdict `good`, because P-AL 35–45 is class "Goed" of the Handboek Bodem en Bemesting; the years until P-AL falls below 35 are still shown.
 - `unknown` without P-AL and PSD.
 
 `years` (with a range from the P-AL buffer) gives the time to reach the zone, or to leave it when inside. `indicative` is set when the PSD is not usable or less reliable for the soil type, the threshold is the general 25%, or the soil data are NMI estimates only.
@@ -238,7 +238,7 @@ The farm output (`PhosphateBalance`) provides:
 
 - `balance`, `supply`, `removal`, `leaching` and `long_term_balance` (kg P₂O₅ / ha, area-weighted), and `terms` with the supply per fertilizer type, mineralisation and deposition, and the removal by harvests and residues.
 - `status_area`: the area (ha) and number of fields per verdict of `assessPhosphateStatus`, without buffer strips.
-- `fields`: per field the ID, area, buffer strip flag and either the `balance` (`PhosphateBalanceField`) or an `errorMessage`.
+- `fields`: per field the ID, area, buffer strip flag and either the `balance` (`PhosphateBalanceField`), an `exclusion` (buffer strip, nature or landscape element; no balance) or an `errorMessage`.
 - `hasErrors`, `fieldErrorMessages`, and `errorMessage` when no balance could be calculated at all (e.g. `No fields in input`).
 
 The field output (`PhosphateBalanceField`) contains:

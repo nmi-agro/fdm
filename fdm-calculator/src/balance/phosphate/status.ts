@@ -73,14 +73,16 @@ function yearsRange(track: Track, to: number): ValueWithRange | null {
  *
  * - Above the zone (PSD above the threshold): `afbouwen`. The environment comes first, also when
  *   P-AL is not high (`conflict`). When P-AL is also below 35 the aim is `onderhouden`: neither
- *   building up nor mining, to be judged by an advisor.
+ *   building up nor mining; the app shows the effect of the balance on both.
  * - Below the zone (P-AL < 35): `opbouwen`.
  * - In the zone: `onderhouden`; any direction is fine as long as the status stays in the zone.
  *
  * Verdict: outside the zone `good` when the zone is reached within `reach_horizon` years, `attention`
  * when the direction is right but slower, `adjust` when the direction is wrong or there is no change.
- * Inside the zone `good` when it stays for more than `stay_horizon` years, `attention` when it leaves
- * it within that horizon, `adjust` when it leaves it within `leave_soon` years.
+ * Inside the zone `good`, unless the PSD crosses the threshold: then `attention` when that happens
+ * within `stay_horizon` years and `adjust` within `leave_soon` years. A P-AL that declines towards
+ * the lower bound keeps the verdict `good` (P-AL in the zone is "Goed" for the crop); its years are
+ * still reported.
  *
  * DRAFT for discussion: rules and parameters in `PHOSPHATE_STATUS_RULES`.
  *
@@ -239,6 +241,12 @@ export function assessPhosphateStatus(balance: PhosphateBalanceField): Phosphate
   status.binding = first.candidate.track.indicator
   status.years = first.years
   status.years_class = classifyYears(first.years.value)
+  // P-AL in the zone is good for the crop (class "Goed" of the Handboek Bodem en Bemesting): the
+  // years until it leaves the zone are reported, but only the PSD can lower the verdict here
+  if (first.candidate.track.indicator === "p_al") {
+    status.verdict = "good"
+    return status
+  }
   status.verdict =
     first.years.value > R.stay_horizon
       ? "good"

@@ -62,15 +62,15 @@ export const PHOSPHATE_VERDICT_TEXT: Record<
 > = {
   good: {
     label: "Goed",
-    description: `In de streefzone en dat blijft zo, of de zone wordt binnen ${PHOSPHATE_STATUS_RULES.reach_horizon} jaar bereikt`,
+    description: `In de streefzone (P-AL ${PHOSPHATE_STATUS_RULES.p_al_min}–${PHOSPHATE_STATUS_RULES.p_al_high} is goed) zonder dat de PSD binnen ${PHOSPHATE_STATUS_RULES.stay_horizon} jaar boven de milieugrens komt, of de zone wordt binnen ${PHOSPHATE_STATUS_RULES.reach_horizon} jaar bereikt`,
   },
   attention: {
     label: "Aandacht",
-    description: `Goede richting maar traag (> ${PHOSPHATE_STATUS_RULES.reach_horizon} jaar), of binnen ${PHOSPHATE_STATUS_RULES.stay_horizon} jaar uit de streefzone`,
+    description: `Goede richting maar traag (> ${PHOSPHATE_STATUS_RULES.reach_horizon} jaar), of de PSD komt binnen ${PHOSPHATE_STATUS_RULES.stay_horizon} jaar boven de milieugrens`,
   },
   adjust: {
     label: "Bijsturen",
-    description: `Verkeerde richting, of binnen ${PHOSPHATE_STATUS_RULES.leave_soon} jaar uit de streefzone`,
+    description: `Verkeerde richting, of de PSD komt binnen ${PHOSPHATE_STATUS_RULES.leave_soon} jaar boven de milieugrens`,
   },
   unknown: {
     label: "Onbekend",
@@ -93,6 +93,7 @@ export function formatPhosphateAim(status: PhosphateStatus): string {
   if (!status.aim) return "–"
   const aim = { opbouwen: "Opbouwen", onderhouden: "Onderhouden", afbouwen: "Afbouwen" }[status.aim]
   if (status.aim === "onderhouden" && !status.conflict) return aim
+  if (status.conflict) return "Milieu (PSD) en opbrengst (P-AL) vragen een andere richting"
   if (status.binding === "psd") return `${aim} voor het milieu (PSD)`
   if (status.binding === "p_al") return `${aim} voor de opbrengst (P-AL)`
   return aim
@@ -132,9 +133,22 @@ export function describePhosphateDirection(status: PhosphateStatus): PhosphateDi
     return { verb, meaning: "van het doel af", tone: "away" }
   }
   if (status.conflict) {
-    return status.direction === "up"
-      ? { verb, meaning: "PSD verder boven de milieugrens", tone: "away" }
-      : { verb, meaning: "", tone: "neutral" }
+    // No single goal: name the effect on both indicators
+    if (status.direction === "up") {
+      return {
+        verb,
+        meaning: "P-AL naar de ondergrens, PSD verder boven de milieugrens",
+        tone: "neutral",
+      }
+    }
+    if (status.direction === "down") {
+      return {
+        verb,
+        meaning: "PSD naar de milieugrens, P-AL verder onder de ondergrens",
+        tone: "neutral",
+      }
+    }
+    return { verb, meaning: "PSD en P-AL blijven ongeveer gelijk", tone: "neutral" }
   }
   if (status.verdict === "good")
     return { verb, meaning: "blijft in de streefzone", tone: "neutral" }
@@ -143,6 +157,52 @@ export function describePhosphateDirection(status: PhosphateStatus): PhosphateDi
     meaning: status.binding === "psd" ? "richting de milieugrens" : "richting de ondergrens",
     tone: "away",
   }
+}
+
+/**
+ * Effect of the current balance on both indicators of a field in conflict (PSD above the
+ * environmental limit, P-AL below the lower bound), in Dutch, e.g. "PSD onder 15 % over > 20 jaar".
+ *
+ * @param balance - The phosphate balance of the field.
+ * @returns The effect on the PSD and on P-AL (`null` when not known).
+ */
+export function describeConflictEffects(balance: PhosphateBalanceField): {
+  psd: string | null
+  pAl: string | null
+} {
+  const psd = balance.projection?.psd ?? null
+  const pAl = balance.projection?.p_al ?? null
+  const threshold = psd?.threshold.value ?? null
+  let psdText: string | null = null
+  if (psd && threshold !== null) {
+    psdText =
+      psd.delta_per_year < 0
+        ? `PSD onder ${formatNumberNl(threshold)} % over ${formatYearsClass(psd.years_class)}`
+        : psd.delta_per_year > 0
+          ? `PSD stijgt verder boven ${formatNumberNl(threshold)} %`
+          : `PSD blijft ${formatNumberNl(psd.current.value)} %`
+  }
+  let pAlText: string | null = null
+  if (pAl) {
+    const low = PHOSPHATE_STATUS_RULES.p_al_min
+    const d = pAl.delta_per_year
+    if (d.value > 0) {
+      const years = (delta: number) =>
+        delta > 0 ? (low - pAl.current) / delta : Number.POSITIVE_INFINITY
+      const band = formatYearsBand({
+        value: years(d.value),
+        min: Math.min(years(d.min), years(d.max)),
+        max: Math.max(years(d.min), years(d.max)),
+      })
+      pAlText = `P-AL ${low} bereikt over ${band ?? formatYearsClass("gt_20")}`
+    } else {
+      pAlText =
+        d.value < 0
+          ? `P-AL daalt verder onder ${low}`
+          : `P-AL blijft ${formatNumberNl(pAl.current)}`
+    }
+  }
+  return { psd: psdText, pAl: pAlText }
 }
 
 /**
@@ -489,7 +549,8 @@ export function getPhosphateAdvice(
   } else if (status.aim === "opbouwen") {
     goal = `De fosfaatvoorraad opbouwen naar P-AL ${R.p_al_min} of hoger, voor de opbrengst.`
   } else if (status.conflict) {
-    goal = "Milieu en opbrengst vragen hier iets anders; dit perceel vraagt maatwerk."
+    goal =
+      "Milieu en opbrengst vragen hier een andere richting. Hieronder staat wat de balans met beide doet."
   } else {
     goal = "De fosfaatvoorraad in de streefzone houden."
   }
@@ -516,8 +577,8 @@ export function getPhosphateAdvice(
   if (pAl !== null) {
     if (pAl < R.p_al_min) {
       agronomic = `Onder ${R.p_al_min} is er te weinig fosfaat voor een goede opbrengst; opbouwen is gunstig.`
-    } else if (inside && status.binding === "p_al" && status.verdict !== "good") {
-      agronomic = `Op peil, maar bij de huidige balans daalt P-AL over ${years} onder ${R.p_al_min}.`
+    } else if (inside && status.binding === "p_al" && status.direction === "down" && status.years) {
+      agronomic = `Goed, maar bij de huidige balans daalt P-AL over ${years} onder ${R.p_al_min}.`
     } else if (status.aim === "afbouwen") {
       const floor = formatYearsBand(status.p_al_min_years)
       agronomic = `Op peil: afbouwen kost geen opbrengst zolang P-AL boven ${R.p_al_min} blijft${floor ? ` (bij de huidige balans nog ${floor})` : ""}.`
@@ -532,16 +593,22 @@ export function getPhosphateAdvice(
   if (status.aim === "onderhouden" && status.conflict) {
     return {
       ...base,
+      // The effects of the balance on both indicators, without choosing between them
       options: [
         {
           kind: "fertilizer",
-          title: "Aanvoer rond afvoer plus vastlegging",
-          detail: "Zo blijft de voorraad ongeveer gelijk.",
+          title: "Lagere balans",
+          detail: `De PSD daalt sneller naar de milieugrens; P-AL daalt verder onder ${R.p_al_min}, wat opbrengst kan kosten.`,
         },
         {
-          kind: "advisor",
-          title: "Bespreken met een adviseur",
-          detail: "Opbouwen belast het milieu en afbouwen kan opbrengst kosten.",
+          kind: "fertilizer",
+          title: "Hogere balans",
+          detail: `P-AL stijgt naar ${R.p_al_min} voor de opbrengst; de PSD stijgt verder boven de milieugrens.`,
+        },
+        {
+          kind: "keep",
+          title: "Aanvoer rond afvoer plus vastlegging",
+          detail: "PSD en P-AL blijven ongeveer gelijk.",
         },
       ],
       timeWithAdvice: null,
@@ -550,7 +617,9 @@ export function getPhosphateAdvice(
 
   if (status.verdict === "good") {
     let detail: string
-    if (inside) {
+    if (inside && status.binding === "p_al" && status.direction === "down" && status.years) {
+      detail = `P-AL ${R.p_al_min}–${R.p_al_high} is goed volgens het Handboek Bodem en Bemesting. Bij de huidige balans daalt P-AL over ${years} onder ${R.p_al_min}; houd de voorraad dan in de gaten.`
+    } else if (inside) {
       detail =
         status.direction === "down"
           ? `Een negatieve balans is hier geen probleem; de voorraad blijft langer dan ${R.stay_horizon} jaar in de streefzone.`

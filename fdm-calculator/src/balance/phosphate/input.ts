@@ -161,7 +161,7 @@ export async function collectInputForPhosphateBalance(
   const historyYears = options.historyYears ?? PHOSPHATE_HISTORY_YEARS
   return await fdm.transaction(async (tx: FdmType) => {
     const [fields, history, cultivationDetails, fertilizerDetails] = await Promise.all([
-      collectFieldInputs(tx, principal_id, b_id_farm, timeframe, b_id),
+      collectFieldInputs(tx, principal_id, b_id_farm, timeFrame, b_id),
       collectHistory(tx, principal_id, b_id_farm, timeFrame, historyYears, b_id),
       getCultivationsFromCatalogue(tx, principal_id, b_id_farm),
       getFertilizersFromCatalogue(tx, principal_id, b_id_farm),
@@ -208,7 +208,7 @@ export async function collectInputForPhosphateBalanceForFarms(
     const settled = await Promise.allSettled(
       uniqueFarmIds.map(async (b_id_farm) => {
         const [fields, history] = await Promise.all([
-          collectFieldInputs(tx, principal_id, b_id_farm, timeframe),
+          collectFieldInputs(tx, principal_id, b_id_farm, timeFrame),
           collectHistory(tx, principal_id, b_id_farm, timeFrame, historyYears),
         ])
         const allFields = [...fields, ...history.flatMap((year) => year.fields)]

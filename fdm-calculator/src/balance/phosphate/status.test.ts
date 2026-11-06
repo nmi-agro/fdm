@@ -157,13 +157,25 @@ describe("assessPhosphateStatus", () => {
     expect(status.verdict).toBe("good")
   })
 
-  it("should warn in the zone when P-AL leaves it within the stay horizon", () => {
+  it("should keep P-AL in the zone good while it declines towards 35, and report the years", () => {
+    // P-AL 35–45 is class "Goed" of the Handboek Bodem en Bemesting
     const soil = [{ ...SAND, a_p_ox: 3, a_p_al: 40 }]
     const status = assessPhosphateStatus(withThreshold(makeBalance({ balance: -40, soil }), 30))
     expect(status.aim).toBe("onderhouden")
     expect(status.binding).toBe("p_al")
-    expect(status.verdict).not.toBe("good")
-    expect(status.balance_needed?.limit).toBe("min")
+    expect(status.verdict).toBe("good")
+    expect(status.years?.value).toBeLessThan(R.stay_horizon)
+    expect(status.balance_needed).toBeNull()
+  })
+
+  it("should still need attention in the zone when the PSD rises above the threshold within the stay horizon", () => {
+    // PSD 9.2 % rises by about 0.5 percentage point per year towards 12 % (+2 margin): about 9 years
+    const soil = [{ ...SAND, a_p_ox: 3, a_p_al: 40 }]
+    const status = assessPhosphateStatus(withThreshold(makeBalance({ balance: 60, soil }), 12))
+    expect(status.aim).toBe("onderhouden")
+    expect(status.binding).toBe("psd")
+    expect(status.verdict).toBe("attention")
+    expect(status.balance_needed?.limit).toBe("max")
   })
 
   it("should flag a PSD above the threshold together with a low P-AL for an advisor", () => {

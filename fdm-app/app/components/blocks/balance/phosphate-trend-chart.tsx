@@ -43,7 +43,7 @@ export function getTrendChartStart(measurements: PhosphateMeasurement[]): number
 /** A round upper limit for the y axis and its ticks (steps of 5, 10 or 20). */
 function niceAxis(maxValue: number, minValue: number): { max: number; ticks: number[] } {
   const span = Math.max(maxValue - minValue, 1)
-  const step = span <= 25 ? 5 : span <= 60 ? 10 : 20
+  const step = span <= 25 ? 5 : span <= 70 ? 10 : 20
   const top = Math.ceil(maxValue / step) * step
   const ticks: number[] = []
   for (let tick = minValue; tick <= top; tick += step) ticks.push(tick)
@@ -82,6 +82,7 @@ function describeMeasurement(point: PhosphateMeasurement, unit: string): string 
  * @param unit - Unit of the values in labels (e.g. " %").
  * @param min - Lower limit of the indicator (values are clamped).
  * @param max - Upper limit of the indicator (values are clamped).
+ * @param fixedAxis - Optional fixed y axis (range and ticks), used when all values fit in it.
  * @param measurements - Optional soil analyses in the past, as years before "nu" (negative) and
  *   value; shown as points with a tooltip (sampling date, laboratory, value) on hover and focus.
  * @param xMin - Start of the time axis (years before "nu"); pass the same value to charts shown side
@@ -99,6 +100,7 @@ export function PhosphateTrendChart({
   unit,
   min = 0,
   max = Number.POSITIVE_INFINITY,
+  fixedAxis,
   measurements = [],
   xMin,
   className = "h-56",
@@ -113,6 +115,7 @@ export function PhosphateTrendChart({
   unit: string
   min?: number
   max?: number
+  fixedAxis?: { min: number; max: number; ticks: number[] }
   measurements?: PhosphateMeasurement[]
   xMin?: number
   className?: string
@@ -149,8 +152,16 @@ export function PhosphateTrendChart({
     20,
   ]
   // Start at the lower limit (0): a zoomed axis makes a slow change look steep
-  const yMin = Number.isFinite(min) ? min : Math.floor(Math.min(...values))
-  const y = niceAxis(Math.min(max, Math.max(...values) * 1.1), yMin)
+  // A fixed axis (e.g. the P-AL classes 10–65) gives a reference band more room; values outside it
+  // fall back to an axis that starts at the lower limit
+  const fits =
+    fixedAxis !== undefined &&
+    Math.min(...values) >= fixedAxis.min &&
+    Math.max(...values) <= fixedAxis.max
+  const yMin = fits ? fixedAxis.min : Number.isFinite(min) ? min : Math.floor(Math.min(...values))
+  const y = fits
+    ? { max: fixedAxis.max, ticks: fixedAxis.ticks }
+    : niceAxis(Math.min(max, Math.max(...values) * 1.1), yMin)
 
   const chartConfig = {
     value: { label: "Verloop bij deze balans", color: "var(--chart-2)" },

@@ -882,6 +882,11 @@ describe("Measures Catalogue Sync", () => {
         .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
       expect(repaired[0]).toEqual({ b_lu_p_harvestable: 9.8, b_lu_p_residue: 0 })
     } finally {
+      // Restore the shared catalogue row so the phosphate contents do not leak into other tests
+      await fdm
+        .update(schema.cultivationsCatalogue)
+        .set({ b_lu_p_harvestable: null, b_lu_p_residue: null })
+        .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
       vi.unstubAllGlobals()
     }
   })
