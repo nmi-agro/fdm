@@ -84,7 +84,7 @@ Playwright (`playwright.config.ts`, code in `e2e/`) runs the app as a production
 
 Shared code:
 
-- `e2e/seed` creates a synthetic user and farm through `fdm-core` (variant `minimal` or `demo`). It refuses to run when the database already contains farms.
+- `e2e/seed` creates a synthetic user and farm through `fdm-core` (variant `minimal` or `demo`). It refuses to run when the database already contains farms. `e2e/seed/organization.ts` adds an organization with access to that farm and a farm group, so the smoke suite also covers the organization pages.
 - `e2e/support/auth.ts` signs in through the normal magic-link flow and reads the one-time code from the database, so the app needs no test-only login mode.
 - `e2e/support/app.ts` blocks external requests and collects errors on a page.
 

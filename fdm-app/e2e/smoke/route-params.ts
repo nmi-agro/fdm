@@ -35,17 +35,6 @@ export const SKIP: Record<string, string> = {
   "/farm/:b_id_farm/:calendar/field/:b_id/bcs/:a_id": "needs a soil condition assessment",
   "/farm/:b_id_farm/:calendar/field/:b_id/bcs/:a_id/edit": "needs a soil condition assessment",
   "/farm/:b_id_farm/bemestingsplan/:p_id_plan": "needs a fertilizer plan",
-  "/organization/:slug": "needs an organization",
-  "/organization/:slug/:calendar/atlas/indicators": "needs an organization",
-  "/organization/:slug/:calendar/balance/nitrogen": "needs an organization",
-  "/organization/:slug/:calendar/balance/organic-matter": "needs an organization",
-  "/organization/:slug/:calendar/farms": "needs an organization",
-  "/organization/:slug/:calendar/groups": "needs an organization",
-  "/organization/:slug/:calendar/groups/:b_id_group": "needs an organization with a farm group",
-  "/organization/:slug/:calendar/indicators": "needs an organization",
-  "/organization/:slug/:calendar/measures": "needs an organization",
-  "/organization/:slug/members": "needs an organization",
-  "/organization/:slug/settings": "needs an organization",
   "/organization/invitations/:invitation_id/respond": "needs an organization invitation",
   "/support/settings/agents/:agent_id": "needs a helpdesk agent",
   "/support/ticket/:ticket_id": "needs a helpdesk ticket",
@@ -155,7 +144,10 @@ function paramValue(name: string, pattern: string, farm: SmokeFarm): string | un
     case "slug":
       if (pattern === "/manual/:slug") return "aan-de-slag"
       if (pattern === "/manual/background/:slug") return "stikstofbalans"
+      if (pattern.startsWith("/organization/:slug")) return farm.organization.slug
       return undefined
+    case "b_id_group":
+      return farm.organization.group
     default:
       return undefined
   }
