@@ -5,6 +5,7 @@ import {
   getSeasonPlanProgress,
   resolveSeasonPlanTarget,
 } from "@nmi-agro/fdm-core"
+import { useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -26,6 +27,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { parsePlanYear, summarizeSeasonPlanProgress } from "~/lib/season-plan.server"
+import { useCalendarStore } from "~/store/calendar"
 
 export const meta: MetaFunction = () => {
   return [
@@ -89,6 +91,13 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 /** Layout of the season planning wizard: step navigation next to the current step. */
 export default function PlanNextLayout() {
   const loaderData = useLoaderData<typeof loader>()
+
+  // The wizard uses `year` instead of `calendar` in the URL, so keep the calendar of the sidebar
+  // (and of the pages the wizard links to, such as the bemestingsplan) on the planned year
+  const setCalendar = useCalendarStore((state) => state.setCalendar)
+  useEffect(() => {
+    setCalendar(String(loaderData.year))
+  }, [loaderData.year, setCalendar])
 
   return (
     <SidebarInset>

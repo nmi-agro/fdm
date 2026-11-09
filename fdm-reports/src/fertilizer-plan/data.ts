@@ -3,8 +3,8 @@ import {
   aggregateNutrientAdviceToFarmLevel,
   aggregateNormsToFarmLevel,
   calculateDose,
-  createFunctionsForFertilizerApplicationFilling,
-  createFunctionsForNorms,
+  createFunctionsForFertilizerApplicationFillingForYear,
+  createFunctionsForNormsForYear,
   fdmCalculator,
   type GebruiksnormResult,
   getMainCultivation,
@@ -12,6 +12,8 @@ import {
   getOrganicMatterBalanceField,
   getYearTimeframe,
   NormFilling,
+  type NormsYearResolution,
+  resolveNormsYear,
 } from "@nmi-agro/fdm-calculator"
 import {
   type FdmType,
@@ -66,8 +68,17 @@ function formatDate(date: Date | string | number | undefined): string {
 }
 
 const DEROGATION_GRANTED_NEEDED_FOR_YEARS = [2025]
-function isNormYear(year: string): year is "2025" | "2026" {
-  return year === "2025" || year === "2026"
+/**
+ * Returns the norm year that applies to a plan year, or `undefined` when there are no norms for
+ * it (years before the first norm year). A year without own norms, such as a year planned ahead,
+ * uses the newest norms provisionally.
+ */
+function getNormsYear(year: number): NormsYearResolution | undefined {
+  try {
+    return resolveNormsYear("NL", year)
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -227,12 +238,11 @@ export async function computeFertilizerPlanData(
 
           // Norms
           let normsResult: { value: FieldNormValues; filling: FieldNormFillings } | undefined
-          const yearStr = String(year)
-          if (isNormYear(yearStr)) {
-            const normFunctions = createFunctionsForNorms("NL", yearStr)
-            const normFillingFunctions = createFunctionsForFertilizerApplicationFilling(
+          if (getNormsYear(year)) {
+            const normFunctions = createFunctionsForNormsForYear("NL", year)
+            const normFillingFunctions = createFunctionsForFertilizerApplicationFillingForYear(
               "NL",
-              yearStr,
+              year,
             )
             const normInput = {
               farm: {
@@ -632,6 +642,7 @@ export async function computeFertilizerPlanData(
     degradation: totalArea > 0 ? totalOmBalance.degradation / totalArea : 0,
   }
 
+  const normsResolution = getNormsYear(year)
   const data = {
     generatedAt: new Date().toISOString(),
     config: options.branding,
@@ -640,6 +651,9 @@ export async function computeFertilizerPlanData(
       kvk: farm.b_businessid_farm || undefined,
     },
     year: String(year),
+    normsProvisional: normsResolution?.provisional
+      ? { normsYear: normsResolution.normsYear }
+      : undefined,
     totalArea: totalArea,
     productiveArea: productiveArea,
     norms: totalNormsKg,

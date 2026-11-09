@@ -257,6 +257,14 @@ export async function copyFertilizerApplications(
         throw new Error("Source and target field must belong to the same farm")
       }
 
+      // Lock the target field, so concurrent copies to it run one after the other and the
+      // duplicate check below sees the applications of a copy that finished first
+      await tx
+        .select({ b_id: schema.fields.b_id })
+        .from(schema.fields)
+        .where(eq(schema.fields.b_id, b_id_target))
+        .for("update")
+
       const source = getYearTimeframe(sourceYear)
       const target = getYearTimeframe(targetYear)
       const sourceApplications = await tx

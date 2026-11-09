@@ -274,8 +274,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
       })
 
+      // Return to the season planning wizard when Gerrit was opened from it
+      const returnTo = new URL(request.url).searchParams.get("returnTo")
+      const wizardPath =
+        returnTo?.startsWith(`/farm/${b_id_farm}/plan-next/`) &&
+        !returnTo.includes("//") &&
+        !returnTo.includes("\\")
+          ? returnTo
+          : undefined
       return redirectWithSuccess(
-        `/farm/${b_id_farm}/${calendar}/rotation`,
+        wizardPath ?? `/farm/${b_id_farm}/${calendar}/rotation`,
         "Gerrit's bemestingsplan is succesvol toegepast!",
       )
     } catch (e: unknown) {

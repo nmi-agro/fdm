@@ -4,8 +4,8 @@ import {
   type AggregatedNormsToFarmLevel,
   aggregateNormFillingsToFarmLevel,
   aggregateNormsToFarmLevel,
-  createFunctionsForFertilizerApplicationFilling,
-  createFunctionsForNorms,
+  createFunctionsForFertilizerApplicationFillingForYear,
+  createFunctionsForNormsForYear,
   type GebruiksnormResult,
   type NormFilling,
   NormNotApplicableError,
@@ -14,6 +14,12 @@ import type { FieldNormFillings, FieldNormValues } from "~/integrations/calculat
 
 /** The calendar years for which legal application norms (gebruiksnormen) are available. */
 export type NormsCalendar = "2025" | "2026"
+
+/**
+ * A calendar year for which norms can be calculated: a year with its own norms, or a later year
+ * (planned ahead) that uses the newest norms provisionally.
+ */
+export type NormsYearCalendar = NormsCalendar | `${number}`
 
 /** Number of fields whose norms are calculated at the same time. */
 const FARM_NORMS_CONCURRENCY = 8
@@ -61,7 +67,7 @@ type FillingInput = {
  * with {@link collectFarmNormsContext} and reuse it for the current state and for previews.
  */
 export interface FarmNormsContext {
-  calendar: NormsCalendar
+  calendar: NormsYearCalendar
   fields: Pick<Field, "b_id" | "b_name" | "b_area">[]
   /** Norm values per field. A field is missing when its norms could not be calculated. */
   normValues: Map<string, FieldNormValues>
@@ -101,10 +107,10 @@ export async function collectFarmNormsContext({
   fdm: FdmType
   principal_id: PrincipalId
   b_id_farm: string
-  calendar: NormsCalendar
+  calendar: NormsYearCalendar
   fields: Pick<Field, "b_id" | "b_name" | "b_area">[]
 }): Promise<FarmNormsContext> {
-  const normFunctions = createFunctionsForNorms("NL", calendar)
+  const normFunctions = createFunctionsForNormsForYear("NL", Number(calendar))
   const normInputs = (await normFunctions.collectInputForNormsForFarm(
     fdm,
     principal_id,
@@ -146,7 +152,10 @@ export async function collectFarmNormsContext({
     phosphateNormByField.set(b_id, value.phosphate.normValue)
   }
 
-  const fillingFunctions = createFunctionsForFertilizerApplicationFilling("NL", calendar)
+  const fillingFunctions = createFunctionsForFertilizerApplicationFillingForYear(
+    "NL",
+    Number(calendar),
+  )
   const fillingInputs = (await fillingFunctions.collectInputForFertilizerApplicationFillingForFarm(
     fdm,
     principal_id,
@@ -160,10 +169,10 @@ export async function collectFarmNormsContext({
 /** Calculates the fillings of a single field with the cached calculator functions. */
 async function calculateFieldFillings(
   fdm: FdmType,
-  calendar: NormsCalendar,
+  calendar: NormsYearCalendar,
   input: FillingInput,
 ): Promise<FieldNormFillings> {
-  const functions = createFunctionsForFertilizerApplicationFilling("NL", calendar)
+  const functions = createFunctionsForFertilizerApplicationFillingForYear("NL", Number(calendar))
   const renure =
     "calculateFertilizerApplicationFillingForRenure" in functions
       ? (functions.calculateFertilizerApplicationFillingForRenure as CachedFillingFunction)

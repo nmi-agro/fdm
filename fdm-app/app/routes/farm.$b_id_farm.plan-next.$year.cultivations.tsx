@@ -236,14 +236,6 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
               : [0, 0, 0]
           const b_lu_end_current =
             y > 0 ? startOfDayInFdmTimeZone(y, m, d) : addDays(dates.b_lu_start, -1)
-          await updateCultivation(
-            fdm,
-            session.principal_id,
-            field.current.b_lu,
-            undefined,
-            undefined,
-            b_lu_end_current,
-          )
           const b_lu_start =
             dates.b_lu_start.getTime() > b_lu_end_current.getTime()
               ? dates.b_lu_start
@@ -252,21 +244,37 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
             dates.b_lu_end && dates.b_lu_end.getTime() > b_lu_start.getTime()
               ? dates.b_lu_end
               : undefined
-          await addCultivation(fdm, session.principal_id, crop, field.b_id, b_lu_start, b_lu_end)
+          const current = field.current
+          // End the old cultivation and add the new one together, or not at all
+          await fdm.transaction(async (tx) => {
+            await updateCultivation(
+              tx,
+              session.principal_id,
+              current.b_lu,
+              undefined,
+              undefined,
+              b_lu_end_current,
+            )
+            await addCultivation(tx, session.principal_id, crop, field.b_id, b_lu_start, b_lu_end)
+          })
           saved++
           continue
         }
 
         if (crop === field.current.b_lu_catalogue) continue
-        await removeCultivation(fdm, session.principal_id, field.current.b_lu)
-        await addCultivation(
-          fdm,
-          session.principal_id,
-          crop,
-          field.b_id,
-          dates.b_lu_start,
-          dates.b_lu_end,
-        )
+        const current = field.current
+        // Replace the cultivation together with adding the new one, or not at all
+        await fdm.transaction(async (tx) => {
+          await removeCultivation(tx, session.principal_id, current.b_lu)
+          await addCultivation(
+            tx,
+            session.principal_id,
+            crop,
+            field.b_id,
+            dates.b_lu_start,
+            dates.b_lu_end,
+          )
+        })
         saved++
       } catch (error) {
         console.warn(`[plan-next] Saving the cultivation of ${field.b_id} failed:`, error)

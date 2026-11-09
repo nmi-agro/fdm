@@ -1,4 +1,8 @@
-import { getSeasonPlanProgress, getSeasonPlanProposal } from "@nmi-agro/fdm-core"
+import {
+  getSeasonPlanProgress,
+  getSeasonPlanProposal,
+  resolveSeasonPlanTarget,
+} from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, NavLink, redirect, useLoaderData } from "react-router"
 import { PlanNextStepFooter } from "~/components/blocks/plan-next/step-footer"
 import { getPlanNextPath, getPlanNextStep } from "~/components/blocks/plan-next/steps"
@@ -22,7 +26,10 @@ import {
   summarizeSeasonPlanProgress,
 } from "~/lib/season-plan.server"
 
-/** Loads the proposal per field and the progress of the other year that can be planned. */
+/**
+ * Loads the proposal per field and, when the farm can also plan the other year, the progress of
+ * that year.
+ */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
@@ -36,16 +43,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     const session = await getSession(request)
 
-    const otherYear = candidateYears.find((candidate) => candidate !== year) as number
-    const [proposal, otherProgress] = await Promise.all([
+    const [proposal, target] = await Promise.all([
       getSeasonPlanProposal(fdm, session.principal_id, b_id_farm, year),
-      getSeasonPlanProgress(fdm, session.principal_id, b_id_farm, otherYear),
+      resolveSeasonPlanTarget(fdm, session.principal_id, b_id_farm),
     ])
+    // The other year only when the farm has history to plan it from
+    const otherYear = target?.availableYears.find((candidate) => candidate !== year)
+    const otherProgress =
+      otherYear !== undefined
+        ? await getSeasonPlanProgress(fdm, session.principal_id, b_id_farm, otherYear)
+        : null
 
     return {
       b_id_farm,
       year,
-      other: summarizeSeasonPlanProgress(otherProgress),
+      other: otherProgress ? summarizeSeasonPlanProgress(otherProgress) : null,
       fields: proposal.fields.map((field) => ({
         b_id: field.b_id,
         b_name: field.b_name,
@@ -109,7 +121,7 @@ export default function PlanNextStart() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {[year, other.year]
+            {(other ? [year, other.year] : [year])
               .sort((a, b) => a - b)
               .map((option) => (
                 <Button key={option} asChild variant={option === year ? "default" : "outline"}>
@@ -119,11 +131,13 @@ export default function PlanNextStart() {
                 </Button>
               ))}
           </div>
-          <p className="text-muted-foreground text-sm">
-            {other.complete
-              ? `Het plan voor ${other.year} is compleet.`
-              : `Het plan voor ${other.year} heeft nog ${other.openItems} open ${other.openItems === 1 ? "punt" : "punten"}.`}
-          </p>
+          {other ? (
+            <p className="text-muted-foreground text-sm">
+              {other.complete
+                ? `Het plan voor ${other.year} is compleet.`
+                : `Het plan voor ${other.year} heeft nog ${other.openItems} open ${other.openItems === 1 ? "punt" : "punten"}.`}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
