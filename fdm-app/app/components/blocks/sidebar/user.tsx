@@ -9,11 +9,10 @@ import {
   Sparkles,
 } from "lucide-react"
 import posthog from "posthog-js"
-import { Form, NavLink } from "react-router"
+import { NavLink, useSubmit } from "react-router"
 import { useIsMobile } from "@/app/hooks/use-mobile"
 import { clientConfig } from "@/app/lib/config"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +43,7 @@ export function SidebarUser({
   userName: string
 }) {
   const isMobile = useIsMobile()
+  const submit = useSubmit()
 
   return (
     <SidebarFooter>
@@ -139,23 +139,16 @@ export function SidebarUser({
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                render={
-                  <Form method="post" action="/logout">
-                    <Button
-                      type="submit"
-                      variant="link"
-                      onClick={() => {
-                        if (clientConfig.analytics.posthog) {
-                          posthog.reset()
-                        }
-                      }}
-                    >
-                      <LogOut />
-                      Uitloggen
-                    </Button>
-                  </Form>
-                }
-              />
+                onClick={() => {
+                  if (clientConfig.analytics.posthog) {
+                    posthog.reset()
+                  }
+                  void submit(null, { method: "post", action: "/logout" })
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Uitloggen
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>

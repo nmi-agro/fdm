@@ -30,7 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { deleteObject, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -108,17 +108,10 @@ export default function FieldBcsDetailRoute() {
   const measuredAt = loaderData.analysis.b_sampling_date ?? loaderData.analysis.a_date
 
   const editButton = loaderData.fieldWritePermission ? (
-    <Button
-      type="button"
-      variant="outline"
-      nativeButton={false}
-      render={
-        <NavLink to="edit">
-          <Pencil className="size-4" />
-          Bewerken
-        </NavLink>
-      }
-    />
+    <NavLink to="edit" className={buttonVariants({ variant: "outline" })}>
+      <Pencil className="size-4" />
+      Bewerken
+    </NavLink>
   ) : null
 
   const deleteButton = loaderData.fieldWritePermission ? (

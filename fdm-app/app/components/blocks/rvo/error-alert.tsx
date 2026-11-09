@@ -1,7 +1,8 @@
 import { AlertTriangle, RefreshCw } from "lucide-react"
 import { Link } from "react-router"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
+import { cn } from "~/lib/utils"
 
 interface RvoErrorAlertProps {
   error: string | Error
@@ -86,18 +87,16 @@ export function RvoErrorAlert({
         <div className="flex flex-col gap-4 text-red-800">
           <p>{friendlyMessage}</p>
           {retryPath ? (
-            <Button
-              nativeButton={false}
-              variant="outline"
-              size="sm"
-              className="w-fit border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-900"
-              render={
-                <Link to={retryPath}>
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  {retryLabel}
-                </Link>
-              }
-            />
+            <Link
+              to={retryPath}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-fit border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-900",
+              )}
+            >
+              <RefreshCw className="mr-2 h-3 w-3" />
+              {retryLabel}
+            </Link>
           ) : onRetry ? (
             <Button
               type="button"

@@ -6,7 +6,8 @@ import React from "react"
 import { Link } from "react-router"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
+import { cn } from "~/lib/utils"
 import type { FieldRow, MemoizedRotationExtended } from "./columns"
 import { rotationTableFeatures } from "./table-features"
 
@@ -87,19 +88,13 @@ function HarvestDatesDisplayButton({
   const setActiveForm = useActiveTableFormStore((store) => store.setActiveForm)
   const formId = `harvest_${record.id}`
   return (
-    <Button
-      variant="link"
-      className="text-muted-foreground whitespace-nowrap"
+    <Link
+      className={cn(buttonVariants({ variant: "link" }), "text-muted-foreground whitespace-nowrap")}
       onClick={() => setActiveForm(formId)}
-      nativeButton={false}
-      render={
-        <Link
-          to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
-        >
-          {children}
-        </Link>
-      }
-    />
+      to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
+    >
+      {children}
+    </Link>
   )
 }
 

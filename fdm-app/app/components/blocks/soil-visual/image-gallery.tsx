@@ -872,10 +872,13 @@ export function ImageGallery({
               </label>
               <Select
                 value={annotationIndicator}
-                items={BCS_FIELD_INDICATORS.map((indicator) => ({
-                  value: indicator.key,
-                  label: indicator.name,
-                }))}
+                items={[
+                  { value: "none", label: "Geen koppeling" },
+                  ...BCS_FIELD_INDICATORS.map((indicator) => ({
+                    value: indicator.key,
+                    label: indicator.name,
+                  })),
+                ]}
                 onValueChange={(value) => {
                   if (typeof value === "string") {
                     setAnnotationIndicator(value)

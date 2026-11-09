@@ -20,14 +20,14 @@ export function SidebarPlatform() {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                className="p-0"
+              <Button
+                variant="default"
+                className="w-full justify-start"
+                nativeButton={false}
                 render={
                   <NavLink to="/farm">
-                    <Button variant="default" className="w-full justify-start">
-                      <ArrowLeft className="" />
-                      <span>Terug naar bedrijven</span>
-                    </Button>
+                    <ArrowLeft />
+                    <span>Terug naar bedrijven</span>
                   </NavLink>
                 }
               />

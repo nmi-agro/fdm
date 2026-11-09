@@ -25,7 +25,7 @@ import {
   SOIL_ANALYSES_MAP_ID,
   SoilAnalysesOverview,
 } from "~/components/blocks/soil/soil-analyses-overview"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -184,15 +184,10 @@ export default function FarmFieldSoilOverviewBlock() {
   }
 
   const addAnalysisButton = loaderData.fieldWritePermission ? (
-    <Button
-      nativeButton={false}
-      render={
-        <NavLink to="./analysis/new">
-          <Plus aria-hidden />
-          Bodemanalyse toevoegen
-        </NavLink>
-      }
-    />
+    <NavLink to="./analysis/new" className={buttonVariants()}>
+      <Plus aria-hidden />
+      Bodemanalyse toevoegen
+    </NavLink>
   ) : null
 
   return (

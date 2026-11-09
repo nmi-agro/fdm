@@ -118,12 +118,10 @@ export function SidebarSupport({
                   <LifeBuoy />
                   {hasNotification ? (
                     <Tooltip>
-                      <TooltipTrigger>
-                        <span className="relative">
-                          Ondersteuning
-                          <span className="sr-only">, Er zijn nieuwe berichten te bekijken.</span>
-                          <div className="bg-destructive absolute -top-1 -right-2 size-2 rounded-full" />
-                        </span>
+                      <TooltipTrigger render={<span className="relative" />}>
+                        Ondersteuning
+                        <span className="sr-only">, Er zijn nieuwe berichten te bekijken.</span>
+                        <span className="bg-destructive absolute -top-1 -right-2 size-2 rounded-full" />
                       </TooltipTrigger>
                       <TooltipContent>Er zijn nieuwe berichten te bekijken.</TooltipContent>
                     </Tooltip>

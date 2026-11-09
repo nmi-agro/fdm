@@ -33,6 +33,7 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
         key={info.value}
         value={info.value}
         className="cursor-pointer"
+        closeOnClick
         render={<NavLink to={info.url} className="w-full" />}
       >
         {info.label}

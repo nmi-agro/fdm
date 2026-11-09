@@ -35,7 +35,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { deleteObject } from "~/integrations/gcs.server"
@@ -147,16 +147,10 @@ export default function FieldBcsOverviewRoute() {
           </p>
         </div>
         {loaderData.fieldWritePermission ? (
-          <Button
-            size="lg"
-            nativeButton={false}
-            render={
-              <Link to="./new">
-                <Plus className="size-4" />
-                Nieuwe meting toevoegen
-              </Link>
-            }
-          />
+          <Link to="./new" className={buttonVariants({ size: "lg" })}>
+            <Plus className="size-4" />
+            Nieuwe meting toevoegen
+          </Link>
         ) : null}
       </div>
 
@@ -170,11 +164,9 @@ export default function FieldBcsOverviewRoute() {
           </CardHeader>
           {loaderData.fieldWritePermission ? (
             <CardContent>
-              <Button
-                size="lg"
-                nativeButton={false}
-                render={<Link to="./new">Eerste beoordeling toevoegen</Link>}
-              />
+              <Link to="./new" className={buttonVariants({ size: "lg" })}>
+                Eerste beoordeling toevoegen
+              </Link>
             </CardContent>
           ) : null}
         </Card>

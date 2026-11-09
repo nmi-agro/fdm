@@ -759,20 +759,15 @@ export function SidebarLabs({
                     <TooltipTrigger
                       render={
                         <SidebarMenuButton
+                          className="text-muted-foreground"
                           onClick={() => setIsFarmPickerOpen(true)}
-                          render={
-                            <span className="text-muted-foreground flex items-center gap-2">
-                              <Bot />
-                              <span>Gerrit</span>
-                              <Badge
-                                variant="secondary"
-                                className="ml-auto h-4 px-1 py-0 text-[10px]"
-                              >
-                                AI
-                              </Badge>
-                            </span>
-                          }
-                        />
+                        >
+                          <Bot />
+                          <span>Gerrit</span>
+                          <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                            AI
+                          </Badge>
+                        </SidebarMenuButton>
                       }
                     />
                     <TooltipContent side="right">

@@ -193,13 +193,12 @@ export function SidebarOrganization({
                 <TooltipTrigger
                   render={
                     <SidebarMenuButton
-                      render={
-                        <span className="flex cursor-not-allowed items-center gap-2 opacity-50 hover:bg-transparent">
-                          <Calendar />
-                          <span>Kalender</span>
-                        </span>
-                      }
-                    />
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <Calendar />
+                      <span>Kalender</span>
+                    </SidebarMenuButton>
                   }
                 />
                 <TooltipContent side="right">
@@ -224,13 +223,12 @@ export function SidebarOrganization({
                 <TooltipTrigger
                   render={
                     <SidebarMenuButton
-                      render={
-                        <span className="flex cursor-not-allowed items-center gap-2 opacity-50 hover:bg-transparent">
-                          <House />
-                          <span>Bedrijven</span>
-                        </span>
-                      }
-                    />
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <House />
+                      <span>Bedrijven</span>
+                    </SidebarMenuButton>
                   }
                 />
                 <TooltipContent side="right">
@@ -255,13 +253,12 @@ export function SidebarOrganization({
                 <TooltipTrigger
                   render={
                     <SidebarMenuButton
-                      render={
-                        <span className="flex cursor-not-allowed items-center gap-2 opacity-50 hover:bg-transparent">
-                          <UserGroup />
-                          <span>Groepen</span>
-                        </span>
-                      }
-                    />
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <UserGroup />
+                      <span>Groepen</span>
+                    </SidebarMenuButton>
                   }
                 />
                 <TooltipContent side="right">
@@ -286,14 +283,12 @@ export function SidebarOrganization({
                 <TooltipTrigger
                   render={
                     <SidebarMenuButton
-                      className=""
-                      render={
-                        <span className="flex cursor-not-allowed items-center gap-2 opacity-50 hover:bg-transparent">
-                          <ClipboardList />
-                          <span>Maatregelen</span>
-                        </span>
-                      }
-                    />
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <ClipboardList />
+                      <span>Maatregelen</span>
+                    </SidebarMenuButton>
                   }
                 />
                 <TooltipContent side="right">
@@ -318,13 +313,12 @@ export function SidebarOrganization({
                 <TooltipTrigger
                   render={
                     <SidebarMenuButton
-                      render={
-                        <span className="flex cursor-not-allowed items-center gap-2 opacity-50 hover:bg-transparent">
-                          <Users />
-                          <span>Leden</span>
-                        </span>
-                      }
-                    />
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <Users />
+                      <span>Leden</span>
+                    </SidebarMenuButton>
                   }
                 />
                 <TooltipContent side="right">
@@ -349,14 +343,12 @@ export function SidebarOrganization({
                 <TooltipTrigger
                   render={
                     <SidebarMenuButton
+                      aria-disabled="true"
                       className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                      render={
-                        <span className="flex items-center gap-2">
-                          <Cog />
-                          <span>Instellingen</span>
-                        </span>
-                      }
-                    />
+                    >
+                      <Cog />
+                      <span>Instellingen</span>
+                    </SidebarMenuButton>
                   }
                 />
                 <TooltipContent side="right">

@@ -32,7 +32,7 @@ import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
@@ -420,11 +420,12 @@ export default function FarmFieldIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button
-                  className={cn(!loaderData.farmWritePermission ? "invisible" : "")}
-                  nativeButton={false}
-                  render={<NavLink to="./new">Maak een perceel</NavLink>}
-                />
+                <NavLink
+                  to="./new"
+                  className={cn(buttonVariants(), !loaderData.farmWritePermission && "invisible")}
+                >
+                  Maak een perceel
+                </NavLink>
               </div>
               {/* <p className="px-8 text-center text-sm text-muted-foreground">
                             </p> */}
