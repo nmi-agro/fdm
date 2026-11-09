@@ -32,7 +32,7 @@ export const PLAN_NEXT_STEPS: PlanNextStep[] = [
   {
     key: "catch_crops",
     slug: "catch-crops",
-    title: "Vanggewassen",
+    title: "Vanggewas/groenbemester",
     description: "Leg vanggewassen en groenbemesters na de hoofdteelt vast.",
   },
   {

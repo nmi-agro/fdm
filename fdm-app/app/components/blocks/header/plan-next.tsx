@@ -7,7 +7,7 @@ import {
   BreadcrumbSeparator,
 } from "~/components/ui/breadcrumb"
 
-/** Breadcrumbs of the season planning wizard: "Plan seizoen" › year › step. */
+/** Breadcrumbs of the season planning wizard: "Plan volgend seizoen" › year › step. */
 export function HeaderPlanNext({ b_id_farm }: { b_id_farm: string }) {
   const { year } = useParams()
   const { pathname } = useLocation()
@@ -19,7 +19,7 @@ export function HeaderPlanNext({ b_id_farm }: { b_id_farm: string }) {
     <>
       <BreadcrumbSeparator className="hidden xl:block" />
       <BreadcrumbItem className="hidden xl:block">
-        <BreadcrumbLink href={getPlanNextPath(b_id_farm)}>Plan seizoen</BreadcrumbLink>
+        <BreadcrumbLink href={getPlanNextPath(b_id_farm)}>Plan volgend seizoen</BreadcrumbLink>
       </BreadcrumbItem>
       {year ? (
         <>

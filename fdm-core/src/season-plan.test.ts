@@ -8,6 +8,7 @@ import {
 } from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
 import { startOfDayInFdmTimeZone } from "./date"
+import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import {
@@ -367,6 +368,29 @@ describe("Season plan", () => {
       expect(applications[0].p_id).toBe(p_id)
       expect(applications[0].p_app_amount).toBe(30)
       expect(applications[0].p_app_date.toISOString()).toBe("2027-03-01T09:00:00.000Z")
+    })
+
+    it("does not copy applications with an amount outside the accepted range", async () => {
+      // Older records may hold an amount that is no longer accepted
+      await fdm.insert(schema.fertilizerApplication).values({
+        p_app_id: createId(),
+        b_id: b_id_kept,
+        p_id,
+        p_app_amount: 0,
+        p_app_method: "broadcasting",
+        p_app_date: new Date("2026-04-01T09:00:00Z"),
+      })
+      const copied = await copyFertilizerApplications(
+        fdm,
+        principal_id,
+        b_id_kept,
+        b_id_new,
+        2026,
+        2027,
+      )
+      expect(copied).toHaveLength(1)
+      const applications = await getFertilizerApplications(fdm, principal_id, b_id_new)
+      expect(applications.map((a) => a.p_app_amount)).toEqual([30])
     })
 
     it("refuses to copy between farms", async () => {

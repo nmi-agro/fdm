@@ -23,6 +23,7 @@ import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { getFertilizerApplicationsForFarm } from "./fertilizer"
+import { isAppAmountInRange } from "./fertilizer-application-unit-conversion"
 import { getFields } from "./field"
 import { getHarvestsForFarm } from "./harvest"
 import { createId } from "./id"
@@ -202,7 +203,9 @@ export async function getSeasonPlanProposal(
  * Each application keeps its fertilizer, amount (kg/ha) and method; its date is moved to the same
  * calendar date in the target year (29 February becomes 28 February in other years). Applications
  * that already exist on the target field with the same fertilizer and date are skipped, so calling
- * this function twice does not create duplicates.
+ * this function twice does not create duplicates. Applications without an amount, or with an
+ * amount outside the range accepted by `addFertilizerApplication` (more than 0 and at most
+ * `P_APP_AMOUNT_MAX` kg/ha), are not copied.
  *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
@@ -293,6 +296,9 @@ export async function copyFertilizerApplications(
       const inserted: string[] = []
       for (const application of sourceApplications) {
         if (!application.p_app_date) continue
+        if (application.p_app_amount === null || !isAppAmountInRange(application.p_app_amount)) {
+          continue
+        }
         const p_app_date = shiftDateToYear(application.p_app_date, targetYear)
         const key = `${application.p_id}|${p_app_date.getTime()}`
         if (existingKeys.has(key)) continue

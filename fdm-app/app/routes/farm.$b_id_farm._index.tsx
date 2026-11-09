@@ -1204,7 +1204,9 @@ function SeasonPlanCard({
           </div>
           <div>
             <CardTitle className="text-lg">
-              {seasonPlan.year ? `Plan seizoen ${seasonPlan.year}` : "Plan seizoen"}
+              {seasonPlan.year
+                ? `Plan volgend seizoen (${seasonPlan.year})`
+                : "Plan volgend seizoen"}
             </CardTitle>
             <CardDescription>{getSeasonPlanDescription(seasonPlan)}</CardDescription>
           </div>

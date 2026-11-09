@@ -430,11 +430,11 @@ export function SidebarFarm({
                 <SidebarMenuButton
                   asChild
                   isActive={location.pathname.startsWith(`/farm/${farmId}/plan-next`)}
-                  tooltip="Plan seizoen"
+                  tooltip="Plan volgend seizoen"
                 >
                   <NavLink to={`/farm/${farmId}/plan-next`}>
                     <CalendarPlus />
-                    <span>Plan seizoen</span>
+                    <span>Plan volgend seizoen</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

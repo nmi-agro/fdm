@@ -29,7 +29,7 @@ import { parsePlanYear, summarizeSeasonPlanProgress } from "~/lib/season-plan.se
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Plan seizoen | ${clientConfig.name}` },
+    { title: `Plan volgend seizoen | ${clientConfig.name}` },
     {
       name: "description",
       content:
@@ -104,7 +104,7 @@ export default function PlanNextLayout() {
       </Header>
       <main className="min-w-0">
         <FarmTitle
-          title={`Plan seizoen ${loaderData.year}`}
+          title={`Plan volgend seizoen (${loaderData.year})`}
           description="Stel het seizoen samen op basis van eerdere jaren. Elke stap wordt apart opgeslagen, zodat u later verder kunt gaan."
         />
         <div className="space-y-6 px-2 pb-8 md:px-4 lg:px-6">

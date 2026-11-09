@@ -153,7 +153,7 @@ export default function PlanNextStart() {
               <TableBody>
                 {fields.map((field) => (
                   <TableRow key={field.b_id}>
-                    <TableCell className="font-medium">{field.b_name}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{field.b_name}</TableCell>
                     <TableCell>
                       <span>
                         {getFieldTypeLabel(field.fieldType, field.rotationCycle, field.continuing)}
