@@ -38,6 +38,7 @@ import type {
   TimelineFilters,
   TimelineGanttViewHandle,
 } from "~/components/blocks/timeline/gantt-view"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -76,6 +77,8 @@ import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
 // selectable calendar year anywhere else in the app.
 const TIMELINE_START_YEAR = startMonth.getFullYear()
 const TIMELINE_END_YEAR = endMonth.getFullYear()
+
+export const handle: HelpHandle = { help: "tijdlijn" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -823,6 +826,7 @@ export default function TimelinePage() {
         {showMobileView ? (
           <>
             <FarmTitle
+              help="tijdlijn"
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gebeurtenissen op je bedrijf."
             />
@@ -840,6 +844,7 @@ export default function TimelinePage() {
         ) : (
           <>
             <FarmTitle
+              help="tijdlijn"
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gewassen, bemestingen, oogsten en bodemanalyses over de percelen."
               rightNode={

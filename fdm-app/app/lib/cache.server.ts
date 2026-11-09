@@ -1,5 +1,6 @@
 import type { EntryContext } from "react-router"
 import { clientConfig } from "~/lib/config"
+import { MANUAL_CACHE_CONTROL } from "~/lib/manual/seo"
 
 type CacheControl = {
   maxAge: number
@@ -47,7 +48,7 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
   const headers = new Headers()
 
   // Static assets (JS, CSS, images)
-  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$/)) {
+  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff2?)$/)) {
     headers.set(
       "Cache-Control",
       generateCacheControl({
@@ -79,6 +80,12 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
         noStore: true,
       }),
     )
+    return headers
+  }
+
+  // Public user manual: static content that changes only with a release
+  if (url.pathname === "/manual" || url.pathname.startsWith("/manual/")) {
+    headers.set("Cache-Control", MANUAL_CACHE_CONTROL)
     return headers
   }
 

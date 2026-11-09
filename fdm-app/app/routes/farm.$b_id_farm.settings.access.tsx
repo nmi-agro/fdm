@@ -19,6 +19,7 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import {
   AccessInfoCard,
   type AccessVerificationProvider,
@@ -40,6 +41,9 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Meta
+
+export const handle: HelpHandle = { help: "toegang" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Toegang - Instellingen - Bedrijf | ${clientConfig.name}` },

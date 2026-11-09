@@ -12,7 +12,17 @@ jobs:
     if: startsWith(github.head_ref, 'release/') || startsWith(github.head_ref, 'hotfix/')
     permissions:
       pull-requests: write
+      actions: write # Required to start the manual screenshot run
     steps:
+      # Captures the manual screenshots on this branch, so the release ships with screenshots of
+      # its own version. Only for branches of this repository, never for forks.
+      - name: Start the manual screenshot run on this branch
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: gh workflow run manual-screenshots.yml --repo "$GITHUB_REPOSITORY" --ref "$HEAD_REF"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.head_ref }}
+
       - name: Add PR Comment
         uses: actions/github-script@v9
         with:
@@ -32,6 +42,11 @@ jobs:
             3.  Create Git tags.
 
             You can trigger the workflow from the 'Actions' tab, selecting the '${workflowName}' workflow, and choosing this \`${context.payload.pull_request.head.ref}\` branch.
+
+            Release checklist:
+            - [ ] Merge the pull request \`docs(fdm-app): update the manual screenshots\` into this branch **before** running the '${workflowName}' workflow, which must add the last commit. The screenshot run starts automatically for this branch; when no image changed, it opens no pull request.
+            - [ ] Review the background pages of the user manual (\`fdm-app/app/content/manual/background\`) and update \`lastReviewed\`.
+            - [ ] Production sets \`FDM_SEO_INDEXING=true\`; after deploying, \`/robots.txt\` has no \`Disallow: /\` and \`/sitemap.xml\` lists the manual.
             `;
             github.rest.issues.createComment({
               issue_number: context.issue.number,

@@ -9,6 +9,7 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -23,6 +24,9 @@ import { fdm } from "~/lib/fdm.server"
 import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bemestingsadvies" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bemestingsadvies | ${clientConfig.name}` },
@@ -152,6 +156,7 @@ export default function FarmBalanceNitrogenBlock() {
       <main>
         {!loaderData.b_id && (
           <FarmTitle
+            help="bemestingsadvies"
             title={"Bemestingsadvies"}
             description={
               "Advies volgens Handboek Bodem en Bemesting (CBAV) en Adviesbasis Bemesting (CBGV)."

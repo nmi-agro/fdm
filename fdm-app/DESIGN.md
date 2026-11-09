@@ -242,7 +242,15 @@ The authenticated app is the primary surface and sets the defaults above: it is 
 - All absolute bans (side-stripe borders, gradient text, glassmorphism, identical card grids, hero-metric template, etc.) apply without exception.
 - Any functional form or action component (auth card, error recovery) stays on **interior** rules: flat-by-default, `shadow-sm`, no oversized type, calm and focused. The marketing _around_ it can be advanced; the action itself must remain calm.
 - The 14-inch laptop constraint is not relaxed — unauthenticated pages are often the first screens seen on a work machine.
-- Dutch formal address (`u/uw`), WCAG AA contrast, and full keyboard/screen-reader accessibility apply in full.
+- Dutch formal address (`u/uw`), WCAG AA contrast, and full keyboard/screen-reader accessibility apply in full. Exception: the user manual (`/manual`) addresses the reader as `je`, like a colleague explaining the app.
+
+### User manual (`/manual`)
+
+The manual is a **Read** surface in the public frame: a 56px header with the logomark, a section-grouped left navigation (a sheet on phones), a reading column of about 70 characters and a right rail with "Op deze pagina" and a calm sign-up card that stays visible while the contents list scrolls. Below 1280px the card follows the text. No kicker above the title; a breadcrumb gives the location.
+
+- **Type:** rendered Markdown is set with shadcn typeset (`app/typeset.css`, preset `.typeset-manual`: 16px body, leading 1.75, flow 1.25em). The page title is 30–36px semibold; the lede under it is 20px in muted ink, set apart from the body by a hairline rule.
+- **UI-label chip** (the manual's signature): every UI label in the text renders like the app's own control — 1px border, white fill, weight 500, `rounded-md`, `shadow-xs`, never wrapping. A "Zo vind je het in de app" row strings chips together with chevrons. No hue: chips stay as neutral as the buttons they depict.
+- **Tables** scroll inside their own container on narrow screens instead of squeezing cells; numbers use tabular figures.
 
 ## 7. Do's and Don'ts
 

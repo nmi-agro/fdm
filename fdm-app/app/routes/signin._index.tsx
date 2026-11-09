@@ -73,6 +73,7 @@ import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
 import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { useCookieConsentStore } from "~/store/cookie-consent"
@@ -179,6 +180,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
  *
  * @returns A React element representing the sign-in page.
  */
+/** Link from a feature section to the background page that explains its calculation. */
+function HowCalculatedLink({ to }: { to: string }) {
+  const { capture } = useAnalytics()
+  return (
+    <Link
+      to={to}
+      onClick={() =>
+        capture(MANUAL_EVENTS.helpLinkClicked, {
+          help_target: to,
+          source: "signin",
+          from_path: "/signin",
+        })
+      }
+      className="text-foreground mt-4 inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:no-underline"
+    >
+      <span>Hoe wordt dit berekend?</span>
+      <ArrowRight className="size-4" aria-hidden="true" />
+    </Link>
+  )
+}
+
 export default function SignIn() {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams() // Get search params
@@ -706,6 +728,7 @@ export default function SignIn() {
                   {clientConfig.name} streeft ernaar om deze complexe berekening zo eenvoudig
                   mogelijk te maken, zonder in te leveren op nauwkeurigheid.
                 </p>
+                <HowCalculatedLink to="/manual/background/stikstofbalans" />
               </div>
 
               <div className="relative">
@@ -936,6 +959,7 @@ export default function SignIn() {
                   doelgerichte acties aan specifieke percelen. Zo weet u exact waar de bodem om
                   aandacht vraagt én welke ingreep het meeste effect oplevert.
                 </p>
+                <HowCalculatedLink to="/manual/background/bln3-bodemkwaliteit" />
               </div>
 
               <div className="mb-16 grid items-start gap-12 lg:grid-cols-2">
@@ -1116,6 +1140,7 @@ export default function SignIn() {
                   Bij NMI hebben we jarenlange kennis van bemesting en bodemvruchtbaarheid omgezet
                   in digitale adviezen, direct beschikbaar in {clientConfig.name}.
                 </p>
+                <HowCalculatedLink to="/manual/background/bemestingsadvies" />
               </div>
 
               <div className="mb-16 grid items-start gap-12 lg:grid-cols-2">
@@ -1232,6 +1257,7 @@ export default function SignIn() {
                   bemestingsplan ook ziet of u deze niet overschrijdt op perceels- en
                   bedrijfsniveau.
                 </p>
+                <HowCalculatedLink to="/manual/background/gebruiksruimte" />
               </div>
 
               <div className="grid items-start gap-12 lg:grid-cols-2">
@@ -1486,9 +1512,15 @@ export default function SignIn() {
                     Wat heb ik nodig om te starten?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Om optimaal gebruik te maken van {clientConfig.name} heeft u uw perceelsdata
-                    (RVO shapefile) en recente bodemanalyses (PDF) nodig. U kunt deze eenvoudig
-                    importeren.
+                    Alleen een account. Hoe u zich aanmeldt, uw eerste bedrijf aanmaakt en uw
+                    percelen importeert, leest u in{" "}
+                    <Link
+                      to="/manual/aan-de-slag"
+                      className="text-foreground font-medium underline underline-offset-4"
+                    >
+                      Aan de slag
+                    </Link>{" "}
+                    in de handleiding.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -1588,6 +1620,11 @@ export default function SignIn() {
                       >
                         GitHub Repository <SiGithub className="h-3 w-3" />
                       </a>
+                    </li>
+                    <li>
+                      <Link to="/manual" className="hover:text-primary">
+                        Handleiding
+                      </Link>
                     </li>
                     <li>
                       <a

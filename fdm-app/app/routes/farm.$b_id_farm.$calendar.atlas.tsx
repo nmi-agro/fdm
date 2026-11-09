@@ -1,6 +1,7 @@
 import { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { type LoaderFunctionArgs, type MetaFunction, Outlet, useLoaderData } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -13,6 +14,9 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "atlas" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Atlas | ${clientConfig.name}` },
@@ -93,7 +97,7 @@ export default function FarmContentBlock() {
 
   return (
     <SidebarInset>
-      <Header action={action}>
+      <Header action={action} help="atlas">
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderAtlas b_id_farm={loaderData.b_id_farm} />
       </Header>
