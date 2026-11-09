@@ -19,6 +19,7 @@ Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pn
   - Mutations must run inside `fdm.transaction(...)`, generate IDs via `createId()`, and enforce access via `src/authorization.ts` (`checkPermission`, `grantRole`).
   - Errors: Wrap exceptions with `handleError(err, message, context)` returning `BaseError`.
 - **`fdm-app` UI**: Dutch-only user interface (keep copy i18n-ready).
+- **User manual stays in step with the app**: The public manual lives in `fdm-app/app/content/manual` (Markdown, one file per chapter). A PR that changes a user-visible label, flow or page also updates the chapter whose `routes`/`watch` globs list the changed files, in the same PR. **Bold** text in the manual must be an existing UI label: `pnpm --filter @nmi-agro/fdm-app test` fails otherwise. CI also warns when a PR changes a described route without its chapter. Link screens to the manual with `handle.help` (see the `fdm-app-conventions` skill), never with a hard-coded `/manual/...` URL.
 - **Documentation, TypeDoc & Comments**: TypeDoc generates the public API reference in `fdm-docs` from TSDoc/JSDoc in library packages. Write comments and docstrings for external readers (no internal ticket numbers, internal URLs, or meetings). Update docs and docstrings in the same PR as code changes. Excluded from `pnpm lint`; verify with `pnpm build-docs`.
 
 ## 3. Discovery Shortcuts (bespoke commands)
@@ -46,6 +47,7 @@ For in-depth domain rules, load the dedicated skill:
 
 - **`fdm-schema`**: Asset–Action rules, table/column naming, migration workflow, anti-patterns.
 - **`fdm-app-conventions`**: UI loaders/actions, server/client boundaries, Zustand stores, error boundaries.
+- **`fdm-user-guide-sync`**: Bring the user guide (`fdm-app/app/content/manual`) in line with code changes; also used by the weekly sync routine.
 - **`fdm-api`**: Hono + `@hono/zod-openapi` endpoints, injectable services, RFC 9457 errors.
 - **`impeccable`** (Claude Code plugin, installed separately): Frontend UX, design tokens, responsive layouts, accessibility.
 

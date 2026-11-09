@@ -1,4 +1,5 @@
 import { type MetaFunction, NavLink, Outlet, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -14,6 +15,9 @@ import {
 } from "./farm.$b_id_farm.$calendar.rotation"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bouwplan" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bouwplan - Bedrijf toevoegen | ${clientConfig.name}` },

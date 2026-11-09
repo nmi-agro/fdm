@@ -627,7 +627,7 @@ describe("declineInvitation", () => {
     await grantRoleToFarm(
       fdm,
       ownerPrincipalId,
-      "decline_target_principal",
+      "decline_target_principal@example.com",
       principalFarmId,
       "advisor",
     )
@@ -854,6 +854,79 @@ describe("listPendingInvitationsForPrincipal", () => {
     expect(orgInv).toBeDefined()
     expect(orgInv?.status).toBe("pending")
     expect(orgInv?.can_accept).toBe(false)
+  })
+})
+
+describe("createInvitation user targets", () => {
+  let fdm: FdmServerType
+  let ownerPrincipalId: string
+  let farmId: string
+
+  beforeAll(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    const fdmAuth = createFdmAuth(
+      fdm,
+      { clientId: "mock_google_client_id", clientSecret: "mock_google_client_secret" },
+      {
+        clientId: "mock_ms_client_id",
+        tenantId: "common",
+        privateKey: "mock_ms_private_key",
+        certThumbprint: "mock_ms_thumbprint",
+      },
+      undefined,
+      true,
+    )
+    const owner = await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: "targetkind_owner@example.com",
+        name: "targetkind_owner",
+        username: "targetkind_owner",
+        password: "password",
+      } as any,
+    })
+    ownerPrincipalId = owner.user.id
+    farmId = await addFarm(
+      fdm,
+      ownerPrincipalId,
+      "Target Kind Farm",
+      "TKF001",
+      "Target Lane",
+      "44444",
+    )
+    await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: "targetkind_invitee@example.com",
+        name: "targetkind_invitee",
+        username: "targetkind_invitee",
+        password: "password",
+      } as any,
+    })
+  })
+
+  it("should reject a username that resolves to a user", async () => {
+    await expect(
+      grantRoleToFarm(fdm, ownerPrincipalId, "targetkind_invitee", farmId, "advisor"),
+    ).rejects.toThrow()
+  })
+
+  it("should accept the email address of a user", async () => {
+    await expect(
+      grantRoleToFarm(
+        fdm,
+        ownerPrincipalId,
+        "targetkind_invitee@example.com",
+        farmId,
+        "researcher",
+      ),
+    ).resolves.toBeUndefined()
   })
 })
 

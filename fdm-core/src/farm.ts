@@ -338,7 +338,7 @@ export async function updateFarm(
  *
  * @param fdm - The FDM instance providing the connection to the database.
  * @param principal_id - The identifier of the principal performing the grant (must have 'share' permission).
- * @param target - The username, email, or slug of the invitee.
+ * @param target - The email address of a user, or the slug of an organization.
  * @param b_id_farm - The identifier of the farm.
  * @param role - The role to be granted ('owner', 'advisor', or 'researcher').
  *

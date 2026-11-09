@@ -48,6 +48,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -106,6 +107,9 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 // Meta
+
+export const handle: HelpHandle = { help: "dashboard" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bedrijf | ${clientConfig.name}` },

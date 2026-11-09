@@ -47,6 +47,7 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
 
@@ -666,8 +667,17 @@ export function SidebarLabs({
   const location = useLocation()
   const navigate = useNavigate()
   const [isFarmPickerOpen, setIsFarmPickerOpen] = useState(false)
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
-  const isMineralizationEnabled = useFeatureFlagEnabled("mineralization") ?? true
+  // Feature flags only exist in the browser: the server never has a PostHog client, so it cannot
+  // know them. Until hydration has finished, keep the Labs items hidden on both sides, otherwise
+  // they differ between both renders and React reports a hydration mismatch. The fallback is a
+  // constant on purpose: deriving it from configuration could resolve differently on the server
+  // and in the browser. After hydration the flags decide; without PostHog there are no flags and
+  // the items are shown.
+  const isHydrated = useHydrated()
+  const gerritFlag = useFeatureFlagEnabled("gerrit")
+  const mineralizationFlag = useFeatureFlagEnabled("mineralization")
+  const isGerritEnabled = isHydrated && (gerritFlag ?? true)
+  const isMineralizationEnabled = isHydrated && (mineralizationFlag ?? true)
 
   const isFarmSelected = farmId && farmId !== "undefined"
   const isCreateFarmWizard = location.pathname.includes("farm/create")
