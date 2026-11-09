@@ -13,9 +13,9 @@ import {
 } from "~/components/ui/select"
 import type { TimelineFilters } from "./gantt-view"
 
-// Radix's Select.Item doesn't support an empty string as its value (that's reserved internally
-// for "no selection"), so the "show everything" period option — which is modeled as value ""
-// everywhere else in the timeline — needs a non-empty stand-in only at this Select boundary.
+// The "show everything" period option is modeled as value "" everywhere else in the timeline,
+// while Base UI's Select reserves null for
+// "no selection", so it gets a non-empty stand-in only at this Select boundary.
 const ALL_PERIOD_VALUE = "__all__"
 
 export const defaultTimelineFilters: TimelineFilters = {

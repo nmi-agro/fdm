@@ -33,7 +33,7 @@ export type TimelineMenuSections = {
 }
 
 /**
- * Opens the surrounding `TimelineContextMenu` at the position of a left click. Radix' ContextMenu
+ * Opens the surrounding `TimelineContextMenu` at the position of a left click. The Base UI ContextMenu
  * only opens on a `contextmenu` event, so a left click is translated into one that bubbles up to
  * the nearest trigger. Keyboard activations (no pointer position) open at the element's center.
  */

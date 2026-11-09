@@ -221,7 +221,7 @@ export function AddMeasureDialog({
 
   // Reset form when dialog opens. This resets several independent pieces of local UI state
   // together in response to the dialog opening; a remount-by-key would need a key that's stable
-  // for repeated manual opens with no distinguishing prop, which Radix's exit-animation-delayed
+  // for repeated manual opens with no distinguishing prop, which the dialog's exit-animation-delayed
   // unmount can't be relied on to force — kept as an effect deliberately.
   useEffect(() => {
     if (open) {
