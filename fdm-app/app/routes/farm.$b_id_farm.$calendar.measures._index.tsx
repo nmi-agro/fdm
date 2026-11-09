@@ -1002,6 +1002,7 @@ export default function MeasuresFarmIndex() {
   return (
     <>
       <FarmTitle
+        help="maatregelen"
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
         rightNode={

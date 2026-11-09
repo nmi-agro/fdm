@@ -160,7 +160,14 @@ export {
   toFdmDateString,
 } from "./date"
 export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
-export { fromKgPerHa, toKgPerHa } from "./fertilizer-application-unit-conversion"
+export {
+  AppAmountOutOfRangeError,
+  fromKgPerHa,
+  getAppAmountDisplayRange,
+  isAppAmountInRange,
+  P_APP_AMOUNT_MAX,
+  toKgPerHa,
+} from "./fertilizer-application-unit-conversion"
 export {
   addField,
   determineIfFieldIsBuffer,

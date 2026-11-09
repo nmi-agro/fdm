@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 import { NavLink } from "react-router"
+import type { HelpTargetId } from "~/lib/manual/help-targets"
+import { HelpLink } from "~/components/custom/help-link"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
@@ -16,6 +18,12 @@ interface FarmTitleProps {
     label: string
   }
   children?: ReactNode
+  /**
+   * The manual page that explains this screen, shown as a "?" next to the title. Only pass it on
+   * screens whose results or input need explaining, once per screen; elsewhere the sidebar
+   * "Handleiding" item (driven by the route's `handle.help`) is enough.
+   */
+  help?: HelpTargetId
 }
 
 export function FarmTitle({
@@ -25,6 +33,7 @@ export function FarmTitle({
   rightNode,
   action,
   children,
+  help,
 }: FarmTitleProps) {
   return (
     <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
@@ -34,6 +43,7 @@ export function FarmTitle({
             <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
               {title}
             </h2>
+            {help ? <HelpLink target={help} className="-ml-1" /> : null}
           </div>
           {descriptionNode ?? (
             <p className="text-muted-foreground wrap-break-word">{description}</p>

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-shimmer";
+@import "./typeset.css";
 
 @plugin "tailwindcss-animate";
 

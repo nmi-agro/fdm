@@ -3,6 +3,7 @@ import {
   addFertilizerApplication,
   addHarvest,
   checkPermission,
+  getAppAmountDisplayRange,
   getCultivation,
   getCultivationsFromCatalogue,
   getFarms,
@@ -37,6 +38,7 @@ import type {
   TimelineFilters,
   TimelineGanttViewHandle,
 } from "~/components/blocks/timeline/gantt-view"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -75,6 +77,8 @@ import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
 // selectable calendar year anywhere else in the app.
 const TIMELINE_START_YEAR = startMonth.getFullYear()
 const TIMELINE_END_YEAR = endMonth.getFullYear()
+
+export const handle: HelpHandle = { help: "tijdlijn" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -176,6 +180,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           } => option !== undefined,
         ),
       p_app_amount_unit: fertilizer.p_app_amount_unit,
+      p_app_amount_display_max:
+        getAppAmountDisplayRange(fertilizer.p_app_amount_unit, fertilizer.p_density)?.max ?? null,
     }))
 
     // Map catalogue cultivations to options for the add-cultivation combobox
@@ -576,7 +582,8 @@ export async function action({ request, params }: Route.LoaderArgs) {
         session.principal_id,
         formValues.p_app_id,
         original.p_id,
-        original.p_app_amount_display,
+        // Keep the stored amount: moving an application must not re-validate an older amount
+        null,
         original.p_app_method,
         formValues.p_app_date,
       )
@@ -819,6 +826,7 @@ export default function TimelinePage() {
         {showMobileView ? (
           <>
             <FarmTitle
+              help="tijdlijn"
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gebeurtenissen op je bedrijf."
             />
@@ -836,6 +844,7 @@ export default function TimelinePage() {
         ) : (
           <>
             <FarmTitle
+              help="tijdlijn"
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gewassen, bemestingen, oogsten en bodemanalyses over de percelen."
               rightNode={

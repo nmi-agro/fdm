@@ -8,6 +8,7 @@ import {
   Outlet,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
@@ -27,6 +28,9 @@ import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bedrijfsinstellingen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Instellingen - Bedrijf | ${clientConfig.name}` },

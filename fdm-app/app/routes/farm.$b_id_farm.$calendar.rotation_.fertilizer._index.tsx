@@ -15,6 +15,7 @@ import {
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { BulkFertilizerPage } from "~/components/blocks/fertilizer-applications/bulk/bulk-page"
@@ -37,6 +38,8 @@ import {
   toBulkFieldOptions,
 } from "~/lib/fertilizer-application-bulk.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+
+export const handle: HelpHandle = { help: "bouwplan" }
 
 export const meta: MetaFunction = () => {
   return [

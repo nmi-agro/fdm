@@ -2,6 +2,7 @@ import { BookOpenIcon, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { toast } from "sonner"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import {
   AlertDialog,
@@ -32,6 +33,8 @@ import { authClient } from "~/lib/auth-client"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+
+export const handle: HelpHandle = { help: "api-sleutels" }
 
 export async function loader({ request }: LoaderFunctionArgs) {
   try {

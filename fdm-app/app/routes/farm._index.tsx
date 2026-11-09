@@ -5,7 +5,16 @@ import {
   listFarmGroups,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
-import { ArrowRight, Check, Layers, LifeBuoy, MapIcon, Mountain, Plus } from "lucide-react"
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  Layers,
+  LifeBuoy,
+  MapIcon,
+  Mountain,
+  Plus,
+} from "lucide-react"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -15,6 +24,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { GroupedFarmCards } from "~/components/blocks/farm-groups/grouped-farm-cards"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -34,17 +44,23 @@ import {
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
+import { getHelpHref } from "~/lib/manual/help-targets"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "aan-de-slag" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bedrijven | ${clientConfig.name}` },
@@ -254,6 +270,41 @@ export async function action({ request }: ActionFunctionArgs) {
     console.error(error)
     return dataWithError(null, "Er is iets misgegaan")
   }
+}
+
+/** Points new users to the manual chapters that walk them through their first farm. */
+function ManualStartNote() {
+  const { capture } = useAnalytics()
+  const links = [
+    { target: "aan-de-slag", label: "Aan de slag" },
+    { target: "bedrijf-aanmaken", label: "Een bedrijf aanmaken" },
+  ] as const
+  return (
+    <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-8 text-sm">
+      <BookOpen className="h-4 w-4" aria-hidden="true" />
+      <span>Nieuw hier? Lees in de handleiding</span>
+      {links.map((link, index) => (
+        <span key={link.target}>
+          <a
+            href={getHelpHref(link.target)}
+            target="_blank"
+            rel="noopener"
+            className="text-primary font-medium hover:underline"
+            onClick={() =>
+              capture(MANUAL_EVENTS.helpLinkClicked, {
+                help_target: link.target,
+                source: "empty_state",
+                from_path: window.location.pathname,
+              })
+            }
+          >
+            {link.label}
+          </a>
+          {index === 0 ? <span> of</span> : null}
+        </span>
+      ))}
+    </div>
+  )
 }
 
 function SupportNote() {
@@ -468,6 +519,7 @@ export default function AppIndex() {
               </div>
             </div>
 
+            <ManualStartNote />
             <SupportNote />
           </div>
         ) : (

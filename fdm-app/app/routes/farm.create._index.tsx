@@ -25,6 +25,7 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import {
   isValidKvkNumber,
   KvkLookupButton,
@@ -68,6 +69,9 @@ import { getCalendarSelection } from "../lib/calendar"
 const { isPostalCode } = validator
 
 // Meta
+
+export const handle: HelpHandle = { help: "bedrijf-aanmaken" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bedrijf toevoegen | ${clientConfig.name}` },
@@ -273,7 +277,7 @@ export default function AddFarmPage() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="bedrijf-aanmaken">
         <HeaderFarmCreate b_name_farm={undefined} />
       </Header>
       <main className="bg-muted/20 flex-1 overflow-y-auto">
