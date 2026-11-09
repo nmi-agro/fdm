@@ -53,6 +53,7 @@ export type {
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
 export {
+  assessPhosphateStatus,
   calculatePhosphateBalance,
   calculatePhosphateBalanceField,
   calculatePhosphateBalanceFieldsToFarm,
@@ -69,9 +70,12 @@ export {
   determinePhosphateFrame,
   getPeatGroundwaterFactor,
   getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
   getPhosphateSoilTypeParameters,
   ghgPerGroundwaterClass,
   PHOSPHATE_DEPOSITION_PER_YEAR,
+  PHOSPHATE_STATUS_RULES,
+  PHOSPHATE_VERDICT_ORDER,
   phosphateSoilTypeParameters,
 } from "./balance/phosphate/index"
 export type {
@@ -91,6 +95,8 @@ export type {
   PhosphateSaturationSource,
   PhosphateSaturationThreshold,
   PhosphateSoilTypeParameters,
+  PhosphateStatus,
+  PhosphateVerdict,
   PhosphateSupplyDeposition,
   PhosphateSupplyMineralization,
   ValueWithRange,

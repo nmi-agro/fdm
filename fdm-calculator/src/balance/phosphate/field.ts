@@ -13,7 +13,9 @@ import type {
   PhosphateSaturation,
   PhosphateSaturationThreshold,
 } from "./types"
+import { getMainCultivation } from "../../mineralization/prepare"
 import pkg from "../../package"
+import { type FieldExclusionReason, getFieldExclusionReason } from "../../shared/field-exclusion"
 import { getPhosphateSoilTypeParameters } from "./alpha-max"
 import { calculatePhosphateLeaching } from "./leaching"
 import {
@@ -23,6 +25,7 @@ import {
 } from "./mineralization"
 import { calculatePhosphateProjection } from "./projection"
 import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
+import { assessPhosphateStatus } from "./status"
 
 export type PhosphateBalanceFieldCalculationInput = {
   fieldInput: PhosphateFieldInput
@@ -36,6 +39,36 @@ export type PhosphateBalanceFieldCalculationInput = {
 /** Calendar year of a timeframe (taken at its middle, so time zones do not shift it). */
 function yearOfTimeFrame(timeFrame: { start: Date; end: Date }): number {
   return new Date((timeFrame.start.getTime() + timeFrame.end.getTime()) / 2).getFullYear()
+}
+
+/**
+ * Whether a field is left out of the phosphate balance, and why: buffer strips, and fields whose
+ * main cultivation of the year (see `getMainCultivation`) is a landscape element or a nature
+ * cultivation. These fields are not farmed for production, so a balance and a soil P aim say little
+ * about them; they are not calculated and not part of the farm average.
+ *
+ * @param fieldInput - The field input (field and cultivations).
+ * @param timeFrame - The timeframe of the balance.
+ * @returns The exclusion reason, or `null` when the field is included.
+ * @alpha
+ */
+export function getPhosphateFieldExclusion(
+  fieldInput: Pick<PhosphateFieldInput, "field" | "cultivations">,
+  timeFrame: { start: Date; end: Date },
+): FieldExclusionReason | null {
+  const main = getMainCultivation(
+    fieldInput.cultivations.map((c) => ({
+      ...c,
+      b_lu_start: c.b_lu_start ? new Date(c.b_lu_start) : null,
+      b_lu_end: c.b_lu_end ? new Date(c.b_lu_end) : null,
+    })),
+    yearOfTimeFrame(timeFrame),
+  )
+  return getFieldExclusionReason({
+    b_bufferstrip: fieldInput.field.b_bufferstrip,
+    b_lu_croprotation: main?.b_lu_croprotation,
+    b_lu_catalogue: main?.b_lu_catalogue,
+  })
 }
 
 /**
@@ -385,6 +418,7 @@ export function calculatePhosphateBalanceField(
       leaching: { total: 0, risk: "unknown", fraction: 0, groundwater_factor: 0, factor: 0 },
       long_term: {
         balance: 0,
+        fertilizers: 0,
         leaching: 0,
         years: [],
         fertilizer_years: [],
@@ -432,9 +466,19 @@ export function calculatePhosphateBalanceField(
   ]
   const estimatedRemovalYears: number[] = []
   const missingDefaults: string[] = []
+  const yearsWithoutData: number[] = []
   for (const past of withCultivationHistory(input, currentYear, cultivationDetails)) {
     if (past.fieldInput.cultivations.length === 0) continue
     const year = yearOfTimeFrame(past.timeFrame)
+    // Only years with registered data count: a crop (e.g. from the BRP history) alone would give an
+    // average of estimated removal and borrowed fertilisation
+    if (
+      past.fieldInput.fertilizerApplications.length === 0 &&
+      past.fieldInput.harvests.length === 0
+    ) {
+      yearsWithoutData.push(year)
+      continue
+    }
     const pastTerms = calculateFieldTerms(
       past.fieldInput,
       fertilizerDetails,
@@ -472,23 +516,30 @@ export function calculatePhosphateBalanceField(
   const mean = (values: Decimal[]) =>
     values.reduce((a, v) => a.add(v), new Decimal(0)).dividedBy(Math.max(values.length, 1))
   const fertilizedYears = years.filter((y) => y.hasFertilizers)
-  const longTermBalance = mean(fertilizedYears.map((y) => y.fertilizers)).add(
-    mean(years.map((y) => y.rest)),
-  )
+  const longTermFertilizers = mean(fertilizedYears.map((y) => y.fertilizers))
+  const longTermBalance = longTermFertilizers.add(mean(years.map((y) => y.rest)))
   const longTermWarnings: string[] = []
+  if (yearsWithoutData.length > 0) {
+    longTermWarnings.push(
+      years.length === 1
+        ? `Voor ${formatYears(yearsWithoutData)} zijn geen bemesting en oogst geregistreerd: de trend gebruikt alleen de balans van ${currentYear}. Voeg de bemesting en oogsten van eerdere jaren toe voor een gemiddelde balans over de vruchtwisseling.`
+        : `Voor ${formatYears(yearsWithoutData)} zijn geen bemesting en oogst geregistreerd: deze jaren tellen niet mee in de gemiddelde balans. Voeg de bemesting en oogsten van die jaren toe voor een betere balans op lange termijn.`,
+    )
+  }
   const unfertilized = years.filter((y) => !y.hasFertilizers).map((y) => y.year)
   if (unfertilized.length > 0) {
     longTermWarnings.push(
-      `Voor ${formatYears(unfertilized)} is geen bemesting geregistreerd: daarvoor is de gemiddelde bemesting van de andere jaren gebruikt. Voeg de bemesting van eerdere jaren toe voor een beter saldo op lange termijn.`,
+      `Voor ${formatYears(unfertilized)} is geen bemesting geregistreerd: daarvoor is de gemiddelde bemesting van de andere jaren gebruikt. Voeg de bemesting van eerdere jaren toe voor een betere balans op lange termijn.`,
     )
   }
   if (missingDefaults.length > 0) {
     longTermWarnings.push(
-      `Geen standaardopbrengst of fosfaatgehalte bekend voor ${[...new Set(missingDefaults)].join(", ")}: voeg de oogst toe voor een beter saldo op lange termijn.`,
+      `Geen standaardopbrengst of fosfaatgehalte bekend voor ${[...new Set(missingDefaults)].join(", ")}: voeg de oogst toe voor een betere balans op lange termijn.`,
     )
   }
   const long_term: PhosphateLongTermBalance = {
     balance: longTermBalance.toNumber(),
+    fertilizers: longTermFertilizers.toNumber(),
     leaching: calculatePhosphateLeaching(longTermBalance, saturation, threshold).total,
     years: years.map((y) => y.year).sort((a, b) => a - b),
     fertilizer_years: fertilizedYears.map((y) => y.year).sort((a, b) => a - b),
@@ -554,7 +605,8 @@ export const getPhosphateBalanceField = withCalculationCache(
 
 /**
  * Aggregates field results to the farm: the area-weighted average per ha of supply, removal,
- * balance and leaching. Buffer strips and fields whose balance could not be calculated are excluded.
+ * balance and leaching, and the area per verdict of `assessPhosphateStatus`. Buffer strips, nature
+ * and landscape elements (`exclusion`) and fields whose balance could not be calculated are excluded.
  *
  * @param fields - The results per field.
  * @param fieldErrorMessages - The error messages of the fields that failed.
@@ -577,12 +629,24 @@ export function calculatePhosphateBalanceFieldsToFarm(
           .reduce((a, f) => a.add(new Decimal(pick(f.balance)).times(f.b_area)), new Decimal(0))
           .dividedBy(area)
           .toNumber()
+  const status_area: PhosphateBalance["status_area"] = {
+    adjust: { area: 0, count: 0 },
+    attention: { area: 0, count: 0 },
+    good: { area: 0, count: 0 },
+    unknown: { area: 0, count: 0 },
+  }
+  for (const f of counted) {
+    const { verdict } = assessPhosphateStatus(f.balance)
+    status_area[verdict].area += f.b_area
+    status_area[verdict].count += 1
+  }
   return {
     balance: weighted((f) => f.balance),
     supply: weighted((f) => f.supply.total),
     removal: weighted((f) => f.removal.total),
     leaching: weighted((f) => f.leaching.total),
     long_term_balance: weighted((f) => f.long_term.balance),
+    status_area,
     terms: {
       supply: {
         mineral: weighted((f) => f.supply.fertilizers.mineral.total),
@@ -605,7 +669,8 @@ export function calculatePhosphateBalanceFieldsToFarm(
 
 /**
  * Calculates the phosphate balance of a farm as the area-weighted average per ha of its fields.
- * Buffer strips are excluded from the farm average. Fields are calculated in batches of 50 with the
+ * Buffer strips, nature and landscape elements are not calculated (`exclusion`, see
+ * `getPhosphateFieldExclusion`) and not part of the farm average. Fields are calculated in batches of 50 with the
  * cached `getPhosphateBalanceField`; a failing field is reported in `fields[].errorMessage` instead
  * of failing the farm.
  *
@@ -634,6 +699,8 @@ export async function calculatePhosphateBalance(
           b_area: fieldInput.field.b_area ?? 0,
           b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
         }
+        const exclusion = getPhosphateFieldExclusion(fieldInput, input.timeFrame)
+        if (exclusion) return { ...base, exclusion }
         try {
           const history = (input.history ?? []).flatMap((year) => {
             const past = year.fields.find((f) => f.field.b_id === fieldInput.field.b_id)

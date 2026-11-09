@@ -9,7 +9,8 @@
  * ```
  *
  * Besides the norms, nitrogen balance, dose and nutrient advice functions, it contains the pure
- * indicator helpers: scores, area-weighted aggregation and measure options.
+ * indicator helpers (scores, area-weighted aggregation and measure options) and the status
+ * assessment of the phosphate balance.
  *
  * Everything exported here is also exported from the main entry point.
  *
@@ -33,6 +34,18 @@ export type {
   NitrogenBalanceFieldResultNumeric,
   NitrogenBalanceNumeric,
 } from "./balance/nitrogen/types"
+export {
+  assessPhosphateStatus,
+  PHOSPHATE_STATUS_RULES,
+  PHOSPHATE_VERDICT_ORDER,
+} from "./balance/phosphate/status"
+export type {
+  PhosphateBalanceField,
+  PhosphateStatus,
+  PhosphateVerdict,
+  ValueWithRange,
+  YearsClass,
+} from "./balance/phosphate/types"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export type {

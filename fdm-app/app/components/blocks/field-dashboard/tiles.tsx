@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import { PHOSPHATE_VERDICT_TEXT } from "~/components/blocks/balance/phosphate-format"
 import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
@@ -707,24 +708,16 @@ export function FieldDashboardOrganicMatterBalanceTile({
   )
 }
 
-/** Dutch label and colours of the phosphate trend status (same rule as the balance pages). */
+/** Colours of the phosphate verdict (same rule as the balance pages); the label is always shown. */
 const PHOSPHATE_STATUS_BADGE = {
-  on_track: {
-    label: "Op koers",
-    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-  },
-  off_track: {
-    label: "Niet op koers",
-    className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  },
-  unknown: {
-    label: "Verzadiging onbekend",
-    className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  },
+  good: "bg-emerald-100 text-emerald-800",
+  attention: "bg-amber-100 text-amber-800",
+  adjust: "bg-red-100 text-red-800",
+  unknown: "bg-muted text-muted-foreground",
 } as const
 
 /**
- * Phosphate balance tile: the saldo, whether it fits the PSD aim, the PSD now and its threshold, the
+ * Phosphate balance tile: the saldo, the verdict and aim of the soil phosphorus status, the PSD now and its threshold, the
  * years until the threshold is crossed (as a class) and whether the PSD is measured or estimated.
  */
 export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDashboardTileProps) {
@@ -738,7 +731,8 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
       >
         {(result) =>
           renderAsyncState(tile.title, tile.detailHref, result, (data) => {
-            const badge = PHOSPHATE_STATUS_BADGE[data.status]
+            const badgeClass = PHOSPHATE_STATUS_BADGE[data.status]
+            const badgeText = PHOSPHATE_VERDICT_TEXT[data.status]
             return (
               <FieldDashboardTile
                 title={tile.title}
@@ -747,18 +741,20 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
-                      badge.className,
+                      badgeClass,
                     )}
+                    title={badgeText.description}
                   >
-                    {data.status === "on_track" ? <CheckCircle2 className="size-3.5" /> : null}
-                    {badge.label}
+                    {data.status === "good" ? <CheckCircle2 className="size-3.5" /> : null}
+                    {badgeText.label}
                   </span>
                 }
               >
                 <div className="space-y-4">
                   <div>
                     <p className="text-3xl font-semibold">{Math.round(data.balance)}</p>
-                    <p className="text-muted-foreground text-sm">Saldo · {data.unit}</p>
+                    <p className="text-muted-foreground text-sm">Balans in {data.unit}</p>
+                    <p className="text-muted-foreground text-sm">{data.aim}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg border p-3">

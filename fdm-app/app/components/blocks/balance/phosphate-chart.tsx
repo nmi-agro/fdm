@@ -142,6 +142,10 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
 
   const chartData: Record<string, string | number> = { name: "Balans" }
   for (const segment of segments.values()) chartData[segment.key] = segment.value
+  // An empty side (e.g. no supply) still gets its own bar of 0, so the chart always shows supply
+  // and removal as two bars and the remaining bar keeps its size
+  if (supply.length === 0) chartData.supply_empty = 0
+  if (removal.length === 0) chartData.removal_empty = 0
 
   const presentTerms = new Set([...segments.values()].map((s) => s.term))
   const legend = (Object.keys(TERMS) as Term[]).filter((term) => presentTerms.has(term))
@@ -176,7 +180,11 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
     })
 
   return (
-    <ChartContainer config={chartConfig} onMouseLeave={() => setFocus(undefined)}>
+    <ChartContainer
+      config={chartConfig}
+      className="aspect-auto h-44 w-full"
+      onMouseLeave={() => setFocus(undefined)}
+    >
       <BarChart accessibilityLayer data={[chartData]} layout="vertical" margin={{ left: -20 }}>
         <XAxis type="number" />
         <YAxis
@@ -232,14 +240,18 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
             </div>
           }
         />
+        {supply.length === 0 ? <Bar dataKey="supply_empty" stackId="supply" fill="none" /> : null}
         {renderBar("supply", supply)}
+        {removal.length === 0 ? (
+          <Bar dataKey="removal_empty" stackId="removal" fill="none" />
+        ) : null}
         {renderBar("removal", removal)}
         <ZIndexLayer zIndex={2000}>
           {focus && (
             <use
               href={`#${svgId}_${focus}`}
               fill="none"
-              stroke="black"
+              stroke="var(--foreground)"
               strokeWidth={5}
               style={{ pointerEvents: "none" }}
             />
