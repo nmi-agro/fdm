@@ -74,7 +74,7 @@ To run them locally:
 
 4. Run a project, for example `pnpm --filter @nmi-agro/fdm-app screenshots`. Drop and recreate the database before the next run.
 
-Starting the server can take a few minutes. To try changes quickly, keep the server running in a second terminal (`pnpm exec dotenvx run -f .env.e2e -- sh -c "node ./app/lib/fdm-migrate.server.js && node ./server.js"`, with the environment that `playwright.config.ts` gives the app (`appEnv`)). Playwright reuses it. After the first run, set `E2E_REUSE_SEED=1` to keep the seeded farm, and add `--grep <id>` to capture a single screenshot.
+Starting the server can take a few minutes. To try changes quickly, keep the server running in a second terminal (`pnpm exec dotenvx run -f .env.e2e -- sh -c "node ./app/lib/fdm-migrate.server.js && node ./server.js"`, with the environment that `playwright.config.ts` gives the app (`appEnv`)). Playwright reuses it. After the first run, set `E2E_REUSE_SEED=1` to keep the seeded farm, and add `--grep <id>` to capture a single screenshot. Every run signs in once, and the app allows 5 sign-ins per 15 minutes; after that the setup fails with "Te veel pogingen" until the window has passed.
 
 ## Key Functionalities
 

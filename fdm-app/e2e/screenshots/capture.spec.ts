@@ -15,7 +15,7 @@ import { loadManualPagesFromDisk } from "../../app/lib/manual/load-from-disk.ser
 import { collectScreenshotIds, compareScreenshotIds } from "../../app/lib/manual/screenshot-ids"
 import { APP_ROOT, BASE_URL } from "../support/env"
 import { saveScreenshot } from "./images"
-import { DUMMY_PDF, mockSoilReader, SOIL_REPORT_FILES } from "./mocks"
+import { DUMMY_PDF, fixGreeting, mockSoilReader, SOIL_REPORT_FILES } from "./mocks"
 import { DEMO_FARM_FILE, RESULTS_DIR, SCREENSHOTS_DIR, SIGNED_OUT_STATE_FILE } from "./paths"
 
 /** Texts of the app's error pages. A capture that shows one of them fails. */
@@ -106,6 +106,7 @@ async function capture(page: Page, id: string, definition: CaptureDefinition): P
   })
 
   if (definition.viewport) await page.setViewportSize(definition.viewport)
+  await fixGreeting(page)
   if (definition.mock === "soil-reader") await mockSoilReader(page, getDemoFarm())
   await page.clock.setFixedTime(runStart)
 
@@ -119,6 +120,10 @@ async function capture(page: Page, id: string, definition: CaptureDefinition): P
   await page.addStyleTag({ content: STILL_CSS })
 
   await expect(locate(page, definition.ready)).toBeVisible()
+  // Only now, after hydration: a clock that differs from the server's breaks hydration. The steps
+  // then open the page that marks today with a client-side navigation.
+  if (definition.clock)
+    await page.clock.setFixedTime(new Date(resolvePlaceholders(definition.clock)))
   for (const step of definition.steps ?? []) {
     if ("click" in step) await locate(page, step.click).click()
     else if ("hover" in step) await locate(page, step.hover).hover()

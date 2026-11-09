@@ -47,6 +47,14 @@ describe("manual screenshots", () => {
     expect(invalid).toEqual([])
   })
 
+  it("sets the browser clock to a valid moment", () => {
+    const invalid = Object.entries(definitions)
+      .filter(([, d]) => d.clock !== undefined)
+      .filter(([, d]) => Number.isNaN(new Date(d.clock?.replace("{year}", "2026") ?? "").getTime()))
+      .map(([id]) => id)
+    expect(invalid).toEqual([])
+  })
+
   it("only commits images that the manual uses, each listed in the manifest", () => {
     if (!existsSync(screenshotsDir)) return
     const images = readdirSync(screenshotsDir)

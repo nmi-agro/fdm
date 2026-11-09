@@ -9,6 +9,7 @@ import type { FeatureCollection, Polygon } from "geojson"
 import { readFileSync } from "node:fs"
 import type { DemoFarmIds, DemoFieldKey } from "../seed/demo-farm"
 import { samplingPoints } from "../seed/sampling"
+import { BASE_URL } from "../support/env"
 
 /** The names of the mocks that capture definitions can use. */
 export type CaptureMock = "soil-reader"
@@ -131,4 +132,30 @@ export async function mockSoilReader(page: Page, ids: DemoFarmIds): Promise<void
       body: `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`,
     }),
   )
+}
+
+/** The greetings of the farm overview, which the server picks by the time of day. */
+const GREETING = /Goede(?:nacht|morgen|middag|navond)/g
+
+/**
+ * Makes every page show the afternoon greeting, as if the server rendered it at 14:00. The server
+ * picks the greeting from its own clock, which the run cannot freeze; without this, a capture in
+ * the morning and one in the afternoon would differ.
+ *
+ * It rewrites the server-rendered HTML, including the loader data the browser hydrates with, so
+ * both renders agree.
+ *
+ * @param page - The page to install the rewrite on.
+ */
+export async function fixGreeting(page: Page): Promise<void> {
+  await page.route(`${BASE_URL}/**`, async (route) => {
+    if (route.request().resourceType() !== "document") return route.fallback()
+    // Redirects go back to the browser, so it ends up at the right URL.
+    const response = await route.fetch({ maxRedirects: 0 })
+    if (!(response.headers()["content-type"] ?? "").includes("text/html")) {
+      return route.fulfill({ response })
+    }
+    const body = (await response.text()).replace(GREETING, "Goedemiddag")
+    return route.fulfill({ response, body })
+  })
 }

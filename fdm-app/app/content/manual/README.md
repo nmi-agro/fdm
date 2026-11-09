@@ -82,10 +82,11 @@ Screenshots are never made by hand. A Playwright run captures them from the curr
      element: { selector: "main" }, // optional: capture one element instead of the viewport
      map: true, // optional: wait until the map has loaded its tiles
      mock: "soil-reader", // optional: made-up lab reports for the upload review (e2e/screenshots/mocks.ts)
+     clock: "{year}-05-15T12:00:00+02:00", // optional: a fixed "today", for pages that mark it (see below)
    },
    ```
 
-   Choose a `ready` element that only appears when the page loaded correctly, so an error or empty state never ends up in the manual. Field keys are in `fdm-app/e2e/seed/demo-farm.ts`; extend the seed (`e2e/seed/index.ts`) when a page needs data that the demo farm lacks.
+   Choose a `ready` element that only appears when the page loaded correctly, so an error or empty state never ends up in the manual. Anything that depends on the moment of the run must be fixed, or the image changes on every run. The browser clock stops at the start of the run; a page that marks today, such as the timeline, needs a `clock` and must be opened through the menu (`steps`), because the fixed clock only applies after the first page has loaded. The time-of-day greeting is always "Goedemiddag". Field keys are in `fdm-app/e2e/seed/demo-farm.ts`; extend the seed (`e2e/seed/index.ts`) when a page needs data that the demo farm lacks.
 
 3. `pnpm --filter @nmi-agro/fdm-app test` checks that every id has a definition and every definition is used. The capture run checks it again before it starts.
 

@@ -40,6 +40,10 @@ Voor pH en organische stof gebruikt {{appName}} de meest recente [bodemanalyse](
 3. Beoordeel de kenmerken, één per stap. Bij elk kenmerk zie je **Wat beoordeel je?**, de **Werkwijze** en een **Fototip**. Klik onder **Kies de score** op de beschrijving die het best past en ga met **Volgende** verder. Met **Terug** ga je een stap terug.
 4. Controleer de score en klik op **Bevestigen en opslaan**.
 
+![De eerste stap van een nieuwe meting: de datum, de labanalyse voor pH en organische stof en foto's toevoegen](screenshot:bcs-meting-starten)
+
+![Een kenmerk scoren: links wat je beoordeelt en hoe, rechts de scores om uit te kiezen](screenshot:bcs-kenmerk-scoren)
+
 Je hoeft niet alles in te vullen: één kenmerk is genoeg om op te slaan. Houd er wel rekening mee dat een kenmerk dat je overslaat als 0 telt in de score. Bij een foto kun je een notitie of tekening plaatsen, bijvoorbeeld om een verdichte laag aan te wijzen.
 
 ## De negen kenmerken {#kenmerken}
@@ -91,6 +95,10 @@ De totaalscore is nooit lager dan 0. Bij 40 punten of meer zit je op de maximale
 
 In het **Overzicht** van een meting zie je de score, het percentage van de maximale score en de deelscores per onderdeel. Kenmerken die punten kosten, staan daar met een minteken.
 
+![Het overzicht van een meting: de score, het oordeel en de deelscores per onderdeel](screenshot:bcs-overzicht)
+
 ## Bekijken en aanpassen {#bekijken-en-aanpassen}
+
+![De metingen van een perceel, elk met de score en het oordeel](screenshot:bcs-metingen)
 
 Onder **BodemConditieScore** op de perceelpagina staan al je metingen. Open een meting om de score, de deelscores en de foto's met notities te zien. Met **Bewerken** pas je de datum, de scores of de foto's aan en klik je op **Wijzigingen opslaan**. Wil je een score weer leeg maken, klik dan nog een keer op de gekozen score. Met **Verwijderen** haal je een meting weg.

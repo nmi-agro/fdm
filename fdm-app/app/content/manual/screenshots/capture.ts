@@ -68,10 +68,15 @@ export const captures = {
     ready: { text: "Ander laboratorium" },
   },
   tijdlijn: {
-    route: "/farm/{farm}/{year}/timeline",
-    ready: { text: "Maïsakker" },
-    // The quarterly view shows the whole year.
+    // Starts on the dashboard and opens the timeline from the menu, so the browser draws it with
+    // the fixed clock; otherwise the "Vandaag" line would move every day.
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-05-15T12:00:00+02:00",
     steps: [
+      { click: { role: "link", name: "Tijdlijn" } },
+      { waitFor: { text: "Maïsakker" } },
+      // The quarterly view shows the whole year.
       { click: { text: "Maandelijks", exact: true } },
       { click: { role: "option", name: "Kwartaal" } },
     ],
@@ -157,6 +162,8 @@ export const captures = {
   "atlas-hoogtekaart": {
     route: "/farm/{farm}/{year}/atlas/elevation",
     ready: { selector: ".maplibregl-canvas" },
+    // The legend shows its default range until the elevation data has loaded.
+    steps: [{ waitForHidden: { text: "-5.0m", exact: true } }],
     map: true,
   },
   "balans-organische-stof": {
@@ -198,6 +205,37 @@ export const captures = {
     route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}/soil",
     ready: { text: "Gemiddelde van 2 zones" },
     map: true,
+  },
+  // BodemConditieScore: the Achterweide has two assessments, without photos.
+  "bcs-metingen": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs",
+    ready: { text: "Nieuwe meting toevoegen" },
+  },
+  "bcs-meting-starten": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs/new",
+    ready: { text: "pH en organische stof", exact: true },
+    // The date picker starts at today; a fixed date keeps the image the same between runs.
+    steps: [{ fill: { placeholder: "Kies een datum" }, value: "15-04-{year}" }, { press: "Tab" }],
+  },
+  "bcs-kenmerk-scoren": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs/new",
+    ready: { text: "pH en organische stof", exact: true },
+    steps: [
+      { click: { role: "button", name: "Volgende" } },
+      { waitFor: { text: "Wat beoordeel je?" } },
+      { click: { selector: 'button:has(span:text-is("Goed"))' } },
+    ],
+  },
+  "bcs-overzicht": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs",
+    ready: { text: "Nieuwe meting toevoegen" },
+    // The newest assessment is at the top of the list.
+    steps: [
+      { click: { selector: 'a[href*="/bcs/"]:not([href$="/new"])' } },
+      { waitFor: { role: "link", name: "Bewerken" } },
+    ],
+    // The partial scores run below the fold.
+    fullPage: true,
   },
   "atlas-bodemanalyses": {
     route: "/farm/{farm}/{year}/atlas/soil-analysis",
