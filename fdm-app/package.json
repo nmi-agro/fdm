@@ -13,10 +13,14 @@
     "db:migrate": "node ./app/lib/fdm-migrate.server.js",
     "check-types": "react-router typegen && tsc --noEmit",
     "lint": "oxlint --type-aware .",
-    "test": "vitest run",
-    "test-coverage": "vitest run --coverage",
+    "test": "dotenvx run -q -o -f .env.test --ignore=MISSING_ENV_FILE -- vitest run",
+    "test-coverage": "vitest run --project unit --coverage",
+    "test-coverage:all": "dotenvx run -q -o -f .env.test --ignore=MISSING_ENV_FILE -- vitest run --coverage",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "dotenvx run -q -o -f .env.test --ignore=MISSING_ENV_FILE -- vitest run --project integration",
+    "e2e": "dotenvx run -q -f .env.e2e --ignore=MISSING_ENV_FILE -e E2E_SUITE=smoke -- playwright test",
     "e2e:install": "playwright install --with-deps chromium",
-    "screenshots": "dotenvx run -f .env.e2e -- playwright test --project=screenshots"
+    "screenshots": "dotenvx run -q -f .env.e2e --ignore=MISSING_ENV_FILE -e E2E_SUITE=screenshots -- playwright test --project=screenshots"
   },
   "dependencies": {
     "@better-auth/api-key": "catalog:",
