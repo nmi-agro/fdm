@@ -41,7 +41,7 @@ export const helpTargets = {
   bouwplan: { kind: "chapter", slug: "bouwplan" },
   bodem: { kind: "chapter", slug: "bodem" },
   "bodemanalyses-uploaden": { kind: "chapter", slug: "bodem", anchor: "bodemanalyses-uploaden" },
-  bodemconditiescore: { kind: "chapter", slug: "bodem", anchor: "bodemconditiescore" },
+  bodemconditiescore: { kind: "chapter", slug: "bodemconditiescore" },
   meststoffen: { kind: "chapter", slug: "bemesting", anchor: "meststoffen" },
   bemesting: { kind: "chapter", slug: "bemesting" },
   tijdlijn: { kind: "chapter", slug: "tijdlijn" },
@@ -94,7 +94,7 @@ export interface HelpHandle {
  * Returns the URL of a help target.
  *
  * @param id - The help target.
- * @returns For example `/manual/bodem#bodemconditiescore`.
+ * @returns For example `/manual/bodem#bodemanalyses-uploaden`.
  */
 export function getHelpHref(id: HelpTargetId): string {
   const target: HelpTarget = helpTargets[id]

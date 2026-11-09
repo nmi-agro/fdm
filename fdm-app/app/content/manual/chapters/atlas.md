@@ -2,7 +2,7 @@
 title: Atlas
 description: Bekijk je eigen percelen en die van heel Nederland op de kaart, met gewashistorie, bodemkaart, hoogtekaart en bodemkwaliteit.
 section: Gegevens vastleggen
-order: 6
+order: 7
 inApp:
   - Atlas
 routes:

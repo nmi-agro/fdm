@@ -193,7 +193,7 @@ describe("help targets", () => {
   })
 
   it("build hrefs with the anchor", () => {
-    expect(getHelpHref("bodemconditiescore")).toBe("/manual/bodem#bodemconditiescore")
+    expect(getHelpHref("bodemanalyses-uploaden")).toBe("/manual/bodem#bodemanalyses-uploaden")
     expect(getHelpHref("achtergrond-stikstofbalans")).toBe("/manual/background/stikstofbalans")
   })
 })

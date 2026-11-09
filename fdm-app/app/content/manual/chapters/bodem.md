@@ -1,6 +1,6 @@
 ---
 title: Bodem
-description: Upload je labrapporten in één keer en laat ze automatisch aan je percelen koppelen, of voeg één analyse toe. Plus de BodemConditieScore.
+description: Upload je labrapporten in één keer en koppel ze automatisch aan je percelen, of voeg één analyse toe.
 section: Gegevens vastleggen
 order: 3
 inApp:
@@ -8,23 +8,21 @@ inApp:
   - Bodem
 routes:
   - farm.$b_id_farm.$calendar.field.$b_id.soil*
-  - farm.$b_id_farm.$calendar.field.$b_id.bcs*
   - farm.$b_id_farm.soil-analysis.bulk.tsx
   - farm.create.$b_id_farm.$calendar.fields_.$b_id.soil-analysis.bulk.tsx
 watch:
   - fdm-app/app/components/blocks/soil/**
-  - fdm-app/app/components/blocks/soil-visual/**
   - fdm-calculator/src/soilreader/**
 keywords:
   - bodemanalyse
   - labrapport uploaden
   - bodemanalyses PDF koppelen
   - BodemSchat
-  - BodemConditieScore
   - Nmin
 related:
   - background/bodemanalyse
   - bodemkwaliteit
+  - bodemconditiescore
 ---
 
 Een goede bodemanalyse is de basis voor bijna elke berekening in {{appName}}: de balansen, het bemestingsadvies, de fosfaatnorm en de bodemindicatoren. Heb je labrapporten als PDF? Dan hoef je meestal niets over te typen.
@@ -93,15 +91,4 @@ Bij handmatig invoeren zijn **Laboratorium**, **Datum** en **Bemonsterde laag (o
 
 Op de pagina **Bodem** zie je voor elke parameter de meest recente waarde, en rechts de lijst met al je analyses. Daar kun je een analyse bekijken, aanpassen, verwijderen of de oorspronkelijke PDF downloaden.
 
-## BodemConditieScore {#bodemconditiescore}
-
-Met de BodemConditieScore (BCS) beoordeel je de bodem in het veld, met een spade en je ogen. {{appName}} leidt je er stap voor stap doorheen.
-
-1. Ga op de perceelpagina naar **BodemConditieScore** en klik op **Nieuwe meting toevoegen**.
-2. Vul de datum in en maak eventueel foto's, ook direct met de camera van je telefoon.
-3. Beoordeel negen kenmerken, één per stap. Bij elk kenmerk staat wat je beoordeelt, hoe je dat doet en een fototip.
-   - Gewasbedekking, beworteling, verdichting ondergrond, regenwormen, bodemstructuur en gekleurde vlekken: **Slecht**, **Matig** of **Goed**.
-   - Plasvorming, scheuren en spoorvorming: **Geen**, **Enig** of **Veel**.
-4. Controleer de score en klik op **Bevestigen en opslaan**.
-
-Je hoeft niet alles in te vullen; één kenmerk is genoeg om op te slaan. Bij een foto kun je een notitie of tekening plaatsen, bijvoorbeeld om een verdichte laag aan te wijzen. Achteraf aanpassen kan met **Bewerken**. De BCS wordt ook gebruikt bij de berekening van de [bodemindicatoren](/manual/bodemkwaliteit).
+Wil je ook een bodemkuil of profiel in het veld visueel beoordelen? Dat doe je met de [BodemConditieScore](/manual/bodemconditiescore).

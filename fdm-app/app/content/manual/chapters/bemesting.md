@@ -2,7 +2,7 @@
 title: Meststoffen en bemesting
 description: Voer bemestingen in en zie direct wat ze doen voor je gebruiksruimte, het bemestingsadvies en de stikstofbalans, ook met je eigen mestanalyse.
 section: Gegevens vastleggen
-order: 4
+order: 5
 inApp:
   - Meststoffen
 routes:

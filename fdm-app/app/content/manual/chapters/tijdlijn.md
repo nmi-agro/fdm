@@ -2,7 +2,7 @@
 title: Tijdlijn
 description: Zie het hele jaar van je bedrijf in één beeld en pas gewassen, bemestingen en oogsten direct aan door te klikken en te slepen.
 section: Gegevens vastleggen
-order: 5
+order: 6
 inApp:
   - Tijdlijn
 routes:

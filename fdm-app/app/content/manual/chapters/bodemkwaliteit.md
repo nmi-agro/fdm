@@ -54,6 +54,6 @@ Neem je al maatregelen om je bodem te verbeteren? Leg ze dan vast onder **Maatre
 
 ## Goed om te weten {#goed-om-te-weten}
 
-BLN3 is nog in ontwikkeling. De scores en de lijst met maatregelen zijn nog niet definitief. Voor de berekening is een bodemanalyse nodig; de BodemConditieScore wordt meegenomen als je die hebt ingevuld. Bufferstroken en natuurpercelen krijgen geen score.
+BLN3 is nog in ontwikkeling. De scores en de lijst met maatregelen zijn nog niet definitief. Voor de berekening is een bodemanalyse nodig; de [BodemConditieScore](/manual/bodemconditiescore) wordt meegenomen als je die hebt ingevuld. Bufferstroken en natuurpercelen krijgen geen score.
 
 Voor organisaties is er een overzicht van de indicatoren en maatregelen over alle bedrijven heen, met een kaart van de scores per perceel.
