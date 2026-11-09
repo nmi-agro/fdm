@@ -392,10 +392,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
     // Get the timeframe from calendar store
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
+    // Number new fields after the highest "Perceel N" of the farm in any year, so a new field does
+    // not get the name of a field that is no longer in use
     let firstFieldIndex: number
     try {
-      firstFieldIndex =
-        (await getFields(fdm, session.principal_id, b_id_farm, timeframe)).length + 1
+      const allFields = await getFields(fdm, session.principal_id, b_id_farm)
+      const highestNumber = allFields.reduce((highest, field) => {
+        const match = /^Perceel (\d+)$/.exec(field.b_name ?? "")
+        return match ? Math.max(highest, Number(match[1])) : highest
+      }, 0)
+      firstFieldIndex = Math.max(highestNumber, allFields.length) + 1
     } catch (e) {
       console.warn(e)
       firstFieldIndex = 1

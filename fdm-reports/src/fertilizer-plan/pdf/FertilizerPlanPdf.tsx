@@ -497,6 +497,11 @@ export const FertilizerPlanPdf = ({ data }: { data: FertilizerPlanData }) => (
           <View style={{ width: "50%", paddingRight: 5 }}>
             <SectionHeader>Gebruiksruimte (gepland / ruimte)</SectionHeader>
             <PdfCard style={{ padding: 8 }}>
+              {data.normsProvisional ? (
+                <Text style={{ fontSize: 7, color: "#64748b", marginBottom: 4 }}>
+                  {`Voorlopig, gebaseerd op normen ${data.normsProvisional.normsYear}: voor ${data.year} zijn nog geen gebruiksnormen gepubliceerd.`}
+                </Text>
+              ) : null}
               <View style={{ paddingVertical: 2 }}>
                 <UsageBar
                   label="Stikstof werkzaam (N-w)"

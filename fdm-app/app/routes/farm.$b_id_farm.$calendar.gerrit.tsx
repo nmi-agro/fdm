@@ -1,6 +1,7 @@
 import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { resolveNormsYear } from "@nmi-agro/fdm-calculator"
 import {
   addFertilizerApplication,
   type Fertilizer,
@@ -133,6 +134,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const gerritUsage = await getGerritUsage(session.principal_id)
 
+  // Years without own norms (planned ahead) use the newest norms provisionally
+  let norms: { year: string | null; provisional: boolean } = { year: null, provisional: false }
+  try {
+    const resolution = resolveNormsYear("NL", Number.parseInt(calendar, 10))
+    norms = { year: resolution.normsYear, provisional: resolution.provisional }
+  } catch {
+    // Year before the first norm year: Gerrit is not available
+  }
+
   return {
     farm: {
       b_id_farm: farm.b_id_farm,
@@ -140,6 +150,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     },
     farmOptions,
     calendar,
+    norms,
     defaultStrategies: {
       isOrganic: isOrganicFarm,
       fillManureSpace: !isOrganicFarm,
@@ -264,8 +275,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
       })
 
+      // Return to the season planning wizard when Gerrit was opened from it
+      const returnTo = new URL(request.url).searchParams.get("returnTo")
+      const wizardPath =
+        returnTo?.startsWith(`/farm/${b_id_farm}/plan-next/`) &&
+        !returnTo.includes("//") &&
+        !returnTo.includes("\\")
+          ? returnTo
+          : undefined
       return redirectWithSuccess(
-        `/farm/${b_id_farm}/${calendar}/rotation`,
+        wizardPath ?? `/farm/${b_id_farm}/${calendar}/rotation`,
         "Gerrit's bemestingsplan is succesvol toegepast!",
       )
     } catch (e: unknown) {
@@ -279,7 +298,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function GerritApp() {
-  const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
+  const { farm, farmOptions, defaultStrategies, calendar, norms, fertilizerOptions, gerritUsage } =
     useLoaderData<typeof loader>()
   const navigation = useNavigation()
   const { capture } = useAnalytics()
@@ -294,8 +313,7 @@ export default function GerritApp() {
     disabled: false,
   }
 
-  const supportedYears = ["2025", "2026"]
-  const isSupportedYear = supportedYears.includes(calendar)
+  const isSupportedYear = norms.year !== null
   // Gerrit is enabled by default; only an explicit `false` flag disables it. Until hydration has
   // finished, keep it enabled so the browser renders the same markup as the server, which has no
   // feature flags.
@@ -679,11 +697,11 @@ export default function GerritApp() {
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-8">
                 <Bot className="mx-auto mb-4 h-12 w-12 text-amber-600" />
                 <h2 className="mb-2 text-2xl font-bold text-amber-900">
-                  Gerrit is alleen beschikbaar voor 2025 en 2026
+                  Gerrit is beschikbaar vanaf 2025
                 </h2>
                 <p className="mb-6 text-amber-800">
-                  Het AI-bemestingsplan van Gerrit kan momenteel alleen worden gegenereerd voor 2025
-                  en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
+                  Het AI-bemestingsplan van Gerrit kan worden gegenereerd voor 2025 en later.
+                  Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
                 <div className="flex justify-center gap-4">
                   <Button asChild size="lg">
@@ -733,6 +751,12 @@ export default function GerritApp() {
                   Gerrit is een AI-systeem. Uitkomsten zijn adviezen en dienen altijd door de teler
                   of adviseur te worden gecontroleerd voordat ze in de praktijk worden toegepast.
                 </p>
+                {norms.provisional && (
+                  <p className="text-xs leading-relaxed text-amber-700">
+                    Voor {calendar} zijn nog geen gebruiksnormen gepubliceerd. Gerrit rekent
+                    voorlopig met de gebruiksnormen van {norms.year}.
+                  </p>
+                )}
                 {gerritUsage.limit !== null && (
                   <p className="text-xs font-medium text-amber-700">
                     Gebruikt vandaag:{" "}

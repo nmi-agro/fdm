@@ -27,6 +27,11 @@ export interface FertilizerPlanData {
     kvk?: string
   }
   year: string
+  /**
+   * Set when the plan year has no own norms yet and the norms of an earlier year are used
+   * provisionally.
+   */
+  normsProvisional?: { normsYear: string }
   totalArea: number
   productiveArea: number
   norms: {

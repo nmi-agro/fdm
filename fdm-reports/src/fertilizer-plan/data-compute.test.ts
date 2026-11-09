@@ -16,8 +16,8 @@ const core = vi.hoisted(() => ({
 }))
 const calculator = vi.hoisted(() => ({
   calculateDose: vi.fn(),
-  createFunctionsForFertilizerApplicationFilling: vi.fn(),
-  createFunctionsForNorms: vi.fn(),
+  createFunctionsForFertilizerApplicationFillingForYear: vi.fn(),
+  createFunctionsForNormsForYear: vi.fn(),
   getMainCultivation: vi.fn(),
   getNutrientAdvice: vi.fn(),
   getOrganicMatterBalanceField: vi.fn(),
@@ -183,8 +183,8 @@ describe("computeFertilizerPlanData", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, "error").mockImplementation(() => {})
-    calculator.createFunctionsForNorms.mockReturnValue(normFunctions(true))
-    calculator.createFunctionsForFertilizerApplicationFilling.mockReturnValue(
+    calculator.createFunctionsForNormsForYear.mockReturnValue(normFunctions(true))
+    calculator.createFunctionsForFertilizerApplicationFillingForYear.mockReturnValue(
       fillingFunctions(true),
     )
     calculator.getMainCultivation.mockImplementation((cultivations: unknown[]) => cultivations[0])
@@ -284,7 +284,7 @@ describe("computeFertilizerPlanData", () => {
     expect(calculator.getNutrientAdvice).toHaveBeenCalledTimes(1)
     // The norm input has no derogation without a derogation status.
     const normInput =
-      calculator.createFunctionsForNorms.mock.results[0]?.value.calculateNormForNitrogen.mock
+      calculator.createFunctionsForNormsForYear.mock.results[0]?.value.calculateNormForNitrogen.mock
         .calls[0]?.[1]
     expect(normInput.farm).not.toHaveProperty("is_derogatie_bedrijf")
     expect(normInput.soilAnalysis).toEqual({ a_p_cc: 2.1, a_p_al: 40 })
@@ -295,8 +295,8 @@ describe("computeFertilizerPlanData", () => {
   })
 
   it("passes the derogation status, and handles norms without a renure norm", async () => {
-    calculator.createFunctionsForNorms.mockReturnValue(normFunctions(false))
-    calculator.createFunctionsForFertilizerApplicationFilling.mockReturnValue(
+    calculator.createFunctionsForNormsForYear.mockReturnValue(normFunctions(false))
+    calculator.createFunctionsForFertilizerApplicationFillingForYear.mockReturnValue(
       fillingFunctions(false),
     )
     const data = await computeFertilizerPlanData(
@@ -307,19 +307,34 @@ describe("computeFertilizerPlanData", () => {
     expect(data.fields[0]?.norms.renure).toBeUndefined()
     expect(data.fields[0]?.normsFilling.renure).toBeUndefined()
     const normInput =
-      calculator.createFunctionsForNorms.mock.results[0]?.value.calculateNormForNitrogen.mock
+      calculator.createFunctionsForNormsForYear.mock.results[0]?.value.calculateNormForNitrogen.mock
         .calls[0]?.[1]
     expect(normInput.farm.is_derogatie_bedrijf).toBe(true)
   })
 
-  it("has no norms outside the norm years, and keeps the field when the advice fails", async () => {
+  it("uses the newest norms provisionally for a year without own norms", async () => {
+    calculator.createFunctionsForNormsForYear.mockReturnValue(normFunctions(true))
+    calculator.createFunctionsForFertilizerApplicationFillingForYear.mockReturnValue(
+      fillingFunctions(true),
+    )
+    const data = await computeFertilizerPlanData(
+      fdm,
+      input(2027, [field("f1", { cultivations: [mainCultivation] })], null),
+      options,
+    )
+    expect(calculator.createFunctionsForNormsForYear).toHaveBeenCalledWith("NL", 2027)
+    expect(data.normsProvisional).toEqual({ normsYear: "2026" })
+    expect(data.fields[0]?.norms.nitrogen).toBeGreaterThan(0)
+  })
+
+  it("has no norms before the first norm year, and keeps the field when the advice fails", async () => {
     calculator.getNutrientAdvice.mockRejectedValue(new Error("NMI down"))
     const data = await computeFertilizerPlanData(
       fdm,
-      input(2027, [field("f1", { cultivations: [mainCultivation], b_area: null })], null),
+      input(2024, [field("f1", { cultivations: [mainCultivation], b_area: null })], null),
       options,
     )
-    expect(calculator.createFunctionsForNorms).not.toHaveBeenCalled()
+    expect(calculator.createFunctionsForNormsForYear).not.toHaveBeenCalled()
     expect(data.fields[0]).toMatchObject({
       area: 0,
       norms: { nitrogen: 0, manure: 0, phosphate: 0, renure: 0 },
@@ -327,6 +342,7 @@ describe("computeFertilizerPlanData", () => {
       advice: { d_n_req: 0 },
     })
     expect(data.omBalance).toEqual({ balance: 0, supply: 0, degradation: 0 })
+    expect(data.normsProvisional).toBeUndefined()
   })
 
   it("keeps the advice at zero when the advice has no result", async () => {
@@ -342,7 +358,7 @@ describe("computeFertilizerPlanData", () => {
   it("adds an error row when a norm fails while other norms are still running", async () => {
     // The phosphate norm fails before the nitrogen norm settles. The failure must be handled
     // per field; an unhandled rejection would stop the server process.
-    calculator.createFunctionsForNorms.mockReturnValue({
+    calculator.createFunctionsForNormsForYear.mockReturnValue({
       ...normFunctions(true),
       calculateNormForNitrogen: vi.fn(
         () => new Promise((resolve) => setTimeout(() => resolve(norm(200)), 20)),

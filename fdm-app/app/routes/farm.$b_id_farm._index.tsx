@@ -15,6 +15,7 @@ import {
   // BadgeAlert,
   // BadgeCheck,
   BookOpenText,
+  CalendarPlus,
   ChevronDown,
   ChevronUp,
   CloudDownload,
@@ -84,11 +85,12 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
-import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse, reportError } from "~/lib/error"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { getSeasonPlanEntry } from "~/lib/season-plan.server"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 
@@ -241,6 +243,24 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
 
+    // The season planning wizard is always accessible; the card shows the year and open items
+    // when they can be determined
+    let seasonPlan: { available: boolean; year?: number; complete?: boolean; openItems?: number }
+    try {
+      const entry = await getSeasonPlanEntry(fdm, session.principal_id, b_id_farm)
+      seasonPlan = entry
+        ? {
+            available: true,
+            year: entry.summary.year,
+            complete: entry.summary.complete,
+            openItems: entry.summary.openItems,
+          }
+        : { available: false }
+    } catch (error) {
+      reportError(error, { scope: "loader" })
+      seasonPlan = { available: true }
+    }
+
     // Return the farm ID and session info
     return {
       b_id_farm: b_id_farm,
@@ -257,6 +277,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
       // farmVerification,
       isRvoConfigured,
+      seasonPlan,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -589,6 +610,10 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
+                  <SeasonPlanCard
+                    b_id_farm={loaderData.b_id_farm}
+                    seasonPlan={loaderData.seasonPlan}
+                  />
                 </div>
               </div>
 
@@ -1139,5 +1164,67 @@ export default function FarmDashboardIndex() {
         </DialogContent>
       </Dialog>
     </SidebarInset>
+  )
+}
+
+/** Returns the description of the season plan card. */
+function getSeasonPlanDescription(seasonPlan: {
+  available: boolean
+  year?: number
+  complete?: boolean
+  openItems?: number
+}): string {
+  if (!seasonPlan.available) {
+    return "Voeg eerst percelen en gewassen toe om een seizoen te plannen."
+  }
+  if (seasonPlan.complete) {
+    return `Het plan voor ${seasonPlan.year} is compleet. Bekijk of pas het aan.`
+  }
+  if (seasonPlan.openItems !== undefined && seasonPlan.openItems > 0) {
+    return `Stel het seizoen samen op basis van eerdere jaren. Nog ${seasonPlan.openItems} open ${seasonPlan.openItems === 1 ? "punt" : "punten"}.`
+  }
+  return "Stel het seizoen samen op basis van eerdere jaren: percelen, gewassen, vanggewassen, maatregelen, bemesting en oogst."
+}
+
+/** Card that opens the season planning wizard. */
+function SeasonPlanCard({
+  b_id_farm,
+  seasonPlan,
+}: {
+  b_id_farm: string
+  seasonPlan: { available: boolean; year?: number; complete?: boolean; openItems?: number }
+}) {
+  const content = (
+    <Card
+      className={cn(
+        "transition-all",
+        seasonPlan.available ? "hover:shadow-md" : "text-muted-foreground opacity-70",
+      )}
+    >
+      <CardHeader>
+        <div className="flex items-center gap-4">
+          <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
+            <CalendarPlus className="h-7 w-7" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">
+              {seasonPlan.year
+                ? `Plan volgend seizoen (${seasonPlan.year})`
+                : "Plan volgend seizoen"}
+            </CardTitle>
+            <CardDescription>{getSeasonPlanDescription(seasonPlan)}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  )
+
+  if (!seasonPlan.available) {
+    return <div className="md:col-span-2">{content}</div>
+  }
+  return (
+    <NavLink to={`/farm/${b_id_farm}/plan-next`} className="md:col-span-2">
+      {content}
+    </NavLink>
   )
 }

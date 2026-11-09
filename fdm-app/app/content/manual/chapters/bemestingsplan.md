@@ -31,6 +31,8 @@ Wil je het plan op papier, of meegeven aan een teler of controleur? Maak dan een
 - per perceel een pagina met de bodem, het teeltplan, de normen, het advies en de geplande bemestingen;
 - een lijst met bufferstroken.
 
+Maak je een plan voor een jaar waarvoor de gebruiksnormen nog niet zijn gepubliceerd, bijvoorbeeld vanuit [Plan volgend seizoen](/manual/plan-volgend-seizoen#oogst-en-overzicht), dan rekent {{appName}} de gebruiksruimte voorlopig met de normen van het nieuwste jaar. Dat staat dan in de PDF vermeld. Actualiseer het plan als de nieuwe normen bekend zijn.
+
 ## Actueel houden {#actueel-houden}
 
 Verander je daarna iets aan de gegevens, dan krijgt het plan de status **Verouderd**. Klik op **Actualiseren** voor een nieuwe versie.
