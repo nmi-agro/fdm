@@ -213,6 +213,10 @@ export {
   isFieldInNatura2000Gebied,
 } from "./norms/nl/2025/value/dierlijke-mest-gebruiksnorm"
 export { getRegion, isFieldInNVGebied } from "./norms/nl/2025/value/stikstofgebruiksnorm"
+export {
+  calculateVanggewasWinterteeltKorting,
+  isVanggewas,
+} from "./norms/nl/2025/value/vanggewas-winterteelt"
 export type { NL2025NormsInput, RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"

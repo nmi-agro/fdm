@@ -1,7 +1,6 @@
 import {
   addCultivation,
   checkPermission,
-  getCultivationsFromCatalogue,
   getDefaultDatesOfCultivation,
   getSeasonPlanProposal,
   removeCultivation,
@@ -46,7 +45,11 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getCandidatePlanYears, parsePlanYear } from "~/lib/season-plan.server"
+import {
+  getCandidatePlanYears,
+  getCultivationCatalogueForPlanYear,
+  parsePlanYear,
+} from "~/lib/season-plan.server"
 
 /** Prefix of the search parameters with the source year chosen per field. */
 const SOURCE_PARAM_PREFIX = "source."
@@ -99,7 +102,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         year,
         getSourceYears(url.searchParams),
       ),
-      getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm, year),
+      getCultivationCatalogueForPlanYear(fdm, session.principal_id, b_id_farm, year),
       checkPermission(fdm, "farm", "write", b_id_farm, session.principal_id, url.pathname, false),
     ])
 

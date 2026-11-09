@@ -1,5 +1,7 @@
 import {
+  type CultivationCatalogue,
   type FdmType,
+  getCultivationsFromCatalogue,
   getSeasonPlanProgress,
   type PrincipalId,
   resolveSeasonPlanTarget,
@@ -93,4 +95,39 @@ export function parsePlanYear(value: string | undefined, availableYears: number[
 export function getCandidatePlanYears(now: Date = new Date()): number[] {
   const currentYear = Number(toFdmDateString(now).slice(0, 4))
   return [currentYear, currentYear + 1]
+}
+
+/**
+ * Returns the cultivations of the catalogues enabled for the farm that can be chosen in a year.
+ *
+ * The catalogue lists per cultivation the years in which its code is available (`b_lu_ya`). For a
+ * year that is not in the catalogue yet, such as a year planned ahead, the newest earlier year in
+ * the catalogue is used; otherwise only the few cultivations without availability years would be
+ * offered. fdm-core checks the availability of a new cultivation in the same way.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The ID of the principal.
+ * @param b_id_farm - The ID of the farm.
+ * @param year - The year that is planned.
+ * @returns The cultivations that can be chosen.
+ */
+export async function getCultivationCatalogueForPlanYear(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: string,
+  year: number,
+): Promise<CultivationCatalogue[]> {
+  const catalogue = await getCultivationsFromCatalogue(fdm, principal_id, b_id_farm)
+  let catalogueYear: number | undefined
+  for (const entry of catalogue) {
+    for (const available of entry.b_lu_ya ?? []) {
+      if (available <= year && (catalogueYear === undefined || available > catalogueYear)) {
+        catalogueYear = available
+      }
+    }
+  }
+  const selectedYear = catalogueYear ?? year
+  return catalogue.filter(
+    (entry) => !entry.b_lu_ya || entry.b_lu_ya.length === 0 || entry.b_lu_ya.includes(selectedYear),
+  )
 }
