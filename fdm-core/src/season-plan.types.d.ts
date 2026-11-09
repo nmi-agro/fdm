@@ -238,6 +238,12 @@ export interface SeasonPlanFieldProposal {
   availableSourceYears: number[]
   /** The main cultivation already recorded for the target year, if any. */
   current: SeasonPlanHistoryEntry | null
+  /**
+   * `true` when the main cultivation of the target year is the same cultivation as in the year
+   * before (for example grassland without an end date), so it continues rather than being chosen
+   * for the target year. It can still be ended and replaced.
+   */
+  continuing: boolean
   /** The proposed main cultivation, or `null` when the user has to choose. */
   suggested: SeasonPlanHistoryEntry | null
   /** Rotation warnings for the proposed (or current) main cultivation. */

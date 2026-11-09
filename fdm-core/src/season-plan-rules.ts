@@ -757,6 +757,9 @@ export function buildSeasonPlanProposal(
 
     const currentMain = getMainCultivation(cultivations, targetYear)
     const current = currentMain ? toHistoryEntry(currentMain, targetYear) : null
+    const continuing =
+      currentMain !== null &&
+      history.some((entry) => entry.year === targetYear - 1 && entry.b_lu === currentMain.b_lu)
     const crop = current ?? suggested
     const rotationWarnings =
       crop && classified.fieldType !== "permanent"
@@ -779,6 +782,7 @@ export function buildSeasonPlanProposal(
       sourceYear,
       availableSourceYears,
       current,
+      continuing,
       suggested,
       rotationWarnings,
       fertilizerTemplate,

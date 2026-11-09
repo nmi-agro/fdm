@@ -490,7 +490,12 @@ describe("buildSeasonPlanProposal", () => {
     expect(proposal.droppedFields[0].measures.expiring).toEqual([])
 
     const f2 = proposal.fields.find((f) => f.b_id === "f2")
-    expect(f2).toMatchObject({ fieldType: "permanent", sourceYear: 2026, status: "kept" })
+    expect(f2).toMatchObject({
+      fieldType: "permanent",
+      sourceYear: 2026,
+      status: "kept",
+      continuing: true,
+    })
     expect(f2?.suggested?.b_lu_catalogue).toBe("grass")
     expect(f2?.fertilizerTemplate?.applications).toEqual([
       { p_app_id: "a2", p_id: "p2", p_app_date: day(2027, 2, 20) },
@@ -562,6 +567,8 @@ describe("buildSeasonPlanProposal", () => {
     ])
     const f1 = buildSeasonPlanProposal(data, 2027).fields[0]
     expect(f1.current?.b_lu_catalogue).toBe("potato")
+    // A new cultivation for the target year, not one that continues from the year before
+    expect(f1.continuing).toBe(false)
     expect(f1.rotationWarnings).toEqual([
       { b_lu_croprotation: "potato", minYearsBetween: 3, lastYear: 2026 },
     ])

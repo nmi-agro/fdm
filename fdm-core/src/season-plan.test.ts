@@ -321,6 +321,7 @@ describe("Season plan", () => {
       expect(grassField?.history.map((h) => h.year)).toEqual([2021, 2022, 2023, 2024, 2025, 2026])
       expect(grassField?.suggested?.b_lu_catalogue).toBe(grass)
       expect(grassField?.current?.b_lu_catalogue).toBe(grass)
+      expect(grassField?.continuing).toBe(true)
       expect(grassField?.rotationWarnings).toEqual([])
     })
 
