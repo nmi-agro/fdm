@@ -9,7 +9,8 @@
  *
  * - `minimal`: two fields with a crop, harvests, fertilisation and a soil analysis; enough for
  *   smoke tests of every page.
- * - `demo`: five fields, covering every page that the user manual documents.
+ * - `demo`: five fields, with measures and soil condition scores, covering every page that the user
+ *   manual documents.
  */
 
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson"
@@ -20,6 +21,7 @@ import {
   addFertilizerApplication,
   addField,
   addHarvest,
+  addMeasure,
   addSoilAnalysis,
   createFdmAuth,
   createFdmServer,
@@ -238,6 +240,57 @@ const FIELDS: DemoField[] = [
   },
 ]
 
+/** The measures of the `demo` variant, by their id in the BLN catalogue. */
+const MEASURES: { field: DemoFieldKey; m_id: string; startYearOffset: number }[] = [
+  { field: "mais", m_id: "bln_BM200", startYearOffset: -2 }, // Emissiearm toedienen drijfmest
+  { field: "tarwe", m_id: "bln_BM213", startYearOffset: -3 }, // Niet-kerende grondbewerking
+  { field: "grasland-achter", m_id: "bln_BM231", startYearOffset: 0 }, // Geen zware machines op natte grond
+]
+
+type BcsScores = NonNullable<Parameters<typeof addSoilAnalysis>[7]>
+
+/**
+ * The soil condition score (BCS) assessments of the `demo` variant: a score of 0, 1 or 2 per
+ * visual indicator, as the app stores them. A spring assessment with some puddling and wheel
+ * ruts, and a better one after the measure against heavy machinery on wet soil.
+ */
+const BCS_ASSESSMENTS: {
+  field: DemoFieldKey
+  date: [month: number, day: number]
+  scores: BcsScores
+}[] = [
+  {
+    field: "grasland-achter",
+    date: [3, 12],
+    scores: {
+      a_cc_bcs: 2,
+      a_rd_bcs: 1,
+      a_sc_bcs: 1,
+      a_ew_bcs: 1,
+      a_ss_bcs: 1,
+      a_gs_bcs: 2,
+      a_p_bcs: 1,
+      a_c_bcs: 0,
+      a_rt_bcs: 1,
+    },
+  },
+  {
+    field: "grasland-achter",
+    date: [5, 20],
+    scores: {
+      a_cc_bcs: 2,
+      a_rd_bcs: 2,
+      a_sc_bcs: 1,
+      a_ew_bcs: 2,
+      a_ss_bcs: 2,
+      a_gs_bcs: 2,
+      a_p_bcs: 0,
+      a_c_bcs: 0,
+      a_rt_bcs: 1,
+    },
+  },
+]
+
 /**
  * Returns the outline of a demo field.
  *
@@ -249,6 +302,20 @@ function outline(key: DemoFieldKey): Polygon {
   const geometry = OUTLINES.get(key)
   if (!geometry) throw new Error(`fields.geojson has no outline for ${key}`)
   return geometry
+}
+
+/**
+ * Returns the id of a seeded demo field.
+ *
+ * @param fields - The seeded fields.
+ * @param key - The key of the field.
+ * @returns The field id.
+ * @throws When the field was not seeded.
+ */
+function fieldId(fields: DemoFarmIds["fields"], key: DemoFieldKey): string {
+  const b_id = fields[key]
+  if (!b_id) throw new Error(`The demo field ${key} was not seeded`)
+  return b_id
 }
 
 /**
@@ -419,6 +486,32 @@ export async function seedFarm(
         field.soil.depthLower,
         date(year, 1, 20),
         { ...data, b_sampling_geometry: samplingPoints(zone), b_sampling_geometry_zone: zone },
+      )
+    }
+  }
+
+  if (variant === "demo") {
+    for (const measure of MEASURES) {
+      await addMeasure(
+        fdm,
+        principal,
+        fieldId(fields, measure.field),
+        measure.m_id,
+        date(year + measure.startYearOffset, 1, 1),
+      )
+    }
+    // Stored like the app does: a soil analysis with only the visual scores, 25 cm deep.
+    for (const assessment of BCS_ASSESSMENTS) {
+      const day = date(year, assessment.date[0], assessment.date[1])
+      await addSoilAnalysis(
+        fdm,
+        principal,
+        day,
+        "other",
+        fieldId(fields, assessment.field),
+        25,
+        day,
+        assessment.scores,
       )
     }
   }
