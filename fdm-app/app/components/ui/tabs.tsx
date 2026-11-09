@@ -31,12 +31,14 @@ const tabsListVariants = cva(
 function TabsList({
   className,
   variant = "default",
+  activateOnFocus = true,
   ...props
 }: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants>) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
+      activateOnFocus={activateOnFocus}
       className={cn(tabsListVariants({ variant }), className)}
       {...props}
     />
