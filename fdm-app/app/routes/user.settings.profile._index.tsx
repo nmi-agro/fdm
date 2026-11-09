@@ -55,9 +55,10 @@ export default function UserSettingsProfile() {
               <CardTitle>Jouw gegevens</CardTitle>
               <CardDescription>Hieronder vind je jouw accountgegevens.</CardDescription>
             </div>
-            <Button asChild>
-              <NavLink to="/user/settings/profile/edit">Bijwerken</NavLink>
-            </Button>
+            <Button
+              nativeButton={false}
+              render={<NavLink to="/user/settings/profile/edit">Bijwerken</NavLink>}
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">

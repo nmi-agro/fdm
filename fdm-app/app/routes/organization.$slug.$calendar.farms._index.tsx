@@ -332,9 +332,11 @@ export default function OrganizationFarmsPage() {
           to: `/organization/${organization.slug}`,
         }}
         rightNode={
-          <Button variant="outline" asChild>
-            <NavLink to={groupsPath}>Groepen beheren</NavLink>
-          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<NavLink to={groupsPath}>Groepen beheren</NavLink>}
+          />
         }
       />
       <FarmContent>
