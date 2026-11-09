@@ -184,12 +184,15 @@ export default function FarmFieldSoilOverviewBlock() {
   }
 
   const addAnalysisButton = loaderData.fieldWritePermission ? (
-    <Button asChild>
-      <NavLink to="./analysis/new">
-        <Plus aria-hidden />
-        Bodemanalyse toevoegen
-      </NavLink>
-    </Button>
+    <Button
+      nativeButton={false}
+      render={
+        <NavLink to="./analysis/new">
+          <Plus aria-hidden />
+          Bodemanalyse toevoegen
+        </NavLink>
+      }
+    />
   ) : null
 
   return (

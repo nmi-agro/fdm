@@ -189,7 +189,7 @@ export function CultivationDetailsCard({
                   name="b_lu_variety"
                   render={({ field, fieldState }) => (
                     <Field>
-                      <FieldLabel>Variëteit</FieldLabel>
+                      <FieldLabel htmlFor={field.name}>Variëteit</FieldLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value ?? undefined}
@@ -197,7 +197,7 @@ export function CultivationDetailsCard({
                         disabled={!editable || b_lu_variety_options.length === 0}
                       >
                         <FieldContent>
-                          <SelectTrigger>
+                          <SelectTrigger id={field.name}>
                             <SelectValue
                               placeholder={
                                 b_lu_variety_options.length === 0

@@ -307,7 +307,14 @@ export default function FarmAtlasNutrientAdviceBlock() {
           controls grow to a 40 px target. */}
       <Card className="absolute top-3 right-14 left-3 z-10 shadow-md md:right-auto md:w-72">
         <CardContent className="flex flex-col gap-2 p-2">
-          <Select value={nutrient} onValueChange={setNutrient}>
+          <Select
+            value={nutrient}
+            onValueChange={(value) => {
+              if (typeof value === "string") {
+                setNutrient(value)
+              }
+            }}
+          >
             <SelectTrigger
               className="h-8 w-full text-xs pointer-coarse:h-10"
               aria-label="Kies een nutriënt"
@@ -316,7 +323,7 @@ export default function FarmAtlasNutrientAdviceBlock() {
                 ? `${nutrientDescription.name} (${nutrientDescription.symbol})`
                 : null}
             </SelectTrigger>
-            <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
+            <SelectContent className="max-h-[min(var(--available-height,100vh),calc(var(--anchor-height,0)+100*var(--spacing)))]">
               {nutrientGroups.map((group) => (
                 <SelectGroup key={group.type}>
                   <SelectLabel>{group.label}</SelectLabel>
@@ -335,12 +342,11 @@ export default function FarmAtlasNutrientAdviceBlock() {
             </SelectContent>
           </Select>
           <ToggleGroup
-            type="single"
             size="sm"
             variant="outline"
-            value={mode}
-            // Radix sends "" when the active item is clicked again; keep the current mode then.
-            onValueChange={(value) => {
+            value={[mode]}
+            // Base UI sends an empty array when the active item is clicked again; keep the current mode then.
+            onValueChange={([value]) => {
               if (isNutrientAdviceMode(value)) setMode(value)
             }}
             className="w-full"
@@ -362,16 +368,17 @@ export default function FarmAtlasNutrientAdviceBlock() {
           </p>
           {b_id_farm && b_id_farm !== "undefined" && (
             <Button
-              asChild
+              nativeButton={false}
               variant="outline"
               size="sm"
               className="h-8 w-full text-xs pointer-coarse:h-10"
-            >
-              <NavLink to={`/farm/${b_id_farm}/${calendar}/nutrient_advice`}>
-                <TableIcon className="h-3.5 w-3.5" />
-                {NUTRIENT_ADVICE_COPY.openOverview}
-              </NavLink>
-            </Button>
+              render={
+                <NavLink to={`/farm/${b_id_farm}/${calendar}/nutrient_advice`}>
+                  <TableIcon className="h-3.5 w-3.5" />
+                  {NUTRIENT_ADVICE_COPY.openOverview}
+                </NavLink>
+              }
+            />
           )}
           <p className="text-muted-foreground px-0.5 text-xs md:hidden">
             {NUTRIENT_ADVICE_COPY.desktopHint}
