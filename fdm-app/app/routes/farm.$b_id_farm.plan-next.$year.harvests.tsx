@@ -311,17 +311,22 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
               )
             : []
         if (previousHarvests.length > 0) {
-          for (const harvest of previousHarvests) {
-            if (!harvest.b_lu_harvest_date) continue
-            await addHarvest(
-              fdm,
-              session.principal_id,
-              main.b_lu,
-              shiftDateToYear(harvest.b_lu_harvest_date, year),
-              getHarvestProperties(harvest),
-            )
-            added++
-          }
+          // Copy all harvests of the cultivation together, or none of them
+          added += await fdm.transaction(async (tx) => {
+            let copied = 0
+            for (const harvest of previousHarvests) {
+              if (!harvest.b_lu_harvest_date) continue
+              await addHarvest(
+                tx,
+                session.principal_id,
+                main.b_lu,
+                shiftDateToYear(harvest.b_lu_harvest_date, year),
+                getHarvestProperties(harvest),
+              )
+              copied++
+            }
+            return copied
+          })
           continue
         }
 

@@ -202,8 +202,9 @@ export async function getSeasonPlanProposal(
  *
  * Each application keeps its fertilizer, amount (kg/ha) and method; its date is moved to the same
  * calendar date in the target year (29 February becomes 28 February in other years). Applications
- * that already exist on the target field with the same fertilizer and date are skipped, so calling
- * this function twice does not create duplicates. Applications without an amount, or with an
+ * that already exist on the target field with the same fertilizer, date, amount and method are
+ * skipped, so calling this function twice does not create duplicates, while split applications
+ * (the same fertilizer more than once on a day) are all copied. Applications without an amount, or with an
  * amount outside the range accepted by `addFertilizerApplication` (more than 0 and at most
  * `P_APP_AMOUNT_MAX` kg/ha), are not copied.
  *
@@ -287,6 +288,8 @@ export async function copyFertilizerApplications(
       const existing = await tx
         .select({
           p_id: schema.fertilizerApplication.p_id,
+          p_app_amount: schema.fertilizerApplication.p_app_amount,
+          p_app_method: schema.fertilizerApplication.p_app_method,
           p_app_date: schema.fertilizerApplication.p_app_date,
         })
         .from(schema.fertilizerApplication)
@@ -297,9 +300,21 @@ export async function copyFertilizerApplications(
             lte(schema.fertilizerApplication.p_app_date, target.end),
           ),
         )
-      const existingKeys = new Set(
-        existing.map((row) => `${row.p_id}|${row.p_app_date?.getTime()}`),
-      )
+      // Applications that existed before this call, counted per fertilizer, date, amount and
+      // method: a source application is skipped when a matching one already exists, so split
+      // applications (same fertilizer on the same day) are all copied once
+      /** Key of an application for the duplicate check. */
+      const applicationKey = (row: {
+        p_id: string
+        p_app_amount: number | null
+        p_app_method: string | null
+        p_app_date: Date | null
+      }) => `${row.p_id}|${row.p_app_date?.getTime()}|${row.p_app_amount}|${row.p_app_method}`
+      const existingCounts = new Map<string, number>()
+      for (const row of existing) {
+        const key = applicationKey(row)
+        existingCounts.set(key, (existingCounts.get(key) ?? 0) + 1)
+      }
 
       const inserted: string[] = []
       for (const application of sourceApplications) {
@@ -308,9 +323,12 @@ export async function copyFertilizerApplications(
           continue
         }
         const p_app_date = shiftDateToYear(application.p_app_date, targetYear)
-        const key = `${application.p_id}|${p_app_date.getTime()}`
-        if (existingKeys.has(key)) continue
-        existingKeys.add(key)
+        const key = applicationKey({ ...application, p_app_date })
+        const existingCount = existingCounts.get(key) ?? 0
+        if (existingCount > 0) {
+          existingCounts.set(key, existingCount - 1)
+          continue
+        }
         const p_app_id = createId()
         await tx.insert(schema.fertilizerApplication).values({
           p_app_id,

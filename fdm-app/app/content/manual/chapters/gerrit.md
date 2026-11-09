@@ -27,7 +27,7 @@ related:
 
 Gerrit stelt in één keer een bemestingsplan voor je hele bedrijf voor: welke meststof, hoeveel, wanneer en hoe, per perceel. Daarbij houdt Gerrit rekening met de gebruiksnormen, het bemestingsadvies, de stikstofbalans en jouw wensen. Gerrit is een AI-assistent: het plan is een voorstel. Jij of je adviseur beoordeelt het voordat het wordt toegepast.
 
-Je vindt Gerrit in de zijbalk onder **Labs**. Gerrit is voor iedereen beschikbaar en werkt voor de jaren 2026 en 2025.
+Je vindt Gerrit in de zijbalk onder **Labs**. Gerrit is voor iedereen beschikbaar en werkt voor 2025 en later. Voor een jaar waarvoor de gebruiksnormen nog niet zijn gepubliceerd, rekent Gerrit voorlopig met de normen van het nieuwste jaar; dat staat dan in de app vermeld. Je kunt Gerrit ook openen vanuit [Plan volgend seizoen](/manual/plan-volgend-seizoen#bemesting).
 
 ## Wat heb je nodig? {#voorbereiding}
 
@@ -88,5 +88,5 @@ Wil je het plan op papier of meegeven aan een teler? Maak daarna een [bemestings
 ## Goed om te weten {#goed-om-te-weten}
 
 - Je kunt Gerrit een beperkt aantal keer per dag een plan laten maken. Bij "Gebruikt vandaag" zie je hoeveel plannen je vandaag nog hebt. Alleen een plan dat klaar is, telt mee.
-- Gerrit werkt alleen voor 2026 en 2025. Kies je een ander jaar, dan vraagt Gerrit je om naar een van deze jaren te wisselen.
+- Gerrit werkt voor 2025 en later. Kies je een eerder jaar, dan vraagt Gerrit je om naar 2025 of later te wisselen.
 - Gerrit is een AI-systeem en geen menselijke adviseur. Het voorstel is een niet-bindend advies. De eindverantwoordelijkheid voor de bemesting ligt bij de teler.

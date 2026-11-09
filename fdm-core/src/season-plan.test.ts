@@ -370,6 +370,41 @@ describe("Season plan", () => {
       expect(applications[0].p_app_date.toISOString()).toBe("2027-03-01T09:00:00.000Z")
     })
 
+    it("copies split applications of the same fertilizer on the same day", async () => {
+      // A second application of the same fertilizer on the same day, with another amount
+      await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id_kept,
+        p_id,
+        20,
+        "broadcasting",
+        new Date("2026-03-01T09:00:00Z"),
+      )
+      const first = await copyFertilizerApplications(
+        fdm,
+        principal_id,
+        b_id_kept,
+        b_id_new,
+        2026,
+        2027,
+      )
+      expect(first).toHaveLength(2)
+      const second = await copyFertilizerApplications(
+        fdm,
+        principal_id,
+        b_id_kept,
+        b_id_new,
+        2026,
+        2027,
+      )
+      expect(second).toEqual([])
+      const applications = await getFertilizerApplications(fdm, principal_id, b_id_new)
+      expect(applications.map((a) => a.p_app_amount).sort((x, y) => (x ?? 0) - (y ?? 0))).toEqual([
+        20, 30,
+      ])
+    })
+
     it("does not copy applications with an amount outside the accepted range", async () => {
       // Older records may hold an amount that is no longer accepted
       await fdm.insert(schema.fertilizerApplication).values({

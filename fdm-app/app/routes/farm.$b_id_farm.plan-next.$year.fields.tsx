@@ -197,23 +197,21 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       throw data("Een nieuw perceel kan niet vóór het plan-jaar eindigen.", { status: 400 })
     }
     const endOfPrevious = startOfDayInFdmTimeZone(year - 1, 12, 31)
-    await updateField(
-      fdm,
-      session.principal_id,
-      b_id,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      endOfPrevious,
-    )
-    const { closed, startingAfterEnd } = await closeOngoingMeasuresOfField(
-      fdm,
-      session.principal_id,
-      b_id,
-      endOfPrevious,
-    )
+    // End the field and its ongoing measures together, or not at all
+    const { closed, startingAfterEnd } = await fdm.transaction(async (tx) => {
+      await updateField(
+        tx,
+        session.principal_id,
+        b_id,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        endOfPrevious,
+      )
+      return closeOngoingMeasuresOfField(tx, session.principal_id, b_id, endOfPrevious)
+    })
     if (startingAfterEnd.length > 0) {
       return dataWithWarning(
         null,
