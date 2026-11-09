@@ -6,6 +6,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { AlertCircle } from "lucide-react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { BulkSoilAnalysisUpload } from "~/components/blocks/soil/bulk-upload"
@@ -19,7 +20,10 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = {
+  hideNavigationProgress: true,
+  help: "bodemanalyses-uploaden",
+}
 
 export const meta: MetaFunction = () => {
   return [
@@ -95,6 +99,7 @@ export default function BulkSoilAnalysisUploadWizardPage() {
           label: "Terug naar percelen",
           disabled: false,
         }}
+        help="bodemanalyses-uploaden"
       >
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>

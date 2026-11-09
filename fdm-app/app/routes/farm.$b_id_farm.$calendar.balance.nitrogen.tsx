@@ -8,10 +8,12 @@ import {
   useLocation,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { EffectiveNitrogenToggle } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { HelpLink } from "~/components/custom/help-link"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -20,6 +22,9 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "stikstofbalans" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Stikstof | Nutriëntenbalans| ${clientConfig.name}` },
@@ -153,8 +158,9 @@ export default function FarmBalanceNitrogenBlock() {
       <main>
         <div className="space-y-6 px-10 py-5 pb-0">
           <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 ">
+            <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
+              <HelpLink target="stikstofbalans" />
             </div>
             <EffectiveNitrogenToggle />
           </div>

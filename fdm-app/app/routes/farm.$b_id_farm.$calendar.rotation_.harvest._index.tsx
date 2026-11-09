@@ -26,6 +26,7 @@ import {
 } from "react-router"
 import { dataWithError, dataWithWarning, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { BatchHarvestForm } from "~/components/blocks/harvest/batch-form"
@@ -68,6 +69,8 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { modifySearchParams } from "~/lib/url-utils"
+
+export const handle: HelpHandle = { help: "bouwplan" }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   const term = getHarvestTerm(

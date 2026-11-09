@@ -32,6 +32,7 @@ import {
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
@@ -75,7 +76,7 @@ import { fdm } from "~/lib/fdm.server"
 import { getGerritUsage } from "~/lib/gerrit-limit.server"
 import PostHogClient from "~/posthog.server"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "gerrit" }
 
 export const meta: MetaFunction = () => {
   return [
