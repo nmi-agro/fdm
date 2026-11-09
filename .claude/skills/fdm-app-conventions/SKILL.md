@@ -7,7 +7,7 @@ argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
 ---
 
-`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its tests are young: unit tests for a few modules in `app/lib` and `app/store`, loader and action tests for a few routes (`test/`), and a Playwright smoke suite that opens every page (`e2e/smoke`). They catch a crashing page, not a broken convention, so consistency with the surrounding code is still the main safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
+`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its tests cover a small part of it: unit tests for a few modules in `app/lib` and `app/store`, loader and action tests for a few routes (`test/`), and a Playwright smoke suite that opens every page the seed can fill in (`e2e/smoke`). They catch a crashing page, not a broken convention, so consistency with the surrounding code is the main safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
 
 **Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement. It does not own how the interface should look or feel — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
 
