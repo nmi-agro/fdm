@@ -1,3 +1,4 @@
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 import * as Sentry from "@sentry/react-router"
 import { customAlphabet } from "nanoid"
 import {
@@ -8,6 +9,8 @@ import {
   type UNSAFE_DataWithResponseInit,
 } from "react-router"
 import { dataWithError, dataWithWarning } from "remix-toast"
+import { formatAppAmountMax } from "~/components/blocks/fertilizer-applications/formschema"
+import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
 
 const customErrorAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // No lookalikes (0, 1, I, O, S, Z)
 const errorIdSize = 8 // Number of characters in ID
@@ -281,6 +284,42 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
 }
 
 /**
+ * Returns the first error in the cause chain (the error itself included) with the given `name`.
+ *
+ * @param error - The caught value.
+ * @param name - The error name to look for, e.g. `"AppAmountOutOfRangeError"`.
+ * @returns The matching error, or `undefined` when there is none.
+ */
+export function findErrorByName(error: unknown, name: string): Error | undefined {
+  if (!(error instanceof Error)) return undefined
+  if (error.name === name) return error
+  return findErrorByName(error.cause, name)
+}
+
+/**
+ * Builds the Dutch message for an applied amount that fdm-core rejected. Shows the maximum in
+ * the unit of the fertilizer when the error carries it, otherwise in kg/ha.
+ *
+ * @param error - The `AppAmountOutOfRangeError` from fdm-core.
+ * @returns The message for the user.
+ */
+export function getAppAmountOutOfRangeMessage(error: Error): string {
+  const details = error as Error & {
+    p_app_amount_unit?: AppAmountUnit
+    p_app_amount_display_max?: number | null
+    p_name_nl?: string | null
+  }
+  const unit = details.p_app_amount_unit
+  const max = details.p_app_amount_display_max
+  const limit =
+    unit && typeof max === "number"
+      ? `${formatAppAmountMax(max)} ${getApplicationAmountUnitLabel(unit)}`
+      : "100.000 kg/ha"
+  const subject = details.p_name_nl ? `De hoeveelheid van ${details.p_name_nl}` : "De hoeveelheid"
+  return `${subject} moet groter zijn dan 0 en mag niet groter zijn dan ${limit}. Controleer de ingevoerde hoeveelheid.`
+}
+
+/**
  * Checks whether a caught value is a `remix-toast` response that already carries a toast, rather
  * than an error.
  *
@@ -358,6 +397,14 @@ export async function handleActionError(error: unknown) {
       null,
       "Een bedrijf moet minimaal één eigenaar hebben. Wijs eerst een andere eigenaar aan voordat je deze rol wijzigt.",
     )
+  }
+
+  // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)
+  const amountError = findErrorByName(error, "AppAmountOutOfRangeError")
+  if (amountError) {
+    console.warn("Fertilizer application amount out of range:", error)
+    const userMessage = getAppAmountOutOfRangeMessage(amountError)
+    return dataWithWarning({ warning: userMessage }, userMessage, { status: 400 })
   }
 
   // Handle 'data' thrown errors (and real thrown `Response` objects)

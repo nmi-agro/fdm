@@ -119,6 +119,16 @@ const PERMISSION_MESSAGES = new Set([
   "Principal does not have permission to perform this action",
 ])
 
+/**
+ * Returns the first error in the `cause` chain (the error itself included) with the given
+ * `name`, for example an fdm-core validation error wrapped by `handleError`.
+ */
+function findErrorByName(err: unknown, name: string): Error | undefined {
+  if (!(err instanceof Error)) return undefined
+  if (err.name === name) return err
+  return findErrorByName(err.cause, name)
+}
+
 function isPermissionDenied(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   if (PERMISSION_MESSAGES.has(err.message)) return true
@@ -152,6 +162,23 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
     }
     if (err instanceof ApiError) {
       return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras, err.errorId)
+    }
+    const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as
+      | (Error & { p_app_amount_unit?: string; p_app_amount_display_max?: number | null })
+      | undefined
+    if (amountError) {
+      const { p_app_amount_unit: unit, p_app_amount_display_max: max } = amountError
+      const limit =
+        unit && typeof max === "number" && unit !== "kg/ha"
+          ? `${Math.floor(max * 100) / 100} ${unit} (100,000 kg/ha)`
+          : "100,000 kg/ha"
+      return problemResponse(
+        c,
+        422,
+        "unprocessable-entity",
+        `The application amount must be greater than 0 and at most ${limit}.`,
+        appUrl,
+      )
     }
     if (isPermissionDenied(err)) {
       return problemResponse(
