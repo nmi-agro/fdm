@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/react-router"
-import { LifeBuoy, Send } from "lucide-react"
+import { BookOpen, LifeBuoy, Send } from "lucide-react"
 import { useEffect, useSyncExternalStore } from "react"
 import { NavLink, useParams } from "react-router"
 import { toast } from "sonner"
@@ -14,6 +14,10 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useAnalytics } from "~/hooks/use-analytics"
+import { useHelpTarget } from "~/hooks/use-help-target"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
+import { getHelpHref } from "~/lib/manual/help-targets"
 
 const noop = () => () => {}
 
@@ -40,6 +44,8 @@ export function SidebarSupport({
   hasNotification?: boolean
 }) {
   const params = useParams()
+  const helpTarget = useHelpTarget()
+  const { capture } = useAnalytics()
 
   useEffect(() => {
     if (clientConfig.analytics.sentry) {
@@ -79,6 +85,25 @@ export function SidebarSupport({
       <SidebarGroupContent>
         <SidebarMenu>
           <ChangelogNotification />
+          <SidebarMenuItem key="manual">
+            <SidebarMenuButton size="sm" asChild>
+              <a
+                href={helpTarget ? getHelpHref(helpTarget) : "/manual"}
+                target="_blank"
+                rel="noopener"
+                onClick={() =>
+                  capture(MANUAL_EVENTS.helpLinkClicked, {
+                    help_target: helpTarget ?? "manual",
+                    source: "sidebar",
+                    from_path: window.location.pathname,
+                  })
+                }
+              >
+                <BookOpen />
+                <span>Handleiding</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem key="support">
             <SidebarMenuButton size="sm" asChild>
               <NavLink

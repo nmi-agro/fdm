@@ -1,0 +1,178 @@
+{
+  "aanmelden": {
+    "width": 1920,
+    "height": 1080
+  },
+  "account-profiel": {
+    "width": 1920,
+    "height": 1080
+  },
+  "api-sleutels": {
+    "width": 1920,
+    "height": 1080
+  },
+  "atlas-bodemanalyses": {
+    "width": 1920,
+    "height": 1080
+  },
+  "atlas-gewaspercelen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "atlas-hoogtekaart": {
+    "width": 1920,
+    "height": 1080
+  },
+  "balans-organische-stof": {
+    "width": 1920,
+    "height": 1080
+  },
+  "balans-stikstof": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bcs-kenmerk-scoren": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bcs-meting-starten": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bcs-metingen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bcs-overzicht": {
+    "width": 1920,
+    "height": 1471
+  },
+  "bedrijf-aanmaken-bouwplan": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-gegevens": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-kaart": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-kvk-opgehaald": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-percelen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-shapefile": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-aanmaken-toegang": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijf-dashboard": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bedrijfsinstellingen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bemesting-effect": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bemestingsadvies-grasland": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bemestingsadvies-overzicht": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bemestingsadvies-perceel": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodem-perceel": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyse-monsterpunten": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyse-toevoegen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyses-aandacht": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyses-controleren": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemanalyses-uploaden": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bodemkwaliteit-scores": {
+    "width": 1920,
+    "height": 1080
+  },
+  "bouwplan-tabel": {
+    "width": 1920,
+    "height": 1080
+  },
+  "gebruiksruimte-bedrijf": {
+    "width": 1920,
+    "height": 1080
+  },
+  "gebruiksruimte-perceel": {
+    "width": 1920,
+    "height": 1080
+  },
+  "gewas-toevoegen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "maatregelen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "meststof-toevoegen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "meststoffen-lijst": {
+    "width": 1920,
+    "height": 1080
+  },
+  "mijn-bedrijven": {
+    "width": 1920,
+    "height": 1080
+  },
+  "perceel-pagina": {
+    "width": 1920,
+    "height": 1080
+  },
+  "percelen-lijst": {
+    "width": 1920,
+    "height": 1080
+  },
+  "tijdlijn": {
+    "width": 1920,
+    "height": 1080
+  },
+  "toegang-delen": {
+    "width": 1920,
+    "height": 1080
+  }
+}

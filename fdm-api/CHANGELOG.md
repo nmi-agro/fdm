@@ -1,5 +1,14 @@
 # @nmi-agro/fdm-api
 
+## 0.3.2
+
+### Patch Changes
+
+- [#933](https://github.com/nmi-agro/fdm/pull/933) [`e87b8c4`](https://github.com/nmi-agro/fdm/commit/e87b8c4a017f8ab07a14b935ead018ba0a7f47ac) Thanks [@SvenVw](https://github.com/SvenVw)! - Creating or updating a fertilizer application now requires `p_app_amount_display` to be greater than 0 (400 otherwise) and returns a 422 problem response when the amount, converted to kg/ha, is greater than 100,000 kg/ha. The `detail` names the maximum in the unit of the fertilizer. `PATCH /fertilizer-applications/{p_app_id}` without a new amount and without a new fertilizer keeps the stored amount.
+- Updated dependencies [[`e87b8c4`](https://github.com/nmi-agro/fdm/commit/e87b8c4a017f8ab07a14b935ead018ba0a7f47ac)]:
+  - @nmi-agro/fdm-core@0.39.2
+  - @nmi-agro/fdm-calculator@0.20.0
+
 ## 0.3.1
 
 ### Patch Changes

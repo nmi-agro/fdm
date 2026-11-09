@@ -11,6 +11,21 @@ import { cn } from "~/lib/utils"
 import { AttachmentGridItem } from "./attachment-grid"
 
 /**
+ * Reads the natural dimensions of an image URL.
+ *
+ * @param url - Image URL (including blob URLs).
+ * @returns The width and height, or zeros when the image cannot be loaded.
+ */
+function loadImageSize(url: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const image = new Image()
+    image.onload = () => resolve({ width: image.width, height: image.height })
+    image.onerror = () => resolve({ width: 0, height: 0 })
+    image.src = url
+  })
+}
+
+/**
  * Dialog content that shows the given URL in different ways based on the
  * MIME type returned from the server. If the fetching of the URL fails or
  * the returned file cannot be displayed, the user just sees a download
@@ -41,7 +56,7 @@ export function AttachmentViewerDialogContent({
   // Fetch the file, determine its MIME type, and create an objectUrl
   useEffect(() => {
     const abortController = new AbortController()
-    let objectUrl: string | null = null
+    const objectUrls: string[] = []
     async function fetchFile() {
       if (abortController.signal.aborted) {
         return
@@ -49,24 +64,12 @@ export function AttachmentViewerDialogContent({
 
       // Let the browser do its thing for blob URLs since enabling them to JS is dangerous
       if (attachment.file_path.startsWith("blob:")) {
-        let imageWidth = 0
-        let imageHeight = 0
-
         // For images, read the image width and height properly
-        if (ALLOWED_IMAGE_MIME_TYPES.includes(attachment.mime_type)) {
-          await new Promise<void>((resolve) => {
-            const image = new Image()
-            image.onload = () => {
-              imageWidth = image.width
-              imageHeight = image.height
-              resolve()
-            }
-            image.onerror = () => {
-              resolve()
-            }
-            image.src = attachment.file_path
-          })
-        }
+        const { width: imageWidth, height: imageHeight } = ALLOWED_IMAGE_MIME_TYPES.includes(
+          attachment.mime_type,
+        )
+          ? await loadImageSize(attachment.file_path)
+          : { width: 0, height: 0 }
 
         if (!abortController.signal.aborted) {
           setStatus({
@@ -89,25 +92,13 @@ export function AttachmentViewerDialogContent({
           const blob = await response.blob()
           const file = new File([blob], attachment.file_name, { type: attachment.mime_type })
           const url = URL.createObjectURL(file)
-          objectUrl = url
-          let imageWidth = 0
-          let imageHeight = 0
-
+          objectUrls.push(url)
           // For images, read the image width and height properly
-          if (ALLOWED_IMAGE_MIME_TYPES.includes(attachment.mime_type)) {
-            await new Promise<void>((resolve) => {
-              const image = new Image()
-              image.onload = () => {
-                imageWidth = image.width
-                imageHeight = image.height
-                resolve()
-              }
-              image.onerror = () => {
-                resolve()
-              }
-              image.src = url
-            })
-          }
+          const { width: imageWidth, height: imageHeight } = ALLOWED_IMAGE_MIME_TYPES.includes(
+            attachment.mime_type,
+          )
+            ? await loadImageSize(url)
+            : { width: 0, height: 0 }
 
           if (!abortController.signal.aborted) {
             setStatus({
@@ -141,7 +132,7 @@ export function AttachmentViewerDialogContent({
 
     return () => {
       abortController.abort()
-      if (objectUrl) {
+      for (const objectUrl of objectUrls) {
         URL.revokeObjectURL(objectUrl)
       }
     }

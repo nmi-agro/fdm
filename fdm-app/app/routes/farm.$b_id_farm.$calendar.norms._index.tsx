@@ -8,6 +8,7 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -36,6 +37,9 @@ import { fdm } from "~/lib/fdm.server"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 // Meta
+
+export const handle: HelpHandle = { help: "gebruiksruimte" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Gebruiksruimte - Bedrijf | ${clientConfig.name}` },
@@ -153,6 +157,7 @@ export default function FarmNormsBlock() {
       </Header>
       <main>
         <FarmTitle
+          help="gebruiksruimte"
           title={"Gebruiksruimte"}
           description={"Bekijk de gebruiksruimte en opvulling voor je bedrijf en percelen."}
         >

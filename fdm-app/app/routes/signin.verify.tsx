@@ -102,13 +102,11 @@ export default function Verify() {
     }
 
     const chars = code.split("")
-    let current = ""
     // Track every scheduled timeout so we can clear them all on cleanup,
     // preventing form.setValue from firing after the component unmounts.
-    const timeoutIds = chars.map((char, index) =>
+    const timeoutIds = chars.map((_char, index) =>
       setTimeout(() => {
-        current += char
-        formSetValue("code", current)
+        formSetValue("code", code.slice(0, index + 1))
       }, index * 75),
     ) // 75ms delay between keystrokes
 

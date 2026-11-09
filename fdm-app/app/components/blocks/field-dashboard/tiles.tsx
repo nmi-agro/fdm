@@ -980,6 +980,7 @@ export function FieldDashboardBcsTile({ dashboard, tile }: FieldDashboardTilePro
           scoreColor={bcs.scoreColor}
           scoreLabel={bcs.scoreLabel}
           measuredAt={bcs.measuredAt ? formatDateLabel(bcs.measuredAt) : undefined}
+          showTopRightBadge={false}
           collapsibleIndicators
         />
       </div>

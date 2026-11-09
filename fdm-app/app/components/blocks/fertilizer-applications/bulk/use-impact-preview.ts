@@ -7,7 +7,12 @@ import {
   type NitrogenBalanceFieldResultNumeric,
 } from "@nmi-agro/fdm-calculator/browser"
 import { useEffect, useMemo, useState } from "react"
-import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
+import {
+  APP_AMOUNT_MAX_KG_PER_HA,
+  formatAppAmountMax,
+  FormSchema,
+} from "~/components/blocks/fertilizer-applications/formschema"
+import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
 import type {
   BulkBalancePreview,
   BulkBlockResult,
@@ -177,7 +182,14 @@ function validateApplication(
         "De dichtheid van deze meststof ontbreekt, waardoor de hoeveelheid niet kan worden omgerekend.",
     }
   }
-  return { fertilizer, p_app_amount: values.p_app_amount_display * kgPerDisplayUnit }
+  const p_app_amount = values.p_app_amount_display * kgPerDisplayUnit
+  // Same range as fdm-core checks when saving: an amount above it cannot be saved
+  if (p_app_amount > APP_AMOUNT_MAX_KG_PER_HA) {
+    const max = formatAppAmountMax(APP_AMOUNT_MAX_KG_PER_HA / kgPerDisplayUnit)
+    const unit = getApplicationAmountUnitLabel(fertilizer.p_app_amount_unit)
+    return { message: `Hoeveelheid mag niet groter zijn dan ${max} ${unit}.` }
+  }
+  return { fertilizer, p_app_amount }
 }
 
 /**

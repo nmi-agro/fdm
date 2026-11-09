@@ -4,9 +4,9 @@ import {
   declineInvitation,
   getFarm,
   grantRoleToFarm,
+  identifyPrincipal,
   isAllowedToShareFarm,
   listPrincipalsForFarm,
-  lookupPrincipal,
   revokePrincipalFromFarm,
   updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
@@ -19,6 +19,7 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import {
   AccessInfoCard,
   type AccessVerificationProvider,
@@ -40,6 +41,9 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Meta
+
+export const handle: HelpHandle = { help: "toegang" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Toegang - Instellingen - Bedrijf | ${clientConfig.name}` },
@@ -147,12 +151,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const isEmailTarget = isEmail(normalizedTarget)
 
         // Try to find the principal to get their email if they are registered
-        const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-        targetPrincipal = matchedPrincipals.find(
-          (p) =>
-            p.username.toLowerCase() === normalizedTarget ||
-            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-        )
+        targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
 
         const targetEmail = isEmailTarget
           ? normalizedTarget
@@ -242,12 +241,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           const farm = await getFarm(fdm, session.principal_id, b_id_farm)
           const normalizedTarget = formValues.username.toLowerCase().trim()
           const isEmailTarget = isEmail(normalizedTarget)
-          const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-          const targetPrincipal = matchedPrincipals.find(
-            (p) =>
-              p.username.toLowerCase() === normalizedTarget ||
-              (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-          )
+          const targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
           const targetEmail = isEmailTarget
             ? normalizedTarget
             : targetPrincipal?.type === "user"

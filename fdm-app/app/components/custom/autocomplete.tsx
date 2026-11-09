@@ -24,6 +24,7 @@ type LookupItem<T extends string> = {
   value: T
   label: string
   icon?: string // Icon identifier string (key for iconMap)
+  description?: string // Optional muted second line
 }
 
 type IconMap = Record<string, React.ComponentType<{ className?: string }>>
@@ -278,8 +279,15 @@ export function AutoComplete<
                         onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
                         onSelect={() => handleSelectItem(option.value)}
                       >
-                        <IconComponent className={"mr-2 h-4 w-4"} />
-                        {option.label}
+                        <IconComponent className={"mr-2 h-4 w-4 shrink-0"} />
+                        <span className="flex min-w-0 flex-col">
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-muted-foreground truncate text-xs">
+                              {option.description}
+                            </span>
+                          )}
+                        </span>
                       </CommandItem>
                     )
                   })}

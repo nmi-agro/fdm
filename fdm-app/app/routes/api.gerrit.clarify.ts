@@ -24,7 +24,7 @@ export async function loader({ request, url }: LoaderFunctionArgs) {
 
   const posthog = PostHogClient()
   const flags = posthog ? await posthog.evaluateFlags(session.principal_id) : null
-  const isGerritEnabled = flags ? flags.isEnabled("gerrit") : true
+  const isGerritEnabled = flags ? flags.isEnabled("gerrit", { defaultValue: true }) : true
   if (!isGerritEnabled) {
     return new Response("Functie niet ingeschakeld voor deze gebruiker", {
       status: 403,
