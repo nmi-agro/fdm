@@ -105,7 +105,7 @@ export function ManualPageLayout({ page }: { page: ManualPageView }) {
 
   return (
     <div className="flex gap-12 py-8 sm:py-10">
-      <main className="max-w-[38rem] min-w-0 flex-1">
+      <main className="mx-auto max-w-[38rem] min-w-0 flex-1">
         <ManualBreadcrumb items={breadcrumb} />
         <h1 className="text-foreground mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           {page.title}

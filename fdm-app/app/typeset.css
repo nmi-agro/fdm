@@ -481,4 +481,37 @@
     --typeset-leading: 1.75;
     --typeset-flow: 1.25em;
   }
+
+  /*
+   * Headings deviate from shadcn typeset: at 1.25em an h2 sits too close to body text to scan
+   * a long chapter. Each h2 opens a section with a thin rule and a larger size; h3 steps up
+   * slightly. The first heading of an article has no rule, because the page frame draws one.
+   */
+  .typeset-manual > :where(h2) {
+    font-size: 1.5em;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    margin-block-start: calc(var(--typeset-flow) * 2);
+    padding-block-start: var(--typeset-flow);
+    border-block-start: 1px solid var(--typeset-rule);
+  }
+  .typeset-manual > :where(h2:first-child) {
+    margin-block-start: 0;
+    padding-block-start: 0;
+    border-block-start: 0;
+  }
+  .typeset-manual > :where(h3) {
+    font-size: 1.2em;
+    line-height: 1.4;
+    margin-block-start: calc(var(--typeset-flow) * 1.4);
+  }
+
+  /*
+   * Manual tables hold sentences, not figures. shadcn typeset sizes a scrolling table to its
+   * content, which keeps every cell on one line. Here cells wrap to the column width, and the
+   * table only scrolls when its narrowest layout still does not fit.
+   */
+  .typeset-manual .typeset-scroll > table {
+    width: auto;
+  }
 }
