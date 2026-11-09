@@ -126,6 +126,9 @@ test("share a farm and accept the invitation", async ({ page, browser }) => {
     await signInWithMagicLink(invitee, farm.invitee)
     await invitee.goto("/farm")
     await invitee.getByRole("button", { name: "Accepteren" }).first().click()
+    // Wait for the saved acceptance: the farm name is already on the invitation card before.
+    await expect(invitee.getByText("Uitnodiging geaccepteerd")).toBeVisible()
+    await expect(invitee.getByRole("button", { name: "Accepteren" })).toHaveCount(0)
     await expect(invitee.getByText("Demobedrijf De Proefhoeve").first()).toBeVisible()
 
     // A refused action shows a friendly message, not the error page: the invitee opens the farm
