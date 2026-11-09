@@ -22,8 +22,10 @@ import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import {
   APP_AMOUNT_UNITS,
+  AppAmountOutOfRangeError,
   type AppAmountUnit,
   fromKgPerHa,
+  isAppAmountInRange,
   toKgPerHa,
 } from "./fertilizer-application-unit-conversion"
 import { createId } from "./id"
@@ -703,12 +705,15 @@ export async function removeFertilizer(
  * @param principal_id - The ID of the principal performing the operation.
  * @param b_id - The ID of the field where the fertilizer application is recorded.
  * @param p_id - The ID of the fertilizer to be applied.
- * @param p_app_amount_display - The amount of fertilizer applied in the display unit.
+ * @param p_app_amount_display - The amount of fertilizer applied in the display unit. Converted to
+ * kg/ha, it must be greater than 0 and at most 100,000 kg/ha (`P_APP_AMOUNT_MAX`).
  * @param p_app_method - The method used for applying the fertilizer.
  * @param p_app_date - The date of the fertilizer application.
  * @returns A Promise that resolves with the unique ID of the newly created fertilizer application record.
  *
- * @throws {Error} When the specified field or fertilizer does not exist or if the record insertion fails.
+ * @throws {Error} When the specified field or fertilizer does not exist, when the applied amount
+ * is out of range (the `cause` is an {@link AppAmountOutOfRangeError}) or if the record insertion
+ * fails.
  */
 export async function addFertilizerApplication(
   fdm: FdmType,
@@ -741,6 +746,9 @@ export async function addFertilizerApplication(
       fertilizer.p_app_amount_unit,
       fertilizer.p_density,
     )
+    if (!isAppAmountInRange(p_app_amount)) {
+      throw new AppAmountOutOfRangeError(p_app_amount, fertilizer)
+    }
 
     await fdm.insert(schema.fertilizerApplication).values({
       p_app_id,
@@ -770,11 +778,15 @@ export async function addFertilizerApplication(
  * @param principal_id - The ID of the principal performing the update.
  * @param p_app_id - The unique identifier of the fertilizer application record.
  * @param p_id - The unique identifier of the associated fertilizer.
- * @param p_app_amount_display - The amount of fertilizer applied in the display unit.
+ * @param p_app_amount_display - The amount of fertilizer applied in the display unit. Converted to
+ * kg/ha, it must be greater than 0 and at most 100,000 kg/ha (`P_APP_AMOUNT_MAX`). Pass `null` or
+ * `undefined` to keep the stored amount.
  * @param p_app_method - The method used for applying the fertilizer.
  * @param p_app_date - The date when the fertilizer was applied.
  *
- * @throws {Error} Thrown if the update operation fails due to insufficient permissions or a database error.
+ * @throws {Error} Thrown if the update operation fails due to insufficient permissions or a
+ * database error, or when the applied amount is out of range (the `cause` is an
+ * {@link AppAmountOutOfRangeError}).
  */
 export async function updateFertilizerApplication(
   fdm: FdmType,
@@ -799,6 +811,9 @@ export async function updateFertilizerApplication(
       p_app_amount_display !== null && p_app_amount_display !== undefined
         ? toKgPerHa(p_app_amount_display, fertilizer.p_app_amount_unit, fertilizer.p_density)
         : undefined
+    if (p_app_amount !== undefined && !isAppAmountInRange(p_app_amount)) {
+      throw new AppAmountOutOfRangeError(p_app_amount, fertilizer)
+    }
     await fdm
       .update(schema.fertilizerApplication)
       .set({ p_id, p_app_amount, p_app_method, p_app_date })

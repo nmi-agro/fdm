@@ -26,6 +26,7 @@ interface BcsScoreCardProps {
   scoreLabel: string
   measuredAt?: string | null
   actions?: ReactNode
+  showTopRightBadge?: boolean
   collapsibleIndicators?: boolean
 }
 
@@ -39,6 +40,7 @@ export function BcsScoreCard({
   scoreLabel,
   measuredAt,
   actions,
+  showTopRightBadge = true,
   collapsibleIndicators = false,
 }: BcsScoreCardProps) {
   const [isExpanded, setIsExpanded] = useState(!collapsibleIndicators)
@@ -101,15 +103,17 @@ export function BcsScoreCard({
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn(
-                "w-fit border px-4 py-2 text-sm font-semibold",
-                BCS_COLOR_CLASSES[scoreColor],
-              )}
-            >
-              {scoreLabel}
-            </Badge>
+            {showTopRightBadge && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "w-fit border px-4 py-2 text-sm font-semibold",
+                  BCS_COLOR_CLASSES[scoreColor],
+                )}
+              >
+                {scoreLabel}
+              </Badge>
+            )}
             {actions}
           </div>
         </div>

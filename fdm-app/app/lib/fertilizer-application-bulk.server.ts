@@ -6,6 +6,7 @@ import {
   type Cultivation,
   type FdmType,
   type Field,
+  getAppAmountDisplayRange,
   getFertilizerParametersDescription,
   getFertilizers,
   getFields,
@@ -49,6 +50,8 @@ export async function getFertilizerOptions(
         (option): option is { value: ApplicationMethods; label: string } => option !== undefined,
       ),
     p_app_amount_unit: fertilizer.p_app_amount_unit,
+    p_app_amount_display_max:
+      getAppAmountDisplayRange(fertilizer.p_app_amount_unit, fertilizer.p_density)?.max ?? null,
   }))
 }
 

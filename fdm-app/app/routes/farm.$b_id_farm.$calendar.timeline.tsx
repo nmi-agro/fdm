@@ -3,6 +3,7 @@ import {
   addFertilizerApplication,
   addHarvest,
   checkPermission,
+  getAppAmountDisplayRange,
   getCultivation,
   getCultivationsFromCatalogue,
   getFarms,
@@ -179,6 +180,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           } => option !== undefined,
         ),
       p_app_amount_unit: fertilizer.p_app_amount_unit,
+      p_app_amount_display_max:
+        getAppAmountDisplayRange(fertilizer.p_app_amount_unit, fertilizer.p_density)?.max ?? null,
     }))
 
     // Map catalogue cultivations to options for the add-cultivation combobox
@@ -579,7 +582,8 @@ export async function action({ request, params }: Route.LoaderArgs) {
         session.principal_id,
         formValues.p_app_id,
         original.p_id,
-        original.p_app_amount_display,
+        // Keep the stored amount: moving an application must not re-validate an older amount
+        null,
         original.p_app_method,
         formValues.p_app_date,
       )
