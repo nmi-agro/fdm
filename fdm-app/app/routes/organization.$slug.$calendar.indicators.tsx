@@ -12,7 +12,7 @@ import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
@@ -283,18 +283,16 @@ export default function IndicatorsFarmIndex() {
                   <CardTitle className="text-base font-bold">
                     Gemiddelde score van de organisatie
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1.5 text-xs"
-                    nativeButton={false}
-                    render={
-                      <NavLink to={`/organization/${slug}/${calendar}/atlas/indicators`}>
-                        <MapIcon className="h-3.5 w-3.5" />
-                        Kaartweergave
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to={`/organization/${slug}/${calendar}/atlas/indicators`}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "h-7 gap-1.5 text-xs",
+                    )}
+                  >
+                    <MapIcon className="h-3.5 w-3.5" />
+                    Kaartweergave
+                  </NavLink>
                 </div>
                 {/* <CardDescription className="text-xs">
                                     Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 

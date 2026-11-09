@@ -8,7 +8,7 @@ import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer
 import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import {
   Command,
@@ -21,6 +21,7 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 import { stripDataSuffixFromAddress } from "~/lib/url-utils"
+import { cn } from "~/lib/utils"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { b_id_farm } = params
@@ -114,22 +115,16 @@ export default function NewFertilizerIndexPage() {
                   <div className="bg-background mb-6 flex h-16 w-16 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-110">
                     <Plus className="text-primary h-8 w-8" />
                   </div>
-                  <Button
-                    size="lg"
-                    className="w-full font-bold shadow-sm"
-                    nativeButton={false}
-                    render={
-                      <Link
-                        to={
-                          searchParams.has("returnUrl")
-                            ? `custom?returnUrl=${encodeURIComponent(stripDataSuffixFromAddress(searchParams.get("returnUrl") ?? ""))}`
-                            : "custom"
-                        }
-                      >
-                        Start leeg formulier
-                      </Link>
+                  <Link
+                    to={
+                      searchParams.has("returnUrl")
+                        ? `custom?returnUrl=${encodeURIComponent(stripDataSuffixFromAddress(searchParams.get("returnUrl") ?? ""))}`
+                        : "custom"
                     }
-                  />
+                    className={cn(buttonVariants({ size: "lg" }), "w-full font-bold shadow-sm")}
+                  >
+                    Start leeg formulier
+                  </Link>
                 </Card>
               </div>
 

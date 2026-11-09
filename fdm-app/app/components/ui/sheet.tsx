@@ -20,6 +20,10 @@ function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
+function SheetPopup({ ...props }: SheetPrimitive.Popup.Props) {
+  return <SheetPrimitive.Popup data-slot="sheet-popup" {...props} />
+}
+
 function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop
@@ -114,6 +118,8 @@ export {
   Sheet,
   SheetTrigger,
   SheetClose,
+  SheetPortal,
+  SheetPopup,
   SheetContent,
   SheetHeader,
   SheetFooter,

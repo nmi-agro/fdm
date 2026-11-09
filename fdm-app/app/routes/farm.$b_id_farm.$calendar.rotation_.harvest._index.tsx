@@ -536,7 +536,14 @@ export default function FarmRotationHarvestAddIndex() {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger
-                                    render={<AlertTriangle className="h-4 w-4 text-yellow-500" />}
+                                    render={
+                                      <button
+                                        type="button"
+                                        aria-label="Dit perceel heeft het geselecteerde gewas niet"
+                                      >
+                                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                      </button>
+                                    }
                                   />
                                   <TooltipContent>
                                     <p>Dit perceel heeft het geselecteerde gewas niet</p>

@@ -484,10 +484,12 @@ export default function SignIn() {
                                 name="email"
                                 render={({ field, fieldState }) => (
                                   <Field>
-                                    <FieldLabel>E-mailadres</FieldLabel>
+                                    <FieldLabel htmlFor="email">E-mailadres</FieldLabel>
                                     <FieldContent>
                                       <div className="relative">
                                         <Input
+                                          id="email"
+                                          aria-invalid={fieldState.invalid}
                                           type="email"
                                           autoComplete="email"
                                           placeholder="naam@bedrijf.nl"

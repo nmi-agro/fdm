@@ -452,7 +452,10 @@ function AddFarmForm({
               <Select
                 name="b_id_farm"
                 value={farm}
-                items={farms.map((f) => ({ value: f.b_id_farm, label: f.b_name_farm }))}
+                items={farms.map((f) => ({
+                  value: f.b_id_farm,
+                  label: f.b_name_farm ?? "Onbekend",
+                }))}
                 onValueChange={(value) => {
                   if (typeof value === "string") {
                     setFarm(value)

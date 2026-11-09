@@ -19,7 +19,7 @@ import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-messag
 import { OrganizationAvatar } from "~/components/blocks/organization/organization-avatar"
 import { Expandable, ExpandableContent, ExpandableTrigger } from "~/components/custom/expandable"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Select,
@@ -304,15 +304,15 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
-                  <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={
-                      <NavLink to="./settings" className={cn(!loaderData.canModify && "invisible")}>
-                        Instellingen
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to="./settings"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      !loaderData.canModify && "invisible",
+                    )}
+                  >
+                    Instellingen
+                  </NavLink>
                 </div>
                 <Card>
                   <CardContent className="space-y-4 pt-6">
@@ -375,11 +375,12 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Groepen</h2>
-                  <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={<NavLink to={`./${loaderData.calendar}/groups`}>Beheer</NavLink>}
-                  />
+                  <NavLink
+                    to={`./${loaderData.calendar}/groups`}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Beheer
+                  </NavLink>
                 </div>
                 <Card>
                   <CardContent className="pt-6">
@@ -421,15 +422,15 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Leden</h2>
-                  <Button
-                    variant="outline"
-                    nativeButton={false}
-                    render={
-                      <NavLink to="./members" className={cn(!loaderData.canModify && "invisible")}>
-                        Beheer
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to="./members"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      !loaderData.canModify && "invisible",
+                    )}
+                  >
+                    Beheer
+                  </NavLink>
                 </div>
                 <Card>
                   <CardContent className="pt-6">

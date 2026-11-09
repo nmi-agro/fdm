@@ -1,5 +1,4 @@
 import type { TagSummary, Ticket, TicketFilters, TicketSorting } from "@nmi-agro/fdm-helpdesk"
-import { Dialog as DialogPrimitive } from "@base-ui/react"
 import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { ArrowUpDown, ChevronLeft, Filter, Plus, X } from "lucide-react"
@@ -18,6 +17,7 @@ import {
 import { Empty, EmptyContent, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { Sheet, SheetClose, SheetPopup, SheetPortal } from "~/components/ui/sheet"
 import { useIsXl } from "~/hooks/use-is-xl"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import type { HelpdeskUser } from "./types"
@@ -289,13 +289,13 @@ export function TicketViewer({
                 and never overlaps the main navigation sidebar. No overlay is rendered
                 since the sheet itself fully covers the content area. */}
       {!isXl && container && (
-        <DialogPrimitive.Root open={sidebarOpen} onOpenChange={setSidebarOpen} modal={false}>
-          <DialogPrimitive.Portal data-slot="sheet-portal" container={container}>
-            <DialogPrimitive.Popup
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen} modal={false}>
+          <SheetPortal container={container}>
+            <SheetPopup
               aria-label="Tickets"
               className="bg-background border-sidebar-border data-open:animate-in data-closed:animate-out data-closed:slide-out-to-left data-open:slide-in-from-left absolute inset-y-0 top-0 left-0 z-50 flex h-full w-full flex-col border-r transition ease-in-out data-closed:duration-300 data-open:duration-500"
             >
-              <DialogPrimitive.Close
+              <SheetClose
                 render={
                   <Button
                     variant="ghost"
@@ -313,9 +313,9 @@ export function TicketViewer({
               <div className="min-h-0 flex-1">
                 <TicketList {...ticketListProps} />
               </div>
-            </DialogPrimitive.Popup>
-          </DialogPrimitive.Portal>
-        </DialogPrimitive.Root>
+            </SheetPopup>
+          </SheetPortal>
+        </Sheet>
       )}
 
       <div className="min-w-0 grow self-stretch overflow-y-auto">

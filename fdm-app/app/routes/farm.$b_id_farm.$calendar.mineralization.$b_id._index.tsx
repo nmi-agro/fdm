@@ -52,7 +52,7 @@ import { FieldMineralizationSkeleton } from "~/components/blocks/mineralization/
 import { type SoilParameterLabels, UsedInput } from "~/components/blocks/mineralization/used-input"
 import { WeatherStrip } from "~/components/blocks/mineralization/weather-strip"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { Spinner } from "~/components/ui/spinner"
@@ -680,17 +680,16 @@ function FieldMineralizationResult(
                 )
               }
             />
-            <Button
-              variant="link"
-              size="sm"
-              className="text-muted-foreground"
-              nativeButton={false}
-              render={
-                <a href={`#${USED_INPUT_ID}`} onClick={() => setUsedInputOpen(true)}>
-                  Welke gegevens zijn gebruikt?
-                </a>
-              }
-            />
+            <a
+              href={`#${USED_INPUT_ID}`}
+              onClick={() => setUsedInputOpen(true)}
+              className={cn(
+                buttonVariants({ variant: "link", size: "sm" }),
+                "text-muted-foreground",
+              )}
+            >
+              Welke gegevens zijn gebruikt?
+            </a>
           </div>
           {isCurrentYear && growingUnavailable ? (
             <p className="text-muted-foreground text-xs">
@@ -762,13 +761,15 @@ function FieldMineralizationResult(
                     />
                   ) : null}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 self-start sm:self-center"
-                  nativeButton={false}
-                  render={<a href={`#${SCENARIO_PANEL_ID}`}>Naar scenario</a>}
-                />
+                <a
+                  href={`#${SCENARIO_PANEL_ID}`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "shrink-0 self-start sm:self-center",
+                  )}
+                >
+                  Naar scenario
+                </a>
               </div>
             ) : null}
           </CardHeader>

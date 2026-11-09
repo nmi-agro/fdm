@@ -336,9 +336,12 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <span className={`block cursor-default text-xs ${deltaClass}`}>
+                      <button
+                        type="button"
+                        className={`block w-full cursor-default text-right text-xs ${deltaClass}`}
+                      >
                         {deltaFormatted}
-                      </span>
+                      </button>
                     }
                   />
                   <TooltipContent>

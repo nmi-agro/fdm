@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Dialog,
@@ -202,17 +202,15 @@ export default function UserSettingsApiKeys() {
       <div className="space-y-6 px-4 pb-8 md:px-8">
         <div className="flex justify-end gap-2">
           {clientConfig.apiUrl && (
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={
-                <a href={`${clientConfig.apiUrl}/docs`} target="_blank" rel="noopener noreferrer">
-                  <BookOpenIcon className="mr-2 h-4 w-4" />
-                  API-documentatie
-                </a>
-              }
-            />
+            <a
+              href={`${clientConfig.apiUrl}/docs`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <BookOpenIcon className="mr-2 h-4 w-4" />
+              API-documentatie
+            </a>
           )}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger

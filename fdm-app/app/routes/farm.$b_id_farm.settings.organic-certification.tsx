@@ -322,9 +322,13 @@ export default function OrganicCertificationSettings() {
                     name="b_organic_traces"
                     render={({ field, fieldState }) => (
                       <Field>
-                        <FieldLabel>TRACES-nummer</FieldLabel>
+                        <FieldLabel htmlFor="b_organic_traces">TRACES-nummer</FieldLabel>
                         <FieldContent>
-                          <Input {...field} />
+                          <Input
+                            id="b_organic_traces"
+                            aria-invalid={fieldState.invalid}
+                            {...field}
+                          />
                         </FieldContent>
                         <FieldDescription>
                           Het volledige documentnummer volgens de EU Traces-database.
@@ -337,9 +341,9 @@ export default function OrganicCertificationSettings() {
                     name="b_organic_skal"
                     render={({ field, fieldState }) => (
                       <Field>
-                        <FieldLabel>SKAL-nummer</FieldLabel>
+                        <FieldLabel htmlFor="b_organic_skal">SKAL-nummer</FieldLabel>
                         <FieldContent>
-                          <Input {...field} />
+                          <Input id="b_organic_skal" aria-invalid={fieldState.invalid} {...field} />
                         </FieldContent>
                         <FieldDescription>Het SKAL-nummer van de certificering.</FieldDescription>
                         <FieldError errors={[fieldState.error]} />

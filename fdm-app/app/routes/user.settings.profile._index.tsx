@@ -1,7 +1,7 @@
 import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
@@ -55,10 +55,9 @@ export default function UserSettingsProfile() {
               <CardTitle>Jouw gegevens</CardTitle>
               <CardDescription>Hieronder vind je jouw accountgegevens.</CardDescription>
             </div>
-            <Button
-              nativeButton={false}
-              render={<NavLink to="/user/settings/profile/edit">Bijwerken</NavLink>}
-            />
+            <NavLink to="/user/settings/profile/edit" className={buttonVariants()}>
+              Bijwerken
+            </NavLink>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">

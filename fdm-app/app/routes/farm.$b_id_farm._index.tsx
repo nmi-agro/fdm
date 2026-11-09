@@ -57,7 +57,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
@@ -945,85 +945,60 @@ export default function FarmDashboardIndex() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="space-y-1">
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        nativeButton={false}
-                        render={
-                          <NavLink to="settings">
-                            <Home className="mr-2 h-4 w-4" />
-                            Bedrijf
-                          </NavLink>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        nativeButton={false}
-                        render={
-                          <NavLink to="fertilizers">
-                            <Shapes className="mr-2 h-4 w-4" />
-                            Meststoffen
-                          </NavLink>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        nativeButton={false}
-                        render={
-                          <NavLink to="settings/derogation">
-                            <ChevronUp className="mr-2 h-4 w-4" />
-                            Derogatie
-                          </NavLink>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        nativeButton={false}
-                        render={
-                          <NavLink to="settings/organic-certification">
-                            <ScrollText className="mr-2 h-4 w-4" />
-                            Bio-certificaat
-                          </NavLink>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        nativeButton={false}
-                        render={
-                          <NavLink to="settings/grazing-intention">
-                            <Icon iconNode={cowHead} className="mr-2 h-4 w-4" />
-                            Beweiding
-                          </NavLink>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start"
-                        nativeButton={false}
-                        render={
-                          <NavLink to="settings/access">
-                            <UserRoundCheck className="mr-2 h-4 w-4" />
-                            Toegang
-                          </NavLink>
-                        }
-                      />
+                      <NavLink
+                        to="settings"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <Home className="mr-2 h-4 w-4" />
+                        Bedrijf
+                      </NavLink>
+                      <NavLink
+                        to="fertilizers"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <Shapes className="mr-2 h-4 w-4" />
+                        Meststoffen
+                      </NavLink>
+                      <NavLink
+                        to="settings/derogation"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <ChevronUp className="mr-2 h-4 w-4" />
+                        Derogatie
+                      </NavLink>
+                      <NavLink
+                        to="settings/organic-certification"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <ScrollText className="mr-2 h-4 w-4" />
+                        Bio-certificaat
+                      </NavLink>
+                      <NavLink
+                        to="settings/grazing-intention"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <Icon iconNode={cowHead} className="mr-2 h-4 w-4" />
+                        Beweiding
+                      </NavLink>
+                      <NavLink
+                        to="settings/access"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <UserRoundCheck className="mr-2 h-4 w-4" />
+                        Toegang
+                      </NavLink>
                     </div>
                     <Separator className="my-3" />
-                    <Button
-                      variant="ghost"
-                      className="hover:text-destructive hover:bg-destructive/10 w-full justify-start"
-                      nativeButton={false}
-                      render={
-                        <NavLink to="settings/delete">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Verwijderen
-                        </NavLink>
-                      }
-                    />
+                    <NavLink
+                      to="settings/delete"
+                      className={cn(
+                        buttonVariants({ variant: "ghost" }),
+                        "hover:text-destructive hover:bg-destructive/10 w-full justify-start",
+                      )}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Verwijderen
+                    </NavLink>
                   </CardContent>
                 </Card>
               </div>

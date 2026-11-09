@@ -184,9 +184,15 @@ export default function FarmSettingsPropertiesBlock() {
                   name="b_name_farm"
                   render={({ field, fieldState }) => (
                     <Field>
-                      <FieldLabel>Bedrijfsnaam</FieldLabel>
+                      <FieldLabel htmlFor="b_name_farm">Bedrijfsnaam</FieldLabel>
                       <FieldContent>
-                        <Input placeholder="bv. De Vries V.O.F." {...field} required />
+                        <Input
+                          id="b_name_farm"
+                          aria-invalid={fieldState.invalid}
+                          placeholder="bv. De Vries V.O.F."
+                          {...field}
+                          required
+                        />
                       </FieldContent>
                       <FieldError errors={[fieldState.error]} />
                     </Field>
@@ -198,10 +204,12 @@ export default function FarmSettingsPropertiesBlock() {
                   name="b_businessid_farm"
                   render={({ field, fieldState }) => (
                     <Field>
-                      <FieldLabel>Kvk nummer</FieldLabel>
+                      <FieldLabel htmlFor="b_businessid_farm">Kvk nummer</FieldLabel>
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <FieldContent>
                           <Input
+                            id="b_businessid_farm"
+                            aria-invalid={fieldState.invalid}
                             placeholder="bv. 91021934"
                             inputMode="numeric"
                             maxLength={8}
@@ -284,9 +292,11 @@ export default function FarmSettingsPropertiesBlock() {
                   name="b_address_farm"
                   render={({ field, fieldState }) => (
                     <Field>
-                      <FieldLabel>Adres</FieldLabel>
+                      <FieldLabel htmlFor="b_address_farm">Adres</FieldLabel>
                       <FieldContent>
                         <Textarea
+                          id="b_address_farm"
+                          aria-invalid={fieldState.invalid}
                           placeholder="bv. Nieuwe Kanaal 7 
 Wageningen"
                           className="resize-none"
@@ -306,9 +316,11 @@ Wageningen"
                   name="b_postalcode_farm"
                   render={({ field, fieldState }) => (
                     <Field>
-                      <FieldLabel>Postcode</FieldLabel>
+                      <FieldLabel htmlFor="b_postalcode_farm">Postcode</FieldLabel>
                       <FieldContent>
                         <Input
+                          id="b_postalcode_farm"
+                          aria-invalid={fieldState.invalid}
                           placeholder="bv. 1234 AB"
                           {...field}
                           autoComplete="postal-code"

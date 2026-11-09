@@ -16,13 +16,14 @@ import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { handleLoaderError } from "~/lib/error"
+import { cn } from "~/lib/utils"
 import { FormSchema } from "../components/blocks/auth/auth-formschema"
 import { extractFormValuesFromRequest } from "../lib/form"
 import { modifySearchParams } from "../lib/url-utils"
@@ -151,19 +152,13 @@ export default function Verify() {
           </Button>
 
           {actionData?.errors?.code && (
-            <Button
-              variant="link"
-              className="w-full"
-              nativeButton={false}
-              render={
-                <Link
-                  to={requestNewCodeUrl}
-                  onClick={() => capture("signin_request_new_code_clicked")}
-                >
-                  Nieuwe code aanvragen
-                </Link>
-              }
-            />
+            <Link
+              to={requestNewCodeUrl}
+              onClick={() => capture("signin_request_new_code_clicked")}
+              className={cn(buttonVariants({ variant: "link" }), "w-full")}
+            >
+              Nieuwe code aanvragen
+            </Link>
           )}
         </Form>
       </AuthCard>
