@@ -3,7 +3,7 @@
  * needs an entry here, and every entry must be used; `pnpm --filter @nmi-agro/fdm-app test`
  * checks both. See the README in the manual folder for how to add one and run the capture.
  */
-import type { CaptureDefinition } from "../../../lib/manual/capture-types"
+import type { CaptureDefinition } from "~/lib/manual/capture-types"
 
 export const captures = {
   "bedrijf-dashboard": {

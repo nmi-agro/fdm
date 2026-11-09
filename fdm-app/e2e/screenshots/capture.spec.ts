@@ -8,7 +8,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test"
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import type { CaptureDefinition, CaptureTarget } from "../../app/lib/manual/capture-types"
+import type { CaptureDefinition, CaptureTarget } from "~/lib/manual/capture-types"
 import type { DemoFarmIds } from "../seed/demo-farm"
 import { captures } from "../../app/content/manual/screenshots/capture"
 import { loadManualPagesFromDisk } from "../../app/lib/manual/load-from-disk.server"
