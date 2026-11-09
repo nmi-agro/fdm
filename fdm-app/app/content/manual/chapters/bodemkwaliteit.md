@@ -10,19 +10,24 @@ routes:
   - farm.$b_id_farm.$calendar.measures*
   - organization.$slug.$calendar.indicators.tsx
   - organization.$slug.$calendar.measures.tsx
+  - measures-catalogue*
 watch:
   - fdm-app/app/components/blocks/indicators/**
   - fdm-app/app/components/blocks/measures/**
+  - fdm-app/app/lib/measure-labels.ts
+  - fdm-app/app/lib/measures-catalogue*.ts
   - fdm-calculator/src/bln3/**
 keywords:
   - BLN3
   - bodemkwaliteit
   - bodemindicatoren
   - maatregelen
+  - maatregelencatalogus
   - bodemgezondheid
 related:
   - background/bln3-bodemkwaliteit
   - bodem
+updated: 2026-11-09
 ---
 
 Onder **Indicatoren** zie je hoe gezond je bodem is volgens BLN3, de Bodemindicatoren voor Landbouwgronden in Nederland. BLN3 kijkt naar meer dan alleen de bemesting: ook naar water, klimaat, de nutriëntenkringloop en de productiefunctie van de bodem.
@@ -55,6 +60,21 @@ Neem je al maatregelen om je bodem te verbeteren? Leg ze dan vast onder **Maatre
 4. Sla op.
 
 ![De maatregelen voor bodemkwaliteit, met de verwachte impact](screenshot:maatregelen)
+
+## Maatregelencatalogus {#maatregelencatalogus}
+
+In de **Maatregelencatalogus** vind je alle maatregelen uit BLN3. Je opent hem via **Alle maatregelen bekijken** onder Maatregelen in het menu. Bij een maatregel in je bedrijf, in de lijst bij **Maatregel toevoegen** of in de aanbevelingen opent een icoontje de maatregel in de catalogus in een nieuw tabblad.
+
+Je kunt zoeken op naam, code of beschrijving, en filteren op effect, kosten en thema. Per maatregel zie je:
+
+- wat de maatregel inhoudt en wat hij kost (laag, gemiddeld of hoog);
+- op welke indicatoren hij effect heeft, met de effectgrootte uit de BLN3-catalogus;
+- wanneer hij van toepassing is, en met welke maatregelen hij niet samen kan;
+- verwijzingen naar andere regelingen en een link naar de bron.
+
+Het effect is **Kwalitatief** als het effect op elke indicator een vaste waarde is, gelijk voor alle percelen. Het is **Geclassificeerd** als het effect afhangt van de omstandigheden op het perceel, zoals grondsoort, gewas of fosfaattoestand.
+
+Kies bovenaan een bedrijf en een jaar om te zien welke maatregelen je al toepast: die hebben een groene stip met het aantal percelen. Met **Status** toon je alleen de toegepaste maatregelen. Op de pagina van een maatregel zie je dan op welke percelen hij geldt, met een link naar de maatregelen van dat perceel. Kies **Geen bedrijf** om de catalogus zonder bedrijfsgegevens te bekijken.
 
 ## Goed om te weten {#goed-om-te-weten}
 

@@ -42,10 +42,7 @@ import {
 } from "~/components/blocks/measures/formschema"
 import { ImpactSummary } from "~/components/blocks/measures/impact-summary"
 import { IndicatorAttention } from "~/components/blocks/measures/indicator-attention"
-import {
-  getMeasureCataloguePath,
-  MeasureDetailLink,
-} from "~/components/blocks/measures/measure-detail-link"
+import { MeasureDetailLink } from "~/components/blocks/measures/measure-detail-link"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import {
   AlertDialog,
@@ -78,6 +75,7 @@ import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
+import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
 import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))

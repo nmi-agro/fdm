@@ -1,4 +1,4 @@
-import { useLocation } from "react-router"
+import { Link, useLocation } from "react-router"
 import {
   BreadcrumbItem,
   BreadcrumbLink,
@@ -15,7 +15,9 @@ export function HeaderMeasuresCatalogue({ measureName }: { measureName?: string 
   return (
     <>
       <BreadcrumbItem className={measureName ? "hidden xl:block" : undefined}>
-        <BreadcrumbLink href={`/measures-catalogue${search}`}>Maatregelencatalogus</BreadcrumbLink>
+        <BreadcrumbLink asChild>
+          <Link to={`/measures-catalogue${search}`}>Maatregelencatalogus</Link>
+        </BreadcrumbLink>
       </BreadcrumbItem>
       {measureName ? (
         <>

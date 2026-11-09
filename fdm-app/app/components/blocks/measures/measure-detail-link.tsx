@@ -4,8 +4,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
 import { cn } from "~/lib/utils"
 
-export { getMeasureCataloguePath }
-
 /**
  * Icon link that opens the detail page of a measure in a new tab, so the user keeps the
  * current page (for example an open dialog or a filled-in form). On a farm page the farm and
