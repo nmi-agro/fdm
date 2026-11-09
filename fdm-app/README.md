@@ -63,7 +63,7 @@ The app has three kinds of tests. CI runs all of them in the `app` check (`.gith
 | Loader and action | `test/**/*.integration.test.ts`      | `pnpm test:integration` | a PostGIS test database (`.env.test`)                        |
 | End-to-end smoke  | `e2e/smoke` (Playwright)             | `pnpm e2e`              | a build, Chromium and an empty PostGIS database (`.env.e2e`) |
 
-`pnpm test` runs the unit and loader/action tests together, and `pnpm turbo run test --filter=@nmi-agro/fdm-app` does the same after building the packages the app depends on. Run the commands in `fdm-app/`, or from the root with `pnpm --filter @nmi-agro/fdm-app <command>`.
+`pnpm test` runs the unit and loader/action tests together, and `pnpm turbo run test --filter=@nmi-agro/fdm-app` does the same after building the packages the app depends on. The repository-wide `pnpm test` (which runs `test-coverage` in every package) only runs the app's unit tests, so the app's database tests never run alongside fdm-core's, whose teardown empties the users and roles. Run the commands in `fdm-app/`, or from the root with `pnpm --filter @nmi-agro/fdm-app <command>`.
 
 ### Unit tests
 
@@ -73,7 +73,7 @@ Pure modules in `app/lib` and the Zustand stores in `app/store`, plus the user m
 
 These call the `loader` and `action` of a route module directly, with the real database code. Only the session is replaced: `signInAs(user)` from `test/session.ts` decides who `getSession` returns, and `signInAs(null)` makes the request anonymous. `test/helpers.ts` has `seedUserWithFarm()` (a new user with a synthetic two-field farm on every call), `loaderArgs`/`actionArgs` to build the arguments and `runRoute` to read a result, redirect or thrown response as `{ status, location, data }`.
 
-Create `fdm-app/.env.test` with the `POSTGRES_*` settings of a **separate test database** with PostGIS (not the database of `.env`: the tests add users and farms). The global setup runs the migrations and syncs the catalogues.
+Create `fdm-app/.env.test` with the `POSTGRES_*` settings of a **separate test database** with PostGIS (not the database of `.env`, and not fdm-core's test database: the tests add users and farms). Its settings take precedence over `POSTGRES_*` variables in your shell. The global setup runs the migrations and syncs the catalogues.
 
 ### End-to-end tests
 

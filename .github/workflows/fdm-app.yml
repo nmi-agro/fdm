@@ -74,7 +74,7 @@ jobs:
         run: pnpm turbo run build --filter=@nmi-agro/fdm-app...
 
       - name: Run unit and loader/action tests with coverage
-        run: pnpm --filter @nmi-agro/fdm-app test-coverage
+        run: pnpm --filter @nmi-agro/fdm-app test-coverage:all
         env:
           CI: true
           POSTGRES_DB: postgres
