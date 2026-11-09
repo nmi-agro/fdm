@@ -87,6 +87,8 @@ const smokeProjects: Project[] = [
   {
     name: "smoke-setup",
     testMatch: "smoke/smoke.setup.ts",
+    // A retry would seed into a database that is no longer empty, and sign in again.
+    retries: 0,
   },
   {
     name: "smoke",
