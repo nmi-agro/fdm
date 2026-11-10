@@ -1,6 +1,6 @@
 import { cn } from "cn"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -60,12 +60,16 @@ export function AuthCard({
           {footer !== undefined ? (
             footer
           ) : (
-            <Button
-              variant="ghost"
-              className="text-muted-foreground w-full"
-              nativeButton={false}
-              render={<NavLink to={backLink}>{backLabel}</NavLink>}
-            />
+            <NavLink
+              to={backLink}
+              className={buttonVariants({
+                variant: "ghost",
+                className: "text-muted-foreground w-full",
+              })}
+              data-slot="button"
+            >
+              {backLabel}
+            </NavLink>
           )}
         </CardFooter>
       )}

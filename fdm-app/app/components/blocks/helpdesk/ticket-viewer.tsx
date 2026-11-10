@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from "react"
 import { NavLink, Outlet, useLocation, useParams, useSearchParams } from "react-router"
 import { Paginator } from "~/components/custom/paginator"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -202,17 +202,14 @@ function TicketList({
                     U heeft nog geen tickets aangemaakt. Stel een vraag en een medewerker neemt
                     contact met u op.
                   </EmptyDescription>
-                  <Button
-                    size="sm"
-                    className="mt-2"
-                    nativeButton={false}
-                    render={
-                      <NavLink to="/support/new">
-                        <Plus className="size-4" />
-                        Nieuw ticket aanmaken
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to="/support/new"
+                    className={buttonVariants({ size: "sm", className: "mt-2" })}
+                    data-slot="button"
+                  >
+                    <Plus className="size-4" />
+                    Nieuw ticket aanmaken
+                  </NavLink>
                 </>
               )}
             </EmptyContent>

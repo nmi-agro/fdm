@@ -5,7 +5,7 @@ import { type Navigation, NavLink, useNavigation, useSearchParams } from "react-
 import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
 import { Alert, AlertDescription } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Spinner } from "~/components/ui/spinner"
 import { modifySearchParams } from "~/lib/url-utils"
@@ -252,20 +252,13 @@ export function BulkFertilizerPage({
             <p className="text-muted-foreground max-w-sm text-sm">
               Pas uw selectie aan, of ga naar het overzicht voor meer filtermogelijkheden.
             </p>
-            <Button
-              variant="link"
-              nativeButton={false}
-              render={
-                <NavLink
-                  to={
-                    overviewUrl ??
-                    (cultivationIds.length > 0 ? `${base}/rotation` : `${base}/field`)
-                  }
-                >
-                  {cultivationIds.length > 0 ? "Naar bouwplan" : "Naar percelenoverzicht"}
-                </NavLink>
-              }
-            />
+            <NavLink
+              to={overviewUrl ?? (cultivationIds.length > 0 ? `${base}/rotation` : `${base}/field`)}
+              className={buttonVariants({ variant: "link" })}
+              data-slot="button"
+            >
+              {cultivationIds.length > 0 ? "Naar bouwplan" : "Naar percelenoverzicht"}
+            </NavLink>
           </CardContent>
         </Card>
       ) : (

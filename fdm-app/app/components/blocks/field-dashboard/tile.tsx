@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react"
 import { cn } from "cn"
 import { ArrowRight, CircleAlert, Plus } from "lucide-react"
 import { Link } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Empty,
@@ -146,11 +146,13 @@ export function FieldDashboardTileEmpty({
         </EmptyHeader>
         {action ? (
           <EmptyContent>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link to={action.href}>{action.label}</Link>}
-            />
+            <Link
+              to={action.href}
+              className={buttonVariants({ variant: "outline" })}
+              data-slot="button"
+            >
+              {action.label}
+            </Link>
           </EmptyContent>
         ) : null}
       </Empty>

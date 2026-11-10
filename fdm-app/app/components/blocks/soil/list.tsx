@@ -142,17 +142,17 @@ export function SoilAnalysesList({
                     />
                   </Dialog>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="pointer-coarse:h-10"
-                  nativeButton={false}
-                  render={
-                    <NavLink to={`./analysis/${analysis.a_id}`}>
-                      {canModify ? "Bewerk" : "Bekijk"}
-                    </NavLink>
-                  }
-                />
+                <NavLink
+                  to={`./analysis/${analysis.a_id}`}
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "sm",
+                    className: "pointer-coarse:h-10",
+                  })}
+                  data-slot="button"
+                >
+                  {canModify ? "Bewerk" : "Bekijk"}
+                </NavLink>
                 {canModify && (
                   <AlertDialog>
                     <AlertDialogTrigger

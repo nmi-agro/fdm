@@ -5,7 +5,7 @@ import { Controller } from "react-hook-form"
 import { NavLink, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from "~/components/ui/field"
 import {
@@ -148,11 +148,13 @@ export function TicketComposer({
               }}
             />
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<NavLink to="/support">Annuleren</NavLink>}
-              />
+              <NavLink
+                to="/support"
+                className={buttonVariants({ variant: "outline" })}
+                data-slot="button"
+              >
+                Annuleren
+              </NavLink>
               <Button type="submit">Verzenden</Button>
             </div>
           </CardContent>

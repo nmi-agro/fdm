@@ -6,7 +6,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { columns } from "~/components/blocks/rotation/columns"
 import { DataTable } from "~/components/blocks/rotation/table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import type { Route as UpstreamRoute } from "./+types/farm.$b_id_farm.$calendar.rotation"
 import {
@@ -76,16 +76,13 @@ export default function FarmCreateRotationIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button
-                  nativeButton={false}
-                  render={
-                    <NavLink
-                      to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
-                    >
-                      Maak een perceel
-                    </NavLink>
-                  }
-                />
+                <NavLink
+                  to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
+                  className={buttonVariants({})}
+                  data-slot="button"
+                >
+                  Maak een perceel
+                </NavLink>
               </div>
             </div>
           </>

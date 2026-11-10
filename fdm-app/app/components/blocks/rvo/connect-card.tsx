@@ -3,7 +3,7 @@ import { AlertTriangle, ExternalLink, Info, LifeBuoy, Loader2 } from "lucide-rea
 import { type FormEvent, useId, useState } from "react"
 import { Form, Link } from "react-router"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -131,17 +131,14 @@ export function RvoConnectCard({
                   Werkt iets niet zoals verwacht, of heeft u een idee om het te verbeteren? Laat het
                   ons weten via Ondersteuning.
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  nativeButton={false}
-                  render={
-                    <Link to="/support/new">
-                      <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                      Contact opnemen met Ondersteuning
-                    </Link>
-                  }
-                />
+                <Link
+                  to="/support/new"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  data-slot="button"
+                >
+                  <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                  Contact opnemen met Ondersteuning
+                </Link>
               </PopoverContent>
             </Popover>
           </div>
@@ -258,11 +255,13 @@ export function RvoConnectCard({
               )}
             </Button>
           ) : (
-            <Button
-              variant="outline"
-              className="w-full"
-              render={<Link to={kvkHref}>KvK-nummer toevoegen</Link>}
-            />
+            <Link
+              to={kvkHref}
+              className={buttonVariants({ variant: "outline", className: "w-full" })}
+              data-slot="button"
+            >
+              KvK-nummer toevoegen
+            </Link>
           )}
           <p id={statusId} className="text-muted-foreground text-center text-xs" aria-live="polite">
             {isImporting

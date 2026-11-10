@@ -2,7 +2,7 @@ import { cn } from "cn"
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react"
 import { Link, useLocation } from "react-router"
 import type { ManualHeading, ManualNavItem } from "~/lib/manual/parse"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { useAnalytics } from "~/hooks/use-analytics"
@@ -165,16 +165,14 @@ export function ManualSignupCard({
         </CardDescription>
       </CardHeader>
       <CardFooter className="p-4 pt-0">
-        <Button asChild size="sm" className="w-full">
-          <Link
-            to="/signin"
-            onClick={() =>
-              capture(MANUAL_EVENTS.signupClicked, { manual_path: pathname, placement })
-            }
-          >
-            Aanmelden
-          </Link>
-        </Button>
+        <Link
+          to="/signin"
+          onClick={() => capture(MANUAL_EVENTS.signupClicked, { manual_path: pathname, placement })}
+          className={buttonVariants({ size: "sm", className: "w-full" })}
+          data-slot="button"
+        >
+          Aanmelden
+        </Link>
       </CardFooter>
     </Card>
   )

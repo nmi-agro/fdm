@@ -13,7 +13,7 @@ import {
   PdfReadingUnavailableAlert,
   SoilAnalysisUploadFlow,
 } from "~/components/blocks/soil/upload-flow"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
@@ -113,17 +113,17 @@ export default function FarmFieldSoilAnalysisNewBlock() {
           Upload de PDF's van meerdere percelen van dit bedrijf in één keer.
         </p>
       </div>
-      <Button
-        variant="outline"
-        className="max-sm:w-full pointer-coarse:h-11"
-        nativeButton={false}
-        render={
-          <NavLink to={`/farm/${b_id_farm}/soil-analysis/bulk`}>
-            <Files aria-hidden />
-            Meerdere PDF's uploaden
-          </NavLink>
-        }
-      />
+      <NavLink
+        to={`/farm/${b_id_farm}/soil-analysis/bulk`}
+        className={buttonVariants({
+          variant: "outline",
+          className: "max-sm:w-full pointer-coarse:h-11",
+        })}
+        data-slot="button"
+      >
+        <Files aria-hidden />
+        Meerdere PDF's uploaden
+      </NavLink>
     </div>
   )
 

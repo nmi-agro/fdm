@@ -7,7 +7,7 @@ import type {
   CultivationSuggestionResult,
 } from "~/lib/cultivation-suggestion.server"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 
 /** Explanation shown instead of the accept flow to users who may only read the farm. */
@@ -98,15 +98,13 @@ export function CultivationSuggestionBanner({
             Voorstel toevoegen
           </Button>
         ) : (
-          <Button
-            size="sm"
-            nativeButton={false}
-            render={
-              <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
-                Voorstel toevoegen
-              </NavLink>
-            }
-          />
+          <NavLink
+            to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
+            className={buttonVariants({ size: "sm" })}
+            data-slot="button"
+          >
+            Voorstel toevoegen
+          </NavLink>
         )}
       </div>
     </div>

@@ -23,7 +23,7 @@ import {
 } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import {
   Select,
@@ -314,18 +314,18 @@ export function ScoreSelect({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0"
+          <Link
+            to={detailPath}
+            className={buttonVariants({
+              variant: "outline",
+              size: "icon",
+              className: "h-8 w-8 shrink-0",
+            })}
+            data-slot="button"
             title="Tabelweergave"
-            nativeButton={false}
-            render={
-              <Link to={detailPath}>
-                <LayoutList className="h-4 w-4" />
-              </Link>
-            }
-          />
+          >
+            <LayoutList className="h-4 w-4" />
+          </Link>
         </div>
         {children}
         <Bln3BetaBanner />

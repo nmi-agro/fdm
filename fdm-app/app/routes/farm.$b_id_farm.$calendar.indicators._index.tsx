@@ -25,7 +25,7 @@ import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
@@ -287,18 +287,18 @@ export default function IndicatorsFarmIndex() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1.5 text-xs"
-                      nativeButton={false}
-                      render={
-                        <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
-                          <MapIcon className="h-3.5 w-3.5" />
-                          Kaartweergave
-                        </NavLink>
-                      }
-                    />
+                    <NavLink
+                      to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                        className: "h-7 gap-1.5 text-xs",
+                      })}
+                      data-slot="button"
+                    >
+                      <MapIcon className="h-3.5 w-3.5" />
+                      Kaartweergave
+                    </NavLink>
                   </div>
                   {/* <CardDescription className="text-xs">
                                     Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 

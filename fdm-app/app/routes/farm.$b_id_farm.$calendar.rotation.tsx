@@ -25,7 +25,7 @@ import { type CropRow, columns, FieldRow } from "~/components/blocks/rotation/co
 import { RotationTableFormSchema } from "~/components/blocks/rotation/schema"
 import { DataTable } from "~/components/blocks/rotation/table"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
@@ -385,26 +385,23 @@ export default function FarmRotationIndex() {
               </div>
               <div className="relative flex flex-col items-center">
                 {loaderData.hasFields ? (
-                  <Button
-                    nativeButton={false}
-                    render={
-                      <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}>
-                        Naar percelen
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}
+                    className={buttonVariants({})}
+                    data-slot="button"
+                  >
+                    Naar percelen
+                  </NavLink>
                 ) : (
-                  <Button
-                    className={cn(!loaderData.farmWritePermission ? "invisible" : "")}
-                    nativeButton={false}
-                    render={
-                      <NavLink
-                        to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}
-                      >
-                        Maak een perceel
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}
+                    className={buttonVariants({
+                      className: cn(!loaderData.farmWritePermission ? "invisible" : ""),
+                    })}
+                    data-slot="button"
+                  >
+                    Maak een perceel
+                  </NavLink>
                 )}
               </div>
             </div>

@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { NavLink } from "react-router"
 import type { HelpTargetId } from "~/lib/manual/help-targets"
 import { HelpLink } from "~/components/custom/help-link"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
 
@@ -52,10 +52,9 @@ export function FarmTitle({
         <div className="mt-4 ml-auto flex shrink-0 items-center gap-3 xl:mt-0">
           {rightNode && <div className="flex-shrink-0">{rightNode}</div>}
           {action && (
-            <Button
-              nativeButton={false}
-              render={<NavLink to={action.to}>{action.label}</NavLink>}
-            />
+            <NavLink to={action.to} className={buttonVariants({})} data-slot="button">
+              {action.label}
+            </NavLink>
           )}
         </div>
       </div>

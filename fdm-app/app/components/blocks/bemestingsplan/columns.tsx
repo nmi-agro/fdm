@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { bemestingsplanTableFeatures } from "./table-features"
@@ -99,19 +99,18 @@ export const columns = [
           <span>{downloadName}</span>
         </>
       )
-      return (
-        <Button
-          variant="link"
-          className="h-auto p-0 text-left font-medium"
-          nativeButton={false}
-          render={
-            isDeleting ? (
-              <span>{contents}</span>
-            ) : (
-              <NavLink to={`./${row.original.p_id_plan}`}>{contents}</NavLink>
-            )
-          }
-        />
+      const className = buttonVariants({
+        variant: "link",
+        className: "h-auto p-0 text-left font-medium",
+      })
+      return isDeleting ? (
+        <span className={className} data-slot="button">
+          {contents}
+        </span>
+      ) : (
+        <NavLink to={`./${row.original.p_id_plan}`} className={className} data-slot="button">
+          {contents}
+        </NavLink>
       )
     },
   },
@@ -141,17 +140,19 @@ export const columns = [
                     <Download className="h-4 w-4" aria-hidden="true" />
                   </Button>
                 ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-foreground h-8 w-8"
-                    nativeButton={false}
-                    render={
-                      <a href={downloadUrl} download aria-label="PDF downloaden">
-                        <Download className="h-4 w-4" aria-hidden="true" />
-                      </a>
-                    }
-                  />
+                  <a
+                    href={downloadUrl}
+                    download
+                    aria-label="PDF downloaden"
+                    className={buttonVariants({
+                      variant: "ghost",
+                      size: "icon",
+                      className: "text-muted-foreground hover:text-foreground h-8 w-8",
+                    })}
+                    data-slot="button"
+                  >
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                  </a>
                 )
               }
             />

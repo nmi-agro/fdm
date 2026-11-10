@@ -33,7 +33,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
-import { Button, buttonVariants } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -716,10 +716,13 @@ export default function AppIndex() {
                     U hebt nog geen organisatie.
                   </h2>
                   <div className="relative flex flex-col items-center">
-                    <Button
-                      nativeButton={false}
-                      render={<NavLink to="/organization/new">Maak een organisatie</NavLink>}
-                    />
+                    <NavLink
+                      to="/organization/new"
+                      className={buttonVariants({})}
+                      data-slot="button"
+                    >
+                      Maak een organisatie
+                    </NavLink>
                   </div>
                   <p className="text-muted-foreground text-center text-sm">
                     Of vraag een organisatie om u uit te nodigen.

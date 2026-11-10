@@ -3,7 +3,7 @@ import { FileUp, Info, Keyboard } from "lucide-react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 
@@ -56,27 +56,22 @@ export function NewFieldSoilAnalysisBlock({
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              className="flex-1 sm:flex-none"
-              nativeButton={false}
-              render={
-                <NavLink to={bulkUploadLink}>
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Bodemanalyses uploaden (pdf)
-                </NavLink>
-              }
-            />
-            <Button
-              variant="outline"
-              className="flex-1 sm:flex-none"
-              nativeButton={false}
-              render={
-                <NavLink to={`../${b_id}/soil/analysis${location.search}`}>
-                  <Keyboard className="mr-2 h-4 w-4" />
-                  Handmatig invullen
-                </NavLink>
-              }
-            />
+            <NavLink
+              to={bulkUploadLink}
+              className={buttonVariants({ className: "flex-1 sm:flex-none" })}
+              data-slot="button"
+            >
+              <FileUp className="mr-2 h-4 w-4" />
+              Bodemanalyses uploaden (pdf)
+            </NavLink>
+            <NavLink
+              to={`../${b_id}/soil/analysis${location.search}`}
+              className={buttonVariants({ variant: "outline", className: "flex-1 sm:flex-none" })}
+              data-slot="button"
+            >
+              <Keyboard className="mr-2 h-4 w-4" />
+              Handmatig invullen
+            </NavLink>
           </div>
 
           <Separator />

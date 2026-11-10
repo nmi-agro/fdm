@@ -1,7 +1,7 @@
 import { ArrowLeft, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -20,17 +20,17 @@ export function SidebarPlatform() {
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Button
-                variant="default"
-                className="w-full justify-start"
-                nativeButton={false}
-                render={
-                  <NavLink to="/farm">
-                    <ArrowLeft />
-                    <span>Terug naar bedrijven</span>
-                  </NavLink>
-                }
-              />
+              <NavLink
+                to="/farm"
+                className={buttonVariants({
+                  variant: "default",
+                  className: "w-full justify-start",
+                })}
+                data-slot="button"
+              >
+                <ArrowLeft />
+                <span>Terug naar bedrijven</span>
+              </NavLink>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>

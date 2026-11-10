@@ -2,7 +2,7 @@ import { getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import { data, type LoaderFunctionArgs, NavLink, useLocation } from "react-router"
 import { SoilAnalysisFormSelection } from "~/components/blocks/soil/form-selection"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
@@ -77,17 +77,14 @@ export default function FarmFieldSoilOverviewBlock() {
           </p>
         </div>
         {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={
-            <NavLink to={`../${location.search}`}>
-              <ArrowLeft />
-              Terug
-            </NavLink>
-          }
-        />
+        <NavLink
+          to={`../${location.search}`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          data-slot="button"
+        >
+          <ArrowLeft />
+          Terug
+        </NavLink>
       </div>
       <Separator />
       <SoilAnalysisFormSelection uploadHref="./upload" />

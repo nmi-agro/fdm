@@ -9,7 +9,7 @@ import { cn } from "cn"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -142,16 +142,11 @@ export function DataTable<TData extends Fertilizer>({
             </DropdownMenuContent>
           </DropdownMenu>
           <div className={cn(!canAddItem ? "hidden" : "")}>
-            <Button
-              nativeButton={false}
-              render={
-                <NavLink to={"./new"}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Meststof toevoegen</span>
-                  <span className="sm:hidden">Toevoegen</span>
-                </NavLink>
-              }
-            />
+            <NavLink to={"./new"} className={buttonVariants({})} data-slot="button">
+              <Plus className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Meststof toevoegen</span>
+              <span className="sm:hidden">Toevoegen</span>
+            </NavLink>
           </div>
         </div>
       </div>

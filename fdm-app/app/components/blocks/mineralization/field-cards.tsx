@@ -6,7 +6,7 @@ import type {
 import { cn } from "cn"
 import { ArrowRight, ChevronDown, Lightbulb } from "lucide-react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -286,17 +286,14 @@ export function EvaluationCard({
         )}
       </CardContent>
       <CardFooter>
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={
-            <NavLink to={nextYearHref}>
-              Plan {nextYear}
-              <ArrowRight aria-hidden />
-            </NavLink>
-          }
-        />
+        <NavLink
+          to={nextYearHref}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+          data-slot="button"
+        >
+          Plan {nextYear}
+          <ArrowRight aria-hidden />
+        </NavLink>
       </CardFooter>
     </Card>
   )

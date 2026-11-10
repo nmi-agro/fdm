@@ -13,7 +13,7 @@ import { Line, LineChart, ReferenceLine, Tooltip as ChartTooltip, YAxis } from "
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -260,18 +260,18 @@ export function FarmAttentionList({ fields, outcomes, fieldHref, harvestHref }: 
                     <span>Opnieuw berekenen</span>
                   </Button>
                 ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full sm:w-auto sm:self-center pointer-coarse:h-10"
-                    nativeButton={false}
-                    render={
-                      <NavLink to={fieldHref(field.b_id)}>
-                        Bekijk perceel
-                        <ArrowRight aria-hidden />
-                      </NavLink>
-                    }
-                  />
+                  <NavLink
+                    to={fieldHref(field.b_id)}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                      className: "w-full sm:w-auto sm:self-center pointer-coarse:h-10",
+                    })}
+                    data-slot="button"
+                  >
+                    Bekijk perceel
+                    <ArrowRight aria-hidden />
+                  </NavLink>
                 )}
               </li>
             ))}
@@ -314,23 +314,21 @@ export function FarmAttentionList({ fields, outcomes, fieldHref, harvestHref }: 
                         {fieldNames(groupFields)}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full sm:w-auto sm:self-center pointer-coarse:h-10"
-                      nativeButton={false}
-                      render={
-                        <NavLink
-                          to={harvestHref(
-                            mainCultivation.b_lu_catalogue,
-                            groupFields.map((f) => f.b_id),
-                          )}
-                        >
-                          {term} invullen
-                          <ArrowRight aria-hidden />
-                        </NavLink>
-                      }
-                    />
+                    <NavLink
+                      to={harvestHref(
+                        mainCultivation.b_lu_catalogue,
+                        groupFields.map((f) => f.b_id),
+                      )}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                        className: "w-full sm:w-auto sm:self-center pointer-coarse:h-10",
+                      })}
+                      data-slot="button"
+                    >
+                      {term} invullen
+                      <ArrowRight aria-hidden />
+                    </NavLink>
                   </li>
                 )
               })}

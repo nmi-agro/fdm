@@ -48,7 +48,7 @@ import {
   AdviceProgressBar,
   computeAdviceProgress,
 } from "~/components/blocks/nutrient-advice/progress-bar"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import {
   Select,
@@ -367,18 +367,18 @@ export default function FarmAtlasNutrientAdviceBlock() {
             {NUTRIENT_ADVICE_COPY.modeHints[mode]}
           </p>
           {b_id_farm && b_id_farm !== "undefined" && (
-            <Button
-              nativeButton={false}
-              variant="outline"
-              size="sm"
-              className="h-8 w-full text-xs pointer-coarse:h-10"
-              render={
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/nutrient_advice`}>
-                  <TableIcon className="h-3.5 w-3.5" />
-                  {NUTRIENT_ADVICE_COPY.openOverview}
-                </NavLink>
-              }
-            />
+            <NavLink
+              to={`/farm/${b_id_farm}/${calendar}/nutrient_advice`}
+              className={buttonVariants({
+                variant: "outline",
+                size: "sm",
+                className: "h-8 w-full text-xs pointer-coarse:h-10",
+              })}
+              data-slot="button"
+            >
+              <TableIcon className="h-3.5 w-3.5" />
+              {NUTRIENT_ADVICE_COPY.openOverview}
+            </NavLink>
           )}
           <p className="text-muted-foreground px-0.5 text-xs md:hidden">
             {NUTRIENT_ADVICE_COPY.desktopHint}

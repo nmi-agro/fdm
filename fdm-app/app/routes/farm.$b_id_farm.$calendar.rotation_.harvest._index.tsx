@@ -38,7 +38,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -564,12 +564,13 @@ export default function FarmRotationHarvestAddIndex() {
                         Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
                         filtermogelijkheden.
                       </p>
-                      <Button
-                        variant="link"
-                        className="mt-4"
-                        nativeButton={false}
-                        render={<NavLink to={backlink}>{backlinkLabel}</NavLink>}
-                      />
+                      <NavLink
+                        to={backlink}
+                        className={buttonVariants({ variant: "link", className: "mt-4" })}
+                        data-slot="button"
+                      >
+                        {backlinkLabel}
+                      </NavLink>
                     </div>
                   )}
                 </CardContent>

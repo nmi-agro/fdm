@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/react-router"
 import { ArrowLeft, Compass, Copy, Home, LifeBuoy } from "lucide-react"
 import { useEffect, useState } from "react"
 import { isRouteErrorResponse, NavLink, useLocation, useNavigate } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { clientConfig } from "~/lib/config"
 import { normalizePage } from "~/lib/url-utils"
@@ -64,26 +64,28 @@ export function ClientErrorPage({ status }: { status?: number | null } = {}) {
             <ArrowLeft className="mr-2 size-4" /> Terug naar vorige pagina
           </Button>
           <div className="flex items-center gap-6">
-            <Button
-              variant="link"
-              className="text-muted-foreground h-auto p-0"
-              nativeButton={false}
-              render={
-                <NavLink to="/farm">
-                  <Home className="mr-1.5 size-3.5" /> Mijn bedrijven
-                </NavLink>
-              }
-            />
-            <Button
-              variant="link"
-              className="text-muted-foreground h-auto p-0"
-              nativeButton={false}
-              render={
-                <NavLink to="/support/new">
-                  <LifeBuoy className="mr-1.5 size-3.5" /> Ondersteuning
-                </NavLink>
-              }
-            />
+            <NavLink
+              to="/farm"
+              className={buttonVariants({
+                variant: "link",
+                className: "text-muted-foreground h-auto p-0",
+              })}
+              data-slot="button"
+            >
+              <Home className="mr-1.5 size-3.5" />
+              Mijn bedrijven
+            </NavLink>
+            <NavLink
+              to="/support/new"
+              className={buttonVariants({
+                variant: "link",
+                className: "text-muted-foreground h-auto p-0",
+              })}
+              data-slot="button"
+            >
+              <LifeBuoy className="mr-1.5 size-3.5" />
+              Ondersteuning
+            </NavLink>
           </div>
         </div>
       </div>
@@ -180,14 +182,10 @@ export function UnexpectedErrorPage({
       </p>
 
       <div className="flex flex-col gap-4 sm:flex-row">
-        <Button
-          nativeButton={false}
-          render={
-            <NavLink to="/">
-              <Home className="mr-2 h-4 w-4" /> Terug naar de hoofdpagina
-            </NavLink>
-          }
-        />
+        <NavLink to="/" className={buttonVariants({})} data-slot="button">
+          <Home className="mr-2 h-4 w-4" />
+          Terug naar de hoofdpagina
+        </NavLink>
         <Button variant="outline" onClick={copyStackTrace}>
           <Copy className="mr-2 h-4 w-4" />
           <span key={copyState}>

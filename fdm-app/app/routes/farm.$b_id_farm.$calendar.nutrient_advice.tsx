@@ -14,7 +14,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNutrientAdvice } from "~/components/blocks/header/nutrient-advice"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -162,16 +162,14 @@ export default function FarmBalanceNitrogenBlock() {
               "Advies volgens Handboek Bodem en Bemesting (CBAV) en Adviesbasis Bemesting (CBGV)."
             }
             rightNode={
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={
-                  <NavLink to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}>
-                    <MapIcon />
-                    Kaartweergave
-                  </NavLink>
-                }
-              />
+              <NavLink
+                to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}
+                className={buttonVariants({ variant: "outline" })}
+                data-slot="button"
+              >
+                <MapIcon />
+                Kaartweergave
+              </NavLink>
             }
           />
         )}

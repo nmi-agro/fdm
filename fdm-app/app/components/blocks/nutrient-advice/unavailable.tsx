@@ -1,6 +1,6 @@
 import { RotateCw, TriangleAlert } from "lucide-react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 
 export type NutrientAdviceUnavailableProps = {
@@ -46,11 +46,9 @@ export function NutrientAdviceUnavailable({
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-3">
         {missingCultivation ? (
-          <Button
-            size="sm"
-            nativeButton={false}
-            render={<NavLink to={cultivationTo}>Gewas registreren</NavLink>}
-          />
+          <NavLink to={cultivationTo} className={buttonVariants({ size: "sm" })} data-slot="button">
+            Gewas registreren
+          </NavLink>
         ) : notConfigured ? null : (
           <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
             <RotateCw className="mr-1.5 h-3.5 w-3.5" />

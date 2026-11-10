@@ -1,5 +1,6 @@
 import type { Dose } from "@nmi-agro/fdm-calculator"
 import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronDown, ChevronUp, CirclePlus, TriangleAlert } from "lucide-react"
@@ -9,7 +10,7 @@ import {
   AdviceProgressBar,
   formatSignedDifference,
 } from "~/components/blocks/nutrient-advice/progress-bar"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Separator } from "~/components/ui/separator"
@@ -163,18 +164,18 @@ export function NutrientCard({
         ) : (
           <div className="flex items-center justify-between gap-2">
             <p className="text-muted-foreground text-sm">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto shrink-0 p-0"
-              nativeButton={false}
-              render={
-                <NavLink to={to} className="flex items-center gap-1">
-                  <CirclePlus className="h-3.5 w-3.5" />
-                  Toevoegen
-                </NavLink>
-              }
-            />
+            <NavLink
+              to={to}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "sm",
+                className: cn("h-auto shrink-0 p-0", "flex items-center gap-1"),
+              })}
+              data-slot="button"
+            >
+              <CirclePlus className="h-3.5 w-3.5" />
+              Toevoegen
+            </NavLink>
           </div>
         )}
       </CardContent>

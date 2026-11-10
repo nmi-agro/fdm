@@ -3,7 +3,7 @@ import { Menu } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { Link, NavLink } from "react-router"
 import type { ManualNavSection } from "~/lib/manual/parse"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Sheet,
   SheetContent,
@@ -99,15 +99,17 @@ function MobileNav({ sections }: { sections: ManualNavSection[] }) {
   const [open, setOpen] = useState(false)
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden"
-          aria-label="Inhoud van de handleiding"
-        >
-          <Menu />
-        </Button>
+      <SheetTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Inhoud van de handleiding"
+          />
+        }
+      >
+        <Menu />
       </SheetTrigger>
       <SheetContent side="left" className="w-80 overflow-y-auto">
         <SheetHeader>
@@ -155,9 +157,9 @@ export function ManualShell({
               <span className="text-muted-foreground hidden text-sm sm:inline">Handleiding</span>
             </Link>
           </div>
-          <Button asChild size="sm">
-            <Link to="/farm">Naar {clientConfig.name}</Link>
-          </Button>
+          <Link to="/farm" className={buttonVariants({ size: "sm" })} data-slot="button">
+            Naar {clientConfig.name}
+          </Link>
         </div>
       </header>
       <div className="mx-auto flex max-w-[90rem] gap-10 px-4 sm:px-6">

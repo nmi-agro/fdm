@@ -3,7 +3,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarX } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -90,18 +90,21 @@ export function FieldNotAvailableForYear({
       <EmptyContent>
         <div className="flex flex-wrap justify-center gap-2">
           {nearestYearHref && (
-            <Button
-              nativeButton={false}
-              render={
-                <NavLink to={`${nearestYearHref}${location.search}`}>Ga naar {nearestYear}</NavLink>
-              }
-            />
+            <NavLink
+              to={`${nearestYearHref}${location.search}`}
+              className={buttonVariants({})}
+              data-slot="button"
+            >
+              Ga naar {nearestYear}
+            </NavLink>
           )}
-          <Button
-            variant={nearestYearHref ? "outline" : "default"}
-            nativeButton={false}
-            render={<NavLink to={settingsHref}>Naar eigenschappen</NavLink>}
-          />
+          <NavLink
+            to={settingsHref}
+            className={buttonVariants({ variant: nearestYearHref ? "outline" : "default" })}
+            data-slot="button"
+          >
+            Naar eigenschappen
+          </NavLink>
         </div>
       </EmptyContent>
     </Empty>

@@ -28,7 +28,7 @@ import { getFieldByCentroid } from "~/components/blocks/atlas-fields/query"
 import { FieldDetailsAtlasSkeleton } from "~/components/blocks/atlas-fields/skeleton"
 import { SoilTextureCard } from "~/components/blocks/atlas-fields/soil-texture"
 import { ErrorBlock } from "~/components/custom/error"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getCalendar } from "~/lib/calendar"
@@ -327,17 +327,14 @@ function FieldDetailsAtlas({ b_id_farm, calendar, asyncData }: Awaited<ReturnTyp
         groundWater={<GroundwaterCard groundwaterEstimates={groundwaterEstimates} />}
       />
       <div className="fixed right-6 bottom-6 z-50">
-        <Button
-          nativeButton={false}
-          size="lg"
-          className="rounded-full shadow-lg"
-          render={
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
-              <MapIcon className="mr-2 h-4 w-4" />
-              Terug naar kaart
-            </NavLink>
-          }
-        />
+        <NavLink
+          to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}
+          className={buttonVariants({ size: "lg", className: "rounded-full shadow-lg" })}
+          data-slot="button"
+        >
+          <MapIcon className="mr-2 h-4 w-4" />
+          Terug naar kaart
+        </NavLink>
       </div>
     </>
   )

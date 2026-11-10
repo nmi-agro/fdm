@@ -55,21 +55,18 @@ function Screenshot({ src, alt }: { src?: string; alt?: string }) {
   return (
     <figure>
       <Dialog>
-        <DialogTrigger asChild>
-          <button
-            type="button"
-            aria-label={alt ? `Vergroot afbeelding: ${alt}` : "Vergroot afbeelding"}
-            className="focus-visible:ring-ring block w-full cursor-zoom-in rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <img
-              src={screenshot.src}
-              alt={alt ?? ""}
-              width={screenshot.width}
-              height={screenshot.height}
-              loading="lazy"
-              className="border-border w-full border"
-            />
-          </button>
+        <DialogTrigger
+          aria-label={alt ? `Vergroot afbeelding: ${alt}` : "Vergroot afbeelding"}
+          className="focus-visible:ring-ring block w-full cursor-zoom-in rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          <img
+            src={screenshot.src}
+            alt={alt ?? ""}
+            width={screenshot.width}
+            height={screenshot.height}
+            loading="lazy"
+            className="border-border w-full border"
+          />
         </DialogTrigger>
         <DialogContent className="w-[96vw] max-w-[96vw] p-2 pt-10 sm:max-w-[96vw]">
           <DialogTitle className="sr-only">{alt || "Afbeelding"}</DialogTitle>

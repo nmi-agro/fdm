@@ -55,7 +55,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import {
   Dialog,
@@ -686,16 +686,20 @@ export default function GerritApp() {
                   en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Button
-                    size="lg"
-                    nativeButton={false}
-                    render={<a href={`/farm/${farm.b_id_farm}/2025/gerrit`}>Switch naar 2025</a>}
-                  />
-                  <Button
-                    size="lg"
-                    nativeButton={false}
-                    render={<a href={`/farm/${farm.b_id_farm}/2026/gerrit`}>Switch naar 2026</a>}
-                  />
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2025/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2025
+                  </a>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2026/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2026
+                  </a>
                 </div>
               </div>
             </div>

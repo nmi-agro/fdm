@@ -9,7 +9,7 @@ import { useRemixForm, RemixFormProvider } from "remix-hook-form"
 import z from "zod"
 import { useAgentManagerFilterStore } from "@/app/store/agent-manager-filter"
 import { AutoComplete } from "~/components/custom/autocomplete"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Field, FieldContent, FieldLabel } from "~/components/ui/field"
 import {
@@ -225,19 +225,17 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       {canModify ? (
         <>
           <TableCell>
-            <Button
-              variant="ghost"
-              className="text-muted-foreground hover:text-foreground"
-              nativeButton={false}
-              render={
-                <NavLink
-                  to={`/support/settings/agents/${principal.principal_id}`}
-                  aria-label={`Bewerk medewerker ${principal.displayUserName}`}
-                >
-                  <Pencil />
-                </NavLink>
-              }
-            />
+            <NavLink
+              to={`/support/settings/agents/${principal.principal_id}`}
+              aria-label={`Bewerk medewerker ${principal.displayUserName}`}
+              className={buttonVariants({
+                variant: "ghost",
+                className: "text-muted-foreground hover:text-foreground",
+              })}
+              data-slot="button"
+            >
+              <Pencil />
+            </NavLink>
           </TableCell>
           <TableCell className="align-middle">
             {principal.isActive ? (

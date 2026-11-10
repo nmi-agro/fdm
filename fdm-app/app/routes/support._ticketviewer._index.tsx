@@ -1,7 +1,7 @@
 import { MessageSquareDashed, Plus } from "lucide-react"
 import { NavLink } from "react-router"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyTitle } from "../components/ui/empty"
 
 export default function TicketViewerNoSelection() {
@@ -30,16 +30,14 @@ export default function TicketViewerNoSelection() {
           Hier ziet u alle tickets die u heeft aangemaakt. Selecteer een ticket om het gesprek te
           bekijken of te vervolgen.
         </EmptyDescription>
-        <Button
-          className="mt-2"
-          nativeButton={false}
-          render={
-            <NavLink to="/support/new">
-              <Plus className="size-4" />
-              Nieuw ticket aanmaken
-            </NavLink>
-          }
-        />
+        <NavLink
+          to="/support/new"
+          className={buttonVariants({ className: "mt-2" })}
+          data-slot="button"
+        >
+          <Plus className="size-4" />
+          Nieuw ticket aanmaken
+        </NavLink>
       </EmptyContent>
     </Empty>
   )

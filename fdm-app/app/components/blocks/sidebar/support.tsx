@@ -86,22 +86,25 @@ export function SidebarSupport({
         <SidebarMenu>
           <ChangelogNotification />
           <SidebarMenuItem key="manual">
-            <SidebarMenuButton size="sm" asChild>
-              <a
-                href={helpTarget ? getHelpHref(helpTarget) : "/manual"}
-                target="_blank"
-                rel="noopener"
-                onClick={() =>
-                  capture(MANUAL_EVENTS.helpLinkClicked, {
-                    help_target: helpTarget ?? "manual",
-                    source: "sidebar",
-                    from_path: window.location.pathname,
-                  })
-                }
-              >
-                <BookOpen />
-                <span>Handleiding</span>
-              </a>
+            <SidebarMenuButton
+              size="sm"
+              render={
+                <a
+                  href={helpTarget ? getHelpHref(helpTarget) : "/manual"}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() =>
+                    capture(MANUAL_EVENTS.helpLinkClicked, {
+                      help_target: helpTarget ?? "manual",
+                      source: "sidebar",
+                      from_path: window.location.pathname,
+                    })
+                  }
+                />
+              }
+            >
+              <BookOpen />
+              <span>Handleiding</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem key="support">

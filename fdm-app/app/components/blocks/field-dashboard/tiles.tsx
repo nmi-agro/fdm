@@ -26,7 +26,7 @@ import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
@@ -292,17 +292,14 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
                 <p className="text-muted-foreground text-xs uppercase">{harvestDateTerm}</p>
                 <p className="mt-1 text-sm font-medium">{formatDateLabel(latestHarvest.date)}</p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                nativeButton={false}
-                render={
-                  <Link to={latestHarvest.detailHref}>
-                    Bekijken
-                    <MoveRight className="size-4" />
-                  </Link>
-                }
-              />
+              <Link
+                to={latestHarvest.detailHref}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                data-slot="button"
+              >
+                Bekijken
+                <MoveRight className="size-4" />
+              </Link>
             </div>
             {latestHarvest.metrics.length > 0 ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">

@@ -14,7 +14,7 @@ import {
   RvoImportReviewTable,
   useRvoImportForm,
 } from "~/components/blocks/rvo/import-review-table"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import type { genericAction, loader } from "./loader-and-action.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
@@ -165,22 +165,19 @@ export function UploadMijnPercelenPage({
 
                   <CustomValueButtonsToggle />
 
-                  <Button
-                    variant="outline"
-                    className={cn(isSaving && "opacity-50")}
-                    nativeButton={false}
-                    render={
-                      // Vanilla anchor triggers refresh behavior
-                      <a
-                        href={`${location.pathname}${location.search}`}
-                        onClick={(e) => {
-                          if (isSaving) e.preventDefault()
-                        }}
-                      >
-                        Terug naar uploaden
-                      </a>
-                    }
-                  />
+                  <a
+                    href={`${location.pathname}${location.search}`}
+                    onClick={(e) => {
+                      if (isSaving) e.preventDefault()
+                    }}
+                    className={buttonVariants({
+                      variant: "outline",
+                      className: cn(isSaving && "opacity-50"),
+                    })}
+                    data-slot="button"
+                  >
+                    Terug naar uploaden
+                  </a>
 
                   <Button
                     type="submit"

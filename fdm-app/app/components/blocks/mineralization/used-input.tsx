@@ -13,7 +13,7 @@ import { NavLink } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
   DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
@@ -85,18 +85,18 @@ function Section({
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">{title}</h3>
         {editHref ? (
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-xs"
-            nativeButton={false}
-            render={
-              <NavLink to={editHref}>
-                {editLabel}
-                <ArrowRight aria-hidden />
-              </NavLink>
-            }
-          />
+          <NavLink
+            to={editHref}
+            className={buttonVariants({
+              variant: "link",
+              size: "sm",
+              className: "h-auto p-0 text-xs",
+            })}
+            data-slot="button"
+          >
+            {editLabel}
+            <ArrowRight aria-hidden />
+          </NavLink>
         ) : null}
       </div>
       {children}
