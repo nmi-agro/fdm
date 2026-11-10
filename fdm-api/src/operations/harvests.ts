@@ -5,7 +5,7 @@ import {
   getEffectiveHarvestable,
   getParametersForHarvestCat,
 } from "@nmi-agro/fdm-core"
-import { ApiError } from "../error"
+import { ApiError, getErrorMessages } from "../error"
 import { CultivationIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
 import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import {
@@ -283,6 +283,9 @@ export const listCultivationHarvests = defineOperation({
 })
 
 /** Creates a harvest on a cultivation. */
+/** The fdm-core message when a crop that is harvested once already has its harvest. */
+const HARVESTED_ONCE = "Cultivation can only be harvested once"
+
 export const createHarvest = defineOperation({
   name: "createHarvest",
   kind: "create",
@@ -293,13 +296,25 @@ export const createHarvest = defineOperation({
     { fdm, services, principal }: OperationContext<HarvestServices>,
     { b_lu, ...body },
   ) => {
-    const b_id_harvesting = await services.addHarvest(
-      fdm,
-      principal.effectivePrincipalId,
-      b_lu,
-      new Date(body.b_lu_harvest_date),
-      getHarvestProperties(body),
-    )
+    let b_id_harvesting: string
+    try {
+      b_id_harvesting = await services.addHarvest(
+        fdm,
+        principal.effectivePrincipalId,
+        b_lu,
+        new Date(body.b_lu_harvest_date),
+        getHarvestProperties(body),
+      )
+    } catch (err) {
+      if (getErrorMessages(err).includes(HARVESTED_ONCE)) {
+        throw new ApiError(
+          409,
+          "conflict",
+          `Cultivation '${b_lu}' can be harvested only once and already has a harvest. Update or delete that harvest instead.`,
+        )
+      }
+      throw err
+    }
     const harvest = await services.getHarvest(fdm, principal.effectivePrincipalId, b_id_harvesting)
     if (!harvest?.b_id_harvesting) {
       throw new ApiError(500, "internal-error", "Harvest created but could not be retrieved.")

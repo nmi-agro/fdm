@@ -488,6 +488,36 @@ describe("GET /fields/:b_id/calculations/nitrogen-balance", () => {
     validKey()
   })
 
+  it("returns 422 naming the missing soil parameters instead of an internal error", async () => {
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      getNitrogenBalanceField: vi
+        .fn()
+        .mockRejectedValue(new Error("Missing required soil parameters: a_n_rt, b_gwl_class")),
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(422)
+    expect((await res.json()).detail).toContain("a_n_rt, b_gwl_class")
+  })
+
+  it("passes other calculation errors on as internal errors", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      getNitrogenBalanceField: vi.fn().mockRejectedValue(new Error("calculation failed")),
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(500)
+  })
+
   it("returns 200 with field nitrogen balance result", async () => {
     const getFieldFn = vi.fn().mockResolvedValue(mockField)
     const collectInput = vi.fn().mockResolvedValue(mockNitrogenInput)

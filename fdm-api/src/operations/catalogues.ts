@@ -377,25 +377,25 @@ export const MeasureCatalogueSchema = z
       title: "Dutch description",
       description: "Detailed description of the measure and its effects on soil functioning.",
     }),
-    m_summary: z.string().openapi({
+    m_summary: z.string().nullable().openapi({
       title: "Short Dutch description",
       description:
-        "A brief description of the measure, ideally no longer than 100 characters. The summary can be used for applications such as tool-tips.",
+        "A brief description of the measure, ideally no longer than 100 characters. The summary can be used for applications such as tool-tips. `null` when the catalogue has none.",
     }),
-    m_source_url: z.string().openapi({
+    m_source_url: z.string().nullable().openapi({
       title: "Source URL",
       description:
-        "Url or uri to a source which describes the measure or from which the measure is derived. Indicator calculations that involve this measure are based on this document.",
+        "Url or uri to a source which describes the measure or from which the measure is derived. Indicator calculations that involve this measure are based on this document. `null` when the catalogue has none.",
     }),
-    m_conflicts: z.string().array().openapi({
+    m_conflicts: z.string().array().nullable().openapi({
       title: "Conflicting measures",
       description:
-        "List of m_ids for measures that cannot be implemented simultaneously with this one.",
+        "List of m_ids for measures that cannot be implemented simultaneously with this one. `null` when there are none.",
     }),
-    m_stage_applicability: z.looseObject({}).array().openapi({
-      title: "Applicability conditions",
+    m_stage_applicability: z.enum(["field", "farm"]).nullable().openapi({
+      title: "Applicability",
       description:
-        "List of conditions determining whether this measure is applicable to a specific field or farm.",
+        "Whether the measure applies to a single field (`field`) or to the whole farm (`farm`). `null` when not set.",
     }),
   })
   .openapi("MeasureCatalogue")

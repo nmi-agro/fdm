@@ -55,8 +55,12 @@ export const listDerogations = defineOperation({
       principal.effectivePrincipalId,
       b_id_farm,
     )
-    // The records are returned as fdm-core stores them.
-    return derogations as unknown as z.infer<typeof DerogationSchema>[]
+    // fdm-core returns the stored rows, which do not include the farm: add it, as documented.
+    return derogations.map((derogation) => ({
+      b_id_derogation: derogation.b_id_derogation,
+      b_id_farm,
+      b_derogation_year: derogation.b_derogation_year,
+    }))
   },
 })
 

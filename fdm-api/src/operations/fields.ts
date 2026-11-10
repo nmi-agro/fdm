@@ -232,7 +232,10 @@ export const updateField = defineOperation({
     if (!updated?.b_id) {
       throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
     }
-    return serialiseField(updated)
+    // updateField returns the stored columns only, without the derived centroid, area and
+    // perimeter; read the field again so the result is complete.
+    const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
+    return serialiseField(field ?? updated)
   },
 })
 

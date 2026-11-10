@@ -7,7 +7,7 @@ import {
   getYearTimeframe,
   NormNotApplicableError,
 } from "@nmi-agro/fdm-calculator"
-import { ApiError } from "../error"
+import { ApiError, getErrorMessages } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import { DateStringSchema } from "../schemas"
@@ -604,6 +604,31 @@ function serialiseNutrientAdviceRow(row: calculator.FarmNutrientAdviceRow) {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** The start of the fdm-calculator message when a soil analysis lacks required parameters. */
+const MISSING_SOIL_PARAMETERS = "Missing required soil parameters:"
+
+/**
+ * Runs a field calculation and turns missing soil data into a 422 the client can act on, instead
+ * of an internal error.
+ */
+async function withSoilDataCheck<T>(calculate: () => Promise<T>): Promise<T> {
+  try {
+    return await calculate()
+  } catch (err) {
+    const missing = getErrorMessages(err).find((message) =>
+      message.startsWith(MISSING_SOIL_PARAMETERS),
+    )
+    if (missing) {
+      throw new ApiError(
+        422,
+        "unprocessable-entity",
+        `The soil data of the field is not complete enough for this calculation. Missing: ${missing.slice(MISSING_SOIL_PARAMETERS.length).trim()}. Add a soil analysis with these parameters.`,
+      )
+    }
+    throw err
+  }
+}
+
 /**
  * Removes the target from a nitrogen balance. The target only applies to the balance with total
  * nitrogen, so it is omitted from the balance with effective nitrogen.
@@ -790,16 +815,18 @@ export const calculateFieldNitrogenBalance = defineOperation({
     }
 
     const fieldInput = input.fields[0]
-    const balance = await services.getNitrogenBalanceField(fdm, {
-      fieldInput,
-      fertilizerDetails: input.fertilizerDetails,
-      cultivationDetails: input.cultivationDetails,
-      timeFrame: {
-        start: input.timeFrame.start as Date,
-        end: input.timeFrame.end as Date,
-      },
-      useEffectiveNitrogen,
-    })
+    const balance = await withSoilDataCheck(() =>
+      services.getNitrogenBalanceField(fdm, {
+        fieldInput,
+        fertilizerDetails: input.fertilizerDetails,
+        cultivationDetails: input.cultivationDetails,
+        timeFrame: {
+          start: input.timeFrame.start as Date,
+          end: input.timeFrame.end as Date,
+        },
+        useEffectiveNitrogen,
+      }),
+    )
 
     return {
       b_id: fieldInput.field.b_id,
@@ -846,15 +873,17 @@ export const calculateFieldOrganicMatterBalance = defineOperation({
     }
 
     const fieldInput = input.fields[0]
-    const balance = await services.getOrganicMatterBalanceField(fdm, {
-      fieldInput,
-      fertilizerDetails: input.fertilizerDetails,
-      cultivationDetails: input.cultivationDetails,
-      timeFrame: {
-        start: input.timeFrame.start as Date,
-        end: input.timeFrame.end as Date,
-      },
-    })
+    const balance = await withSoilDataCheck(() =>
+      services.getOrganicMatterBalanceField(fdm, {
+        fieldInput,
+        fertilizerDetails: input.fertilizerDetails,
+        cultivationDetails: input.cultivationDetails,
+        timeFrame: {
+          start: input.timeFrame.start as Date,
+          end: input.timeFrame.end as Date,
+        },
+      }),
+    )
 
     return {
       b_id: fieldInput.field.b_id,

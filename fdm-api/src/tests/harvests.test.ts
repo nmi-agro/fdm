@@ -110,6 +110,34 @@ describe("POST /cultivations/:b_lu/harvests", () => {
     expect(res.headers.get("location")).toContain("/harvests/harvest-new")
   })
 
+  it("returns 409 when a crop that is harvested once already has its harvest", async () => {
+    const app = makeApp({
+      addHarvest: vi.fn().mockRejectedValue(
+        new Error("Exception for addHarvest", {
+          cause: new Error("Cultivation can only be harvested once"),
+        }),
+      ),
+    })
+    const res = await app.request("/cultivations/cult-1/harvests", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
+    })
+    expect(res.status).toBe(409)
+    expect((await res.json()).type).toContain("conflict")
+  })
+
+  it("passes other errors of addHarvest on", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = makeApp({ addHarvest: vi.fn().mockRejectedValue(new Error("database down")) })
+    const res = await app.request("/cultivations/cult-1/harvests", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
+    })
+    expect(res.status).toBe(500)
+  })
+
   it("returns 415 without Content-Type: application/json", async () => {
     const app = makeApp()
     const res = await app.request("/cultivations/cult-1/harvests", {

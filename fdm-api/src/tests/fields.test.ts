@@ -341,9 +341,11 @@ describe("PATCH /fields/:b_id", () => {
   })
 
   it("returns 200 with the updated field", async () => {
+    const updatedField = { ...baseField, b_name: "Perceel Zuid" }
     const app = makeApp({
-      getField: vi.fn().mockResolvedValue(baseField),
-      updateField: vi.fn().mockResolvedValue({ ...baseField, b_name: "Perceel Zuid" }),
+      // The field before the update, then the field read back after it.
+      getField: vi.fn().mockResolvedValueOnce(baseField).mockResolvedValueOnce(updatedField),
+      updateField: vi.fn().mockResolvedValue(updatedField),
     })
     const res = await app.request("/fields/field-1", {
       method: "PATCH",
@@ -355,6 +357,25 @@ describe("PATCH /fields/:b_id", () => {
     })
     expect(res.status).toBe(200)
     expect((await res.json()).b_name).toBe("Perceel Zuid")
+  })
+
+  it("returns the derived centroid and area, which updateField does not return", async () => {
+    const { b_centroid: _centroid, b_area: _area, b_perimeter: _perimeter, ...stored } = baseField
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(baseField),
+      updateField: vi.fn().mockResolvedValue(stored),
+    })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_name: "Perceel Noord" }),
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      b_centroid: baseField.b_centroid,
+      b_area: baseField.b_area,
+      b_perimeter: baseField.b_perimeter,
+    })
   })
 
   it("leaves b_end untouched when it is not provided", async () => {

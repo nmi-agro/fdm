@@ -1108,6 +1108,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.1.0(vitest@5.1.0)
+      postgres:
+        specifier: ^4.0.0
+        version: 4.0.0
       tsdown:
         specifier: 'catalog:'
         version: 0.23.5(tsx@4.23.15)(typescript@7.0.2)
