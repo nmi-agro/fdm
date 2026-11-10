@@ -2,13 +2,14 @@ import type { CallToolResult } from "@modelcontextprotocol/server"
 import { classifyError, consumeRateLimit } from "@nmi-agro/fdm-api"
 import * as Sentry from "@sentry/node"
 import type { McpTool, ToolContext } from "./tools/types"
+import { LOG_OPTIONS } from "./log"
 
 /**
  * Turns a failure into a message the model can act on. Messages of known failures come from the
  * operations; unexpected failures only give an error id, never internal details.
  */
 function errorMessage(err: unknown): { message: string; status: number } {
-  const { status, detail, errorId } = classifyError(err)
+  const { status, detail, errorId } = classifyError(err, LOG_OPTIONS)
   if (status >= 500 && errorId) {
     return { status, message: `${detail} Error id: ${errorId}.` }
   }

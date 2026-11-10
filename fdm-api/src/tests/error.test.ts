@@ -182,6 +182,31 @@ describe("createErrorHandler", () => {
     await app.request("/unknown-error")
     expect(consoleErrorSpy).toHaveBeenCalled()
   })
+
+  it("prefixes log lines with fdm-api by default, or with the configured prefix", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    await makeTestApp().request("/api-error")
+    expect(String(warn.mock.calls.at(-1)?.[0])).toMatch(/^\[fdm-api\] /)
+
+    const app = new Hono()
+    app.onError(createErrorHandler(APP_URL, { logPrefix: "other" }))
+    app.notFound(createNotFoundHandler(APP_URL, { logPrefix: "other" }))
+    app.get("/fail", () => {
+      throw new ApiError(422, "unprocessable-entity", "Bad input.")
+    })
+    app.get("/bad-json", () => {
+      throw new HTTPException(400, { message: "Malformed JSON" })
+    })
+    await app.request("/fail")
+    await app.request("/bad-json")
+    await app.request("/missing")
+    await app.request("/missing")
+    const lines = warn.mock.calls.slice(-4).map(([line]) => String(line))
+    for (const line of lines) {
+      expect(line).toMatch(/^\[other\] /)
+    }
+    warn.mockRestore()
+  })
 })
 
 // ---------------------------------------------------------------------------

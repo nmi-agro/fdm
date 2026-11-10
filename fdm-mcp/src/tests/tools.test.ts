@@ -60,6 +60,22 @@ describe.each(ERAS)("tools ($name)", (era) => {
   })
 })
 
+describe("server identity", () => {
+  it("presents itself with the configured application name", async () => {
+    const { app } = makeApp({}, { config: { appName: "MINAS2" } })
+    const client = await connect(app)
+    expect(client.getServerVersion()).toMatchObject({ name: "minas2", title: "MINAS2" })
+    expect(client.getInstructions()).toContain("MINAS2")
+    await client.close()
+  })
+
+  it("derives a slug for the programmatic server name", async () => {
+    const { serverSlug } = await import("../mcp-server")
+    expect(serverSlug("My App 2")).toBe("my-app-2")
+    expect(serverSlug("  ")).toBe("fdm")
+  })
+})
+
 describe("tool annotations", () => {
   const external = Object.fromEntries(TOOLS.map((tool) => [tool.name, tool.external]))
 

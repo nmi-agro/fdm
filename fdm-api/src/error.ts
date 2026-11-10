@@ -53,6 +53,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Prefix of the log lines that error handling writes, unless a service sets its own. */
+const DEFAULT_LOG_PREFIX = "fdm-api"
+
+/**
+ * Logging options for the error helpers, for services other than the REST API that use them.
+ */
+export interface ErrorLogOptions {
+  /** Prefix of the log lines, without brackets, for example `"fdm-mcp"`. Defaults to `"fdm-api"`. */
+  logPrefix?: string
+}
+
 /**
  * Builds an RFC 9457 `application/problem+json` response for the current request.
  *
@@ -62,6 +73,8 @@ export class ApiError extends Error {
  * @param detail - Human-readable explanation of the failure.
  * @param appUrl - Canonical application URL used to generate the absolute problem type URI.
  * @param extras - Optional extension members to include in the problem details payload.
+ * @param errorId - Optional error identifier to return; generated when omitted.
+ * @param options - Logging options, such as the prefix of the log line.
  * @returns A JSON response with the `application/problem+json` content type.
  * @example
  * ```ts
@@ -76,9 +89,10 @@ export function problemResponse(
   appUrl: string,
   extras?: Record<string, unknown>,
   errorId?: string,
+  options: ErrorLogOptions = {},
 ) {
   const error_id = errorId ?? nanoid()
-  const logLine = `[fdm-api] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
+  const logLine = `[${options.logPrefix ?? DEFAULT_LOG_PREFIX}] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
   if (status >= 500) {
     console.error(logLine)
   } else {
@@ -175,13 +189,14 @@ export interface ClassifiedError {
  * messages never reach the client. Both the REST error handler and the MCP server use this.
  *
  * @param err - The caught error.
+ * @param options - Logging options, such as the prefix of the log line.
  * @returns The classified error.
  * @example
  * ```ts
  * const { status, slug, detail } = classifyError(err)
  * ```
  */
-export function classifyError(err: unknown): ClassifiedError {
+export function classifyError(err: unknown, options: ErrorLogOptions = {}): ClassifiedError {
   if (err instanceof ApiError) {
     return {
       status: err.status,
@@ -230,7 +245,7 @@ export function classifyError(err: unknown): ClassifiedError {
       detail: `Request body contains invalid JSON: ${err.message}`,
     }
   }
-  console.error("[fdm-api] Unhandled error:", err)
+  console.error(`[${options.logPrefix ?? DEFAULT_LOG_PREFIX}] Unhandled error:`, err)
   const errorId = nanoid()
   Sentry.withScope((scope) => {
     scope.setTag("error_id", errorId)
@@ -248,10 +263,11 @@ export function classifyError(err: unknown): ClassifiedError {
  * Creates the global Hono error handler used by the API application.
  *
  * @param appUrl - Canonical application URL used to generate absolute problem type URIs.
+ * @param options - Logging options, such as the prefix of the log lines.
  * @returns An error handler that maps known API and permission failures to problem responses and falls back to a 500 response for unexpected errors.
  * @throws {ApiError} Does not throw directly, but converts upstream `ApiError` instances into HTTP responses.
  */
-export function createErrorHandler(appUrl: string): ErrorHandler {
+export function createErrorHandler(appUrl: string, options: ErrorLogOptions = {}): ErrorHandler {
   return (err, c) => {
     if (err instanceof HTTPException && err.status === 400) {
       // Hono throws this when it cannot parse the body; name the format the client sent.
@@ -266,13 +282,16 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
           ? "The request body could not be read as multipart/form-data."
           : "Request body contains invalid JSON.",
         appUrl,
+        undefined,
+        undefined,
+        options,
       )
     }
-    const { status, slug, detail, extras, errorId, headers } = classifyError(err)
+    const { status, slug, detail, extras, errorId, headers } = classifyError(err, options)
     for (const [name, value] of Object.entries(headers ?? {})) {
       c.header(name, value)
     }
-    return problemResponse(c, status, slug, detail, appUrl, extras, errorId)
+    return problemResponse(c, status, slug, detail, appUrl, extras, errorId, options)
   }
 }
 
@@ -280,12 +299,26 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
  * Creates the fallback handler for requests that do not match any API route.
  *
  * @param appUrl - Canonical application URL used to generate the problem type URI.
+ * @param options - Logging options, such as the prefix of the log line.
  * @returns A not-found handler that responds with a 404 RFC 9457 problem document.
  * @example
  * ```ts
  * app.notFound(createNotFoundHandler("https://example.com"))
  * ```
  */
-export function createNotFoundHandler(appUrl: string): NotFoundHandler {
-  return (c) => problemResponse(c, 404, "not-found", `${c.req.path} does not exist.`, appUrl)
+export function createNotFoundHandler(
+  appUrl: string,
+  options: ErrorLogOptions = {},
+): NotFoundHandler {
+  return (c) =>
+    problemResponse(
+      c,
+      404,
+      "not-found",
+      `${c.req.path} does not exist.`,
+      appUrl,
+      undefined,
+      undefined,
+      options,
+    )
 }

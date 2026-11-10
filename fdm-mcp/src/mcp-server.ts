@@ -15,6 +15,21 @@ import { SERVER_VERSION } from "./version"
  */
 const MAX_TOOL_INPUT_ELEMENTS = 50_000
 
+/**
+ * Turns the application name into the programmatic server name, for example "MINAS2" into
+ * "minas2" and "My App" into "my-app".
+ *
+ * @param appName - Public name of the application.
+ * @returns The lowercase slug, or `"fdm"` when nothing remains.
+ */
+export function serverSlug(appName: string): string {
+  const slug = appName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+  return slug || "fdm"
+}
+
 /** Everything needed to build the MCP server for one request. */
 export interface McpServerSetup {
   /** Public name of the application, used as server name and in the instructions. */
@@ -40,7 +55,8 @@ export interface McpServerSetup {
  */
 export function createMcpServer(setup: McpServerSetup): McpServer {
   const server = new McpServer(
-    { name: setup.appName, version: SERVER_VERSION },
+    // `title` is the name clients show (from PUBLIC_FDM_NAME, e.g. "MINAS2"); `name` is its slug.
+    { name: serverSlug(setup.appName), title: setup.appName, version: SERVER_VERSION },
     {
       instructions: buildInstructions(setup.appName),
       maxToolInputElements: MAX_TOOL_INPUT_ELEMENTS,

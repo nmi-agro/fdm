@@ -54,8 +54,14 @@ if (!posthog) {
   console.warn("[fdm-mcp] PUBLIC_POSTHOG_KEY is not set — MCP analytics are disabled")
 }
 
+// The name assistants show for this server, for example "MINAS2". An empty value counts as unset.
+const appName = process.env.PUBLIC_FDM_NAME?.trim() || "FDM"
+if (!process.env.PUBLIC_FDM_NAME?.trim()) {
+  console.warn('[fdm-mcp] PUBLIC_FDM_NAME is not set — the server presents itself as "FDM"')
+}
+
 const app = createFdmMcp(fdm, auth, {
-  appName: String(process.env.PUBLIC_FDM_NAME ?? "FDM"),
+  appName,
   appUrl,
   allowedOrigins,
   analytics: posthog
