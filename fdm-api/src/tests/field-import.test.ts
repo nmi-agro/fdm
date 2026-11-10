@@ -85,6 +85,7 @@ function setup(overrides: Partial<FdmApiServices> = {}) {
       .mockResolvedValue([{ b_lu_catalogue: "nl_265" }, { b_lu_catalogue: "nl_233" }]),
     getNmiApiKey: () => "key",
     countFieldsOfFarms: vi.fn().mockResolvedValue({}),
+    getFarm: vi.fn().mockResolvedValue({ b_id_farm: "farm-1" }),
     ...overrides,
   }
   return { app: createFdmApi(mockFdm, mockAuth, config, services as any), services }
@@ -301,6 +302,32 @@ describe("POST /farms/:b_id_farm/fields/import/apply", () => {
     const res = await apply(app, { default_action: "ADD_REMOTE" })
     expect(res.status).toBe(422)
     expect(services.applyRvoImport).not.toHaveBeenCalled()
+  })
+
+  it("refuses an import that adds fields to a farm that is already too large", async () => {
+    // One field added and one removed: the net change is zero, but the farm stays above the limit.
+    const { app, services } = setup({
+      countFieldsOfFarms: vi.fn().mockResolvedValue({ "farm-1": 501 }),
+    })
+    const res = await apply(app, {
+      choices: JSON.stringify({
+        "rvo-1": { action: "ADD_REMOTE" },
+        "b-1": { action: "REMOVE_LOCAL" },
+      }),
+    })
+    expect(res.status).toBe(422)
+    expect(services.applyRvoImport).not.toHaveBeenCalled()
+  })
+
+  it("lets an import without new fields shrink a farm that is too large", async () => {
+    const { app, services } = setup({
+      countFieldsOfFarms: vi.fn().mockResolvedValue({ "farm-1": 501 }),
+    })
+    const res = await apply(app, {
+      choices: JSON.stringify({ "rvo-1": { action: "IGNORE" }, "b-1": { action: "REMOVE_LOCAL" } }),
+    })
+    expect(res.status).toBe(200)
+    expect(services.countFieldsOfFarms).not.toHaveBeenCalled()
   })
 
   it("returns 400 for choices that do not match the schema", async () => {

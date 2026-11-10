@@ -392,7 +392,7 @@ export const listFarmSoilAnalyses = defineOperation({
     { fdm, services, principal }: OperationContext<SoilAnalysisServices>,
     { b_id_farm, ...timeframe },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const analysesByField = await services.getSoilAnalysesForFarm(
       fdm,
       principal.effectivePrincipalId,
@@ -451,7 +451,7 @@ export const getFarmCurrentSoilData = defineOperation({
     { fdm, services, principal }: OperationContext<SoilAnalysisServices>,
     { b_id_farm, ...timeframe },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const soilDataByField = await services.getCurrentSoilDataForFarm(
       fdm,
       principal.effectivePrincipalId,
