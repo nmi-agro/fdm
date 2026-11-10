@@ -83,7 +83,7 @@ ChatGPT only connects custom MCP servers with OAuth sign-in or without authentic
 
 ### Open WebUI with Ollama
 
-In the admin settings, add a tool server of type "MCP (Streamable HTTP)" with URL `https://mcp.example.com/mcp`, authentication "Bearer" and the key. Use a model that supports tool calling. Smaller models pick the wrong tool more often.
+In the admin settings, add a tool server of type "MCP (Streamable HTTP)" with URL `https://mcp.example.com/mcp`, authentication "Bearer" and the key. Use a model that supports tool calling well. Less capable models, local or hosted, pick the wrong tool or fill in arguments wrongly more often.
 
 ### Clients that only support stdio
 

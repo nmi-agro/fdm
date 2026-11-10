@@ -45,7 +45,7 @@ Codes van gewassen, meststoffen en maatregelen zoekt de assistent zelf op in de 
 - De assistent kan gegevens wijzigen en verwijderen. De meeste assistenten vragen je om toestemming voordat ze iets wijzigen. Lees elke wijziging na voordat je die goedkeurt. Een verwijdering kun je niet ongedaan maken.
 - Je gegevens gaan naar de aanbieder van de assistent, zoals Anthropic of OpenAI. Deel geen gegevens van klanten zonder hun toestemming, en kijk na wat je organisatie hierover heeft afgesproken.
 - Controleer adviezen. Een assistent kan zich vergissen of berekeningen verkeerd uitleggen. De berekeningen zelf komen uit {{appName}}, maar de uitleg en conclusies van de assistent niet.
-- Kleinere modellen maken meer fouten. Een taalmodel dat je zelf draait, kiest vaker het verkeerde hulpmiddel of vult gegevens verkeerd in dan de grote assistenten.
+- Minder krachtige modellen maken vaker fouten. Ze kiezen vaker het verkeerde hulpmiddel of vullen gegevens verkeerd in. Dat geldt voor online assistenten en voor modellen die je zelf draait: kies een model dat goed overweg kan met hulpmiddelen (tool calling).
 - Gebruik wordt bijgehouden. {{appName}} houdt bij welke hulpmiddelen de assistent gebruikt, hoe lang dat duurt en of het lukt, en wat de assistent opgeeft als reden. De gegevens die de assistent opvraagt of meestuurt, worden daarbij niet bewaard.
 - Via de API en de assistent gelden [limieten](/manual/api#limieten), zoals maximaal 500 percelen per bedrijf.
 
@@ -133,4 +133,4 @@ npx mcp-remote {{mcpUrl}}/mcp --header "X-API-Key:${FDM_API_KEY}"
 - Foutmelding 401: de sleutel ontbreekt, is verkeerd overgenomen of is ingetrokken. Maak zo nodig een nieuwe sleutel.
 - Foutmelding 429 of "Rate limit exceeded": de assistent doet te veel verzoeken achter elkaar. Wacht even; de melding zegt hoeveel seconden. Zie [Limieten](/manual/api#limieten).
 - Nieuwe hulpmiddelen verschijnen niet: vernieuw de lijst met hulpmiddelen in je assistent, of verwijder de koppeling en voeg hem opnieuw toe.
-- De assistent kiest het verkeerde hulpmiddel**: noem in je vraag het bedrijf of perceel bij naam, of gebruik een groter model.
+- De assistent kiest het verkeerde hulpmiddel: noem in je vraag het bedrijf of perceel bij naam, of kies een krachtiger model.
