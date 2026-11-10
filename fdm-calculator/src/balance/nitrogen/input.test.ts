@@ -530,6 +530,7 @@ describe("collectInputForNitrogenBalance", () => {
 
     expect(result.fields).toHaveLength(1)
     expect(result.fields[0].field).toBe(singleField)
+    expect(result.fields[0].soilAnalyses).toEqual(mockSoilAnalysesData)
     expect(mockedGetCultivations).toHaveBeenCalled()
     expect(mockedGetHarvests).toHaveBeenCalled()
     expect(mockedGetCurrentSoilData).toHaveBeenCalled()
