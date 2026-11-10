@@ -10,7 +10,12 @@
  * Needs PostgreSQL with PostGIS, configured with POSTGRES_* in the environment.
  */
 import { defaultServices } from "@nmi-agro/fdm-api"
-import { createFdmServer, type FdmServerType, syncCatalogues } from "@nmi-agro/fdm-core"
+import {
+  createFdmServer,
+  type FdmServerType,
+  syncCatalogues,
+  syncMeasuresCatalogueArray,
+} from "@nmi-agro/fdm-core"
 import { randomUUID } from "node:crypto"
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest"
 import type { ToolContext } from "../tools/types"
@@ -48,6 +53,18 @@ async function call<T = Record<string, unknown>>(name: string, args: Record<stri
   return result.structuredContent as T
 }
 
+/** A synthetic measure in the `bln` catalogue, which a new farm enables. */
+const CONFORMANCE_MEASURE = {
+  m_id: "bln_conformance_test",
+  m_source: "bln",
+  m_name: "Testmaatregel",
+  m_description: "Synthetische maatregel voor de conformiteitstest van de MCP-server.",
+  m_summary: "Testmaatregel",
+  m_source_url: "https://example.com/measures/conformance",
+  m_conflicts: [],
+  m_stage_applicability: "field" as const,
+}
+
 beforeAll(async () => {
   fdm = createFdmServer(
     inject("host"),
@@ -57,6 +74,9 @@ beforeAll(async () => {
     inject("database"),
   )
   await syncCatalogues(fdm)
+  // The measure catalogue is only synchronised with an NMI API key: add one synthetic measure, with
+  // an id of its own so that a real catalogue item is never overwritten.
+  await syncMeasuresCatalogueArray(fdm, [CONFORMANCE_MEASURE])
   const userId = randomUUID()
   ctx = {
     fdm,
@@ -76,7 +96,11 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await fdm?.$client?.end?.()
+  // Leave no synthetic measure behind in a development database. The farm that used it is
+  // removed by the test itself.
+  if (!fdm) return
+  await fdm.$client`delete from "fdm"."measures_catalogue" where m_id = ${CONFORMANCE_MEASURE.m_id}`
+  await fdm.$client.end()
 })
 
 describe("tool results match their output schemas on real data", () => {
@@ -193,16 +217,13 @@ describe("tool results match their output schemas on real data", () => {
     const measures = await call<{ data: { m_id: string }[] }>("search_measure_catalogue", {
       b_id_farm,
     })
-    let b_id_measure: string | undefined
-    if (measures.data.length > 0) {
-      const measure = await call<{ b_id_measure: string }>("create_measure", {
-        b_id,
-        m_id: measures.data[0].m_id,
-        m_start: `${YEAR}-01-01`,
-      })
-      b_id_measure = measure.b_id_measure
-      await call("update_measure", { b_id_measure, m_end: `${YEAR}-12-31` })
-    }
+    expect(measures.data.length).toBeGreaterThan(0)
+    const { b_id_measure } = await call<{ b_id_measure: string }>("create_measure", {
+      b_id,
+      m_id: measures.data[0].m_id,
+      m_start: `${YEAR}-01-01`,
+    })
+    await call("update_measure", { b_id_measure, m_end: `${YEAR}-12-31` })
 
     const certification = await call<{ b_id_organic: string }>("create_organic_certification", {
       b_id_farm,
@@ -253,7 +274,7 @@ describe("tool results match their output schemas on real data", () => {
     await call("delete_grazing_intention", { b_id_farm, b_grazing_intention_year: YEAR })
     await call("delete_derogation", { b_id_derogation: derogation.b_id_derogation })
     await call("delete_organic_certification", { b_id_organic: certification.b_id_organic })
-    if (b_id_measure) await call("delete_measure", { b_id_measure })
+    await call("delete_measure", { b_id_measure })
     await call("delete_soil_analysis", { a_id: analysis.a_id })
     await call("delete_fertilizer_application", { p_app_id: application.p_app_id })
     await call("delete_fertilizer", { p_id: custom.p_id })
