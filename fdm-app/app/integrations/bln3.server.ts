@@ -209,17 +209,22 @@ export async function getFieldMeasuresForIndicators({
  * Collects inputs and fetches BLN3 measure applicability for a single field.
  *
  * Returns a record mapping measure IDs (`bln_BM86`) to their applicability status and message.
+ * An excluded field, a missing API key and, by default, a failed NMI request all return an
+ * empty record. With `throwOnError`, a failed NMI request throws instead, so callers can tell
+ * it apart from a successful empty result.
  */
 export async function getMeasureApplicabilityForField({
   principal_id,
   b_id,
   b_year,
   timeframe,
+  throwOnError = false,
 }: {
   principal_id: PrincipalId
   b_id: string
   b_year: number
   timeframe?: Timeframe
+  throwOnError?: boolean
 }): Promise<Record<string, MeasureApplicabilityInfo>> {
   const inputs = await collectInputForBln3MeasureApplicability(
     fdm,
@@ -253,6 +258,7 @@ export async function getMeasureApplicabilityForField({
     return map
   } catch (err) {
     console.error(`Failed to fetch BLN3 measure applicability for field ${b_id}:`, err)
+    if (throwOnError) throw err
     return {}
   }
 }
@@ -276,6 +282,8 @@ async function mapInBatches<T, R>(
  *
  * Uses `Promise.allSettled` in batches of 5 so individual field failures return an empty record
  * for that field rather than failing the entire request or overwhelming external services.
+ * With `reportFailures`, a field whose NMI request failed maps to `null` instead of an empty
+ * record, so callers can tell a failure apart from "no applicable measures".
  *
  * @returns A record mapping `b_id` to a record mapping `m_id` to `MeasureApplicabilityInfo`.
  */
@@ -284,11 +292,13 @@ export async function getMeasureApplicabilityForFields({
   b_ids,
   b_year,
   timeframe,
+  reportFailures = false,
 }: {
   principal_id: PrincipalId
   b_ids: string[]
   b_year: number
   timeframe?: Timeframe
+  reportFailures?: boolean
 }): Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>> {
   const BATCH_SIZE = 5
   const results = await mapInBatches(b_ids, BATCH_SIZE, (b_id) =>
@@ -297,6 +307,7 @@ export async function getMeasureApplicabilityForFields({
       b_id,
       b_year,
       timeframe,
+      throwOnError: reportFailures,
     }),
   )
 
@@ -471,6 +482,9 @@ export type FarmMeasureOpportunity = FieldTopOpportunity & {
  * Advice failures are represented by missing entries and skipped. A rejection
  * of either batch fetch is intentionally propagated so route loaders can
  * report it and hide the lazy recommendation surface.
+ *
+ * Pass `applicabilityByField` when the caller already fetched the applicability
+ * of these fields, to avoid a second round of NMI requests.
  */
 export async function getFarmMeasureOpportunities({
   principal_id,
@@ -480,6 +494,7 @@ export async function getFarmMeasureOpportunities({
   scoreByBid,
   activeMeasureIdsByField,
   measureNameById,
+  applicabilityByField: preloadedApplicability,
 }: {
   principal_id: PrincipalId
   b_ids: string[]
@@ -488,13 +503,15 @@ export async function getFarmMeasureOpportunities({
   scoreByBid: Map<string, Bln3Score | null>
   activeMeasureIdsByField: Map<string, Set<string>>
   measureNameById: Map<string, string>
+  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null>
 }): Promise<{
   opportunities: FarmMeasureOpportunity[]
   candidates: FarmMeasureOpportunity[]
   adviceAvailable: boolean
 }> {
   const [applicabilityByField, adviceByField] = await Promise.all([
-    getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
+    preloadedApplicability ??
+      getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
     getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
   ])
 

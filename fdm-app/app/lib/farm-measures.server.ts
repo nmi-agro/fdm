@@ -4,6 +4,7 @@
  * applicable.
  */
 import {
+  type Field,
   getCultivations,
   getFields,
   getMeasuresForFarm,
@@ -16,6 +17,7 @@ import {
   getFarmMeasureOpportunities,
   getIndicatorsForFarm,
   getMeasureApplicabilityForFields,
+  type MeasureApplicabilityInfo,
 } from "~/integrations/bln3.server"
 import { reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -40,14 +42,19 @@ export type FarmRecommendationsData = {
   opportunitiesByField: Record<string, FieldTopOpportunity[]>
   topOpportunities: FieldTopOpportunity[]
   measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]>
+  /** `false` when the advice of no field could be loaded */
+  adviceAvailable: boolean
 }
 
 /**
  * Builds the farm-wide measure recommendations: per field the measures that improve its weak
  * indicators most, with one variant per measure family chosen over the whole farm.
  *
- * @returns The ranked steps, the opportunities per field, the farm-wide opportunities and the
- *   summed impact per measure and indicator.
+ * Pass `farmFields` and `applicabilityByField` when the caller already loaded them, to avoid
+ * loading the fields and the applicability a second time.
+ *
+ * @returns The ranked steps, the opportunities per field, the farm-wide opportunities, the
+ *   summed impact per measure and indicator, and whether any advice could be loaded.
  */
 export async function getFarmNextSteps({
   principal_id,
@@ -57,6 +64,8 @@ export async function getFarmNextSteps({
   timeframe,
   measuresMap,
   catalogue,
+  farmFields,
+  applicabilityByField,
 }: {
   principal_id: PrincipalId
   b_id_farm: string
@@ -65,16 +74,23 @@ export async function getFarmNextSteps({
   timeframe?: Timeframe
   measuresMap: Map<string, { m_id: string }[]>
   catalogue: { m_id: string; m_name: string }[]
+  farmFields?: Field[]
+  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null>
 }): Promise<FarmRecommendationsData> {
   const b_ids = fields.map((f) => f.b_id)
-  const scores = await getIndicatorsForFarm({ principal_id, b_id_farm, timeframe })
+  const scores = await getIndicatorsForFarm({
+    principal_id,
+    b_id_farm,
+    timeframe,
+    preloadedFields: farmFields,
+  })
   const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
   const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
   const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
   const activeMeasureIdsByField = new Map(
     b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
   )
-  const { candidates } = await getFarmMeasureOpportunities({
+  const { candidates, adviceAvailable } = await getFarmMeasureOpportunities({
     principal_id,
     b_ids,
     b_year,
@@ -82,6 +98,7 @@ export async function getFarmNextSteps({
     scoreByBid,
     activeMeasureIdsByField,
     measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+    applicabilityByField,
   })
 
   // Show one variant per measure family farm-wide: the variant with the highest
@@ -172,7 +189,7 @@ export async function getFarmNextSteps({
     })
     .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
 
-  return { steps, opportunitiesByField, topOpportunities, measureImpacts }
+  return { steps, opportunitiesByField, topOpportunities, measureImpacts, adviceAvailable }
 }
 
 /** Status of a measure on a field, in order of priority. */
@@ -252,33 +269,42 @@ export async function getFarmMeasureStatus({
     })
     .map((field) => ({ b_id: field.b_id, b_name: field.b_name ?? null }))
 
+  // Applicability is loaded once and reused for the recommendations. With `reportFailures`, a
+  // field whose NMI request failed is `null`, so a failure is not mistaken for "no applicable
+  // measures".
   let applicabilityAvailable = true
-  let recommendationsAvailable = true
-  const [applicabilityByField, recommendations] = await Promise.all([
-    getMeasureApplicabilityForFields({
-      principal_id,
-      b_ids: eligibleFields.map((field) => field.b_id),
-      b_year,
-      timeframe,
-    }).catch((error) => {
-      reportError(error, { page: "measures catalogue applicability" })
-      applicabilityAvailable = false
-      return {}
-    }),
-    getFarmNextSteps({
-      principal_id,
-      b_id_farm,
-      fields: eligibleFields,
-      b_year,
-      timeframe,
-      measuresMap,
-      catalogue,
-    }).catch((error) => {
-      reportError(error, { page: "measures catalogue recommendations" })
-      recommendationsAvailable = false
-      return null
-    }),
-  ])
+  const applicabilityByField = await getMeasureApplicabilityForFields({
+    principal_id,
+    b_ids: eligibleFields.map((field) => field.b_id),
+    b_year,
+    timeframe,
+    reportFailures: true,
+  }).catch((error) => {
+    reportError(error, { page: "measures catalogue applicability" })
+    applicabilityAvailable = false
+    return {} as Record<string, Record<string, MeasureApplicabilityInfo> | null>
+  })
+  if (Object.values(applicabilityByField).some((perMeasure) => perMeasure === null)) {
+    applicabilityAvailable = false
+  }
+
+  const recommendations = await getFarmNextSteps({
+    principal_id,
+    b_id_farm,
+    fields: eligibleFields,
+    b_year,
+    timeframe,
+    measuresMap,
+    catalogue,
+    farmFields: fields,
+    applicabilityByField,
+  }).catch((error) => {
+    reportError(error, { page: "measures catalogue recommendations" })
+    return null
+  })
+  // Without eligible fields there is nothing to recommend, which is not a failure
+  const recommendationsAvailable =
+    eligibleFields.length === 0 || (recommendations?.adviceAvailable ?? false)
 
   const statusByMeasure = new Map<string, Map<string, FieldMeasureEntry>>()
   const set = (m_id: string, entry: FieldMeasureEntry) => {

@@ -301,6 +301,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         opportunitiesByField: {},
         topOpportunities: [],
         measureImpacts: {},
+        adviceAvailable: false,
       }
     })
     const fieldList = eligibleFieldsWithCultivations.map(({ field, mainCultivation }) => ({
