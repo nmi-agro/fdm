@@ -5,7 +5,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
 import { buttonVariants } from "~/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { Card, CardDescription, CardTitle } from "~/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader } from "~/components/ui/empty"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -84,16 +84,15 @@ export default function OrganizationsIndex() {
               ))}
 
               <Card className="hover:border-primary/50 hover:bg-muted/50 flex flex-col border-dashed transition-all">
-                <NavLink to="/organization/new" className="flex h-full flex-col">
-                  <CardHeader className="grow items-center justify-center text-center">
-                    <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-                      <Plus className="h-6 w-6" />
-                    </div>
-                    <CardTitle>Nieuwe organisatie</CardTitle>
-                    <CardDescription>
-                      Voeg een extra organisatie toe aan je account.
-                    </CardDescription>
-                  </CardHeader>
+                <NavLink
+                  to="/organization/new"
+                  className="flex h-full flex-col items-center justify-center"
+                >
+                  <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+                    <Plus className="h-6 w-6" />
+                  </div>
+                  <CardTitle>Nieuwe organisatie</CardTitle>
+                  <CardDescription>Voeg een extra organisatie toe aan je account.</CardDescription>
                 </NavLink>
               </Card>
             </div>

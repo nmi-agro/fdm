@@ -124,7 +124,7 @@ export default function OrganizationIndex() {
               <CardDescription>Zie wie er onderdeel uitmaakt van deze organisatie.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Separator className="my-4" />
+              <Separator />
               <div className="space-y-4">
                 <div className="text-sm font-medium">{/* People with access */}</div>
                 <div className="grid gap-6">
@@ -350,14 +350,16 @@ const InvitationForm = ({ organizationId }: { organizationId: Organization["id"]
           setEmail(e.target.value)
         }}
       />
-      <Select defaultValue="member" name="role">
+      <Select defaultValue="member" name="role" items={ORGANIZATION_ROLES}>
         <SelectTrigger className="ml-auto w-27.5">
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="owner">Eigenaar</SelectItem>
-          <SelectItem value="admin">Beheerder</SelectItem>
-          <SelectItem value="member">Lid</SelectItem>
+          {ORGANIZATION_ROLES.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <Button

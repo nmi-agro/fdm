@@ -37,6 +37,8 @@ export interface SeededOrganization {
  * @param owner - The principal id of a user who owns the farm.
  * @param b_id_farm - The farm.
  * @param year - The year from which the farm is in the group.
+ * @param details - The name and slug of the organization (default: {@link DEMO_ORGANIZATION}).
+ *   The slug must be unique in the database.
  * @returns The ids of the organization and the group.
  * @throws When the farm has no pending invitation for the organization after sharing it.
  */
@@ -45,14 +47,15 @@ export async function seedOrganization(
   owner: string,
   b_id_farm: string,
   year: number,
+  details: { name: string; slug: string } = DEMO_ORGANIZATION,
 ): Promise<SeededOrganization> {
   const auth = createFdmAuth(fdm, undefined, undefined, undefined, true)
   const organization = await auth.api.createOrganization({
-    body: { name: DEMO_ORGANIZATION.name, slug: DEMO_ORGANIZATION.slug, userId: owner },
+    body: { name: details.name, slug: details.slug, userId: owner },
   })
   if (!organization) throw new Error("The demo organization could not be created")
 
-  await grantRoleToFarm(fdm, owner, DEMO_ORGANIZATION.slug, b_id_farm, "advisor")
+  await grantRoleToFarm(fdm, owner, details.slug, b_id_farm, "advisor")
   const invitation = (await listPendingInvitationsForFarm(fdm, owner, b_id_farm)).find(
     (pending) => pending.target_principal_id === organization.id,
   )
@@ -62,5 +65,5 @@ export async function seedOrganization(
   const group = await createFarmGroup(fdm, owner, organization.id, "Demo groep")
   await addFarmToGroup(fdm, owner, group, b_id_farm, new Date(Date.UTC(year, 0, 1, 12)))
 
-  return { id: organization.id, slug: DEMO_ORGANIZATION.slug, group }
+  return { id: organization.id, slug: details.slug, group }
 }
