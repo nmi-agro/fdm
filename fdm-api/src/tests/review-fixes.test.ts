@@ -1,7 +1,8 @@
 /**
  * Tests for fixes found in review:
  * - classifyError maps Zod validation errors to 400, like the REST validation hook;
- * - an aggregation of indicators keeps the other farms when one farm's indicators fail;
+ * - an aggregation of indicators keeps the other farms when one farm's indicators fail, and
+ *   logs a failure that is not an unavailable indicator service;
  * - the soil analyses of a farm are sorted by date.
  */
 import { IndicatorsUnavailableError } from "@nmi-agro/fdm-calculator"
@@ -89,6 +90,24 @@ describe("indicators of an organization", () => {
     expect(body.farms[0]).toMatchObject({ b_id_farm: "farm-a", error: null })
     expect(body.farms[1]).toMatchObject({ b_id_farm: "farm-b", area_weighted: null })
     expect(body.farms[1].error).toEqual(expect.any(String))
+  })
+
+  it("logs an unexpected failure of one farm before marking it as failed", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = makeApp({
+      getNmiApiKey: () => "key",
+      getFarmIdsOfOrganization: vi.fn().mockResolvedValue(["farm-a", "farm-b"]),
+      getFarmIndicators: vi
+        .fn()
+        .mockResolvedValueOnce(farmIndicators("farm-a"))
+        .mockRejectedValueOnce(new Error("relation does not exist")),
+    } as never)
+    const res = await app.request("/organizations/org-1/indicators?year=2026", { headers })
+    expect(res.status).toBe(200)
+    expect((await res.json()).farms[1].error).toEqual(expect.any(String))
+    expect(String(error.mock.calls.at(-1)?.[0])).toMatch(
+      /^\[fdm-api\] error_id=\S+ A farm in the indicator aggregation failed/,
+    )
   })
 
   it("answers 503 without an NMI API key, before calculating any farm", async () => {

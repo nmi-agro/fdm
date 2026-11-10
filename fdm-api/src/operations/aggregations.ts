@@ -8,6 +8,8 @@ import {
   getYearTimeframe,
 } from "@nmi-agro/fdm-calculator"
 import { getFarmIdsOfFarmGroupInYear } from "@nmi-agro/fdm-core"
+import * as Sentry from "@sentry/node"
+import { nanoid } from "nanoid"
 import type { RateBucket } from "../rate-limit"
 import { ApiError, getErrorMessages } from "../error"
 import { FarmGroupIdSchema, FarmIdSchema, FieldIdSchema, OrganizationIdSchema } from "../fields"
@@ -342,7 +344,12 @@ function defineAggregationOperation<I extends z.ZodType<AggregationInput>, O ext
     kind: "read",
     run: async (ctx, input) => {
       const selection = await resolve(scope, ctx, input)
-      await assertFarmSizeSupported(ctx.fdm, ctx.services, selection.farmIds)
+      await assertFarmSizeSupported(
+        ctx.fdm,
+        ctx.services,
+        selection.principal_id,
+        selection.farmIds,
+      )
       return compute(ctx, selection)
     },
   })
@@ -394,6 +401,23 @@ async function computeOrganicMatterBalance(
   } as z.infer<typeof MultiFarmOrganicMatterBalanceSchema>
 }
 
+/**
+ * Logs and reports an unexpected error of one farm in an aggregation. The aggregation keeps the
+ * other farms and marks this one as failed, so without this report a recurring defect would look
+ * like an ordinary unavailable farm.
+ */
+function reportFarmFailure(aggregation: string, err: unknown): void {
+  const error_id = nanoid()
+  console.error(
+    `[fdm-api] error_id=${error_id} A farm in the ${aggregation} aggregation failed:`,
+    err,
+  )
+  Sentry.withScope((scope) => {
+    scope.setTag("error_id", error_id)
+    Sentry.captureException(err)
+  })
+}
+
 async function computeIndicators(
   { fdm, services }: OperationContext<AggregationServices>,
   { year, farmIds, principal_id }: FarmSelection,
@@ -440,6 +464,8 @@ async function computeIndicators(
       if (unavailable) {
         lastUnavailable = err
         unavailableFarms++
+      } else {
+        reportFarmFailure("indicator", err)
       }
       farms.push({ b_id_farm, area_weighted: null, minimum: null, error: FARM_FAILED })
     }
@@ -477,6 +503,7 @@ async function computeMeasures(
         return { b_id_farm, summary }
       } catch (err) {
         if (getErrorMessages(err).includes("Permission denied")) throw err
+        reportFarmFailure("measure", err)
         return { b_id_farm, summary: undefined }
       }
     }),

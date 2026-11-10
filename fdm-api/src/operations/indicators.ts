@@ -312,7 +312,7 @@ export const getFarmIndicators = defineOperation({
     { fdm, services, principal }: OperationContext<IndicatorServices>,
     { b_id_farm, year },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const farm = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
     if (!farm) throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
 

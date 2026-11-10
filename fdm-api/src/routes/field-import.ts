@@ -523,10 +523,16 @@ export function registerFieldImportRoutes(
       throw err
     }
 
-    // Fields that the import deletes make room for the fields it adds.
-    const netNewFields = plan.fieldsToAdd.length - plan.fieldsToRemove.length
-    if (netNewFields > 0) {
-      await assertFieldCapacity(fdm, services, b_id_farm, netNewFields)
+    // Fields that the import deletes make room for the fields it adds. An import that adds fields
+    // is checked even when it removes as many, so a farm that is already too large cannot grow.
+    if (plan.fieldsToAdd.length > 0) {
+      await assertFieldCapacity(
+        fdm,
+        services,
+        principal.effectivePrincipalId,
+        b_id_farm,
+        plan.fieldsToAdd.length - plan.fieldsToRemove.length,
+      )
     }
 
     const result = await services.applyRvoImport(
