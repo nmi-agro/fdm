@@ -15,6 +15,9 @@ import { type ManualSeoContext, normalizeOrigin } from "./seo"
 /** The public developer guide of the FDM REST API. */
 export const API_GUIDE_URL = "https://nmi-agro.github.io/fdm/docs/rest-api/overview"
 
+/** Stands in for the MCP server address in the manual when the deployment has none. */
+export const MCP_URL_PLACEHOLDER = "https://<adres-van-de-mcp-server>"
+
 const chapterFiles = import.meta.glob<string>("/app/content/manual/chapters/*.md", {
   query: "?raw",
   import: "default",
@@ -187,8 +190,8 @@ export function toManualPageView(page: ManualPage, tokens: ManualTokens): Manual
 }
 
 /**
- * Returns the deployment settings the manual needs: the token values that replace `{{appName}}`
- * and `{{appUrl}}`, and the SEO context for metadata.
+ * Returns the deployment settings the manual needs: the token values that replace `{{appName}}`,
+ * `{{appUrl}}`, `{{apiDocsUrl}}` and `{{mcpUrl}}`, and the SEO context for metadata.
  */
 export function getManualContext(): { tokens: ManualTokens; seo: ManualSeoContext } {
   const origin = normalizeOrigin(serverConfig.url)
@@ -201,6 +204,9 @@ export function getManualContext(): { tokens: ManualTokens; seo: ManualSeoContex
       // The interactive reference of this deployment's REST API, as linked from the API keys
       // page; without an API URL, the public developer guide.
       apiDocsUrl: apiUrl ? `${apiUrl}/docs` : API_GUIDE_URL,
+      // The address of this deployment's MCP server for AI assistants; a placeholder when it
+      // has none, so the setup steps still read correctly.
+      mcpUrl: normalizeOrigin(clientConfig.mcpUrl) || MCP_URL_PLACEHOLDER,
     },
     seo: { origin, appName, indexing: serverConfig.seo_indexing },
   }

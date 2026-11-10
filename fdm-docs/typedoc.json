@@ -9,7 +9,8 @@
     "../fdm-reports/src/index.ts",
     "../fdm-agents/src/index.ts",
     "../fdm-api/src/index.ts",
-    "../fdm-api/src/operations/index.ts"
+    "../fdm-api/src/operations/index.ts",
+    "../fdm-mcp/src/index.ts"
   ],
   "entryPointStrategy": "resolve",
   "plugin": ["typedoc-plugin-markdown"],

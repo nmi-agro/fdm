@@ -25,7 +25,7 @@ cd fdm-app && pnpm dev      # runs db:migrate, then react-router dev
 cd fdm-app && pnpm test:unit # fdm-app unit tests, no database (test:integration and e2e: see fdm-app/README.md)
 ```
 
-- fdm-core, fdm-calculator, fdm-helpdesk tests need a local PostgreSQL + PostGIS configured via `.env` (`POSTGRES_HOST/PORT/DB/USER/PASSWORD`, see `fdm-core/.env.example`) and run through `dotenvx run --`. Don't assume Docker. fdm-api, fdm-agents, fdm-rvo, fdm-data call `vitest run` directly. fdm-app's loader/action tests read `fdm-app/.env.test` (a separate test database, not the one in `.env`); its Playwright smoke suite reads `.env.e2e` and needs a build and an empty database.
+- fdm-core, fdm-calculator, fdm-helpdesk tests (and fdm-mcp's `db` test project) need a local PostgreSQL + PostGIS configured via `.env` (`POSTGRES_HOST/PORT/DB/USER/PASSWORD`, see `fdm-core/.env.example`) and run through `dotenvx run --`. Don't assume Docker. fdm-api, fdm-agents, fdm-rvo, fdm-data call `vitest run` directly. fdm-app's loader/action tests read `fdm-app/.env.test` (a separate test database, not the one in `.env`); its Playwright smoke suite reads `.env.e2e` and needs a build and an empty database.
 - Tests use `isolate: false` (shared state between test files in a worker); use unique IDs and clean up.
 
 ## Architecture
@@ -38,11 +38,12 @@ Packages (workspace deps use `workspace:*`):
 - **fdm-rvo**: RVO (Dutch government) field import/compare via `@nmi-agro/rvo-connector`.
 - **fdm-agents**: LangChain/LangGraph agents (e.g. `gerrit`, `ticket-triage`) with tools over fdm-core/calculator.
 - **fdm-helpdesk**: ticket storage (own Drizzle schema).
-- **fdm-api**: Hono + `@hono/zod-openapi` REST API (routes in `src/routes`, one file per resource), Scalar docs.
+- **fdm-api**: Hono + `@hono/zod-openapi` REST API. Endpoint logic lives in operations (`src/operations`, published as `@nmi-agro/fdm-api/operations`); routes in `src/routes` are thin adapters. Scalar docs.
+- **fdm-mcp**: MCP server for AI assistants, its own service. Tools run the fdm-api operations; every REST operation is a tool or a reasoned exclusion (tested).
 - **fdm-app**: React Router v8 framework-mode web app, file-based routes (`flatRoutes()`, e.g. `farm.$b_id_farm.$calendar.*`), Tailwind/shadcn. Server-only logic lives in `app/lib/*.server.ts`; `fdm.server.tsx` creates the shared fdm instance.
 - **fdm-docs**: Docusaurus site; TypeDoc API reference is generated from library TSDoc.
 
-Design model: the **Asset–Action** model. Store entities (farms, fields, cultivations, soil samples) and events (sowing, fertilizing, sampling) as discrete records, not pre-aggregated metrics. Load the skills in `.claude/skills/` (`fdm-schema`, `fdm-app-conventions`, `fdm-api`) and the `impeccable` plugin skill for detailed rules before touching those areas.
+Design model: the **Asset–Action** model. Store entities (farms, fields, cultivations, soil samples) and events (sowing, fertilizing, sampling) as discrete records, not pre-aggregated metrics. Load the skills in `.claude/skills/` (`fdm-schema`, `fdm-app-conventions`, `fdm-api`, `fdm-mcp`) and the `impeccable` plugin skill for detailed rules before touching those areas.
 
 ## Gotchas and conventions
 

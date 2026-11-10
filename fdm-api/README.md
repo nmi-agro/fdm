@@ -21,6 +21,7 @@ The API is built with [Hono](https://hono.dev), documented with OpenAPI 3.1, and
 - [Date format](#date-format)
 - [Pagination](#pagination)
 - [Rate limiting](#rate-limiting)
+- [MCP server for AI assistants](#mcp-server-for-ai-assistants)
 - [Error format](#error-format)
 - [Local development](#local-development)
 - [Deployment](#deployment)
@@ -254,6 +255,12 @@ To prevent misuse, the API also has usage limits:
 - A user can create at most **10 farms per 24 hours**, across all their API keys. More fails with `429` and `Retry-After`.
 
 See [Limits & Pagination](https://nmi-agro.github.io/fdm/docs/rest-api/limits-and-pagination) for details.
+
+---
+
+## MCP server for AI assistants
+
+The same operations are available to AI assistants through the separate `fdm-mcp` service, which serves the [Model Context Protocol](https://modelcontextprotocol.io) with the same API keys, permissions and rate limits. See the [MCP server docs](https://nmi-agro.github.io/fdm/docs/mcp-server/overview) and [`fdm-mcp/README.md`](../fdm-mcp/README.md).
 
 ---
 

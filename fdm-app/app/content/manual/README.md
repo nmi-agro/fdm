@@ -19,7 +19,7 @@ The pages are parsed once when the server starts (`app/lib/manual/content.server
 
   The list of situations the app does not support lives on the background page `gebruiksruimte#niet-ondersteund` and mirrors `NormsDisclaimer` in `app/components/blocks/norms/norms-disclaimer.tsx`; keep both in step.
 
-- Use `{{appName}}` for the product name and `{{appUrl}}` for its URL. The repository is white-label, so never hard-code a name. Other `{{tokens}}` fail the tests.
+- Use `{{appName}}` for the product name and `{{appUrl}}` for its URL. The repository is white-label, so never hard-code a name. `{{apiDocsUrl}}` is the interactive REST API reference and `{{mcpUrl}}` the address of the MCP server for AI assistants (a placeholder when the deployment has none). Other `{{tokens}}` fail the tests.
 
 ## Frontmatter
 

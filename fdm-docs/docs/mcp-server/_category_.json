@@ -1,0 +1,8 @@
+{
+  "label": "MCP server",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "description": "Connect AI assistants to farm data with the Model Context Protocol (MCP)."
+  }
+}

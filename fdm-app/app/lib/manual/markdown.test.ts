@@ -62,6 +62,7 @@ describe("substituteTokens", () => {
         appName: "Demo",
         appUrl: "https://demo.example",
         apiDocsUrl: "https://api.demo.example/docs",
+        mcpUrl: "https://mcp.demo.example",
       }),
     ).toBe("Demo op https://demo.example met {{other}}")
   })

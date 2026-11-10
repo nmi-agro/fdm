@@ -23,6 +23,7 @@ keywords:
 related:
   - account
   - samenwerken
+  - ai-assistenten
 ---
 
 Met de API van {{appName}} koppel je je eigen software aan je bedrijfsgegevens: een eigen dashboard, een adviessysteem of een koppeling met een ander pakket. Dit hoofdstuk is bedoeld voor technische gebruikers en ontwikkelaars. Gebruik je alleen de app, dan heb je de API niet nodig.

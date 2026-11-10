@@ -58,4 +58,12 @@ If a user's organization membership is removed, their API key loses access to re
 
 ## Audit channel
 
-All API requests are tagged with `audit_channel: "api"` in the FDM audit log. This makes API-originated actions distinguishable from web-application actions in reporting and compliance queries.
+Every permission check is recorded in the FDM audit log with the channel the request came through, and the credential that authenticated it:
+
+| `audit_channel` | Source                                                     | `credential_id` |
+| --------------- | ---------------------------------------------------------- | --------------- |
+| `app`           | the web application                                        | session id      |
+| `api`           | the REST API                                               | API key id      |
+| `mcp`           | the [MCP server](../mcp-server/overview) for AI assistants | API key id      |
+
+This makes actions of an integration or an assistant distinguishable from web-application actions in reporting and compliance queries.
