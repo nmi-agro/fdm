@@ -8,19 +8,93 @@ sidebar_position: 4
 
 ## Run locally
 
+### 1. Build
+
 ```bash
-cd fdm-mcp
-cp .env.example .env   # the database and BETTER_AUTH_SECRET of your local fdm-app
-pnpm dev               # http://localhost:6174/mcp
+pnpm install
+pnpm turbo run build --filter=@nmi-agro/fdm-mcp
 ```
 
-Create an API key in your local web app, then connect the [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector):
+fdm-mcp imports the built `dist` of fdm-api and fdm-core. Build again after you change those packages.
+
+### 2. Create an API key
+
+Start your local web app (`cd fdm-app && pnpm dev`), open **Account** → **API-sleutels**, create a key and copy it.
+
+### 3. Configure and start fdm-mcp
+
+Copy `fdm-mcp/.env.example` to `fdm-mcp/.env` and set:
+
+| Variable                                | Value                                                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_*`                            | The database of your local fdm-app.                                                                         |
+| `BETTER_AUTH_SECRET`                    | Exactly the same as in fdm-app, which issues the API keys. A different secret gives `401` on every request. |
+| `BETTER_AUTH_URL`, `PUBLIC_FDM_MCP_URL` | `http://localhost:6174`                                                                                     |
+| `PUBLIC_FDM_NAME`                       | The name of your app, for example the one in fdm-app.                                                       |
+| `NMI_API_KEY`                           | Optional: needed for nutrient advice, indicators and measure options.                                       |
+| `PUBLIC_POSTHOG_KEY`                    | Leave empty: no analytics are sent.                                                                         |
+
+```bash
+cd fdm-mcp
+pnpm dev               # http://localhost:6174/mcp
+curl http://localhost:6174/health
+```
+
+The console logs one line per tool call (`[fdm-mcp] tool=… outcome="ok"`), without arguments or data.
+
+### 4. Check with the MCP Inspector
 
 ```bash
 npx @modelcontextprotocol/inspector
 ```
 
 Choose transport "Streamable HTTP", URL `http://localhost:6174/mcp`, and add the header `X-API-Key: <key>`. Without `FDM_MCP_ALLOWED_ORIGINS`, only `localhost` origins are accepted, which includes the Inspector.
+
+### 5. Connect Claude Desktop
+
+Claude Desktop's "Add custom connector" connects through Anthropic's servers, as far as we know, so it cannot reach `localhost`. Connect a local server through the configuration file instead, with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) as a bridge from stdio to the HTTP endpoint.
+
+Open **Settings → Developer → Edit Config** in Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json` on Windows, `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS) and add:
+
+```json
+{
+  "mcpServers": {
+    "fdm-local": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:6174/mcp",
+        "--header",
+        "X-API-Key:${FDM_API_KEY}"
+      ],
+      "env": { "FDM_API_KEY": "<key>" }
+    }
+  }
+}
+```
+
+- On Windows, use `"command": "cmd"` and put `"/c", "npx"` in front of the arguments, because Claude Desktop often cannot find `npx` otherwise.
+- Write the header without a space after the colon: spaces inside arguments break on Windows.
+- The key is stored in this file; keep it out of repositories and shared folders.
+
+Quit Claude Desktop completely (also from the system tray or menu bar) and start it again. The tools of `fdm-local` appear under the tools icon of the message box. Try for example:
+
+- "Which farms do I have?" (`list_farms`)
+- "Show the fields of farm X and their crops this year." (`list_fields`, `list_cultivations`)
+- "Calculate the nitrogen balance of farm X for 2025." (`calculate_nitrogen_balance`)
+- "Add a fertilizer application on field Y …": Claude asks for approval of the write.
+- "Delete …": the assistant must ask for confirmation first, as the server instructions require.
+
+Troubleshooting:
+
+| Symptom                    | What to check                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `401`                      | The key is wrong or revoked, or `BETTER_AUTH_SECRET` differs from fdm-app.                                                                                                                             |
+| No tools in Claude Desktop | The log of the bridge: `%APPDATA%\Claude\logs\mcp-server-fdm-local.log` (Windows) or `~/Library/Logs/Claude/mcp-server-fdm-local.log` (macOS). Check that `curl http://localhost:6174/health` answers. |
+| "Rate limit exceeded"      | Wait the given seconds. Local runs use the same per-key limits, counted in your database.                                                                                                              |
+
+To test the connector flow from the manual (URL and header in "Add custom connector"), fdm-mcp must be reachable over HTTPS from the internet: use a preview deployment, or temporarily a tunnel such as `cloudflared`. A tunnel exposes your local server to the internet; requests still need a valid API key.
 
 ## Tests
 
