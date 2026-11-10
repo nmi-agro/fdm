@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
+import { updateHarvest } from "../operations/harvests"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 const mockFdm = {
@@ -355,5 +356,55 @@ describe("GET /cultivations/:b_lu/harvest-parameters", () => {
     const app = makeApp(services() as any)
     const res = await app.request("/cultivations/lu-1/harvest-parameters")
     expect(res.status).toBe(401)
+  })
+})
+
+describe("Harvest mutations — edge cases", () => {
+  beforeEach(validKey)
+
+  it("POST returns 500 when the created harvest cannot be retrieved", async () => {
+    const app = makeApp({
+      addHarvest: vi.fn().mockResolvedValue("harvest-new"),
+      getHarvest: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/cultivations/cult-1/harvests", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH returns 404 when the harvest cannot be retrieved after the update", async () => {
+    const app = makeApp({
+      updateHarvest: vi.fn().mockResolvedValue(undefined),
+      getHarvest: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/harvests/harvest-x", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-20" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+  })
+
+  it("the updateHarvest operation rejects an input without any field to change", async () => {
+    const services = { updateHarvest: vi.fn(), getHarvest: vi.fn() }
+    const principal = {
+      userId: "user-1",
+      apiKeyId: "key-1",
+      keyName: null,
+      channel: "mcp" as const,
+      effectivePrincipalId: "user-1",
+    }
+    // Callers that skip input validation can still send an empty change set.
+    await expect(
+      updateHarvest.run({ fdm: mockFdm, services: services as any, principal }, {
+        b_id_harvesting: "harvest-1",
+      } as any),
+    ).rejects.toMatchObject({ status: 400, slug: "validation-failed" })
+    expect(services.updateHarvest).not.toHaveBeenCalled()
   })
 })

@@ -343,3 +343,45 @@ describe("DELETE /fertilizer-applications/:p_app_id", () => {
     expect(res.status).toBe(403)
   })
 })
+
+describe("Fertilizer application mutations — records that cannot be read back", () => {
+  beforeEach(validKey)
+
+  it("POST returns 500 when the created application cannot be retrieved", async () => {
+    const app = makeApp({
+      addFertilizerApplication: vi.fn().mockResolvedValue("app-new"),
+      getFertilizerApplication: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: 40,
+        p_app_method: "injecteren",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH returns 404 when the application is gone after the update", async () => {
+    const updateFertilizerApplication = vi.fn().mockResolvedValue(undefined)
+    const app = makeApp({
+      getFertilizerApplication: vi
+        .fn()
+        .mockResolvedValueOnce(baseApplication)
+        .mockResolvedValueOnce(undefined),
+      updateFertilizerApplication,
+    })
+    const res = await app.request("/fertilizer-applications/app-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_app_amount_display: 45 }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+    expect(updateFertilizerApplication).toHaveBeenCalledOnce()
+  })
+})

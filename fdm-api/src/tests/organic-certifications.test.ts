@@ -176,3 +176,24 @@ describe("DELETE /organic-certifications/:b_id_organic", () => {
     expect(res.status).toBe(403)
   })
 })
+
+describe("POST /farms/:b_id_farm/organic-certifications — read-back failure", () => {
+  beforeEach(validKey)
+
+  it("returns 500 when the created certification cannot be retrieved", async () => {
+    const app = makeApp({
+      addOrganicCertification: vi.fn().mockResolvedValue("organic-new"),
+      getOrganicCertification: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/farms/farm-1/organic-certifications", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        b_organic_issued: "2024-01-01",
+        b_organic_expires: "2025-01-01",
+      }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+})

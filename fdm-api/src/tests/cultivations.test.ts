@@ -539,3 +539,129 @@ describe("PATCH /cultivations/:b_lu", () => {
     expect(JSON.stringify(await res.json())).not.toContain("db down")
   })
 })
+
+// ---------------------------------------------------------------------------
+// Date checks, ordering and records that cannot be read back
+// ---------------------------------------------------------------------------
+describe("Cultivations — dates, ordering and missing records", () => {
+  beforeEach(() => {
+    validKey()
+  })
+
+  const jsonHeaders = { "x-api-key": "valid", "content-type": "application/json" }
+
+  it("POST returns 400 when b_lu_end is before b_lu_start", async () => {
+    const addCultivation = vi.fn()
+    const app = makeApp({ addCultivation, getCultivation: vi.fn() })
+    const res = await app.request("/fields/field-1/cultivations", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        b_lu_catalogue: "cat-001",
+        b_lu_start: "2024-03-01",
+        b_lu_end: "2024-02-01",
+      }),
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).type).toMatch(/\/problems\/validation-failed$/)
+    expect(addCultivation).not.toHaveBeenCalled()
+  })
+
+  it("POST accepts an end date on or after the start date", async () => {
+    const addCultivation = vi.fn().mockResolvedValue("cult-new")
+    const app = makeApp({
+      addCultivation,
+      getCultivation: vi.fn().mockResolvedValue({ ...baseCultivation, b_lu: "cult-new" }),
+    })
+    const res = await app.request("/fields/field-1/cultivations", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        b_lu_catalogue: "cat-001",
+        b_lu_start: "2024-03-01",
+        b_lu_end: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(201)
+    expect(addCultivation).toHaveBeenCalledOnce()
+  })
+
+  it("POST returns 500 when the created cultivation cannot be retrieved", async () => {
+    const app = makeApp({
+      addCultivation: vi.fn().mockResolvedValue("cult-new"),
+      getCultivation: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/field-1/cultivations", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_lu_catalogue: "cat-001", b_lu_start: "2023-10-01" }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("GET /farms/:b_id_farm/cultivations sorts by start date, then by b_lu", async () => {
+    const app = makeApp({
+      getCultivationsForFarm: vi.fn().mockResolvedValue(
+        new Map([
+          [
+            "field-1",
+            [
+              { ...baseCultivation, b_lu: "cult-c", b_lu_start: new Date("2024-03-01") },
+              { ...baseCultivation, b_lu: "cult-b", b_lu_start: new Date("2023-10-01") },
+            ],
+          ],
+          [
+            "field-2",
+            [
+              {
+                ...baseCultivation,
+                b_lu: "cult-a",
+                b_id: "field-2",
+                b_lu_start: new Date("2024-03-01"),
+              },
+            ],
+          ],
+        ]),
+      ),
+    })
+    const res = await app.request("/farms/farm-1/cultivations", {
+      headers: { "x-api-key": "valid" },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.data.map((c: { b_lu: string }) => c.b_lu)).toEqual(["cult-b", "cult-a", "cult-c"])
+  })
+
+  it("PATCH returns 400 when only b_lu_end is sent and it is before the persisted start", async () => {
+    const updateCultivation = vi.fn()
+    const app = makeApp({
+      updateCultivation,
+      getCultivation: vi
+        .fn()
+        .mockResolvedValue({ ...baseCultivation, b_lu_start: new Date("2024-03-01") }),
+    })
+    const res = await app.request("/cultivations/cult-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_lu_end: "2024-02-01" }),
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).type).toMatch(/\/problems\/validation-failed$/)
+    expect(updateCultivation).not.toHaveBeenCalled()
+  })
+
+  it("PATCH returns 404 when the cultivation does not exist", async () => {
+    const app = makeApp({
+      updateCultivation: vi.fn().mockResolvedValue(undefined),
+      getCultivation: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/cultivations/cult-x", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_lu_end: "2024-02-01" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+  })
+})

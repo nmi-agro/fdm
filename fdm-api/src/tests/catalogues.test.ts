@@ -1,6 +1,7 @@
 import { FdmType } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createFdmApi, FdmApiServices } from "../index"
+import { listCultivationCatalogueItems } from "../operations/catalogues"
 import { CatalogueServices } from "../routes/catalogues"
 
 // ---------------------------------------------------------------------------
@@ -275,5 +276,54 @@ describe("Catalogues - list catalogue items", () => {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(404)
+  })
+})
+
+// The REST API pages through all items; the text search is offered to operation callers such as MCP.
+describe("Catalogues - text search in the list items operation", () => {
+  const principal = {
+    userId: "user-1",
+    apiKeyId: "key-1",
+    keyName: null,
+    channel: "mcp" as const,
+    effectivePrincipalId: "user-1",
+  }
+  const items = [
+    { b_lu_catalogue: "nl_233", b_lu_name: "Wintertarwe", b_lu_name_en: "Winter wheat" },
+    { b_lu_catalogue: "nl_265", b_lu_name: "Grasland, blijvend", b_lu_name_en: null },
+    { b_lu_catalogue: "nl_2014", b_lu_name: "Zomergerst", b_lu_name_en: "Spring barley" },
+  ]
+
+  it("matches the query case-insensitively in the names and the code, ignoring whitespace", async () => {
+    const services = mockServices()
+    services.getEnabledCultivationCatalogues.mockResolvedValue(["brp"])
+    services.getCultivationsFromCatalogues.mockResolvedValue(items)
+    const ctx = { fdm: mockFdm, services, principal }
+
+    const byName = await listCultivationCatalogueItems.run(ctx, {
+      b_id_farm: "farm-1",
+      query: "  WHEAT ",
+    })
+    expect(byName.map((item) => item.b_lu_catalogue)).toEqual(["nl_233"])
+
+    const byCode = await listCultivationCatalogueItems.run(ctx, {
+      b_id_farm: "farm-1",
+      query: "nl_26",
+    })
+    expect(byCode.map((item) => item.b_lu_catalogue)).toEqual(["nl_265"])
+  })
+
+  it("returns all items for an empty query and none when nothing matches", async () => {
+    const services = mockServices()
+    services.getEnabledCultivationCatalogues.mockResolvedValue(["brp"])
+    services.getCultivationsFromCatalogues.mockResolvedValue(items)
+    const ctx = { fdm: mockFdm, services, principal }
+
+    expect(
+      await listCultivationCatalogueItems.run(ctx, { b_id_farm: "farm-1", query: "  " }),
+    ).toHaveLength(3)
+    expect(
+      await listCultivationCatalogueItems.run(ctx, { b_id_farm: "farm-1", query: "mais" }),
+    ).toEqual([])
   })
 })
