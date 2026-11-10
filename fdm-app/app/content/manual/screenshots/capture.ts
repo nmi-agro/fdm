@@ -1,6 +1,6 @@
 /**
  * How each screenshot of the manual is captured. Every id used as `screenshot:<id>` in a chapter
- * needs an entry here, and every entry must be used; `pnpm --filter @nmi-agro/fdm-app test`
+ * needs an entry here, and every entry must be used; `pnpm --filter @nmi-agro/fdm-app test:unit`
  * checks both. See the README in the manual folder for how to add one and run the capture.
  */
 import type { CaptureDefinition } from "~/lib/manual/capture-types"

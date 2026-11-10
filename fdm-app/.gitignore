@@ -15,3 +15,9 @@ node_modules
 # End-to-end tests and manual screenshots (local settings and working files)
 .env.e2e
 /e2e/.output
+
+# Integration tests (vitest --project integration): a separate PostGIS test database
+.env.test
+
+# Test coverage
+/coverage

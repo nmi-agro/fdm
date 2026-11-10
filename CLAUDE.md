@@ -22,9 +22,10 @@ pnpm changeset              # add a changeset for the PR
 pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core          # one package
 cd fdm-core && pnpm exec dotenvx run -- vitest run src/farm.test.ts -t "test name"   # one test
 cd fdm-app && pnpm dev      # runs db:migrate, then react-router dev
+cd fdm-app && pnpm test:unit # fdm-app unit tests, no database (test:integration and e2e: see fdm-app/README.md)
 ```
 
-- fdm-core, fdm-calculator, fdm-helpdesk tests need a local PostgreSQL + PostGIS configured via `.env` (`POSTGRES_HOST/PORT/DB/USER/PASSWORD`, see `fdm-core/.env.example`) and run through `dotenvx run --`. Don't assume Docker. fdm-api, fdm-agents, fdm-rvo, fdm-data call `vitest run` directly.
+- fdm-core, fdm-calculator, fdm-helpdesk tests need a local PostgreSQL + PostGIS configured via `.env` (`POSTGRES_HOST/PORT/DB/USER/PASSWORD`, see `fdm-core/.env.example`) and run through `dotenvx run --`. Don't assume Docker. fdm-api, fdm-agents, fdm-rvo, fdm-data call `vitest run` directly. fdm-app's loader/action tests read `fdm-app/.env.test` (a separate test database, not the one in `.env`); its Playwright smoke suite reads `.env.e2e` and needs a build and an empty database.
 - Tests use `isolate: false` (shared state between test files in a worker); use unique IDs and clean up.
 
 ## Architecture
@@ -50,6 +51,6 @@ Design model: the **Asset–Action** model. Store entities (farms, fields, culti
 - fdm-core function shape: `fn(fdm, principal_id, ...)`. Mutations run in `fdm.transaction(...)`, IDs from `createId()`, access via `checkPermission`/`grantRole` in `src/authorization.ts`, errors wrapped with `handleError(err, message, context)`.
 - fdm-app: don't use `react-router-dom`; respect `.server.ts`/`.client.ts` boundaries. UI is Dutch only (keep copy i18n-ready).
 - Update TSDoc/docs in the same PR; write comments for external readers (no ticket numbers or internal URLs).
-- Changing a user-visible label, flow or page in fdm-app? Update the manual chapter in `fdm-app/app/content/manual` that lists that route, in the same PR (bold text = existing UI label, checked by `pnpm --filter @nmi-agro/fdm-app test`).
+- Changing a user-visible label, flow or page in fdm-app? Update the manual chapter in `fdm-app/app/content/manual` that lists that route, in the same PR (bold text = existing UI label, checked by `pnpm --filter @nmi-agro/fdm-app test:unit`).
 - Revising a PR: edit the existing `.changeset/*.md` rather than adding a duplicate.
 - Never commit real farm/field coordinates, identifiers, personal data or internal log payloads; use synthetic fixtures.

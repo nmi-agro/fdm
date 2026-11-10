@@ -9,11 +9,11 @@
 import { createFdmServer } from "@nmi-agro/fdm-core"
 import { test as setup } from "@playwright/test"
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
 import type { DemoFarmIds } from "../seed/demo-farm"
 import { seedFarm } from "../seed"
+import { latestChangelogVersion } from "../support/app"
 import { dismissNotices, signInWithMagicLink } from "../support/auth"
-import { APP_ROOT, databaseOptions } from "../support/env"
+import { databaseOptions } from "../support/env"
 import {
   DEMO_FARM_FILE,
   RESULTS_DIR,
@@ -21,14 +21,6 @@ import {
   SIGNED_OUT_STATE_FILE,
   STORAGE_STATE_FILE,
 } from "./paths"
-
-/** Returns the latest version in the in-app changelog, so its notification counts as seen. */
-function latestChangelogVersion(): string {
-  const source = readFileSync(join(APP_ROOT, "app", "lib", "changelog.ts"), "utf8")
-  const match = source.match(/version:\s*"(v[^"]+)"/)
-  if (!match) throw new Error("Could not find the latest version in app/lib/changelog.ts")
-  return match[1]
-}
 
 setup("seed the demo farm and sign in", async ({ page }) => {
   setup.setTimeout(300_000)
