@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { memo } from "react"
 import type { IndicatorInfo } from "~/lib/indicators"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreColor, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 type HeatmapCellProps = {
   indicator: IndicatorInfo

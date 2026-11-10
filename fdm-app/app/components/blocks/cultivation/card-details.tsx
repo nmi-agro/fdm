@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { type Cultivation } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { useEffect, useState } from "react"
 import {
   Controller,
@@ -24,7 +25,6 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
-import { cn } from "~/lib/utils"
 import {
   CultivationAvailabilityWarning,
   getCultivationAvailabilityMessage,

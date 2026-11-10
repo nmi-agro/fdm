@@ -1,4 +1,5 @@
 import type { CurrentSoilData, SoilParameterDescription } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
 import {
@@ -16,7 +17,6 @@ import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 import { SOIL_PARAMETER_GROUPS } from "./parameter-groups"
 
 // The same groups and order as the soil analysis form, without the sampling details

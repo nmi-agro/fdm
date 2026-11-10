@@ -1,7 +1,7 @@
 import { DirectionProvider } from "@base-ui/react/direction-provider"
+import { cn } from "cn"
 import { PointerEventHandler, useCallback, useEffect, useMemo, useRef } from "react"
 import { Slider } from "~/components/ui/slider"
-import { cn } from "~/lib/utils"
 export interface Rectangle {
   x: number
   y: number

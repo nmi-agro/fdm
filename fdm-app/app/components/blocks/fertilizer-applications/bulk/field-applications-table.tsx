@@ -2,6 +2,7 @@ import type { Dose } from "@nmi-agro/fdm-calculator/browser"
 import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { calculateDose } from "@nmi-agro/fdm-calculator/browser"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Trash2 } from "lucide-react"
@@ -31,7 +32,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
 import { InfoTip } from "./info-tip"
 import { formatKg } from "./status"
 

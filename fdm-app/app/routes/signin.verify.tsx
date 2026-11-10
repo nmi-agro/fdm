@@ -1,5 +1,6 @@
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { useEffect, useRef } from "react"
 import {
   type ActionFunctionArgs,
@@ -23,7 +24,6 @@ import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { handleLoaderError } from "~/lib/error"
-import { cn } from "~/lib/utils"
 import { FormSchema } from "../components/blocks/auth/auth-formschema"
 import { extractFormValuesFromRequest } from "../lib/form"
 import { modifySearchParams } from "../lib/url-utils"

@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { AlertTriangle, ExternalLink, Info, LifeBuoy, Loader2 } from "lucide-react"
 import { type FormEvent, useId, useState } from "react"
 import { Form, Link } from "react-router"
@@ -14,7 +15,6 @@ import {
 import { Label } from "~/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { cn } from "~/lib/utils"
 
 /** Whose RVO data the user requests. Mirrors `RvoRequestMode` in `~/integrations/rvo.server`. */
 export type RvoRequestMode = "own_farm" | "machtiging"

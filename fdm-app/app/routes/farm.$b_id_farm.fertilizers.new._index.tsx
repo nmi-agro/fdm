@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router"
 import { type Fertilizer, getFertilizers } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Pencil, Plus } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router"
@@ -21,7 +22,6 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 import { stripDataSuffixFromAddress } from "~/lib/url-utils"
-import { cn } from "~/lib/utils"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { b_id_farm } = params

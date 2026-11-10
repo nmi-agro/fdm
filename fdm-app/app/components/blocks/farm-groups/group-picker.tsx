@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useSearchParams } from "react-router"
 import {
   Select,
@@ -7,7 +8,6 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { hasSameIds, type OrganizationFarmGroup } from "~/lib/farm-groups"
-import { cn } from "~/lib/utils"
 
 const ALL_FARMS = "__all"
 

@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { motion } from "framer-motion"
 import {
   ArrowRight,
@@ -14,7 +15,6 @@ import {
   ClipboardList,
 } from "lucide-react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "~/components/ui/hover-card"
-import { cn } from "~/lib/utils"
 
 type FlowStepTone = "input" | "result" | "final"
 

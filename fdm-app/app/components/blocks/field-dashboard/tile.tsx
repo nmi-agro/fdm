@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react"
+import { cn } from "cn"
 import { ArrowRight, CircleAlert, Plus } from "lucide-react"
 import { Link } from "react-router"
 import { Button } from "~/components/ui/button"
@@ -13,7 +14,6 @@ import {
 } from "~/components/ui/empty"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
-import { cn } from "~/lib/utils"
 
 export function FieldDashboardSectionHeading({ title }: { title: string }) {
   return (

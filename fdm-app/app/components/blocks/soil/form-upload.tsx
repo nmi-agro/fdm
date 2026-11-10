@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { AlertCircle, ChevronRight, FileUp } from "lucide-react"
 import { useMemo } from "react"
 import { Controller, useWatch } from "react-hook-form"
@@ -10,7 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 
 /** Laboratories whose PDF reports can be read automatically. */
 const SUPPORTED_LABS = [

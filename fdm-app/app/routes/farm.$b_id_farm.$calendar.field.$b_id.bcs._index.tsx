@@ -7,6 +7,7 @@ import {
   removeSoilAnalysis,
   removeSoilImage,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { Plus, Trash2 } from "lucide-react"
@@ -45,7 +46,6 @@ import { deriveBcsContextFromRawInputs, fetchBcsRawInputs } from "~/lib/bcs-deri
 import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 function getRouteParams(params: ActionFunctionArgs["params"]) {
   const { b_id, b_id_farm, calendar } = params

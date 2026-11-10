@@ -5,6 +5,7 @@ import {
   type RowSelectionState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import fuzzysort from "fuzzysort"
@@ -36,7 +37,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { modifySearchParams } from "~/lib/url-utils"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 import { useRotationSelectionStore } from "~/store/rotation-selection"
 import type {

@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from "lucide-react"
 import { useMemo, useState } from "react"
 import { NavLink } from "react-router"
@@ -28,7 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
 import type { FieldImpactRow } from "./aggregate"
 import type { BulkNormKey, BulkNutrient } from "./types"
 import { CultivationBadge } from "./cultivation-badge"

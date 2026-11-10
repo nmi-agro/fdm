@@ -1,4 +1,5 @@
 import { checkPermission, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { BookOpenText } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import {
@@ -28,7 +29,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { startFarmNutrientAdviceRows } from "~/lib/nutrient-advice.server"
-import { cn } from "~/lib/utils"
 
 // Meta
 export const meta: MetaFunction = () => {

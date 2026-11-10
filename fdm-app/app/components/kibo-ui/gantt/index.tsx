@@ -11,6 +11,7 @@ import type {
 import { DndContext, MouseSensor, useDraggable, useSensor } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { useMouse, useThrottle, useWindowScroll } from "@uidotdev/usehooks"
+import { cn } from "cn"
 import {
   addDays,
   addMonths,
@@ -51,7 +52,6 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu"
-import { cn } from "~/lib/utils"
 
 const draggingAtom = atom(false)
 const scrollXAtom = atom(0)

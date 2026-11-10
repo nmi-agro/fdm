@@ -1,5 +1,6 @@
 import { computeMinimumScores } from "@nmi-agro/fdm-calculator/browser"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Map as MapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { data, type MetaFunction, NavLink, useLoaderData, useParams } from "react-router"
@@ -34,7 +35,6 @@ import {
 } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.$calendar.indicators"
 
 export const meta: MetaFunction = () => {

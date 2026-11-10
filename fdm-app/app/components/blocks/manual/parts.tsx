@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { ArrowLeft, ArrowRight, ChevronRight } from "lucide-react"
 import { Link, useLocation } from "react-router"
 import type { ManualHeading, ManualNavItem } from "~/lib/manual/parse"
@@ -7,7 +8,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/component
 import { useAnalytics } from "~/hooks/use-analytics"
 import { clientConfig } from "~/lib/config"
 import { MANUAL_EVENTS } from "~/lib/manual/analytics"
-import { cn } from "~/lib/utils"
 import { UiLabel } from "./article"
 
 /** The labels a reader clicks to reach the described page in the app. */

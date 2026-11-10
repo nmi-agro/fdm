@@ -1,4 +1,5 @@
 import { type ColumnDef, FlexRender, tableFeatures, useTable } from "@tanstack/react-table"
+import { cn } from "cn"
 import { useMemo } from "react"
 import { NavLink } from "react-router"
 import type { FieldBln3Score } from "~/integrations/bln3.server"
@@ -10,7 +11,6 @@ import {
   type IndicatorInfo,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { HeatmapCell } from "./table-cell"
 
 type FieldRow = {

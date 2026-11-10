@@ -1,4 +1,5 @@
 import type { SoilParameterDescription, SoilAnalysis } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { Trash2 } from "lucide-react"
@@ -18,7 +19,6 @@ import {
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 import { Dialog, DialogTrigger } from "../../ui/dialog"
 import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "./download"
 

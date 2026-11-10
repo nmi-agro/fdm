@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react"
+import { cn } from "cn"
 import { ExternalLink, Info, Link2 } from "lucide-react"
 import ReactMarkdown, { type Components } from "react-markdown"
 import { Link } from "react-router"
@@ -6,7 +7,6 @@ import remarkGfm from "remark-gfm"
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { manualUrlTransform, remarkHeadingIds } from "~/lib/manual/markdown"
 import { getScreenshot } from "~/lib/manual/screenshots"
-import { cn } from "~/lib/utils"
 
 /**
  * A UI label as it appears in the app: a small outlined button-like chip. In manual content every

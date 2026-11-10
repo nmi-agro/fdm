@@ -1,4 +1,5 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import {
@@ -49,7 +50,6 @@ import {
 } from "~/components/ui/sheet"
 import { Spinner } from "~/components/ui/spinner"
 import { getObjectUrl } from "~/lib/object-url"
-import { cn } from "~/lib/utils"
 import { BULK_UPLOAD_STEPS } from "./bulk-upload-form"
 import {
   type BulkField,

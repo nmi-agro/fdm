@@ -1,10 +1,10 @@
+import { cn } from "cn"
 import { CircleHelp } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { type HelpLinkSource, MANUAL_EVENTS } from "~/lib/manual/analytics"
 import { getHelpHref, type HelpTargetId } from "~/lib/manual/help-targets"
-import { cn } from "~/lib/utils"
 
 /**
  * A "?" button that opens the manual page about the current screen in a new tab, so the user

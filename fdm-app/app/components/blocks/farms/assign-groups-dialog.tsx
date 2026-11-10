@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useState } from "react"
 import { NavLink, useFetcher } from "react-router"
 import { PeriodDateField } from "~/components/blocks/farm-groups/period-date-field"
@@ -13,7 +14,6 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { formatCalendarLabel, getPeriodError } from "~/lib/farm-groups"
-import { cn } from "~/lib/utils"
 import type { FarmExtended } from "./columns"
 
 type GroupOption = { b_id_group: string; b_name_group: string }

@@ -5,6 +5,7 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Map as MapIcon } from "lucide-react"
 import { useEffect, useMemo, useState, useTransition } from "react"
 import {
@@ -43,7 +44,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [

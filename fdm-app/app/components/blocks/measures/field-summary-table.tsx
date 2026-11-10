@@ -13,6 +13,7 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { Plus } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -28,7 +29,6 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 import type { getFieldSummaryColumns, FieldSummaryRow } from "./field-summary-columns"
 import { fieldSummaryTableFeatures } from "./field-summary-table-features"

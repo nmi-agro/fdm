@@ -4,6 +4,7 @@ import type {
   SeasonPhase,
   WeatherForecastDay,
 } from "@nmi-agro/fdm-calculator"
+import { cn } from "cn"
 import { ChevronDown, CloudRain, type LucideIcon, Shovel, Sprout, Wheat } from "lucide-react"
 import { useState } from "react"
 import {
@@ -38,7 +39,6 @@ import {
   formatNumber,
   formatShortDate,
 } from "~/lib/mineralization"
-import { cn } from "~/lib/utils"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const Y_AXIS_WIDTH = 56

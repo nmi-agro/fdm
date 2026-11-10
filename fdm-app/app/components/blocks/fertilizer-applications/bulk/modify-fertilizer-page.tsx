@@ -1,4 +1,5 @@
 import type { FertilizerApplication } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Trash2 } from "lucide-react"
@@ -32,7 +33,6 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { getCommonApplicationValues } from "~/lib/fertilizer-application-helpers"
-import { cn } from "~/lib/utils"
 import type { BulkCurrentState, BulkFieldOption } from "./types"
 import { FieldImpactTable } from "./field-impact-table"
 import { useImpactState } from "./impact-state"

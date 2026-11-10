@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { cn } from "cn"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import {
@@ -14,7 +15,6 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { BCS_INDICATORS } from "~/lib/bcs"
-import { cn } from "~/lib/utils"
 
 interface BcsScoreCardProps {
   scores: BcsScores

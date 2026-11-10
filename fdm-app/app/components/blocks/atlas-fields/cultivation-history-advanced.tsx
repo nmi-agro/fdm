@@ -1,10 +1,10 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 
 export type AdvancedCultivationField = {
   b_lu_brp: number

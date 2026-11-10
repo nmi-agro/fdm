@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useFetcher } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { Button } from "~/components/ui/button"
@@ -11,7 +12,6 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getCalendarSelection } from "~/lib/calendar"
-import { cn } from "~/lib/utils"
 
 export function NewBemestingsplanForm({ className }: { className?: string }) {
   const years = getCalendarSelection()

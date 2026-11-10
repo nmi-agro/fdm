@@ -1,7 +1,7 @@
+import { cn } from "cn"
 import { Paperclip } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Dropzone, DropzoneProps } from "~/components/custom/dropzone"
-import { cn } from "~/lib/utils"
 import { AttachmentGrid, AttachmentGridItem, formatFileSize } from "./attachment-grid"
 
 export function AttachmentDropzone({

@@ -6,6 +6,7 @@ import {
   listOrganicCertifications,
   removeOrganicCertification,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ScrollText, Trash2 } from "lucide-react"
@@ -64,7 +65,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [

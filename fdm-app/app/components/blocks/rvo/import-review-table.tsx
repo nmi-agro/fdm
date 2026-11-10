@@ -8,6 +8,7 @@ import {
   useTable,
 } from "@tanstack/react-table"
 import { area } from "@turf/area"
+import { cn } from "cn"
 import {
   AlertCircle,
   Archive,
@@ -50,7 +51,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { clientConfig } from "~/lib/config"
-import { cn } from "~/lib/utils"
 import { useActiveTableFormStore } from "~/store/active-table-form"
 import {
   useRvoFieldToAdd,

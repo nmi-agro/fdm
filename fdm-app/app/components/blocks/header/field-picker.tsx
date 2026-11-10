@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { Check, ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { useMatches, useNavigate } from "react-router"
@@ -13,7 +14,6 @@ import {
 } from "~/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 
 export type HeaderFieldPickerOption = {
   b_id: string

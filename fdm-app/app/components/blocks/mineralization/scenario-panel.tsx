@@ -3,6 +3,7 @@ import type {
   MineralizationKpis,
   MineralizationScenario,
 } from "@nmi-agro/fdm-calculator"
+import { cn } from "cn"
 import {
   ArrowUp,
   ChartLine as LineChart,
@@ -38,7 +39,6 @@ import {
   type MineralizationMainCultivation,
   type ScenarioFertilizerOption,
 } from "~/lib/mineralization"
-import { cn } from "~/lib/utils"
 import { DateField } from "./date-field"
 import { FertilizerField } from "./fertilizer-field"
 

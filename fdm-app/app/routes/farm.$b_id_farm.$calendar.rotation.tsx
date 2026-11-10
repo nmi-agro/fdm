@@ -11,6 +11,7 @@ import {
   updateCultivation,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { cn } from "cn"
 import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -34,7 +35,6 @@ import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation"
 
 const dutchCollator = new Intl.Collator("nl-NL", { sensitivity: "base", usage: "sort" })

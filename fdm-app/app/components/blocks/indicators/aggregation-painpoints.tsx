@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { AlertCircle, ArrowRight, CheckCircle2, CornerDownRight, Sparkles } from "lucide-react"
 import { Suspense, useMemo, useState } from "react"
 import { Await, Link } from "react-router"
@@ -28,7 +29,6 @@ import {
   INDICATORS,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 type LeftMode = "themes" | "indicators"
 

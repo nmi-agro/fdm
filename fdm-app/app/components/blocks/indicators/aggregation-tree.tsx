@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronRight, CornerDownRight, Info } from "lucide-react"
 import { CSSProperties, useState } from "react"
 import { Link } from "react-router"
@@ -21,7 +22,6 @@ import {
   getScoreVerdict,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 type FieldEntry = {
   b_id: string

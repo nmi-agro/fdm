@@ -12,6 +12,7 @@ import {
   updateField,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { cn } from "cn"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -46,7 +47,6 @@ import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields

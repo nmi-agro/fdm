@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { Eye, MapPin, Pencil, Trash2 } from "lucide-react"
 import { type MouseEvent, type PointerEvent, useCallback, useMemo, useRef, useState } from "react"
 import {
@@ -33,7 +34,6 @@ import {
   type FreehandCoords,
   type PinCoords,
 } from "~/lib/bcs"
-import { cn } from "~/lib/utils"
 
 interface GalleryAnnotation {
   type: AnnotationType

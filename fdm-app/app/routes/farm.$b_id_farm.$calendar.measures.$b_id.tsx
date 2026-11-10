@@ -13,6 +13,7 @@ import {
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Plus, Trash2 } from "lucide-react"
@@ -73,7 +74,6 @@ import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 

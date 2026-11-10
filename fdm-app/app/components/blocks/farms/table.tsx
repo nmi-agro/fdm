@@ -5,6 +5,7 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { ChevronDown } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -27,7 +28,6 @@ import {
 } from "~/components/ui/table"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import { AssignGroupsDialog } from "./assign-groups-dialog"
 import { groupsColumn, selectColumn, type columns as ColumnsT, type FarmExtended } from "./columns"
 import { farmTableFeatures } from "./table-features"

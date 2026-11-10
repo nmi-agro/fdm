@@ -17,6 +17,7 @@ import {
   startOfDayInFdmTimeZone,
   toFdmDateString,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { CircleAlert, CircleCheck, Info, MapPinOff } from "lucide-react"
 import { Suspense, use, useEffect, useRef, useState } from "react"
 import {
@@ -79,7 +80,6 @@ import {
   getSeasonTiming,
   type MineralizationHarvestSettings,
 } from "~/lib/mineralization"
-import { cn } from "~/lib/utils"
 
 export { shouldRevalidateMineralization as shouldRevalidate } from "~/lib/mineralization"
 

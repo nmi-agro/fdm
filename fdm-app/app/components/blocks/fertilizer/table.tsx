@@ -5,6 +5,7 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { NavLink } from "react-router"
@@ -24,7 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
 import type { columns as ColumnsT, Fertilizer } from "./columns"
 import { fertilizerTableFeatures } from "./table-features"
 

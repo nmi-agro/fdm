@@ -1,5 +1,6 @@
 import type { Dose, NutrientAdviceCut } from "@nmi-agro/fdm-calculator"
 import type { FertilizerApplication, Harvest } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Check } from "lucide-react"
@@ -31,7 +32,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
 
 export type CutAdviceCardProps = {
   cuts: NutrientAdviceCut[]

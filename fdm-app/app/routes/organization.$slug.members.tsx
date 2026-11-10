@@ -1,4 +1,5 @@
 import type { Invitation, Member, Organization, OrganizationRole } from "better-auth/plugins"
+import { cn } from "cn"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { data, useFetcher, useLoaderData } from "react-router"
@@ -25,7 +26,6 @@ import { isInactiveRecipientError, renderInvitationEmail, sendEmail } from "~/li
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.members"
 
 // Meta

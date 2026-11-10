@@ -1,5 +1,6 @@
 /* eslint-disable typescript/unbound-method -- Table and React row properties are standardly passed without manual binding. */
 import type { Row } from "@tanstack/react-table"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import React from "react"
@@ -7,7 +8,6 @@ import { Link } from "react-router"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { buttonVariants } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 import type { FieldRow, MemoizedRotationExtended } from "./columns"
 import { rotationTableFeatures } from "./table-features"
 

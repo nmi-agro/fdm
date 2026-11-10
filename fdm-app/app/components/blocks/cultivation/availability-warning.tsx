@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { AlertTriangle } from "lucide-react"
 import { Alert } from "~/components/ui/alert"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
-import { cn } from "~/lib/utils"
 
 /** Result of {@link isCultivationUnavailableInPeriod}: `null` when there is nothing to warn about. */
 export type CultivationAvailabilityResult = ReturnType<typeof isCultivationUnavailableInPeriod>

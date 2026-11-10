@@ -4,6 +4,7 @@ import {
   type RowData,
   columnVisibilityFeature,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { cn } from "~/lib/utils"
 
 type AssumedTableFeatures = {
   rowSortingFeature: typeof rowSortingFeature

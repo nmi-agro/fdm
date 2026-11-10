@@ -7,6 +7,7 @@ import {
   renameFarmGroup,
   updateFarmGroupMembership,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { data, useFetcher, useLoaderData } from "react-router"
@@ -56,7 +57,6 @@ import {
 } from "~/lib/farm-groups"
 import { fdm } from "~/lib/fdm.server"
 import { getOrganizationForGroups, serializeGroup } from "~/lib/organization-groups.server"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.$calendar.groups.$b_id_group"
 
 // Meta

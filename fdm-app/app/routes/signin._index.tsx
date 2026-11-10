@@ -6,6 +6,7 @@ import type {
 } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { SiGithub } from "@icons-pack/react-simple-icons"
+import { cn } from "cn"
 import { AnimatePresence, motion, MotionConfig } from "framer-motion"
 import {
   AlertTriangle,
@@ -75,7 +76,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
 import { MANUAL_EVENTS } from "~/lib/manual/analytics"
 import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
-import { cn } from "~/lib/utils"
 import { useCookieConsentStore } from "~/store/cookie-consent"
 import { extractFormValuesFromRequest } from "../lib/form"
 

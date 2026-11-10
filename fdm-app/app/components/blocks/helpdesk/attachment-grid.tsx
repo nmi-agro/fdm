@@ -1,10 +1,10 @@
+import { cn } from "cn"
 import { Eye, LucideFile, Trash2, X } from "lucide-react"
 import { HTMLAttributes, useState } from "react"
 import { Button } from "~/components/ui/button"
 import { Dialog } from "~/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { ALLOWED_IMAGE_MIME_TYPES } from "~/lib/upload-utils"
-import { cn } from "~/lib/utils"
 import { AttachmentViewerDialogContent } from "./attachment-viewer"
 
 export function formatFileSize(sizeInBytes: number) {

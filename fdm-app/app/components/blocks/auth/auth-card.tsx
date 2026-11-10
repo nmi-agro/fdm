@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { NavLink } from "react-router"
 import { Button } from "~/components/ui/button"
 import {
@@ -9,7 +10,6 @@ import {
   CardTitle,
 } from "~/components/ui/card"
 import { clientConfig } from "~/lib/config"
-import { cn } from "~/lib/utils"
 
 interface AuthCardProps {
   title: string

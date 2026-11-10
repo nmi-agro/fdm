@@ -5,6 +5,7 @@ import {
   revokeFarmVerificationStatus,
   updateFarm,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { useEffect } from "react"
 import { Controller, type Resolver } from "react-hook-form"
 import {
@@ -51,7 +52,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 
 const { isPostalCode } = validator
 

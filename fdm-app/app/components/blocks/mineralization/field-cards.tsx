@@ -3,6 +3,7 @@ import type {
   MineralizationInsights,
   SeasonPhase,
 } from "@nmi-agro/fdm-calculator"
+import { cn } from "cn"
 import { ArrowRight, ChevronDown, Lightbulb } from "lucide-react"
 import { NavLink } from "react-router"
 import { Button } from "~/components/ui/button"
@@ -16,7 +17,6 @@ import {
 } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { formatKgN, formatNumber, type SeasonTiming } from "~/lib/mineralization"
-import { cn } from "~/lib/utils"
 
 /**
  * Key figures shown above the chart. Which figures, and whether they are called expected, depends

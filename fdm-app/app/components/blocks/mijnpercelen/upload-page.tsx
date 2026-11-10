@@ -1,5 +1,6 @@
 import type { Field } from "@nmi-agro/fdm-core"
 import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
+import { cn } from "cn"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Form, useActionData, useLoaderData, useLocation, useNavigation } from "react-router"
@@ -14,7 +15,6 @@ import {
   useRvoImportForm,
 } from "~/components/blocks/rvo/import-review-table"
 import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 import type { genericAction, loader } from "./loader-and-action.server"
 
 type ReviewItem = RvoImportReviewItem<Field>

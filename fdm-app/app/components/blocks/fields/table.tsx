@@ -1,4 +1,5 @@
 import { FlexRender, type Row, RowSelectionState, useTable } from "@tanstack/react-table"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
 import { useEffect, useMemo, useState, useRef } from "react"
@@ -26,7 +27,6 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import type { buildColumns, FieldExtended } from "./columns"
 import { fieldsTableFeatures } from "./table-features"
 

@@ -13,6 +13,7 @@ import type { Measure, MeasureCatalogue } from "@nmi-agro/fdm-core"
  * - Submits a POST form with intent=add
  */
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import fuzzysort from "fuzzysort"
@@ -33,7 +34,6 @@ import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getIndicatorInfo } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
 
 type DatePreset = "doorlopend" | "einde_teeltseizoen" | "vaste_einddatum"

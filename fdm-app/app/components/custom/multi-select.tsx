@@ -1,6 +1,7 @@
 // https://github.com/sersavan/shadcn-multi-select-component
 
 import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "cn"
 import { CheckIcon, ChevronDown, WandSparkles, XCircle, XIcon } from "lucide-react"
 import * as React from "react"
 import { Badge } from "~/components/ui/badge"
@@ -16,7 +17,6 @@ import {
 } from "~/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Separator } from "~/components/ui/separator"
-import { cn } from "~/lib/utils"
 
 /**
  * Variants for the multi-select component to handle different styles.

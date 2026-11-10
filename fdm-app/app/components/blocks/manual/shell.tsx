@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { Menu } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { Link, NavLink } from "react-router"
@@ -12,7 +13,6 @@ import {
   SheetTrigger,
 } from "~/components/ui/sheet"
 import { clientConfig } from "~/lib/config"
-import { cn } from "~/lib/utils"
 
 function NavGroup({
   title,

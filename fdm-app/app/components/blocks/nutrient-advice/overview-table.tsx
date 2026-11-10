@@ -1,4 +1,5 @@
 import { type ColumnDef, FlexRender, type SortingState, useTable } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ChevronDown, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
@@ -25,7 +26,6 @@ import {
 } from "~/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import { useNutrientAdviceOverviewStore } from "~/store/nutrient-advice-overview"
 import type { FieldNutrientRow, UnitMode } from "./overview-types"
 import type { NutrientDescription } from "./types"

@@ -1,5 +1,6 @@
 import type { FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { Command as CommandPrimitive } from "cmdk"
+import { cn } from "cn"
 import { Check, User, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher } from "react-router"
@@ -14,7 +15,6 @@ import {
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent } from "~/components/ui/popover"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 
 // Stable empty arrays
 const EMPTY_EXCLUDE_VALUES: readonly string[] = []

@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { format, parseISO } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronDown, Info } from "lucide-react"
@@ -10,7 +11,6 @@ import {
   compareVersions,
   getReleaseAnchorId,
 } from "~/lib/changelog"
-import { cn } from "~/lib/utils"
 import { useChangelogStore } from "~/store/changelog"
 
 function formatReleaseDate(date: string): string {

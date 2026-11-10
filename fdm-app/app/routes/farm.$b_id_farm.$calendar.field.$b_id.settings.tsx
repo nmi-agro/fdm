@@ -7,6 +7,7 @@ import {
   listAvailableAcquiringMethods,
   updateField,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import * as maplibregl from "maplibre-gl"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -52,7 +53,6 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [

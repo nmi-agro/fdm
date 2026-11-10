@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronUp, Info } from "lucide-react"
 import { useState } from "react"
 import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { cn } from "~/lib/utils"
 
 interface NormsDisclaimerProps {
   calendar?: string

@@ -1,5 +1,6 @@
 "use client"
 
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { Loader, MapPin, X } from "lucide-react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
@@ -16,7 +17,6 @@ import {
 } from "~/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import { AtlasControls } from "./atlas-controls"
 
 type NominatimResult = {

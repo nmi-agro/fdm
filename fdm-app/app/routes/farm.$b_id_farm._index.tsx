@@ -7,6 +7,7 @@ import {
   getFarms,
   getFields,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import {
   AlertTriangle,
@@ -89,7 +90,6 @@ import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/err
 // import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields

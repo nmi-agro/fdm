@@ -1,10 +1,10 @@
+import { cn } from "cn"
 import { AlertTriangle, Building2, Info, Search } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { useFetcher } from "react-router"
 import type { KvkLookupResponse } from "~/integrations/kvk.server"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 
 /** Returns true when the value is a well-formed KvK number of 8 digits. */
 export function isValidKvkNumber(value: string | undefined | null): boolean {
