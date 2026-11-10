@@ -115,7 +115,11 @@ export function NewFieldsForm({
                         <Combobox
                           items={cultivationItems}
                           value={field.value || null}
-                          onValueChange={(value) => field.onChange(value ?? "")}
+                          onValueChange={(value) => {
+                            if (typeof value === "string") {
+                              field.onChange(value)
+                            }
+                          }}
                         >
                           <ComboboxInput
                             id={field.name}

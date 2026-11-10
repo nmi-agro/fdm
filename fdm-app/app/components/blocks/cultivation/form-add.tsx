@@ -136,7 +136,7 @@ export function CultivationAddForm({
                     <Combobox
                       items={cultivationItems}
                       value={field.value || null}
-                      onValueChange={(value) => field.onChange(value ?? "")}
+                      onValueChange={(value) => field.onChange(value ?? undefined)}
                       disabled={!!b_lu}
                     >
                       <ComboboxInput
