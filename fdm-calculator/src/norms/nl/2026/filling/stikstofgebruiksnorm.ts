@@ -1,4 +1,4 @@
-import type { Cultivation } from "@nmi-agro/fdm-core"
+import type { ApplicationOrigin, Cultivation } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type { NormFilling } from "../../types"
 import type { RegionKey } from "../value/types"
@@ -53,17 +53,13 @@ export function calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNo
     const p_app_date = new Date(application.p_app_date)
     const isCurrentBouwland = isBouwland(cultivations, p_app_date)
 
-    // Determine the onFarmProduced status of the *actual fertilizer* based on temporary logic.
-    // TODO: Implement proper determination of onFarmProduced based on actual farm data.
-    const onFarmProduced = has_grazing_intention // Assume that if farm performs grazing, drijfmest and vaste mest are from the farm itself, otherwise supplied.
-
-    const workingCoefficientDetails = getWorkingCoefficient(
+    const workingCoefficientDetails = getWorkingCoefficientForOrigin(
       fertilizer.p_type_rvo,
       soilType,
       has_grazing_intention,
       isCurrentBouwland,
       p_app_date,
-      onFarmProduced,
+      application.p_app_origin ?? "own_production",
     )
 
     // Calculate norm filling: amount * nitrogen content * (working coefficient / 100) / 1000
@@ -118,6 +114,69 @@ export function isBouwland(cultivations: Cultivation[], p_app_date: Date): boole
 }
 
 /**
+ * Determines the working coefficient of a fertilizer application from the origin recorded on it.
+ *
+ * Table 9 distinguishes the origin only for grazing-animal slurry and solid manure: manure produced
+ * on the farm itself (`own_production`) and manure supplied from outside the farm (`supplied`) have
+ * different working coefficients. For all other fertilizers the origin does not change the result.
+ *
+ * A mixture of own and supplied manure (`mixed`) gets the highest working coefficient of the two,
+ * following the rule for mixtures in Table 9.
+ *
+ * @param p_type_rvo - The RVO fertilizer type code.
+ * @param soilType - The soil region of the field.
+ * @param b_grazing_intention - Whether the farm applies the nitrogen usage norm for grazed grassland.
+ * @param isBouwland - True if the field is arable land (bouwland) at the application date.
+ * @param p_app_date - The date of the fertilizer application.
+ * @param p_app_origin - The origin of the applied fertilizer.
+ * @returns The working coefficient with its description.
+ */
+export function getWorkingCoefficientForOrigin(
+  p_type_rvo: string | null | undefined,
+  soilType: RegionKey | undefined,
+  b_grazing_intention: boolean,
+  isBouwland: boolean,
+  p_app_date: Date,
+  p_app_origin: ApplicationOrigin,
+): WorkingCoefficientDetails {
+  const own = getWorkingCoefficient(
+    p_type_rvo,
+    soilType,
+    b_grazing_intention,
+    isBouwland,
+    p_app_date,
+    true,
+  )
+  if (p_app_origin === "own_production") {
+    return own
+  }
+
+  const supplied = getWorkingCoefficient(
+    p_type_rvo,
+    soilType,
+    b_grazing_intention,
+    isBouwland,
+    p_app_date,
+    false,
+  )
+  if (p_app_origin === "supplied") {
+    return supplied
+  }
+
+  // Mixture of own and supplied manure: the highest working coefficient applies
+  if (own.description === supplied.description) {
+    return own
+  }
+  const highest = supplied.p_n_wcl > own.p_n_wcl ? supplied : own
+  return {
+    ...highest,
+    subTypeDescription: [highest.subTypeDescription, "mengsel van eigen en aangevoerde mest"]
+      .filter(Boolean)
+      .join(" - "),
+  }
+}
+
+/**
  * Determines the working coefficient for a given fertilizer application based on various conditions.
  * The working coefficient is retrieved from `table9` and depends on the fertilizer type,
  * whether it's produced on-farm, soil type, grazing intention, land use, and application date.
@@ -136,7 +195,7 @@ export function getWorkingCoefficient(
   b_grazing_intention: boolean,
   isBouwland: boolean,
   p_app_date: Date,
-  fertilizerOnFarmProduced: boolean, // New parameter
+  fertilizerOnFarmProduced: boolean,
 ): WorkingCoefficientDetails {
   const defaultDetails: WorkingCoefficientDetails = {
     p_n_wcl: 1.0,

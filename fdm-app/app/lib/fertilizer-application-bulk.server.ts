@@ -3,6 +3,7 @@ import {
   addFertilizerApplication,
   getFertilizerApplication,
   updateFertilizerApplication,
+  type ApplicationOrigin,
   type Cultivation,
   type FdmType,
   type Field,
@@ -52,6 +53,7 @@ export async function getFertilizerOptions(
     p_app_amount_unit: fertilizer.p_app_amount_unit,
     p_app_amount_display_max:
       getAppAmountDisplayRange(fertilizer.p_app_amount_unit, fertilizer.p_density)?.max ?? null,
+    p_type_rvo: fertilizer.p_type_rvo,
   }))
 }
 
@@ -88,6 +90,8 @@ export interface BulkFertilizerApplicationValues {
   p_app_amount_display: number
   p_app_method: string
   p_app_date: Date
+  /** Origin of the fertilizer; defaults to produced on the farm. */
+  p_app_origin?: ApplicationOrigin
 }
 
 /**
@@ -131,6 +135,7 @@ export async function addFertilizerApplicationToFields({
         values.p_app_amount_display,
         values.p_app_method as ApplicationMethods,
         values.p_app_date,
+        values.p_app_origin,
       )
     }
   })
@@ -185,6 +190,7 @@ export interface PartialFertilizerApplicationValues {
   p_app_amount_display?: number
   p_app_method?: string
   p_app_date?: Date
+  p_app_origin?: ApplicationOrigin
 }
 
 /**
@@ -224,6 +230,8 @@ export async function updateFertilizerApplications({
         values.p_app_amount_display,
         (values.p_app_method ?? original.p_app_method) as ApplicationMethods,
         values.p_app_date ?? original.p_app_date,
+        // Without a new origin the stored origin is kept
+        values.p_app_origin,
       )
     }
   })

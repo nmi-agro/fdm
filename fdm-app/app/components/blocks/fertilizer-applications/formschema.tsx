@@ -19,6 +19,9 @@ const fields = {
       }),
   ),
   p_app_method: z.string().trim().min(1, "Toepassingsmethode is verplicht"),
+  p_app_origin: z
+    .enum(["own_production", "supplied", "mixed"], { error: "Herkomst is ongeldig" })
+    .optional(),
   p_app_date: z.preprocess(
     (val) => (typeof val === "string" ? new Date(val) : val),
     z.date({

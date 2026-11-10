@@ -23,6 +23,7 @@ export interface ApplicationFormValues {
   p_id?: string
   p_app_date?: Date
   p_app_method?: string
+  p_app_origin?: "own_production" | "supplied" | "mixed"
   p_app_amount_display?: number
 }
 
@@ -30,6 +31,7 @@ type ApplicationLike = {
   p_id: string | null
   p_app_date: Date | null
   p_app_method: string | null
+  p_app_origin?: string | null
   p_app_amount_display: number | null
 }
 
@@ -37,6 +39,7 @@ const FORM_KEY_TYPES = {
   p_id: "string",
   p_app_date: "date",
   p_app_method: "string",
+  p_app_origin: "string",
   p_app_amount_display: "number",
 } as const
 

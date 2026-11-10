@@ -47,12 +47,14 @@ export const table9: Table9 = [
   },
   {
     description: "Dunne fractie na mestbewerking en gier",
-    p_type_rvo: ["12", "17", "41", "42"],
+    // Filtrate (11, 41) is the liquid fraction after manure separation
+    p_type_rvo: ["11", "12", "17", "41", "42"],
     p_n_wcl: 0.8,
   },
   {
     description: "Vaste mest van graasdieren op het eigen bedrijf geproduceerd",
-    p_type_rvo: ["10", "56", "61", "25", "26", "27", "95", "96"],
+    // The solid fraction after separating cattle manure (13) counts as cattle solid manure
+    p_type_rvo: ["10", "13", "56", "61", "25", "26", "27", "95", "96"],
     onFarmProduced: true,
     subTypes: [
       {
@@ -76,7 +78,7 @@ export const table9: Table9 = [
   },
   {
     description: "Vaste mest van graasdieren aangevoerd",
-    p_type_rvo: ["10", "56", "61", "25", "26", "27", "95", "96"],
+    p_type_rvo: ["10", "13", "56", "61", "25", "26", "27", "95", "96"],
     onFarmProduced: false,
     subTypes: [
       {
@@ -116,15 +118,8 @@ export const table9: Table9 = [
   {
     description: "Vaste mest van overige diersoorten",
     p_type_rvo: [
-      "11",
-      "13",
       "24",
-      "30",
-      "76",
-      "81",
       "90",
-      "91",
-      "92",
       "102",
       "103",
       "104",

@@ -357,6 +357,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
         formValues.p_app_amount_display,
         formValues.p_app_method,
         formValues.p_app_date,
+        formValues.p_app_origin,
       )
 
       captureEvent(session.principal_id, "fertilizer_application_added", {
@@ -389,6 +390,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
         formValues.p_app_amount_display,
         formValues.p_app_method,
         formValues.p_app_date,
+        formValues.p_app_origin,
       )
 
       return dataWithSuccess(

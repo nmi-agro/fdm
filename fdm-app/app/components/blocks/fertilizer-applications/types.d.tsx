@@ -21,6 +21,8 @@ export interface FertilizerOption {
    * `null` or absent when it cannot be computed, for example without a density.
    */
   p_app_amount_display_max?: number | null
+  /** RVO manure code of the fertilizer, used to decide whether the origin is asked. */
+  p_type_rvo?: string | null
 }
 
 export interface FertilizerApplicationsFormProps {

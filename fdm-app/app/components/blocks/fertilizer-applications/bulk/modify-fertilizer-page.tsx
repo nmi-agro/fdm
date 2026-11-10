@@ -152,6 +152,7 @@ export function ModifyFertilizerPage({
         p_app_amount_display:
           debounced.values.p_app_amount_display ?? app.p_app_amount_display ?? undefined,
         p_app_method: debounced.values.p_app_method ?? app.p_app_method ?? undefined,
+        p_app_origin: debounced.values.p_app_origin ?? app.p_app_origin ?? undefined,
         p_app_date: debounced.values.p_app_date ?? app.p_app_date,
       })
       if (!values) return null

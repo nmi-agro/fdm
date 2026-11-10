@@ -43,6 +43,12 @@ export interface FertilizerApplicationServices {
   removeFertilizerApplication: typeof removeFertilizerApplication
 }
 
+const AppOriginSchema = z
+  .enum(["own_production", "supplied", "mixed"])
+  .describe(
+    "Origin of the applied fertilizer: produced on the farm itself ('own_production'), supplied from outside the farm ('supplied') or a mixture of both ('mixed'). For grazing-animal slurry and solid manure it determines the nitrogen working coefficient used for the Dutch nitrogen usage norm.",
+  )
+
 const FertilizerApplicationSchema = z
   .object({
     p_id: FertilizerIdSchema.describe(
@@ -69,6 +75,7 @@ const FertilizerApplicationSchema = z
       .describe(
         "Method of application, one of 'slotted coulter', 'incorporation', 'incorporation 2 tracks', 'injection', 'shallow injection', 'spraying', 'broadcasting', 'spoke wheel', 'pocket placement' or 'narrowband'. `null` when unknown.",
       ),
+    p_app_origin: AppOriginSchema,
     p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     p_app_id: FertilizerApplicationIdSchema,
   })
@@ -86,6 +93,9 @@ const CreateFertilizerApplicationBodySchema = z
     p_id: z.string().describe("Fertilizer identifier."),
     p_app_amount_display: z.number().positive().describe(APP_AMOUNT_DISPLAY_DESCRIPTION),
     p_app_method: z.string().nullable().describe("Application method."),
+    p_app_origin: AppOriginSchema.optional().describe(
+      "Origin of the applied fertilizer. Defaults to 'own_production'.",
+    ),
     p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
   })
   .openapi("CreateFertilizerApplication")
@@ -102,6 +112,9 @@ const UpdateFertilizerApplicationBodySchema = z
         `${APP_AMOUNT_DISPLAY_DESCRIPTION} When omitted and the fertilizer is not changed, the stored amount is kept.`,
       ),
     p_app_method: z.string().nullable().optional().describe("Application method."),
+    p_app_origin: AppOriginSchema.optional().describe(
+      "Origin of the applied fertilizer. When omitted, the stored origin is kept.",
+    ),
     p_app_date: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
   })
   .openapi("UpdateFertilizerApplication")
@@ -256,6 +269,7 @@ function serialiseFertilizerApplication(application: FertilizerApplication) {
     p_app_amount_unit: application.p_app_amount_unit,
     p_app_amount_display: application.p_app_amount_display ?? null,
     p_app_method: application.p_app_method ?? null,
+    p_app_origin: application.p_app_origin ?? "own_production",
     p_app_date: serializeDate(application.p_app_date),
     p_app_id: application.p_app_id,
   }
@@ -362,6 +376,7 @@ export function registerFertilizerApplicationRoutes(
       body.p_app_amount_display,
       body.p_app_method,
       new Date(body.p_app_date),
+      body.p_app_origin,
     )
     const application = await services.getFertilizerApplication(
       fdm,
@@ -428,6 +443,7 @@ export function registerFertilizerApplicationRoutes(
           : existing.p_app_amount_display,
       body.p_app_method !== undefined ? body.p_app_method : existing.p_app_method,
       body.p_app_date !== undefined ? new Date(body.p_app_date) : existing.p_app_date,
+      body.p_app_origin,
     )
     const application = await services.getFertilizerApplication(
       fdm,

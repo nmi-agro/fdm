@@ -11,7 +11,11 @@ import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { cn } from "@/app/lib/utils"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
-import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
+import {
+  applicationOriginOptions,
+  getApplicationAmountUnitLabel,
+  isOriginRelevant,
+} from "~/components/blocks/fertilizer-applications/utils"
 import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -123,6 +127,9 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         : fertilizerApplication?.p_app_id,
       p_id: fertilizerApplication?.p_id,
       p_app_method: fertilizerApplication?.p_app_method,
+      // A new application counts as produced on the farm. With a custom (partial) schema, for
+      // example when changing several applications at once, an empty origin keeps the stored one.
+      p_app_origin: fertilizerApplication?.p_app_origin ?? (schema ? undefined : "own_production"),
       p_app_amount_display: undefined, // Handled through an effect due to blank behavior
       p_app_date: fertilizerApplication?.p_app_date
         ? fertilizerApplication.p_app_date
@@ -163,6 +170,8 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
   const p_id = useWatch({ control: form.control, name: "p_id" })
   const selectedFertilizer = options.find((option) => option.value === p_id)
+  // The origin only changes the nitrogen working coefficient of grazing-animal manure
+  const showOrigin = isOriginRelevant(selectedFertilizer?.p_type_rvo)
   // Only a form submission counts; leaving the page without saving is a navigation without form
   // data and must not look like saving
   const isSubmitting = navigation.state !== "idle" && Boolean(navigation.formData)
@@ -349,6 +358,29 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 </Field>
               )}
             />
+            {showOrigin && (
+              <Controller
+                name="p_app_origin"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid} className="gap-1">
+                    <FieldLabel>Herkomst</FieldLabel>
+                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Verschillend, kies om te wijzigen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {applicationOriginOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+            )}
             <Controller
               name="p_app_amount_display"
               render={({ field, fieldState }) => (

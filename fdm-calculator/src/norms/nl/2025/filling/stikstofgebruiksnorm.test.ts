@@ -625,7 +625,7 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
     ).rejects.toThrow("Fertilizer nonExistentFert not found for application app1")
   })
 
-  it("should treat onFarmProduced as false when has_grazing_intention is false for drijfmest", async () => {
+  it("should use the supplied coefficient for drijfmest recorded as supplied", async () => {
     vi.mocked(getRegion).mockResolvedValue("zand_nwc")
     const applications = [
       {
@@ -634,6 +634,7 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
         p_app_date: new Date("2025-05-01"),
         p_app_amount: 1000,
         p_id_catalogue: "fert1",
+        p_app_origin: "supplied",
       },
     ] as unknown as FertilizerApplication[]
     const fertilizers = [
@@ -645,7 +646,7 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
       },
     ] as unknown as Fertilizer[]
     const b_centroid: [number, number] = [0, 0]
-    const has_grazing_intention = false // No grazing intention, so onFarmProduced should be false
+    const has_grazing_intention = true
     const cultivations = [] as unknown as Cultivation[]
 
     const result = await calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm({
@@ -658,8 +659,8 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
       fosfaatgebruiksnorm: 0,
     } as NL2025NormsFillingInput)
 
-    // For p_type_rvo "14" (Drijfmest rundvee), if onFarmProduced is false,
-    // it falls into "Drijfmest van graasdieren aangevoerd" which has p_n_wcl of 0.60.
+    // For p_type_rvo "14" (Drijfmest rundvee) recorded as supplied, the grazing intention does
+    // not matter: "Drijfmest van graasdieren aangevoerd" has p_n_wcl of 0.60.
     // Expected: 1000 * 4.0 (from Table 11) * 0.60 (from Table 9) / 1000 = 2.4
     expect(result.normFilling).toBeCloseTo(2.4)
     expect(result.applicationFilling[0].normFilling).toBeCloseTo(2.4)
@@ -709,14 +710,100 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
       fosfaatgebruiksnorm: 0, // Default value for tests
     } as NL2025NormsFillingInput)
 
-    // For p_type_rvo "10" (Vaste mest rundvee), onFarmProduced: true in table9.
-    // Since has_grazing_intention is false, onFarmProduced will be false in the main function.
-    // For "bouwland op klei en veen, van 1 september t/m 31 januari", p_n_wcl is 0.3.
+    // For p_type_rvo "10" (Vaste mest rundvee) without a recorded origin, the application counts
+    // as produced on the farm. For "bouwland op klei en veen, van 1 september t/m 31 januari",
+    // p_n_wcl is 0.3.
     // Expected: 1000 * 10 * 0.3 / 1000 = 3
     expect(result.normFilling).toBeCloseTo(3)
     expect(result.applicationFilling[0].normFilling).toBeCloseTo(3)
     expect(result.applicationFilling[0].normFillingDetails).toBe(
-      "Werkingscoëfficiënt: 30% - Vaste mest van graasdieren aangevoerd - Op bouwland op klei en veen, van 1 september t/m 31 januari",
+      "Werkingscoëfficiënt: 30% - Vaste mest van graasdieren op het eigen bedrijf geproduceerd - Op bouwland op klei en veen, van 1 september t/m 31 januari",
+    )
+  })
+
+  it.each([
+    // [p_type_rvo, has_grazing_intention, p_app_origin, expected working coefficient]
+    ["14", true, "own_production", 0.45],
+    ["14", true, "supplied", 0.6],
+    ["14", true, "mixed", 0.6],
+    ["14", false, "own_production", 0.6],
+    ["14", false, "supplied", 0.6],
+    ["14", false, "mixed", 0.6],
+    ["10", true, "own_production", 0.45],
+    ["10", true, "supplied", 0.4],
+    ["10", true, "mixed", 0.45],
+    ["10", false, "own_production", 0.6],
+    ["10", false, "supplied", 0.4],
+    ["10", false, "mixed", 0.6],
+    ["13", false, "own_production", 0.6],
+    ["13", false, "supplied", 0.4],
+    ["11", true, "own_production", 0.8],
+    ["40", true, "supplied", 0.55],
+  ] as const)(
+    "should use origin for p_type_rvo %s (grazing: %s, origin: %s) -> %s",
+    async (p_type_rvo, has_grazing_intention, p_app_origin, expected) => {
+      vi.mocked(getRegion).mockResolvedValue("zand_nwc")
+      const result = await calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm({
+        applications: [
+          {
+            p_app_id: "app-origin",
+            p_id: "app-origin",
+            p_app_date: new Date("2025-05-01"),
+            p_app_amount: 1000,
+            p_id_catalogue: "fert-origin",
+            p_app_origin,
+          } as unknown as FertilizerApplication,
+        ],
+        fertilizers: [
+          {
+            p_id: "fert-origin",
+            p_id_catalogue: "fert-origin",
+            p_n_rt: 10,
+            p_type_rvo,
+          } as unknown as Fertilizer,
+        ],
+        b_centroid: [0, 0],
+        has_grazing_intention,
+        cultivations: [],
+        has_organic_certification: false,
+        fosfaatgebruiksnorm: 0,
+      } as NL2025NormsFillingInput)
+
+      // 1000 * 10 kg N/ton * working coefficient / 1000
+      expect(result.normFilling).toBeCloseTo(10 * expected)
+    },
+  )
+
+  it("should mention the mixture in the details for mixed grazing-animal manure", async () => {
+    vi.mocked(getRegion).mockResolvedValue("zand_nwc")
+    const result = await calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app-mixed",
+          p_id: "app-mixed",
+          p_app_date: new Date("2025-05-01"),
+          p_app_amount: 1000,
+          p_id_catalogue: "fert-mixed",
+          p_app_origin: "mixed",
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "fert-mixed",
+          p_id_catalogue: "fert-mixed",
+          p_n_rt: 10,
+          p_type_rvo: "14",
+        } as unknown as Fertilizer,
+      ],
+      b_centroid: [0, 0],
+      has_grazing_intention: true,
+      cultivations: [],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 0,
+    } as NL2025NormsFillingInput)
+
+    expect(result.applicationFilling[0].normFillingDetails).toBe(
+      "Werkingscoëfficiënt: 60% - Drijfmest van graasdieren aangevoerd - mengsel van eigen en aangevoerde mest",
     )
   })
 

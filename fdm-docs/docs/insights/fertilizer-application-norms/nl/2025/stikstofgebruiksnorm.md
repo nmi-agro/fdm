@@ -200,3 +200,15 @@ The filling is based on the **effective nitrogen** (`werkzame stikstof`) applied
 ### How the FDM Calculator Determines the Filling
 
 The `calculateNitrogenFilling` function in `fdm-calculator/src/norms/nl/2025/filling/stikstofgebruiksnorm.ts` uses the fertilizer type, application method, and the coefficients from `table-9.ts` to calculate the effective nitrogen.
+
+#### Origin of grazing-animal manure
+
+For grazing-animal slurry and solid manure, Table 9 distinguishes manure produced on the farm itself from manure supplied from outside the farm. The calculator reads the origin from the `p_app_origin` of each fertilizer application:
+
+- `own_production` (default): the "eigen bedrijf" coefficient, which depends on whether the farm applies the norm for grazed grassland (45%) or not (60%).
+- `supplied`: the "aangevoerd" coefficient (slurry 60%, solid manure 40%).
+- `mixed`: the highest of the two, following the Table 9 rule for mixtures.
+
+On arable land on clay and peat from 1 September to 31 January, grazing-animal solid manure gets 30% whatever its origin. For all other fertilizers, the origin does not change the coefficient.
+
+Filtrate after separating cattle manure (RVO code 11) counts as liquid fraction (80%). The cake after separating cattle manure (RVO code 13) counts as grazing-animal solid manure, because Table 9 treats the solid fraction after manure separation as solid manure.

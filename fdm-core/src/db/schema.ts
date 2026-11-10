@@ -239,6 +239,19 @@ export const applicationMethodEnum = fdmSchema.enum(
   applicationMethodOptions.map((x) => x.value) as [string, ...string[]],
 )
 
+// Origin of the applied fertilizer: produced on the farm itself, supplied from outside the farm,
+// or a mixture of both. Used to pick the nitrogen working coefficient of grazing-animal manure.
+export const applicationOriginOptions = [
+  { value: "own_production", label: "Eigen bedrijf" },
+  { value: "supplied", label: "Aangevoerd" },
+  { value: "mixed", label: "Mengsel van eigen en aangevoerd" },
+] as const
+export type ApplicationOrigin = (typeof applicationOriginOptions)[number]["value"]
+export const applicationOriginEnum = fdmSchema.enum(
+  "p_app_origin",
+  applicationOriginOptions.map((x) => x.value) as [string, ...string[]],
+)
+
 export const fertilizerApplication = fdmSchema.table(
   "fertilizer_applying",
   {
@@ -251,6 +264,7 @@ export const fertilizerApplication = fdmSchema.table(
       .references(() => fertilizers.p_id),
     p_app_amount: numericCasted(), // kg / ha
     p_app_method: applicationMethodEnum(),
+    p_app_origin: applicationOriginEnum().notNull().default("own_production"),
     p_app_date: timestamp({ withTimezone: true }),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),

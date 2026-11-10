@@ -438,6 +438,7 @@ This schema holds the primary data related to farm operations.
 | **p_id**         | `text`                     | Not Null, Foreign Key (references `fertilizers.p_id`) | Identifier of the fertilizer instance applied.            |
 | **p_app_amount** | `numeric` (custom)         |                                                       | Amount of fertilizer applied (typically kg/ha).           |
 | **p_app_method** | `applicationMethodEnum`    |                                                       | Method used for application.                              |
+| **p_app_origin** | `applicationOriginEnum`    | Not Null (default: 'own_production')                  | Whether the applied fertilizer was produced on the farm, supplied, or a mixture. |
 | **p_app_date**   | `timestamp with time zone` |                                                       | Timestamp when the application occurred.                  |
 | **created**      | `timestamp with time zone` | Not Null                                              | Timestamp when this record was created (default: now()).  |
 | **updated**      | `timestamp with time zone` |                                                       | Timestamp when this record was last updated.              |
@@ -450,6 +451,12 @@ This schema holds the primary data related to farm operations.
 
 - **Name**: `p_app_method`
 - **Possible values**: `slotted coulter`, `incorporation`, `incorporation 2 tracks`, `injection`, `shallow injection`, `spraying`, `broadcasting`, `spoke wheel`, `pocket placement`, `narrowband`
+
+##### `applicationOriginEnum`
+
+- **Name**: `p_app_origin`
+- **Possible values**: `own_production` (produced on the farm itself), `supplied` (supplied from outside the farm), `mixed` (a mixture of both)
+- For grazing-animal slurry and solid manure, the origin selects the nitrogen working coefficient used for the Dutch nitrogen usage norm.
 
 #### **`fertilizerCatalogueEnabling`**
 
