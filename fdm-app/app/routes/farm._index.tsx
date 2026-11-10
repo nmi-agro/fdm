@@ -668,16 +668,17 @@ export default function AppIndex() {
                     ))}
 
                     <Card className="hover:border-primary/50 hover:bg-muted/50 flex flex-col border-dashed transition-all">
-                      <NavLink to="/organization/new" className="flex h-full flex-col">
-                        <CardHeader className="grow items-center justify-center text-center">
-                          <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-                            <Plus className="h-6 w-6" />
-                          </div>
-                          <CardTitle>Nieuwe organisatie</CardTitle>
-                          <CardDescription>
-                            Voeg een extra organisatie toe aan uw account.
-                          </CardDescription>
-                        </CardHeader>
+                      <NavLink
+                        to="/organization/new"
+                        className="flex h-full flex-col items-center justify-center"
+                      >
+                        <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+                          <Plus className="h-6 w-6" />
+                        </div>
+                        <CardTitle>Nieuwe organisatie</CardTitle>
+                        <CardDescription>
+                          Voeg een extra organisatie toe aan uw account.
+                        </CardDescription>
                       </NavLink>
                     </Card>
                   </div>
