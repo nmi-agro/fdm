@@ -15,6 +15,7 @@ import {
   forwardRef,
   useContext,
   useEffect,
+  useId,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -786,6 +787,8 @@ function EventOverlay({
   const gantt = useContext(GanttContext)
   const [scrollX] = useGanttScrollX()
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 4 } })
+  // A stable id keeps dnd-kit's accessibility attributes equal on the server and in the browser.
+  const dndId = useId()
   const [dragPreview, setDragPreview] = useState<{ date: Date; x: number; y: number } | null>(null)
 
   const entityId = event.entityId
@@ -903,6 +906,7 @@ function EventOverlay({
 
   return (
     <DndContext
+      id={dndId}
       modifiers={[restrictToHorizontalAxis]}
       onDragCancel={() => setDragPreview(null)}
       onDragEnd={handleDragEnd}

@@ -848,6 +848,9 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
       distance: 10,
     },
   })
+  // dnd-kit numbers its contexts with a module-wide counter, which differs between the server
+  // and the browser; stable ids keep the accessibility attributes equal after hydration.
+  const dndId = useId()
 
   const [isItemDragging, setIsItemDragging] = useState(false)
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
@@ -924,6 +927,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
       >
         {onMove && feature.resizable !== false && (
           <DndContext
+            id={`${dndId}-left`}
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
             onDragMove={handleLeftDragMove}
@@ -933,6 +937,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           </DndContext>
         )}
         <DndContext
+          id={`${dndId}-item`}
           modifiers={[restrictToHorizontalAxis]}
           onDragCancel={() => {
             setIsItemDragging(false)
@@ -960,6 +965,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           )}
         {onMove && feature.resizable !== false && (
           <DndContext
+            id={`${dndId}-right`}
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
             onDragMove={handleRightDragMove}

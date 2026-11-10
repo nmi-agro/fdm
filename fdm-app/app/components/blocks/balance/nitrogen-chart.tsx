@@ -529,7 +529,7 @@ export function NitrogenBalanceChart(
           }}
         />
         <ChartLegend
-          content={
+          content={() => (
             <div className={"flex flex-wrap items-center justify-center gap-4"}>
               {Object.entries(legend).map(([dataKey, itemConfig]) => {
                 return (
@@ -550,7 +550,7 @@ export function NitrogenBalanceChart(
                 )
               })}
             </div>
-          }
+          )}
         />
         {renderBar("a", supplyBar)}
         {renderBar("b", removalBar)}
