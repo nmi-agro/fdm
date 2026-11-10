@@ -1229,6 +1229,67 @@ describe("Fertilizer Data Model", () => {
       expect(updatedApplication?.p_app_date).toEqual(p_app_date2)
     })
 
+    it("should default the origin of a new fertilizer application to own production", async () => {
+      const p_app_id = await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id,
+        p_id,
+        100,
+        "broadcasting",
+        new Date("2024-03-15"),
+      )
+
+      const application = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(application?.p_app_origin).toBe("own_production")
+    })
+
+    it("should store and update the origin of a fertilizer application", async () => {
+      const p_app_date = new Date("2024-03-15")
+      const p_app_id = await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id,
+        p_id,
+        100,
+        "broadcasting",
+        p_app_date,
+        "supplied",
+      )
+
+      const added = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(added?.p_app_origin).toBe("supplied")
+
+      await updateFertilizerApplication(
+        fdm,
+        principal_id,
+        p_app_id,
+        p_id,
+        100,
+        "broadcasting",
+        p_app_date,
+        "mixed",
+      )
+      const updated = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(updated?.p_app_origin).toBe("mixed")
+
+      // Leaving the origin out keeps the stored value
+      await updateFertilizerApplication(
+        fdm,
+        principal_id,
+        p_app_id,
+        p_id,
+        150,
+        "broadcasting",
+        p_app_date,
+      )
+      const kept = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(kept?.p_app_origin).toBe("mixed")
+
+      const applications = await getFertilizerApplications(fdm, principal_id, b_id)
+      expect(applications.find((app) => app.p_app_id === p_app_id)?.p_app_origin).toBe("mixed")
+    })
+
     it("should update a fertilizer application with amount specified in volume per ha", async () => {
       const p_app_date1 = new Date("2024-03-15")
       const p_app_date2 = new Date("2024-04-20")

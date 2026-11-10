@@ -12,7 +12,10 @@ import {
   formatAppAmountMax,
   FormSchema,
 } from "~/components/blocks/fertilizer-applications/formschema"
-import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
+import {
+  type ApplicationOriginValue,
+  getApplicationAmountUnitLabel,
+} from "~/components/blocks/fertilizer-applications/utils"
 import type {
   BulkBalancePreview,
   BulkBlockResult,
@@ -36,6 +39,8 @@ export interface PreviewFormValues {
   p_id?: string
   p_app_amount_display?: number
   p_app_method?: string
+  /** Origin of the fertilizer; sets the nitrogen working coefficient of grazing-animal manure. */
+  p_app_origin?: ApplicationOriginValue
   /** Usually a `Date`, but a restored draft or the date picker can also give a string. */
   p_app_date?: Date | string | null
 }
@@ -45,6 +50,8 @@ export interface PreviewApplicationValues {
   p_id: string
   p_app_amount_display: number
   p_app_method: string
+  /** Origin of the fertilizer; treated as produced on the farm when missing. */
+  p_app_origin?: ApplicationOriginValue
   p_app_date: Date
   /**
    * The amount in kg/ha. When given, it is used instead of converting `p_app_amount_display`,
@@ -135,6 +142,7 @@ export function useDebouncedPreviewValues(values: PreviewFormValues): {
     values.p_app_amount_display ?? null,
     values.p_app_method ?? null,
     toTimestamp(values.p_app_date) ?? null,
+    values.p_app_origin ?? null,
   ])
   const [debouncedKey, setDebouncedKey] = useState(key)
   useEffect(() => {
@@ -142,17 +150,19 @@ export function useDebouncedPreviewValues(values: PreviewFormValues): {
     return () => clearTimeout(timeout)
   }, [key])
   const debounced = useMemo(() => {
-    const [p_id, amount, method, timestamp] = JSON.parse(debouncedKey) as [
+    const [p_id, amount, method, timestamp, origin] = JSON.parse(debouncedKey) as [
       string | null,
       number | null,
       string | null,
       number | null,
+      ApplicationOriginValue | null,
     ]
     return {
       p_id: p_id ?? undefined,
       p_app_amount_display: amount ?? undefined,
       p_app_method: method ?? undefined,
       p_app_date: timestamp === null ? undefined : new Date(timestamp),
+      p_app_origin: origin ?? undefined,
     }
   }, [debouncedKey])
   return { values: debounced, pending: key !== debouncedKey }
@@ -239,6 +249,7 @@ export function calculateLocalPreview({
         p_name_nl: valid.fertilizer.p_name_nl,
         p_app_amount: valid.p_app_amount,
         p_app_method: values.p_app_method as BaseFertilizerApplication["p_app_method"],
+        p_app_origin: values.p_app_origin ?? "own_production",
         p_app_date: values.p_app_date,
       })
     }

@@ -64,11 +64,13 @@ export type { Cultivation, CultivationCatalogue, CultivationPlan } from "./culti
 export {
   acquiringMethodOptions,
   annotationTypeOptions,
+  applicationOriginOptions,
   bcsIndicatorOptions,
   gwlClassesOptions,
   soilTypesOptions,
   visualImageTypeOptions,
 } from "./db/schema"
+export type { ApplicationOrigin } from "./db/schema"
 export { rateLimit } from "./db/schema-authn"
 export type {
   farmVerificationTypeInsert,

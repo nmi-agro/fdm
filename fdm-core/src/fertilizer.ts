@@ -709,6 +709,10 @@ export async function removeFertilizer(
  * kg/ha, it must be greater than 0 and at most 100,000 kg/ha (`P_APP_AMOUNT_MAX`).
  * @param p_app_method - The method used for applying the fertilizer.
  * @param p_app_date - The date of the fertilizer application.
+ * @param p_app_origin - Whether the applied fertilizer was produced on the farm (`own_production`),
+ * supplied from outside the farm (`supplied`) or is a mixture of both (`mixed`). Defaults to
+ * `own_production`. For grazing-animal manure it determines the nitrogen working coefficient used for
+ * the Dutch nitrogen usage norm.
  * @returns A Promise that resolves with the unique ID of the newly created fertilizer application record.
  *
  * @throws {Error} When the specified field or fertilizer does not exist, when the applied amount
@@ -723,6 +727,7 @@ export async function addFertilizerApplication(
   p_app_amount_display: number,
   p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
   p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
+  p_app_origin: schema.ApplicationOrigin = "own_production",
 ): Promise<schema.fertilizerApplicationTypeInsert["p_app_id"]> {
   try {
     await checkPermission(fdm, "field", "write", b_id, principal_id, "addFertilizerApplication")
@@ -756,6 +761,7 @@ export async function addFertilizerApplication(
       p_id,
       p_app_amount,
       p_app_method,
+      p_app_origin,
       p_app_date,
     })
 
@@ -766,6 +772,7 @@ export async function addFertilizerApplication(
       p_id,
       p_app_amount_display,
       p_app_method,
+      p_app_origin,
       p_app_date,
     })
   }
@@ -783,6 +790,9 @@ export async function addFertilizerApplication(
  * `undefined` to keep the stored amount.
  * @param p_app_method - The method used for applying the fertilizer.
  * @param p_app_date - The date when the fertilizer was applied.
+ * @param p_app_origin - Whether the applied fertilizer was produced on the farm (`own_production`),
+ * supplied from outside the farm (`supplied`) or is a mixture of both (`mixed`). Pass `undefined` to
+ * keep the stored origin.
  *
  * @throws {Error} Thrown if the update operation fails due to insufficient permissions or a
  * database error, or when the applied amount is out of range (the `cause` is an
@@ -796,6 +806,7 @@ export async function updateFertilizerApplication(
   p_app_amount_display: number | undefined | null,
   p_app_method: schema.fertilizerApplicationTypeInsert["p_app_method"],
   p_app_date: schema.fertilizerApplicationTypeInsert["p_app_date"],
+  p_app_origin?: schema.ApplicationOrigin,
 ): Promise<void> {
   try {
     await checkPermission(
@@ -816,7 +827,7 @@ export async function updateFertilizerApplication(
     }
     await fdm
       .update(schema.fertilizerApplication)
-      .set({ p_id, p_app_amount, p_app_method, p_app_date })
+      .set({ p_id, p_app_amount, p_app_method, p_app_origin, p_app_date })
       .where(eq(schema.fertilizerApplication.p_app_id, p_app_id))
   } catch (err) {
     throw handleError(err, "Exception for updateFertilizerApplication", {
@@ -824,6 +835,7 @@ export async function updateFertilizerApplication(
       p_id,
       p_app_amount_display,
       p_app_method,
+      p_app_origin,
       p_app_date,
     })
   }
@@ -903,6 +915,7 @@ export async function getFertilizerApplication(
         p_app_amount_unit: schema.fertilizersCatalogue.p_app_amount_unit,
         p_density: schema.fertilizersCatalogue.p_density,
         p_app_method: schema.fertilizerApplication.p_app_method,
+        p_app_origin: schema.fertilizerApplication.p_app_origin,
         p_app_date: schema.fertilizerApplication.p_app_date,
         p_app_id: schema.fertilizerApplication.p_app_id,
       })
@@ -962,6 +975,7 @@ export async function getFertilizerApplications(
         p_app_amount_unit: schema.fertilizersCatalogue.p_app_amount_unit,
         p_density: schema.fertilizersCatalogue.p_density,
         p_app_method: schema.fertilizerApplication.p_app_method,
+        p_app_origin: schema.fertilizerApplication.p_app_origin,
         p_app_date: schema.fertilizerApplication.p_app_date,
         p_app_id: schema.fertilizerApplication.p_app_id,
       })
@@ -1041,6 +1055,7 @@ export async function getFertilizerApplicationsForFarm(
         p_app_amount_unit: schema.fertilizersCatalogue.p_app_amount_unit,
         p_density: schema.fertilizersCatalogue.p_density,
         p_app_method: schema.fertilizerApplication.p_app_method,
+        p_app_origin: schema.fertilizerApplication.p_app_origin,
         p_app_date: schema.fertilizerApplication.p_app_date,
         p_app_id: schema.fertilizerApplication.p_app_id,
         // extra field for grouping – not part of FertilizerApplication type
@@ -1537,6 +1552,7 @@ function extendFertilizerApplication<
     p_app_amount_unit: p_app_amount_unit,
     p_app_amount_display: p_app_amount_display,
     p_app_method: app.p_app_method,
+    p_app_origin: app.p_app_origin,
     p_app_date: app.p_app_date,
     p_app_id: app.p_app_id,
   }

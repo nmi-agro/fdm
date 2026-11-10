@@ -149,6 +149,54 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
     expect(addFertilizerApplication).not.toHaveBeenCalled()
   })
 
+  it("passes the origin to the service and returns it", async () => {
+    const addFertilizerApplication = vi.fn().mockResolvedValue("app-new")
+    const app = makeApp({
+      addFertilizerApplication,
+      getFertilizerApplication: vi
+        .fn()
+        .mockResolvedValue({ ...baseApplication, p_app_id: "app-new", p_app_origin: "supplied" }),
+    })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: 40,
+        p_app_method: "injecteren",
+        p_app_origin: "supplied",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(201)
+    expect(addFertilizerApplication.mock.calls[0][7]).toBe("supplied")
+    expect((await res.json()).p_app_origin).toBe("supplied")
+  })
+
+  it("returns 400 for an unknown origin", async () => {
+    const addFertilizerApplication = vi.fn()
+    const app = makeApp({ addFertilizerApplication })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: 40,
+        p_app_method: "injecteren",
+        p_app_origin: "elsewhere",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(400)
+    expect(addFertilizerApplication).not.toHaveBeenCalled()
+  })
+
   it("returns 422 when the amount converts to more than 100,000 kg/ha", async () => {
     const app = makeApp({
       addFertilizerApplication: vi.fn().mockRejectedValue(outOfRangeError()),
@@ -312,6 +360,44 @@ describe("PATCH /fertilizer-applications/:p_app_id", () => {
     })
     expect(res.status).toBe(200)
     expect(updateFertilizerApplication.mock.calls[0][4]).toBeNull()
+  })
+
+  it("changes only the origin and keeps the stored amount", async () => {
+    const updateFertilizerApplication = vi.fn().mockResolvedValue(undefined)
+    const app = makeApp({
+      getFertilizerApplication: vi
+        .fn()
+        .mockResolvedValueOnce(baseApplication)
+        .mockResolvedValueOnce({ ...baseApplication, p_app_origin: "mixed" }),
+      updateFertilizerApplication,
+    })
+    const res = await app.request("/fertilizer-applications/app-1", {
+      method: "PATCH",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ p_app_origin: "mixed" }),
+    })
+    expect(res.status).toBe(200)
+    expect(updateFertilizerApplication.mock.calls[0][4]).toBeNull()
+    expect(updateFertilizerApplication.mock.calls[0][7]).toBe("mixed")
+    expect((await res.json()).p_app_origin).toBe("mixed")
+  })
+
+  it("returns 400 for an unknown origin", async () => {
+    const updateFertilizerApplication = vi.fn()
+    const app = makeApp({ updateFertilizerApplication })
+    const res = await app.request("/fertilizer-applications/app-1", {
+      method: "PATCH",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ p_app_origin: "elsewhere" }),
+    })
+    expect(res.status).toBe(400)
+    expect(updateFertilizerApplication).not.toHaveBeenCalled()
   })
 })
 

@@ -133,6 +133,7 @@ export function FieldFertilizerPage({
         p_app_id: editing.p_app_id,
         p_id: editing.p_id,
         p_app_method: editing.p_app_method ?? undefined,
+        p_app_origin: editing.p_app_origin,
         p_app_amount_display: editing.p_app_amount_display ?? undefined,
         p_app_date: editing.p_app_date,
       }

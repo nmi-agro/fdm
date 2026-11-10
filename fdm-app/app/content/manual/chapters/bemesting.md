@@ -45,6 +45,7 @@ Het formulier is overal hetzelfde:
 
 - **Meststof**: kies het product. Staat het er niet tussen? Maak het meteen aan met het plusje ernaast (zie [hieronder](#meststof-vanuit-formulier)).
 - **Toedieningsmethode**: bijvoorbeeld Zodenbemester / Sleepvoet, Mestinjectie of Breedwerpig uitstrooien. Welke methodes je kunt kiezen, hangt af van de meststof.
+- **Herkomst**: alleen bij drijfmest en vaste mest van graasdieren, zoals rundvee, geiten, schapen en paarden. Kies Eigen bedrijf, Aangevoerd of Mengsel van eigen en aangevoerd. Standaard staat Eigen bedrijf ingevuld. De herkomst bepaalt de werkingscoëfficiënt voor de stikstofgebruiksnorm: mest van het eigen bedrijf telt voor 45% op een bedrijf met beweiding en voor 60% zonder beweiding, aangevoerde drijfmest telt voor 60% en aangevoerde vaste mest voor 40%. Bij een mengsel geldt de hoogste van beide.
 - **Hoeveelheid**: in de eenheid van de meststof, bijvoorbeeld 30 m³/ha of 300 kg/ha.
 - **Datum**.
 

@@ -235,7 +235,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (request.method === "POST") {
       // Collect form entry
       const formValues = await extractFormValuesFromRequest(request, FormSchema)
-      const { p_id, p_app_amount_display, p_app_date, p_app_method } = formValues
+      const { p_id, p_app_amount_display, p_app_date, p_app_method, p_app_origin } = formValues
 
       await addFertilizerApplication(
         fdm,
@@ -245,6 +245,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         p_app_amount_display,
         p_app_method,
         p_app_date,
+        p_app_origin,
       )
 
       return dataWithSuccess(
@@ -256,7 +257,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (request.method === "PUT") {
       // Collect form entry
       const formValues = await extractFormValuesFromRequest(request, FormSchemaModify)
-      const { p_app_id, p_id, p_app_amount_display, p_app_date, p_app_method } = formValues
+      const { p_app_id, p_id, p_app_amount_display, p_app_date, p_app_method, p_app_origin } =
+        formValues
 
       if (!p_app_id || typeof p_app_id !== "string") {
         return dataWithError(
@@ -273,6 +275,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         p_app_amount_display,
         p_app_method,
         p_app_date,
+        p_app_origin,
       )
 
       return dataWithSuccess(

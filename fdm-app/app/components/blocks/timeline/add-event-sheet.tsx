@@ -76,6 +76,7 @@ export function AddEventSheet({
     p_app_amount_unit: AppAmountUnit
     p_app_amount_display_max?: number | null
     applicationMethodOptions: { value: ApplicationMethods; label: string }[]
+    p_type_rvo?: string | null
   }[]
   cultivationOptions: { value: string; label: string; b_lu_ya: number[] | null }[]
 }) {

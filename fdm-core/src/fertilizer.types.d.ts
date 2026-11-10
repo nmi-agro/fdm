@@ -75,6 +75,12 @@ export interface FertilizerApplication {
   p_app_amount_unit: AppAmountUnit
   p_app_amount_display: number | null
   p_app_method: ApplicationMethods | null
+  /**
+   * Origin of the applied fertilizer: produced on the farm, supplied, or a mixture of both.
+   * Always set on applications read from the database; when it is left out, consumers treat the
+   * application as `own_production`.
+   */
+  p_app_origin?: schema.ApplicationOrigin
   p_app_date: Date
   p_app_id: string
 }

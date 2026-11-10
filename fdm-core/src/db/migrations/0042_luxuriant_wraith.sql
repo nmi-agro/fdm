@@ -1,0 +1,2 @@
+CREATE TYPE "fdm"."p_app_origin" AS ENUM('own_production', 'supplied', 'mixed');--> statement-breakpoint
+ALTER TABLE "fdm"."fertilizer_applying" ADD COLUMN "p_app_origin" "fdm"."p_app_origin" DEFAULT 'own_production' NOT NULL;
