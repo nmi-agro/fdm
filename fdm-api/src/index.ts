@@ -315,7 +315,12 @@ export interface FdmApiServices {
   getReportBranding: () => Promise<ReportBranding>
 }
 
-const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
+/**
+ * The production implementations of {@link FdmApiServices}, backed by fdm-core, fdm-calculator
+ * and the other FDM packages. `getReportBranding` is configured per deployment and is not included.
+ * Other services that reuse the API operations, such as the MCP server, start from this object.
+ */
+export const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   getFarms,
   getFarm,
   addFarm,
@@ -475,5 +480,8 @@ export function createFdmApi(
 }
 
 export type { ApiEnv, ApiPrincipalContext } from "./types"
+export { type ApiKeyAuthOptions, createApiKeyAuth } from "./auth"
+export { ApiError, type ClassifiedError, classifyError } from "./error"
+export { consumeRateLimit, RATE_LIMITS, type RateBucket, type RateLimitResult } from "./rate-limit"
 export type { FileStorage } from "@nmi-agro/fdm-storage"
 export type { ReportBranding } from "@nmi-agro/fdm-reports"

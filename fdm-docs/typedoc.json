@@ -8,12 +8,11 @@
     "../fdm-storage/src/index.ts",
     "../fdm-reports/src/index.ts",
     "../fdm-agents/src/index.ts",
-    "../fdm-api/src/index.ts"
+    "../fdm-api/src/index.ts",
+    "../fdm-api/src/operations/index.ts"
   ],
   "entryPointStrategy": "resolve",
-  "plugin": [
-    "typedoc-plugin-markdown"
-  ],
+  "plugin": ["typedoc-plugin-markdown"],
   "out": "api-reference",
   "readme": "none",
   "tsconfig": "../tsconfig.typedoc.json",
@@ -29,7 +28,8 @@
       "syncFertilizerCatalogueArray": "#",
       "FertilizerApplication": "#",
       "Harvest": "#",
-      "listPendingInvitationsForPrincipal": "#"
+      "listPendingInvitationsForPrincipal": "#",
+      "AppAmountOutOfRangeError": "#"
     },
     "@nmi-agro/fdm-calculator": {
       "startFarmNutrientAdviceRows": "#"

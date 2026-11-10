@@ -7,7 +7,7 @@ argument-hint: "[explain|add-endpoint|add-resource|review|test] [target]"
 license: MIT
 ---
 
-`fdm-api` is a library, not a server: `createFdmApi()` returns a configured Hono app that `fdm-app` mounts, and the same app publishes its own OpenAPI document and Scalar documentation UI. Two consequences shape everything in this package. The OpenAPI document is generated from the route definitions, so a route definition that lies about its responses produces incorrect public documentation. And every data access goes through an injectable service object, so handlers never import `fdm-core` functions directly.
+`fdm-api` is a library with a thin server entry: `createFdmApi()` returns a configured Hono app, `src/server.ts` runs it as its own service, and the same app publishes its own OpenAPI document and Scalar documentation UI. Three consequences shape everything in this package. The OpenAPI document is generated from the route definitions, so a route definition that lies about its responses produces incorrect public documentation. Every data access goes through an injectable service object, so neither handlers nor operations import `fdm-core` functions directly. And the logic of an endpoint lives in an **operation** (`src/operations/`), not in the route handler, so other services can run the same logic with the same validation, permissions and errors.
 
 **Scope.** This skill owns the REST layer: routing, validation, serialization, errors and their tests. It does not own the data model (`fdm-schema` skill), the web UI (`fdm-app-conventions` skill), or calculation logic. See `.claude/skills/README.md`.
 
@@ -16,8 +16,8 @@ license: MIT
 | Command | Do this |
 |---|---|
 | `explain [topic]` | Answer from this skill; link to `fdm-docs/docs/rest-api/` for the published contract. |
-| `add-endpoint` | Add to an existing `src/routes/<resource>.ts`: schema → `createRoute` → handler → `app.openapi(...)` → tests. |
-| `add-resource` | New `src/routes/<resource>.ts`, extend `FdmApiServices` and `defaultServices`, register in `app.ts`, add an OpenAPI tag, add tests. |
+| `add-endpoint` | Schemas and operation in `src/operations/<resource>.ts` → `createRoute` with `operationId` → thin handler → `app.openapi(...)` → tests. |
+| `add-resource` | New `src/operations/<resource>.ts` and `src/routes/<resource>.ts`, export the operations from `src/operations/index.ts`, extend `FdmApiServices` and `defaultServices`, register in `app.ts`, add an OpenAPI tag, add tests. |
 | `review [diff]` | Check the Conventions and Anti-patterns sections, especially error shape and services injection. |
 | `test` | `cd fdm-api && pnpm test` (no database required — services are mocked). |
 
@@ -27,14 +27,18 @@ license: MIT
 fdm-api/src/
   index.ts        createFdmApi(), FdmApiConfig, FdmApiServices, defaultServices
   app.ts          buildApp(): middleware order, route registration, OpenAPI doc, Scalar UI
-  auth.ts         API-key authentication middleware
+  auth.ts         API-key authentication middleware (channel and WWW-Authenticate options)
   guards.ts       path-existence guard, body limit / media type, GeoJSON coordinate limit
-  error.ts        ApiError, problemResponse(), createErrorHandler(), createNotFoundHandler()
-  rate-limit.ts   rate limiting middleware
+  error.ts        ApiError, classifyError(), problemResponse(), createErrorHandler(), createNotFoundHandler()
+  rate-limit.ts   consumeRateLimit() and the rate limiting middleware
   schemas.ts      pagination, timeframe, date and problem-details schemas; response envelopes
   fields.ts       described field schemas shared by requests and responses (IDs, soil, harvest, fertilizer)
   types.ts        ApiEnv, ApiPrincipalContext
-  routes/<resource>.ts   one file per resource, exporting register<Resource>Routes()
+  operations/types.ts       defineOperation(), Operation, OperationContext, OperationKind
+  operations/<resource>.ts  <Resource>Services, the resource's schemas and its operations
+  operations/index.ts       public entry, published as @nmi-agro/fdm-api/operations
+  routes/<resource>.ts      createRoute definitions and thin handlers, exporting register<Resource>Routes()
+  routes/operation-context.ts  operationContext(c, fdm, services) for handlers
   tests/<resource>.test.ts
 ```
 
@@ -42,25 +46,56 @@ Middleware order in `buildApp` is deliberate: CORS → `requestGuard` (media typ
 
 ## The services pattern
 
-Route handlers never import `fdm-core` or `fdm-calculator` functions directly. Every data-access function is declared on the `FdmApiServices` interface in `index.ts`, wired into `defaultServices`, and reached through the `services` argument. `createFdmApi` accepts `Partial<FdmApiServices>` overrides, which is what makes the tests run without a database.
+Operations and route handlers never import `fdm-core` or `fdm-calculator` functions directly. Every data-access function is declared on the `FdmApiServices` interface in `index.ts`, wired into `defaultServices`, and reached through the `services` argument. `createFdmApi` accepts `Partial<FdmApiServices>` overrides, which is what makes the tests run without a database.
 
-Adding an endpoint that needs a new core function therefore has three edit points in `index.ts` — the typed import, the `FdmApiServices` member, and the `defaultServices` entry — plus a per-route interface declaring only what that route file uses:
+Adding an endpoint that needs a new core function therefore has three edit points in `index.ts` — the typed import, the `FdmApiServices` member, and the `defaultServices` entry — plus a per-resource interface, in `src/operations/<resource>.ts`, declaring only what that resource's operations use:
 
 ```ts
+import type * as core from "@nmi-agro/fdm-core"
+
 export interface FarmServices {
   /** Returns all farms visible to the authenticated principal. */
-  getFarms: typeof getFarms
+  getFarms: typeof core.getFarms
   // ...
 }
 ```
 
-Service members are typed with `typeof <coreFunction>`, so the API cannot drift from the core signature.
+Service members are typed with `typeof core.<coreFunction>`, so the API cannot drift from the core signature. The namespace import keeps names such as `getFarm` free for the operations.
 
 Functions that are intentionally not exposed stay in the file as commented-out entries with a bracketed reason, for example `// [MINERALIZATION: disabled — behind feature flag in fdm-app]`. Keep that convention rather than deleting the lines.
 
+## Operations
+
+The logic of an endpoint lives in an operation in `src/operations/<resource>.ts`, defined with `defineOperation`. REST handlers call it, and so can other services (for example an MCP server) through `@nmi-agro/fdm-api/operations`. That keeps validation, permissions, errors and serialisation identical across them.
+
+```ts
+export const getFarm = defineOperation({
+  name: "getFarm", // camelCase, unique; also the route's operationId
+  kind: "read", // read | create | update | delete
+  bucket: "general", // rate-limit bucket: general | write | calc | nmi
+  input: FarmParamsSchema, // one flat object: path + query + body fields
+  output: FarmSchema,
+  run: async ({ fdm, services, principal }: OperationContext<FarmServices>, { b_id_farm }) => {
+    const farm = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
+    if (!farm?.b_id_farm) {
+      throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
+    }
+    return serialiseFarm(farm)
+  },
+})
+```
+
+- **Everything except transport goes in `run`**: service calls, existence checks, `ApiError`s, transactions, coordinate checks, timeframe parsing and serialisation. Status codes, headers (`Location`), 204 responses and `limit`/`offset` pagination stay in the route.
+- **Input is one flat object** of path parameters, non-pagination query parameters and body fields, e.g. `FarmParamsSchema.extend(UpdateFarmBodySchema.shape)`. List operations return the full array; the route paginates it.
+- **Deletes** return `DELETED` with `output: DeletedSchema` (`src/operations/common.ts`); the route answers 204.
+- **`bucket`** matches the rate-limit tier of the route; set `external: true` when the operation calls the NMI API.
+- The schemas and the `<Resource>Services` interface live in the operations file and are exported; the route imports them.
+- Export new operations from `src/operations/index.ts`.
+- Binary, multipart and file-download endpoints have no operation; their routes still declare an `operationId`.
+
 ## Defining a route
 
-Each resource file follows the same order: Zod schemas → `createRoute` definitions → an exported `register<Resource>Routes` containing the handlers and the `app.openapi(...)` calls.
+Each route file follows the same order: imports of the schemas and operations → `createRoute` definitions → an exported `register<Resource>Routes` containing the handlers and the `app.openapi(...)` calls. The schemas below live in the operations file.
 
 ```ts
 const FarmSchema = z
@@ -71,6 +106,7 @@ const FarmSchema = z
   .openapi("Farm")
 
 const getFarmRoute = createRoute({
+  operationId: getFarm.name,
   method: "get",
   path: "/farms/{b_id_farm}",
   tags: ["Farms"],
@@ -97,7 +133,7 @@ Requirements:
   - the allowed values or value range;
   - what `null` (or an omitted value) means, when it has a specific meaning.
 - **Reuse described field schemas.** Identifiers (`FarmIdSchema`, `FieldIdSchema`, ...), soil parameters (`soilParameterShape`), harvest analysis fields (`harvestAnalysisShape`) and fertilizer composition (`fertilizerCompositionDescriptions`) live in `src/fields.ts`. Use them in path parameters, request bodies and responses so request and response stay in sync. Call `.describe()` last: a modifier such as `.nullable()` or `.optional()` applied after it can drop the description.
-- **Every route declares `tags`, `summary`, `description` and `security`.** The tag must exist in the `tags` array in `app.ts`.
+- **Every route declares `operationId`, `tags`, `summary`, `description` and `security`.** The `operationId` is the operation's `name`, or a unique camelCase literal for routes without an operation. The tag must exist in the `tags` array in `app.ts`.
 - **Spread the shared error responses**: `...commonErrorResponses` on reads, `...writeErrorResponses` on writes. Never enumerate error codes by hand.
 - **Column names are the payload field names.** The API exposes `b_id_farm` and `p_app_amount` as-is; it does not rename schema columns to camelCase. See the `fdm-schema` skill for what those names mean.
 
@@ -105,20 +141,16 @@ Requirements:
 
 ```ts
 const getFarmHandler: RouteHandler<typeof getFarmRoute> = async (c) => {
-  const principal = c.get("principal") as unknown as ApiPrincipalContext
-  const { b_id_farm } = c.req.valid("param")
-  const farm = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
-  if (!farm) {
-    throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
-  }
-  return c.json(serialiseFarm(farm), 200)
+  const params = c.req.valid("param")
+  return c.json(await getFarm.run(operationContext(c, fdm, services), params), 200)
 }
 ```
 
+- Handlers are thin: read the validated input, call `<operation>.run(operationContext(c, fdm, services), { ...params, ...query, ...body })`, and turn the result into a response.
 - Handlers are typed `RouteHandler<typeof theRoute>`, which ties the response type to the route definition.
-- The acting principal is always `principal.effectivePrincipalId` from `c.get("principal")`, passed as the second argument to every core function. Never read a principal from the request body or a query parameter.
+- The acting principal is always `principal.effectivePrincipalId` from the request context (`operationContext` takes it from `c.get("principal")`), passed as the second argument to every core function. Never read a principal from the request body or a query parameter.
 - Input comes from `c.req.valid("param" | "query" | "json")`, never from `c.req.param()` or raw parsing — the validated accessor is what the OpenAPI schema guarantees.
-- Responses go through a `serialise<Resource>` helper so the payload shape is defined once. Dates are serialized with `serializeDate` to `YYYY-MM-DD`; the API does not expose timestamps.
+- Operations return serialised payloads (a `serialise<Resource>` helper in the operations file) so the payload shape is defined once. Dates are serialized with `serializeDate` to `YYYY-MM-DD`; the API does not expose timestamps.
 - The status code passed to `c.json` must be one declared in `responses`.
 
 ### Lists, pagination and timeframes
@@ -127,7 +159,7 @@ List endpoints take `PaginationQuerySchema` (`limit` 1–200 default 50, `offset
 
 ## Errors
 
-All errors are [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem documents with `Content-Type: application/problem+json`, produced centrally. Handlers signal failure by throwing `ApiError`:
+All errors are [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem documents with `Content-Type: application/problem+json`, produced centrally. Operations and handlers signal failure by throwing `ApiError`:
 
 ```ts
 throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
@@ -135,7 +167,7 @@ throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
 
 The slug must be one of the keys in `TITLES` in `error.ts` (`validation-failed`, `unauthorized`, `forbidden`, `not-found`, `conflict`, `payload-too-large`, `unsupported-media-type`, `unprocessable-entity`, `rate-limit-exceeded`, `service-unavailable`, `internal-error`, …). Adding a new slug means adding its title there.
 
-`createErrorHandler` maps everything else: invalid JSON to 400, `fdm-core` permission failures to 403 (detected through the error's `cause` chain), and anything unrecognised to 500 with a generated `error_id` reported to Sentry. Because permission denials are translated centrally, handlers do not catch them.
+`createErrorHandler` maps everything else through `classifyError`: invalid JSON to 400, `fdm-core` permission failures to 403 (detected through the error's `cause` chain), and anything unrecognised to 500 with a generated `error_id` reported to Sentry. Because permission denials are translated centrally, operations and handlers do not catch them. Other services that run operations use `classifyError` too, so their errors match the REST API.
 
 Never build an error response by hand with `c.json({ error: ... })`, and never let a raw `fdm-core` error message reach the client.
 
@@ -145,7 +177,9 @@ Requests authenticate with a user-owned API key, sent either as `X-API-Key` or a
 
 Authorization itself is not reimplemented here: the core functions enforce it from the principal passed in, and a denial surfaces as 403. A handler that filters results by farm identifier instead of relying on the core permission check is a security bug.
 
-Guards enforce a 5 MB body limit, `application/json` on writes, and a 10,000-coordinate ceiling on GeoJSON geometry via `assertGeoJsonCoordinates`. Rate limiting is applied per route through `rateLimitMiddleware(fdm, tier)`, where the tier is `"write"` for `POST`/`PATCH`/`PUT`/`DELETE` and `"general"` otherwise.
+Guards enforce a 5 MB body limit, `application/json` on writes, and a 10,000-coordinate ceiling on GeoJSON geometry via `assertGeoJsonCoordinates`. Rate limiting is applied per route through `rateLimitMiddleware(fdm, tier)`, where the tier is `"write"` for `POST`/`PATCH`/`PUT`/`DELETE` and `"general"` otherwise (`"calc"` for calculations, `"nmi"` for NMI-backed endpoints). The middleware counts through `consumeRateLimit(fdm, apiKeyId, bucket)`, which other services call directly so they share the same per-key limits.
+
+`createApiKeyAuth(auth, skipPaths, options)` records the audit channel (`"api"` by default) on the principal and in `withAuditContext`. `options.wwwAuthenticate` adds a `WWW-Authenticate` challenge to 401 responses for services that need one.
 
 Deletes are hard deletes with cascade, matching `fdm-core`. The first delete returns 204, a repeat returns 404. Do not add soft-delete behaviour at this layer; see `fdm-docs/docs/rest-api/07-delete-semantics.md`.
 
@@ -168,19 +202,22 @@ Run with `cd fdm-api && pnpm test`.
 
 ## Adding a resource: checklist
 
-1. `src/routes/<resource>.ts` with schemas, routes, a `<Resource>Services` interface and `register<Resource>Routes`.
-2. Extend `FdmApiServices` and `defaultServices` in `index.ts` with the required core functions.
-3. Register the routes in `buildApp` and add the OpenAPI tag in `app.ts`.
-4. Add `src/tests/<resource>.test.ts`.
-5. Update `fdm-docs/docs/rest-api/06-endpoints.md`.
-6. `pnpm test` and `pnpm check-types` in `fdm-api`.
-7. `pnpm changeset` — every package in the monorepo is versioned, including private ones.
+1. `src/operations/<resource>.ts` with schemas, a `<Resource>Services` interface and the operations; export them from `src/operations/index.ts`.
+2. `src/routes/<resource>.ts` with routes (each with an `operationId`), thin handlers and `register<Resource>Routes`.
+3. Extend `FdmApiServices` and `defaultServices` in `index.ts` with the required core functions.
+4. Register the routes in `buildApp` and add the OpenAPI tag in `app.ts`.
+5. Add `src/tests/<resource>.test.ts`.
+6. Update `fdm-docs/docs/rest-api/06-endpoints.md`.
+7. `pnpm test` and `pnpm check-types` in `fdm-api`.
+8. `pnpm changeset` — every package in the monorepo is versioned, including private ones.
 
 ## Anti-patterns
 
 | Anti-pattern | Instead |
 |---|---|
-| Importing `getFarm` from `@nmi-agro/fdm-core` inside a handler | Declare it on `FdmApiServices` and call `services.getFarm` |
+| Importing `getFarm` from `@nmi-agro/fdm-core` inside a handler or operation | Declare it on `FdmApiServices` and call `services.getFarm` |
+| Endpoint logic (service calls, 404 checks, serialisation) in the route handler | Put it in an operation; the handler only reads input and writes the response |
+| A route without `operationId` | Use the operation's `name`, or a unique camelCase literal |
 | `c.json({ error: "not found" }, 404)` | `throw new ApiError(404, "not-found", "...")` |
 | `c.req.param("b_id")` or manual `await c.req.json()` | `c.req.valid("param")` / `c.req.valid("json")` |
 | Renaming `b_id_farm` to `farmId` in a payload | Expose the schema column names unchanged |

@@ -8,8 +8,13 @@
  * - Principal context populated correctly (verified via rate-limit key)
  * - key.name = null results in null keyName (no crash)
  */
+import { getAuditContext } from "@nmi-agro/fdm-core"
+import { Hono } from "hono"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
+import type { ApiEnv } from "../types"
+import { type ApiKeyAuthOptions, createApiKeyAuth } from "../auth"
+import { createErrorHandler } from "../error"
 import { createFdmApi } from "../index"
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
@@ -210,5 +215,71 @@ describe("createApiKeyAuth: principal context fields", () => {
       headers: { "x-api-key": "valid" },
     })
     expect(res.status).toBe(200)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Options: audit channel and WWW-Authenticate challenge
+// ---------------------------------------------------------------------------
+describe("createApiKeyAuth: options", () => {
+  function makeAuthApp(mockAuth: any, options?: ApiKeyAuthOptions) {
+    const app = new Hono<ApiEnv>()
+    app.onError(createErrorHandler(config.appUrl))
+    app.use("*", createApiKeyAuth(mockAuth, [], options))
+    app.get("/whoami", (c) =>
+      c.json({ channel: c.get("principal").channel, audit: getAuditContext() }),
+    )
+    return app
+  }
+
+  it("uses channel api and no WWW-Authenticate header by default", async () => {
+    const app = makeAuthApp(validAuth({ id: "key-9" }))
+    const res = await app.request("/whoami", { headers: { "x-api-key": "k" } })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      channel: "api",
+      audit: { channel: "api", credential_id: "key-9" },
+    })
+
+    const unauthorized = await app.request("/whoami")
+    expect(unauthorized.status).toBe(401)
+    expect(unauthorized.headers.get("www-authenticate")).toBeNull()
+  })
+
+  it("records the configured channel on the principal and the audit context", async () => {
+    const app = makeAuthApp(validAuth({ id: "key-9" }), { channel: "mcp" })
+    const res = await app.request("/whoami", { headers: { authorization: "Bearer k" } })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      channel: "mcp",
+      audit: { channel: "mcp", credential_id: "key-9" },
+    })
+  })
+
+  it("sends the configured WWW-Authenticate challenge with a missing key", async () => {
+    const app = makeAuthApp(validAuth(), { wwwAuthenticate: 'Bearer realm="Test App"' })
+    const res = await app.request("/whoami")
+    expect(res.status).toBe(401)
+    expect(res.headers.get("www-authenticate")).toBe('Bearer realm="Test App"')
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+  })
+
+  it("sends the configured WWW-Authenticate challenge with an invalid key", async () => {
+    const mockAuth = {
+      api: { verifyApiKey: vi.fn().mockResolvedValue({ valid: false, error: null, key: null }) },
+    } as any
+    const app = makeAuthApp(mockAuth, { wwwAuthenticate: 'Bearer realm="Test App"' })
+    const res = await app.request("/whoami", { headers: { "x-api-key": "wrong" } })
+    expect(res.status).toBe(401)
+    expect(res.headers.get("www-authenticate")).toBe('Bearer realm="Test App"')
+  })
+
+  it("does not send a challenge for an ambiguous key", async () => {
+    const app = makeAuthApp(validAuth(), { wwwAuthenticate: 'Bearer realm="Test App"' })
+    const res = await app.request("/whoami", {
+      headers: { "x-api-key": "a", authorization: "Bearer b" },
+    })
+    expect(res.status).toBe(400)
+    expect(res.headers.get("www-authenticate")).toBeNull()
   })
 })

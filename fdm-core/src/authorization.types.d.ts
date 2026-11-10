@@ -47,8 +47,13 @@ export type ResourceChain = ResourceBead[]
  * every intermediate function.
  */
 export interface AuditContext {
-  /** Channel that originated the request. Defaults to "app". */
-  channel: "app" | "api"
-  /** Session ID (app) or API key ID (api) that originated the request. */
+  /**
+   * Channel that originated the request. Defaults to "app".
+   * - `"app"`: the web application
+   * - `"api"`: the REST API
+   * - `"mcp"`: the Model Context Protocol (MCP) server for AI assistants
+   */
+  channel: "app" | "api" | "mcp"
+  /** Session ID (app) or API key ID (api, mcp) that originated the request. */
   credential_id?: string
 }

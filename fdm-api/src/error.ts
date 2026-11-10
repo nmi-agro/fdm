@@ -137,6 +137,90 @@ function isPermissionDenied(err: unknown): boolean {
 }
 
 /**
+ * The outcome of {@link classifyError}: how a failure is reported to an API client.
+ */
+export interface ClassifiedError {
+  /** HTTP status code that describes the failure. */
+  status: number
+  /** Machine-readable problem type slug, one of the keys known to the problem documents. */
+  slug: string
+  /** Human-readable explanation that is safe to show to the client. */
+  detail: string
+  /** Optional extension members, for example validation issues. */
+  extras?: Record<string, unknown>
+  /** Error identifier for failures that were logged, for example unexpected errors. */
+  errorId?: string
+}
+
+/**
+ * Maps an error thrown while handling a request to a status, problem type and client-safe detail.
+ *
+ * Known failures are `ApiError`, fdm-core permission denials (403), application amounts out of
+ * range (422) and invalid JSON (400). Anything else is unexpected: it is logged, reported to
+ * Sentry with a generated `errorId`, and described only as an internal error, so internal
+ * messages never reach the client. Both the REST error handler and the MCP server use this.
+ *
+ * @param err - The caught error.
+ * @returns The classified error.
+ * @example
+ * ```ts
+ * const { status, slug, detail } = classifyError(err)
+ * ```
+ */
+export function classifyError(err: unknown): ClassifiedError {
+  if (err instanceof ApiError) {
+    return {
+      status: err.status,
+      slug: err.slug,
+      detail: err.message,
+      extras: err.extras,
+      errorId: err.errorId,
+    }
+  }
+  const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as
+    | (Error & { p_app_amount_unit?: string; p_app_amount_display_max?: number | null })
+    | undefined
+  if (amountError) {
+    const { p_app_amount_unit: unit, p_app_amount_display_max: max } = amountError
+    const limit =
+      unit && typeof max === "number" && unit !== "kg/ha"
+        ? `${Math.floor(max * 100) / 100} ${unit} (100,000 kg/ha)`
+        : "100,000 kg/ha"
+    return {
+      status: 422,
+      slug: "unprocessable-entity",
+      detail: `The application amount must be greater than 0 and at most ${limit}.`,
+    }
+  }
+  if (isPermissionDenied(err)) {
+    return {
+      status: 403,
+      slug: "forbidden",
+      detail: "You do not have permission to access this resource.",
+    }
+  }
+  if (err instanceof SyntaxError) {
+    return {
+      status: 400,
+      slug: "validation-failed",
+      detail: `Request body contains invalid JSON: ${err.message}`,
+    }
+  }
+  console.error("[fdm-api] Unhandled error:", err)
+  const errorId = nanoid()
+  Sentry.withScope((scope) => {
+    scope.setTag("error_id", errorId)
+    Sentry.captureException(err)
+  })
+  return {
+    status: 500,
+    slug: "internal-error",
+    detail: "An unexpected error occurred.",
+    errorId,
+  }
+}
+
+/**
  * Creates the global Hono error handler used by the API application.
  *
  * @param appUrl - Canonical application URL used to generate absolute problem type URIs.
@@ -160,59 +244,8 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
         appUrl,
       )
     }
-    if (err instanceof ApiError) {
-      return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras, err.errorId)
-    }
-    const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as
-      | (Error & { p_app_amount_unit?: string; p_app_amount_display_max?: number | null })
-      | undefined
-    if (amountError) {
-      const { p_app_amount_unit: unit, p_app_amount_display_max: max } = amountError
-      const limit =
-        unit && typeof max === "number" && unit !== "kg/ha"
-          ? `${Math.floor(max * 100) / 100} ${unit} (100,000 kg/ha)`
-          : "100,000 kg/ha"
-      return problemResponse(
-        c,
-        422,
-        "unprocessable-entity",
-        `The application amount must be greater than 0 and at most ${limit}.`,
-        appUrl,
-      )
-    }
-    if (isPermissionDenied(err)) {
-      return problemResponse(
-        c,
-        403,
-        "forbidden",
-        "You do not have permission to access this resource.",
-        appUrl,
-      )
-    }
-    if (err instanceof SyntaxError) {
-      return problemResponse(
-        c,
-        400,
-        "validation-failed",
-        `Request body contains invalid JSON: ${err.message}`,
-        appUrl,
-      )
-    }
-    console.error("[fdm-api] Unhandled error:", err)
-    const error_id = nanoid()
-    Sentry.withScope((scope) => {
-      scope.setTag("error_id", error_id)
-      Sentry.captureException(err)
-    })
-    return problemResponse(
-      c,
-      500,
-      "internal-error",
-      "An unexpected error occurred.",
-      appUrl,
-      undefined,
-      error_id,
-    )
+    const { status, slug, detail, extras, errorId } = classifyError(err)
+    return problemResponse(c, status, slug, detail, appUrl, extras, errorId)
   }
 }
 

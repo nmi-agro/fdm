@@ -76,6 +76,7 @@ const fileUnavailable = problemResponseDefinition(
 )
 
 const listPlansRoute = createRoute({
+  operationId: "listFertilizerPlans",
   method: "get",
   path: "/farms/{b_id_farm}/fertilizer-plans",
   tags: ["Fertilizer Plans"],
@@ -100,6 +101,7 @@ const listPlansRoute = createRoute({
 })
 
 const createPlanRoute = createRoute({
+  operationId: "createFertilizerPlan",
   method: "post",
   path: "/farms/{b_id_farm}/fertilizer-plans",
   tags: ["Fertilizer Plans"],
@@ -126,6 +128,7 @@ const createPlanRoute = createRoute({
 })
 
 const getPlanRoute = createRoute({
+  operationId: "getFertilizerPlan",
   method: "get",
   path: "/fertilizer-plans/{p_id_plan}",
   tags: ["Fertilizer Plans"],
@@ -144,6 +147,7 @@ const getPlanRoute = createRoute({
 })
 
 const downloadPlanRoute = createRoute({
+  operationId: "downloadFertilizerPlanPdf",
   method: "get",
   path: "/fertilizer-plans/{p_id_plan}/pdf",
   tags: ["Fertilizer Plans"],
@@ -160,6 +164,7 @@ const downloadPlanRoute = createRoute({
 })
 
 const deletePlanRoute = createRoute({
+  operationId: "deleteFertilizerPlan",
   method: "delete",
   path: "/fertilizer-plans/{p_id_plan}",
   tags: ["Fertilizer Plans"],

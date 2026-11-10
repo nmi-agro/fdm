@@ -239,6 +239,7 @@ const FieldImportChoiceSchema = ChoiceSchema.openapi("FieldImportChoice")
 // ---------------------------------------------------------------------------
 
 const compareRoute = createRoute({
+  operationId: "compareFieldImport",
   method: "post",
   path: "/farms/{b_id_farm}/fields/import/compare",
   tags: ["Field Import"],
@@ -266,6 +267,7 @@ const compareRoute = createRoute({
 })
 
 const applyRoute = createRoute({
+  operationId: "applyFieldImport",
   method: "post",
   path: "/farms/{b_id_farm}/fields/import/apply",
   tags: ["Field Import"],

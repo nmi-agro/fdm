@@ -42,6 +42,72 @@ const NMI_PATH_PATTERNS: RegExp[] = [
 export type RateBucket = keyof typeof RATE_LIMITS
 
 /**
+ * The state of a rate-limit bucket after a request was counted.
+ */
+export interface RateLimitResult {
+  /** Whether the request is within the limit. */
+  allowed: boolean
+  /** Maximum number of requests per window for the bucket. */
+  limit: number
+  /** Requests left in the current window. */
+  remaining: number
+  /** Seconds until the current window ends. At least 1 when the request is not allowed. */
+  resetIn: number
+}
+
+/**
+ * Counts one request for an API key in a rate-limit bucket and reports whether it is allowed.
+ *
+ * Counts are stored in the shared `rateLimit` table under `fdm-api:<apiKeyId>:<bucket>`, so every
+ * service that uses this function shares the same per-key limits within a 60-second window.
+ *
+ * @param fdm - Database used to read and update the rate-limit table.
+ * @param apiKeyId - Identifier of the API key that made the request.
+ * @param bucket - Named limit bucket that determines the allowed request volume.
+ * @returns The bucket state after counting the request.
+ * @example
+ * ```ts
+ * const { allowed, resetIn } = await consumeRateLimit(fdm, principal.apiKeyId, "write")
+ * ```
+ */
+export async function consumeRateLimit(
+  fdm: FdmType,
+  apiKeyId: string,
+  bucket: RateBucket,
+): Promise<RateLimitResult> {
+  const limit = RATE_LIMITS[bucket]
+  const key = `fdm-api:${apiKeyId}:${bucket}`
+  const now = Date.now()
+  const windowStart = now - WINDOW_MS
+
+  const [record] = await fdm
+    .insert(rateLimit)
+    .values({ id: nanoid(), key, count: 1, lastRequest: now })
+    .onConflictDoUpdate({
+      target: rateLimit.key,
+      set: {
+        count: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN 1 ELSE ${rateLimit.count} + 1 END`,
+        lastRequest: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN ${now} ELSE ${rateLimit.lastRequest} END`,
+      },
+    })
+    .returning({
+      count: rateLimit.count,
+      lastRequest: rateLimit.lastRequest,
+    })
+
+  const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
+  if (record.count > limit) {
+    return { allowed: false, limit, remaining: 0, resetIn: Math.max(resetIn, 1) }
+  }
+  return {
+    allowed: true,
+    limit,
+    remaining: Math.max(limit - record.count, 0),
+    resetIn: Math.max(resetIn, 0),
+  }
+}
+
+/**
  * Creates middleware that enforces per-key request limits within a 60-second window.
  *
  * @param fdm - Database and service context used to read and update the shared rate-limit table.
@@ -54,8 +120,6 @@ export type RateBucket = keyof typeof RATE_LIMITS
  * ```
  */
 export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): MiddlewareHandler<ApiEnv> {
-  const limit = RATE_LIMITS[bucket]
-
   return async (c, next) => {
     if (bucket !== "nmi" && NMI_PATH_PATTERNS.some((pattern) => pattern.test(c.req.path))) {
       return next()
@@ -73,42 +137,19 @@ export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): Middlewar
     seen.add(bucket)
 
     const principal = c.get("principal") as ApiPrincipalContext
-    const key = `fdm-api:${principal.apiKeyId}:${bucket}`
-    const now = Date.now()
-    const windowStart = now - WINDOW_MS
+    const result = await consumeRateLimit(fdm, principal.apiKeyId, bucket)
 
-    const [record] = await fdm
-      .insert(rateLimit)
-      .values({ id: nanoid(), key, count: 1, lastRequest: now })
-      .onConflictDoUpdate({
-        target: rateLimit.key,
-        set: {
-          count: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN 1 ELSE ${rateLimit.count} + 1 END`,
-          lastRequest: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN ${now} ELSE ${rateLimit.lastRequest} END`,
-        },
-      })
-      .returning({
-        count: rateLimit.count,
-        lastRequest: rateLimit.lastRequest,
-      })
-
-    if (record.count > limit) {
-      const retryAfter = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
-      c.header("Retry-After", String(Math.max(retryAfter, 1)))
-      c.header("RateLimit-Limit", String(limit))
-      c.header("RateLimit-Remaining", "0")
-      c.header("RateLimit-Reset", String(Math.max(retryAfter, 1)))
+    c.header("RateLimit-Limit", String(result.limit))
+    c.header("RateLimit-Remaining", String(result.remaining))
+    c.header("RateLimit-Reset", String(result.resetIn))
+    if (!result.allowed) {
+      c.header("Retry-After", String(result.resetIn))
       throw new ApiError(
         429,
         "rate-limit-exceeded",
-        `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`,
+        `Rate limit exceeded. Try again in ${result.resetIn}s.`,
       )
     }
-
-    const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
-    c.header("RateLimit-Limit", String(limit))
-    c.header("RateLimit-Remaining", String(Math.max(limit - record.count, 0)))
-    c.header("RateLimit-Reset", String(Math.max(resetIn, 0)))
 
     return next()
   }

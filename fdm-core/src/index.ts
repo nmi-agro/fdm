@@ -19,7 +19,12 @@ import * as fdmSchema from "./db/schema"
 export type { FdmAuth } from "./authentication"
 // export { createFdmLocal } from './fdm-local'
 export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authentication"
-export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
+export {
+  checkPermission,
+  getAuditContext,
+  withAuditContext,
+  writeAuditEntry,
+} from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
   generateCalculationHash,
