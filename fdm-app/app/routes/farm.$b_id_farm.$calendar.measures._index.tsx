@@ -252,15 +252,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
-    const [applicabilityByField, fieldCultivations] = await Promise.all([
+    // `reportFailures` maps a failed field to `null`, so the recommendations below only reuse
+    // successful lookups. A failed batch yields `undefined`: the recommendations then fetch
+    // the applicability themselves, and the page falls back to an empty record.
+    const [loadedApplicability, fieldCultivations] = await Promise.all([
       getMeasureApplicabilityForFields({
         principal_id: session.principal_id,
         b_ids: fieldIds,
         b_year,
         timeframe,
+        reportFailures: true,
       }).catch((error) => {
         reportError(error, { page: "farm measures applicability" })
-        return {}
+        return undefined
       }),
       Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
     ])
@@ -294,6 +298,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       measuresMap,
       catalogue,
+      applicabilityByField: loadedApplicability,
     }).catch((error) => {
       reportError(error, { page: "farm measures recommendations" })
       return {
@@ -413,7 +418,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       catalogue,
       mapStyle: getMapStyle("satellite"),
       fieldSummaries,
-      applicabilityByField,
+      applicabilityByField: loadedApplicability ?? {},
       stats: {
         totalFields: eligibleFieldsWithCultivations.length,
         totalMeasures,

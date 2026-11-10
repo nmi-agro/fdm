@@ -484,7 +484,9 @@ export type FarmMeasureOpportunity = FieldTopOpportunity & {
  * report it and hide the lazy recommendation surface.
  *
  * Pass `applicabilityByField` when the caller already fetched the applicability
- * of these fields, to avoid a second round of NMI requests.
+ * of these fields, to avoid a second round of NMI requests. Only successful
+ * lookups are reused: fields that are missing or map to `null` (a failed
+ * lookup) are fetched again.
  */
 export async function getFarmMeasureOpportunities({
   principal_id,
@@ -509,11 +511,18 @@ export async function getFarmMeasureOpportunities({
   candidates: FarmMeasureOpportunity[]
   adviceAvailable: boolean
 }> {
-  const [applicabilityByField, adviceByField] = await Promise.all([
-    preloadedApplicability ??
-      getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
+  // Reuse successful preloaded lookups; fetch the fields that are missing or failed.
+  const missingIds = b_ids.filter((b_id) => !preloadedApplicability?.[b_id])
+  const [fetchedApplicability, adviceByField] = await Promise.all([
+    missingIds.length > 0
+      ? getMeasureApplicabilityForFields({ principal_id, b_ids: missingIds, b_year, timeframe })
+      : Promise.resolve({}),
     getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
   ])
+  const applicabilityByField: Record<string, Record<string, MeasureApplicabilityInfo> | null> = {
+    ...preloadedApplicability,
+    ...fetchedApplicability,
+  }
 
   const opportunities: FarmMeasureOpportunity[] = []
   const candidates: FarmMeasureOpportunity[] = []
