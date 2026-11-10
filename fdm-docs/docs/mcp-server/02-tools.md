@@ -12,6 +12,8 @@ The input and output schemas, with the description and unit of every field, are 
 
 Annotations: _read-only_ tools change nothing; _destructive_ tools delete data; _idempotent_ tools give the same result when repeated; _open-world_ tools call the NMI API. Rate buckets are shared with the REST API per API key (see [Limits](./overview#limits)).
 
+File transfer: the MCP server cannot receive or return files yet. Imports of lab reports (PDF) and RVO shapefiles, soil images and file downloads stay in the web app and the REST API. An assistant can still read a lab report itself and enter the values with `create_soil_analysis`, or add fields from GeoJSON with `create_field`. Support will follow the MCP file uploads extension, which is still experimental.
+
 | Tool                               | What it does                                | Annotations                       | Rate bucket | Operations                                                                                                                                                       |
 | ---------------------------------- | ------------------------------------------- | --------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `list_farms`                       | List farms                                  | read-only, idempotent             | `general`   | `listFarms`                                                                                                                                                      |
@@ -82,34 +84,34 @@ Annotations: _read-only_ tools change nothing; _destructive_ tools delete data; 
 
 ### Not available as a tool
 
-| Operation                      | Reason                                                                                        |
-| ------------------------------ | --------------------------------------------------------------------------------------------- |
-| `getCultivation`               | list_cultivations returns the same records                                                    |
-| `getHarvest`                   | list_harvests returns the same records                                                        |
-| `getFertilizer`                | list_fertilizers returns the same records                                                     |
-| `getFertilizerApplication`     | list_fertilizer_applications returns the same records                                         |
-| `getSoilAnalysis`              | list_soil_analyses returns the same records                                                   |
-| `getMeasure`                   | list_measures returns the same records                                                        |
-| `getOrganicCertification`      | list_organic_certifications returns the same records                                          |
-| `updateFarmGroupMembership`    | corrects the dates of an earlier membership; rarely needed, use the web app or the REST API   |
-| `deleteFarmGroupMembership`    | erases an earlier membership from the history; rarely needed, use the web app or the REST API |
-| `downloadSoilAnalysisDocument` | binary PDF download                                                                           |
-| `listSoilImages`               | soil images are photos; not useful without the image files                                    |
-| `uploadSoilImage`              | multipart image upload                                                                        |
-| `downloadSoilImage`            | binary image download                                                                         |
-| `deleteSoilImage`              | part of the soil image workflow, which is not available as tools                              |
-| `createSoilImageAnnotation`    | part of the soil image workflow, which is not available as tools                              |
-| `updateSoilImageAnnotation`    | part of the soil image workflow, which is not available as tools                              |
-| `deleteSoilImageAnnotation`    | part of the soil image workflow, which is not available as tools                              |
-| `compareFieldImport`           | multipart upload of an RVO shapefile                                                          |
-| `applyFieldImport`             | applies a multipart RVO shapefile import                                                      |
-| `compareSoilAnalysisImport`    | multipart upload of lab PDFs                                                                  |
-| `applySoilAnalysisImport`      | applies a lab PDF import                                                                      |
-| `listFertilizerPlans`          | fertilizer plans are generated PDF reports; not in the first release                          |
-| `createFertilizerPlan`         | fertilizer plans are generated PDF reports; not in the first release                          |
-| `getFertilizerPlan`            | fertilizer plans are generated PDF reports; not in the first release                          |
-| `downloadFertilizerPlanPdf`    | binary PDF download                                                                           |
-| `deleteFertilizerPlan`         | fertilizer plans are generated PDF reports; not in the first release                          |
-| `listInvitations`              | sharing and invitations are account actions; not in the first release                         |
-| `acceptInvitation`             | sharing and invitations are account actions; not in the first release                         |
-| `declineInvitation`            | sharing and invitations are account actions; not in the first release                         |
+| Operation                      | Reason                                                                                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getCultivation`               | list_cultivations returns the same records                                                                                                                                                                                 |
+| `getHarvest`                   | list_harvests returns the same records                                                                                                                                                                                     |
+| `getFertilizer`                | list_fertilizers returns the same records                                                                                                                                                                                  |
+| `getFertilizerApplication`     | list_fertilizer_applications returns the same records                                                                                                                                                                      |
+| `getSoilAnalysis`              | list_soil_analyses returns the same records                                                                                                                                                                                |
+| `getMeasure`                   | list_measures returns the same records                                                                                                                                                                                     |
+| `getOrganicCertification`      | list_organic_certifications returns the same records                                                                                                                                                                       |
+| `updateFarmGroupMembership`    | corrects the dates of an earlier membership; rarely needed, use the web app or the REST API                                                                                                                                |
+| `deleteFarmGroupMembership`    | erases an earlier membership from the history; rarely needed, use the web app or the REST API                                                                                                                              |
+| `downloadSoilAnalysisDocument` | file download; the MCP server does not support file transfer yet. Download the lab report in the web app or with the REST API                                                                                              |
+| `listSoilImages`               | soil images are photos; the MCP server does not support file transfer yet. Use the web app or the REST API                                                                                                                 |
+| `uploadSoilImage`              | file upload; the MCP server does not support file transfer yet. Upload soil images in the web app or with the REST API                                                                                                     |
+| `downloadSoilImage`            | file download; the MCP server does not support file transfer yet. Use the web app or the REST API                                                                                                                          |
+| `deleteSoilImage`              | part of the soil image workflow, which needs file transfer that the MCP server does not support yet                                                                                                                        |
+| `createSoilImageAnnotation`    | part of the soil image workflow, which needs file transfer that the MCP server does not support yet                                                                                                                        |
+| `updateSoilImageAnnotation`    | part of the soil image workflow, which needs file transfer that the MCP server does not support yet                                                                                                                        |
+| `deleteSoilImageAnnotation`    | part of the soil image workflow, which needs file transfer that the MCP server does not support yet                                                                                                                        |
+| `compareFieldImport`           | needs an RVO shapefile upload, which the MCP server does not support yet. Import fields in the web app or with the REST API; an assistant can still add fields from GeoJSON with create_field                              |
+| `applyFieldImport`             | needs an RVO shapefile upload, which the MCP server does not support yet. Import fields in the web app or with the REST API                                                                                                |
+| `compareSoilAnalysisImport`    | needs a lab report (PDF) upload, which the MCP server does not support yet. Import reports in the web app or with the REST API; an assistant can still read a report itself and enter the values with create_soil_analysis |
+| `applySoilAnalysisImport`      | needs a lab report (PDF) upload, which the MCP server does not support yet. Import reports in the web app or with the REST API                                                                                             |
+| `listFertilizerPlans`          | fertilizer plans are generated PDF reports; not in the first release                                                                                                                                                       |
+| `createFertilizerPlan`         | fertilizer plans are generated PDF reports; not in the first release                                                                                                                                                       |
+| `getFertilizerPlan`            | fertilizer plans are generated PDF reports; not in the first release                                                                                                                                                       |
+| `downloadFertilizerPlanPdf`    | binary PDF download                                                                                                                                                                                                        |
+| `deleteFertilizerPlan`         | fertilizer plans are generated PDF reports; not in the first release                                                                                                                                                       |
+| `listInvitations`              | sharing and invitations are account actions; not in the first release                                                                                                                                                      |
+| `acceptInvitation`             | sharing and invitations are account actions; not in the first release                                                                                                                                                      |
+| `declineInvitation`            | sharing and invitations are account actions; not in the first release                                                                                                                                                      |

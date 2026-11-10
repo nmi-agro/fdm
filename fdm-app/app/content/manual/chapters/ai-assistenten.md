@@ -40,6 +40,8 @@ Een assistent ziet en wijzigt precies wat jij in {{appName}} mag zien en wijzige
 
 Codes van gewassen, meststoffen en maatregelen zoekt de assistent zelf op in de catalogi.
 
+Bestanden kan de assistent (nog) niet doorgeven aan {{appName}}. Een labrapport (PDF) of een shapefile van RVO importeren doe je daarom in {{appName}} zelf. Geef je de assistent wel een labrapport, dan kan hij de waarden overnemen en als bodemanalyse opslaan. Controleer die waarden dan goed voordat je de wijziging goedkeurt.
+
 ## Let op {#let-op}
 
 - De assistent kan gegevens wijzigen en verwijderen. De meeste assistenten vragen je om toestemming voordat ze iets wijzigen. Lees elke wijziging na voordat je die goedkeurt. Een verwijdering kun je niet ongedaan maken.
