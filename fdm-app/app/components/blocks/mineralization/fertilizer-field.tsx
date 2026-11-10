@@ -38,9 +38,9 @@ export function FertilizerField({
   )
 
   return (
-    <Field>
+    <Field className="gap-1">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <FieldContent>
+      <FieldContent className="leading-none">
         <Combobox
           items={items}
           value={value || null}
