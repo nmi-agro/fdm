@@ -151,13 +151,22 @@ export function NewFieldsForm({
                   control={form.control}
                   name="b_bufferstrip"
                   render={({ field }) => (
-                    <Field className="col-span-2 flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4 shadow">
-                      <div>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    <Field className="col-span-full flex flex-row items-center gap-4 rounded-lg border p-4 shadow-sm">
+                      <div className="h-auto shrink in-[.w-full]:w-auto">
+                        <Checkbox
+                          id={field.name}
+                          name={field.name}
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </div>
-                      <div className="space-y-1 leading-none">
-                        <FieldLabel>Bufferstrook</FieldLabel>
-                        <FieldDescription>Is dit perceel een bufferstrook?</FieldDescription>
+                      <div className="grow space-y-0.5 in-[.w-full]:w-auto">
+                        <FieldLabel className="cursor-pointer text-base" htmlFor={field.name}>
+                          Bufferstrook
+                        </FieldLabel>
+                        <FieldDescription className="text-muted-foreground text-sm wrap-break-word">
+                          Is dit perceel een bufferstrook?{" "}
+                        </FieldDescription>
                       </div>
                     </Field>
                   )}
