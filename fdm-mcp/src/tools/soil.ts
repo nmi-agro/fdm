@@ -52,7 +52,7 @@ export const soilTools: McpTool[] = [
     name: "create_soil_analysis",
     title: "Create a soil analysis",
     description:
-      "Adds a soil analysis to a field (`b_id`): the source (`a_source`, the lab), analysis and sampling dates (YYYY-MM-DD), depth in cm and the measured parameters with the units in their descriptions. Only give the parameters the lab reported.",
+      "Adds a soil analysis to a field (`b_id`): the source (`a_source`, the lab), analysis and sampling dates (YYYY-MM-DD), depth in cm and the measured parameters with the units in their descriptions. Only give the parameters the lab reported. When the values come from a lab report the user gave you, convert them to the units of the schema and let the user check them before you save.",
   }),
   operationTool(updateSoilAnalysis, {
     name: "update_soil_analysis",

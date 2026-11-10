@@ -22,19 +22,33 @@ export const EXCLUDED_OPERATIONS: Readonly<Record<string, string>> = {
   deleteFarmGroupMembership:
     "erases an earlier membership from the history; rarely needed, use the web app or the REST API",
 
-  // Files: binary downloads and multipart uploads do not fit tool arguments and results.
-  downloadSoilAnalysisDocument: "binary PDF download",
-  listSoilImages: "soil images are photos; not useful without the image files",
-  uploadSoilImage: "multipart image upload",
-  downloadSoilImage: "binary image download",
-  deleteSoilImage: "part of the soil image workflow, which is not available as tools",
-  createSoilImageAnnotation: "part of the soil image workflow, which is not available as tools",
-  updateSoilImageAnnotation: "part of the soil image workflow, which is not available as tools",
-  deleteSoilImageAnnotation: "part of the soil image workflow, which is not available as tools",
-  compareFieldImport: "multipart upload of an RVO shapefile",
-  applyFieldImport: "applies a multipart RVO shapefile import",
-  compareSoilAnalysisImport: "multipart upload of lab PDFs",
-  applySoilAnalysisImport: "applies a lab PDF import",
+  // Files. The MCP server does not support file transfer yet: an assistant cannot pass a file
+  // the user gives it on to a tool, and tool results cannot carry files. The MCP file uploads
+  // extension is still experimental; until clients support it, these stay REST-only.
+  downloadSoilAnalysisDocument:
+    "file download; the MCP server does not support file transfer yet. Download the lab report in the web app or with the REST API",
+  listSoilImages:
+    "soil images are photos; the MCP server does not support file transfer yet. Use the web app or the REST API",
+  uploadSoilImage:
+    "file upload; the MCP server does not support file transfer yet. Upload soil images in the web app or with the REST API",
+  downloadSoilImage:
+    "file download; the MCP server does not support file transfer yet. Use the web app or the REST API",
+  deleteSoilImage:
+    "part of the soil image workflow, which needs file transfer that the MCP server does not support yet",
+  createSoilImageAnnotation:
+    "part of the soil image workflow, which needs file transfer that the MCP server does not support yet",
+  updateSoilImageAnnotation:
+    "part of the soil image workflow, which needs file transfer that the MCP server does not support yet",
+  deleteSoilImageAnnotation:
+    "part of the soil image workflow, which needs file transfer that the MCP server does not support yet",
+  compareFieldImport:
+    "needs an RVO shapefile upload, which the MCP server does not support yet. Import fields in the web app or with the REST API; an assistant can still add fields from GeoJSON with create_field",
+  applyFieldImport:
+    "needs an RVO shapefile upload, which the MCP server does not support yet. Import fields in the web app or with the REST API",
+  compareSoilAnalysisImport:
+    "needs a lab report (PDF) upload, which the MCP server does not support yet. Import reports in the web app or with the REST API; an assistant can still read a report itself and enter the values with create_soil_analysis",
+  applySoilAnalysisImport:
+    "needs a lab report (PDF) upload, which the MCP server does not support yet. Import reports in the web app or with the REST API",
 
   // Not part of the first MCP release; add when there is a clear use for assistants.
   listFertilizerPlans: "fertilizer plans are generated PDF reports; not in the first release",
