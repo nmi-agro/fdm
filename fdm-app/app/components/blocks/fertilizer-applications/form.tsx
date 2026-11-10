@@ -196,6 +196,17 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     }
   }, [formSetValue, p_id, fertilizerApplication, singleMethod])
 
+  // The origin only applies to grazing-animal manure. For other fertilizers, drop an origin chosen
+  // earlier: a new application gets the default, and with a custom (partial) schema the stored
+  // origin is kept.
+  const originFallback = schema ? undefined : "own_production"
+  const formGetValues = form.getValues
+  useEffect(() => {
+    if (!showOrigin && formGetValues("p_app_origin") !== originFallback) {
+      formSetValue("p_app_origin", originFallback)
+    }
+  }, [showOrigin, originFallback, formGetValues, formSetValue])
+
   const formGetFieldState = form.getFieldState
   const form_p_app_date = useWatch({ control: form.control, name: "p_app_date" })
   useEffect(() => {

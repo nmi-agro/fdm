@@ -739,6 +739,7 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
     ["13", false, "supplied", 0.4],
     ["11", true, "own_production", 0.8],
     ["40", true, "supplied", 0.55],
+    ["40", true, "mixed", 0.55],
   ] as const)(
     "should use origin for p_type_rvo %s (grazing: %s, origin: %s) -> %s",
     async (p_type_rvo, has_grazing_intention, p_app_origin, expected) => {
