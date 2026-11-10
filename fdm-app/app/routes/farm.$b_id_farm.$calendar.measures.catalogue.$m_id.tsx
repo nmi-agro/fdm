@@ -232,35 +232,37 @@ export default function MeasureCatalogueDetail() {
               <CardContent>
                 <dl className="space-y-4 text-sm">
                   <div className="space-y-1">
-                    <dt className="font-medium">Kosten</dt>
+                    <dt className="text-muted-foreground">Kosten</dt>
                     <dd>
                       {measure.m_effect_costs !== null && measure.m_effect_costs !== undefined ? (
                         <MeasureCostIndicator costs={measure.m_effect_costs} long />
                       ) : (
-                        "Onbekend"
+                        <span className="text-muted-foreground">Onbekend</span>
                       )}
                     </dd>
                   </div>
                   <div className="space-y-1">
-                    <dt className="font-medium">Effect</dt>
+                    <dt className="text-muted-foreground">Effect</dt>
                     <dd>
                       {effectType ? (
                         <>
                           {effectType.label}
                           {effectType.description && (
-                            <span className="block leading-relaxed">{effectType.description}</span>
+                            <span className="text-muted-foreground mt-1 block leading-relaxed">
+                              {effectType.description}
+                            </span>
                           )}
                         </>
                       ) : (
-                        "Onbekend"
+                        <span className="text-muted-foreground">Onbekend</span>
                       )}
                     </dd>
                   </div>
                   <div className="space-y-1">
-                    <dt className="font-medium">Referenties</dt>
+                    <dt className="text-muted-foreground">Referenties</dt>
                     <dd>
                       {references.length === 0 ? (
-                        "Geen"
+                        <span className="text-muted-foreground">Geen</span>
                       ) : (
                         <ul className="space-y-1">
                           {references.map((ref) => (
@@ -297,10 +299,10 @@ export default function MeasureCatalogueDetail() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {indicators.length === 0 ? (
-                  <p className="text-sm">Voor deze maatregel zijn geen indicatoren bekend.</p>
+                  <p className="text-muted-foreground text-sm">Voor deze maatregel zijn geen indicatoren bekend.</p>
                 ) : (
                   <>
-                    <p className="text-sm">
+                    <p className="text-muted-foreground text-sm">
                       Deze maatregel heeft effect op{" "}
                       {indicators.length === 1
                         ? "deze indicator"
@@ -323,7 +325,7 @@ export default function MeasureCatalogueDetail() {
                             <TableCell className="font-medium whitespace-normal">
                               {indicator.name}
                             </TableCell>
-                            <TableCell className="hidden sm:table-cell">
+                            <TableCell className="text-muted-foreground hidden sm:table-cell">
                               {indicator.ecosysteemdienst ?? "—"}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">
@@ -344,10 +346,10 @@ export default function MeasureCatalogueDetail() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {conditions.length === 0 ? (
-                  <p className="text-sm">Voor deze maatregel gelden geen voorwaarden.</p>
+                  <p className="text-muted-foreground text-sm">Voor deze maatregel gelden geen voorwaarden.</p>
                 ) : (
                   <>
-                    <p className="text-sm">
+                    <p className="text-muted-foreground text-sm">
                       De maatregel is van toepassing als aan alle voorwaarden is voldaan.
                     </p>
                     <Table>
@@ -377,10 +379,10 @@ export default function MeasureCatalogueDetail() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {conflicts.length === 0 ? (
-                  <p className="text-sm">Geen conflicterende maatregelen.</p>
+                  <p className="text-muted-foreground text-sm">Geen conflicterende maatregelen.</p>
                 ) : (
                   <>
-                    <p className="text-sm">
+                    <p className="text-muted-foreground text-sm">
                       Deze maatregel kan niet tegelijk met de volgende maatregelen op hetzelfde
                       perceel worden genomen.
                     </p>
@@ -460,7 +462,7 @@ function FieldsCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {fields.length === 0 ? (
-          <p className="text-sm">
+          <p className="text-muted-foreground text-sm">
             Deze maatregel is op geen enkel perceel toegepast, aanbevolen of toepasbaar.
           </p>
         ) : (
@@ -473,7 +475,7 @@ function FieldsCard({
               )}
             </div>
             {visible.length === 0 ? (
-              <p className="text-sm">Geen percelen met deze status.</p>
+              <p className="text-muted-foreground text-sm">Geen percelen met deze status.</p>
             ) : (
               <ul className="max-h-[17rem] divide-y sm:max-h-[14.5rem] overflow-y-auto rounded-md border">
                 {visible.map((field) => (
@@ -489,14 +491,14 @@ function FieldsCard({
                         </span>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 sm:shrink-0 sm:flex-nowrap">
                           {field.status === "applied" && (
-                            <span>
+                            <span className="text-muted-foreground tabular-nums">
                               {formatPeriod(field.m_start, field.m_end)}
                             </span>
                           )}
                           <MeasureStatusLabel status={field.status} className="sm:w-28" />
                         </div>
                       </div>
-                      <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
                     </Link>
                   </li>
                 ))}
@@ -505,7 +507,7 @@ function FieldsCard({
           </>
         )}
         {(!recommendationsAvailable || !applicabilityAvailable) && (
-          <p className="text-sm">
+          <p className="text-muted-foreground text-sm">
             {!recommendationsAvailable && !applicabilityAvailable
               ? "Aanbevolen en toepasbare percelen konden niet worden geladen."
               : !recommendationsAvailable
@@ -538,14 +540,16 @@ function MeasureList({
             to={getMeasureCataloguePath(b_id_farm, calendar, item.m_id)}
             className="hover:bg-muted/50 flex items-center gap-2 px-3 py-2 text-sm transition-colors"
           >
-            <span className="shrink-0">{getMeasureCode(item.m_id)}</span>
+            <span className="text-muted-foreground shrink-0 tabular-nums">
+              {getMeasureCode(item.m_id)}
+            </span>
             <span className="min-w-0 flex-1 truncate font-medium">{item.m_name}</span>
             {item.inactive && (
               <Badge variant="secondary" className="text-xs">
                 Niet meer beschikbaar
               </Badge>
             )}
-            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
           </Link>
         </li>
       ))}

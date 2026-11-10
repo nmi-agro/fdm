@@ -20,8 +20,8 @@ export function getMeasureStatusLabel(status: MeasureStatus): string {
 
 /**
  * Shows the status of a measure as a coloured dot with its label, optionally with the number
- * of fields, e.g. "● Toegepast op 3 percelen". The dot is never the only signal: the label
- * always carries the meaning.
+ * of fields, e.g. "● Toegepast op 3 percelen" with the number of fields in muted text. The dot
+ * is never the only signal: the label always carries the meaning.
  *
  * @param props.status - Status of the measure.
  * @param props.count - Number of fields with this status; omitted for a single field.
@@ -41,7 +41,7 @@ export function MeasureStatusLabel({
     <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap", className)}>
       <span className={cn("h-2 w-2 shrink-0 rounded-full", style.dot)} aria-hidden="true" />
       {style.label}
-      {suffix}
+      {suffix && <span className="text-muted-foreground">{suffix}</span>}
     </span>
   )
 }

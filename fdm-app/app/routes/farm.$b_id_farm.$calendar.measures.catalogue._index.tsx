@@ -1,8 +1,8 @@
 import type { MeasureCatalogue } from "@nmi-agro/fdm-core"
 import { getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
 import fuzzysort from "fuzzysort"
-import { ChevronRight, Search, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { ChevronRight, Search, SlidersHorizontal, X } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -10,6 +10,7 @@ import {
   Link,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -114,6 +115,30 @@ const EFFECT_TYPE_FILTERS = ["qual", "classed"] as const
 
 const NO_COUNTS: StatusCounts = { applied: 0, recommended: 0, applicable: 0 }
 
+/** Names of the URL search parameters that hold the search and the filters. */
+const PARAM = {
+  query: "q",
+  sort: "sorteer",
+  status: "status",
+  effectType: "effect",
+  costLevel: "kosten",
+  theme: "thema",
+} as const
+
+/**
+ * Returns the value of a URL search parameter when it is one of the allowed values, otherwise
+ * the fallback. Keeps a hand-edited or outdated link from selecting an unknown option.
+ */
+function readParam<T extends string>(
+  params: URLSearchParams,
+  name: string,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  const value = params.get(name)
+  return value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : fallback
+}
+
 /** Short measure code without the source prefix, e.g. `BM7` for `bln_BM7`. */
 function getMeasureCode(m_id: string): string {
   return m_id.replace(/^bln_/, "")
@@ -134,12 +159,62 @@ export default function MeasuresCatalogueIndex() {
   const { catalogue, countsByMeasure, recommendationsAvailable, applicabilityAvailable } =
     useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
-  const [query, setQuery] = useState("")
-  const [sortMode, setSortMode] = useState<SortMode>("name")
-  const [status, setStatus] = useState<StatusFilter>("all")
-  const [effectType, setEffectType] = useState<string>("all")
-  const [costLevel, setCostLevel] = useState<string>("all")
-  const [theme, setTheme] = useState<Ecosysteemdienst | "all">("all")
+  // The search and filters start from the URL, so Back and shared links keep them
+  const [searchParams] = useSearchParams()
+  const [query, setQuery] = useState(() => searchParams.get(PARAM.query) ?? "")
+  const [sortMode, setSortMode] = useState<SortMode>(() =>
+    readParam(searchParams, PARAM.sort, ["name", "code"], "name"),
+  )
+  const [status, setStatus] = useState<StatusFilter>(() =>
+    readParam(
+      searchParams,
+      PARAM.status,
+      STATUS_FILTERS.map((option) => option.value),
+      "all",
+    ),
+  )
+  const [effectType, setEffectType] = useState<string>(() =>
+    readParam(searchParams, PARAM.effectType, ["all", ...EFFECT_TYPE_FILTERS], "all"),
+  )
+  const [costLevel, setCostLevel] = useState<string>(() =>
+    readParam(
+      searchParams,
+      PARAM.costLevel,
+      ["all", ...MEASURE_COST_LEVELS.map((level) => String(level.value))],
+      "all",
+    ),
+  )
+  const [theme, setTheme] = useState<Ecosysteemdienst | "all">(() =>
+    readParam<Ecosysteemdienst | "all">(
+      searchParams,
+      PARAM.theme,
+      ["all", ...ECOSYSTEEMDIENSTEN],
+      "all",
+    ),
+  )
+  const moreFilterCount = [effectType, costLevel, theme].filter((value) => value !== "all").length
+  const [showMoreFilters, setShowMoreFilters] = useState(moreFilterCount > 0)
+
+  // Write the search and filters back to the URL without a navigation: a navigation would run
+  // the loaders of this page and the farm again on every keystroke.
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const values: Record<string, string> = {
+      [PARAM.query]: query.trim(),
+      [PARAM.sort]: sortMode === "name" ? "" : sortMode,
+      [PARAM.status]: status === "all" ? "" : status,
+      [PARAM.effectType]: effectType === "all" ? "" : effectType,
+      [PARAM.costLevel]: costLevel === "all" ? "" : costLevel,
+      [PARAM.theme]: theme === "all" ? "" : theme,
+    }
+    for (const [name, value] of Object.entries(values)) {
+      if (value) url.searchParams.set(name, value)
+      else url.searchParams.delete(name)
+    }
+    if (url.href !== window.location.href) {
+      window.history.replaceState(window.history.state, "", url)
+    }
+  }, [query, sortMode, status, effectType, costLevel, theme])
 
   const rows = useMemo((): CatalogueRow[] => {
     return catalogue.map((item) => {
@@ -254,6 +329,32 @@ export default function MeasuresCatalogueIndex() {
               onChange={(v) => setStatus(v as StatusFilter)}
               options={STATUS_FILTERS}
             />
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-1.5"
+              aria-expanded={showMoreFilters}
+              aria-controls="measures-catalogue-more-filters"
+              onClick={() => setShowMoreFilters((open) => !open)}
+            >
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              <span>Meer filters</span>
+              {moreFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-0.5 px-1.5 tabular-nums">
+                  {moreFilterCount}
+                  <span className="sr-only"> actief</span>
+                </Badge>
+              )}
+            </Button>
+          </div>
+
+          <div
+            id="measures-catalogue-more-filters"
+            className={cn(
+              "flex-wrap items-center gap-x-6 gap-y-3",
+              showMoreFilters ? "flex" : "hidden",
+            )}
+          >
             <FilterSelect
               id="measures-catalogue-effect"
               label="Effect"
@@ -337,12 +438,18 @@ export default function MeasuresCatalogueIndex() {
                       to={getMeasureCataloguePath(b_id_farm ?? "", calendar ?? "", row.m_id)}
                       className={cn(
                         "hover:bg-muted/50 focus-visible:bg-muted/50 grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:outline-none md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center",
-                        isInactive && "opacity-60",
                       )}
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium wrap-break-word md:truncate">
-                          <span className="text-muted-foreground mr-2">{row.code}</span>
+                        <p
+                          className={cn(
+                            "text-sm font-medium wrap-break-word md:truncate",
+                            isInactive && "text-muted-foreground",
+                          )}
+                        >
+                          <span className="text-muted-foreground mr-2 font-normal tabular-nums">
+                            {row.code}
+                          </span>
                           {row.m_name}
                         </p>
                         {(row.m_summary ?? row.m_description) && (
@@ -362,14 +469,17 @@ export default function MeasuresCatalogueIndex() {
                           {effectInfo && (
                             <Badge
                               variant="outline"
-                              className="text-xs"
+                              className="text-muted-foreground text-xs font-normal"
                               title={effectInfo.description || undefined}
                             >
                               {effectInfo.label}
                             </Badge>
                           )}
                           {row.m_stage_applicability === "farm" && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge
+                              variant="outline"
+                              className="text-muted-foreground text-xs font-normal"
+                            >
                               Bedrijfsniveau
                             </Badge>
                           )}

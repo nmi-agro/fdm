@@ -58,7 +58,7 @@ export function getColumns(
               icon="external"
             />
           </p>
-          <p className="text-muted-foreground font-mono text-xs">
+          <p className="text-muted-foreground text-xs tabular-nums">
             {row.original.m_id.replace("bln_", "")}
           </p>
         </div>
@@ -117,7 +117,11 @@ export function getColumns(
         return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-xs"
+              >
                 {fields.length}{" "}
                 {domain === "organization"
                   ? fields.length === 1

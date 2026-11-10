@@ -27,7 +27,7 @@ keywords:
 related:
   - background/bln3-bodemkwaliteit
   - bodem
-updated: 2026-11-09
+updated: 2026-11-10
 ---
 
 Onder **Indicatoren** zie je hoe gezond je bodem is volgens BLN3, de Bodemindicatoren voor Landbouwgronden in Nederland. BLN3 kijkt naar meer dan alleen de bemesting: ook naar water, klimaat, de nutriëntenkringloop en de productiefunctie van de bodem.
@@ -63,9 +63,9 @@ Neem je al maatregelen om je bodem te verbeteren? Leg ze dan vast onder **Maatre
 
 ## Maatregelencatalogus {#maatregelencatalogus}
 
-De **Maatregelencatalogus** bevat alle maatregelen die je kunt vastleggen, voor het bedrijf en het jaar waarin je werkt. Je opent hem onder Maatregelen met de knop **Maatregelencatalogus**, onder **Wat is BLN3?**. Bij een maatregel in je bedrijf, in de lijst bij **Maatregel toevoegen** of in de aanbevelingen opent een icoontje de maatregel in de catalogus in een nieuw tabblad.
+De **Maatregelencatalogus** bevat alle maatregelen die je kunt vastleggen, voor het bedrijf en het jaar waarin je werkt. Je opent hem onder Maatregelen met de knop **Maatregelencatalogus**, rechts naast de titel. Bij een maatregel in je bedrijf, in de lijst bij **Maatregel toevoegen** of in de aanbevelingen opent een icoontje de maatregel in de catalogus in een nieuw tabblad.
 
-Je kunt zoeken op naam, code of beschrijving, en filteren op status, effect, kosten en thema. Met **Status** kies je welke maatregelen je ziet:
+Je kunt zoeken op naam, code of beschrijving, en filteren op status. Onder **Meer filters** filter je ook op effect, kosten en thema. Je zoekopdracht en filters blijven bewaard in de link, zodat je ze kunt delen of met Terug terugkomt op dezelfde lijst. Met **Status** kies je welke maatregelen je ziet:
 
 | Status         | Betekenis                                                                    |
 | -------------- | ---------------------------------------------------------------------------- |
