@@ -276,6 +276,7 @@ const MemberAction = ({
         <Button
           variant="destructive"
           className="shrink-0"
+          type="submit"
           name="intent"
           value="remove_user"
           disabled={disabled}
@@ -318,6 +319,7 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
         <Button
           variant="destructive"
           className="shrink-0"
+          type="submit"
           name="intent"
           value="cancel_invite"
           disabled={fetcher.state !== "idle"}
@@ -365,6 +367,7 @@ const InvitationForm = ({ organizationId }: { organizationId: Organization["id"]
       <Button
         variant="default"
         className="shrink-0"
+        type="submit"
         name="intent"
         value="invite_user"
         disabled={fetcher.state !== "idle"}

@@ -92,6 +92,7 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                   <input type="hidden" name="invitation_id" value={invitation.id} />
                   <Button
                     variant="default"
+                    type="submit"
                     name="intent"
                     value="decline_organization_invitation"
                     size="sm"
