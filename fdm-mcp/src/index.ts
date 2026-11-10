@@ -10,12 +10,12 @@ import {
   createErrorHandler,
   createNotFoundHandler,
   defaultServices,
-  type FdmApiServices,
 } from "@nmi-agro/fdm-api"
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
 import { cors } from "hono/cors"
 import type { McpAnalyticsConfig } from "./analytics"
+import type { McpServices } from "./tools/types"
 import { createMcpServer } from "./mcp-server"
 import { SERVER_VERSION } from "./version"
 
@@ -69,7 +69,7 @@ export function logRejectedRequest(error: Error): void {
 export function createServerFactory(
   config: Pick<FdmMcpConfig, "appName" | "analytics">,
   fdm: FdmType,
-  services: FdmApiServices,
+  services: McpServices,
 ) {
   return ({ authInfo }: { authInfo?: { extra?: Record<string, unknown> } }) => {
     const principal = authInfo?.extra?.principal as ApiPrincipalContext | undefined
@@ -113,13 +113,9 @@ export function createFdmMcp(
   fdm: FdmType,
   auth: FdmAuth,
   config: FdmMcpConfig,
-  services: Partial<FdmApiServices> = {},
+  services: Partial<McpServices> = {},
 ): Hono<ApiEnv> {
-  const allServices: FdmApiServices = {
-    ...defaultServices,
-    getReportBranding: async () => ({ name: config.appName }),
-    ...services,
-  }
+  const allServices: McpServices = { ...defaultServices, ...services }
   const allowedOrigins = config.allowedOrigins ?? []
 
   const handler = createMcpHandler(createServerFactory(config, fdm, allServices), {
@@ -238,4 +234,5 @@ export { PRIVATE_EVENT_PROPERTIES, scrubEvent } from "./analytics"
 export { buildInstructions } from "./instructions"
 export { createMcpServer, type McpServerSetup } from "./mcp-server"
 export { TOOLS, type McpTool } from "./tools"
+export type { McpServices } from "./tools/types"
 export { SERVER_VERSION } from "./version"

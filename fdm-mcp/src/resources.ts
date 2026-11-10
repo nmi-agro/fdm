@@ -5,34 +5,22 @@ import {
   ResourceNotFoundError,
   ResourceTemplate,
 } from "@modelcontextprotocol/server"
-import { classifyError, consumeRateLimit } from "@nmi-agro/fdm-api"
+import { classifyError } from "@nmi-agro/fdm-api"
 import { getFarm, getField } from "@nmi-agro/fdm-api/operations"
 import type { ToolContext } from "./tools/types"
 
 /** Results of resource reads may be cached briefly, only by the requesting client. */
 const CACHE_HINT = { ttlMs: 30_000, cacheScope: "private" } as const
 
-/** Takes the single value of a URI template variable. */
-function single(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "")
-}
-
 /**
  * Reads a record through an operation and returns it as a JSON resource. A missing record is
  * reported as "resource not found"; other failures as an internal error without details.
  */
 async function readJson(
-  ctx: ToolContext,
   uri: URL,
   read: () => Promise<unknown>,
 ): Promise<{ contents: { uri: string; mimeType: string; text: string }[] }> {
-  const limit = await consumeRateLimit(ctx.fdm, ctx.principal.apiKeyId, "general")
-  if (!limit.allowed) {
-    throw new ProtocolError(
-      ProtocolErrorCode.InternalError,
-      `Rate limit exceeded. Retry after ${limit.resetIn} s.`,
-    )
-  }
+  // The HTTP route counts resources/read in the general rate-limit bucket already.
   try {
     const record = await read()
     return {
@@ -64,7 +52,7 @@ export function registerResources(server: McpServer, ctx: ToolContext): void {
       cacheHint: CACHE_HINT,
     },
     async (uri, variables) =>
-      readJson(ctx, uri, () => getFarm.run(ctx, { b_id_farm: single(variables.b_id_farm) })),
+      readJson(uri, () => getFarm.run(ctx, { b_id_farm: String(variables.b_id_farm) })),
   )
   server.registerResource(
     "field",
@@ -77,6 +65,6 @@ export function registerResources(server: McpServer, ctx: ToolContext): void {
       cacheHint: CACHE_HINT,
     },
     async (uri, variables) =>
-      readJson(ctx, uri, () => getField.run(ctx, { b_id: single(variables.b_id_field) })),
+      readJson(uri, () => getField.run(ctx, { b_id: String(variables.b_id_field) })),
   )
 }

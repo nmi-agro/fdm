@@ -1,7 +1,7 @@
-import type { ApiPrincipalContext, FdmApiServices } from "@nmi-agro/fdm-api"
+import type { ApiPrincipalContext } from "@nmi-agro/fdm-api"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { McpServer } from "@modelcontextprotocol/server"
-import type { McpTool, ToolContext } from "./tools/types"
+import type { McpServices, McpTool, ToolContext } from "./tools/types"
 import { type McpAnalyticsConfig, instrumentAnalytics } from "./analytics"
 import { callTool } from "./call-tool"
 import { buildInstructions } from "./instructions"
@@ -22,7 +22,7 @@ export interface McpServerSetup {
   /** Database. */
   fdm: FdmType
   /** Data-access functions. */
-  services: FdmApiServices
+  services: McpServices
   /** The authenticated principal of the request. */
   principal: ApiPrincipalContext
   /** PostHog MCP analytics; omitted to send no analytics. */

@@ -3,10 +3,13 @@
  * the output validation of tool results, and the error paths of resources and the HTTP endpoint.
  */
 import { ApiError } from "@nmi-agro/fdm-api"
+import { defineOperation } from "@nmi-agro/fdm-api/operations"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { z } from "zod"
 import { scrubEvent } from "../analytics"
 import { decodeCursor, encodeCursor } from "../cursor"
 import { createServerFactory, logRejectedRequest } from "../index"
+import { listTool } from "../tools"
 import { connect, makeApp, makeMockFdm, rateLimitCounts } from "./helpers"
 
 afterEach(() => {
@@ -83,8 +86,52 @@ describe("output validation", () => {
   })
 })
 
+describe("list tools", () => {
+  it("adds the cursor to an input schema with refinements", async () => {
+    const listRange = defineOperation({
+      name: "listRange",
+      kind: "read",
+      bucket: "general",
+      input: z
+        .object({ from: z.number(), to: z.number() })
+        .refine((value) => value.from <= value.to, { message: "from after to" }),
+      output: z.array(z.number()),
+      run: async (_ctx, { from, to }) =>
+        Array.from({ length: to - from + 1 }, (_value, index) => from + index),
+    })
+    const tool = listTool(listRange, { name: "list_range", title: "List", description: "d" })
+    const ctx = { fdm: makeMockFdm(), services: {} as never, principal: {} as never }
+    const result = (await tool.run(ctx, tool.input.parse({ from: 1, to: 60 }))) as {
+      data: number[]
+      next_cursor: string | null
+    }
+    expect(result.data).toHaveLength(50)
+    expect(result.next_cursor).not.toBeNull()
+    expect(() => tool.input.parse({ from: 5, to: 1 })).toThrow()
+  })
+})
+
+describe("protocol requests", () => {
+  it("counts a JSON-RPC batch without tool calls once in the general bucket", async () => {
+    const { app, fdm } = makeApp()
+    await app.request("/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": "key",
+      },
+      body: JSON.stringify([{ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }]),
+    })
+    expect(fdm.values).toHaveBeenCalledTimes(1)
+    expect(fdm.values).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "fdm-api:key-1:general" }),
+    )
+  })
+})
+
 describe("resource errors", () => {
-  it("reports a rate limit on a resource read", async () => {
+  it("refuses a resource read over the general rate limit, counted once per request", async () => {
     const getFarm = vi.fn()
     const { app } = makeApp({ getFarm })
     const client = await connect(app)

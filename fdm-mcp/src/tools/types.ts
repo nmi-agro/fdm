@@ -4,8 +4,14 @@ import type { Operation, OperationContext, OperationKind } from "@nmi-agro/fdm-a
 import { z } from "zod"
 import { decodeCursor, encodeCursor, PAGE_SIZE } from "../cursor"
 
+/**
+ * The services the MCP server runs operations with: all of fdm-api's services except report
+ * branding, which only the fertilizer plans need and no tool uses.
+ */
+export type McpServices = Omit<FdmApiServices, "getReportBranding">
+
 /** The context a tool runs in: the database, the services and the authenticated principal. */
-export type ToolContext = OperationContext<FdmApiServices>
+export type ToolContext = OperationContext<McpServices>
 
 // The services of an operation are a subset of FdmApiServices, so any operation runs with a
 // ToolContext. The loose type lets one list hold operations of every resource.
