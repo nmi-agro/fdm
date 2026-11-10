@@ -14,6 +14,7 @@ export function buildInstructions(appName: string): string {
     "- Always ask the user to confirm before you delete anything. Deletes are permanent and also remove the records that depend on the deleted one.",
     "- Dates are YYYY-MM-DD. Quantities use metric units, such as kg/ha, ha and kg N/ha; the tool descriptions and schemas give the unit of each value.",
     "- List tools return pages: pass `next_cursor` as `cursor` to get the next page.",
+    "- The server cannot receive or return files. When the user gives you a lab report, read the values yourself, show them to the user to check, and then save them with `create_soil_analysis`. To import fields from an RVO shapefile or lab reports as files, the user can use the web app.",
     "- A failed tool call explains what went wrong, for example a missing record or a rate limit with the seconds to wait. Use it to correct the call or tell the user.",
     "- Answer in the language of the user. Present calculation results as information, not as binding advice: the user stays responsible for decisions.",
   ].join("\n")
