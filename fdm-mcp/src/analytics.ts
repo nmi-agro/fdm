@@ -24,6 +24,23 @@ export const PRIVATE_EVENT_PROPERTIES = [
 ] as const
 
 /**
+ * Removes farm data from an analytics event before it is sent: drops `$exception` events (errors
+ * go to Sentry) and deletes {@link PRIVATE_EVENT_PROPERTIES} from every other event.
+ *
+ * @param event - The event PostHog is about to send.
+ * @returns The event without private properties, or `null` to drop it.
+ */
+export function scrubEvent<E extends { event: string; properties: Record<string, unknown> }>(
+  event: E,
+): E | null {
+  if (event.event === "$exception") return null
+  for (const property of PRIVATE_EVENT_PROPERTIES) {
+    delete event.properties[property]
+  }
+  return event
+}
+
+/**
  * Instruments an MCP server with PostHog MCP analytics for one authenticated request.
  *
  * Events are tied to the user (`distinct_id` is the user id, the same id the web app uses) and
@@ -47,12 +64,6 @@ export function instrumentAnalytics(
     reportMissing: true,
     enableExceptionAutocapture: false,
     ...(config.serverBuild ? { serverBuild: config.serverBuild.slice(0, 256) } : {}),
-    beforeSend: (event) => {
-      if (event.event === "$exception") return null
-      for (const property of PRIVATE_EVENT_PROPERTIES) {
-        delete event.properties[property]
-      }
-      return event
-    },
+    beforeSend: scrubEvent,
   })
 }

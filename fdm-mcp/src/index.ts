@@ -51,6 +51,42 @@ function methodsOf(body: unknown): string[] {
     .filter((method): method is string => typeof method === "string")
 }
 
+/** Logs a request that the MCP handler rejected, for example one with invalid MCP headers. */
+export function logRejectedRequest(error: Error): void {
+  console.warn(`[fdm-mcp] request rejected: ${error.message}`)
+}
+
+/**
+ * Creates the factory that builds the MCP server for each request, for the principal that the
+ * route passes in `authInfo.extra.principal`.
+ *
+ * @param config - Name and analytics of the server.
+ * @param fdm - Database.
+ * @param services - Data-access functions.
+ * @returns The factory for `createMcpHandler`.
+ * @throws {ApiError} 401 when a request arrives without a principal.
+ */
+export function createServerFactory(
+  config: Pick<FdmMcpConfig, "appName" | "analytics">,
+  fdm: FdmType,
+  services: FdmApiServices,
+) {
+  return ({ authInfo }: { authInfo?: { extra?: Record<string, unknown> } }) => {
+    const principal = authInfo?.extra?.principal as ApiPrincipalContext | undefined
+    if (!principal) {
+      // The route always passes the principal; this guards against misuse of the handler.
+      throw new ApiError(401, "unauthorized", "An API key is required.")
+    }
+    return createMcpServer({
+      appName: config.appName,
+      fdm,
+      services,
+      principal,
+      analytics: config.analytics,
+    })
+  }
+}
+
 /**
  * Creates the Hono application of the MCP server. It serves the Model Context Protocol over
  * stateless Streamable HTTP at `/mcp`, for the user who owns the API key of each request.
@@ -86,26 +122,10 @@ export function createFdmMcp(
   }
   const allowedOrigins = config.allowedOrigins ?? []
 
-  const handler = createMcpHandler(
-    ({ authInfo }) => {
-      const principal = authInfo?.extra?.principal as ApiPrincipalContext | undefined
-      if (!principal) {
-        // The route below always passes the principal; this guards against misuse of the handler.
-        throw new ApiError(401, "unauthorized", "An API key is required.")
-      }
-      return createMcpServer({
-        appName: config.appName,
-        fdm,
-        services: allServices,
-        principal,
-        analytics: config.analytics,
-      })
-    },
-    {
-      responseMode: "json",
-      onerror: (error) => console.warn(`[fdm-mcp] request rejected: ${error.message}`),
-    },
-  )
+  const handler = createMcpHandler(createServerFactory(config, fdm, allServices), {
+    responseMode: "json",
+    onerror: logRejectedRequest,
+  })
 
   const app = new Hono<ApiEnv>()
   app.onError(createErrorHandler(config.appUrl))
@@ -214,7 +234,7 @@ export function createFdmMcp(
 }
 
 export type { McpAnalyticsConfig } from "./analytics"
-export { PRIVATE_EVENT_PROPERTIES } from "./analytics"
+export { PRIVATE_EVENT_PROPERTIES, scrubEvent } from "./analytics"
 export { buildInstructions } from "./instructions"
 export { createMcpServer, type McpServerSetup } from "./mcp-server"
 export { TOOLS, type McpTool } from "./tools"

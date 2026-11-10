@@ -53,12 +53,21 @@ export async function callTool(
     // declare. A mismatch is a bug in the schema or the operation: report where, never what.
     const parsed = tool.output.safeParse(result)
     if (!parsed.success) {
-      const paths = parsed.error.issues.map((issue) => issue.path.join(".") || "(root)")
+      // Collapse array indices, so a mismatch in every item of a list is reported once.
+      const paths = [
+        ...new Set(
+          parsed.error.issues.map(
+            (issue) =>
+              issue.path.map((part) => (typeof part === "number" ? "*" : String(part))).join(".") ||
+              "(root)",
+          ),
+        ),
+      ]
       const errorId = Sentry.captureMessage(
         `MCP tool result does not match its output schema: ${tool.name} at ${paths.join(", ")}`,
         "error",
       )
-      logOutcome(tool.name, "error output-schema", started)
+      logOutcome(tool.name, `error output-schema at ${paths.join(", ")}`, started)
       return errorResult(`An unexpected error occurred. Error id: ${errorId}.`)
     }
     const structured = parsed.data as Record<string, unknown>
