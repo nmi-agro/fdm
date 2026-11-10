@@ -1,0 +1,64 @@
+{
+  "name": "@nmi-agro/fdm-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Model Context Protocol (MCP) server for the Farm Data Model, for AI assistants",
+  "bin": {
+    "fdm-mcp": "./dist/server.js"
+  },
+  "files": [
+    "dist",
+    "instrument.server.mjs"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "dotenvx run -- tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "document": "typedoc src/index.ts --plugin typedoc-plugin-missing-exports --skipErrorChecking",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage",
+    "watch": "vitest"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "@modelcontextprotocol/hono": "^2.0.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "@nmi-agro/fdm-api": "workspace:*",
+    "@nmi-agro/fdm-core": "workspace:*",
+    "@posthog/mcp": "^1.0.0",
+    "@sentry/node": "^11.10.0",
+    "@sentry/profiling-node": "^11.10.0",
+    "hono": "^4.13.16",
+    "posthog-node": "^5.61.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "catalog:",
+    "@modelcontextprotocol/client": "^2.4.0",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "^4.23.15",
+    "typedoc": "catalog:",
+    "typedoc-plugin-missing-exports": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}
