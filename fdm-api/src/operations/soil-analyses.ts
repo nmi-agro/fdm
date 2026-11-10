@@ -401,8 +401,9 @@ export const listFarmSoilAnalyses = defineOperation({
     )
     const analyses = Array.from(analysesByField.values()).flat()
     analyses.sort((a, b) => {
-      const dateA = a.a_date ? String(a.a_date) : ""
-      const dateB = b.a_date ? String(b.a_date) : ""
+      // Compare YYYY-MM-DD, which sorts by date; String(Date) starts with the weekday.
+      const dateA = serializeDate(a.a_date) ?? ""
+      const dateB = serializeDate(b.a_date) ?? ""
       return dateA < dateB
         ? -1
         : dateA > dateB

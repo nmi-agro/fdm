@@ -65,7 +65,7 @@ Per sleutel geldt een maximaal aantal verzoeken per minuut:
 | Soort verzoek                                              | Per minuut |
 | ---------------------------------------------------------- | ---------- |
 | Gegevens opvragen                                          | 120        |
-| Gegevens wijzigen                                          | 30         |
+| Gegevens wijzigen                                          | 120        |
 | Berekeningen, zoals balansen en gebruiksruimte             | 10         |
 | Diensten van NMI, zoals bodemschattingen en PDF's uitlezen | 10         |
 

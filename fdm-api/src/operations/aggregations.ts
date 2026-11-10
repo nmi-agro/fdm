@@ -399,9 +399,19 @@ async function computeIndicators(
   { year, farmIds, principal_id }: FarmSelection,
 ) {
   const nmiApiKey = services.getNmiApiKey()
+  // Without a key no farm can be calculated: report that once for the whole request.
+  if (!nmiApiKey) {
+    throw new ApiError(
+      503,
+      "service-unavailable",
+      "Indicator calculations are not available on this server.",
+    )
+  }
 
   const farms = []
   const allFields: calculator.FarmIndicators["fields"] = []
+  let lastUnavailable: ApiError | undefined
+  let unavailableFarms = 0
   // One farm after the other, to limit the load on the indicator service.
   for (const b_id_farm of farmIds) {
     try {
@@ -416,12 +426,27 @@ async function computeIndicators(
         error: null,
       })
     } catch (err) {
-      // A missing NMI configuration or a permission problem applies to every farm.
-      if (err instanceof ApiError || getErrorMessages(err).includes("Permission denied")) {
+      // The indicators of this farm are unavailable (guardIndicators has reported it): keep the
+      // other farms, unless no farm succeeds (checked below). A permission problem or another
+      // API error applies to every farm.
+      const unavailable =
+        err instanceof ApiError && err.status === 503 && err.slug === "service-unavailable"
+      if (
+        !unavailable &&
+        (err instanceof ApiError || getErrorMessages(err).includes("Permission denied"))
+      ) {
         throw err
+      }
+      if (unavailable) {
+        lastUnavailable = err
+        unavailableFarms++
       }
       farms.push({ b_id_farm, area_weighted: null, minimum: null, error: FARM_FAILED })
     }
+  }
+  // When the indicators of no farm are available, the indicator service itself is unavailable.
+  if (lastUnavailable && unavailableFarms === farmIds.length) {
+    throw lastUnavailable
   }
   return {
     year,

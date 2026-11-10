@@ -132,6 +132,15 @@ function findErrorByName(err: unknown, name: string): Error | undefined {
   return findErrorByName(err.cause, name)
 }
 
+/** Whether the error is a Zod validation error, without depending on a specific Zod instance. */
+function isZodError(err: unknown): err is Error & { issues: unknown[] } {
+  return (
+    err instanceof Error &&
+    err.name === "ZodError" &&
+    Array.isArray((err as { issues?: unknown }).issues)
+  )
+}
+
 function isPermissionDenied(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   if (PERMISSION_MESSAGES.has(err.message)) return true
@@ -160,8 +169,8 @@ export interface ClassifiedError {
 /**
  * Maps an error thrown while handling a request to a status, problem type and client-safe detail.
  *
- * Known failures are `ApiError`, fdm-core permission denials (403), application amounts out of
- * range (422) and invalid JSON (400). Anything else is unexpected: it is logged, reported to
+ * Known failures are `ApiError`, Zod validation errors (400), fdm-core permission denials (403),
+ * application amounts out of range (422) and invalid JSON (400). Anything else is unexpected: it is logged, reported to
  * Sentry with a generated `errorId`, and described only as an internal error, so internal
  * messages never reach the client. Both the REST error handler and the MCP server use this.
  *
@@ -181,6 +190,15 @@ export function classifyError(err: unknown): ClassifiedError {
       extras: err.extras,
       errorId: err.errorId,
       headers: err.headers,
+    }
+  }
+  if (isZodError(err)) {
+    // Input that does not match an operation's schema, as the REST validation hook reports it.
+    return {
+      status: 400,
+      slug: "validation-failed",
+      detail: "The input does not match the schema.",
+      extras: { errors: err.issues },
     }
   }
   const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as

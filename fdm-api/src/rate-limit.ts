@@ -12,7 +12,7 @@ const WINDOW_MS = 60_000
  */
 export const RATE_LIMITS = {
   general: 120,
-  write: 30,
+  write: 120,
   calc: 10,
   nmi: 10,
 } as const

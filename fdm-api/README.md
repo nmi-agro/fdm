@@ -242,7 +242,7 @@ Requests are rate-limited **per API key** within a 60-second sliding window.
 | Bucket    | Limit         | Applied to                       |
 | --------- | ------------- | -------------------------------- |
 | `general` | 120 req / min | Read endpoints                   |
-| `write`   | 30 req / min  | Create, update, delete endpoints |
+| `write`   | 120 req / min | Create, update, delete endpoints |
 | `calc`    | 10 req / min  | Calculation endpoints            |
 | `nmi`     | 10 req / min  | Endpoints that call the NMI API  |
 

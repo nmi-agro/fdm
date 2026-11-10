@@ -92,7 +92,8 @@ export const getFarm = defineOperation({
 - **`bucket`** matches the rate-limit tier of the route; set `external: true` when the operation calls the NMI API.
 - The schemas and the `<Resource>Services` interface live in the operations file and are exported; the route imports them.
 - Export new operations from `src/operations/index.ts`.
-- Binary, multipart and file-download endpoints have no operation; their routes still declare an `operationId`.
+- Binary, multipart and file-download endpoints, imports, invitations and fertilizer plans have no operation; their logic stays in the route handler, and their routes still declare an `operationId`.
+- **`run` expects validated input**: it does not apply `operation.input` itself. REST validates through the route schemas; another service must parse with `operation.input` (or let its framework do so) before calling `run`.
 
 ## Defining a route
 
@@ -168,7 +169,7 @@ throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
 
 The slug must be one of the keys in `TITLES` in `error.ts` (`validation-failed`, `unauthorized`, `forbidden`, `not-found`, `conflict`, `payload-too-large`, `unsupported-media-type`, `unprocessable-entity`, `rate-limit-exceeded`, `service-unavailable`, `internal-error`, …). Adding a new slug means adding its title there.
 
-`createErrorHandler` maps everything else through `classifyError`: invalid JSON to 400, `fdm-core` permission failures to 403 (detected through the error's `cause` chain), and anything unrecognised to 500 with a generated `error_id` reported to Sentry. Because permission denials are translated centrally, operations and handlers do not catch them. Other services that run operations use `classifyError` too, so their errors match the REST API.
+`createErrorHandler` maps everything else through `classifyError`: invalid JSON to 400, `fdm-core` permission failures to 403 (detected through the error's `cause` chain), and anything unrecognised to 500 with a generated `error_id` reported to Sentry. Because permission denials are translated centrally, operations and handlers do not catch them. Other services that run operations use `classifyError` too, so their errors match the REST API. It maps a Zod validation error to 400 `validation-failed`, like the REST validation hook.
 
 Never build an error response by hand with `c.json({ error: ... })`, and never let a raw `fdm-core` error message reach the client.
 
@@ -178,7 +179,7 @@ Requests authenticate with a user-owned API key, sent either as `X-API-Key` or a
 
 Authorization itself is not reimplemented here: the core functions enforce it from the principal passed in, and a denial surfaces as 403. A handler that filters results by farm identifier instead of relying on the core permission check is a security bug.
 
-Guards enforce a 5 MB body limit, `application/json` on writes, and a 10,000-coordinate ceiling on GeoJSON geometry via `assertGeoJsonCoordinates`. Rate limiting is applied per route through `rateLimitMiddleware(fdm, tier)`, where the tier is `"write"` for `POST`/`PATCH`/`PUT`/`DELETE` and `"general"` otherwise (`"calc"` for calculations, `"nmi"` for NMI-backed endpoints). The middleware counts through `consumeRateLimit(fdm, apiKeyId, bucket)`, which other services call directly so they share the same per-key limits.
+Guards enforce a 5 MB body limit, `application/json` on writes, and a 10,000-coordinate ceiling on GeoJSON geometry via `assertGeoJsonCoordinates`. Rate limiting is applied per route through `rateLimitMiddleware(fdm, tier)`, where the tier is `"write"` for `POST`/`PATCH`/`PUT`/`DELETE` and `"general"` otherwise (`"calc"` for calculations, `"nmi"` for NMI-backed endpoints). The middleware counts through `consumeRateLimit(fdm, apiKeyId, bucket)`, which other services call directly so they share the same per-key limits. It only counts and reports: a caller must check `allowed` and refuse the request (429 or an error result, with `resetIn` seconds to wait) before calling `run`.
 
 `createApiKeyAuth(auth, skipPaths, options)` records the audit channel (`"api"` by default) on the principal and in `withAuditContext`. `options.wwwAuthenticate` adds a `WWW-Authenticate` challenge to 401 responses for services that need one.
 

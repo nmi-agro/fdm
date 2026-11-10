@@ -51,7 +51,7 @@ Rate limits are enforced **per API key**. Limits reset on a rolling one-minute w
 | Request category                     | Limit                                            |
 | ------------------------------------ | ------------------------------------------------ |
 | General (all GET requests)           | **120 requests / minute**                        |
-| Write / delete (POST, PATCH, DELETE) | **30 requests / minute**                         |
+| Write / delete (POST, PATCH, DELETE) | **120 requests / minute**                        |
 | Calculation endpoints                | **10 requests / minute**                         |
 | Endpoints that use the NMI API       | **10 requests / minute** (separate `nmi` bucket) |
 | Key-management endpoints             | Subject to the general limit                     |
@@ -65,7 +65,7 @@ When a limit is exceeded, the API returns `429` with a `Retry-After` header indi
   "type": "https://fdm.app/api/errors/rate-limit-exceeded",
   "title": "Rate Limit Exceeded",
   "status": 429,
-  "detail": "You have exceeded the rate limit of 30 write requests per minute.",
+  "detail": "You have exceeded the rate limit of 120 write requests per minute.",
   "instance": "/api/farms",
   "error_id": "QRST-7890"
 }
