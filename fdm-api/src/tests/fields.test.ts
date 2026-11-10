@@ -359,6 +359,20 @@ describe("PATCH /fields/:b_id", () => {
     expect((await res.json()).b_name).toBe("Perceel Zuid")
   })
 
+  it("returns the updated record when the field cannot be read back", async () => {
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValueOnce(baseField).mockResolvedValueOnce(undefined),
+      updateField: vi.fn().mockResolvedValue({ ...baseField, b_name: "Perceel Zuid" }),
+    })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_name: "Perceel Zuid" }),
+    })
+    expect(res.status).toBe(200)
+    expect((await res.json()).b_name).toBe("Perceel Zuid")
+  })
+
   it("returns the derived centroid and area, which updateField does not return", async () => {
     const { b_centroid: _centroid, b_area: _area, b_perimeter: _perimeter, ...stored } = baseField
     const app = makeApp({

@@ -118,4 +118,3 @@ describe("tool helpers", () => {
     expect(await tool.run(ctx, { id: "x" })).toEqual({ id: "x" })
   })
 })
-
