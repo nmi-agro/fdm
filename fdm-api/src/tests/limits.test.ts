@@ -42,6 +42,7 @@ function makeApp(fieldCounts: Record<string, number>, services: Partial<FdmApiSe
     countFieldsOfFarms: vi.fn(async (_fdm, ids: string[]) =>
       Object.fromEntries(ids.map((id) => [id, fieldCounts[id] ?? 0])),
     ),
+    getFarm: vi.fn(async (_fdm, _principal, b_id_farm: string) => ({ b_id_farm })) as never,
     ...services,
   })
 }
@@ -156,6 +157,45 @@ describe("maximum farm size", () => {
     expect(res.status).toBe(422)
     expect((await res.json()).detail).toContain("farm-b")
     expect(getFarmMeasureSummary).not.toHaveBeenCalled()
+  })
+
+  it("answers 403 or 404, not the size of the farm, when the principal cannot read it", async () => {
+    const denied = new Error("Exception for getFarm", {
+      cause: new Error("Principal does not have permission to perform this action"),
+    })
+    const getFields = vi.fn()
+    const deniedApp = makeApp(
+      { "farm-1": USAGE_LIMITS.maxFieldsPerFarm + 1 },
+      { getFields, getFarm: vi.fn().mockRejectedValue(denied) },
+    )
+    const read = await deniedApp.request("/farms/farm-1/fields", { headers })
+    expect(read.status).toBe(403)
+    const create = await deniedApp.request("/farms/farm-1/fields", {
+      method: "POST",
+      headers,
+      body: createFieldBody,
+    })
+    expect(create.status).toBe(403)
+    expect(JSON.stringify(await create.json())).not.toContain(
+      String(USAGE_LIMITS.maxFieldsPerFarm + 1),
+    )
+
+    const missingApp = makeApp(
+      { "farm-1": USAGE_LIMITS.maxFieldsPerFarm + 1 },
+      { getFields, getFarm: vi.fn().mockResolvedValue(undefined) },
+    )
+    expect((await missingApp.request("/farms/farm-1/fields", { headers })).status).toBe(404)
+    expect(getFields).not.toHaveBeenCalled()
+  })
+
+  it("checks access only when a farm is over the limit", async () => {
+    const getFarm = vi.fn()
+    const app = makeApp(
+      { "farm-1": USAGE_LIMITS.maxFieldsPerFarm },
+      { getFarm, getFields: vi.fn().mockResolvedValue([]) },
+    )
+    expect((await app.request("/farms/farm-1/fields", { headers })).status).toBe(200)
+    expect(getFarm).not.toHaveBeenCalled()
   })
 
   it("does not limit field-level reads on a large farm", async () => {

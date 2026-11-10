@@ -722,7 +722,7 @@ export const calculateFarmNitrogenBalance = defineOperation({
     { fdm, services, principal }: OperationContext<CalculationServices>,
     { b_id_farm, start, end, effective_nitrogen },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const useEffectiveNitrogen = effective_nitrogen === "true"
 
     const timeframe = { start: new Date(start), end: new Date(end) }
@@ -755,7 +755,7 @@ export const calculateFarmOrganicMatterBalance = defineOperation({
     { fdm, services, principal }: OperationContext<CalculationServices>,
     { b_id_farm, start, end },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const timeframe = { start: new Date(start), end: new Date(end) }
     const input = await services.collectInputForOrganicMatterBalance(
       fdm,
@@ -928,7 +928,7 @@ export const getFarmFertilizationNorms = defineOperation({
     { fdm, services, principal }: OperationContext<CalculationServices>,
     { b_id_farm, year },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const fields: z.infer<typeof FarmNormsFieldSchema>[] = []
 
     if (year === "2025") {
@@ -1036,7 +1036,7 @@ export const getFarmNutrientAdvice = defineOperation({
     { fdm, services, principal }: OperationContext<CalculationServices>,
     { b_id_farm, year },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const nmiApiKey = requireNmiApiKey(services)
     const yearNumber = Number.parseInt(year, 10)
     const timeframe = getYearTimeframe(yearNumber)

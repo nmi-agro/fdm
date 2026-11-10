@@ -131,7 +131,7 @@ export const listFarmMeasures = defineOperation({
     { fdm, services, principal }: OperationContext<MeasureServices>,
     { b_id_farm, ...timeframe },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const byKey = await services.getMeasuresForFarm(
       fdm,
       principal.effectivePrincipalId,
