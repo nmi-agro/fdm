@@ -1,4 +1,4 @@
-import { useMatches, useParams } from "react-router"
+import { Link, useLocation, useMatches, useParams } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { HeaderFieldPicker } from "~/components/blocks/header/field-picker"
 import {
@@ -10,9 +10,10 @@ import {
 
 export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
   const calendarFromStore = useCalendarStore((state) => state.calendar)
-  const { calendar: calendarFromRoute, b_id } = useParams()
+  const { calendar: calendarFromRoute, b_id, m_id } = useParams()
   const calendar = calendarFromRoute ?? calendarFromStore
   const matches = useMatches()
+  const { pathname } = useLocation()
 
   const isFieldDetail = !!b_id
 
@@ -30,6 +31,16 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
   const basePath = calendar
     ? `/farm/${b_id_farm}/${calendar}/measures`
     : `/farm/${b_id_farm}/measures`
+
+  // Measures catalogue: the catalogue and, on a detail page, the name of the measure
+  const cataloguePath = `${basePath}/catalogue`
+  const isCatalogue = pathname.startsWith(cataloguePath)
+  const measureMatch = matches.find(
+    (m) => m.id === "routes/farm.$b_id_farm.$calendar.measures.catalogue.$m_id",
+  )
+  const measureName =
+    (measureMatch?.loaderData as { measure?: { m_name?: string } } | undefined)?.measure?.m_name ??
+    m_id
 
   return (
     <>
@@ -54,6 +65,31 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
               </BreadcrumbPage>
             )}
           </BreadcrumbItem>
+        </>
+      ) : null}
+
+      {isCatalogue ? (
+        <>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            {m_id ? (
+              <BreadcrumbLink asChild>
+                <Link to={cataloguePath}>Catalogus</Link>
+              </BreadcrumbLink>
+            ) : (
+              <BreadcrumbPage>Catalogus</BreadcrumbPage>
+            )}
+          </BreadcrumbItem>
+          {m_id ? (
+            <>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="max-w-40 truncate sm:max-w-60 md:max-w-none">
+                  {measureName}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </>
+          ) : null}
         </>
       ) : null}
     </>

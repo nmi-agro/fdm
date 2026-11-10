@@ -1,56 +1,28 @@
 /**
- * URLs of the measures catalogue and the farm context they carry.
- *
- * The catalogue itself is the same for everyone. When a farm is selected, the catalogue also
- * shows on which fields of that farm a measure is applied in the selected year. The farm and
- * year are passed as the query parameters `farm` and `calendar`; `farm=none` means that the
- * user explicitly chose no farm.
+ * Paths of the measures catalogue. The catalogue is part of the measures section of a farm,
+ * so every path includes the farm and the calendar year; the catalogue shows on which fields
+ * of that farm a measure is applied, recommended or applicable in that year.
  */
 
-/** Query parameter with the ID of the selected farm. */
-export const CATALOGUE_FARM_PARAM = "farm"
-/** Query parameter with the selected calendar year. */
-export const CATALOGUE_CALENDAR_PARAM = "calendar"
-/** Value of {@link CATALOGUE_FARM_PARAM} when the user explicitly chose no farm. */
-export const CATALOGUE_NO_FARM = "none"
-
-export type CatalogueFarmContext = {
-  b_id_farm?: string | null
-  calendar?: string | null
+/**
+ * Returns the path of the measures catalogue of a farm.
+ *
+ * @param b_id_farm - ID of the farm.
+ * @param calendar - Calendar year, e.g. `2026`.
+ * @returns The path, e.g. `/farm/abc/2026/measures/catalogue`.
+ */
+export function getMeasuresCataloguePath(b_id_farm: string, calendar: string): string {
+  return `/farm/${b_id_farm}/${calendar}/measures/catalogue`
 }
 
 /**
- * Builds the query string with the farm context, e.g. `?farm=abc&calendar=2026`, or an empty
- * string when there is no context.
+ * Returns the path of the detail page of a measure in the measures catalogue of a farm.
  *
- * @param context - Farm and calendar year to carry along.
- */
-export function getCatalogueSearch(context?: CatalogueFarmContext): string {
-  if (!context?.b_id_farm) return ""
-  const params = new URLSearchParams({ [CATALOGUE_FARM_PARAM]: context.b_id_farm })
-  if (context.calendar && context.b_id_farm !== CATALOGUE_NO_FARM) {
-    params.set(CATALOGUE_CALENDAR_PARAM, context.calendar)
-  }
-  return `?${params.toString()}`
-}
-
-/**
- * Returns the path of the measures catalogue, with the farm context when given.
- *
- * @param context - Farm and calendar year to carry along.
- */
-export function getMeasuresCataloguePath(context?: CatalogueFarmContext): string {
-  return `/measures-catalogue${getCatalogueSearch(context)}`
-}
-
-/**
- * Returns the path of the detail page of a measure in the measures catalogue, with the farm
- * context when given.
- *
+ * @param b_id_farm - ID of the farm.
+ * @param calendar - Calendar year, e.g. `2026`.
  * @param m_id - Catalogue ID of the measure, e.g. `bln_BM7`.
- * @param context - Farm and calendar year to carry along.
- * @returns The path, e.g. `/measures-catalogue/bln_BM7?farm=abc&calendar=2026`.
+ * @returns The path, e.g. `/farm/abc/2026/measures/catalogue/bln_BM7`.
  */
-export function getMeasureCataloguePath(m_id: string, context?: CatalogueFarmContext): string {
-  return `/measures-catalogue/${encodeURIComponent(m_id)}${getCatalogueSearch(context)}`
+export function getMeasureCataloguePath(b_id_farm: string, calendar: string, m_id: string): string {
+  return `${getMeasuresCataloguePath(b_id_farm, calendar)}/${encodeURIComponent(m_id)}`
 }

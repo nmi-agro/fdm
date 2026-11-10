@@ -276,15 +276,6 @@ export function SidebarOrganization({
                 </TooltipContent>
               </Tooltip>
             )}
-            <SidebarMenuSub>
-              <SidebarMenuSubItem>
-                <SidebarMenuSubButton asChild>
-                  <NavLink to="/measures-catalogue">
-                    <span>Alle maatregelen bekijken →</span>
-                  </NavLink>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            </SidebarMenuSub>
           </SidebarMenuItem>
           <SidebarMenuItem>
             {organization ? (

@@ -50,7 +50,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
-import { getMeasuresCataloguePath } from "~/lib/measures-catalogue"
 
 export type { FieldOption }
 
@@ -484,20 +483,6 @@ export function SidebarFarm({
                   </TooltipContent>
                 </Tooltip>
               )}
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton asChild>
-                    <NavLink
-                      to={getMeasuresCataloguePath({
-                        b_id_farm: isFarmSelected ? farmId : undefined,
-                        calendar: selectedCalendar,
-                      })}
-                    >
-                      <span>Alle maatregelen bekijken →</span>
-                    </NavLink>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
             </SidebarMenuItem>
             <SidebarMenuItem>
               {fertilizersLink ? (
