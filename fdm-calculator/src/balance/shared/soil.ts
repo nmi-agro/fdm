@@ -1,4 +1,4 @@
-import type { SoilAnalysis } from "@nmi-agro/fdm-core"
+import type { CurrentSoilData, SoilAnalysis } from "@nmi-agro/fdm-core"
 import type { SoilAnalysisPicked as NitrogenSoilAnalysisPicked } from "../nitrogen/types"
 import type { SoilAnalysisPicked as OrganicMatterSoilAnalysisPicked } from "../organic-matter/types"
 import {
@@ -20,6 +20,77 @@ const allEstimationProperties = [
   "b_soiltype_agr",
   "b_gwl_class",
 ] as const
+
+/**
+ * The soil analysis record that `currentSoilDataToSoilAnalyses` builds from the current soil data.
+ *
+ * It holds every soil parameter that the nitrogen and organic matter balances use, so it fits the
+ * `soilAnalyses` input of both balances.
+ */
+export type BalanceSoilAnalysis = Pick<
+  SoilAnalysis,
+  | "a_id"
+  | "b_sampling_date"
+  | "a_c_of"
+  | "a_cn_fr"
+  | "a_density_sa"
+  | "a_n_rt"
+  | "a_som_loi"
+  | "b_soiltype_agr"
+  | "b_gwl_class"
+>
+
+/**
+ * Converts the current soil data of a field into the `soilAnalyses` input of the balances.
+ *
+ * The current soil data (from `getCurrentSoilData` or `getCurrentSoilDataForFarm` in fdm-core) holds
+ * the most recent value per soil parameter, so a parameter can come from an older analysis when a
+ * newer analysis does not contain it. This function puts those values into a single record.
+ * `a_id` and `b_sampling_date` are taken from the newest analysis that contributes to one of
+ * these parameters.
+ *
+ * @param currentSoilData - The current soil data of a field.
+ * @returns An array with one record, or an empty array when none of the parameters has a value.
+ * @example
+ * ```ts
+ * const soilAnalyses = currentSoilDataToSoilAnalyses(
+ *   await getCurrentSoilData(fdm, principal_id, b_id, timeframe),
+ * )
+ * ```
+ */
+export function currentSoilDataToSoilAnalyses(
+  currentSoilData: CurrentSoilData,
+): BalanceSoilAnalysis[] {
+  const record: Record<string, unknown> = {}
+  let newestSource: CurrentSoilData[number]["sources"][number] | undefined
+
+  for (const prop of allEstimationProperties) {
+    const item = currentSoilData.find(
+      (x) => x.parameter === prop && x.value !== null && x.value !== undefined,
+    )
+    record[prop] = item?.value ?? null
+
+    const source = item?.sources[0]
+    if (
+      source &&
+      (!newestSource ||
+        (source.b_sampling_date?.getTime() ?? Number.NEGATIVE_INFINITY) >
+          (newestSource.b_sampling_date?.getTime() ?? Number.NEGATIVE_INFINITY))
+    ) {
+      newestSource = source
+    }
+  }
+
+  if (!newestSource) return []
+
+  return [
+    {
+      ...record,
+      a_id: newestSource.a_id,
+      b_sampling_date: newestSource.b_sampling_date,
+    } as BalanceSoilAnalysis,
+  ]
+}
 
 export function combineSoilAnalyses<T extends SoilAnalysisPicked>(
   soilAnalyses: Partial<SoilAnalysis>[],

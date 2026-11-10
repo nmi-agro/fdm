@@ -4,6 +4,8 @@ import {
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getEnabledCultivationCataloguesForFarms,
   getEnabledFertilizerCataloguesForFarms,
   getFertilizerApplications,
@@ -14,13 +16,12 @@ import {
   getFields,
   getHarvests,
   getHarvestsForFarm,
-  getSoilAnalyses,
-  getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { handleInputCollectionError } from "../shared/errors"
+import { currentSoilDataToSoilAnalyses } from "../shared/soil"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 
 type FieldInputWithoutDeposition = Omit<FieldInput, "depositionSupply">
@@ -34,6 +35,9 @@ type FieldInputWithoutDeposition = Omit<FieldInput, "depositionSupply">
  * A complete NitrogenBalanceInput object can be built by collecting the cultivationDetails and
  * fertilizerDetails separately, then combining them in a new object along with the array
  * returned from this function, ending up with a `NitrogenBalanceInput` object.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
@@ -81,7 +85,9 @@ async function collectInputForNitrogenBalanceForFarm(
         const harvests = harvestArrays.flat()
         const harvestsFiltered = harvests.filter((harvest) => harvest.b_lu !== undefined)
 
-        const soilAnalyses = await getSoilAnalyses(tx, principal_id, field.b_id, timeframe)
+        const soilAnalyses = currentSoilDataToSoilAnalyses(
+          await getCurrentSoilData(tx, principal_id, field.b_id, timeframe),
+        )
 
         const fertilizerApplications = await getFertilizerApplications(
           tx,
@@ -108,7 +114,7 @@ async function collectInputForNitrogenBalanceForFarm(
       const [cultivationsByField, soilByField, fertAppsByField, harvestsByField] =
         await Promise.all([
           getCultivationsForFarm(tx, principal_id, b_id_farm, timeframe),
-          getSoilAnalysesForFarm(tx, principal_id, b_id_farm, timeframe),
+          getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, timeframe),
           getFertilizerApplicationsForFarm(tx, principal_id, b_id_farm, timeframe),
           getHarvestsForFarm(tx, principal_id, b_id_farm, timeframe),
         ])
@@ -123,7 +129,7 @@ async function collectInputForNitrogenBalanceForFarm(
             cultivations,
             harvests,
             fertilizerApplications: fertAppsByField.get(field.b_id) ?? [],
-            soilAnalyses: soilByField.get(field.b_id) ?? [],
+            soilAnalyses: currentSoilDataToSoilAnalyses(soilByField.get(field.b_id) ?? []),
           }
         }),
       }
@@ -159,6 +165,9 @@ async function collectInputForNitrogenBalanceForFarm(
  * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
  * across multiple farms and a timeframe. It fetches data from the FDM database and structures
  * it into an array of `NitrogenBalanceInput` objects.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.
@@ -259,6 +268,9 @@ export async function collectInputForNitrogenBalanceForFarms(
  * harvests, soil analyses, fertilizer applications, fertilizer details, and cultivation details
  * within a specified farm and timeframe. It fetches data from the FDM database and structures
  * it into a `NitrogenBalanceInput` object.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The ID of the principal (user or service) initiating the data collection.

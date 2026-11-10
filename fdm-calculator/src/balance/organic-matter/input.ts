@@ -4,6 +4,8 @@ import {
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getEnabledCultivationCataloguesForFarms,
   getEnabledFertilizerCataloguesForFarms,
   getFertilizerApplications,
@@ -12,11 +14,10 @@ import {
   getFertilizersFromCatalogues,
   getField,
   getFields,
-  getSoilAnalyses,
-  getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import type { FieldInput, OrganicMatterBalanceInput } from "./types"
 import { handleInputCollectionError } from "../shared/errors"
+import { currentSoilDataToSoilAnalyses } from "../shared/soil"
 
 /**
  * Collects all necessary input data from an FDM instance to calculate the organic matter balance of a single farm.
@@ -29,6 +30,9 @@ import { handleInputCollectionError } from "../shared/errors"
  * A complete OrganicMatterBalanceInput object can be built by collecting the cultivationDetails and
  * fertilizerDetails separately, then combining them in a new object along with the array
  * returned from this function, ending up with a `OrganicMatterBalanceInput` object.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance, used for all database interactions.
  * @param principal_id - The ID of the user or service principal requesting the data, for authorization purposes.
@@ -69,7 +73,9 @@ async function collectInputForOrganicMatterBalanceForFarm(
         // Single-field path: use the existing per-field functions (only 1 field, no optimisation needed)
         const field = farmFields[0]
         const cultivations = await getCultivations(tx, principal_id, field.b_id, timeframe)
-        const soilAnalyses = await getSoilAnalyses(tx, principal_id, field.b_id, timeframe)
+        const soilAnalyses = currentSoilDataToSoilAnalyses(
+          await getCurrentSoilData(tx, principal_id, field.b_id, timeframe),
+        )
         const fertilizerApplications = await getFertilizerApplications(
           tx,
           principal_id,
@@ -89,7 +95,7 @@ async function collectInputForOrganicMatterBalanceForFarm(
       // Farm-level path: fetch all data per farm in parallel
       const [cultivationsByField, soilByField, fertAppsByField] = await Promise.all([
         getCultivationsForFarm(tx, principal_id, b_id_farm, timeframe),
-        getSoilAnalysesForFarm(tx, principal_id, b_id_farm, timeframe),
+        getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, timeframe),
         getFertilizerApplicationsForFarm(tx, principal_id, b_id_farm, timeframe),
       ])
 
@@ -98,7 +104,7 @@ async function collectInputForOrganicMatterBalanceForFarm(
         field,
         cultivations: cultivationsByField.get(field.b_id) ?? [],
         fertilizerApplications: fertAppsByField.get(field.b_id) ?? [],
-        soilAnalyses: soilByField.get(field.b_id) ?? [],
+        soilAnalyses: currentSoilDataToSoilAnalyses(soilByField.get(field.b_id) ?? []),
       }))
     })
   } catch (error) {
@@ -117,6 +123,9 @@ async function collectInputForOrganicMatterBalanceForFarm(
  *
  * The collected data is then structured into an `OrganicMatterBalanceInput` object, which can be directly
  * passed to the main `calculateOrganicMatterBalance` function.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance, used for all database interactions.
  * @param principal_id - The ID of the user or service principal requesting the data, for authorization purposes.
@@ -137,6 +146,9 @@ async function collectInputForOrganicMatterBalanceForFarm(
  * and timeframe, including field details, cultivation history, soil analyses, and fertilizer applications.
  * It fetches the complete fertilizer and cultivation catalogues for all farms in batch to minimise
  * database queries.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance, used for all database interactions.
  * @param principal_id - The ID of the user or service principal requesting the data, for authorization purposes.
@@ -247,6 +259,9 @@ export async function collectInputForOrganicMatterBalanceForFarms(
  *
  * The collected data is then structured into an `OrganicMatterBalanceInput` object, which can be directly
  * passed to the main `calculateOrganicMatterBalance` function.
+ *
+ * Soil data is not limited to the timeframe: for each soil parameter the most recent value sampled
+ * up to `timeframe.end` is used, also when it was sampled before `timeframe.start`.
  *
  * @param fdm - The FDM instance, used for all database interactions.
  * @param principal_id - The ID of the user or service principal requesting the data, for authorization purposes.

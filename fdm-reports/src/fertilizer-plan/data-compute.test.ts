@@ -8,7 +8,6 @@ const core = vi.hoisted(() => ({
   getFertilizers: vi.fn(),
   getCultivationsForFarm: vi.fn(),
   getFertilizerApplicationsForFarm: vi.fn(),
-  getSoilAnalysesForFarm: vi.fn(),
   getCurrentSoilDataForFarm: vi.fn(),
   isDerogationGrantedForYear: vi.fn(),
   isOrganicCertificationValid: vi.fn(),
@@ -104,7 +103,6 @@ function field(b_id: string, overrides: Record<string, unknown> = {}) {
     b_centroid: [5.0, 52.0],
     fertilizerApplications: [],
     cultivations: [],
-    soilAnalyses: [],
     currentSoilData: [],
     ...overrides,
   }
@@ -136,7 +134,6 @@ describe("collectFertilizerPlanInput", () => {
     core.getFertilizers.mockResolvedValue([])
     core.getCultivationsForFarm.mockResolvedValue(new Map([["f1", [mainCultivation]]]))
     core.getFertilizerApplicationsForFarm.mockResolvedValue(new Map([["f1", [{ p_app_id: "a" }]]]))
-    core.getSoilAnalysesForFarm.mockResolvedValue(new Map([["f1", [{ a_id: "s" }]]]))
     core.getCurrentSoilDataForFarm.mockResolvedValue(new Map([["f1", [{ parameter: "a_p_al" }]]]))
     core.isDerogationGrantedForYear.mockResolvedValue(true)
     core.isOrganicCertificationValid.mockResolvedValue(false)
@@ -151,14 +148,12 @@ describe("collectFertilizerPlanInput", () => {
       b_id: "f1",
       cultivations: [mainCultivation],
       fertilizerApplications: [{ p_app_id: "a" }],
-      soilAnalyses: [{ a_id: "s" }],
       currentSoilData: [{ parameter: "a_p_al" }],
     })
     expect(result.fields[1]).toMatchObject({
       b_id: "f2",
       cultivations: [],
       fertilizerApplications: [],
-      soilAnalyses: [],
       currentSoilData: [],
     })
   })

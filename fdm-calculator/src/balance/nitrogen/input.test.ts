@@ -8,7 +8,8 @@ import type {
   fdmSchema,
   Harvest,
   PrincipalId,
-  SoilAnalysis,
+  CurrentSoilData,
+  CurrentSoilDataItem,
 } from "@nmi-agro/fdm-core"
 import {
   getCultivations,
@@ -25,11 +26,12 @@ import {
   getFields,
   getHarvests,
   getHarvestsForFarm,
-  getSoilAnalyses,
-  getSoilAnalysesForFarm,
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { BalanceSoilAnalysis } from "../shared/soil"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
 import { collectInputForNitrogenBalance, collectInputForNitrogenBalanceForFarms } from "./input"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
@@ -45,8 +47,8 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     getCultivationsForFarm: vi.fn(),
     getHarvests: vi.fn(),
     getHarvestsForFarm: vi.fn(),
-    getSoilAnalyses: vi.fn(),
-    getSoilAnalysesForFarm: vi.fn(),
+    getCurrentSoilData: vi.fn(),
+    getCurrentSoilDataForFarm: vi.fn(),
     getFertilizerApplications: vi.fn(),
     getFertilizerApplicationsForFarm: vi.fn(),
     getCultivationsFromCatalogue: vi.fn(),
@@ -70,8 +72,8 @@ const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetCultivationsForFarm = vi.mocked(getCultivationsForFarm)
 const mockedGetHarvests = vi.mocked(getHarvests)
 const mockedGetHarvestsForFarm = vi.mocked(getHarvestsForFarm)
-const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
-const mockedGetSoilAnalysesForFarm = vi.mocked(getSoilAnalysesForFarm)
+const mockedGetCurrentSoilData = vi.mocked(getCurrentSoilData)
+const mockedGetCurrentSoilDataForFarm = vi.mocked(getCurrentSoilDataForFarm)
 const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
 const mockedGetFertilizerApplicationsForFarm = vi.mocked(getFertilizerApplicationsForFarm)
 const mockedGetCultivationsFromCatalogue = vi.mocked(getCultivationsFromCatalogue)
@@ -87,6 +89,44 @@ const mockedgetFertilizersFromCatalogues = vi.mocked(getFertilizersFromCatalogue
 const mockedCalculateAllFieldsNitrogenSupplyByDeposition = vi.mocked(
   calculateAllFieldsNitrogenSupplyByDeposition,
 )
+
+/**
+ * Builds the current soil data that fdm-core returns for a field with a single analysis.
+ */
+function toCurrentSoilData(analysis: BalanceSoilAnalysis): CurrentSoilData {
+  const { a_id, b_sampling_date, ...values } = analysis
+  return Object.entries(values).map(([parameter, value]) => ({
+    parameter: parameter as CurrentSoilDataItem["parameter"],
+    value,
+    is_aggregated: false,
+    coverage: 1,
+    has_coverage_warning: false,
+    sources: [
+      {
+        a_id,
+        a_source: "nl-other-nmi",
+        b_sampling_date,
+        a_depth_upper: 0,
+        a_depth_lower: 30,
+        value,
+        area_fraction: 1,
+      },
+    ],
+  }))
+}
+
+const mockSoilAnalysis: BalanceSoilAnalysis = {
+  a_id: "sa-1",
+  b_sampling_date: new Date("2023-05-01"),
+  a_c_of: 25,
+  a_cn_fr: 10,
+  a_density_sa: 1.5,
+  a_n_rt: 100,
+  a_som_loi: 5,
+  b_soiltype_agr: "dekzand",
+  b_gwl_class: "II",
+}
+const mockCurrentSoilData = toCurrentSoilData(mockSoilAnalysis)
 
 function createMockData() {
   return {
@@ -174,23 +214,7 @@ function createMockData() {
         },
       },
     ] as Harvest[],
-    mockSoilAnalysesData: [
-      {
-        a_id: "sa-1",
-        a_date: new Date(),
-        a_depth_upper: 0,
-        a_depth_lower: 30,
-        a_source: "source",
-        a_c_of: 25,
-        a_cn_fr: 10,
-        a_density_sa: 1.5,
-        a_n_rt: 100,
-        b_soiltype_agr: "SAND",
-        b_sampling_date: new Date("2023-05-01"),
-        a_som_loi: 5,
-        b_gwl_class: "HIGH",
-      },
-    ] as SoilAnalysis[],
+    mockSoilAnalysesData: [mockSoilAnalysis],
     mockFertilizerApplicationsData: [
       {
         p_app_id: "fa-1",
@@ -300,8 +324,8 @@ describe("collectInputForNitrogenBalance", () => {
       new Map(mockFieldsData.map((f) => [f.b_id, mockCultivationsData])),
     )
     mockedGetHarvestsForFarm.mockResolvedValue(new Map([["cult-1", mockHarvestsData]]))
-    mockedGetSoilAnalysesForFarm.mockResolvedValue(
-      new Map(mockFieldsData.map((f) => [f.b_id, mockSoilAnalysesData])),
+    mockedGetCurrentSoilDataForFarm.mockResolvedValue(
+      new Map(mockFieldsData.map((f) => [f.b_id, mockCurrentSoilData])),
     )
     mockedGetFertilizerApplicationsForFarm.mockResolvedValue(
       new Map(mockFieldsData.map((f) => [f.b_id, mockFertilizerApplicationsData])),
@@ -348,7 +372,7 @@ describe("collectInputForNitrogenBalance", () => {
       b_id_farm,
       timeframe,
     )
-    expect(mockedGetSoilAnalysesForFarm).toHaveBeenCalledWith(
+    expect(mockedGetCurrentSoilDataForFarm).toHaveBeenCalledWith(
       mockFdm,
       principal_id,
       b_id_farm,
@@ -362,7 +386,7 @@ describe("collectInputForNitrogenBalance", () => {
     )
     expect(mockedGetCultivations).not.toHaveBeenCalled()
     expect(mockedGetHarvests).not.toHaveBeenCalled()
-    expect(mockedGetSoilAnalyses).not.toHaveBeenCalled()
+    expect(mockedGetCurrentSoilData).not.toHaveBeenCalled()
     expect(mockedGetFertilizerApplications).not.toHaveBeenCalled()
     expect(mockedGetFertilizersFromCatalogue).toHaveBeenCalledWith(mockFdm, principal_id, b_id_farm)
     expect(mockedGetCultivationsFromCatalogue).toHaveBeenCalledWith(
@@ -407,7 +431,7 @@ describe("collectInputForNitrogenBalance", () => {
 
     const errorMessage = "Failed to get cultivations"
     mockedGetCultivationsForFarm.mockRejectedValue(new Error(errorMessage))
-    mockedGetSoilAnalysesForFarm.mockResolvedValue(new Map())
+    mockedGetCurrentSoilDataForFarm.mockResolvedValue(new Map())
     mockedGetFertilizerApplicationsForFarm.mockResolvedValue(new Map())
     mockedGetHarvestsForFarm.mockResolvedValue(new Map())
 
@@ -436,7 +460,7 @@ describe("collectInputForNitrogenBalance", () => {
   it("should handle empty arrays from core functions correctly", async () => {
     mockedGetFields.mockResolvedValue([])
     mockedGetCultivationsForFarm.mockResolvedValue(new Map())
-    mockedGetSoilAnalysesForFarm.mockResolvedValue(new Map())
+    mockedGetCurrentSoilDataForFarm.mockResolvedValue(new Map())
     mockedGetFertilizerApplicationsForFarm.mockResolvedValue(new Map())
     mockedGetHarvestsForFarm.mockResolvedValue(new Map())
     mockedGetFertilizersFromCatalogue.mockResolvedValue([])
@@ -470,7 +494,7 @@ describe("collectInputForNitrogenBalance", () => {
     )
     expect(mockedGetCultivations).not.toHaveBeenCalled()
     expect(mockedGetHarvests).not.toHaveBeenCalled()
-    expect(mockedGetSoilAnalyses).not.toHaveBeenCalled()
+    expect(mockedGetCurrentSoilData).not.toHaveBeenCalled()
     expect(mockedGetFertilizerApplications).not.toHaveBeenCalled()
   })
 
@@ -490,7 +514,7 @@ describe("collectInputForNitrogenBalance", () => {
     mockedGetField.mockResolvedValue(singleField)
     mockedGetCultivations.mockResolvedValue(mockCultivationsData)
     mockedGetHarvests.mockResolvedValue(mockHarvestsData)
-    mockedGetSoilAnalyses.mockResolvedValue(mockSoilAnalysesData)
+    mockedGetCurrentSoilData.mockResolvedValue(mockCurrentSoilData)
     mockedGetFertilizerApplications.mockResolvedValue(mockFertilizerApplicationsData)
     mockedGetFertilizersFromCatalogue.mockResolvedValue(mockFertilizerDetailsData as any)
     mockedGetCultivationsFromCatalogue.mockResolvedValue(mockCultivationDetailsData as any)
@@ -508,12 +532,12 @@ describe("collectInputForNitrogenBalance", () => {
     expect(result.fields[0].field).toBe(singleField)
     expect(mockedGetCultivations).toHaveBeenCalled()
     expect(mockedGetHarvests).toHaveBeenCalled()
-    expect(mockedGetSoilAnalyses).toHaveBeenCalled()
+    expect(mockedGetCurrentSoilData).toHaveBeenCalled()
     expect(mockedGetFertilizerApplications).toHaveBeenCalled()
     // Farm-level batch functions must not be called
     expect(mockedGetCultivationsForFarm).not.toHaveBeenCalled()
     expect(mockedGetHarvestsForFarm).not.toHaveBeenCalled()
-    expect(mockedGetSoilAnalysesForFarm).not.toHaveBeenCalled()
+    expect(mockedGetCurrentSoilDataForFarm).not.toHaveBeenCalled()
     expect(mockedGetFertilizerApplicationsForFarm).not.toHaveBeenCalled()
   })
 })
@@ -571,13 +595,13 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
         ? new Map([["cult-2", mockHarvestsData]])
         : new Map([["cult-1", mockHarvestsData]]),
     )
-    mockedGetSoilAnalysesForFarm.mockResolvedValue(
+    mockedGetCurrentSoilDataForFarm.mockResolvedValue(
       new Map([
         ...mockFieldsData.map(
-          (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+          (f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData],
         ),
         ...mockFieldsData2.map(
-          (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
+          (f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData],
         ),
       ]),
     )
