@@ -36,7 +36,10 @@ function makeMocks(count = 1) {
 }
 
 function makeApp(mockFdm: any, mockAuth: any, services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 // ---------------------------------------------------------------------------

@@ -75,10 +75,27 @@ export async function consumeRateLimit(
   apiKeyId: string,
   bucket: RateBucket,
 ): Promise<RateLimitResult> {
-  const limit = RATE_LIMITS[bucket]
-  const key = `fdm-api:${apiKeyId}:${bucket}`
+  return consumeWindow(fdm, `fdm-api:${apiKeyId}:${bucket}`, RATE_LIMITS[bucket], WINDOW_MS)
+}
+
+/**
+ * Counts one event under a key in the shared `rateLimit` table and reports whether it is within
+ * the limit. The window starts at the first counted event and resets once it has passed.
+ *
+ * @param fdm - Database used to read and update the rate-limit table.
+ * @param key - Storage key of the counter, for example `fdm-api:<apiKeyId>:general`.
+ * @param limit - Largest number of events allowed per window.
+ * @param windowMs - Length of the window in milliseconds.
+ * @returns The counter state after counting the event.
+ */
+export async function consumeWindow(
+  fdm: FdmType,
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
   const now = Date.now()
-  const windowStart = now - WINDOW_MS
+  const windowStart = now - windowMs
 
   const [record] = await fdm
     .insert(rateLimit)
@@ -95,7 +112,7 @@ export async function consumeRateLimit(
       lastRequest: rateLimit.lastRequest,
     })
 
-  const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
+  const resetIn = Math.ceil((record.lastRequest + windowMs - now) / 1000)
   if (record.count > limit) {
     return { allowed: false, limit, remaining: 0, resetIn: Math.max(resetIn, 1) }
   }

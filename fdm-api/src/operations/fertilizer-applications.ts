@@ -8,6 +8,7 @@ import {
   FertilizerIdSchema,
   FieldIdSchema,
 } from "../fields"
+import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import {
   DateStringSchema,
   parseTimeframeQuery,
@@ -18,7 +19,7 @@ import { DELETED, DeletedSchema } from "./common"
 import { defineOperation, type OperationContext } from "./types"
 
 /** Defines the fertilizer application data access functions required by the fertilizer application operations. */
-export interface FertilizerApplicationServices {
+export interface FertilizerApplicationServices extends LimitServices {
   /** Lists the fertilizer applications on a field. */
   getFertilizerApplications: typeof core.getFertilizerApplications
   /** Lists the fertilizer applications on all fields of a farm, grouped by field. */
@@ -162,6 +163,7 @@ export const listFarmFertilizerApplications = defineOperation({
     { fdm, services, principal }: OperationContext<FertilizerApplicationServices>,
     { b_id_farm, ...timeframe },
   ) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const byKey = await services.getFertilizerApplicationsForFarm(
       fdm,
       principal.effectivePrincipalId,

@@ -30,7 +30,8 @@ fdm-api/src/
   auth.ts         API-key authentication middleware (channel and WWW-Authenticate options)
   guards.ts       path-existence guard, body limit / media type, GeoJSON coordinate limit
   error.ts        ApiError, classifyError(), problemResponse(), createErrorHandler(), createNotFoundHandler()
-  rate-limit.ts   consumeRateLimit() and the rate limiting middleware
+  rate-limit.ts   consumeRateLimit(), consumeWindow() and the rate limiting middleware
+  limits.ts       usage limits against misuse: fields per farm, farms created per user per day
   schemas.ts      pagination, timeframe, date and problem-details schemas; response envelopes
   fields.ts       described field schemas shared by requests and responses (IDs, soil, harvest, fertilizer)
   types.ts        ApiEnv, ApiPrincipalContext
@@ -180,6 +181,12 @@ Authorization itself is not reimplemented here: the core functions enforce it fr
 Guards enforce a 5 MB body limit, `application/json` on writes, and a 10,000-coordinate ceiling on GeoJSON geometry via `assertGeoJsonCoordinates`. Rate limiting is applied per route through `rateLimitMiddleware(fdm, tier)`, where the tier is `"write"` for `POST`/`PATCH`/`PUT`/`DELETE` and `"general"` otherwise (`"calc"` for calculations, `"nmi"` for NMI-backed endpoints). The middleware counts through `consumeRateLimit(fdm, apiKeyId, bucket)`, which other services call directly so they share the same per-key limits.
 
 `createApiKeyAuth(auth, skipPaths, options)` records the audit channel (`"api"` by default) on the principal and in `withAuditContext`. `options.wwwAuthenticate` adds a `WWW-Authenticate` challenge to 401 responses for services that need one.
+
+**Usage limits** (`src/limits.ts`, `USAGE_LIMITS`) apply to the API and the MCP server, not to the web app:
+
+- A farm can have at most 500 fields. Operations that add fields call `assertFieldCapacity(fdm, services, b_id_farm, adding)`. Farm-level reads and calculations (lists over all fields of a farm, balances, norms, advice, indicators, aggregations) call `assertFarmSizeSupported(fdm, services, b_id_farm | b_id_farms)` first. A new farm-level operation must do the same; single-record operations don't.
+- A user can create at most 10 farms per 24 hours (`consumeFarmCreation`, keyed on the user, not the key).
+- Services that need these extend `LimitServices` (`countFieldsOfFarms`); tests mock it, e.g. `countFieldsOfFarms: async () => ({})`.
 
 Deletes are hard deletes with cascade, matching `fdm-core`. The first delete returns 204, a repeat returns 404. Do not add soft-delete behaviour at this layer; see `fdm-docs/docs/rest-api/07-delete-semantics.md`.
 

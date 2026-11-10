@@ -11,6 +11,7 @@ import { getFarmIdsOfFarmGroupInYear } from "@nmi-agro/fdm-core"
 import type { RateBucket } from "../rate-limit"
 import { ApiError, getErrorMessages } from "../error"
 import { FarmGroupIdSchema, FarmIdSchema, FieldIdSchema, OrganizationIdSchema } from "../fields"
+import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import { DateStringSchema, serializeDate } from "../schemas"
 import { NitrogenBalanceSchema, OrganicMatterBalanceSchema } from "./calculations"
 import {
@@ -22,7 +23,7 @@ import {
 import { defineOperation, type Operation, type OperationContext } from "./types"
 
 /** Defines the functions required by the aggregation operations. */
-export interface AggregationServices {
+export interface AggregationServices extends LimitServices {
   getFarmGroup: typeof core.getFarmGroup
   getFarmIdsOfOrganization: typeof core.getFarmIdsOfOrganization
   getNitrogenBalanceForFarms: typeof calculator.getNitrogenBalanceForFarms
@@ -318,7 +319,8 @@ async function resolve(
 
 /**
  * Declares an aggregation operation for one scope. The operation resolves the selected farms of
- * the farm group or organization and passes them to `compute`.
+ * the farm group or organization, refuses farms larger than the API supports, and passes the
+ * farms to `compute`.
  */
 function defineAggregationOperation<I extends z.ZodType<AggregationInput>, O extends z.ZodType>(
   scope: AggregationScope,
@@ -338,7 +340,11 @@ function defineAggregationOperation<I extends z.ZodType<AggregationInput>, O ext
   return defineOperation<I, O, AggregationServices>({
     ...rest,
     kind: "read",
-    run: async (ctx, input) => compute(ctx, await resolve(scope, ctx, input)),
+    run: async (ctx, input) => {
+      const selection = await resolve(scope, ctx, input)
+      await assertFarmSizeSupported(ctx.fdm, ctx.services, selection.farmIds)
+      return compute(ctx, selection)
+    },
   })
 }
 

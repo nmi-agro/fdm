@@ -7,6 +7,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { ApiError } from "../error"
 import { CultivationIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
+import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import {
   DateStringSchema,
   parseTimeframeQuery,
@@ -19,7 +20,7 @@ import { FarmParamsSchema } from "./farms"
 import { defineOperation, type OperationContext } from "./types"
 
 /** Defines the harvest data access functions required by the harvest operations. */
-export interface HarvestServices {
+export interface HarvestServices extends LimitServices {
   /** Returns the harvests of a cultivation, optionally within a timeframe. */
   getHarvests: typeof core.getHarvests
   /** Returns a single cultivation, to look up its harvest category. */
@@ -196,6 +197,7 @@ export const listFarmHarvests = defineOperation({
     { fdm, services, principal }: OperationContext<HarvestServices>,
     { b_id_farm, ...timeframe },
   ) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const byKey = await services.getHarvestsForFarm(
       fdm,
       principal.effectivePrincipalId,

@@ -11,6 +11,7 @@ import {
   soilParameterShape,
 } from "../fields"
 import { assertGeoJsonCoordinates } from "../guards"
+import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import {
   DateStringSchema,
   GeoJsonMultiPointSchema,
@@ -28,7 +29,7 @@ import { defineOperation, type OperationContext } from "./types"
 /**
  * Defines the soil analysis data access functions required by the soil analysis operations.
  */
-export interface SoilAnalysisServices {
+export interface SoilAnalysisServices extends LimitServices {
   /** Returns all soil analyses for a field visible to the authenticated principal. */
   getSoilAnalyses: typeof core.getSoilAnalyses
   /** Returns all soil analyses on a farm visible to the authenticated principal. */
@@ -391,6 +392,7 @@ export const listFarmSoilAnalyses = defineOperation({
     { fdm, services, principal }: OperationContext<SoilAnalysisServices>,
     { b_id_farm, ...timeframe },
   ) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const analysesByField = await services.getSoilAnalysesForFarm(
       fdm,
       principal.effectivePrincipalId,
@@ -448,6 +450,7 @@ export const getFarmCurrentSoilData = defineOperation({
     { fdm, services, principal }: OperationContext<SoilAnalysisServices>,
     { b_id_farm, ...timeframe },
   ) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const soilDataByField = await services.getCurrentSoilDataForFarm(
       fdm,
       principal.effectivePrincipalId,

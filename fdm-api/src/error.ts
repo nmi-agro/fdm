@@ -33,6 +33,7 @@ export class ApiError extends Error {
    * @param message - Human-readable problem detail included in the response payload.
    * @param extras - Optional RFC 9457 extension members to merge into the problem document.
    * @param errorId - Optional error identifier to return, e.g. one already used to log the cause.
+   * @param headers - Optional response headers, for example `Retry-After`.
    */
   constructor(
     /** HTTP status code returned to the client. */
@@ -44,6 +45,8 @@ export class ApiError extends Error {
     public readonly extras?: Record<string, unknown>,
     /** Optional error identifier returned as `error_id`; generated when omitted. */
     public readonly errorId?: string,
+    /** Optional response headers sent with the problem document. */
+    public readonly headers?: Record<string, string>,
   ) {
     super(message)
     this.name = "ApiError"
@@ -150,6 +153,8 @@ export interface ClassifiedError {
   extras?: Record<string, unknown>
   /** Error identifier for failures that were logged, for example unexpected errors. */
   errorId?: string
+  /** Response headers that belong to the failure, for example `Retry-After`. */
+  headers?: Record<string, string>
 }
 
 /**
@@ -175,6 +180,7 @@ export function classifyError(err: unknown): ClassifiedError {
       detail: err.message,
       extras: err.extras,
       errorId: err.errorId,
+      headers: err.headers,
     }
   }
   const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as
@@ -244,7 +250,10 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
         appUrl,
       )
     }
-    const { status, slug, detail, extras, errorId } = classifyError(err)
+    const { status, slug, detail, extras, errorId, headers } = classifyError(err)
+    for (const [name, value] of Object.entries(headers ?? {})) {
+      c.header(name, value)
+    }
     return problemResponse(c, status, slug, detail, appUrl, extras, errorId)
   }
 }

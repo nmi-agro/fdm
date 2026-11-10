@@ -7,6 +7,7 @@ import {
   CultivationIdSchema,
   FieldIdSchema,
 } from "../fields"
+import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import { DateStringSchema, serializeDate } from "../schemas"
 import { DELETED, DeletedSchema } from "./common"
 import { FarmParamsSchema } from "./farms"
@@ -16,7 +17,7 @@ import { defineOperation, type OperationContext } from "./types"
 /**
  * Defines the cultivation data access functions required by the cultivation operations.
  */
-export interface CultivationServices {
+export interface CultivationServices extends LimitServices {
   /** Returns all cultivations on a field visible to the authenticated principal. */
   getCultivations: typeof core.getCultivations
   /** Returns all cultivations on a farm visible to the authenticated principal. */
@@ -209,6 +210,7 @@ export const listFarmCultivations = defineOperation({
     { fdm, services, principal }: OperationContext<CultivationServices>,
     { b_id_farm },
   ) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const cultivationsByField = await services.getCultivationsForFarm(
       fdm,
       principal.effectivePrincipalId,

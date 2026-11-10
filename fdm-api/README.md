@@ -248,6 +248,13 @@ Requests are rate-limited **per API key** within a 60-second sliding window.
 
 When the limit is exceeded the API returns `429 Too Many Requests` with a `Retry-After` header indicating how many seconds to wait.
 
+To prevent misuse, the API also has usage limits:
+
+- A farm can have at most **500 fields**. Adding fields beyond that fails with `422`, and farm-level lists and calculations of a larger farm fail with `422`.
+- A user can create at most **10 farms per 24 hours**, across all their API keys. More fails with `429` and `Retry-After`.
+
+See [Limits & Pagination](https://nmi-agro.github.io/fdm/docs/rest-api/limits-and-pagination) for details.
+
 ---
 
 ## Error format

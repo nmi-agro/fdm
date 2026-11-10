@@ -21,6 +21,7 @@ import {
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
+import { assertFieldCapacity, type LimitServices } from "../limits"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   DateStringSchema,
@@ -31,7 +32,7 @@ import {
 } from "../schemas"
 
 /** Defines the functions required by the field import routes. */
-export interface FieldImportServices {
+export interface FieldImportServices extends LimitServices {
   reviewShapefileImport: typeof reviewShapefileImport
   applyRvoImport: typeof applyRvoImport
   getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
@@ -520,6 +521,12 @@ export function registerFieldImportRoutes(
         })
       }
       throw err
+    }
+
+    // Fields that the import deletes make room for the fields it adds.
+    const netNewFields = plan.fieldsToAdd.length - plan.fieldsToRemove.length
+    if (netNewFields > 0) {
+      await assertFieldCapacity(fdm, services, b_id_farm, netNewFields)
     }
 
     const result = await services.applyRvoImport(

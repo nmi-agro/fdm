@@ -2,6 +2,7 @@ import type * as core from "@nmi-agro/fdm-core"
 import { z } from "@hono/zod-openapi"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema, MeasureIdSchema } from "../fields"
+import { assertFarmSizeSupported, type LimitServices } from "../limits"
 import {
   DateStringSchema,
   parseTimeframeQuery,
@@ -12,7 +13,7 @@ import { DELETED, DeletedSchema } from "./common"
 import { defineOperation, type OperationContext } from "./types"
 
 /** Defines the measure data access functions required by the measure operations. */
-export interface MeasureServices {
+export interface MeasureServices extends LimitServices {
   /** Lists the measures on a field. */
   getMeasures: typeof core.getMeasures
   /** Lists the measures on all fields of a farm, grouped by field. */
@@ -130,6 +131,7 @@ export const listFarmMeasures = defineOperation({
     { fdm, services, principal }: OperationContext<MeasureServices>,
     { b_id_farm, ...timeframe },
   ) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const byKey = await services.getMeasuresForFarm(
       fdm,
       principal.effectivePrincipalId,

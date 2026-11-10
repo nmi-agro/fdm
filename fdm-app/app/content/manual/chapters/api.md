@@ -12,6 +12,7 @@ watch:
   - fdm-api/src/app.ts
   - fdm-api/src/auth.ts
   - fdm-api/src/rate-limit.ts
+  - fdm-api/src/limits.ts
   - fdm-api/src/routes/**
 keywords:
   - API
@@ -69,6 +70,13 @@ Per sleutel geldt een maximaal aantal verzoeken per minuut:
 | Diensten van NMI, zoals bodemschattingen en PDF's uitlezen | 10         |
 
 Kom je boven een limiet, dan krijg je een foutmelding en probeer je het even later opnieuw.
+
+Om misbruik te voorkomen gelden via de API ook deze grenzen:
+
+- Een bedrijf kan via de API maximaal 500 percelen hebben. Bij een groter bedrijf werken overzichten en berekeningen van het hele bedrijf niet via de API. Gegevens van een los perceel kun je wel opvragen.
+- Je kunt via de API maximaal 10 nieuwe bedrijven per 24 uur aanmaken, met al je sleutels samen.
+
+In {{appName}} zelf gelden deze grenzen niet.
 
 ## Documentatie {#documentatie}
 

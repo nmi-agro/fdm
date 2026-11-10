@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { assertGeoJsonCoordinates } from "../guards"
+import { assertFarmSizeSupported, assertFieldCapacity, type LimitServices } from "../limits"
 import { DateStringSchema, GeoJsonGeometrySchema, serializeDate } from "../schemas"
 import { DELETED, DeletedSchema } from "./common"
 import { FarmParamsSchema } from "./farms"
@@ -11,7 +12,7 @@ import { defineOperation, type OperationContext } from "./types"
 /**
  * Defines the field data access functions required by the field operations.
  */
-export interface FieldServices {
+export interface FieldServices extends LimitServices {
   /** Returns all fields for a farm that are visible to the authenticated principal. */
   getFields: typeof core.getFields
   /** Returns a single field visible to the authenticated principal. */
@@ -137,6 +138,7 @@ export const listFields = defineOperation({
   input: FarmParamsSchema,
   output: z.array(FieldSchema),
   run: async ({ fdm, services, principal }: OperationContext<FieldServices>, { b_id_farm }) => {
+    await assertFarmSizeSupported(fdm, services, b_id_farm)
     const fields = await services.getFields(fdm, principal.effectivePrincipalId, b_id_farm)
     return fields.map(serialiseField)
   },
@@ -172,6 +174,7 @@ export const createField = defineOperation({
     { fdm, services, principal }: OperationContext<FieldServices>,
     { b_id_farm, ...body },
   ) => {
+    await assertFieldCapacity(fdm, services, b_id_farm, 1)
     assertGeoJsonCoordinates(body.b_geometry)
     const b_id = await services.addField(
       fdm,

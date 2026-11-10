@@ -27,7 +27,10 @@ const mockFdm = {
 } as any
 
 function makeApp(mockAuth: any, services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 function validAuth(overrides: { id?: string; referenceId?: string; name?: string | null } = {}) {

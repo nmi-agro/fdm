@@ -125,6 +125,7 @@ import {
 import { applyRvoImport, reviewShapefileImport } from "@nmi-agro/fdm-rvo"
 import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
+import { type CountFieldsOfFarms, countFieldsOfFarms } from "./limits"
 
 /**
  * Describes the public configuration used to mount the FDM API application.
@@ -230,6 +231,8 @@ export interface FdmApiServices {
   getFieldMeasureOptions: typeof getFieldMeasureOptions
   /** Resolves the server-side NMI API key; `undefined` when not configured. */
   getNmiApiKey: () => string | undefined
+  /** Counts the fields of farms, to enforce the farm size that the API supports. */
+  countFieldsOfFarms: CountFieldsOfFarms
   // Organic certifications
   listOrganicCertifications: typeof listOrganicCertifications
   addOrganicCertification: typeof addOrganicCertification
@@ -379,6 +382,7 @@ export const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   getFarmIndicators,
   getFieldMeasureOptions,
   getNmiApiKey: () => process.env.NMI_API_KEY || undefined,
+  countFieldsOfFarms,
   listOrganicCertifications,
   addOrganicCertification,
   getOrganicCertification,

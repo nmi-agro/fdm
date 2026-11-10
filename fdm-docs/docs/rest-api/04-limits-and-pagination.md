@@ -77,6 +77,18 @@ Retry-After: 23
 Content-Type: application/problem+json
 ```
 
+## Usage limits
+
+To prevent misuse, the API supports farms up to a fixed size and limits how many farms a user can create. These limits apply to the REST API and the MCP server; the web application does not have them.
+
+| Limit              | Value                                                | Error on violation                                    |
+| ------------------ | ---------------------------------------------------- | ----------------------------------------------------- |
+| Fields per farm    | **500**                                              | `422 unprocessable-entity`                            |
+| New farms per user | **10 per 24 hours**, across all API keys of the user | `429 rate-limit-exceeded` with a `Retry-After` header |
+
+- **Fields per farm.** Adding a field (`POST /farms/{b_id_farm}/fields`) or applying a field import fails when the farm would have more than 500 fields. Fields that an import removes make room for the fields it adds. For a farm that already has more than 500 fields, farm-level lists and calculations fail: the fields, cultivations, harvests, fertilizer applications, measures, soil analyses and current soil data of the farm, its balances, norms, nutrient advice and indicators, and the aggregations of a farm group or organization that includes it. Requests for a single field, cultivation or other record keep working. The count includes every field that was ever linked to the farm.
+- **New farms per user.** The 24 hours start at the first farm the user creates in a new window. The `Retry-After` header and the `retry_after` member of the problem document give the number of seconds until the window ends.
+
 ## Pagination
 
 All list endpoints use **offset-based pagination** with `limit` and `offset` query parameters.

@@ -2,13 +2,14 @@ import type * as core from "@nmi-agro/fdm-core"
 import { z } from "@hono/zod-openapi"
 import { ApiError } from "../error"
 import { FarmIdSchema } from "../fields"
+import { consumeFarmCreation, type LimitServices } from "../limits"
 import { DELETED, DeletedSchema } from "./common"
 import { defineOperation, type OperationContext } from "./types"
 
 /**
  * Defines the farm data access functions required by the farm operations.
  */
-export interface FarmServices {
+export interface FarmServices extends LimitServices {
   /** Returns all farms visible to the authenticated principal. */
   getFarms: typeof core.getFarms
   /** Returns a single farm visible to the authenticated principal. */
@@ -161,6 +162,7 @@ export const createFarm = defineOperation({
   input: CreateFarmBodySchema,
   output: FarmSchema,
   run: async ({ fdm, services, principal }: OperationContext<FarmServices>, body) => {
+    await consumeFarmCreation(fdm, principal.userId)
     const farm = await fdm.transaction(async (tx) => {
       // Add the farm.
       const b_id_farm = await services.addFarm(

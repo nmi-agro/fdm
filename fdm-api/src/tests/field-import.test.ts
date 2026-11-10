@@ -84,6 +84,7 @@ function setup(overrides: Partial<FdmApiServices> = {}) {
       .fn()
       .mockResolvedValue([{ b_lu_catalogue: "nl_265" }, { b_lu_catalogue: "nl_233" }]),
     getNmiApiKey: () => "key",
+    countFieldsOfFarms: vi.fn().mockResolvedValue({}),
     ...overrides,
   }
   return { app: createFdmApi(mockFdm, mockAuth, config, services as any), services }
@@ -291,6 +292,15 @@ describe("POST /farms/:b_id_farm/fields/import/apply", () => {
     expect(res.status).toBe(200)
     const plan = services.applyRvoImport.mock.calls[0]?.[3]
     expect(plan.fieldsToAdd).toHaveLength(1)
+  })
+
+  it("refuses an import that takes the farm over the maximum number of fields", async () => {
+    const { app, services } = setup({
+      countFieldsOfFarms: vi.fn().mockResolvedValue({ "farm-1": 500 }),
+    })
+    const res = await apply(app, { default_action: "ADD_REMOTE" })
+    expect(res.status).toBe(422)
+    expect(services.applyRvoImport).not.toHaveBeenCalled()
   })
 
   it("returns 400 for choices that do not match the schema", async () => {

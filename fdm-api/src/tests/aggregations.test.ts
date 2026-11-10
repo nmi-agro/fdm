@@ -68,6 +68,7 @@ const measureSummary = (b_id_farm: string, fieldCount: number, start: string) =>
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
   return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
     getFarmGroup: vi.fn().mockResolvedValue(group),
     getFarmIdsOfOrganization: vi.fn().mockResolvedValue(["farm-a", "farm-b", "farm-c"]),
     getNmiApiKey: () => "key",
