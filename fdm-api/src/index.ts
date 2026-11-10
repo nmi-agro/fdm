@@ -491,6 +491,7 @@ export {
   classifyError,
   createErrorHandler,
   createNotFoundHandler,
+  type ErrorLogOptions,
 } from "./error"
 export { consumeRateLimit, RATE_LIMITS, type RateBucket, type RateLimitResult } from "./rate-limit"
 export type { FileStorage } from "@nmi-agro/fdm-storage"

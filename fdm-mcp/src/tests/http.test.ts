@@ -106,6 +106,37 @@ describe("Origin check", () => {
   })
 })
 
+describe("logging", () => {
+  it("answers OAuth metadata probes with a plain 404 and does not log them", async () => {
+    // Create the app first: the MCP SDK warns once about the JSON response mode on setup.
+    const { app } = makeApp()
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    for (const path of [
+      "/.well-known/oauth-protected-resource/mcp",
+      "/.well-known/oauth-authorization-server",
+      "/mcp/.well-known/openid-configuration",
+    ]) {
+      const res = await app.request(path)
+      expect(res.status, path).toBe(404)
+    }
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it("logs other unknown paths and errors with the fdm-mcp prefix", async () => {
+    // Create the app first: the MCP SDK warns once about the JSON response mode on setup.
+    const { app } = makeApp()
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    expect((await app.request("/unknown")).status).toBe(404)
+    expect((await app.request("/mcp", { method: "POST" })).status).toBe(401)
+    expect(warn).toHaveBeenCalledTimes(2)
+    for (const [line] of warn.mock.calls) {
+      expect(String(line)).toMatch(/^\[fdm-mcp\] /)
+    }
+    warn.mockRestore()
+  })
+})
+
 describe("methods and endpoints", () => {
   it("answers GET on the MCP endpoint with 405, as a stateless server", async () => {
     const { app } = makeApp()

@@ -16,6 +16,7 @@ import { bodyLimit } from "hono/body-limit"
 import { cors } from "hono/cors"
 import type { McpAnalyticsConfig } from "./analytics"
 import type { McpServices } from "./tools/types"
+import { LOG_OPTIONS } from "./log"
 import { createMcpServer } from "./mcp-server"
 import { SERVER_VERSION } from "./version"
 
@@ -124,8 +125,13 @@ export function createFdmMcp(
   })
 
   const app = new Hono<ApiEnv>()
-  app.onError(createErrorHandler(config.appUrl))
-  app.notFound(createNotFoundHandler(config.appUrl))
+  app.onError(createErrorHandler(config.appUrl, LOG_OPTIONS))
+  const notFound = createNotFoundHandler(config.appUrl, LOG_OPTIONS)
+  app.notFound((c) =>
+    // MCP clients probe for OAuth metadata on every connection. The server has no OAuth, so
+    // answer these probes with a plain 404 and keep them out of the logs.
+    c.req.path.includes("/.well-known/") ? c.body(null, 404) : notFound(c),
+  )
 
   app.use(
     "*",
@@ -232,7 +238,7 @@ export function createFdmMcp(
 export type { McpAnalyticsConfig } from "./analytics"
 export { PRIVATE_EVENT_PROPERTIES, scrubEvent } from "./analytics"
 export { buildInstructions } from "./instructions"
-export { createMcpServer, type McpServerSetup } from "./mcp-server"
+export { createMcpServer, type McpServerSetup, serverSlug } from "./mcp-server"
 export { EXCLUDED_OPERATIONS, TOOLS, type McpTool } from "./tools"
 export type { McpServices } from "./tools/types"
 export { SERVER_VERSION } from "./version"

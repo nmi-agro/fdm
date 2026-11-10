@@ -8,6 +8,7 @@ import {
 import { classifyError } from "@nmi-agro/fdm-api"
 import { getFarm, getField } from "@nmi-agro/fdm-api/operations"
 import type { ToolContext } from "./tools/types"
+import { LOG_OPTIONS } from "./log"
 
 /** Results of resource reads may be cached briefly, only by the requesting client. */
 const CACHE_HINT = { ttlMs: 30_000, cacheScope: "private" } as const
@@ -27,7 +28,7 @@ async function readJson(
       contents: [{ uri: uri.href, mimeType: "application/json", text: JSON.stringify(record) }],
     }
   } catch (err) {
-    const { status, detail } = classifyError(err)
+    const { status, detail } = classifyError(err, LOG_OPTIONS)
     if (status === 404 || status === 403) throw new ResourceNotFoundError(uri.href)
     throw new ProtocolError(ProtocolErrorCode.InternalError, detail)
   }
