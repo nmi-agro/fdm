@@ -1,15 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertTriangle } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { FieldDeleteDialog } from "~/components/blocks/field/delete"
-import { Combobox } from "~/components/custom/combobox"
 import { Alert } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  createComboboxItems,
+} from "~/components/ui/combobox"
 import {
   Field,
   FieldLabel,
@@ -50,6 +58,15 @@ export function NewFieldsForm({
       b_bufferstrip: b_bufferstrip ?? false,
     })
   }, [formReset, b_name, b_area, b_lu_catalogue, b_bufferstrip])
+
+  const cultivationItems = useMemo(
+    () =>
+      createComboboxItems(cultivationOptions, {
+        getValue: (option) => option.value,
+        getLabel: (option) => option.label,
+      }),
+    [cultivationOptions],
+  )
 
   const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
   const currentSelection = cultivationOptions.find((c) => c.value === current_b_lu_catalogue)
@@ -92,14 +109,31 @@ export function NewFieldsForm({
                 <Controller
                   name="b_lu_catalogue"
                   render={({ field, fieldState }) => (
-                    <Field className="col-span-2 items-center gap-4">
-                      <Combobox
-                        options={cultivationOptions}
-                        form={form}
-                        name={"b_lu_catalogue"}
-                        label={"Hoofdgewas"}
-                        defaultValue={b_lu_catalogue}
-                      />
+                    <Field className="col-span-2" data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={field.name}>Hoofdgewas</FieldLabel>
+                      <FieldContent>
+                        <Combobox
+                          items={cultivationItems}
+                          value={field.value || null}
+                          onValueChange={(value) => field.onChange(value ?? "")}
+                        >
+                          <ComboboxInput
+                            id={field.name}
+                            onBlur={field.onBlur}
+                            aria-invalid={fieldState.invalid}
+                          />
+                          <ComboboxContent>
+                            <ComboboxEmpty>Geen gewassen gevonden.</ComboboxEmpty>
+                            <ComboboxList>
+                              {(item) => (
+                                <ComboboxItem key={item.value} value={item.value}>
+                                  {item.label}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      </FieldContent>
                       {currentSelection && currentSelection.availableThisYear === false && (
                         <Alert className="border-amber-200 bg-amber-50 text-amber-700">
                           <AlertTriangle className="size-4 stroke-amber-700" />
@@ -109,7 +143,6 @@ export function NewFieldsForm({
                           </p>
                         </Alert>
                       )}
-                      <Input type="hidden" {...field} />
                       <FieldError errors={[fieldState.error]} />
                     </Field>
                   )}

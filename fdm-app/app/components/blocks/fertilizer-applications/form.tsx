@@ -12,10 +12,18 @@ import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
-import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
-import { Field, FieldError, FieldLabel } from "~/components/ui/field"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  createComboboxItems,
+} from "~/components/ui/combobox"
+import { Field, FieldContent, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import {
@@ -111,6 +119,14 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         withAppAmountRange(schema ?? (isModify ? FormSchemaModify : FormSchema), options),
       ) as never,
     [schema, isModify, options],
+  )
+  const fertilizerItems = useMemo(
+    () =>
+      createComboboxItems(options, {
+        getValue: (option) => option.value,
+        getLabel: (option) => option.label,
+      }),
+    [options],
   )
   const form = useRemixForm<FieldFertilizerFormValues>({
     mode: "onTouched",
@@ -285,20 +301,41 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
             )}
           >
             <div className="flex min-w-0 flex-row align-top">
-              <div className="min-w-0 flex-1">
-                <Combobox
-                  options={options}
-                  form={form}
-                  name="p_id"
-                  label={
-                    <span>
+              <Controller
+                name="p_id"
+                render={({ field, fieldState }) => (
+                  <Field className="min-w-0 flex-1" data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>
                       Meststof
                       {requiredMarker}
-                    </span>
-                  }
-                  defaultValue={fertilizerApplication?.p_id}
-                />
-              </div>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Combobox
+                        items={fertilizerItems}
+                        value={field.value ?? null}
+                        onValueChange={(value) => field.onChange(value ?? undefined)}
+                      >
+                        <ComboboxInput
+                          id={field.name}
+                          onBlur={field.onBlur}
+                          aria-invalid={fieldState.invalid}
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>Geen meststoffen gevonden.</ComboboxEmpty>
+                          <ComboboxList>
+                            {(item) => (
+                              <ComboboxItem key={item.value} value={item.value}>
+                                {item.label}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </FieldContent>
+                    <FieldError errors={[fieldState.error]} />
+                  </Field>
+                )}
+              />
               <div className="shrink-0 grow-0 space-y-2">
                 <Label className="invisible">&nbsp;</Label>
                 <Tooltip>

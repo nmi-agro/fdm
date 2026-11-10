@@ -1,12 +1,20 @@
 import type { Feature, Polygon } from "geojson"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { Controller } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { Combobox } from "~/components/custom/combobox"
 import { Button } from "~/components/ui/button"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  createComboboxItems,
+} from "~/components/ui/combobox"
 import {
   Dialog,
   DialogContent,
@@ -49,6 +57,15 @@ export default function FieldDetailsDialog({
       b_geometry: JSON.stringify(field.geometry),
     },
   })
+
+  const cultivationItems = useMemo(
+    () =>
+      createComboboxItems(cultivationOptions, {
+        getValue: (option) => option.value,
+        getLabel: (option) => option.label,
+      }),
+    [cultivationOptions],
+  )
 
   const formIsSubmitSuccessful = form.formState.isSubmitSuccessful
   const formReset = form.reset
@@ -94,17 +111,40 @@ export default function FieldDetailsDialog({
                     </Field>
                   )}
                 />
-                <Combobox
-                  options={cultivationOptions}
+                <Controller
                   name="b_lu_catalogue"
-                  form={form}
-                  label={
-                    <span>
-                      Hoofdgewas
-                      <span className="text-red-500">*</span>
-                    </span>
-                  }
-                  disabled={form.formState.isSubmitting}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Hoofdgewas
+                        <span className="text-red-500">*</span>
+                      </FieldLabel>
+                      <FieldContent>
+                        <Combobox
+                          items={cultivationItems}
+                          value={field.value || null}
+                          onValueChange={(value) => field.onChange(value ?? "")}
+                        >
+                          <ComboboxInput
+                            id={field.name}
+                            onBlur={field.onBlur}
+                            aria-invalid={fieldState.invalid}
+                          />
+                          <ComboboxContent>
+                            <ComboboxEmpty>Geen gewassen gevonden.</ComboboxEmpty>
+                            <ComboboxList>
+                              {(item) => (
+                                <ComboboxItem key={item.value} value={item.value}>
+                                  {item.label}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
+                  )}
                 />
               </div>
               <DialogFooter>
