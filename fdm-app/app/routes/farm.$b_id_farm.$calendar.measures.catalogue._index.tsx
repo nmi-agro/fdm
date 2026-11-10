@@ -336,12 +336,12 @@ export default function MeasuresCatalogueIndex() {
                     <Link
                       to={getMeasureCataloguePath(b_id_farm ?? "", calendar ?? "", row.m_id)}
                       className={cn(
-                        "hover:bg-muted/50 focus-visible:bg-muted/50 grid gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:outline-none md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center",
+                        "hover:bg-muted/50 focus-visible:bg-muted/50 grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:outline-none md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center",
                         isInactive && "opacity-60",
                       )}
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
+                        <p className="text-sm font-medium wrap-break-word md:truncate">
                           <span className="text-muted-foreground mr-2">{row.code}</span>
                           {row.m_name}
                         </p>

@@ -70,8 +70,9 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
 
       {isCatalogue ? (
         <>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
+          {/* On a detail page the catalogue crumb only shows on wider screens, like "Maatregelen" */}
+          <BreadcrumbSeparator className={m_id ? "hidden md:block" : undefined} />
+          <BreadcrumbItem className={m_id ? "hidden md:block" : undefined}>
             {m_id ? (
               <BreadcrumbLink asChild>
                 <Link to={cataloguePath}>Catalogus</Link>
@@ -84,7 +85,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
             <>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="max-w-40 truncate sm:max-w-60 md:max-w-none">
+                <BreadcrumbPage className="max-w-32 truncate sm:max-w-60 md:max-w-none">
                   {measureName}
                 </BreadcrumbPage>
               </BreadcrumbItem>

@@ -169,6 +169,7 @@ export default function MeasureCatalogueDetail() {
     <>
       <FarmTitle
         title={measure.m_name}
+        wrapTitle
         description=""
         descriptionNode={
           <p className="text-muted-foreground">
@@ -200,8 +201,8 @@ export default function MeasureCatalogueDetail() {
             </div>
           )}
 
-          <div className="grid gap-6 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="min-w-0 space-y-6 xl:col-span-2">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Beschrijving</CardTitle>
@@ -224,7 +225,7 @@ export default function MeasureCatalogueDetail() {
               />
             </div>
 
-            <Card className="h-fit">
+            <Card className="h-fit min-w-0">
               <CardHeader>
                 <CardTitle className="text-base">Kenmerken</CardTitle>
               </CardHeader>
@@ -289,7 +290,7 @@ export default function MeasureCatalogueDetail() {
             </Card>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 [&>*]:min-w-0">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Impact op indicatoren</CardTitle>
@@ -312,15 +313,19 @@ export default function MeasureCatalogueDetail() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Indicator</TableHead>
-                          <TableHead>Thema</TableHead>
+                          <TableHead className="hidden sm:table-cell">Thema</TableHead>
                           <TableHead className="text-right">Effectgrootte</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {indicators.map((indicator) => (
                           <TableRow key={indicator.id}>
-                            <TableCell className="font-medium">{indicator.name}</TableCell>
-                            <TableCell>{indicator.ecosysteemdienst ?? "—"}</TableCell>
+                            <TableCell className="font-medium whitespace-normal">
+                              {indicator.name}
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              {indicator.ecosysteemdienst ?? "—"}
+                            </TableCell>
                             <TableCell className="text-right tabular-nums">
                               {formatEffectRange(indicator.effectRange)}
                             </TableCell>
@@ -470,22 +475,27 @@ function FieldsCard({
             {visible.length === 0 ? (
               <p className="text-sm">Geen percelen met deze status.</p>
             ) : (
-              <ul className="max-h-[14.5rem] divide-y overflow-y-auto rounded-md border">
+              <ul className="max-h-[17rem] divide-y sm:max-h-[14.5rem] overflow-y-auto rounded-md border">
                 {visible.map((field) => (
                   <li key={`${field.b_id}-${field.status}`}>
                     <Link
                       to={`${basePath}/${field.b_id}`}
-                      className="hover:bg-muted/50 flex h-11 items-center gap-3 px-3 text-sm transition-colors"
+                      className="hover:bg-muted/50 flex items-center gap-3 px-3 py-2 text-sm transition-colors sm:min-h-11 sm:py-0"
                     >
-                      <span className="min-w-0 flex-1 truncate font-medium">
-                        {field.b_name ?? field.b_id}
-                      </span>
-                      {field.status === "applied" && (
-                        <span className="hidden shrink-0 sm:inline">
-                          {formatPeriod(field.m_start, field.m_end)}
+                      {/* Narrow screens: name on its own line, status and period below it */}
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                        <span className="min-w-0 font-medium wrap-break-word sm:flex-1 sm:truncate">
+                          {field.b_name ?? field.b_id}
                         </span>
-                      )}
-                      <MeasureStatusLabel status={field.status} className="w-28 shrink-0" />
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 sm:shrink-0 sm:flex-nowrap">
+                          {field.status === "applied" && (
+                            <span>
+                              {formatPeriod(field.m_start, field.m_end)}
+                            </span>
+                          )}
+                          <MeasureStatusLabel status={field.status} className="sm:w-28" />
+                        </div>
+                      </div>
                       <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
                     </Link>
                   </li>
