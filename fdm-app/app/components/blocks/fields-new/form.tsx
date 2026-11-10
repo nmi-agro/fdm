@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertTriangle } from "lucide-react"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -29,6 +29,14 @@ import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { FormSchema } from "./schema"
 
+/**
+ * Renders the details form of a new field: name, area (read-only), main crop and buffer strip.
+ *
+ * The form is reset when the given field values change, for example when another field is selected.
+ *
+ * @param props - The field values, the cultivation options and the year they apply to.
+ * @returns The form card element.
+ */
 export function NewFieldsForm({
   b_id,
   b_name,
@@ -70,6 +78,10 @@ export function NewFieldsForm({
 
   const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
   const currentSelection = cultivationOptions.find((c) => c.value === current_b_lu_catalogue)
+  // The main crop cannot be cleared. The input text is controlled so it can be restored to the
+  // selected crop when the user leaves it empty.
+  const selectedCultivationLabel = currentSelection?.label ?? ""
+  const [cultivationInputValue, setCultivationInputValue] = useState(selectedCultivationLabel)
 
   return (
     <RemixFormProvider {...form}>
@@ -115,7 +127,10 @@ export function NewFieldsForm({
                         <Combobox
                           items={cultivationItems}
                           value={field.value || null}
+                          inputValue={cultivationInputValue}
+                          onInputValueChange={setCultivationInputValue}
                           onValueChange={(value) => {
+                            // A clear request (null) keeps the selected crop
                             if (typeof value === "string") {
                               field.onChange(value)
                             }
@@ -123,7 +138,12 @@ export function NewFieldsForm({
                         >
                           <ComboboxInput
                             id={field.name}
-                            onBlur={field.onBlur}
+                            onBlur={() => {
+                              if (cultivationInputValue.trim() === "") {
+                                setCultivationInputValue(selectedCultivationLabel)
+                              }
+                              field.onBlur()
+                            }}
                             aria-invalid={fieldState.invalid}
                           />
                           <ComboboxContent>

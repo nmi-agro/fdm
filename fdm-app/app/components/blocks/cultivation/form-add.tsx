@@ -28,6 +28,14 @@ import type { CultivationsFormProps } from "./types"
 import { CultivationAvailabilityWarning } from "./availability-warning"
 import { CultivationAddFormSchema } from "./schema"
 
+/**
+ * Renders a dialog with a trigger button that holds the {@link CultivationAddForm}.
+ *
+ * The dialog opens right away when `defaultValues` are given, to confirm a suggested cultivation.
+ *
+ * @param props - The form props, plus `onClose`, which is called when the dialog closes.
+ * @returns The dialog element.
+ */
 export function CultivationAddFormDialog({
   options,
   lastCultivationAvailabilityYear,
@@ -64,6 +72,14 @@ export function CultivationAddFormDialog({
   )
 }
 
+/**
+ * Renders the form to add a cultivation, or to confirm a suggested one, with the crop, the sowing
+ * date and the end date.
+ *
+ * @param props - The form props, plus `editable` (default `true`), `onSuccess`, which is called
+ *   after a successful submission, and `action`, the route to submit to.
+ * @returns The form element.
+ */
 export function CultivationAddForm({
   options,
   lastCultivationAvailabilityYear,
@@ -136,7 +152,9 @@ export function CultivationAddForm({
                     <Combobox
                       items={cultivationItems}
                       value={field.value || null}
-                      onValueChange={(value) => field.onChange(value ?? undefined)}
+                      // Clear to "" rather than undefined: the Controller shows the default
+                      // (suggested) crop again for undefined, while the form value is empty.
+                      onValueChange={(value) => field.onChange(value ?? "")}
                       disabled={!!b_lu}
                     >
                       <ComboboxInput

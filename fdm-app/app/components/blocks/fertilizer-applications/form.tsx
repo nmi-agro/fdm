@@ -312,7 +312,9 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                     <FieldContent>
                       <Combobox
                         items={fertilizerItems}
-                        value={field.value ?? null}
+                        // Use the watched value: for undefined (cleared), the Controller returns
+                        // the initial fertilizer, which would show it again while none is chosen.
+                        value={p_id ?? null}
                         onValueChange={(value) => field.onChange(value ?? undefined)}
                       >
                         <ComboboxInput
