@@ -1,3 +1,4 @@
+import type * as core from "@nmi-agro/fdm-core"
 import { type FdmType, fdmSchema } from "@nmi-agro/fdm-core"
 import { count, inArray } from "drizzle-orm"
 import { ApiError } from "./error"
@@ -49,25 +50,48 @@ export const countFieldsOfFarms: CountFieldsOfFarms = async (fdm, b_id_farms) =>
 export interface LimitServices {
   /** Counts the fields of farms, to enforce the maximum farm size. */
   countFieldsOfFarms: CountFieldsOfFarms
+  /** Checks that the principal may read a farm before a limit error describes it. */
+  getFarm: typeof core.getFarm
+}
+
+/**
+ * Makes sure the principal may read the farm before a limit error describes it, so a principal
+ * without access gets the usual 403 or 404 and learns nothing about the size of the farm.
+ */
+async function assertFarmReadable(
+  fdm: FdmType,
+  services: LimitServices,
+  principal_id: string,
+  b_id_farm: string,
+): Promise<void> {
+  const farm = await services.getFarm(fdm, principal_id, b_id_farm)
+  if (!farm) {
+    throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
+  }
 }
 
 /**
  * Refuses farm-level reads and calculations for farms larger than the supported size.
  *
  * @param fdm - Database to query.
- * @param services - Provides `countFieldsOfFarms`.
+ * @param services - Provides `countFieldsOfFarms` and `getFarm`.
+ * @param principal_id - The principal that runs the operation.
  * @param b_id_farms - The farm or farms the operation covers.
  * @throws {ApiError} 422 `unprocessable-entity` when a farm has more fields than {@link USAGE_LIMITS}.maxFieldsPerFarm.
+ * The principal's access to that farm is checked first, so without access the error is the usual
+ * 403 or 404.
  */
 export async function assertFarmSizeSupported(
   fdm: FdmType,
   services: LimitServices,
+  principal_id: string,
   b_id_farms: string | string[],
 ): Promise<void> {
   const ids = Array.isArray(b_id_farms) ? b_id_farms : [b_id_farms]
   const counts = await services.countFieldsOfFarms(fdm, ids)
   const tooLarge = ids.find((id) => (counts[id] ?? 0) > USAGE_LIMITS.maxFieldsPerFarm)
   if (tooLarge) {
+    await assertFarmReadable(fdm, services, principal_id, tooLarge)
     throw new ApiError(
       422,
       "unprocessable-entity",
@@ -77,27 +101,35 @@ export async function assertFarmSizeSupported(
 }
 
 /**
- * Refuses new fields that would take a farm over the supported size.
+ * Refuses a change that adds fields when the farm would end up larger than the supported size.
  *
  * @param fdm - Database to query.
- * @param services - Provides `countFieldsOfFarms`.
+ * @param services - Provides `countFieldsOfFarms` and `getFarm`.
+ * @param principal_id - The principal that adds the fields.
  * @param b_id_farm - The farm that receives the fields.
- * @param adding - Number of fields to add.
+ * @param netChange - Change in the number of fields: the fields added minus the fields removed.
+ * It can be zero or negative when the change also removes fields. A farm that is already too
+ * large still refuses such a change, unless the change brings it back within the limit.
  * @throws {ApiError} 422 `unprocessable-entity` when the farm would have more fields than {@link USAGE_LIMITS}.maxFieldsPerFarm.
+ * The principal's access to the farm is checked first, so without access the error is the usual
+ * 403 or 404.
  */
 export async function assertFieldCapacity(
   fdm: FdmType,
   services: LimitServices,
+  principal_id: string,
   b_id_farm: string,
-  adding: number,
+  netChange: number,
 ): Promise<void> {
   const counts = await services.countFieldsOfFarms(fdm, [b_id_farm])
   const current = counts[b_id_farm] ?? 0
-  if (current + adding > USAGE_LIMITS.maxFieldsPerFarm) {
+  const resulting = current + netChange
+  if (resulting > USAGE_LIMITS.maxFieldsPerFarm) {
+    await assertFarmReadable(fdm, services, principal_id, b_id_farm)
     throw new ApiError(
       422,
       "unprocessable-entity",
-      `A farm can have at most ${USAGE_LIMITS.maxFieldsPerFarm} fields through the API. Farm '${b_id_farm}' has ${current}, so ${adding} more cannot be added.`,
+      `A farm can have at most ${USAGE_LIMITS.maxFieldsPerFarm} fields through the API. Farm '${b_id_farm}' has ${current}, and would have ${resulting} after this change.`,
     )
   }
 }

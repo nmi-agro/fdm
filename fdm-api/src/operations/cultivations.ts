@@ -210,7 +210,7 @@ export const listFarmCultivations = defineOperation({
     { fdm, services, principal }: OperationContext<CultivationServices>,
     { b_id_farm },
   ) => {
-    await assertFarmSizeSupported(fdm, services, b_id_farm)
+    await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const cultivationsByField = await services.getCultivationsForFarm(
       fdm,
       principal.effectivePrincipalId,
