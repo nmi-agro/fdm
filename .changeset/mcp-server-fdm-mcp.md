@@ -1,0 +1,5 @@
+---
+"@nmi-agro/fdm-mcp": minor
+---
+
+New package: a Model Context Protocol (MCP) server for AI assistants, run as its own service. It serves stateless Streamable HTTP at `/mcp`, authenticates with the same API keys as the REST API (`X-API-Key` or `Authorization: Bearer`, with a `WWW-Authenticate` challenge on 401), records changes in the audit log with channel `mcp`, and shares the per-key rate limits of the REST API. Tools run the fdm-api operations, with annotations, output schemas, cursor paging and errors the model can act on. It also offers resource templates for farms and fields, server instructions, and optional PostHog MCP analytics that never send tool arguments, results or error messages. This release has the farm and field tools.

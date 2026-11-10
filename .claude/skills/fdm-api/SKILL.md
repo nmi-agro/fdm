@@ -16,7 +16,7 @@ license: MIT
 | Command | Do this |
 |---|---|
 | `explain [topic]` | Answer from this skill; link to `fdm-docs/docs/rest-api/` for the published contract. |
-| `add-endpoint` | Schemas and operation in `src/operations/<resource>.ts` → `createRoute` with `operationId` → thin handler → `app.openapi(...)` → tests. |
+| `add-endpoint` | Schemas and operation in `src/operations/<resource>.ts` → `createRoute` with `operationId` → thin handler → `app.openapi(...)` → tests → MCP tool or exclusion in fdm-mcp. |
 | `add-resource` | New `src/operations/<resource>.ts` and `src/routes/<resource>.ts`, export the operations from `src/operations/index.ts`, extend `FdmApiServices` and `defaultServices`, register in `app.ts`, add an OpenAPI tag, add tests. |
 | `review [diff]` | Check the Conventions and Anti-patterns sections, especially error shape and services injection. |
 | `test` | `cd fdm-api && pnpm test` (no database required — services are mocked). |
@@ -215,9 +215,10 @@ Run with `cd fdm-api && pnpm test`.
 3. Extend `FdmApiServices` and `defaultServices` in `index.ts` with the required core functions.
 4. Register the routes in `buildApp` and add the OpenAPI tag in `app.ts`.
 5. Add `src/tests/<resource>.test.ts`.
-6. Update `fdm-docs/docs/rest-api/06-endpoints.md`.
-7. `pnpm test` and `pnpm check-types` in `fdm-api`.
-8. `pnpm changeset` — every package in the monorepo is versioned, including private ones.
+6. Make every new operation available in the MCP server: a tool in `fdm-mcp/src/tools`, or an `EXCLUDED_OPERATIONS` entry with a reason (see the `fdm-mcp` skill). The fdm-mcp parity test fails otherwise.
+7. Update `fdm-docs/docs/rest-api/06-endpoints.md`.
+8. `pnpm test` and `pnpm check-types` in `fdm-api`, and `pnpm test` in `fdm-mcp`.
+9. `pnpm changeset` — every package in the monorepo is versioned, including private ones.
 
 ## Anti-patterns
 

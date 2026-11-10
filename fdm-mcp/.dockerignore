@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+.pnpm-store
+pnpm-debug.log*
+
+# Build outputs
+dist
+*.tsbuildinfo
+.turbo
+
+# Environment files
+.env
+!.env.example
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Test files
+coverage
+src/tests
+*.test.ts
+*.spec.ts
+vitest.config.*
+
+# Documentation
+README.md
+LICENSE
+
+# Development configs (keep tsdown.config.ts for build)
+tsconfig.tsbuildinfo

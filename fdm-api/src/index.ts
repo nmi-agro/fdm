@@ -485,7 +485,13 @@ export function createFdmApi(
 
 export type { ApiEnv, ApiPrincipalContext } from "./types"
 export { type ApiKeyAuthOptions, createApiKeyAuth } from "./auth"
-export { ApiError, type ClassifiedError, classifyError } from "./error"
+export {
+  ApiError,
+  type ClassifiedError,
+  classifyError,
+  createErrorHandler,
+  createNotFoundHandler,
+} from "./error"
 export { consumeRateLimit, RATE_LIMITS, type RateBucket, type RateLimitResult } from "./rate-limit"
 export type { FileStorage } from "@nmi-agro/fdm-storage"
 export type { ReportBranding } from "@nmi-agro/fdm-reports"

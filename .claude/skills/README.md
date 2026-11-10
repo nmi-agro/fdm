@@ -10,6 +10,7 @@ FDM knowledge is split into narrowly-scoped skills, each owning exactly one doma
 |---|---|---|
 | `fdm-schema` | Database schema and data model: the Asset–Action model, column/table naming, schema-change workflow, schema-level authorization, schema anti-patterns | available |
 | `fdm-api` | The REST layer in `fdm-api`: Hono + zod-openapi route definitions, the injectable services pattern, RFC 9457 problem details, pagination, API-key auth, API tests | available |
+| `fdm-mcp` | The MCP server in `fdm-mcp`: tools on top of the fdm-api operations, the rule that every operation is a tool or a reasoned exclusion, tool descriptions and annotations, errors, rate limits, PostHog MCP analytics, MCP tests | available |
 | `fdm-app-conventions` | `fdm-app` mechanics: React Router v8 framework mode, flat file routing, loaders and actions, the `.server.ts`/`.client.ts` boundary, error helpers, Zustand stores, component placement | available |
 | `fdm-user-guide-sync` | Keeping the fdm-app user guide (`/manual`) in step with code changes: affected chapters from the drift script, label updates, the weekly sync routine, preparing the background-page review for a release | available |
 | `fdm-core-api` | `fdm-core` function patterns: `fn(fdm, principal_id, …)` signatures, transactions, `handleError`, colocated types and tests | planned |
