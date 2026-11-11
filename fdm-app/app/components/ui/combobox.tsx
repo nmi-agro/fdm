@@ -54,7 +54,7 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
 function ComboboxInput({
   className,
   children,
-  disabled = false,
+  disabled,
   showTrigger = true,
   showClear = false,
   ...props
@@ -64,8 +64,11 @@ function ComboboxInput({
 }) {
   return (
     <InputGroup className={cn("w-auto", className)}>
+      {/* `disabled` goes on the Base UI part, not on the render element: props on the render
+          element take precedence and would override a `disabled` set on the Combobox root. */}
       <ComboboxPrimitive.Input
-        render={<InputGroupInput disabled={disabled} />}
+        render={<InputGroupInput />}
+        disabled={disabled}
         placeholder="Begin met typen..."
         {...props}
       />
