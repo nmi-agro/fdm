@@ -1,4 +1,4 @@
-import { useId, useMemo } from "react"
+import { useId, useMemo, useState } from "react"
 import type { ScenarioFertilizerOption } from "~/lib/mineralization"
 import {
   Combobox,
@@ -37,6 +37,19 @@ export function FertilizerField({
     [options],
   )
 
+  const selectedLabel = useMemo(() => {
+    const selected = options.find((option) => option.p_id === value)
+    return selected ? (selected.p_name_nl ?? selected.p_id) : ""
+  }, [options, value])
+  const [inputValue, setInputValue] = useState(selectedLabel)
+
+  // Keep the input in step with the selection when it changes from outside.
+  const [syncedLabel, setSyncedLabel] = useState(selectedLabel)
+  if (syncedLabel !== selectedLabel) {
+    setSyncedLabel(selectedLabel)
+    setInputValue(selectedLabel)
+  }
+
   return (
     <Field className="gap-1">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -44,8 +57,15 @@ export function FertilizerField({
         <Combobox
           items={items}
           value={value || null}
+          inputValue={inputValue}
+          onInputValueChange={setInputValue}
+          onOpenChange={(open) => {
+            // A cleared or partially typed query must not outlive the popup: the selection is kept.
+            if (!open) setInputValue(selectedLabel)
+          }}
           onValueChange={(next) => {
             if (next && next !== value) onChange(next)
+            else if (!next) setInputValue(selectedLabel)
           }}
         >
           <ComboboxInput id={id} />

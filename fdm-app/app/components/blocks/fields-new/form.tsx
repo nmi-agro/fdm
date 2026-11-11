@@ -79,19 +79,15 @@ export function NewFieldsForm({
   const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
   const currentSelection = cultivationOptions.find((c) => c.value === current_b_lu_catalogue)
   // The main crop cannot be cleared. The input text is controlled so it can be restored to the
-  // selected crop when the user leaves it empty.
+  // selected crop when the list closes or a clear is requested.
   const selectedCultivationLabel = currentSelection?.label ?? ""
   const [cultivationInputValue, setCultivationInputValue] = useState(selectedCultivationLabel)
 
-  // Reset the input text only when another field is selected.
-  // No need to update syncedFieldId on keyboard input, since the form value is only updated
-  // on blur so setting the state again won't interfere with user actions.
-  const [syncedFieldId, setSyncedFieldId] = useState(b_id)
-  if (syncedFieldId !== b_id) {
-    setSyncedFieldId(b_id)
-    setCultivationInputValue(
-      cultivationOptions.find((c) => c.value === b_lu_catalogue)?.label ?? "",
-    )
+  // Keep the input in step with the selection when it changes from outside (another field, reset).
+  const [syncedLabel, setSyncedLabel] = useState(selectedCultivationLabel)
+  if (syncedLabel !== selectedCultivationLabel) {
+    setSyncedLabel(selectedCultivationLabel)
+    setCultivationInputValue(selectedCultivationLabel)
   }
 
   return (
@@ -140,21 +136,22 @@ export function NewFieldsForm({
                           value={field.value || null}
                           inputValue={cultivationInputValue}
                           onInputValueChange={setCultivationInputValue}
+                          onOpenChange={(open) => {
+                            // A cleared or partially typed query must not outlive the popup.
+                            if (!open) setCultivationInputValue(selectedCultivationLabel)
+                          }}
                           onValueChange={(value) => {
-                            // A clear request (null) keeps the selected crop
                             if (typeof value === "string") {
-                              field.onChange(value)
+                              if (value !== field.value) field.onChange(value)
+                            } else {
+                              // A clear request (null) keeps the selected crop
+                              setCultivationInputValue(selectedCultivationLabel)
                             }
                           }}
                         >
                           <ComboboxInput
                             id={field.name}
-                            onBlur={() => {
-                              if (cultivationInputValue.trim() === "") {
-                                setCultivationInputValue(selectedCultivationLabel)
-                              }
-                              field.onBlur()
-                            }}
+                            onBlur={field.onBlur}
                             aria-invalid={fieldState.invalid}
                           />
                           <ComboboxContent>
