@@ -272,8 +272,8 @@ export function FieldsPanelSelection({
           )
 
           setPanel(
-            <Card className="flex min-h-0 w-full flex-initial flex-col gap-4">
-              <CardHeader className="pb-0">
+            <Card className="flex min-h-0 w-full flex-initial flex-col">
+              <CardHeader>
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>{fieldCountText}</CardDescription>
               </CardHeader>

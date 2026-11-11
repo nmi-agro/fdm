@@ -62,7 +62,7 @@ export function TicketComposer({
         onSubmit={form.handleSubmit}
       >
         <Card>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <Controller
               name="context_farm_id"
               render={({ field, fieldState }) => (

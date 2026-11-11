@@ -52,13 +52,13 @@ export function FieldDashboardTile({
         className,
       )}
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
         <CardTitle className="text-base">{title}</CardTitle>
         {statusBadge ? <div className="shrink-0">{statusBadge}</div> : null}
       </CardHeader>
       <CardContent className={cn("space-y-4", contentClassName)}>{children}</CardContent>
       {footer && detailHref ? (
-        <CardFooter className="border-t pt-4">
+        <CardFooter className="border-t">
           <Link
             to={detailHref}
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"

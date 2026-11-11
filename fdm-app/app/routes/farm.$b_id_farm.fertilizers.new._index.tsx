@@ -111,7 +111,7 @@ export default function NewFertilizerIndexPage() {
                   </p>
                 </div>
 
-                <Card className="bg-muted/20 hover:bg-muted/30 group flex flex-col items-center justify-center border-2 border-dashed p-10 transition-colors">
+                <Card className="bg-muted/20 hover:bg-muted/30 group flex flex-col items-center justify-center gap-0 border-2 border-dashed p-10 transition-colors">
                   <div className="bg-background mb-6 flex h-16 w-16 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-110">
                     <Plus className="text-primary h-8 w-8" />
                   </div>
@@ -145,7 +145,7 @@ export default function NewFertilizerIndexPage() {
                   </p>
                 </div>
 
-                <Card className="overflow-hidden border-2 shadow-sm">
+                <Card className="overflow-hidden border-2 py-0 shadow-sm">
                   <Command className="border-none" shouldFilter={false}>
                     <CommandInput
                       aria-label="Zoek meststof in catalogus"

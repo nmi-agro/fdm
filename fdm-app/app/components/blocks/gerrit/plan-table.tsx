@@ -148,8 +148,8 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
   })
 
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+    <Card className="pb-0 shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div className="space-y-1.5">
           <CardTitle className="text-lg">Voorgesteld bemestingsplan</CardTitle>
           <CardDescription>

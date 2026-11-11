@@ -41,7 +41,7 @@ export function CarbonSequestrationCard({
 
   return (
     <Card>
-      <CardHeader className="pb-4">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             Koolstofvastlegging

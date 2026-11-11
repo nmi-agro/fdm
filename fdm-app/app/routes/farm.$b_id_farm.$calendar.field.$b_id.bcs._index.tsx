@@ -179,7 +179,7 @@ export default function FieldBcsOverviewRoute() {
 
             return (
               <Card key={analysis.a_id}>
-                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <Link to={`./${analysis.a_id}`} className="block flex-1 rounded-lg p-1">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>

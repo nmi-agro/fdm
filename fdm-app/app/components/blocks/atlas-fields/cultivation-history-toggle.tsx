@@ -61,7 +61,7 @@ export function CultivationHistoryToggle({
 
   return (
     <Card className="col-span-1 overflow-hidden lg:row-span-2">
-      <CardHeader className="pb-4">
+      <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-xl font-bold">Gewashistorie</CardTitle>
           <TooltipProvider>
@@ -85,7 +85,7 @@ export function CultivationHistoryToggle({
             </Tooltip>
           </TooltipProvider>
         </div>
-        <CardDescription className="mt-1">
+        <CardDescription>
           {view === "simple"
             ? "Gewassen zoals geregistreerd in de BRP."
             : "Uitgebreide gewashistorie zoals in de BRP."}
@@ -108,7 +108,7 @@ export function CultivationHistoryToggle({
 
       <Separator className="opacity-50" />
 
-      <CardContent className="pt-6 text-sm">
+      <CardContent className="text-sm">
         {view === "simple" ? (
           <CultivationHistoryTimeline cultivationHistory={cultivationHistory} />
         ) : (

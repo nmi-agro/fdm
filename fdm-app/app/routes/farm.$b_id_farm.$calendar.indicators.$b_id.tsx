@@ -717,7 +717,7 @@ export default function IndicatorsFieldDetail() {
                 <div className="flex flex-col gap-4">
                   {fieldScore && (
                     <Card className="border-border shadow-sm">
-                      <CardHeader className="pb-3">
+                      <CardHeader>
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>

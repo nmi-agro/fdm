@@ -814,7 +814,7 @@ export default function GerritApp() {
                   toggleRow={toggleRow}
                 />
               ) : (
-                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center border-dashed p-12 text-center">
+                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center gap-0 border-dashed p-12 text-center">
                   <div className="bg-primary/10 mb-6 rounded-full p-6">
                     <Bot className="text-primary h-12 w-12 opacity-80" />
                   </div>

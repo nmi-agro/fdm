@@ -498,8 +498,8 @@ export function NitrogenBalanceChart(
             const itemConfig = chartConfig[name]
             if (!itemConfig) return null
             return (
-              <Card>
-                <CardHeader className="p-4 pb-0">
+              <Card size="sm">
+                <CardHeader>
                   <div>
                     <div
                       className="me-2 inline-block h-2 w-2 rounded-[2px]"
@@ -518,7 +518,7 @@ export function NitrogenBalanceChart(
                     </div>
                   ))}
                 </CardHeader>
-                <CardContent className="p-4">
+                <CardContent>
                   <div className="font-bold">
                     <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
                     {chartData[name]} {itemConfig.unit ?? "kg N / ha"}

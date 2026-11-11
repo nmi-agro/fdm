@@ -93,7 +93,7 @@ function ScoreLegendBar({
  */
 export function ScoreLegend({ label, showSelectedFieldSwatch }: ScoreLegendProps) {
   return (
-    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+    <Card className="pointer-events-none max-w-[200px] gap-0 p-2 text-xs shadow-sm">
       {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
       <div className="mb-5 flex h-2.5 w-full gap-px px-1.5">
         <ScoreLegendBar size={0} marker={0} color="#ef4444" />
@@ -120,7 +120,7 @@ export function MeasureCountLegend({
   showSelectedFieldSwatch?: boolean
 }) {
   return (
-    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+    <Card className="pointer-events-none max-w-[200px] gap-0 p-2 text-xs shadow-sm">
       <p className="text-foreground mb-1.5 font-medium">Maatregelen</p>
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
@@ -162,7 +162,7 @@ export function ElevationLegend({
 }: ElevationLegendProps) {
   return (
     <div className="w-40">
-      <Card className="shadow-xs">
+      <Card className="py-0 shadow-xs">
         <CardContent className="p-3">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -248,7 +248,7 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
   const title = parameterDescription ? `${parameterDescription.name}${unitDisplay}` : undefined
 
   return (
-    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4 shadow-xs">
+    <Card className="min-h-0 flex-initial gap-0 space-y-2 overflow-y-auto p-4 shadow-xs">
       <CardHeader className="p-0">
         <CardTitle className="text-muted-foreground text-center text-xs">{title}</CardTitle>
       </CardHeader>
@@ -573,7 +573,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
   // their header has no toggle.
   const staticHeader = renderHeader(false)
   const cardClassName =
-    "min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial space-y-3 overflow-y-auto p-3 shadow-xs md:p-4"
+    "min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial gap-0 space-y-3 overflow-y-auto p-3 shadow-xs md:p-4"
 
   // A failed load gets its own message and retry button instead of a legend that would suggest
   // the fields have no advice.

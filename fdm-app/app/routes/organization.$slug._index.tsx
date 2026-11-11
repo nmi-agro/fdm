@@ -315,7 +315,7 @@ export default function AppIndex() {
                   </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="space-y-4 pt-6">
+                  <CardContent className="space-y-4">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/50 space-y-1 rounded-lg p-3">
@@ -383,7 +383,7 @@ export default function AppIndex() {
                   </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     {loaderData.groups.length === 0 ? (
                       <p className="text-muted-foreground text-sm">
                         Deze organisatie heeft nog geen groepen.
@@ -433,7 +433,7 @@ export default function AppIndex() {
                   </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     <div className="space-y-1">
                       <div className="grid gap-6">
                         {loaderData.members.map((member) => {

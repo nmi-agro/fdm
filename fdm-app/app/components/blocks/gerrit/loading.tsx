@@ -238,7 +238,7 @@ export function GerritLoading({
   const elapsedStr = elapsed >= 60 ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s` : `${elapsed}s`
 
   return (
-    <Card className="flex flex-col shadow-sm">
+    <Card className="flex flex-col gap-0 pb-0 shadow-sm">
       <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center justify-between text-base font-semibold">
           <span className="flex items-center gap-2">

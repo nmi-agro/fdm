@@ -700,7 +700,7 @@ export function ImpactSummaryCard({
 
   return (
     <Card>
-      <CardContent className="@container/impact pt-6">
+      <CardContent className="@container/impact">
         <div className="grid gap-8 @3xl/impact:grid-cols-2 @5xl/impact:grid-cols-3">
           <FarmNormsImpact
             detailHref={showField ? `${base}/norms/${normsField}` : `${base}/norms`}

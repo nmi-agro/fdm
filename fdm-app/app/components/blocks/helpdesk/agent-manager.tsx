@@ -76,7 +76,7 @@ export function HelpdeskAgentManager({
           <AddAgentForm helpdeskUsers={helpdeskUsers} roles={roles} />
         </CardHeader>
       )}
-      <CardContent className="space-y-4 first:pt-6">
+      <CardContent className="space-y-4">
         <Field orientation="horizontal">
           <Switch
             id={onlyActiveId}

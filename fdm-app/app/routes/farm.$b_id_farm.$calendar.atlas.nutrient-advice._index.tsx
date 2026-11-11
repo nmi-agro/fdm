@@ -305,7 +305,7 @@ export default function FarmAtlasNutrientAdviceBlock() {
       {/* Nutrient selector + display mode (top left, like the soil parameter dropdown). On a phone it
           spans the width, leaving room for the map controls on the right; on touch screens the
           controls grow to a 40 px target. */}
-      <Card className="absolute top-3 right-14 left-3 z-10 shadow-md md:right-auto md:w-72">
+      <Card className="absolute top-3 right-14 left-3 z-10 py-0 shadow-md md:right-auto md:w-72">
         <CardContent className="flex flex-col gap-2 p-2">
           <Select
             value={nutrient}

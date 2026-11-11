@@ -509,7 +509,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         />
       </Atlas>
       {/* Soil Parameter Dropdown */}
-      <Card className="absolute top-3 left-3 z-10 w-52 shadow-md">
+      <Card className="absolute top-3 left-3 z-10 w-52 py-0 shadow-md">
         <CardContent className="p-2">
           <Select
             value={selectedParameter}

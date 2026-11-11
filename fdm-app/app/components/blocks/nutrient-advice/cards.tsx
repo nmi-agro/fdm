@@ -58,7 +58,7 @@ export function NutrientCard({
 
   return (
     <Card className="relative">
-      <CardHeader className="pb-2">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-muted rounded-md p-2">{description.symbol}</div>

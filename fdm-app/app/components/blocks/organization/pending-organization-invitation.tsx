@@ -38,7 +38,7 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="pb-2">
+      <CardHeader>
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
             <Bell className="h-5 w-5" />
@@ -51,7 +51,7 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="text-muted-foreground grow py-2 text-sm">
+      <CardContent className="text-muted-foreground grow text-sm">
         Je hebt een uitnodiging ontvangen voor toegang tot organisatie {organizationLabel} als{" "}
         {getOrganizationRoleLabel(invitation.role)}. Je kunt deze uitnodiging accepteren of
         weigeren.
@@ -60,7 +60,7 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
           <span>Verloopt {expiresText}</span>
         </div>
       </CardContent>
-      <CardFooter className="flex gap-2 pt-2">
+      <CardFooter className="flex gap-2">
         <Form method="post" className="flex-1">
           <input type="hidden" name="intent" value="accept_organization_invitation" />
           <input type="hidden" name="invitation_id" value={invitation.id} />

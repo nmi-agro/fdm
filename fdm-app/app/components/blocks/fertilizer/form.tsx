@@ -123,7 +123,7 @@ export function FertilizerForm({
             ) : param.type === "enum" ? (
               <Select
                 onValueChange={field.onChange}
-                value={field.value ? String(field.value) : undefined}
+                value={field.value ? String(field.value) : null}
                 items={param.options?.map((option) => ({
                   value: option.value ?? "",
                   label:
@@ -297,7 +297,7 @@ export function FertilizerForm({
             const isGeneral = category.name === "general"
             return (
               <Card key={category.name} className="shadow-sm">
-                <CardHeader className="pb-4">
+                <CardHeader>
                   <CardTitle className="text-lg font-bold">{category.title}</CardTitle>
                 </CardHeader>
                 <CardContent>

@@ -837,7 +837,7 @@ export default function SignIn() {
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* 1. Rotatie (Wide Top-Left) */}
-                <Card className="bg-background flex flex-col overflow-hidden border-none shadow-sm transition-all hover:shadow-md lg:col-span-2">
+                <Card className="bg-background flex flex-col gap-0 overflow-hidden border-none py-0 shadow-sm transition-all hover:shadow-md lg:col-span-2">
                   <div className="p-6">
                     <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
                       <Sprout className="h-6 w-6" />
@@ -864,7 +864,7 @@ export default function SignIn() {
                                                         Explicit grid placement handles Desktop. */}
 
                 {/* 2. Elevation (Wide Middle-Left) */}
-                <Card className="bg-background flex flex-col border-none shadow-sm transition-all hover:shadow-md lg:col-span-2">
+                <Card className="bg-background flex flex-col border-none pb-0 shadow-sm transition-all hover:shadow-md lg:col-span-2">
                   <CardHeader>
                     <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
                       <Mountain className="h-6 w-6" />
@@ -884,7 +884,7 @@ export default function SignIn() {
                 </Card>
 
                 {/* 3. History (Tall Right) */}
-                <Card className="bg-background flex flex-col overflow-hidden border-none shadow-sm transition-all hover:shadow-md lg:col-start-3 lg:row-span-2 lg:row-start-1">
+                <Card className="bg-background flex flex-col overflow-hidden border-none pb-0 shadow-sm transition-all hover:shadow-md lg:col-start-3 lg:row-span-2 lg:row-start-1">
                   <CardHeader>
                     <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
                       <History className="h-6 w-6" />
@@ -1020,7 +1020,7 @@ export default function SignIn() {
 
                 {/* Right: Emphasize Importance */}
                 <Card className="border-primary/20 bg-primary/3 dark:bg-muted/20 h-full shadow-sm">
-                  <CardHeader className="pb-3">
+                  <CardHeader>
                     <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                       Meerwaarde
                     </p>

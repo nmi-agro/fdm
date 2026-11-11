@@ -99,9 +99,9 @@ export function RvoConnectCard({
 
   return (
     <Card className="w-full">
-      <Form method="post" noValidate onSubmit={handleSubmit}>
+      <Form method="post" noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
         <input type="hidden" name="intent" value="start_import" />
-        <CardHeader className="space-y-2">
+        <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle role="heading" aria-level={2}>
               Percelen ophalen bij RVO

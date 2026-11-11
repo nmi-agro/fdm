@@ -403,7 +403,7 @@ export function ModifyFertilizerPage({
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent>
               <FieldImpactTable
                 rows={state.rows}
                 loading={!state.adviceResult || !state.balanceResult}

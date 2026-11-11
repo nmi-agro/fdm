@@ -234,7 +234,7 @@ export function ScoreSelect({
     /* Floating indicator selector + info banner */
   }
   return (
-    <Card className="absolute top-3 left-3 z-10 w-64 shadow-md">
+    <Card className="absolute top-3 left-3 z-10 w-64 py-0 shadow-md">
       <CardContent className="space-y-2 p-2">
         <div className="flex items-center gap-2">
           <Select

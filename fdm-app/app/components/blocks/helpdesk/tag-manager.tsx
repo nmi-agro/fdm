@@ -52,7 +52,7 @@ export function HelpdeskTagManager({
           />
         </CardHeader>
       )}
-      <CardContent className="first:pt-6">
+      <CardContent>
         {availableTags.length > 0 ? (
           <Table className="w-full">
             <TableBody>
@@ -117,7 +117,7 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
       <TableCell className="align-middle">
         {canModify ? (
           <Select
-            value={tag.color ?? undefined}
+            value={tag.color ?? null}
             onValueChange={(value) => {
               if (typeof value !== "string") return
               const formData = new FormData()

@@ -208,7 +208,7 @@ export function BcsWizard({
 
   return (
     <Card>
-      <CardHeader className="space-y-3 pb-2">
+      <CardHeader className="gap-3">
         {/* Step title */}
         <div>
           {currentStep === 0 ? (
@@ -479,7 +479,7 @@ export function BcsWizard({
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
+      <CardFooter className="flex flex-col gap-3 border-t sm:flex-row sm:justify-between">
         <Button
           type="button"
           variant="outline"

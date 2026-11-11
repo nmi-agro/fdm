@@ -707,7 +707,7 @@ export default function FarmDashboardIndex() {
               {/* Acties - secondary/occasional tasks, demoted to a compact list */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Acties</h2>
-                <Card>
+                <Card className="py-0">
                   <CardContent className="divide-border divide-y p-0">
                     <NavLink
                       to={"soil-analysis/bulk"}
@@ -768,7 +768,7 @@ export default function FarmDashboardIndex() {
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
                 <Card>
-                  <CardContent className="space-y-4 pt-6">
+                  <CardContent className="space-y-4">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/50 space-y-1 rounded-lg p-3">
@@ -943,7 +943,7 @@ export default function FarmDashboardIndex() {
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Gegevens</h2>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     <div className="space-y-1">
                       <NavLink
                         to="settings"

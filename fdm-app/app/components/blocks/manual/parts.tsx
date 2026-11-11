@@ -65,7 +65,7 @@ export function ManualTocDisclosure({ headings }: { headings: ManualHeading[] })
     <Collapsible className="group/toc border-border mt-6 rounded-lg border xl:hidden">
       <CollapsibleTrigger className="text-foreground flex w-full items-center gap-1.5 px-4 py-3 text-sm font-medium">
         <ChevronRight
-          className="text-muted-foreground size-4 transition-transform group-data-[state=open]/toc:rotate-90"
+          className="text-muted-foreground size-4 transition-transform group-data-open/toc:rotate-90"
           aria-hidden
         />
         <span>Op deze pagina</span>
@@ -157,14 +157,14 @@ export function ManualSignupCard({
   const { capture } = useAnalytics()
   return (
     <Card className={cn("shadow-xs", className)}>
-      <CardHeader className="p-4 pb-3">
+      <CardHeader>
         <CardTitle className="text-sm">Zelf aan de slag?</CardTitle>
         <CardDescription className="leading-6">
           Vul je percelen, gewassen en bemestingen in. {clientConfig.name} rekent de rest voor je
           uit.
         </CardDescription>
       </CardHeader>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter>
         <Link
           to="/signin"
           onClick={() => capture(MANUAL_EVENTS.signupClicked, { manual_path: pathname, placement })}

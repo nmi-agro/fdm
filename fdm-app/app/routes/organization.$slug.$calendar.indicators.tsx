@@ -278,7 +278,7 @@ export default function IndicatorsFarmIndex() {
         <section className="space-y-3">
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
             <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3">
+              <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-bold">
                     Gemiddelde score van de organisatie
@@ -330,14 +330,14 @@ export default function IndicatorsFarmIndex() {
             showPending && "pointer-events-none opacity-50",
           )}
         >
-          <CardHeader className="border-b pb-3">
+          <CardHeader className="border-b">
             <CardTitle className="text-base font-bold">Detailweergave per bedrijf</CardTitle>
             <CardDescription className="text-xs">
               Alle {INDICATORS.length} indicatoren voor alle bedrijven, met filters en
               zoekmogelijkheden.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 p-4">
+          <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <CategoryFilter
                 activeCategories={activeCategories}

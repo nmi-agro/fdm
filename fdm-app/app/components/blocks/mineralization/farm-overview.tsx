@@ -690,7 +690,7 @@ function NotCalculatedFields({
 
   return (
     // Remounts when `open` changes, so it follows the table once the outcomes are in
-    <CardFooter key={String(open)} className="block border-t pt-4">
+    <CardFooter key={String(open)} className="block border-t">
       <Collapsible defaultOpen={open}>
         <CollapsibleTrigger
           render={

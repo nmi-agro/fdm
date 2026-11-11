@@ -160,7 +160,7 @@ export function CultivationHistoryCard({
 
   return (
     <Card className="col-span-1 overflow-hidden lg:row-span-2">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <CardTitle className="text-xl font-bold">Gewashistorie</CardTitle>
@@ -193,7 +193,7 @@ export function CultivationHistoryCard({
 
       <Separator className="opacity-50" />
 
-      <CardContent className="pt-6 text-sm">
+      <CardContent className="text-sm">
         <CultivationHistoryTimeline cultivationHistory={cultivationHistory} />
       </CardContent>
     </Card>
@@ -205,7 +205,7 @@ export function CultivationHistorySkeleton() {
 
   return (
     <Card className="col-span-1 overflow-hidden lg:row-span-2">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-start justify-between">
         <div className="space-y-1">
           <CardTitle>Gewashistorie</CardTitle>
           <CardDescription>
@@ -215,7 +215,7 @@ export function CultivationHistorySkeleton() {
         <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
       </CardHeader>
       <Separator className="opacity-50" />
-      <CardContent className="pt-6 text-sm">
+      <CardContent className="text-sm">
         <div className="relative pl-1">
           {SKELETON_KEYS.map((key, index) => (
             <div key={key} className="relative flex items-start space-x-4 pb-6">

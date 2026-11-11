@@ -79,7 +79,7 @@ export function BlockedEmailsManager({ blockedEmails, canModify }: HelpdeskAgent
           <AddBlockedEmailForm />
         </CardHeader>
       )}
-      <CardContent className="first:pt-6">
+      <CardContent>
         {searchResults.length > 0 ? (
           <Table className="w-full">
             <TableHeader>
