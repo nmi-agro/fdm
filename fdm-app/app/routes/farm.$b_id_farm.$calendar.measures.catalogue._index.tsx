@@ -342,7 +342,7 @@ export default function MeasuresCatalogueIndex() {
                   onClick={() => setQuery("")}
                   className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-1 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-sm focus-visible:ring-2 focus-visible:outline-none pointer-coarse:h-10 pointer-coarse:w-10"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </button>
               ) : (
                 <kbd
@@ -353,22 +353,15 @@ export default function MeasuresCatalogueIndex() {
                 </kbd>
               )}
             </div>
-            <Suspense
-              fallback={<SortSelect value={sortMode} onChange={setSortMode} statusPending />}
-            >
-              <Await
-                resolve={statusPromise}
-                errorElement={<SortSelect value={sortMode} onChange={setSortMode} statusPending />}
-              >
-                {(loaded) => (
-                  <SortSelect
-                    value={sortMode}
-                    onChange={setSortMode}
-                    statusPending={!loaded.recommendationsAvailable}
-                  />
-                )}
-              </Await>
-            </Suspense>
+            {/* Not inside the status Suspense: a remount when the status arrives would close an
+                open dropdown. "Meest aanbevolen" keeps the alphabetical order until then. */}
+            <FilterSelect
+              id="measures-catalogue-sort"
+              label="Sorteer"
+              value={sortMode}
+              onChange={(v) => setSortMode(v as SortMode)}
+              options={SORT_OPTIONS}
+            />
           </div>
 
           <div className="flex flex-col gap-3 @md/catalogue:flex-row @md/catalogue:flex-wrap @md/catalogue:items-center @md/catalogue:gap-x-6">
@@ -763,31 +756,6 @@ function StatusSelect({
 }
 
 /**
- * The sort order. "Meest aanbevolen" needs the recommendations, so it is disabled while they
- * load or when they could not be loaded; the list then keeps the alphabetical order.
- */
-function SortSelect({
-  value,
-  onChange,
-  statusPending = false,
-}: {
-  value: SortMode
-  onChange: (value: SortMode) => void
-  statusPending?: boolean
-}) {
-  return (
-    <FilterSelect
-      id="measures-catalogue-sort"
-      label="Sorteer"
-      value={value}
-      onChange={(v) => onChange(v as SortMode)}
-      options={SORT_OPTIONS}
-      disabledValues={statusPending ? ["recommended"] : []}
-    />
-  )
-}
-
-/**
  * A labelled select for one filter of the catalogue.
  */
 function FilterSelect({
@@ -797,7 +765,6 @@ function FilterSelect({
   onChange,
   options,
   disabled = false,
-  disabledValues = [],
   triggerClassName,
 }: {
   id: string
@@ -806,7 +773,6 @@ function FilterSelect({
   onChange: (value: string) => void
   options: { value: string; label: string }[]
   disabled?: boolean
-  disabledValues?: string[]
   triggerClassName?: string
 }) {
   return (
@@ -836,11 +802,7 @@ function FilterSelect({
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              disabled={disabledValues.includes(option.value)}
-            >
+            <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
           ))}

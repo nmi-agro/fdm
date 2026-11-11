@@ -227,23 +227,7 @@ export default function MeasureCatalogueDetail() {
               <Badge variant="outline">Perceelsniveau</Badge>
             )}
             {isInactive && <Badge variant="secondary">Niet meer beschikbaar</Badge>}
-            {canAdd && (
-              <Suspense fallback={<AddMeasureLink m_id={measure.m_id} fieldIds={[]} />}>
-                <Await
-                  resolve={fieldsStatus}
-                  errorElement={<AddMeasureLink m_id={measure.m_id} fieldIds={[]} />}
-                >
-                  {(loaded) => (
-                    <AddMeasureLink
-                      m_id={measure.m_id}
-                      fieldIds={loaded.fields
-                        .filter((field) => field.status === "recommended")
-                        .map((field) => field.b_id)}
-                    />
-                  )}
-                </Await>
-              </Suspense>
-            )}
+            {canAdd && <AddMeasureLink m_id={measure.m_id} fieldsStatus={fieldsStatus} />}
           </div>
         }
       />
@@ -506,13 +490,39 @@ export default function MeasureCatalogueDetail() {
 
 /**
  * Primary action of the detail page: opens the measures page of the farm with the dialog to
- * add this measure, with the fields on which it is recommended already selected.
+ * add this measure. Once the status per field has loaded, the fields on which the measure is
+ * recommended are preselected. The link renders once and only its target changes, so it keeps
+ * keyboard focus when the status arrives.
  */
-function AddMeasureLink({ m_id, fieldIds }: { m_id: string; fieldIds: string[] }) {
+function AddMeasureLink({
+  m_id,
+  fieldsStatus,
+}: {
+  m_id: string
+  fieldsStatus: Promise<MeasureFieldsStatus>
+}) {
   const { b_id_farm = "", calendar = "" } = useParams()
+  const [recommendedFieldIds, setRecommendedFieldIds] = useState<string[]>([])
+  useEffect(() => {
+    let current = true
+    fieldsStatus
+      .then((loaded) => {
+        if (!current) return
+        setRecommendedFieldIds(
+          loaded.fields
+            .filter((field) => field.status === "recommended")
+            .map((field) => field.b_id),
+        )
+      })
+      // Without the status the link still opens the dialog, only without preselected fields
+      .catch(() => undefined)
+    return () => {
+      current = false
+    }
+  }, [fieldsStatus])
   return (
     <Link
-      to={getAddMeasurePath(b_id_farm, calendar, m_id, fieldIds)}
+      to={getAddMeasurePath(b_id_farm, calendar, m_id, recommendedFieldIds)}
       className={buttonVariants({ className: "gap-1.5 pointer-coarse:h-11" })}
       data-slot="button"
     >
