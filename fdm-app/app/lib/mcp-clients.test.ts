@@ -30,28 +30,35 @@ describe("getMcpServerName", () => {
 describe("getMcpClientGuides", () => {
   const endpoint = "https://mcp.example.org/mcp"
   const guides = getMcpClientGuides({ appName: "My App", endpoint })
+  const allSections = [guides.primary, ...guides.developer.flatMap((guide) => guide.sections)]
 
-  it("has a fixed tab order", () => {
-    expect(guides.map((guide) => guide.id)).toEqual([
-      "claude",
-      "openai",
-      "lm-studio",
-      "open-webui",
+  it("leads with claude.ai and keeps the developer tabs in a fixed order", () => {
+    expect(guides.primary.title).toContain("claude.ai")
+    expect(guides.developer.map((guide) => guide.id)).toEqual([
+      "cli",
+      "openai-api",
+      "local",
       "other",
     ])
   })
 
-  it("uses the real address in every tab that connects", () => {
-    for (const guide of guides) {
-      const text = JSON.stringify(guide)
-      expect(text, guide.id).toContain(endpoint)
+  it("keeps the developer choice within four tabs", () => {
+    expect(guides.developer.length).toBeLessThanOrEqual(4)
+  })
+
+  it("names the assistants that cannot connect yet", () => {
+    expect(guides.unsupported.map((client) => client.label)).toContain("ChatGPT op het web")
+  })
+
+  it("uses the real address in the main guide and in every developer tab", () => {
+    expect(JSON.stringify(guides.primary)).toContain(endpoint)
+    for (const guide of guides.developer) {
+      expect(JSON.stringify(guide), guide.id).toContain(endpoint)
     }
   })
 
   it("never contains a key, only the placeholder", () => {
-    const snippets = guides.flatMap((guide) =>
-      guide.sections.flatMap((section) => (section.code ? [section.code.text] : [])),
-    )
+    const snippets = allSections.flatMap((section) => (section.code ? [section.code.text] : []))
     expect(snippets.length).toBeGreaterThan(0)
     for (const snippet of snippets) {
       expect(
@@ -69,11 +76,9 @@ describe("getMcpClientGuides", () => {
   })
 
   it("produces valid JSON snippets", () => {
-    for (const guide of guides) {
-      for (const section of guide.sections) {
-        if (section.code?.language === "json") {
-          expect(() => JSON.parse(section.code?.text ?? ""), section.title).not.toThrow()
-        }
+    for (const section of allSections) {
+      if (section.code?.language === "json") {
+        expect(() => JSON.parse(section.code?.text ?? ""), section.title).not.toThrow()
       }
     }
   })

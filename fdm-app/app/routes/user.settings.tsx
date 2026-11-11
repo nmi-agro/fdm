@@ -28,13 +28,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 const SETTINGS_PAGES = [
   { label: "Profiel", href: "/user/settings/profile" },
   { label: "API-sleutels", href: "/user/settings/api-keys" },
-  { label: "AI-assistenten (MCP)", href: "/user/settings/mcp" },
+  { label: "AI-assistenten", href: "/user/settings/mcp" },
 ]
 
 /**
  * Renders the layout for user account settings.
  *
- * Navigation between Profiel, API-sleutels and AI-assistenten (MCP) lives in the main sidebar.
+ * Navigation between Profiel, API-sleutels and AI-assistenten lives in the main sidebar.
  */
 export default function UserSettingsLayout() {
   const { user } = useLoaderData<typeof loader>()

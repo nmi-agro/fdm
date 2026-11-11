@@ -5,7 +5,7 @@ section: Samenwerken en account
 order: 4
 inApp:
   - Account
-  - AI-assistenten (MCP)
+  - AI-assistenten
 routes:
   - user.settings.api-keys.tsx
   - user.settings.mcp.tsx
@@ -58,7 +58,9 @@ Maak voor elke assistent een eigen sleutel aan. Dan kun je één koppeling stopp
 
 1. Klik op je naam onderaan de zijbalk, kies Account en ga naar API-sleutels.
 2. Klik op Nieuwe sleutel, geef de sleutel een naam zoals "Claude" en klik op Aanmaken.
-3. Klik op Kopiëren en bewaar de sleutel op een veilige plek.
+3. Klik op Kopiëren en bewaar de sleutel op een veilige plek. Je ziet de sleutel maar één keer.
+
+Begin je op de pagina **AI-assistenten**? Klik dan bij stap 1 op **Maak een API-sleutel**. Het venster voor een nieuwe sleutel opent direct, en na het kopiëren brengt **Terug naar AI-assistenten koppelen** je naar het adres van de koppeling.
 
 ![De pagina API-sleutels in het account](screenshot:api-sleutels)
 
@@ -66,11 +68,13 @@ Wil je een koppeling stoppen? Klik dan bij de sleutel op Sleutel intrekken. De a
 
 Het adres van de koppeling is: `{{mcpUrl}}/mcp`
 
-Het adres en de instellingen per assistent, klaar om te kopiëren, vind je ook in {{appName}}: kies **Account** en ga naar **AI-assistenten (MCP)**, of klik op de pagina **API-sleutels** op **AI-assistent koppelen**.
+Het adres en de instellingen per assistent, klaar om te kopiëren, vind je ook in {{appName}}: kies **Account** en ga naar **AI-assistenten**, of klik op de pagina **API-sleutels** op **AI-assistenten koppelen**. De instellingen voor Claude Code, Codex, de OpenAI API en lokale modellen staan daar onder **Voor ontwikkelaars en lokale modellen**.
 
 ## Claude {#claude}
 
 ### claude.ai en de app Claude Desktop
+
+Doe dit op een computer, in de browser of in Claude Desktop.
 
 1. Ga naar "Customize" → "Connectors" en klik op "+ Add" → "Add custom connector".
 2. Vul bij de URL `{{mcpUrl}}/mcp` in.
@@ -135,7 +139,7 @@ npx mcp-remote {{mcpUrl}}/mcp --header "X-API-Key:${FDM_API_KEY}"
 
 ## Problemen oplossen {#problemen}
 
-- Foutmelding 401: de sleutel ontbreekt, is verkeerd overgenomen of is ingetrokken. Maak zo nodig een nieuwe sleutel.
+- Foutmelding 401: de sleutel ontbreekt, is verkeerd overgenomen of is ingetrokken. Kijk of de hele sleutel erin staat, zonder de punthaken van `<sleutel>`. Maak zo nodig een nieuwe sleutel.
 - Foutmelding 429 of "Rate limit exceeded": de assistent doet te veel verzoeken achter elkaar. Wacht even; de melding zegt hoeveel seconden. Zie [Limieten](/manual/api#limieten).
 - Nieuwe hulpmiddelen verschijnen niet: vernieuw de lijst met hulpmiddelen in je assistent, of verwijder de koppeling en voeg hem opnieuw toe.
 - De assistent kiest het verkeerde hulpmiddel: noem in je vraag het bedrijf of perceel bij naam, of kies een krachtiger model.

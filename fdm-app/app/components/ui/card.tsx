@@ -1,3 +1,4 @@
+import { Slot as SlotPrimitive } from "radix-ui"
 import * as React from "react"
 import { cn } from "~/lib/utils"
 
@@ -19,15 +20,23 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 )
 CardHeader.displayName = "CardHeader"
 
-const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
+/**
+ * The title of a card. Renders a `div` by default; pass `asChild` with a heading element such as
+ * `<h3>` when the title belongs in the heading structure of the page.
+ */
+const CardTitle = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }
+>(({ className, asChild = false, ...props }, ref) => {
+  const Comp = asChild ? SlotPrimitive.Slot : "div"
+  return (
+    <Comp
       ref={ref}
       className={cn("leading-none font-semibold tracking-tight", className)}
       {...props}
     />
-  ),
-)
+  )
+})
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(

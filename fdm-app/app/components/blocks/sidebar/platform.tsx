@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { getMcpEndpoint } from "~/lib/mcp-clients"
 import { useCookieConsentStore } from "~/store/cookie-consent"
 
 export function SidebarPlatform() {
@@ -52,12 +53,12 @@ export function SidebarPlatform() {
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {clientConfig.mcpUrl && (
+            {getMcpEndpoint(clientConfig.mcpUrl) && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={location.pathname === "/user/settings/mcp"}>
                   <NavLink to="/user/settings/mcp">
                     <Bot />
-                    <span>AI-assistenten (MCP)</span>
+                    <span>AI-assistenten</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

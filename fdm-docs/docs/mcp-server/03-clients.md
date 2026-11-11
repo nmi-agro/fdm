@@ -6,7 +6,7 @@ sidebar_position: 3
 
 # Connecting clients
 
-Create an API key in the web app (**Account** → **API-sleutels**), one per client, so you can revoke one connection without affecting the others. The page **Account** → **AI-assistenten (MCP)** in the web app shows the address of the MCP server and these settings per client, ready to copy. In the examples, replace `https://mcp.example.com` with the address of your MCP server and `<key>` with the API key.
+Create an API key in the web app (**Account** → **API-sleutels**), one per client, so you can revoke one connection without affecting the others. The page **Account** → **AI-assistenten** in the web app shows the address of the MCP server and these settings per client, ready to copy. It leads with claude.ai and folds the settings for command-line tools, the OpenAI API and local models under **Voor ontwikkelaars en lokale modellen**. In the examples, replace `https://mcp.example.com` with the address of your MCP server and `<key>` with the API key.
 
 ## Claude
 
