@@ -2,6 +2,7 @@ import {
   DndContext,
   type DragEndEvent,
   type DragMoveEvent,
+  DragOverlay,
   MouseSensor,
   useDraggable,
   useSensor,
@@ -735,7 +736,9 @@ function EventIcon({
  * surrounding `DndContext`/menu/Tooltip stay in the parent.
  */
 function DraggableEventIcon({ event }: { event: AttachedEvent }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  // The moving copy is rendered by a `DragOverlay` in `EventOverlay`, because the cultivation bar
+  // clips its content and the icon must stay visible when dragged out of the bar.
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `event-${event.id}`,
   })
 
@@ -747,10 +750,7 @@ function DraggableEventIcon({ event }: { event: AttachedEvent }) {
         openMenuFromClick(domEvent)
       }}
       ref={setNodeRef}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-      }}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
       type="button"
       {...attributes}
       {...listeners}
@@ -790,6 +790,7 @@ function EventOverlay({
   // A stable id keeps dnd-kit's accessibility attributes equal on the server and in the browser.
   const dndId = useId()
   const [dragPreview, setDragPreview] = useState<{ date: Date; x: number; y: number } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const entityId = event.entityId
   const entity: EditableEntity | null = !entityId
@@ -829,10 +830,15 @@ function EventOverlay({
   }
 
   const isDraggable = editing.canModify && !!entityId
-  // A harvest of a once-harvestable crop ends the cultivation, so it may also move past the
-  // cultivation's current end date.
+  // A fertilizer application is not tied to the cultivation it is drawn on, so it may be dragged
+  // out of it (to another cultivation or to a period without one). A harvest of a
+  // once-harvestable crop ends the cultivation, so it may also move past its current end date.
+  const moveFreely = event.kind === "fertilizer"
+  const earliestDate = moveFreely ? new Date(TIMELINE_START_YEAR, 0, 1) : cultivationStartAt
   const latestDate =
-    event.kind === "harvest" && b_lu_harvestable === "once" ? TIMELINE_END_DATE : cultivationEndAt
+    moveFreely || (event.kind === "harvest" && b_lu_harvestable === "once")
+      ? TIMELINE_END_DATE
+      : cultivationEndAt
 
   const getDragDate = (rect: { left: number; width: number } | null | undefined) => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -840,12 +846,10 @@ function EventOverlay({
     const centerX = rect.left + rect.width / 2
     const x = centerX - ganttRect.left + scrollX - gantt.sidebarWidth
     const rawDate = getDateFromOffsetX(x, range)
-    return rawDate < cultivationStartAt
-      ? cultivationStartAt
-      : rawDate > latestDate
-        ? latestDate
-        : rawDate
+    return rawDate < earliestDate ? earliestDate : rawDate > latestDate ? latestDate : rawDate
   }
+
+  const handleDragStart = () => setIsDragging(true)
 
   const handleDragMove = (dragEvent: DragMoveEvent) => {
     const translated = dragEvent.active.rect.current.translated
@@ -855,6 +859,7 @@ function EventOverlay({
   }
 
   const handleDragEnd = (dragEvent: DragEndEvent) => {
+    setIsDragging(false)
     setDragPreview(null)
     const date = getDragDate(dragEvent.active.rect.current.translated)
     if (!date || !entityId) return
@@ -908,9 +913,13 @@ function EventOverlay({
     <DndContext
       id={dndId}
       modifiers={[restrictToHorizontalAxis]}
-      onDragCancel={() => setDragPreview(null)}
+      onDragCancel={() => {
+        setIsDragging(false)
+        setDragPreview(null)
+      }}
       onDragEnd={handleDragEnd}
       onDragMove={handleDragMove}
+      onDragStart={handleDragStart}
       sensors={[mouseSensor]}
     >
       <TimelineContextMenu sections={sections}>
@@ -931,6 +940,17 @@ function EventOverlay({
           </Tooltip>
         </span>
       </TimelineContextMenu>
+      {isDragging &&
+        createPortal(
+          // Let the overlay size itself to the icon instead of the measured source rect, which
+          // can be narrower than the icon and would cut it off at the sides.
+          <DragOverlay dropAnimation={null}>
+            <span className="bg-background ring-border/50 flex w-fit cursor-grabbing items-center justify-center rounded-full p-1 shadow-md ring-1">
+              <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
+            </span>
+          </DragOverlay>,
+          document.body,
+        )}
       {dragPreview &&
         createPortal(
           <div
@@ -1668,6 +1688,7 @@ export const TimelineGanttView = forwardRef<
           dangerouslySetInnerHTML={{
             __html: `
           .timeline-gantt-view div:has(> div > div > button.gantt-bar-hide-shadow) {
+            overflow: visible;
             box-shadow: none;
             border: none;
           }
