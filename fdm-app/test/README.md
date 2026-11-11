@@ -5,7 +5,7 @@ The `integration` project of `vitest.config.ts`: tests that call a route's `load
 - `global-setup.ts`: runs the migrations and syncs the catalogues once per run.
 - `setup.ts`: replaces `getSession` of `~/lib/auth.server`, so routes see the user from `signInAs`.
 - `session.ts`: `signInAs(user | null)`.
-- `helpers.ts`: `seedUserWithFarm`, `loaderArgs`, `actionArgs` and `runRoute`; `renderPage` and `sessionCookie` for rendering pages.
+- `helpers.ts`: `seedUserWithFarm`, `loaderArgs`, `actionArgs` and `runRoute`.
 - `routes/*.integration.test.ts`: the tests, one file per page or flow.
 
 A test typically seeds two users, signs in as one of them, calls the route and checks the status, the redirect target or the data, and then reads the database to check what was saved:
@@ -20,18 +20,3 @@ expect(status).toBe(200)
 ```
 
 Only use synthetic data: the seed's made-up names and `example.com` addresses.
-
-To check that a page renders with real data, render it the way the server does. `renderPage` runs the loader, waits for deferred data and returns the HTML; event handlers and effects do not run. Pages that ask better-auth about the request (organizations, the farm overview) also need a real session cookie:
-
-```ts
-const cookie = await sessionCookie(owner.user)
-const html = await renderPage(
-  await import("~/routes/farm.$b_id_farm.settings.properties"),
-  "/farm/:b_id_farm/settings/properties",
-  `/farm/${owner.ids.farm}/settings/properties`,
-  { cookie },
-)
-expect(html).toContain("Bedrijfsnaam")
-```
-
-`routes/pages.integration.test.ts` renders most pages this way.
