@@ -322,8 +322,8 @@ export default function MeasuresCatalogueIndex() {
         rightNode={<Bln3HelpDialog />}
       />
       <FarmContent>
-        <div className="space-y-4 pb-10">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="@container/catalogue space-y-4 pb-10">
+          <div className="flex flex-col gap-3 @2xl/catalogue:flex-row @2xl/catalogue:items-center">
             <div className="relative min-w-0 flex-1">
               <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
@@ -333,20 +333,20 @@ export default function MeasuresCatalogueIndex() {
                 placeholder="Zoek op naam, code of beschrijving…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pr-9 pl-9"
+                className="pr-11 pl-9 pointer-coarse:h-11"
               />
               {query ? (
                 <button
                   type="button"
                   aria-label="Zoekopdracht wissen"
                   onClick={() => setQuery("")}
-                  className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-3 -translate-y-1/2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+                  className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-1/2 right-1 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-sm focus-visible:ring-2 focus-visible:outline-none pointer-coarse:h-10 pointer-coarse:w-10"
                 >
                   <X className="h-4 w-4" />
                 </button>
               ) : (
                 <kbd
-                  className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border px-1.5 font-sans text-xs md:block"
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border px-1.5 font-sans text-xs pointer-fine:@2xl/catalogue:block"
                   aria-hidden="true"
                 >
                   /
@@ -371,7 +371,7 @@ export default function MeasuresCatalogueIndex() {
             </Suspense>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="flex flex-col gap-3 @md/catalogue:flex-row @md/catalogue:flex-wrap @md/catalogue:items-center @md/catalogue:gap-x-6">
             <Suspense fallback={<StatusSelect value={status} onChange={setStatus} />}>
               <Await
                 resolve={statusPromise}
@@ -385,7 +385,7 @@ export default function MeasuresCatalogueIndex() {
             <Button
               type="button"
               variant="outline"
-              className="gap-1.5"
+              className="gap-1.5 self-start pointer-coarse:h-11"
               aria-expanded={showMoreFilters}
               aria-controls="measures-catalogue-more-filters"
               onClick={() => setShowMoreFilters((open) => !open)}
@@ -404,7 +404,7 @@ export default function MeasuresCatalogueIndex() {
           <div
             id="measures-catalogue-more-filters"
             className={cn(
-              "flex-wrap items-center gap-x-6 gap-y-3",
+              "flex-col gap-3 @md/catalogue:flex-row @md/catalogue:flex-wrap @md/catalogue:items-center @md/catalogue:gap-x-6",
               showMoreFilters ? "flex" : "hidden",
             )}
           >
@@ -668,7 +668,7 @@ function CatalogueListRow({
         to={href}
         aria-labelledby={`${idBase}-name`}
         aria-describedby={`${idBase}-details ${idBase}-status`}
-        className="hover:bg-muted/50 focus-visible:ring-ring grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset md:grid-cols-[minmax(0,1fr)_13rem_1rem] md:items-center"
+        className="hover:bg-muted/50 focus-visible:ring-ring grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset @2xl/catalogue:grid-cols-[minmax(0,1fr)_13rem_1rem] @2xl/catalogue:items-center"
       >
         <div className="min-w-0">
           <p
@@ -705,7 +705,10 @@ function CatalogueListRow({
             </div>
           </div>
         </div>
-        <div id={`${idBase}-status`} className="flex flex-col gap-1 text-xs">
+        <div
+          id={`${idBase}-status`}
+          className="flex flex-wrap gap-x-4 gap-y-1 text-xs @2xl/catalogue:flex-col @2xl/catalogue:flex-nowrap"
+        >
           {statusPending ? (
             <Skeleton className="h-3.5 w-32" aria-hidden="true" />
           ) : (
@@ -715,7 +718,7 @@ function CatalogueListRow({
           )}
         </div>
         <ChevronRight
-          className="text-muted-foreground hidden h-4 w-4 shrink-0 md:block"
+          className="text-muted-foreground hidden h-4 w-4 shrink-0 @2xl/catalogue:block"
           aria-hidden="true"
         />
       </Link>
@@ -754,7 +757,7 @@ function StatusSelect({
       onChange={(v) => onChange(v as StatusFilter)}
       options={options}
       disabled={!loaded}
-      triggerClassName="w-56"
+      triggerClassName="@md/catalogue:w-56"
     />
   )
 }
@@ -807,8 +810,11 @@ function FilterSelect({
   triggerClassName?: string
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <Label htmlFor={id} className="text-muted-foreground text-sm">
+    <div className="flex w-full items-center gap-2 @md/catalogue:w-auto">
+      <Label
+        htmlFor={id}
+        className="text-muted-foreground w-14 shrink-0 text-sm @md/catalogue:w-auto"
+      >
         {label}
       </Label>
       <Select
@@ -819,7 +825,13 @@ function FilterSelect({
           if (next !== null) onChange(next)
         }}
       >
-        <SelectTrigger id={id} className={cn("w-44", triggerClassName)}>
+        <SelectTrigger
+          id={id}
+          className={cn(
+            "min-w-0 flex-1 @md/catalogue:w-44 @md/catalogue:flex-none pointer-coarse:data-[size=default]:h-11",
+            triggerClassName,
+          )}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

@@ -24,7 +24,7 @@ import {
 } from "~/components/blocks/measures/measure-status-unavailable"
 import { Alert, AlertDescription } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
-import { buttonVariants } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Select,
@@ -248,7 +248,7 @@ export default function MeasureCatalogueDetail() {
         }
       />
       <FarmContent>
-        <div className="space-y-6 pb-10">
+        <div className="@container/measure space-y-6 pb-10">
           {isInactive && (
             <Alert>
               <AlertTriangle className="h-4 w-4" aria-hidden="true" />
@@ -265,8 +265,8 @@ export default function MeasureCatalogueDetail() {
             </p>
           )}
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="min-w-0 space-y-6 xl:col-span-2">
+          <div className="grid grid-cols-1 gap-6 @4xl/measure:grid-cols-3">
+            <div className="min-w-0 space-y-6 @4xl/measure:col-span-2">
               <Card>
                 <CardHeader>
                   <CardTitle role="heading" aria-level={3}>
@@ -383,7 +383,7 @@ export default function MeasureCatalogueDetail() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 [&>*]:min-w-0">
+          <div className="grid grid-cols-1 gap-6 @3xl/measure:grid-cols-2 [&>*]:min-w-0">
             <Card>
               <CardHeader>
                 <CardTitle role="heading" aria-level={3}>
@@ -513,7 +513,7 @@ function AddMeasureLink({ m_id, fieldIds }: { m_id: string; fieldIds: string[] }
   return (
     <Link
       to={getAddMeasurePath(b_id_farm, calendar, m_id, fieldIds)}
-      className={buttonVariants({ className: "gap-1.5" })}
+      className={buttonVariants({ className: "gap-1.5 pointer-coarse:h-11" })}
       data-slot="button"
     >
       <Plus className="h-4 w-4" aria-hidden="true" />
@@ -585,6 +585,9 @@ const FIELD_FILTERS: { value: FieldFilter; label: string }[] = [
   { value: "applicable", label: "Toepasbaar" },
 ]
 
+/** Number of fields shown on a touch screen before "Toon alle … percelen". */
+const TOUCH_VISIBLE_FIELDS = 6
+
 /** URL search parameter that keeps the field filter, so Back returns to the same view. */
 const FIELD_FILTER_PARAM = "percelen"
 
@@ -606,7 +609,7 @@ function FieldsCardShell({
         </CardTitle>
         {action}
       </CardHeader>
-      <CardContent className="space-y-3">{children}</CardContent>
+      <CardContent className="@container/fields space-y-3">{children}</CardContent>
     </Card>
   )
 }
@@ -663,6 +666,7 @@ function FieldsCard({
   const counts = { applied: 0, recommended: 0, applicable: 0 }
   for (const field of fields) counts[field.status] += 1
   const visible = filter === "all" ? fields : fields.filter((field) => field.status === filter)
+  const [showAll, setShowAll] = useState(false)
   const filterItems = FIELD_FILTERS.map((option) => ({
     value: option.value,
     label: option.value === "all" ? option.label : `${option.label} (${counts[option.value]})`,
@@ -680,7 +684,11 @@ function FieldsCard({
               if (next !== null) setFilter(next)
             }}
           >
-            <SelectTrigger className="h-8 w-44" aria-label="Toon percelen">
+            <SelectTrigger
+              size="sm"
+              className="w-44 pointer-coarse:data-[size=sm]:h-11"
+              aria-label="Toon percelen"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -703,42 +711,61 @@ function FieldsCard({
       ) : visible.length === 0 ? (
         <p className="text-muted-foreground text-sm">Geen percelen met deze status.</p>
       ) : (
-        <ul
-          role="region"
-          aria-label={`Percelen met deze maatregel in ${calendar}`}
-          // Scrollable, so it must be reachable with the keyboard
-          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-          tabIndex={0}
-          className="focus-visible:ring-ring max-h-[17rem] divide-y overflow-y-auto rounded-md border focus-visible:ring-2 focus-visible:outline-none sm:max-h-[14.5rem]"
-        >
-          {visible.map((field) => (
-            <li key={`${field.b_id}-${field.status}`}>
-              <Link
-                to={`${basePath}/${field.b_id}`}
-                className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:min-h-11 sm:py-0"
+        <>
+          <ul
+            role="region"
+            aria-label={`Percelen met deze maatregel in ${calendar}`}
+            // Scrollable with a mouse or trackpad, so it must be reachable with the keyboard
+            // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+            className="focus-visible:ring-ring divide-y rounded-md border focus-visible:ring-2 focus-visible:outline-none pointer-fine:max-h-[14.5rem] pointer-fine:overflow-y-auto"
+          >
+            {visible.map((field, index) => (
+              <li
+                key={`${field.b_id}-${field.status}`}
+                // On touch a list that scrolls inside the page is hard to use: show the first
+                // rows and a button for the rest instead
+                className={
+                  !showAll && index >= TOUCH_VISIBLE_FIELDS ? "pointer-coarse:hidden" : undefined
+                }
               >
-                {/* Narrow screens: name on its own line, status and period below it */}
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
-                  <span className="min-w-0 font-medium wrap-break-word sm:flex-1 sm:truncate">
-                    {field.b_name ?? field.b_id}
-                  </span>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 sm:shrink-0 sm:flex-nowrap">
-                    {field.status === "applied" && (
-                      <span className="text-muted-foreground tabular-nums">
-                        {formatPeriod(field.m_start, field.m_end)}
-                      </span>
-                    )}
-                    <MeasureStatusLabel status={field.status} className="sm:w-28" />
+                <Link
+                  to={`${basePath}/${field.b_id}`}
+                  className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset @md/fields:min-h-11 @md/fields:py-0"
+                >
+                  {/* Narrow card: name on its own line, status and period below it */}
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5 @md/fields:flex-row @md/fields:items-center @md/fields:gap-3">
+                    <span className="min-w-0 font-medium wrap-break-word @md/fields:flex-1 @md/fields:truncate">
+                      {field.b_name ?? field.b_id}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 @md/fields:shrink-0 @md/fields:flex-nowrap">
+                      {field.status === "applied" && (
+                        <span className="text-muted-foreground tabular-nums">
+                          {formatPeriod(field.m_start, field.m_end)}
+                        </span>
+                      )}
+                      <MeasureStatusLabel status={field.status} className="@md/fields:w-28" />
+                    </div>
                   </div>
-                </div>
-                <ChevronRight
-                  className="text-muted-foreground h-4 w-4 shrink-0"
-                  aria-hidden="true"
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  <ChevronRight
+                    className="text-muted-foreground h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {!showAll && visible.length > TOUCH_VISIBLE_FIELDS && (
+            <Button
+              type="button"
+              variant="outline"
+              className="hidden w-full pointer-coarse:inline-flex pointer-coarse:h-11"
+              onClick={() => setShowAll(true)}
+            >
+              <span>{`Toon alle ${visible.length} percelen`}</span>
+            </Button>
+          )}
+        </>
       )}
     </FieldsCardShell>
   )
@@ -762,7 +789,7 @@ function MeasureList({
         <li key={item.m_id}>
           <Link
             to={getMeasureCataloguePath(b_id_farm, calendar, item.m_id)}
-            className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-2 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+            className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-2 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset pointer-coarse:min-h-11"
           >
             <span className="text-muted-foreground shrink-0 tabular-nums">
               {getMeasureCode(item.m_id)}
