@@ -159,7 +159,7 @@ const pages: PageCase[] = [
     page: () => import("~/routes/farm.$b_id_farm.$calendar.field.$b_id.soil.analysis.new._index"),
     pattern: `${farm}/field/:b_id/soil/analysis/new`,
     path: (i) => `${farmPath(i)}/field/${i.field}/soil/analysis/new`,
-    label: "PDF-rapport uploaden",
+    label: "Zelf invoeren",
   },
   {
     name: "new soil analysis by type",
@@ -209,7 +209,7 @@ const pages: PageCase[] = [
     page: () => import("~/routes/farm.$b_id_farm.$calendar.mineralization.$b_id._index"),
     pattern: `${farm}/mineralization/:b_id`,
     path: (i) => `${farmPath(i)}/mineralization/${i.field}`,
-    label: "De stikstof door het seizoen wordt berekend",
+    label: "Mineralisatie",
   },
   {
     name: "norms of a field",
@@ -237,14 +237,14 @@ const pages: PageCase[] = [
     page: () => import("~/routes/farm.$b_id_farm.$calendar.indicators._index"),
     pattern: `${farm}/indicators`,
     path: (i) => `${farmPath(i)}/indicators`,
-    label: "Bedrijfsgemiddelde score",
+    label: "Indicatoren",
   },
   {
     name: "indicators of a field",
     page: () => import("~/routes/farm.$b_id_farm.$calendar.indicators.$b_id"),
     pattern: `${farm}/indicators/:b_id`,
     path: (i) => `${farmPath(i)}/indicators/${i.field}`,
-    label: "Perceelsscore",
+    label: "indicatoren",
   },
   {
     name: "measures of a field",
