@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { ExternalLink, Info } from "lucide-react"
 import { Link, useParams } from "react-router"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
-import { cn } from "~/lib/utils"
 
 /**
  * Icon link that opens the detail page of a measure in the measures catalogue of the current
@@ -32,20 +32,22 @@ export function MeasureDetailLink({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to={getMeasureCataloguePath(b_id_farm, calendar, m_id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open details voor ${m_name} in nieuw tabblad`}
-            onClick={(event) => event.stopPropagation()}
-            className={cn(
-              "text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex shrink-0 items-center justify-center rounded-sm p-1 focus-visible:ring-2 focus-visible:outline-none",
-              className,
-            )}
-          >
-            <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-          </Link>
+        <TooltipTrigger
+          render={
+            <Link
+              to={getMeasureCataloguePath(b_id_farm, calendar, m_id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open details voor ${m_name} in nieuw tabblad`}
+              onClick={(event) => event.stopPropagation()}
+              className={cn(
+                "text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex shrink-0 items-center justify-center rounded-sm p-1 focus-visible:ring-2 focus-visible:outline-none",
+                className,
+              )}
+            />
+          }
+        >
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         </TooltipTrigger>
         <TooltipContent side="top">Details in nieuw tabblad</TooltipContent>
       </Tooltip>

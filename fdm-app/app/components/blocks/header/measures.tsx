@@ -74,9 +74,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
           <BreadcrumbSeparator className={m_id ? "hidden md:block" : undefined} />
           <BreadcrumbItem className={m_id ? "hidden md:block" : undefined}>
             {m_id ? (
-              <BreadcrumbLink asChild>
-                <Link to={cataloguePath}>Catalogus</Link>
-              </BreadcrumbLink>
+              <BreadcrumbLink render={<Link to={cataloguePath}>Catalogus</Link>} />
             ) : (
               <BreadcrumbPage>Catalogus</BreadcrumbPage>
             )}

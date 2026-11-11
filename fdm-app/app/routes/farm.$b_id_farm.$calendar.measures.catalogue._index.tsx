@@ -1,5 +1,6 @@
 import type { MeasureCatalogue } from "@nmi-agro/fdm-core"
 import { getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { ChevronRight, Search, SlidersHorizontal, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -37,7 +38,6 @@ import { fdm } from "~/lib/fdm.server"
 import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
 import { getEffectTypeInfo, getImpactedIndicators, MEASURE_COST_LEVELS } from "~/lib/measure-labels"
 import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
-import { cn } from "~/lib/utils"
 
 /**
  * Sets the page title and description of the measures catalogue.
@@ -534,7 +534,13 @@ function FilterSelect({
       <Label htmlFor={id} className="text-muted-foreground text-sm">
         {label}
       </Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select
+        value={value}
+        items={options}
+        onValueChange={(next) => {
+          if (next !== null) onChange(next)
+        }}
+      >
         <SelectTrigger id={id} className="w-44">
           <SelectValue />
         </SelectTrigger>

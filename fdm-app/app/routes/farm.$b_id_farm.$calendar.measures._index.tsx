@@ -43,7 +43,7 @@ import {
 import { MeasureDetailLink } from "~/components/blocks/measures/measure-detail-link"
 import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { DatePicker } from "~/components/custom/date-picker-v2"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import {
   Empty,
@@ -860,17 +860,18 @@ export default function MeasuresFarmIndex() {
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
         rightNode={
           b_id_farm && calendar ? (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground gap-1.5"
+            <Link
+              to={getMeasuresCataloguePath(b_id_farm, calendar)}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "sm",
+                className: "text-muted-foreground hover:text-foreground gap-1.5",
+              })}
+              data-slot="button"
             >
-              <Link to={getMeasuresCataloguePath(b_id_farm, calendar)}>
-                <BookOpen className="h-4 w-4" aria-hidden="true" />
-                Maatregelencatalogus
-              </Link>
-            </Button>
+              <BookOpen className="h-4 w-4" aria-hidden="true" />
+              <span>Maatregelencatalogus</span>
+            </Link>
           ) : undefined
         }
       />

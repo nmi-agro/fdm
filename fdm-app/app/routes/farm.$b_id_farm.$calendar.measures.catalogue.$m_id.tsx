@@ -205,7 +205,7 @@ export default function MeasureCatalogueDetail() {
             <div className="min-w-0 space-y-6 xl:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Beschrijving</CardTitle>
+                  <CardTitle>Beschrijving</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="max-w-[75ch] text-sm leading-relaxed whitespace-pre-line">
@@ -227,7 +227,7 @@ export default function MeasureCatalogueDetail() {
 
             <Card className="h-fit min-w-0">
               <CardHeader>
-                <CardTitle className="text-base">Kenmerken</CardTitle>
+                <CardTitle>Kenmerken</CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-4 text-sm">
@@ -295,11 +295,13 @@ export default function MeasureCatalogueDetail() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 [&>*]:min-w-0">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Impact op indicatoren</CardTitle>
+                <CardTitle>Impact op indicatoren</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {indicators.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Voor deze maatregel zijn geen indicatoren bekend.</p>
+                  <p className="text-muted-foreground text-sm">
+                    Voor deze maatregel zijn geen indicatoren bekend.
+                  </p>
                 ) : (
                   <>
                     <p className="text-muted-foreground text-sm">
@@ -342,11 +344,13 @@ export default function MeasureCatalogueDetail() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Toepasbaarheid</CardTitle>
+                <CardTitle>Toepasbaarheid</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {conditions.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Voor deze maatregel gelden geen voorwaarden.</p>
+                  <p className="text-muted-foreground text-sm">
+                    Voor deze maatregel gelden geen voorwaarden.
+                  </p>
                 ) : (
                   <>
                     <p className="text-muted-foreground text-sm">
@@ -375,7 +379,7 @@ export default function MeasureCatalogueDetail() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Conflicterende maatregelen</CardTitle>
+                <CardTitle>Conflicterende maatregelen</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {conflicts.length === 0 ? (
@@ -395,7 +399,7 @@ export default function MeasureCatalogueDetail() {
             {variants.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Andere varianten van deze maatregel</CardTitle>
+                  <CardTitle>Andere varianten van deze maatregel</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <MeasureList items={variants} b_id_farm={b_id_farm} calendar={calendar} />
@@ -439,21 +443,30 @@ function FieldsCard({
   const counts = { applied: 0, recommended: 0, applicable: 0 }
   for (const field of fields) counts[field.status] += 1
   const visible = filter === "all" ? fields : fields.filter((field) => field.status === filter)
+  const filterItems = FIELD_FILTERS.map((option) => ({
+    value: option.value,
+    label: option.value === "all" ? option.label : `${option.label} (${counts[option.value]})`,
+  }))
 
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">Percelen in {calendar}</CardTitle>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <CardTitle>Percelen in {calendar}</CardTitle>
         {fields.length > 0 && (
-          <Select value={filter} onValueChange={(v) => setFilter(v as FieldFilter)}>
+          <Select
+            value={filter}
+            items={filterItems}
+            onValueChange={(next) => {
+              if (next !== null) setFilter(next)
+            }}
+          >
             <SelectTrigger className="h-8 w-40" aria-label="Toon percelen">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {FIELD_FILTERS.map((option) => (
+              {filterItems.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
-                  {option.value !== "all" ? ` (${counts[option.value]})` : ""}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -477,7 +490,7 @@ function FieldsCard({
             {visible.length === 0 ? (
               <p className="text-muted-foreground text-sm">Geen percelen met deze status.</p>
             ) : (
-              <ul className="max-h-[17rem] divide-y sm:max-h-[14.5rem] overflow-y-auto rounded-md border">
+              <ul className="max-h-[17rem] divide-y overflow-y-auto rounded-md border sm:max-h-[14.5rem]">
                 {visible.map((field) => (
                   <li key={`${field.b_id}-${field.status}`}>
                     <Link
@@ -498,7 +511,10 @@ function FieldsCard({
                           <MeasureStatusLabel status={field.status} className="sm:w-28" />
                         </div>
                       </div>
-                      <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
+                      <ChevronRight
+                        className="text-muted-foreground h-4 w-4 shrink-0"
+                        aria-hidden="true"
+                      />
                     </Link>
                   </li>
                 ))}
