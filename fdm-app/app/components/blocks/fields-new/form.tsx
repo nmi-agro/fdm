@@ -83,6 +83,17 @@ export function NewFieldsForm({
   const selectedCultivationLabel = currentSelection?.label ?? ""
   const [cultivationInputValue, setCultivationInputValue] = useState(selectedCultivationLabel)
 
+  // Reset the input text only when another field is selected.
+  // No need to update syncedFieldId on keyboard input, since the form value is only updated
+  // on blur so setting the state again won't interfere with user actions.
+  const [syncedFieldId, setSyncedFieldId] = useState(b_id)
+  if (syncedFieldId !== b_id) {
+    setSyncedFieldId(b_id)
+    setCultivationInputValue(
+      cultivationOptions.find((c) => c.value === b_lu_catalogue)?.label ?? "",
+    )
+  }
+
   return (
     <RemixFormProvider {...form}>
       <fieldset disabled={form.formState.isSubmitting}>
