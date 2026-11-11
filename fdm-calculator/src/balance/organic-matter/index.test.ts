@@ -7,7 +7,7 @@ import type {
   OrganicMatterBalanceFieldResultNumeric,
   OrganicMatterBalanceInput,
 } from "./types"
-import * as shared from "../shared/soil"
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import * as degradation from "./degradation"
 import {
   calculateOrganicMatterBalance,
@@ -18,7 +18,6 @@ import * as supply from "./supply"
 
 vi.mock("./supply")
 vi.mock("./degradation")
-vi.mock("../shared/soil")
 
 describe("Organic Matter Balance Calculation", () => {
   const timeFrame: OrganicMatterBalanceInput["timeFrame"] = {
@@ -32,7 +31,12 @@ describe("Organic Matter Balance Calculation", () => {
   } as FieldInput["field"]
   const mockCultivations: FieldInput["cultivations"] = []
   const mockFertilizerApplications: FieldInput["fertilizerApplications"] = []
-  const mockCurrentSoilData: FieldInput["currentSoilData"] = []
+  const mockCurrentSoilData: FieldInput["currentSoilData"] = currentSoilDataFixture({
+    a_som_loi: 3.5,
+    a_density_sa: 1.4,
+    b_soiltype_agr: "dekzand",
+    a_p_al: 30,
+  })
 
   describe("calculateOrganicMatterBalance", () => {
     // Mock FdmType
@@ -70,7 +74,6 @@ describe("Organic Matter Balance Calculation", () => {
       vi.spyOn(degradation, "calculateOrganicMatterDegradation").mockReturnValue({
         total: new Decimal(-200),
       })
-      vi.spyOn(shared, "resolveSoilParameters").mockReturnValue({} as any)
 
       const result = calculateOrganicMatterBalanceField({
         fieldInput: {
@@ -87,6 +90,12 @@ describe("Organic Matter Balance Calculation", () => {
       expect(result.balance).toBe(300)
       expect(result.supply.total).toBe(500)
       expect(result.degradation.total).toBe(-200)
+      expect(degradation.calculateOrganicMatterDegradation).toHaveBeenCalledWith(
+        { a_som_loi: 3.5, a_density_sa: 1.4, b_soiltype_agr: "dekzand" },
+        mockCultivations,
+        expect.anything(),
+        expect.anything(),
+      )
     })
 
     it("should return zero balance for buffer strips", () => {
