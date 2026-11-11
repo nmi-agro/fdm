@@ -998,6 +998,9 @@ importers:
       '@nmi-agro/fdm-data':
         specifier: workspace:*
         version: link:../fdm-data
+      '@nmi-agro/fdm-mcp':
+        specifier: workspace:*
+        version: link:../fdm-mcp
       '@nmi-agro/fdm-reports':
         specifier: workspace:*
         version: link:../fdm-reports
