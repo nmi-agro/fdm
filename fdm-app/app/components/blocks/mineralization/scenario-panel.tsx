@@ -639,6 +639,10 @@ export function ScenarioPanel({
                   </Label>
                   <Select
                     value={app.p_app_method}
+                    items={methods.map((method) => ({
+                      value: method,
+                      label: methodLabels[method] ?? method,
+                    }))}
                     onValueChange={(p_app_method) => {
                       if (typeof p_app_method === "string") {
                         dispatch({ type: "update_application", index, patch: { p_app_method } })

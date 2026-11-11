@@ -443,7 +443,7 @@ const QuarterlyHeader: FC = () => {
           renderHeaderItem={(item: number) => (
             <p>{format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM", { locale: nl })}</p>
           )}
-          title={`Q${quarterIndex + 1} ${year.year}`}
+          title={`K${quarterIndex + 1} ${year.year}`}
         />
         <GanttColumns columns={quarter.months.length} />
       </div>
@@ -489,8 +489,8 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
       ? addDays(feature.endAt, 1)
       : feature.endAt
   const duration = tempEndAt
-    ? formatDistance(feature.startAt, tempEndAt)
-    : `${formatDistance(feature.startAt, new Date())} so far`
+    ? formatDistance(feature.startAt, tempEndAt, { locale: nl })
+    : `${formatDistance(feature.startAt, new Date(), { locale: nl })} tot nu toe`
 
   const handleClick: MouseEventHandler<HTMLDivElement> = (event) => {
     if (event.target === event.currentTarget) {
@@ -1116,7 +1116,7 @@ export const GanttMarker: FC<
               onClick={handleRemove}
             >
               <TrashIcon size={16} />
-              Remove marker
+              Marker verwijderen
             </ContextMenuItem>
           ) : null}
         </ContextMenuContent>

@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertTriangle } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -27,6 +27,7 @@ import {
 } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { FormSchema } from "./schema"
 
 /**
@@ -81,14 +82,11 @@ export function NewFieldsForm({
   // The main crop cannot be cleared. The input text is controlled so it can be restored to the
   // selected crop when the list closes or a clear is requested.
   const selectedCultivationLabel = currentSelection?.label ?? ""
-  const [cultivationInputValue, setCultivationInputValue] = useState(selectedCultivationLabel)
-
-  // Keep the input in step with the selection when it changes from outside (another field, reset).
-  const [syncedLabel, setSyncedLabel] = useState(selectedCultivationLabel)
-  if (syncedLabel !== selectedCultivationLabel) {
-    setSyncedLabel(selectedCultivationLabel)
-    setCultivationInputValue(selectedCultivationLabel)
-  }
+  // Resets to the selected crop whenever the selection changes from outside (another field, reset).
+  const [cultivationInputValue, setCultivationInputValue] = useKeyedState(
+    selectedCultivationLabel,
+    (label) => label,
+  )
 
   return (
     <RemixFormProvider {...form}>

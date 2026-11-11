@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react"
+import { useId, useMemo } from "react"
 import type { ScenarioFertilizerOption } from "~/lib/mineralization"
 import {
   Combobox,
@@ -10,6 +10,7 @@ import {
   createComboboxItems,
 } from "~/components/ui/combobox"
 import { Field, FieldContent, FieldLabel } from "~/components/ui/field"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 
 /**
  * Searchable fertilizer choice, using the same combobox as the fertilizer application form, for a
@@ -41,14 +42,8 @@ export function FertilizerField({
     const selected = options.find((option) => option.p_id === value)
     return selected ? (selected.p_name_nl ?? selected.p_id) : ""
   }, [options, value])
-  const [inputValue, setInputValue] = useState(selectedLabel)
-
-  // Keep the input in step with the selection when it changes from outside.
-  const [syncedLabel, setSyncedLabel] = useState(selectedLabel)
-  if (syncedLabel !== selectedLabel) {
-    setSyncedLabel(selectedLabel)
-    setInputValue(selectedLabel)
-  }
+  // Resets to the selected fertilizer whenever the selection changes from outside.
+  const [inputValue, setInputValue] = useKeyedState(selectedLabel, (label) => label)
 
   return (
     <Field className="gap-1">

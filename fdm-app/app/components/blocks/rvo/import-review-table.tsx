@@ -95,6 +95,12 @@ interface ImportReviewTableMeta {
   ctx: ReviewFieldContext
 }
 
+/** Labels shown in the action select of a local field that RVO no longer lists. */
+const EXPIRED_ROW_ACTION_ITEMS = [
+  { value: "CLOSE_LOCAL", label: "Afsluiten" },
+  { value: "KEEP_LOCAL", label: "Behouden" },
+]
+
 const importReviewTableFeatures = tableFeatures({
   columnVisibilityFeature: columnVisibilityFeature,
   tableMeta: {} as ImportReviewTableMeta,
@@ -578,6 +584,7 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
     return (
       <Select
         value={getExpiredRowAction(item, ctx, userChoices)}
+        items={EXPIRED_ROW_ACTION_ITEMS}
         onValueChange={(val) => {
           if (val === "CLOSE_LOCAL" || val === "KEEP_LOCAL") {
             setUserChoices(id, getExpiredRowValues(val, item, ctx))

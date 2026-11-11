@@ -27,6 +27,7 @@ export function NewBemestingsplanForm({ className }: { className?: string }) {
         <Select
           name="year"
           value={year}
+          items={years.map((y) => ({ value: y, label: `Teeltjaar ${y}` }))}
           onValueChange={(y) => {
             if (typeof y === "string") {
               setYear(y)

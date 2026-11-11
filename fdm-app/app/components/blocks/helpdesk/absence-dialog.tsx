@@ -246,6 +246,7 @@ export function AbsenceDialog({
                     <FieldLabel>Reden</FieldLabel>
                     <Select
                       value={field.value}
+                      items={AbsenceReasonOptions}
                       onValueChange={field.onChange}
                       disabled={!canEdit || isSubmitting}
                     >

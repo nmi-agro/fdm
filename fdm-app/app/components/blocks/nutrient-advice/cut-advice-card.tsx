@@ -174,6 +174,10 @@ function CutSeasonTableRow({
         ) : (
           <Select
             value={variant.yieldclass}
+            items={row.variants.map((entry) => ({
+              value: entry.yieldclass,
+              label: CUT_YIELD_CLASS_LABELS[entry.yieldclass],
+            }))}
             onValueChange={(value) => {
               if (typeof value === "string") {
                 onSelectYieldClass(value)

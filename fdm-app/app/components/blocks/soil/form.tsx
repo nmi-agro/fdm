@@ -336,7 +336,10 @@ function SoilParameterField({
             <FieldContent>
               <Select
                 onValueChange={field.onChange}
-                value={typeof field.value === "string" ? field.value : undefined}
+                // `null` (not `undefined`) keeps the Select controlled when there is no value yet.
+                // The items include system-only sources, so their label still shows when set.
+                value={typeof field.value === "string" ? field.value : null}
+                items={x.options ?? []}
                 disabled={field.disabled}
               >
                 <SelectTrigger

@@ -192,7 +192,7 @@ export function CultivationDetailsCard({
                       <FieldLabel htmlFor={field.name}>Variëteit</FieldLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value ?? undefined}
+                        value={field.value ?? null}
                         items={b_lu_variety_options}
                         disabled={!editable || b_lu_variety_options.length === 0}
                       >

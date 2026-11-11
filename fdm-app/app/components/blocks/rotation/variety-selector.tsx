@@ -69,7 +69,7 @@ function TableVarietySelectorForm({
                 }
                 field.onChange(value)
               }}
-              value={field.value ?? undefined}
+              value={field.value ?? null}
               items={b_lu_variety_options}
               disabled={field.disabled}
             >

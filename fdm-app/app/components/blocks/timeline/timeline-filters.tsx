@@ -95,6 +95,10 @@ export function TimelineFiltersPopover({
                 }
               }}
               value={period.value === "" ? ALL_PERIOD_VALUE : period.value}
+              items={period.options.map((option) => ({
+                value: option.value === "" ? ALL_PERIOD_VALUE : option.value,
+                label: option.label,
+              }))}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
