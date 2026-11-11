@@ -1,4 +1,4 @@
-import type { FdmServerType } from "@nmi-agro/fdm-core"
+import type { CurrentSoilData, FdmServerType } from "@nmi-agro/fdm-core"
 import { addFarm, addField, addSoilAnalysis, createFdmServer } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { beforeAll, describe, expect, inject, it, vi } from "vitest"
@@ -50,7 +50,14 @@ describe("soil data in the balance input", () => {
       inject("password"),
       inject("database"),
     )
-    b_id_farm = await addFarm(fdm, principal_id, "soil period farm", "12345678", "address", "1234AB")
+    b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "soil period farm",
+      "12345678",
+      "address",
+      "1234AB",
+    )
 
     const addTestField = (name: string) =>
       addField(
@@ -115,31 +122,31 @@ describe("soil data in the balance input", () => {
     )
   })
 
-  const expectSoilData = (
-    fields: { field: { b_id: string }; soilAnalyses: Record<string, unknown>[] }[],
-  ) => {
-    const byField = new Map(fields.map((f) => [f.field.b_id, f.soilAnalyses]))
+  /** The value per soil parameter, for easier comparison. */
+  const valuesOf = (currentSoilData: CurrentSoilData) =>
+    Object.fromEntries(currentSoilData.map((item) => [item.parameter, item.value]))
 
-    expect(byField.get(b_id_older)).toEqual([
-      expect.objectContaining({ a_som_loi: 3.5, b_soiltype_agr: "dekzand" }),
-    ])
-    expect(byField.get(b_id_older_and_newer)).toEqual([
-      expect.objectContaining({
-        a_som_loi: 4.0,
-        b_soiltype_agr: "rivierklei",
-        b_sampling_date: new Date("2025-03-01T00:00:00Z"),
-      }),
-    ])
+  const expectSoilData = (
+    fields: { field: { b_id: string }; currentSoilData: CurrentSoilData }[],
+  ) => {
+    const byField = new Map(fields.map((f) => [f.field.b_id, f.currentSoilData]))
+
+    expect(valuesOf(byField.get(b_id_older) ?? [])).toMatchObject({
+      a_som_loi: 3.5,
+      b_soiltype_agr: "dekzand",
+    })
+
+    const olderAndNewer = byField.get(b_id_older_and_newer) ?? []
+    expect(valuesOf(olderAndNewer)).toMatchObject({ a_som_loi: 4.0, b_soiltype_agr: "rivierklei" })
+    expect(
+      olderAndNewer.find((item) => item.parameter === "a_som_loi")?.sources[0].b_sampling_date,
+    ).toEqual(new Date("2025-03-01T00:00:00Z"))
+
     expect(byField.get(b_id_after)).toEqual([])
   }
 
   it("organic matter balance: farm level", async () => {
-    const input = await collectInputForOrganicMatterBalance(
-      fdm,
-      principal_id,
-      b_id_farm,
-      timeframe,
-    )
+    const input = await collectInputForOrganicMatterBalance(fdm, principal_id, b_id_farm, timeframe)
     expectSoilData(input.fields)
   })
 
@@ -151,9 +158,10 @@ describe("soil data in the balance input", () => {
       timeframe,
       b_id_older,
     )
-    expect(single.fields[0].soilAnalyses).toEqual([
-      expect.objectContaining({ a_som_loi: 3.5, b_soiltype_agr: "dekzand" }),
-    ])
+    expect(valuesOf(single.fields[0].currentSoilData)).toMatchObject({
+      a_som_loi: 3.5,
+      b_soiltype_agr: "dekzand",
+    })
   })
 
   it("nitrogen balance: farm level", async () => {
@@ -169,9 +177,10 @@ describe("soil data in the balance input", () => {
       timeframe,
       b_id_older,
     )
-    expect(older.fields[0].soilAnalyses).toEqual([
-      expect.objectContaining({ a_som_loi: 3.5, b_soiltype_agr: "dekzand" }),
-    ])
+    expect(valuesOf(older.fields[0].currentSoilData)).toMatchObject({
+      a_som_loi: 3.5,
+      b_soiltype_agr: "dekzand",
+    })
 
     const after = await collectInputForNitrogenBalance(
       fdm,
@@ -180,6 +189,6 @@ describe("soil data in the balance input", () => {
       timeframe,
       b_id_after,
     )
-    expect(after.fields[0].soilAnalyses).toEqual([])
+    expect(after.fields[0].currentSoilData).toEqual([])
   })
 })

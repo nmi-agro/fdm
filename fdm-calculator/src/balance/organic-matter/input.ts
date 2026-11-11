@@ -17,7 +17,6 @@ import {
 } from "@nmi-agro/fdm-core"
 import type { FieldInput, OrganicMatterBalanceInput } from "./types"
 import { handleInputCollectionError } from "../shared/errors"
-import { currentSoilDataToSoilAnalyses } from "../shared/soil"
 
 /**
  * Collects all necessary input data from an FDM instance to calculate the organic matter balance of a single farm.
@@ -73,9 +72,7 @@ async function collectInputForOrganicMatterBalanceForFarm(
         // Single-field path: use the existing per-field functions (only 1 field, no optimisation needed)
         const field = farmFields[0]
         const cultivations = await getCultivations(tx, principal_id, field.b_id, timeframe)
-        const soilAnalyses = currentSoilDataToSoilAnalyses(
-          await getCurrentSoilData(tx, principal_id, field.b_id, timeframe),
-        )
+        const currentSoilData = await getCurrentSoilData(tx, principal_id, field.b_id, timeframe)
         const fertilizerApplications = await getFertilizerApplications(
           tx,
           principal_id,
@@ -87,7 +84,7 @@ async function collectInputForOrganicMatterBalanceForFarm(
             field,
             cultivations,
             fertilizerApplications,
-            soilAnalyses,
+            currentSoilData,
           },
         ]
       }
@@ -104,7 +101,7 @@ async function collectInputForOrganicMatterBalanceForFarm(
         field,
         cultivations: cultivationsByField.get(field.b_id) ?? [],
         fertilizerApplications: fertAppsByField.get(field.b_id) ?? [],
-        soilAnalyses: currentSoilDataToSoilAnalyses(soilByField.get(field.b_id) ?? []),
+        currentSoilData: soilByField.get(field.b_id) ?? [],
       }))
     })
   } catch (error) {

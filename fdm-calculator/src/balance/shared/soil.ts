@@ -1,4 +1,4 @@
-import type { CurrentSoilData, SoilAnalysis } from "@nmi-agro/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 import type { SoilAnalysisPicked as NitrogenSoilAnalysisPicked } from "../nitrogen/types"
 import type { SoilAnalysisPicked as OrganicMatterSoilAnalysisPicked } from "../organic-matter/types"
 import {
@@ -21,96 +21,41 @@ const allEstimationProperties = [
   "b_gwl_class",
 ] as const
 
-/**
- * The soil analysis record that `currentSoilDataToSoilAnalyses` builds from the current soil data.
- *
- * It holds every soil parameter that the nitrogen and organic matter balances use, so it fits the
- * `soilAnalyses` input of both balances.
- */
-export type BalanceSoilAnalysis = Pick<
-  SoilAnalysis,
-  | "a_id"
-  | "b_sampling_date"
-  | "a_c_of"
-  | "a_cn_fr"
-  | "a_density_sa"
-  | "a_n_rt"
-  | "a_som_loi"
-  | "b_soiltype_agr"
-  | "b_gwl_class"
->
+const numericProperties = new Set<string>([
+  "a_c_of",
+  "a_som_loi",
+  "a_cn_fr",
+  "a_n_rt",
+  "a_density_sa",
+])
 
 /**
- * Converts the current soil data of a field into the `soilAnalyses` input of the balances.
+ * Reads the soil parameters that a balance needs from the current soil data of a field.
  *
- * The current soil data (from `getCurrentSoilData` or `getCurrentSoilDataForFarm` in fdm-core) holds
- * the most recent value per soil parameter, so a parameter can come from an older analysis when a
- * newer analysis does not contain it. This function puts those values into a single record.
- * `a_id` and `b_sampling_date` are taken from the newest analysis that contributes to one of
- * these parameters.
+ * The current soil data (from `getCurrentSoilData` or `getCurrentSoilDataForFarm` in fdm-core) already
+ * holds the current value per soil parameter, so the value of each parameter is taken as is. When
+ * `estimateMissing` is `true`, missing values are estimated from the other parameters where possible
+ * (organic carbon and organic matter from each other, the C/N ratio from organic carbon and total
+ * nitrogen, and the bulk density from organic matter and soil type).
  *
- * @param currentSoilData - The current soil data of a field.
- * @returns An array with one record, or an empty array when none of the parameters has a value.
- * @example
- * ```ts
- * const soilAnalyses = currentSoilDataToSoilAnalyses(
- *   await getCurrentSoilData(fdm, principal_id, b_id, timeframe),
- * )
- * ```
+ * @param currentSoilData - The current soil data of the field.
+ * @param propertiesToExtract - The soil parameters to return.
+ * @param estimateMissing - Whether to estimate missing values from other parameters.
+ * @returns An object with a value for each requested soil parameter.
+ * @throws {Error} When a requested soil parameter has no value and cannot be estimated.
  */
-export function currentSoilDataToSoilAnalyses(
+export function resolveSoilParameters<T extends SoilAnalysisPicked>(
   currentSoilData: CurrentSoilData,
-): BalanceSoilAnalysis[] {
-  const record: Record<string, unknown> = {}
-  let newestSource: CurrentSoilData[number]["sources"][number] | undefined
-
-  for (const prop of allEstimationProperties) {
-    const item = currentSoilData.find(
-      (x) => x.parameter === prop && x.value !== null && x.value !== undefined,
-    )
-    record[prop] = item?.value ?? null
-
-    const source = item?.sources[0]
-    if (
-      source &&
-      (!newestSource ||
-        (source.b_sampling_date?.getTime() ?? Number.NEGATIVE_INFINITY) >
-          (newestSource.b_sampling_date?.getTime() ?? Number.NEGATIVE_INFINITY))
-    ) {
-      newestSource = source
-    }
-  }
-
-  if (!newestSource) return []
-
-  return [
-    {
-      ...record,
-      a_id: newestSource.a_id,
-      b_sampling_date: newestSource.b_sampling_date,
-    } as BalanceSoilAnalysis,
-  ]
-}
-
-export function combineSoilAnalyses<T extends SoilAnalysisPicked>(
-  soilAnalyses: Partial<SoilAnalysis>[],
   propertiesToExtract: (keyof T)[],
   estimateMissing = false,
 ): T {
-  // Sort the soil analyses by date (most recent first)
-  soilAnalyses.sort((a, b) => {
-    if (a.b_sampling_date && b.b_sampling_date) {
-      return new Date(b.b_sampling_date).getTime() - new Date(a.b_sampling_date).getTime()
-    }
-    return 0
-  })
-
   const fullSoilAnalysis: Partial<NitrogenSoilAnalysisPicked> = {}
 
-  // Extract all possible estimation properties (preserve 0 values)
+  // Take the current value of each parameter (preserve 0 values)
   for (const prop of allEstimationProperties) {
-    const value = soilAnalyses.find((x: any) => x[prop] !== null && x[prop] !== undefined)?.[prop]
-    ;(fullSoilAnalysis as any)[prop] = value ?? null
+    const value = currentSoilData.find((x) => x.parameter === prop)?.value
+    const expectedType = numericProperties.has(prop) ? "number" : "string"
+    ;(fullSoilAnalysis as any)[prop] = typeof value === expectedType ? value : null
   }
 
   if (estimateMissing) {

@@ -5,7 +5,6 @@ import {
   calculateDose,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
-  currentSoilDataToSoilAnalyses,
   fdmCalculator,
   type GebruiksnormResult,
   getMainCultivation,
@@ -370,7 +369,7 @@ export async function computeFertilizerPlanData(
             fieldInput: {
               field: field,
               cultivations: cultivations,
-              soilAnalyses: currentSoilDataToSoilAnalyses(currentSoilData),
+              currentSoilData: currentSoilData,
               fertilizerApplications: fertilizerApplications,
             },
             fertilizerDetails: fertilizersCatalogue,

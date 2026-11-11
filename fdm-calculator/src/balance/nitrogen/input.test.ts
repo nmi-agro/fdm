@@ -9,7 +9,6 @@ import type {
   Harvest,
   PrincipalId,
   CurrentSoilData,
-  CurrentSoilDataItem,
 } from "@nmi-agro/fdm-core"
 import {
   getCultivations,
@@ -31,8 +30,8 @@ import {
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { BalanceSoilAnalysis } from "../shared/soil"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import { collectInputForNitrogenBalance, collectInputForNitrogenBalanceForFarms } from "./input"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 
@@ -90,43 +89,18 @@ const mockedCalculateAllFieldsNitrogenSupplyByDeposition = vi.mocked(
   calculateAllFieldsNitrogenSupplyByDeposition,
 )
 
-/**
- * Builds the current soil data that fdm-core returns for a field with a single analysis.
- */
-function toCurrentSoilData(analysis: BalanceSoilAnalysis): CurrentSoilData {
-  const { a_id, b_sampling_date, ...values } = analysis
-  return Object.entries(values).map(([parameter, value]) => ({
-    parameter: parameter as CurrentSoilDataItem["parameter"],
-    value,
-    is_aggregated: false,
-    coverage: 1,
-    has_coverage_warning: false,
-    sources: [
-      {
-        a_id,
-        a_source: "nl-other-nmi",
-        b_sampling_date,
-        a_depth_upper: 0,
-        a_depth_lower: 30,
-        value,
-        area_fraction: 1,
-      },
-    ],
-  }))
-}
-
-const mockSoilAnalysis: BalanceSoilAnalysis = {
-  a_id: "sa-1",
-  b_sampling_date: new Date("2023-05-01"),
-  a_c_of: 25,
-  a_cn_fr: 10,
-  a_density_sa: 1.5,
-  a_n_rt: 100,
-  a_som_loi: 5,
-  b_soiltype_agr: "dekzand",
-  b_gwl_class: "II",
-}
-const mockCurrentSoilData = toCurrentSoilData(mockSoilAnalysis)
+const mockCurrentSoilData = currentSoilDataFixture(
+  {
+    a_c_of: 25,
+    a_cn_fr: 10,
+    a_density_sa: 1.5,
+    a_n_rt: 100,
+    a_som_loi: 5,
+    b_soiltype_agr: "dekzand",
+    b_gwl_class: "II",
+  },
+  { a_id: "sa-1", b_sampling_date: new Date("2023-05-01") },
+)
 
 function createMockData() {
   return {
@@ -214,7 +188,6 @@ function createMockData() {
         },
       },
     ] as Harvest[],
-    mockSoilAnalysesData: [mockSoilAnalysis],
     mockFertilizerApplicationsData: [
       {
         p_app_id: "fa-1",
@@ -313,7 +286,6 @@ describe("collectInputForNitrogenBalance", () => {
       mockFieldsData,
       mockCultivationsData,
       mockHarvestsData,
-      mockSoilAnalysesData,
       mockFertilizerApplicationsData,
       mockFertilizerDetailsData,
       mockCultivationDetailsData,
@@ -343,7 +315,7 @@ describe("collectInputForNitrogenBalance", () => {
       field: fieldData,
       cultivations: mockCultivationsData,
       harvests: mockHarvestsData,
-      soilAnalyses: mockSoilAnalysesData,
+      currentSoilData: mockCurrentSoilData,
       fertilizerApplications: mockFertilizerApplicationsData,
       depositionSupply: mockDepositionSupplyMap.get(fieldData.b_id) as { total: Decimal },
     }))
@@ -503,7 +475,6 @@ describe("collectInputForNitrogenBalance", () => {
       mockFieldsData,
       mockCultivationsData,
       mockHarvestsData,
-      mockSoilAnalysesData,
       mockFertilizerApplicationsData,
       mockFertilizerDetailsData,
       mockCultivationDetailsData,
@@ -530,7 +501,7 @@ describe("collectInputForNitrogenBalance", () => {
 
     expect(result.fields).toHaveLength(1)
     expect(result.fields[0].field).toBe(singleField)
-    expect(result.fields[0].soilAnalyses).toEqual(mockSoilAnalysesData)
+    expect(result.fields[0].currentSoilData).toEqual(mockCurrentSoilData)
     expect(mockedGetCultivations).toHaveBeenCalled()
     expect(mockedGetHarvests).toHaveBeenCalled()
     expect(mockedGetCurrentSoilData).toHaveBeenCalled()
@@ -567,7 +538,6 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
       mockCultivationsData,
       mockCultivationsData2,
       mockHarvestsData,
-      mockSoilAnalysesData,
       mockFertilizerApplicationsData,
       mockFertilizerApplicationsData2,
       mockFertilizerDetailsData,
@@ -598,12 +568,8 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
     )
     mockedGetCurrentSoilDataForFarm.mockResolvedValue(
       new Map([
-        ...mockFieldsData.map(
-          (f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData],
-        ),
-        ...mockFieldsData2.map(
-          (f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData],
-        ),
+        ...mockFieldsData.map((f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData]),
+        ...mockFieldsData2.map((f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData]),
       ]),
     )
     mockedGetFertilizerApplicationsForFarm.mockImplementation(async (_1, _2, b_id_farm) =>
@@ -656,7 +622,7 @@ describe("collectInputForNitrogenBalanceForFarms", () => {
       field: fieldData,
       cultivations: cultivations,
       harvests: mockHarvestsData,
-      soilAnalyses: mockSoilAnalysesData,
+      currentSoilData: mockCurrentSoilData,
       fertilizerApplications: fertilizerApplications,
       depositionSupply: mockDepositionSupplyMap.get(fieldData.b_id) as {
         total: Decimal

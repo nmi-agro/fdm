@@ -52,8 +52,6 @@ export type {
   OrganicMatterSupplyNumeric,
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
-export { currentSoilDataToSoilAnalyses } from "./balance/shared/soil"
-export type { BalanceSoilAnalysis } from "./balance/shared/soil"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"
 export type {

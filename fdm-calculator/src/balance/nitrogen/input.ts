@@ -21,7 +21,6 @@ import Decimal from "decimal.js"
 import type { FieldInput, NitrogenBalanceInput } from "./types"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { handleInputCollectionError } from "../shared/errors"
-import { currentSoilDataToSoilAnalyses } from "../shared/soil"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
 
 type FieldInputWithoutDeposition = Omit<FieldInput, "depositionSupply">
@@ -85,9 +84,7 @@ async function collectInputForNitrogenBalanceForFarm(
         const harvests = harvestArrays.flat()
         const harvestsFiltered = harvests.filter((harvest) => harvest.b_lu !== undefined)
 
-        const soilAnalyses = currentSoilDataToSoilAnalyses(
-          await getCurrentSoilData(tx, principal_id, field.b_id, timeframe),
-        )
+        const currentSoilData = await getCurrentSoilData(tx, principal_id, field.b_id, timeframe)
 
         const fertilizerApplications = await getFertilizerApplications(
           tx,
@@ -104,7 +101,7 @@ async function collectInputForNitrogenBalanceForFarm(
               cultivations,
               harvests: harvestsFiltered,
               fertilizerApplications,
-              soilAnalyses,
+              currentSoilData,
             },
           ],
         }
@@ -129,7 +126,7 @@ async function collectInputForNitrogenBalanceForFarm(
             cultivations,
             harvests,
             fertilizerApplications: fertAppsByField.get(field.b_id) ?? [],
-            soilAnalyses: currentSoilDataToSoilAnalyses(soilByField.get(field.b_id) ?? []),
+            currentSoilData: soilByField.get(field.b_id) ?? [],
           }
         }),
       }

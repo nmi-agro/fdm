@@ -32,7 +32,7 @@ describe("Organic Matter Balance Calculation", () => {
   } as FieldInput["field"]
   const mockCultivations: FieldInput["cultivations"] = []
   const mockFertilizerApplications: FieldInput["fertilizerApplications"] = []
-  const mockSoilAnalyses: FieldInput["soilAnalyses"] = []
+  const mockCurrentSoilData: FieldInput["currentSoilData"] = []
 
   describe("calculateOrganicMatterBalance", () => {
     // Mock FdmType
@@ -70,14 +70,14 @@ describe("Organic Matter Balance Calculation", () => {
       vi.spyOn(degradation, "calculateOrganicMatterDegradation").mockReturnValue({
         total: new Decimal(-200),
       })
-      vi.spyOn(shared, "combineSoilAnalyses").mockReturnValue({} as any)
+      vi.spyOn(shared, "resolveSoilParameters").mockReturnValue({} as any)
 
       const result = calculateOrganicMatterBalanceField({
         fieldInput: {
           field: mockField,
           cultivations: mockCultivations,
           fertilizerApplications: mockFertilizerApplications,
-          soilAnalyses: mockSoilAnalyses,
+          currentSoilData: mockCurrentSoilData,
         },
         fertilizerDetails: [],
         cultivationDetails: [],
@@ -95,7 +95,7 @@ describe("Organic Matter Balance Calculation", () => {
           field: { ...mockField, b_bufferstrip: true },
           cultivations: mockCultivations,
           fertilizerApplications: mockFertilizerApplications,
-          soilAnalyses: mockSoilAnalyses,
+          currentSoilData: mockCurrentSoilData,
         },
         fertilizerDetails: [],
         cultivationDetails: [],
