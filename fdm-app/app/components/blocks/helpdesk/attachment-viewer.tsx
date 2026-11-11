@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useEffect, useState } from "react"
 import {
   FileViewerDialogHeader,
@@ -7,7 +8,6 @@ import { ImageCropperApp } from "~/components/custom/image-cropper"
 import { DialogContent } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import { ALLOWED_IMAGE_MIME_TYPES } from "~/lib/upload-utils"
-import { cn } from "~/lib/utils"
 import { AttachmentGridItem } from "./attachment-grid"
 
 /**

@@ -103,93 +103,104 @@ export function SidebarOrganization({
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={location.pathname === "/organization"}>
-              <NavLink to={"/organization"}>
-                <LayoutGrid />
-                <span>Mijn organisaties</span>
-              </NavLink>
-            </SidebarMenuButton>
+            <SidebarMenuButton
+              isActive={location.pathname === "/organization"}
+              render={
+                <NavLink to={"/organization"}>
+                  <LayoutGrid />
+                  <span>Mijn organisaties</span>
+                </NavLink>
+              }
+            />
           </SidebarMenuItem>
           {organization && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={location.pathname === organizationLink}>
-                <NavLink to={organizationLink}>
-                  <Building />
-                  <span className="truncate">{organizationLinkDisplay}</span>
-                  {organizationRole && (
-                    <Badge key={organizationRole} variant="outline" className="ml-auto">
-                      {
+              <SidebarMenuButton
+                isActive={location.pathname === organizationLink}
+                render={
+                  <NavLink to={organizationLink}>
+                    <Building />
+                    <span className="truncate">{organizationLinkDisplay}</span>
+                    {organizationRole && (
+                      <Badge key={organizationRole} variant="outline" className="ml-auto">
                         {
-                          owner: "Eigenaar",
-                          admin: "Beheerder",
-                          member: "Lid",
-                          viewer: "Kijker",
-                        }[organizationRole]
-                      }
-                    </Badge>
-                  )}
-                </NavLink>
-              </SidebarMenuButton>
+                          {
+                            owner: "Eigenaar",
+                            admin: "Beheerder",
+                            member: "Lid",
+                            viewer: "Kijker",
+                          }[organizationRole]
+                        }
+                      </Badge>
+                    )}
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
           )}
           {organization ? (
             <Collapsible
-              asChild
               open={isCalendarOpen}
               className="group/collapsible"
               onOpenChange={setIsCalendarOpen}
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={"Kalender"} className="flex items-center">
-                    <Calendar />
-                    <span>Kalender </span>
-                    {!isCalendarOpen && (
-                      <Badge className="ml-1">
-                        {selectedCalendar === "all" ? "Alle jaren" : selectedCalendar}
-                      </Badge>
-                    )}
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {calendarSelection?.map((item) => (
-                      <SidebarMenuSubItem
-                        key={item}
-                        className={
-                          selectedCalendar === item ? "bg-accent text-accent-foreground" : ""
-                        }
-                      >
-                        <SidebarMenuSubButton asChild onClick={() => setCalendar(item)}>
-                          <NavLink
-                            to={getLinkForYear(location.pathname, item)}
-                            className="flex items-center"
-                          >
-                            <span>{item === "all" ? "Alle jaren" : item}</span>
-                            {selectedCalendar === item && <Check className="ml-auto h-4 w-4" />}
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
+              render={
+                <SidebarMenuItem>
+                  <CollapsibleTrigger
+                    render={
+                      <SidebarMenuButton tooltip={"Kalender"} className="flex items-center">
+                        <Calendar />
+                        <span>Kalender </span>
+                        {!isCalendarOpen && (
+                          <Badge className="ml-1">
+                            {selectedCalendar === "all" ? "Alle jaren" : selectedCalendar}
+                          </Badge>
+                        )}
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    }
+                  />
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {calendarSelection?.map((item) => (
+                        <SidebarMenuSubItem
+                          key={item}
+                          className={
+                            selectedCalendar === item ? "bg-accent text-accent-foreground" : ""
+                          }
+                        >
+                          <SidebarMenuSubButton
+                            onClick={() => setCalendar(item)}
+                            render={
+                              <NavLink
+                                to={getLinkForYear(location.pathname, item)}
+                                className="flex items-center"
+                              >
+                                <span>{item === "all" ? "Alle jaren" : item}</span>
+                                {selectedCalendar === item && <Check className="ml-auto h-4 w-4" />}
+                              </NavLink>
+                            }
+                          />
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              }
+            />
           ) : (
             <SidebarMenuItem>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                  >
-                    <span className="flex items-center gap-2">
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
                       <Calendar />
                       <span>Kalender</span>
-                    </span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
+                    </SidebarMenuButton>
+                  }
+                />
                 <TooltipContent side="right">
                   Selecteer een organisatie om de kalender te gebruiken
                 </TooltipContent>
@@ -198,25 +209,28 @@ export function SidebarOrganization({
           )}
           <SidebarMenuItem>
             {organization ? (
-              <SidebarMenuButton asChild isActive={activeTab === "farms"}>
-                <NavLink to={`/organization/${organization.slug}/${selectedCalendar}/farms`}>
-                  <House />
-                  <span>Bedrijven</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={activeTab === "farms"}
+                render={
+                  <NavLink to={`/organization/${organization.slug}/${selectedCalendar}/farms`}>
+                    <House />
+                    <span>Bedrijven</span>
+                  </NavLink>
+                }
+              />
             ) : (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                  >
-                    <span className="flex items-center gap-2">
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
                       <House />
                       <span>Bedrijven</span>
-                    </span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
+                    </SidebarMenuButton>
+                  }
+                />
                 <TooltipContent side="right">
                   Selecteer een organisatie om de bedrijven te beheren
                 </TooltipContent>
@@ -225,25 +239,28 @@ export function SidebarOrganization({
           </SidebarMenuItem>
           <SidebarMenuItem>
             {organization ? (
-              <SidebarMenuButton asChild isActive={activeTab === "groups"}>
-                <NavLink to={`/organization/${organization.slug}/${selectedCalendar}/groups`}>
-                  <UserGroup />
-                  <span>Groepen</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={activeTab === "groups"}
+                render={
+                  <NavLink to={`/organization/${organization.slug}/${selectedCalendar}/groups`}>
+                    <UserGroup />
+                    <span>Groepen</span>
+                  </NavLink>
+                }
+              />
             ) : (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                  >
-                    <span className="flex items-center gap-2">
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
                       <UserGroup />
                       <span>Groepen</span>
-                    </span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
+                    </SidebarMenuButton>
+                  }
+                />
                 <TooltipContent side="right">
                   Selecteer een organisatie om de groepen te beheren
                 </TooltipContent>
@@ -252,25 +269,28 @@ export function SidebarOrganization({
           </SidebarMenuItem>
           <SidebarMenuItem>
             {organization ? (
-              <SidebarMenuButton asChild isActive={activeTab === "measures"}>
-                <NavLink to={`/organization/${organization.slug}/${selectedCalendar}/measures`}>
-                  <ClipboardList />
-                  <span>Maatregelen</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={activeTab === "measures"}
+                render={
+                  <NavLink to={`/organization/${organization.slug}/${selectedCalendar}/measures`}>
+                    <ClipboardList />
+                    <span>Maatregelen</span>
+                  </NavLink>
+                }
+              />
             ) : (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                  >
-                    <span className="flex items-center gap-2">
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
                       <ClipboardList />
                       <span>Maatregelen</span>
-                    </span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
+                    </SidebarMenuButton>
+                  }
+                />
                 <TooltipContent side="right">
                   Selecteer een organisatie om de maatregelen in bedrijven te bekijken
                 </TooltipContent>
@@ -279,25 +299,28 @@ export function SidebarOrganization({
           </SidebarMenuItem>
           <SidebarMenuItem>
             {organization ? (
-              <SidebarMenuButton asChild isActive={activeTab === "members"}>
-                <NavLink to={`/organization/${organization.slug}/members`}>
-                  <Users />
-                  <span>Leden</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={activeTab === "members"}
+                render={
+                  <NavLink to={`/organization/${organization.slug}/members`}>
+                    <Users />
+                    <span>Leden</span>
+                  </NavLink>
+                }
+              />
             ) : (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                  >
-                    <span className="flex items-center gap-2">
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
                       <Users />
                       <span>Leden</span>
-                    </span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
+                    </SidebarMenuButton>
+                  }
+                />
                 <TooltipContent side="right">
                   Selecteer een organisatie om de leden te beheren
                 </TooltipContent>
@@ -306,25 +329,28 @@ export function SidebarOrganization({
           </SidebarMenuItem>
           <SidebarMenuItem>
             {organization ? (
-              <SidebarMenuButton asChild isActive={activeTab === "settings"}>
-                <NavLink to={`/organization/${organization.slug}/settings`}>
-                  <Cog />
-                  <span>Instellingen</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={activeTab === "settings"}
+                render={
+                  <NavLink to={`/organization/${organization.slug}/settings`}>
+                    <Cog />
+                    <span>Instellingen</span>
+                  </NavLink>
+                }
+              />
             ) : (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <SidebarMenuButton
-                    asChild
-                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                  >
-                    <span className="flex items-center gap-2">
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-disabled="true"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
                       <Cog />
                       <span>Instellingen</span>
-                    </span>
-                  </SidebarMenuButton>
-                </TooltipTrigger>
+                    </SidebarMenuButton>
+                  }
+                />
                 <TooltipContent side="right">
                   Selecteer een organisatie om de instellingen te beheren
                 </TooltipContent>

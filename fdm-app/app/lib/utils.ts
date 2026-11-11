@@ -1,10 +1,3 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
 /**
  * Masks an email address for display, keeping the first character of the
  * local part and the full domain (e.g. `jan@example.com` -> `j***@example.com`).

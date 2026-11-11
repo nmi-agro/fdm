@@ -17,6 +17,7 @@ import {
   startOfDayInFdmTimeZone,
   toFdmDateString,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { CircleAlert, CircleCheck, Info, MapPinOff } from "lucide-react"
 import { Suspense, use, useEffect, useRef, useState } from "react"
 import {
@@ -52,7 +53,7 @@ import { FieldMineralizationSkeleton } from "~/components/blocks/mineralization/
 import { type SoilParameterLabels, UsedInput } from "~/components/blocks/mineralization/used-input"
 import { WeatherStrip } from "~/components/blocks/mineralization/weather-strip"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { Spinner } from "~/components/ui/spinner"
@@ -79,7 +80,6 @@ import {
   getSeasonTiming,
   type MineralizationHarvestSettings,
 } from "~/lib/mineralization"
-import { cn } from "~/lib/utils"
 
 export { shouldRevalidateMineralization as shouldRevalidate } from "~/lib/mineralization"
 
@@ -680,11 +680,16 @@ function FieldMineralizationResult(
                 )
               }
             />
-            <Button asChild variant="link" size="sm" className="text-muted-foreground">
-              <a href={`#${USED_INPUT_ID}`} onClick={() => setUsedInputOpen(true)}>
-                Welke gegevens zijn gebruikt?
-              </a>
-            </Button>
+            <a
+              href={`#${USED_INPUT_ID}`}
+              onClick={() => setUsedInputOpen(true)}
+              className={cn(
+                buttonVariants({ variant: "link", size: "sm" }),
+                "text-muted-foreground",
+              )}
+            >
+              Welke gegevens zijn gebruikt?
+            </a>
           </div>
           {isCurrentYear && growingUnavailable ? (
             <p className="text-muted-foreground text-xs">
@@ -756,14 +761,15 @@ function FieldMineralizationResult(
                     />
                   ) : null}
                 </div>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 self-start sm:self-center"
+                <a
+                  href={`#${SCENARIO_PANEL_ID}`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "shrink-0 self-start sm:self-center",
+                  )}
                 >
-                  <a href={`#${SCENARIO_PANEL_ID}`}>Naar scenario</a>
-                </Button>
+                  Naar scenario
+                </a>
               </div>
             ) : null}
           </CardHeader>

@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react"
+import { cn } from "cn"
 import { ExternalLink, Info, Link2 } from "lucide-react"
 import ReactMarkdown, { type Components } from "react-markdown"
 import { Link } from "react-router"
@@ -6,7 +7,6 @@ import remarkGfm from "remark-gfm"
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { manualUrlTransform, remarkHeadingIds } from "~/lib/manual/markdown"
 import { getScreenshot } from "~/lib/manual/screenshots"
-import { cn } from "~/lib/utils"
 
 /**
  * A UI label as it appears in the app: a small outlined button-like chip. In manual content every
@@ -55,21 +55,18 @@ function Screenshot({ src, alt }: { src?: string; alt?: string }) {
   return (
     <figure>
       <Dialog>
-        <DialogTrigger asChild>
-          <button
-            type="button"
-            aria-label={alt ? `Vergroot afbeelding: ${alt}` : "Vergroot afbeelding"}
-            className="focus-visible:ring-ring block w-full cursor-zoom-in rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            <img
-              src={screenshot.src}
-              alt={alt ?? ""}
-              width={screenshot.width}
-              height={screenshot.height}
-              loading="lazy"
-              className="border-border w-full border"
-            />
-          </button>
+        <DialogTrigger
+          aria-label={alt ? `Vergroot afbeelding: ${alt}` : "Vergroot afbeelding"}
+          className="focus-visible:ring-ring block w-full cursor-zoom-in rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          <img
+            src={screenshot.src}
+            alt={alt ?? ""}
+            width={screenshot.width}
+            height={screenshot.height}
+            loading="lazy"
+            className="border-border w-full border"
+          />
         </DialogTrigger>
         <DialogContent className="w-[96vw] max-w-[96vw] p-2 pt-10 sm:max-w-[96vw]">
           <DialogTitle className="sr-only">{alt || "Afbeelding"}</DialogTitle>

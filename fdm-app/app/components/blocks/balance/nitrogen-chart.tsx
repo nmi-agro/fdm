@@ -4,10 +4,10 @@ import type {
   NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { nl } from "@daypicker/react/locale"
+import { cn } from "cn"
 import { format } from "date-fns/format"
 import { useId, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
-import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { ChartContainer, ChartLegend, ChartTooltip } from "~/components/ui/chart"
@@ -498,8 +498,8 @@ export function NitrogenBalanceChart(
             const itemConfig = chartConfig[name]
             if (!itemConfig) return null
             return (
-              <Card>
-                <CardHeader className="p-4 pb-0">
+              <Card size="sm">
+                <CardHeader>
                   <div>
                     <div
                       className="me-2 inline-block h-2 w-2 rounded-[2px]"
@@ -518,7 +518,7 @@ export function NitrogenBalanceChart(
                     </div>
                   ))}
                 </CardHeader>
-                <CardContent className="p-4">
+                <CardContent>
                   <div className="font-bold">
                     <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
                     {chartData[name]} {itemConfig.unit ?? "kg N / ha"}
@@ -529,7 +529,7 @@ export function NitrogenBalanceChart(
           }}
         />
         <ChartLegend
-          content={
+          content={() => (
             <div className={"flex flex-wrap items-center justify-center gap-4"}>
               {Object.entries(legend).map(([dataKey, itemConfig]) => {
                 return (
@@ -550,7 +550,7 @@ export function NitrogenBalanceChart(
                 )
               })}
             </div>
-          }
+          )}
         />
         {renderBar("a", supplyBar)}
         {renderBar("b", removalBar)}

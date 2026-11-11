@@ -1,6 +1,7 @@
 /* eslint-disable typescript/restrict-template-expressions -- Mapbox viewstates, coordinates, and layer IDs are formatted inside template literals safely. */
 import type { FeatureCollection } from "geojson"
 import type { MapGeoJSONFeature } from "maplibre-gl"
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -8,7 +9,7 @@ import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -271,8 +272,8 @@ export function FieldsPanelSelection({
           )
 
           setPanel(
-            <Card className="flex min-h-0 w-full flex-initial flex-col gap-4">
-              <CardHeader className="pb-0">
+            <Card className="flex min-h-0 w-full flex-initial flex-col">
+              <CardHeader>
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>{fieldCountText}</CardDescription>
               </CardHeader>
@@ -355,12 +356,16 @@ export function FieldsPanelSelection({
               <CardContent className="grid gap-4" />
               <CardFooter>
                 {numFieldsSaved > 0 ? (
-                  <Button asChild className="w-full">
-                    <NavLink to={continueTo} className="flex items-center gap-2">
-                      <Check />
-                      <span>Doorgaan</span>
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to={continueTo}
+                    className={buttonVariants({
+                      className: cn("w-full", "flex items-center gap-2"),
+                    })}
+                    data-slot="button"
+                  >
+                    <Check />
+                    <span>Doorgaan</span>
+                  </NavLink>
                 ) : (
                   <Button className="w-full" disabled>
                     <Check />

@@ -1,4 +1,5 @@
 import { checkPermission, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { BookOpenText } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import {
@@ -11,7 +12,7 @@ import {
 import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
 import { NutrientAdviceOverviewTable } from "~/components/blocks/nutrient-advice/overview-table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -28,7 +29,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { startFarmNutrientAdviceRows } from "~/lib/nutrient-advice.server"
-import { cn } from "~/lib/utils"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -128,16 +128,19 @@ export default function FieldNutrientAdviceIndex() {
         </EmptyHeader>
         <EmptyContent>
           <div className="flex gap-2">
-            <Button
-              variant="default"
-              className={cn(!loaderData.farmWritePermission ? "hidden" : "")}
-              asChild
+            <NavLink
+              to={`/farm/${b_id_farm}/${calendar}/field/new`}
+              className={buttonVariants({
+                variant: "default",
+                className: cn(!loaderData.farmWritePermission ? "hidden" : ""),
+              })}
+              data-slot="button"
             >
-              <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Nieuw perceel</NavLink>
-            </Button>
-            <Button variant="outline" asChild>
-              <NavLink to="../">Naar bedrijfsoverzicht</NavLink>
-            </Button>
+              Nieuw perceel
+            </NavLink>
+            <NavLink to="../" className={buttonVariants({ variant: "outline" })} data-slot="button">
+              Naar bedrijfsoverzicht
+            </NavLink>
           </div>
         </EmptyContent>
       </Empty>

@@ -1,5 +1,5 @@
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -21,9 +21,9 @@ export function NoFarmsMessage({ action }: { action?: { label: string; to: strin
       </EmptyHeader>
       {action && (
         <EmptyContent>
-          <Button asChild>
-            <NavLink to={action.to}>{action.label}</NavLink>
-          </Button>
+          <NavLink to={action.to} className={buttonVariants({})} data-slot="button">
+            {action.label}
+          </NavLink>
         </EmptyContent>
       )}
     </Empty>

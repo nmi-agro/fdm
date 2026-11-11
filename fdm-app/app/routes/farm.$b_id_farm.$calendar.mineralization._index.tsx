@@ -14,7 +14,7 @@ import {
   FarmSummary,
 } from "~/components/blocks/mineralization/farm-overview"
 import { useSettledOutcomes } from "~/components/blocks/mineralization/use-settled-outcomes"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -162,9 +162,13 @@ function FarmOverview({
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button asChild>
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Percelen toevoegen</NavLink>
-          </Button>
+          <NavLink
+            to={`/farm/${b_id_farm}/${calendar}/field/new`}
+            className={buttonVariants({})}
+            data-slot="button"
+          >
+            Percelen toevoegen
+          </NavLink>
         </EmptyContent>
       </Empty>
     )
