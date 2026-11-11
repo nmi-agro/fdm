@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { motion } from "framer-motion"
 import {
   ArrowRight,
@@ -14,7 +15,6 @@ import {
   ClipboardList,
 } from "lucide-react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "~/components/ui/hover-card"
-import { cn } from "~/lib/utils"
 
 type FlowStepTone = "input" | "result" | "final"
 
@@ -118,8 +118,8 @@ function FlowStep({
   if (!detail) return card
 
   return (
-    <HoverCard openDelay={100} closeDelay={100}>
-      <HoverCardTrigger asChild>{card}</HoverCardTrigger>
+    <HoverCard>
+      <HoverCardTrigger render={card} delay={100} closeDelay={100} />
       <HoverCardContent className="w-80">
         <div className="flex items-center gap-2">
           <div className="bg-primary/10 text-primary flex h-7 w-7 items-center justify-center rounded-md">

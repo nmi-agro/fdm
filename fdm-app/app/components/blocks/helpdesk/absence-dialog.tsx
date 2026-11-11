@@ -179,6 +179,10 @@ export function AbsenceDialog({
                       <FieldLabel>Medewerker</FieldLabel>
                       <Select
                         value={field.value}
+                        items={agents.map((agent) => ({
+                          value: agent.agent_id,
+                          label: agent.display_name,
+                        }))}
                         onValueChange={field.onChange}
                         disabled={isSubmitting}
                       >
@@ -242,6 +246,7 @@ export function AbsenceDialog({
                     <FieldLabel>Reden</FieldLabel>
                     <Select
                       value={field.value}
+                      items={AbsenceReasonOptions}
                       onValueChange={field.onChange}
                       disabled={!canEdit || isSubmitting}
                     >
@@ -290,11 +295,13 @@ export function AbsenceDialog({
                   Verwijderen
                 </Button>
               )}
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  {canEdit ? "Annuleren" : "Sluiten"}
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    {canEdit ? "Annuleren" : "Sluiten"}
+                  </Button>
+                }
+              />
               {canEdit && (
                 <Button type="submit" form={formId} disabled={isSubmitting}>
                   <span>Opslaan</span>

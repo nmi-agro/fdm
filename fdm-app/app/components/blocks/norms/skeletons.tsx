@@ -7,7 +7,7 @@ export function FarmNormsSkeleton() {
       <h2 className="bg-muted mb-4 h-8 w-48 rounded" aria-label="Loading farm norms" />
       <div className="grid gap-4 xl:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="bg-muted h-4 w-24 rounded" />
           </CardHeader>
           <CardContent>
@@ -15,7 +15,7 @@ export function FarmNormsSkeleton() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="bg-muted h-4 w-24 rounded" />
           </CardHeader>
           <CardContent>
@@ -23,7 +23,7 @@ export function FarmNormsSkeleton() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="bg-muted h-4 w-48 rounded" />
           </CardHeader>
           <CardContent>

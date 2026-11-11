@@ -1,6 +1,7 @@
+import { DirectionProvider } from "@base-ui/react/direction-provider"
+import { cn } from "cn"
 import { PointerEventHandler, useCallback, useEffect, useMemo, useRef } from "react"
 import { Slider } from "~/components/ui/slider"
-import { cn } from "~/lib/utils"
 export interface Rectangle {
   x: number
   y: number
@@ -370,7 +371,7 @@ export function ImageCropperApp({
   /**
    * Handle zoom input on the slider.
    */
-  function handleZoomInput(value: number[]) {
+  function handleZoomInput(value: readonly number[]) {
     const nextScale = value[0] > maxScale ? maxScale : value[0] < MIN_SCALE ? MIN_SCALE : value[0]
 
     handleNewFramePosition(moveIntoRectangle(x, y, nextScale, imageData, aspectRatio))
@@ -472,14 +473,15 @@ export function ImageCropperApp({
           </>
         )}
       </svg>
-      <Slider
-        value={scaleSliderValue}
-        onValueChange={(v) => handleZoomInput(v)}
-        min={MIN_SCALE}
-        max={maxScale}
-        step={0.05}
-        dir="rtl"
-      />
+      <DirectionProvider direction="rtl">
+        <Slider
+          value={scaleSliderValue}
+          onValueChange={(v) => handleZoomInput(typeof v === "number" ? [v] : v)}
+          min={MIN_SCALE}
+          max={maxScale}
+          step={0.05}
+        />
+      </DirectionProvider>
     </div>
   )
 }

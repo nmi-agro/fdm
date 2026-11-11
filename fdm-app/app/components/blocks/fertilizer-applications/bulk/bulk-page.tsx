@@ -1,14 +1,14 @@
+import { cn } from "cn"
 import { AlertTriangle } from "lucide-react"
 import { useMemo, useState } from "react"
 import { type Navigation, NavLink, useNavigation, useSearchParams } from "react-router"
 import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
 import { Alert, AlertDescription } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Spinner } from "~/components/ui/spinner"
 import { modifySearchParams } from "~/lib/url-utils"
-import { cn } from "~/lib/utils"
 import { FieldImpactTable } from "./field-impact-table"
 import { FieldSelectionDialog } from "./field-selection-dialog"
 import { useImpactState } from "./impact-state"
@@ -247,26 +247,24 @@ export function BulkFertilizerPage({
 
       {selectedFields.length === 0 ? (
         <Card>
-          <CardContent className="flex min-h-60 flex-col items-center justify-center gap-2 pt-6 text-center">
+          <CardContent className="flex min-h-60 flex-col items-center justify-center gap-2 text-center">
             <h2 className="text-lg font-semibold">Geen percelen geselecteerd</h2>
             <p className="text-muted-foreground max-w-sm text-sm">
               Pas uw selectie aan, of ga naar het overzicht voor meer filtermogelijkheden.
             </p>
-            <Button asChild variant="link">
-              <NavLink
-                to={
-                  overviewUrl ?? (cultivationIds.length > 0 ? `${base}/rotation` : `${base}/field`)
-                }
-              >
-                {cultivationIds.length > 0 ? "Naar bouwplan" : "Naar percelenoverzicht"}
-              </NavLink>
-            </Button>
+            <NavLink
+              to={overviewUrl ?? (cultivationIds.length > 0 ? `${base}/rotation` : `${base}/field`)}
+              className={buttonVariants({ variant: "link" })}
+              data-slot="button"
+            >
+              {cultivationIds.length > 0 ? "Naar bouwplan" : "Naar percelenoverzicht"}
+            </NavLink>
           </CardContent>
         </Card>
       ) : (
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)]">
           <Card className="xl:sticky xl:top-4">
-            <CardContent className="space-y-4 pt-6">
+            <CardContent className="space-y-4">
               <FertilizerApplicationForm
                 id={FORM_ID}
                 options={fertilizerOptions}
@@ -297,7 +295,7 @@ export function BulkFertilizerPage({
             <ImpactSummaryCard state={state} base={base} />
 
             <Card>
-              <CardContent className="pt-6">
+              <CardContent>
                 <FieldImpactTable
                   rows={tableRows}
                   loading={!state.adviceResult || !state.balanceResult}

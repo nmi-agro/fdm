@@ -5,12 +5,12 @@ import {
   getFields,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Square, UserGroup, Users } from "lucide-react"
 import { useRef } from "react"
 import { useEffect } from "react"
 import { data, NavLink, redirect, useLoaderData, useSearchParams } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
-import { cn } from "@/app/lib/utils"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -19,7 +19,7 @@ import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-messag
 import { OrganizationAvatar } from "~/components/blocks/organization/organization-avatar"
 import { Expandable, ExpandableContent, ExpandableTrigger } from "~/components/custom/expandable"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Select,
@@ -304,14 +304,18 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to="./settings" className={cn(!loaderData.canModify && "invisible")}>
-                      Instellingen
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to="./settings"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      !loaderData.canModify && "invisible",
+                    )}
+                  >
+                    Instellingen
+                  </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="space-y-4 pt-6">
+                  <CardContent className="space-y-4">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/50 space-y-1 rounded-lg p-3">
@@ -330,7 +334,14 @@ export default function AppIndex() {
                     {/* Year selector */}
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-sm">Jaar</p>
-                      <Select value={calendar} onValueChange={(value) => setCalendar(value)}>
+                      <Select
+                        value={calendar}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setCalendar(value)
+                          }
+                        }}
+                      >
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Selecteer een jaar" />
                         </SelectTrigger>
@@ -364,12 +375,15 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Groepen</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to={`./${loaderData.calendar}/groups`}>Beheer</NavLink>
-                  </Button>
+                  <NavLink
+                    to={`./${loaderData.calendar}/groups`}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Beheer
+                  </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     {loaderData.groups.length === 0 ? (
                       <p className="text-muted-foreground text-sm">
                         Deze organisatie heeft nog geen groepen.
@@ -408,14 +422,18 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Leden</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to="./members" className={cn(!loaderData.canModify && "invisible")}>
-                      Beheer
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to="./members"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      !loaderData.canModify && "invisible",
+                    )}
+                  >
+                    Beheer
+                  </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     <div className="space-y-1">
                       <div className="grid gap-6">
                         {loaderData.members.map((member) => {

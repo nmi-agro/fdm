@@ -1,4 +1,5 @@
 import { type ColumnDef, FlexRender, type SortingState, useTable } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ChevronDown, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
@@ -25,7 +26,6 @@ import {
 } from "~/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import { useNutrientAdviceOverviewStore } from "~/store/nutrient-advice-overview"
 import type { FieldNutrientRow, UnitMode } from "./overview-types"
 import type { NutrientDescription } from "./types"
@@ -226,19 +226,16 @@ export function NutrientAdviceOverviewTable({
             </TabsList>
           </Tabs>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end" className="max-h-96 overflow-y-auto">
-              <DropdownMenuItem
-                onSelect={(event) => {
-                  event.preventDefault()
-                  resetColumnVisibility()
-                }}
-              >
+              <DropdownMenuItem closeOnClick={false} onClick={() => resetColumnVisibility()}>
                 Alles tonen
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -253,7 +250,7 @@ export function NutrientAdviceOverviewTable({
                         key={column.id}
                         checked={column.getIsVisible()}
                         onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                        onSelect={(event) => event.preventDefault()}
+                        closeOnClick={false}
                       >
                         {nutrientsBySymbol.get(column.id)?.name ?? column.id}
                       </DropdownMenuCheckboxItem>

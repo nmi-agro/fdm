@@ -343,7 +343,7 @@ function NitrogenBalance({
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
               {/* The target applies to the balance with total nitrogen only */}
               {useEffectiveNitrogen ? "Overschot (Perceel)" : "Overschot / Doel (Perceel)"}
@@ -369,7 +369,7 @@ function NitrogenBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
               {useEffectiveNitrogen ? "Aanvoer (werkzaam)" : "Aanvoer"}
             </CardTitle>
@@ -381,7 +381,7 @@ function NitrogenBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
             <ArrowRight className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -391,7 +391,7 @@ function NitrogenBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -401,7 +401,7 @@ function NitrogenBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
             <ArrowRightFromLine className="text-muted-foreground text-xs" />
           </CardHeader>

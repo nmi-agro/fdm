@@ -1,10 +1,9 @@
 import type { Harvest, HarvestParameters } from "@nmi-agro/fdm-core"
 import { NavLink } from "react-router"
 import type { HarvestableType } from "~/components/blocks/harvest/types"
-import { cn } from "@/app/lib/utils"
 import { HarvestsList } from "~/components/blocks/harvest/list"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 
 export function CultivationHarvestsCard({
@@ -41,19 +40,15 @@ export function CultivationHarvestsCard({
           )}
         </CardTitle>
         <div className="flex justify-between">
-          <Button asChild variant="default" className={cn(!canAddHarvest ? "hidden" : "")}>
+          {canAddHarvest && (
             <NavLink
               to="./harvest/new"
-              onClick={(e) => {
-                if (!canAddHarvest) {
-                  e.preventDefault()
-                }
-              }}
-              className={!canAddHarvest ? "cursor-not-allowed" : ""}
+              className={buttonVariants({ variant: "default" })}
+              data-slot="button"
             >
               {getHarvestTerm(b_lu_croprotation, false, b_lu_harvestable, true)} toevoegen
             </NavLink>
-          </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-6">

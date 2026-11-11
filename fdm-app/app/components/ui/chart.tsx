@@ -1,10 +1,10 @@
 "use client"
 
 import type { TooltipValueType } from "recharts"
+import { cn } from "cn"
 /* eslint-disable typescript/restrict-template-expressions -- Chart keys and CSS variables are interpolated as strings safely in component styling templates. */
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
-import { cn } from "~/lib/utils"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const

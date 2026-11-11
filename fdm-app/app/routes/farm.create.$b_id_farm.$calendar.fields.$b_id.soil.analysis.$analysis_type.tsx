@@ -11,7 +11,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
 import { getSoilParametersForSoilAnalysisType } from "~/components/blocks/soil/parameters.server"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -114,12 +114,14 @@ export default function FarmFieldSoilOverviewBlock() {
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <NavLink to={`../${loaderData.field.b_id}`}>
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <NavLink
+          to={`../${loaderData.field.b_id}`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          data-slot="button"
+        >
+          <ArrowLeft />
+          Terug
+        </NavLink>
       </div>
       <Separator />
       <SoilAnalysisForm

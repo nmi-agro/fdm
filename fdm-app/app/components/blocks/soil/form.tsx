@@ -1,9 +1,15 @@
 import type { SoilAnalysis, SoilParameterDescription } from "@nmi-agro/fdm-core"
-import type { Control, FieldErrors, Path, Resolver } from "react-hook-form"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertCircle, Save, TriangleAlert } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
+import {
+  Controller,
+  type Control,
+  type FieldErrors,
+  type Path,
+  type Resolver,
+} from "react-hook-form"
 import { Form, useParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import {
@@ -15,13 +21,12 @@ import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
   Select,
@@ -279,13 +284,13 @@ function SoilParameterField({
 
   if (x.type === "numeric") {
     return (
-      <FormField
+      <Controller
         control={control}
         name={name}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{label}</FormLabel>
-            <FormControl>
+        render={({ field, fieldState }) => (
+          <Field>
+            <FieldLabel>{label}</FieldLabel>
+            <FieldContent>
               <div className="relative">
                 <Input
                   {...field}
@@ -310,11 +315,11 @@ function SoilParameterField({
                   </span>
                 )}
               </div>
-            </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
-            <FormMessage />
+            </FieldContent>
+            {description && <FieldDescription>{description}</FieldDescription>}
+            <FieldError errors={[fieldState.error]} />
             {warnOutOfRange && <RangeWarning parameter={x.parameter} value={field.value} />}
-          </FormItem>
+          </Field>
         )}
       />
     )
@@ -322,18 +327,21 @@ function SoilParameterField({
 
   if (x.type === "enum") {
     return (
-      <FormField
+      <Controller
         control={control}
         name={name}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{label}</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={typeof field.value === "string" ? field.value : undefined}
-              disabled={field.disabled}
-            >
-              <FormControl>
+        render={({ field, fieldState }) => (
+          <Field>
+            <FieldLabel>{label}</FieldLabel>
+            <FieldContent>
+              <Select
+                onValueChange={field.onChange}
+                // `null` (not `undefined`) keeps the Select controlled when there is no value yet.
+                // The items include system-only sources, so their label still shows when set.
+                value={typeof field.value === "string" ? field.value : null}
+                items={x.options ?? []}
+                disabled={field.disabled}
+              >
                 <SelectTrigger
                   aria-required={isRequired}
                   onBlur={field.onBlur}
@@ -341,21 +349,21 @@ function SoilParameterField({
                 >
                   <SelectValue placeholder="Kies…" />
                 </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {x.options?.map((option: { value: string; label: string }) =>
-                  // NMI BodemSchat estimates are made by the system, never entered by a user
-                  option.value === "nl-other-nmi" ? null : (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ),
-                ) ?? null}
-              </SelectContent>
-            </Select>
-            {description && <FormDescription>{description}</FormDescription>}
-            <FormMessage />
-          </FormItem>
+                <SelectContent>
+                  {x.options?.map((option: { value: string; label: string }) =>
+                    // NMI BodemSchat estimates are made by the system, never entered by a user
+                    option.value === "nl-other-nmi" ? null : (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ),
+                  ) ?? null}
+                </SelectContent>
+              </Select>
+            </FieldContent>
+            {description && <FieldDescription>{description}</FieldDescription>}
+            <FieldError errors={[fieldState.error]} />
+          </Field>
         )}
       />
     )
@@ -363,7 +371,7 @@ function SoilParameterField({
 
   if (x.type === "date") {
     return (
-      <FormField
+      <Controller
         control={control}
         name={name}
         render={({ field, fieldState }) => (
@@ -382,13 +390,13 @@ function SoilParameterField({
 
   if (x.type === "text") {
     return (
-      <FormField
+      <Controller
         control={control}
         name={name}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{label}</FormLabel>
-            <FormControl>
+        render={({ field, fieldState }) => (
+          <Field>
+            <FieldLabel>{label}</FieldLabel>
+            <FieldContent>
               <Input
                 {...field}
                 type="text"
@@ -396,10 +404,10 @@ function SoilParameterField({
                 aria-required={isRequired}
                 className="pointer-coarse:h-11 pointer-coarse:text-base"
               />
-            </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
-            <FormMessage />
-          </FormItem>
+            </FieldContent>
+            {description && <FieldDescription>{description}</FieldDescription>}
+            <FieldError errors={[fieldState.error]} />
+          </Field>
         )}
       />
     )

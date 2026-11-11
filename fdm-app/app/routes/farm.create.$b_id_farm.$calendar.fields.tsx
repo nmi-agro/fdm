@@ -1,4 +1,5 @@
 import { getCurrentSoilData, getFarm, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import {
   data,
   type LoaderFunctionArgs,
@@ -19,7 +20,6 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 // Meta
 
