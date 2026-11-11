@@ -35,19 +35,23 @@ export function getMeasureCostLevel(
 
 // ── Effect type ────────────────────────────────────────────────────────────
 
+// Labels in plain language; the description names the catalogue's own term (kwalitatief,
+// geclassificeerd, kwantitatief) for users who know it from BLN.
 const EFFECT_TYPES: Record<string, { label: string; description: string }> = {
   qual: {
-    label: "Kwalitatief",
-    description: "Het effect op elke indicator is een vaste waarde, gelijk voor alle percelen.",
+    label: "Vast effect",
+    description:
+      "Het effect op elke indicator is een vaste waarde, gelijk voor alle percelen (kwalitatief effect).",
   },
   classed: {
-    label: "Geclassificeerd",
+    label: "Hangt af van perceel",
     description:
-      "Het effect op een indicator hangt af van de omstandigheden op het perceel, zoals grondsoort, gewas of fosfaattoestand.",
+      "Het effect op een indicator hangt af van de omstandigheden op het perceel, zoals grondsoort, gewas of fosfaattoestand (geclassificeerd effect).",
   },
   quant: {
-    label: "Kwantitatief",
-    description: "Deze maatregel wijzigt invoerwaarden voor de berekening.",
+    label: "Wijzigt berekening",
+    description:
+      "Deze maatregel wijzigt invoerwaarden voor de berekening van de indicatoren (kwantitatief effect).",
   },
 }
 

@@ -1,21 +1,30 @@
-import { getMeasureFromCatalogue, getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
+import { checkPermission, getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, ChevronRight, ExternalLink } from "lucide-react"
-import { useState } from "react"
+import { AlertTriangle, ChevronRight, ExternalLink, Plus } from "lucide-react"
+import { type ReactNode, Suspense, useEffect, useState } from "react"
 import {
+  Await,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   Link,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { MeasureCostIndicator } from "~/components/blocks/measures/measure-cost-indicator"
 import { MeasureStatusLabel } from "~/components/blocks/measures/measure-status"
+import {
+  type MeasureStatusAvailability,
+  MeasureStatusUnavailable,
+} from "~/components/blocks/measures/measure-status-unavailable"
+import { Alert, AlertDescription } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Select,
@@ -24,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { Skeleton } from "~/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -49,8 +59,11 @@ import {
   getEffectTypeInfo,
   getImpactedIndicators,
   getMeasureReferences,
+  type ImpactedIndicator,
 } from "~/lib/measure-labels"
-import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
+import { getAddMeasurePath, getMeasureCataloguePath } from "~/lib/measures-catalogue"
+
+export const handle: HelpHandle = { help: "maatregelencatalogus" }
 
 /**
  * Sets the page title and description from the name and summary of the measure.
@@ -66,10 +79,17 @@ export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   ]
 }
 
+/** The fields with their status for the measure, and which parts of the status could be loaded. */
+type MeasureFieldsStatus = MeasureStatusAvailability & {
+  fields: FieldMeasureEntry[]
+}
+
 /**
  * Loads one catalogue measure, the measures it conflicts with, the other variants of the
- * same measure and the fields of the farm on which it is applied, recommended or applicable.
- * Throws a 404 for an unknown `m_id`.
+ * same measure and whether the user may add measures to the farm. The fields of the farm on
+ * which the measure is applied, recommended or applicable need NMI requests per field, so
+ * they are returned as a promise and fill in after the page renders. Throws a 404 for an
+ * unknown `m_id`.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -84,21 +104,36 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
-    const [measure, catalogue] = await Promise.all([
-      getMeasureFromCatalogue(fdm, m_id),
+    const [catalogue, farmWritePermission] = await Promise.all([
       getMeasuresFromCatalogue(fdm),
+      checkPermission(
+        fdm,
+        "farm",
+        "write",
+        b_id_farm,
+        session.principal_id,
+        "routes/farm.$b_id_farm.$calendar.measures.catalogue.$m_id",
+        false,
+      ),
     ])
+    const measure = catalogue.find((item) => item.m_id === m_id)
     if (!measure) {
       throw data("Maatregel niet gevonden", { status: 404 })
     }
 
-    const status = await getFarmMeasureStatus({
+    const fieldsStatus: Promise<MeasureFieldsStatus> = getFarmMeasureStatus({
       principal_id: session.principal_id,
       b_id_farm,
       calendar,
       timeframe,
       catalogue,
-    })
+    }).then((status) => ({
+      fields: status.fieldsByMeasure.get(measure.m_id) ?? [],
+      recommendationsAvailable: status.recommendationsAvailable,
+      applicabilityAvailable: status.applicabilityAvailable,
+      eligibleFieldCount: status.eligibleFieldCount,
+      applicabilityFailedFieldCount: status.applicabilityFailedFieldCount,
+    }))
 
     // Only conflicts with measures that are in the catalogue and still active: a conflict with
     // a measure that cannot be taken has no meaning for the user.
@@ -120,14 +155,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }))
       .sort((a, b) => a.m_id.localeCompare(b.m_id, "nl", { numeric: true }))
 
-    return {
-      measure,
-      conflicts,
-      variants,
-      fields: status.fieldsByMeasure.get(measure.m_id) ?? [],
-      recommendationsAvailable: status.recommendationsAvailable,
-      applicabilityAvailable: status.applicabilityAvailable,
-    }
+    return { measure, conflicts, variants, farmWritePermission, fieldsStatus }
   } catch (error) {
     throw handleLoaderError(error)
   }
@@ -152,14 +180,28 @@ function formatPeriod(
   return `${start ? formatDate(start) : "?"} – ${end ? formatDate(end) : "doorlopend"}`
 }
 
+/** Fields per indicator on which the measure is recommended to improve that indicator. */
+function countRecommendedFieldsByIndicator(fields: FieldMeasureEntry[]): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const field of fields) {
+    if (field.status !== "recommended") continue
+    for (const indicatorId of field.indicatorIds ?? []) {
+      counts.set(indicatorId, (counts.get(indicatorId) ?? 0) + 1)
+    }
+  }
+  return counts
+}
+
 /**
  * Renders the detail page of a measure in the catalogue of a farm.
  */
 export default function MeasureCatalogueDetail() {
-  const { measure, conflicts, variants, fields, recommendationsAvailable, applicabilityAvailable } =
+  const { measure, conflicts, variants, farmWritePermission, fieldsStatus } =
     useLoaderData<typeof loader>()
   const { b_id_farm = "", calendar = "" } = useParams()
   const isInactive = measure.m_status === "inactive"
+  const isFarmLevel = measure.m_stage_applicability === "farm"
+  const canAdd = farmWritePermission && !isInactive && !isFarmLevel
   const effectType = getEffectTypeInfo(measure.m_effect_type)
   const indicators = getImpactedIndicators(measure.m_impacts_score, measure.m_effect_size)
   const conditions = formatConditions(measure.m_applicability)
@@ -169,6 +211,7 @@ export default function MeasureCatalogueDetail() {
     <>
       <FarmTitle
         title={measure.m_name}
+        help="maatregelencatalogus"
         wrapTitle
         description=""
         descriptionNode={
@@ -178,34 +221,57 @@ export default function MeasureCatalogueDetail() {
           </p>
         }
         rightNode={
-          <div className="flex flex-wrap gap-2">
-            {measure.m_stage_applicability === "farm" && (
-              <Badge variant="outline">Bedrijfsniveau</Badge>
-            )}
+          <div className="flex flex-wrap items-center gap-2">
+            {isFarmLevel && <Badge variant="outline">Bedrijfsniveau</Badge>}
             {measure.m_stage_applicability === "field" && (
               <Badge variant="outline">Perceelsniveau</Badge>
             )}
             {isInactive && <Badge variant="secondary">Niet meer beschikbaar</Badge>}
+            {canAdd && (
+              <Suspense fallback={<AddMeasureLink m_id={measure.m_id} fieldIds={[]} />}>
+                <Await
+                  resolve={fieldsStatus}
+                  errorElement={<AddMeasureLink m_id={measure.m_id} fieldIds={[]} />}
+                >
+                  {(loaded) => (
+                    <AddMeasureLink
+                      m_id={measure.m_id}
+                      fieldIds={loaded.fields
+                        .filter((field) => field.status === "recommended")
+                        .map((field) => field.b_id)}
+                    />
+                  )}
+                </Await>
+              </Suspense>
+            )}
           </div>
         }
       />
       <FarmContent>
         <div className="space-y-6 pb-10">
           {isInactive && (
-            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <p>
+            <Alert>
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              <AlertDescription>
                 Deze maatregel staat niet meer in de catalogus. U kunt hem niet meer toevoegen;
                 percelen waarop hij al is vastgelegd houden hem.
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
+          )}
+          {isFarmLevel && !isInactive && farmWritePermission && (
+            <p className="text-muted-foreground max-w-[75ch] text-sm">
+              Deze maatregel geldt voor het hele bedrijf. Maatregelen legt u per perceel vast,
+              daarom kunt u deze maatregel hier niet toevoegen.
+            </p>
           )}
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <div className="min-w-0 space-y-6 xl:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Beschrijving</CardTitle>
+                  <CardTitle role="heading" aria-level={3}>
+                    Beschrijving
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="max-w-[75ch] text-sm leading-relaxed whitespace-pre-line">
@@ -215,19 +281,32 @@ export default function MeasureCatalogueDetail() {
                 </CardContent>
               </Card>
 
-              <FieldsCard
-                key={measure.m_id}
-                fields={fields}
-                basePath={`/farm/${b_id_farm}/${calendar}/measures`}
-                calendar={calendar}
-                recommendationsAvailable={recommendationsAvailable}
-                applicabilityAvailable={applicabilityAvailable}
-              />
+              <Suspense fallback={<FieldsCardSkeleton calendar={calendar} />}>
+                <Await
+                  resolve={fieldsStatus}
+                  errorElement={
+                    <FieldsCardShell calendar={calendar}>
+                      <MeasureStatusUnavailable availability="failed" />
+                    </FieldsCardShell>
+                  }
+                >
+                  {(loaded) => (
+                    <FieldsCard
+                      key={measure.m_id}
+                      loaded={loaded}
+                      basePath={`/farm/${b_id_farm}/${calendar}/measures`}
+                      calendar={calendar}
+                    />
+                  )}
+                </Await>
+              </Suspense>
             </div>
 
             <Card className="h-fit min-w-0">
               <CardHeader>
-                <CardTitle>Kenmerken</CardTitle>
+                <CardTitle role="heading" aria-level={3}>
+                  Kenmerken
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-4 text-sm">
@@ -246,7 +325,7 @@ export default function MeasureCatalogueDetail() {
                     <dd>
                       {effectType ? (
                         <>
-                          {effectType.label}
+                          <span>{effectType.label}</span>
                           {effectType.description && (
                             <span className="text-muted-foreground mt-1 block leading-relaxed">
                               {effectType.description}
@@ -258,6 +337,12 @@ export default function MeasureCatalogueDetail() {
                       )}
                     </dd>
                   </div>
+                  {conflicts.length === 0 && (
+                    <div className="space-y-1">
+                      <dt className="text-muted-foreground">Conflicterende maatregelen</dt>
+                      <dd>Geen</dd>
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <dt className="text-muted-foreground">Referenties</dt>
                     <dd>
@@ -275,11 +360,17 @@ export default function MeasureCatalogueDetail() {
                                   title={ref.href}
                                   className="inline-flex items-center gap-1 underline underline-offset-2 hover:no-underline"
                                 >
-                                  {ref.value}
+                                  <span>{ref.value}</span>
                                   <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
+                                  <span className="sr-only">(opent in nieuw tabblad)</span>
                                 </a>
                               ) : (
-                                `${ref.label} ${ref.value}`
+                                <span>
+                                  <span className="text-muted-foreground">
+                                    Code in {ref.label}:
+                                  </span>{" "}
+                                  <span className="tabular-nums">{ref.value}</span>
+                                </span>
                               )}
                             </li>
                           ))}
@@ -295,7 +386,9 @@ export default function MeasureCatalogueDetail() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 [&>*]:min-w-0">
             <Card>
               <CardHeader>
-                <CardTitle>Impact op indicatoren</CardTitle>
+                <CardTitle role="heading" aria-level={3}>
+                  Impact op indicatoren
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {indicators.length === 0 ? (
@@ -309,34 +402,28 @@ export default function MeasureCatalogueDetail() {
                       {indicators.length === 1
                         ? "deze indicator"
                         : `deze ${indicators.length} indicatoren`}
-                      .
+                      . De effectgrootte komt uit de BLN-catalogus: hoe sterk de maatregel de score
+                      van de indicator verandert.
                       {measure.m_effect_type === "classed" &&
                         " Hoe groot het effect is, hangt af van de omstandigheden op het perceel."}
                     </p>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Indicator</TableHead>
-                          <TableHead className="hidden sm:table-cell">Thema</TableHead>
-                          <TableHead className="text-right">Effectgrootte</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {indicators.map((indicator) => (
-                          <TableRow key={indicator.id}>
-                            <TableCell className="font-medium whitespace-normal">
-                              {indicator.name}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground hidden sm:table-cell">
-                              {indicator.ecosysteemdienst ?? "—"}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {formatEffectRange(indicator.effectRange)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <Suspense fallback={<ImpactTable indicators={indicators} />}>
+                      <Await
+                        resolve={fieldsStatus}
+                        errorElement={<ImpactTable indicators={indicators} />}
+                      >
+                        {(loaded) => (
+                          <ImpactTable
+                            indicators={indicators}
+                            recommendedByIndicator={
+                              loaded.recommendationsAvailable
+                                ? countRecommendedFieldsByIndicator(loaded.fields)
+                                : undefined
+                            }
+                          />
+                        )}
+                      </Await>
+                    </Suspense>
                   </>
                 )}
               </CardContent>
@@ -344,12 +431,16 @@ export default function MeasureCatalogueDetail() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Toepasbaarheid</CardTitle>
+                <CardTitle role="heading" aria-level={3}>
+                  Toepasbaarheid
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {conditions.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    Voor deze maatregel gelden geen voorwaarden.
+                    {(measure.m_applicability ?? []).length > 0
+                      ? `Er gelden geen voorwaarden voor het perceel. De maatregel geldt op ${isFarmLevel ? "bedrijfsniveau" : "perceelsniveau"}.`
+                      : "Voor deze maatregel gelden geen voorwaarden."}
                   </p>
                 ) : (
                   <>
@@ -377,29 +468,29 @@ export default function MeasureCatalogueDetail() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Conflicterende maatregelen</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {conflicts.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Geen conflicterende maatregelen.</p>
-                ) : (
-                  <>
-                    <p className="text-muted-foreground text-sm">
-                      Deze maatregel kan niet tegelijk met de volgende maatregelen op hetzelfde
-                      perceel worden genomen.
-                    </p>
-                    <MeasureList items={conflicts} b_id_farm={b_id_farm} calendar={calendar} />
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            {conflicts.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle role="heading" aria-level={3}>
+                    Conflicterende maatregelen
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-muted-foreground text-sm">
+                    Deze maatregel kan niet tegelijk met de volgende maatregelen op hetzelfde
+                    perceel worden genomen.
+                  </p>
+                  <MeasureList items={conflicts} b_id_farm={b_id_farm} calendar={calendar} />
+                </CardContent>
+              </Card>
+            )}
 
             {variants.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Andere varianten van deze maatregel</CardTitle>
+                  <CardTitle role="heading" aria-level={3}>
+                    Andere varianten van deze maatregel
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <MeasureList items={variants} b_id_farm={b_id_farm} calendar={calendar} />
@@ -413,6 +504,78 @@ export default function MeasureCatalogueDetail() {
   )
 }
 
+/**
+ * Primary action of the detail page: opens the measures page of the farm with the dialog to
+ * add this measure, with the fields on which it is recommended already selected.
+ */
+function AddMeasureLink({ m_id, fieldIds }: { m_id: string; fieldIds: string[] }) {
+  const { b_id_farm = "", calendar = "" } = useParams()
+  return (
+    <Link
+      to={getAddMeasurePath(b_id_farm, calendar, m_id, fieldIds)}
+      className={buttonVariants({ className: "gap-1.5" })}
+      data-slot="button"
+    >
+      <Plus className="h-4 w-4" aria-hidden="true" />
+      <span>Toevoegen aan percelen</span>
+    </Link>
+  )
+}
+
+/**
+ * The indicators the measure affects with the catalogue's effect size and, once the
+ * recommendations are loaded, on how many fields of this farm the measure is recommended to
+ * improve that indicator.
+ */
+function ImpactTable({
+  indicators,
+  recommendedByIndicator,
+}: {
+  indicators: ImpactedIndicator[]
+  recommendedByIndicator?: Map<string, number>
+}) {
+  const showFarm = recommendedByIndicator !== undefined && recommendedByIndicator.size > 0
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Indicator</TableHead>
+          <TableHead className="hidden sm:table-cell">Thema</TableHead>
+          <TableHead className="text-right">Effectgrootte</TableHead>
+          {showFarm && <TableHead className="text-right">Aanbevolen op</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {indicators.map((indicator) => {
+          const recommended = recommendedByIndicator?.get(indicator.id) ?? 0
+          return (
+            <TableRow key={indicator.id}>
+              <TableCell className="font-medium whitespace-normal">{indicator.name}</TableCell>
+              <TableCell className="text-muted-foreground hidden sm:table-cell">
+                {indicator.ecosysteemdienst ?? "—"}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatEffectRange(indicator.effectRange)}
+              </TableCell>
+              {showFarm && (
+                <TableCell className="text-right tabular-nums">
+                  {recommended === 0 ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : recommended === 1 ? (
+                    "1 perceel"
+                  ) : (
+                    `${recommended} percelen`
+                  )}
+                </TableCell>
+              )}
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+  )
+}
+
 type FieldFilter = "all" | FieldMeasureStatus
 
 const FIELD_FILTERS: { value: FieldFilter; label: string }[] = [
@@ -422,24 +585,81 @@ const FIELD_FILTERS: { value: FieldFilter; label: string }[] = [
   { value: "applicable", label: "Toepasbaar" },
 ]
 
+/** URL search parameter that keeps the field filter, so Back returns to the same view. */
+const FIELD_FILTER_PARAM = "percelen"
+
+/** The frame of the fields card, shared by the loaded, loading and failed states. */
+function FieldsCardShell({
+  calendar,
+  action,
+  children,
+}: {
+  calendar: string
+  action?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <CardTitle role="heading" aria-level={3}>
+          Percelen in {calendar}
+        </CardTitle>
+        {action}
+      </CardHeader>
+      <CardContent className="space-y-3">{children}</CardContent>
+    </Card>
+  )
+}
+
+/** Placeholder for the fields card while the status per field loads. */
+function FieldsCardSkeleton({ calendar }: { calendar: string }) {
+  return (
+    <FieldsCardShell calendar={calendar}>
+      <p className="text-muted-foreground text-sm" aria-live="polite">
+        Status per perceel laden…
+      </p>
+      <div className="divide-y rounded-md border" aria-hidden="true">
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="flex items-center gap-3 px-3 py-3">
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ))}
+      </div>
+    </FieldsCardShell>
+  )
+}
+
 /**
  * Lists the fields of the farm on which the measure is applied, recommended or applicable,
  * applied first. About five rows are visible; the rest scroll inside the card.
  */
 function FieldsCard({
-  fields,
+  loaded,
   basePath,
   calendar,
-  recommendationsAvailable,
-  applicabilityAvailable,
 }: {
-  fields: FieldMeasureEntry[]
+  loaded: MeasureFieldsStatus
   basePath: string
   calendar: string
-  recommendationsAvailable: boolean
-  applicabilityAvailable: boolean
 }) {
-  const [filter, setFilter] = useState<FieldFilter>("all")
+  const { fields } = loaded
+  const [searchParams] = useSearchParams()
+  const [filter, setFilter] = useState<FieldFilter>(() => {
+    const value = searchParams.get(FIELD_FILTER_PARAM)
+    return FIELD_FILTERS.some((option) => option.value === value) ? (value as FieldFilter) : "all"
+  })
+
+  // Keep the filter in the URL without a navigation, which would load the status again
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (filter === "all") url.searchParams.delete(FIELD_FILTER_PARAM)
+    else url.searchParams.set(FIELD_FILTER_PARAM, filter)
+    if (url.href !== window.location.href) {
+      window.history.replaceState(window.history.state, "", url)
+    }
+  }, [filter])
+
   const counts = { applied: 0, recommended: 0, applicable: 0 }
   for (const field of fields) counts[field.status] += 1
   const visible = filter === "all" ? fields : fields.filter((field) => field.status === filter)
@@ -449,10 +669,10 @@ function FieldsCard({
   }))
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-        <CardTitle>Percelen in {calendar}</CardTitle>
-        {fields.length > 0 && (
+    <FieldsCardShell
+      calendar={calendar}
+      action={
+        fields.length > 0 ? (
           <Select
             value={filter}
             items={filterItems}
@@ -460,7 +680,7 @@ function FieldsCard({
               if (next !== null) setFilter(next)
             }}
           >
-            <SelectTrigger className="h-8 w-40" aria-label="Toon percelen">
+            <SelectTrigger className="h-8 w-44" aria-label="Toon percelen">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -471,68 +691,56 @@ function FieldsCard({
               ))}
             </SelectContent>
           </Select>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {fields.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            Deze maatregel is op geen enkel perceel toegepast, aanbevolen of toepasbaar.
-          </p>
-        ) : (
-          <>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {(["applied", "recommended", "applicable"] as const).map((key) =>
-                counts[key] > 0 ? (
-                  <MeasureStatusLabel key={key} status={key} count={counts[key]} />
-                ) : null,
-              )}
-            </div>
-            {visible.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Geen percelen met deze status.</p>
-            ) : (
-              <ul className="max-h-[17rem] divide-y overflow-y-auto rounded-md border sm:max-h-[14.5rem]">
-                {visible.map((field) => (
-                  <li key={`${field.b_id}-${field.status}`}>
-                    <Link
-                      to={`${basePath}/${field.b_id}`}
-                      className="hover:bg-muted/50 flex items-center gap-3 px-3 py-2 text-sm transition-colors sm:min-h-11 sm:py-0"
-                    >
-                      {/* Narrow screens: name on its own line, status and period below it */}
-                      <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
-                        <span className="min-w-0 font-medium wrap-break-word sm:flex-1 sm:truncate">
-                          {field.b_name ?? field.b_id}
-                        </span>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 sm:shrink-0 sm:flex-nowrap">
-                          {field.status === "applied" && (
-                            <span className="text-muted-foreground tabular-nums">
-                              {formatPeriod(field.m_start, field.m_end)}
-                            </span>
-                          )}
-                          <MeasureStatusLabel status={field.status} className="sm:w-28" />
-                        </div>
-                      </div>
-                      <ChevronRight
-                        className="text-muted-foreground h-4 w-4 shrink-0"
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-        {(!recommendationsAvailable || !applicabilityAvailable) && (
-          <p className="text-muted-foreground text-sm">
-            {!recommendationsAvailable && !applicabilityAvailable
-              ? "Aanbevolen en toepasbare percelen konden niet worden geladen."
-              : !recommendationsAvailable
-                ? "Aanbevolen percelen konden niet worden geladen."
-                : "Toepasbare percelen konden niet worden geladen."}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        ) : null
+      }
+    >
+      <MeasureStatusUnavailable availability={loaded} />
+      {fields.length === 0 ? (
+        <p className="text-muted-foreground max-w-[75ch] text-sm">
+          Deze maatregel is in {calendar} op geen enkel perceel toegepast, aanbevolen of toepasbaar.
+          Percelen zonder BLN3-score, zoals bufferstroken en natuur, tellen hier niet mee.
+        </p>
+      ) : visible.length === 0 ? (
+        <p className="text-muted-foreground text-sm">Geen percelen met deze status.</p>
+      ) : (
+        <ul
+          role="region"
+          aria-label={`Percelen met deze maatregel in ${calendar}`}
+          // Scrollable, so it must be reachable with the keyboard
+          // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          className="focus-visible:ring-ring max-h-[17rem] divide-y overflow-y-auto rounded-md border focus-visible:ring-2 focus-visible:outline-none sm:max-h-[14.5rem]"
+        >
+          {visible.map((field) => (
+            <li key={`${field.b_id}-${field.status}`}>
+              <Link
+                to={`${basePath}/${field.b_id}`}
+                className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-3 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:min-h-11 sm:py-0"
+              >
+                {/* Narrow screens: name on its own line, status and period below it */}
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="min-w-0 font-medium wrap-break-word sm:flex-1 sm:truncate">
+                    {field.b_name ?? field.b_id}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 sm:shrink-0 sm:flex-nowrap">
+                    {field.status === "applied" && (
+                      <span className="text-muted-foreground tabular-nums">
+                        {formatPeriod(field.m_start, field.m_end)}
+                      </span>
+                    )}
+                    <MeasureStatusLabel status={field.status} className="sm:w-28" />
+                  </div>
+                </div>
+                <ChevronRight
+                  className="text-muted-foreground h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </FieldsCardShell>
   )
 }
 
@@ -554,7 +762,7 @@ function MeasureList({
         <li key={item.m_id}>
           <Link
             to={getMeasureCataloguePath(b_id_farm, calendar, item.m_id)}
-            className="hover:bg-muted/50 flex items-center gap-2 px-3 py-2 text-sm transition-colors"
+            className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-2 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
           >
             <span className="text-muted-foreground shrink-0 tabular-nums">
               {getMeasureCode(item.m_id)}

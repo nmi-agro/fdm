@@ -203,6 +203,11 @@ export type FieldMeasureEntry = {
   /** Period of the measure, only for `applied` */
   m_start?: Date | null
   m_end?: Date | null
+  /**
+   * Only for `recommended`: IDs of the indicators of the field that the measure improves,
+   * e.g. `NUT_N`, ordered from the largest to the smallest improvement.
+   */
+  indicatorIds?: string[]
 }
 
 export type FarmMeasureStatus = {
@@ -210,8 +215,12 @@ export type FarmMeasureStatus = {
   fieldsByMeasure: Map<string, FieldMeasureEntry[]>
   /** `false` when the recommendations could not be loaded */
   recommendationsAvailable: boolean
-  /** `false` when the applicability could not be loaded */
+  /** `false` when the applicability could not be loaded for one or more fields */
   applicabilityAvailable: boolean
+  /** Number of fields that BLN3 scores, i.e. the fields that can get a recommendation */
+  eligibleFieldCount: number
+  /** Number of those fields whose applicability could not be loaded */
+  applicabilityFailedFieldCount: number
 }
 
 const STATUS_ORDER: Record<FieldMeasureStatus, number> = {
@@ -273,6 +282,7 @@ export async function getFarmMeasureStatus({
   // field whose NMI request failed is `null`, so a failure is not mistaken for "no applicable
   // measures".
   let applicabilityAvailable = true
+  let applicabilityFailedFieldCount = 0
   const applicabilityByField = await getMeasureApplicabilityForFields({
     principal_id,
     b_ids: eligibleFields.map((field) => field.b_id),
@@ -282,10 +292,15 @@ export async function getFarmMeasureStatus({
   }).catch((error) => {
     reportError(error, { page: "measures catalogue applicability" })
     applicabilityAvailable = false
+    applicabilityFailedFieldCount = eligibleFields.length
     return {} as Record<string, Record<string, MeasureApplicabilityInfo> | null>
   })
-  if (Object.values(applicabilityByField).some((perMeasure) => perMeasure === null)) {
+  const failedFields = Object.values(applicabilityByField).filter(
+    (perMeasure) => perMeasure === null,
+  )
+  if (failedFields.length > 0) {
     applicabilityAvailable = false
+    applicabilityFailedFieldCount = failedFields.length
   }
 
   const recommendations = await getFarmNextSteps({
@@ -329,7 +344,15 @@ export async function getFarmMeasureStatus({
   }
   for (const [b_id, opportunities] of Object.entries(recommendations?.opportunitiesByField ?? {})) {
     for (const opportunity of opportunities) {
-      set(opportunity.m_id, { b_id, b_name: fieldNames.get(b_id) ?? null, status: "recommended" })
+      set(opportunity.m_id, {
+        b_id,
+        b_name: fieldNames.get(b_id) ?? null,
+        status: "recommended",
+        indicatorIds: opportunity.indicatorImpacts
+          .filter((impact) => impact.measure_impact > 0)
+          .sort((a, b) => b.measure_impact - a.measure_impact)
+          .map((impact) => impact.indicator_id),
+      })
     }
   }
   for (const [b_id, perMeasure] of Object.entries(applicabilityByField)) {
@@ -351,5 +374,11 @@ export async function getFarmMeasureStatus({
     )
   }
 
-  return { fieldsByMeasure, recommendationsAvailable, applicabilityAvailable }
+  return {
+    fieldsByMeasure,
+    recommendationsAvailable,
+    applicabilityAvailable,
+    eligibleFieldCount: eligibleFields.length,
+    applicabilityFailedFieldCount,
+  }
 }

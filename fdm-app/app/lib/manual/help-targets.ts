@@ -53,6 +53,7 @@ export const helpTargets = {
   bemestingsadvies: { kind: "chapter", slug: "bemestingsadvies" },
   bodemkwaliteit: { kind: "chapter", slug: "bodemkwaliteit" },
   maatregelen: { kind: "chapter", slug: "bodemkwaliteit", anchor: "maatregelen" },
+  maatregelencatalogus: { kind: "chapter", slug: "bodemkwaliteit", anchor: "maatregelencatalogus" },
   labs: { kind: "chapter", slug: "labs" },
   mineralisatie: { kind: "chapter", slug: "labs", anchor: "mineralisatie" },
   gerrit: { kind: "chapter", slug: "gerrit" },

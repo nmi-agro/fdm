@@ -202,13 +202,13 @@ export function getColumns(
               <AlertDialogHeader>
                 <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Wil je de maatregel &ldquo;
+                  Wilt u de maatregel &ldquo;
                   {row.original.m_name}&rdquo; definitief verwijderen? Dit kan niet ongedaan worden
                   gemaakt.
                   <br />
                   <br />
                   <span className="text-foreground font-medium">
-                    Wil je de maatregel alleen beëindigen?
+                    Wilt u de maatregel alleen beëindigen?
                   </span>{" "}
                   Gebruik dan de bewerkknop (
                   <Pencil className="mx-0.5 inline h-3.5 w-3.5" />) en stel een einddatum in.

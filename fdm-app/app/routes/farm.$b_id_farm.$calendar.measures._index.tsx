@@ -798,6 +798,14 @@ export default function MeasuresFarmIndex() {
   // The URL is the source of truth for a deep-linked measure: no effect needed to open it.
   const measureDialogOpen = addDialogOpen || !!openMeasure
   const measureDialogMeasureId = openMeasure ?? initialMeasureId
+  // A deep link can also preselect fields (`?fields=a,b`), e.g. the fields on which the
+  // catalogue recommends the measure. Unknown or ineligible IDs are ignored.
+  const linkedFieldIds = useMemo(() => {
+    const ids = searchParams.get("fields")?.split(",") ?? []
+    const known = new Set(fieldList.map((field) => field.b_id))
+    return ids.filter((id) => known.has(id))
+  }, [searchParams, fieldList])
+  const measureDialogFieldIds = openMeasure ? linkedFieldIds : initialFieldIds
 
   const columns = getColumns(
     (b_id) => `${basePath}/${b_id}`,
@@ -832,7 +840,7 @@ export default function MeasuresFarmIndex() {
           </EmptyMedia>
           <EmptyTitle>Geen maatregelen vastgelegd</EmptyTitle>
           <EmptyDescription>
-            Maatregelen zijn bodembeheermaatregelen die je per perceel kunt vastleggen om de
+            Maatregelen zijn bodembeheermaatregelen die u per perceel kunt vastleggen om de
             bodemkwaliteit te verbeteren. Klik op een perceel op de kaart of gebruik de knop om te
             beginnen.
           </EmptyDescription>
@@ -986,6 +994,7 @@ export default function MeasuresFarmIndex() {
                 (prev) => {
                   const nextParams = new URLSearchParams(prev)
                   nextParams.delete("openMeasure")
+                  nextParams.delete("fields")
                   return nextParams
                 },
                 { replace: true },
@@ -997,7 +1006,7 @@ export default function MeasuresFarmIndex() {
         activeMeasures={[]}
         applicabilityByField={applicabilityByField ?? undefined}
         fields={fieldList}
-        initialFieldIds={initialFieldIds}
+        initialFieldIds={measureDialogFieldIds}
         topOpportunities={recommendationsData?.topOpportunities}
         opportunitiesByField={recommendationsData?.opportunitiesByField}
         measureImpacts={recommendationsData?.measureImpacts}

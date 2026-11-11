@@ -26,7 +26,7 @@ export const meta: MetaFunction = () => {
     { title: `Maatregelen | ${clientConfig.name}` },
     {
       name: "description",
-      content: "Beheer de bodembeheersmaatregelen voor je percelen en bedrijf.",
+      content: "Beheer de bodembeheersmaatregelen voor uw percelen en bedrijf.",
     },
   ]
 }
