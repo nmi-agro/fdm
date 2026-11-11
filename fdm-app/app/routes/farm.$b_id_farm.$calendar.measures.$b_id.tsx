@@ -13,6 +13,7 @@ import {
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Plus, Trash2 } from "lucide-react"
@@ -76,7 +77,6 @@ import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
 import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
-import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 
@@ -834,18 +834,20 @@ export default function MeasuresFieldDetail() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive h-8 w-8"
-                            title="Verwijderen"
-                            aria-label={`${m.m_name} verwijderen`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialogTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-destructive h-8 w-8"
+                              title="Verwijderen"
+                              aria-label={`${m.m_name} verwijderen`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>

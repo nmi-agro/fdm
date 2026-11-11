@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { AlertTriangle, ArrowRight, ChevronDown, Info, RotateCw } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { NavLink, useRevalidator } from "react-router"
@@ -10,7 +11,6 @@ import { Label } from "~/components/ui/label"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
-import { cn } from "~/lib/utils"
 import type { AdviceSummary, BalanceSummary, NormOutcome } from "./aggregate"
 import type { ImpactState } from "./impact-state"
 import type { BulkFieldIssue, BulkNormKey, BulkNormValues, BulkNutrient } from "./types"
@@ -212,12 +212,12 @@ function CoverageFooter({
         : "Dit perceel kon niet worden meegenomen"
       : `${counted} van ${total} percelen meegenomen`
   return (
-    <Collapsible>
+    <Collapsible className="group/collapsible">
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex items-center gap-1 text-xs">
         <span key={summary}>{summary}</span>
         {issues.length > 0 && (
           <ChevronDown
-            className="size-3 transition-transform group-data-[state=open]:rotate-180"
+            className="size-3 transition-transform group-data-open/collapsible:rotate-180"
             aria-hidden="true"
           />
         )}
@@ -700,7 +700,7 @@ export function ImpactSummaryCard({
 
   return (
     <Card>
-      <CardContent className="@container/impact pt-6">
+      <CardContent className="@container/impact">
         <div className="grid gap-8 @3xl/impact:grid-cols-2 @5xl/impact:grid-cols-3">
           <FarmNormsImpact
             detailHref={showField ? `${base}/norms/${normsField}` : `${base}/norms`}

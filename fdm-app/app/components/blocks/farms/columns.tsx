@@ -1,8 +1,8 @@
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { CellContext, ColumnDef } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ArrowUpRightFromSquare, ChevronRight } from "lucide-react"
 import { NavLink, useParams } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
@@ -175,13 +175,8 @@ export const selectColumn: ColumnDef<typeof farmTableFeatures, FarmExtended> = {
   enableHiding: false,
   header: ({ table }) => (
     <Checkbox
-      checked={
-        table.getIsAllRowsSelected()
-          ? true
-          : table.getIsSomeRowsSelected()
-            ? "indeterminate"
-            : false
-      }
+      checked={table.getIsAllRowsSelected()}
+      indeterminate={table.getIsSomeRowsSelected()}
       onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
       aria-label="Selecteer alle bedrijven"
     />

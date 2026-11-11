@@ -1,8 +1,8 @@
 import type { ReactNode } from "react"
+import { cn } from "cn"
 import { type FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
-import { cn } from "~/lib/utils"
 
 export const FERTILIZER_CATEGORY_SOLID_CLASSES: Record<FertilizerKind, string> = {
   renure: "bg-purple-600 text-white hover:bg-purple-700 border-transparent",

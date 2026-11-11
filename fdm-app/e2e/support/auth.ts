@@ -54,7 +54,7 @@ export async function signInWithMagicLink(page: Page, email: string): Promise<vo
   await page.getByRole("button", { name: "Aanmelden met e-mail" }).click()
   const code = await readMagicLinkCode(email)
 
-  await page.goto("/signin/verify?redirectTo=/farm")
+  await page.goto("/signin/verify?redirectTo=%2Ffarm")
   await page.getByRole("textbox").fill(code)
   await page.getByRole("button", { name: "Verifiëren en aanmelden" }).click()
   await page.waitForURL((url) => url.pathname.startsWith("/farm"), { timeout: 30_000 })

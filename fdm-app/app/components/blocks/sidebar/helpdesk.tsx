@@ -2,7 +2,7 @@ import { ArrowLeft, MessageSquareCheck, Plus } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -36,12 +36,17 @@ export function SidebarHelpdesk({ numUnreadRequested }: { numUnreadRequested: nu
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Button asChild variant="default" className="w-full justify-start">
-                <NavLink to="/farm">
-                  <ArrowLeft className="" />
-                  <span>Terug naar bedrijven</span>
-                </NavLink>
-              </Button>
+              <NavLink
+                to="/farm"
+                className={buttonVariants({
+                  variant: "default",
+                  className: "w-full justify-start",
+                })}
+                data-slot="button"
+              >
+                <ArrowLeft className="" />
+                <span>Terug naar bedrijven</span>
+              </NavLink>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
@@ -51,21 +56,27 @@ export function SidebarHelpdesk({ numUnreadRequested }: { numUnreadRequested: nu
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "new_ticket"}>
-                <NavLink to={"/support/new"}>
-                  <Plus />
-                  <span>Nieuw ticket</span>
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "new_ticket"}
+                render={
+                  <NavLink to={"/support/new"}>
+                    <Plus />
+                    <span>Nieuw ticket</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "my_tickets"}>
-                <NavLink to={isTicketViewerPage ? urlWithNoFilters : "/support"}>
-                  <MessageSquareCheck />
-                  <span>Mijn tickets</span>
-                  <NumberBadge number={numUnreadRequested} />
-                </NavLink>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                isActive={currentHelpdeskPage === "my_tickets"}
+                render={
+                  <NavLink to={isTicketViewerPage ? urlWithNoFilters : "/support"}>
+                    <MessageSquareCheck />
+                    <span>Mijn tickets</span>
+                    <NumberBadge number={numUnreadRequested} />
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>

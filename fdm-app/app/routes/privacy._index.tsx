@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown"
 import { Link, useLoaderData } from "react-router"
 import remarkGfm from "remark-gfm"
 import { markdownComponents } from "~/components/custom/markdown"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 
@@ -59,12 +59,14 @@ export default function PrivacyPage() {
             </div>
             <span className="text-sm font-semibold">{clientConfig.name}</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/signin">
-              <ArrowLeft className="size-4" />
-              Terug naar aanmelden
-            </Link>
-          </Button>
+          <Link
+            to="/signin"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            data-slot="button"
+          >
+            <ArrowLeft className="size-4" />
+            Terug naar aanmelden
+          </Link>
         </div>
       </header>
 
