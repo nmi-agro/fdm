@@ -96,11 +96,18 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  // Leave no synthetic measure behind in a development database. The farm that used it is
-  // removed by the test itself.
+  // Leave no synthetic measure behind in a development database, also when the test failed before
+  // it removed its measure. The farm that used it is removed by the test itself.
   if (!fdm) return
-  await fdm.$client`delete from "fdm"."measures_catalogue" where m_id = ${CONFORMANCE_MEASURE.m_id}`
-  await fdm.$client.end()
+  const sql = fdm.$client
+  const { m_id } = CONFORMANCE_MEASURE
+  try {
+    await sql`delete from "fdm"."measure_adopting" where b_id_measure in (select b_id_measure from "fdm"."measures" where m_id = ${m_id})`
+    await sql`delete from "fdm"."measures" where m_id = ${m_id}`
+    await sql`delete from "fdm"."measures_catalogue" where m_id = ${m_id}`
+  } finally {
+    await sql.end()
+  }
 })
 
 describe("tool results match their output schemas on real data", () => {
