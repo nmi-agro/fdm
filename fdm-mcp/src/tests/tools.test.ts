@@ -72,6 +72,7 @@ describe("server identity", () => {
   it("derives a slug for the programmatic server name", async () => {
     const { serverSlug } = await import("../mcp-server")
     expect(serverSlug("My App 2")).toBe("my-app-2")
+    expect(serverSlug(" -- Mijn  Bedrijf! -- ")).toBe("mijn-bedrijf")
     expect(serverSlug("  ")).toBe("fdm")
   })
 })

@@ -25,8 +25,9 @@ const MAX_TOOL_INPUT_ELEMENTS = 50_000
 export function serverSlug(appName: string): string {
   const slug = appName
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .join("-")
   return slug || "fdm"
 }
 
