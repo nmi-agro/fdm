@@ -49,7 +49,6 @@ Bestanden kan de assistent (nog) niet doorgeven aan {{appName}}. Een labrapport 
 - Je gegevens gaan naar de aanbieder van de assistent, zoals Anthropic of OpenAI. Deel geen gegevens van klanten zonder hun toestemming, en kijk na wat je organisatie hierover heeft afgesproken.
 - Controleer adviezen. Een assistent kan zich vergissen of berekeningen verkeerd uitleggen. De berekeningen zelf komen uit {{appName}}, maar de uitleg en conclusies van de assistent niet.
 - Minder krachtige modellen maken vaker fouten. Ze kiezen vaker het verkeerde hulpmiddel of vullen gegevens verkeerd in. Dat geldt voor online assistenten en voor modellen die je zelf draait: kies een model dat goed overweg kan met hulpmiddelen (tool calling).
-- Gebruik wordt bijgehouden. {{appName}} houdt bij welke hulpmiddelen de assistent gebruikt, hoe lang dat duurt en of het lukt, en wat de assistent opgeeft als reden. De gegevens die de assistent opvraagt of meestuurt, worden daarbij niet bewaard.
 - Via de API en de assistent gelden [limieten](/manual/api#limieten), zoals maximaal 500 percelen per bedrijf.
 
 ## Stap 1: maak een API-sleutel {#api-sleutel}
