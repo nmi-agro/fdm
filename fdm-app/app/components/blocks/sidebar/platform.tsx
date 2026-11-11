@@ -1,4 +1,4 @@
-import { ArrowLeft, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
+import { ArrowLeft, Bot, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
 import { Button } from "~/components/ui/button"
@@ -52,6 +52,16 @@ export function SidebarPlatform() {
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {clientConfig.mcpUrl && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.pathname === "/user/settings/mcp"}>
+                  <NavLink to="/user/settings/mcp">
+                    <Bot />
+                    <span>AI-assistenten (MCP)</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild

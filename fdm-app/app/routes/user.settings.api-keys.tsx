@@ -1,6 +1,6 @@
-import { BookOpenIcon, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
+import { BookOpenIcon, Bot, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
 import { toast } from "sonner"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -200,7 +200,15 @@ export default function UserSettingsApiKeys() {
         description={`Gebruik API-sleutels voor programmatische toegang tot ${clientConfig.name}. Behandel sleutels als wachtwoorden — deel ze nooit en sla ze veilig op.`}
       />
       <div className="space-y-6 px-4 pb-8 md:px-8">
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {clientConfig.mcpUrl && (
+            <Button variant="outline" size="sm" asChild>
+              <NavLink to="/user/settings/mcp">
+                <Bot className="mr-2 h-4 w-4" />
+                <span>AI-assistent koppelen</span>
+              </NavLink>
+            </Button>
+          )}
           {clientConfig.apiUrl && (
             <Button variant="outline" size="sm" asChild>
               <a href={`${clientConfig.apiUrl}/docs`} target="_blank" rel="noopener noreferrer">

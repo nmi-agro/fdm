@@ -5,9 +5,10 @@ section: Samenwerken en account
 order: 4
 inApp:
   - Account
-  - API-sleutels
+  - AI-assistenten (MCP)
 routes:
   - user.settings.api-keys.tsx
+  - user.settings.mcp.tsx
 watch:
   - fdm-mcp/src/
 keywords:
@@ -22,7 +23,7 @@ keywords:
 related:
   - api
   - samenwerken
-updated: 2026-11-10
+updated: 2026-11-11
 ---
 
 Met het Model Context Protocol (MCP) koppel je een AI-assistent aan {{appName}}. Je assistent kan dan je bedrijfsgegevens opzoeken, wijzigen en doorrekenen terwijl je met hem praat. Vraag bijvoorbeeld "Welke percelen hebben dit jaar nog geen bemesting?" of "Wat is de stikstofbalans van mijn bedrijf over 2025?".
@@ -64,6 +65,8 @@ Maak voor elke assistent een eigen sleutel aan. Dan kun je één koppeling stopp
 Wil je een koppeling stoppen? Klik dan bij de sleutel op Sleutel intrekken. De assistent heeft daarna direct geen toegang meer.
 
 Het adres van de koppeling is: `{{mcpUrl}}/mcp`
+
+Het adres en de instellingen per assistent, klaar om te kopiëren, vind je ook in {{appName}}: kies **Account** en ga naar **AI-assistenten (MCP)**, of klik op de pagina **API-sleutels** op **AI-assistent koppelen**.
 
 ## Claude {#claude}
 
