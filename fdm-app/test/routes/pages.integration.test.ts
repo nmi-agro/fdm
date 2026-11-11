@@ -209,7 +209,7 @@ const pages: PageCase[] = [
     page: () => import("~/routes/farm.$b_id_farm.$calendar.mineralization.$b_id._index"),
     pattern: `${farm}/mineralization/:b_id`,
     path: (i) => `${farmPath(i)}/mineralization/${i.field}`,
-    label: "Mineralisatie",
+    label: "Stikstofaanbod, opname door het gewas en uitspoeling door het seizoen heen.",
   },
   {
     name: "norms of a field",
