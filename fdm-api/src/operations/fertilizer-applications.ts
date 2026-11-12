@@ -1,5 +1,6 @@
 import type * as core from "@nmi-agro/fdm-core"
 import { z } from "@hono/zod-openapi"
+import { APPLICATION_METHODS, codeEnum, describeCodes } from "../codes"
 import { ApiError } from "../error"
 import {
   FarmIdSchema,
@@ -58,9 +59,7 @@ export const FertilizerApplicationSchema = z
     p_app_method: z
       .string()
       .nullable()
-      .describe(
-        "Method of application, one of 'slotted coulter', 'incorporation', 'incorporation 2 tracks', 'injection', 'shallow injection', 'spraying', 'broadcasting', 'spoke wheel', 'pocket placement' or 'narrowband'. `null` when unknown.",
-      ),
+      .describe(describeCodes("Method of application. `null` when unknown.", APPLICATION_METHODS)),
     p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     p_app_id: FertilizerApplicationIdSchema,
   })
@@ -79,7 +78,11 @@ export const CreateFertilizerApplicationBodySchema = z
   .object({
     p_id: z.string().describe("Fertilizer identifier."),
     p_app_amount_display: z.number().positive().describe(APP_AMOUNT_DISPLAY_DESCRIPTION),
-    p_app_method: z.string().nullable().describe("Application method."),
+    p_app_method: codeEnum(APPLICATION_METHODS)
+      .nullable()
+      .describe(
+        describeCodes("Method of application, or `null` when unknown.", APPLICATION_METHODS),
+      ),
     p_app_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
   })
   .openapi("CreateFertilizerApplication")
@@ -96,7 +99,12 @@ export const UpdateFertilizerApplicationBodySchema = z
       .describe(
         `${APP_AMOUNT_DISPLAY_DESCRIPTION} When omitted and the fertilizer is not changed, the stored amount is kept.`,
       ),
-    p_app_method: z.string().nullable().optional().describe("Application method."),
+    p_app_method: codeEnum(APPLICATION_METHODS)
+      .nullable()
+      .optional()
+      .describe(
+        describeCodes("Method of application, or `null` when unknown.", APPLICATION_METHODS),
+      ),
     p_app_date: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
   })
   .openapi("UpdateFertilizerApplication")

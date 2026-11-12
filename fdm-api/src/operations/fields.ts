@@ -1,5 +1,6 @@
 import type * as core from "@nmi-agro/fdm-core"
 import { z } from "@hono/zod-openapi"
+import { ACQUIRING_METHODS, codeEnum, describeCodes } from "../codes"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
 import { assertGeoJsonCoordinates } from "../guards"
@@ -65,7 +66,10 @@ export const FieldSchema = z
     b_acquiring_method: z
       .string()
       .describe(
-        "How the farm acquired the right to use the field. Dutch codes 'nl_01' to 'nl_09' follow the RVO registration (e.g. 'nl_01' ownership, 'nl_02' regular lease); 'unknown' when not specified.",
+        describeCodes(
+          "How the farm acquired the right to use the field, following the RVO registration; 'unknown' when not specified.",
+          ACQUIRING_METHODS,
+        ),
       ),
   })
   .openapi("Field")
@@ -79,7 +83,12 @@ export const CreateFieldBodySchema = z
       "Actual boundary of the field as GeoJSON Polygon or MultiPolygon, as provided by the user or a source such as RVO; never construct or approximate one. Maximum 10,000 coordinates.",
     ),
     b_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    b_acquiring_method: z.string().describe("Method by which the field was acquired."),
+    b_acquiring_method: codeEnum(ACQUIRING_METHODS).describe(
+      describeCodes(
+        "How the farm acquired the right to use the field, following the RVO registration.",
+        ACQUIRING_METHODS,
+      ),
+    ),
     b_end: DateStringSchema.nullable()
       .optional()
       .describe(
@@ -100,7 +109,14 @@ export const UpdateFieldBodySchema = z
         "Actual boundary of the field as GeoJSON Polygon or MultiPolygon, as provided by the user or a source such as RVO; never construct or approximate one.",
       ),
     b_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
-    b_acquiring_method: z.string().optional().describe("Method by which the field was acquired."),
+    b_acquiring_method: codeEnum(ACQUIRING_METHODS)
+      .optional()
+      .describe(
+        describeCodes(
+          "How the farm acquired the right to use the field, following the RVO registration.",
+          ACQUIRING_METHODS,
+        ),
+      ),
     b_end: DateStringSchema.nullable()
       .optional()
       .describe(
