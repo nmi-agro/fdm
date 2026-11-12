@@ -1,7 +1,7 @@
 ---
 name: fdm-api
 description: Use when working on the FDM REST API in the fdm-api package — adding or changing endpoints, writing Zod/OpenAPI route definitions, wiring route handlers to fdm-core services, shaping request and response payloads, handling API errors, pagination, timeframes, authentication by API key, rate limiting, or writing fdm-api tests. Covers the Hono + @hono/zod-openapi structure, the injectable services pattern, RFC 9457 problem details, and the API's serialization and delete conventions. Not for the fdm-core data model or schema (see the fdm-schema skill), fdm-app UI routes and loaders (see fdm-app-conventions), or agronomic calculation logic in fdm-calculator.
-version: 1.0.0
+version: 1.1.0
 user-invocable: true
 argument-hint: "[explain|add-endpoint|add-resource|review|test] [target]"
 license: MIT
