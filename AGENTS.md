@@ -40,7 +40,7 @@ Test isolation: `fdm-core` and the fdm-app integration project run with `isolate
 
 ## 3. Undiscoverable intent & policy
 
-- **Domain language**: `GLOSSARY.md` defines the domain terms (English, with the Dutch app label). Use its terms in code, docs and UI copy, and avoid the words it lists under _Avoid_.
+- **Domain language**: `GLOSSARY.md` defines the domain terms (English, with the Dutch app label). Don't rename existing identifiers, docs or UI labels to match it unless asked.
 - **Asset–Action model**: Record entities (assets: farms, fields, cultivations, soil analyses) and events (actions: sowing, fertilizer application, soil sampling) as discrete records rather than pre-aggregated metrics.
 - **Domain column prefixes** in the `fdm` PG schema, not camelCase: `b_` (farms, fields, cultivations), `p_` (fertilizer products), `a_` (soil analyses), `m_` (measures), `l_` (livestock), `f_` (feed). Enforced by `pnpm check-schema`; details and exceptions in the `fdm-schema` skill. Generated schemas (`fdm-authn`) are exempt.
 - **`fdm-core` function conventions**:
