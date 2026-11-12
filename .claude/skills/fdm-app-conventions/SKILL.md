@@ -1,7 +1,7 @@
 ---
 name: fdm-app-conventions
 description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this large, lightly tested package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
-version: 1.0.0
+version: 1.1.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
@@ -9,7 +9,7 @@ license: MIT
 
 `fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its tests cover a small part of it: unit tests for a few modules in `app/lib` and `app/store`, loader and action tests for a few routes (`test/`), and a Playwright smoke suite that opens every page the seed can fill in (`e2e/smoke`). They catch a crashing page, not a broken convention, so consistency with the surrounding code is the main safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
 
-**Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement. It does not own how the interface should look or feel — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
+**Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement, plus the app-wide UI rules that keep screens consistent. It does not own detailed visual design decisions — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
 
 ## Commands
 
@@ -114,6 +114,18 @@ Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
 
+### Consistency across the app
+
+Consistency is what makes `fdm-app` easy to use: a user who has learned one screen should already know how the next one works. Treat it as a requirement, not a polish item.
+
+- **Reuse before you build.** Before adding a page, form, table, card, dialog or empty state, find the closest existing screen and follow its structure: title block, layout, spacing, button placement and order, wording, loading and error states. Reuse the existing block or custom component instead of making a near-copy.
+- **Same thing, same name, same place.** A concept keeps one Dutch term everywhere (for example "bodemanalyse", not a synonym on another page). Actions sit where users already expect them on similar screens.
+- **One control per job.** Every date input uses `DatePicker` from `~/components/custom/date-picker-v2` (Dutch text parsing and a calendar popover), never a native `<input type="date">`. It expects a react-hook-form `field`/`fieldState`; for plain React state use the `DateField` adapter in `components/blocks/mineralization/date-field.tsx`, and in fetcher forms submit the date through a hidden input.
+- **One status scale.** Nutrient-advice status (map, overview table, progress bars, tooltips, KPI cards) is red below 90 % of the advice, green from 90 to 110 % and orange above 110 %; EOC is never "over", so only red or green. Use `computeAdviceProgress` and the colour maps in `components/blocks/nutrient-advice/progress-bar.tsx` (map colours in `atlas-nutrient-advice.ts`) and never add local thresholds. Gebruiksruimte (usage norms) follows its own rules; don't apply these colours there.
+- **No dark mode.** `DESIGN.md` describes dark tokens, but the app doesn't implement dark mode. Use the tokens for consistency, but don't treat light-only colours as dark-mode bugs.
+- **System-only data stays hidden.** The soil analysis source `nl-other-nmi` (an NMI estimate) is created by the system only. The soil form filters it out and no screen offers to edit such an analysis; that is intended.
+- **Finish with a design pass.** For UI/UX changes, use the `impeccable` skill while designing, and at the end run its `critique` on the changed screens, then `adapt` and `polish`. The critique should compare the screen with its neighbours, not only judge it in isolation.
+
 ### Browser translation
 
 Users translate the Dutch UI with the browser (Chrome, Edge). The translator replaces text nodes with its own `<font>` nodes. When React later inserts or removes a sibling, it uses the original text node as a reference, and `insertBefore` or `removeChild` throws — the user gets an error page. A text node whose string changes also stops updating. The app must keep working under translation, so never solve this with `translate="no"`. Instead:
@@ -204,6 +216,9 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Ref-compare against a "previous value", or a `setTimeout`-deferred `setState`, to dodge a compiler lint error | Pick the matching pattern from "Client-side state and the React Compiler" |
 | A lazy `useState(() => window…)` initializer for a client-only value | `useSyncExternalStore` with an explicit server snapshot |
 | English UI strings | Dutch |
+| A new page or component that looks or behaves differently from its siblings | Follow the nearest existing screen; reuse its blocks (see "Consistency across the app") |
+| `<input type="date">` | `DatePicker` from `~/components/custom/date-picker-v2` |
+| Local advice thresholds or colours | `computeAdviceProgress` and the maps in `progress-bar.tsx` |
 | `{isSubmitting && <Spinner />}` followed by bare text, or a conditional string next to elements | Wrap the text in `<span>`; key conditional text (see "Browser translation") |
 | Editing `fdm-core` and testing here without rebuilding | `pnpm turbo build` first — this app consumes `dist` |
 | A hard-coded `/manual/...` href for in-app help | `handle.help` or `<HelpLink target>` with a registered help target |

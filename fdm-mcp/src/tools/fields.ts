@@ -7,7 +7,7 @@ import {
 } from "@nmi-agro/fdm-api/operations"
 import { listTool, type McpTool, operationTool } from "./types"
 
-/** Tools for fields: the parcels of a farm, with their boundary as GeoJSON. */
+/** Tools for fields: the fields of a farm, with their boundary as GeoJSON. */
 export const fieldTools: McpTool[] = [
   listTool(listFields, {
     name: "list_fields",
