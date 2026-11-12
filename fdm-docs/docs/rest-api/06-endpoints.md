@@ -219,11 +219,9 @@ Current soil data, per field and per farm, includes the nitrogen supplying capac
 | `PATCH` | `/api/fertilizers/{p_id}`                     | Update a custom fertilizer (`422` for a standard catalogue product) |
 | `GET`   | `/api/cultivations/{b_lu}/harvest-parameters` | Parameters a harvest needs and their default values                 |
 
-### RVO fertilizer codes {#rvo-fertilizer-codes}
+### RVO fertilizer codes
 
 The fertilizer catalogue returns `p_type_rvo`, the fertilizer type code of RVO. The web app shows the Dutch name.
-
-<!-- Generated from typeRvoOptions in fdm-core; a test in fdm-api checks that this table matches. -->
 
 | `p_type_rvo` | Dutch name                                                                                       |
 | ------------ | ------------------------------------------------------------------------------------------------ |
