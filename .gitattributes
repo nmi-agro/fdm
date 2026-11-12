@@ -1,0 +1,16 @@
+# Store and check out text files with LF line endings on every platform, so
+# formatters and editors on Windows don't produce whole-file line-ending diffs.
+* text=auto eol=lf
+
+# Binary files: never convert.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
