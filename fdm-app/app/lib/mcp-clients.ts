@@ -15,7 +15,7 @@ export const MCP_KEY_HEADER = "X-API-Key"
 /** A snippet the user copies into a terminal or a configuration file. */
 export interface McpCodeSnippet {
   /** Shown above the snippet, for example the file it belongs in. */
-  language: "bash" | "json"
+  language: "bash" | "json" | "text"
   text: string
 }
 
@@ -116,6 +116,41 @@ function envVarNote(program: string): string {
 }
 
 /**
+ * Builds a request that lets Claude Code or Codex add the connection itself. It refers to the
+ * environment variable instead of the key, so the key never enters the conversation.
+ *
+ * @returns The request, in Dutch, ready to paste into the assistant.
+ */
+function buildSetupPrompt({
+  appName,
+  endpoint,
+  name,
+  claudeCommand,
+  codexCommand,
+}: {
+  appName: string
+  endpoint: string
+  name: string
+  claudeCommand: string
+  codexCommand: string
+}): string {
+  return [
+    `Stel de MCP-koppeling met ${appName} voor me in.`,
+    "",
+    `- Adres: ${endpoint} (Streamable HTTP)`,
+    `- Naam van de koppeling: ${name}`,
+    `- De API-sleutel staat in de omgevingsvariabele ${MCP_KEY_ENV_VAR}. Vraag me niet om de sleutel en zet hem niet letterlijk in een commando of bestand: verwijs naar de variabele.`,
+    "",
+    `1. Kijk of ${MCP_KEY_ENV_VAR} gezet is. Zo niet: leg uit hoe ik hem vast instel voor mijn besturingssysteem en shell, en stop dan.`,
+    "2. Voeg de koppeling toe:",
+    `   - Claude Code: ${claudeCommand}`,
+    `   - Codex: ${codexCommand}`,
+    '3. Kijk met "claude mcp list" of "codex mcp list" of de koppeling werkt. Bij foutmelding 401 is de sleutel verkeerd of ingetrokken.',
+    "4. Zeg dat ik een nieuwe sessie moet starten, zodat de hulpmiddelen geladen worden.",
+  ].join("\n")
+}
+
+/**
  * Builds the setup instructions, with the real address of the MCP server and a placeholder for the
  * API key.
  *
@@ -133,6 +168,10 @@ export function getMcpClientGuides({
 }): McpClientGuides {
   const name = getMcpServerName(appName)
   const key = MCP_KEY_PLACEHOLDER
+  // Single quotes keep the variable out of the shell, so the key itself is not stored in the
+  // configuration or the shell history; Claude Code reads it when it starts.
+  const claudeCommand = `claude mcp add --transport http ${name} ${endpoint} --header '${MCP_KEY_HEADER}: \${${MCP_KEY_ENV_VAR}}'`
+  const codexCommand = `codex mcp add ${name} --url ${endpoint} --bearer-token-env-var ${MCP_KEY_ENV_VAR}`
   return {
     primary: {
       title: "claude.ai en de app Claude Desktop",
@@ -160,22 +199,23 @@ export function getMcpClientGuides({
           {
             title: "Claude Code",
             intro: `Zet je sleutel in de omgevingsvariabele \`${MCP_KEY_ENV_VAR}\` en voer uit:`,
-            code: {
-              language: "bash",
-              // Single quotes keep the variable out of the shell, so the key itself is not stored
-              // in the configuration or the shell history; Claude Code reads it when it starts.
-              text: `claude mcp add --transport http ${name} ${endpoint} --header '${MCP_KEY_HEADER}: \${${MCP_KEY_ENV_VAR}}'`,
-            },
+            code: { language: "bash", text: claudeCommand },
             note: envVarNote("Claude Code"),
           },
           {
             title: "Codex (CLI of IDE)",
             intro: `Zet je sleutel in de omgevingsvariabele \`${MCP_KEY_ENV_VAR}\` en voer uit:`,
-            code: {
-              language: "bash",
-              text: `codex mcp add ${name} --url ${endpoint} --bearer-token-env-var ${MCP_KEY_ENV_VAR}`,
-            },
+            code: { language: "bash", text: codexCommand },
             note: envVarNote("Codex"),
+          },
+          {
+            title: "Of laat je assistent het instellen",
+            intro: `Zet je sleutel in \`${MCP_KEY_ENV_VAR}\`, kopieer deze opdracht en geef hem aan Claude Code of Codex:`,
+            code: {
+              language: "text",
+              text: buildSetupPrompt({ appName, endpoint, name, claudeCommand, codexCommand }),
+            },
+            note: "De opdracht bevat je sleutel niet. Plak je sleutel ook nooit in een gesprek: dan gaat hij naar de aanbieder van de assistent.",
           },
         ],
       },

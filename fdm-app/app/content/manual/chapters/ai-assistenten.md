@@ -106,6 +106,25 @@ codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var FDM_
 
 Ook dit commando slaat alleen de naam van de variabele op. Zet `FDM_API_KEY` vast in je omgeving, zodat Codex de sleutel ook vindt als je het later of vanuit je editor start.
 
+### Laat Claude Code of Codex het instellen {#zelf-instellen}
+
+Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en geef je assistent deze opdracht. De opdracht bevat je sleutel niet. Plak je sleutel ook nooit in een gesprek: dan gaat hij naar de aanbieder van de assistent.
+
+```text
+Stel de MCP-koppeling met {{appName}} voor me in.
+
+- Adres: {{mcpUrl}}/mcp (Streamable HTTP)
+- Naam van de koppeling: {{mcpServerName}}
+- De API-sleutel staat in de omgevingsvariabele FDM_API_KEY. Vraag me niet om de sleutel en zet hem niet letterlijk in een commando of bestand: verwijs naar de variabele.
+
+1. Kijk of FDM_API_KEY gezet is. Zo niet: leg uit hoe ik hem vast instel voor mijn besturingssysteem en shell, en stop dan.
+2. Voeg de koppeling toe:
+   - Claude Code: claude mcp add --transport http {{mcpServerName}} {{mcpUrl}}/mcp --header 'X-API-Key: ${FDM_API_KEY}'
+   - Codex: codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var FDM_API_KEY
+3. Kijk met "claude mcp list" of "codex mcp list" of de koppeling werkt. Bij foutmelding 401 is de sleutel verkeerd of ingetrokken.
+4. Zeg dat ik een nieuwe sessie moet starten, zodat de hulpmiddelen geladen worden.
+```
+
 ### Ontwikkelaars met de OpenAI API
 
 Gebruik in de Responses API een hulpmiddel van het type `mcp` met `server_url` `{{mcpUrl}}/mcp` en de header `Authorization: Bearer <sleutel>`.
@@ -152,6 +171,12 @@ Gebruik `mcp-remote` als tussenstap. Zet dit in het configuratiebestand van je p
 ```
 
 `mcp-remote` vult de sleutel zelf in vanuit `env`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien.
+
+## Probeer het uit {#proberen}
+
+Begin met deze vraag. Dan zie je meteen of de koppeling werkt en wat de assistent mag:
+
+> Welke bedrijven heb ik in {{appName}}, en wat kun je voor me doen met deze koppeling?
 
 ## Problemen oplossen {#problemen}
 

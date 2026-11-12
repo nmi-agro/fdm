@@ -94,6 +94,17 @@ describe("getMcpClientGuides", () => {
     expect(server.env).toEqual({ FDM_API_KEY: MCP_KEY_PLACEHOLDER })
   })
 
+  it("offers a setup request for Claude Code and Codex that never asks for the key", () => {
+    const cli = guides.developer.find((guide) => guide.id === "cli")
+    const prompt = cli?.sections.find((section) => section.code?.language === "text")?.code?.text
+    expect(prompt).toBeDefined()
+    expect(prompt).toContain(endpoint)
+    expect(prompt).toContain("claude mcp add --transport http my-app ")
+    expect(prompt).toContain("codex mcp add my-app ")
+    expect(prompt).toContain("FDM_API_KEY")
+    expect(prompt).not.toContain(MCP_KEY_PLACEHOLDER)
+  })
+
   it("uses a connection name without spaces in commands and configuration", () => {
     const text = JSON.stringify(guides)
     expect(text).toContain("claude mcp add --transport http my-app ")

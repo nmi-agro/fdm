@@ -122,7 +122,15 @@ export default function UserSettingsMcpPage() {
               <CardContent className="space-y-6 text-sm">
                 <section className="space-y-2">
                   <h4 className="font-medium">Probeer het uit</h4>
-                  <p className="text-muted-foreground">Vraag je assistent bijvoorbeeld:</p>
+                  <p className="text-muted-foreground">
+                    Begin met deze vraag. Dan zie je meteen of de koppeling werkt en wat de
+                    assistent mag:
+                  </p>
+                  <CodeBlock
+                    code={`Welke bedrijven heb ik in ${appName}, en wat kun je voor me doen met deze koppeling?`}
+                    copyContext="eerste vraag"
+                  />
+                  <p className="text-muted-foreground">Daarna bijvoorbeeld:</p>
                   <ul className="list-disc space-y-1 pl-5">
                     <li>Welke percelen hebben dit jaar nog geen bemesting?</li>
                     <li>Wat was vorig jaar de stikstofbalans van mijn bedrijf?</li>
