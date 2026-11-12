@@ -1,6 +1,10 @@
+---
+description: Weekly dependency update for the fdm monorepo — bump patch/minor versions, migrate safe majors, list the rest under "Decisions Needed", and open a PR.
+---
+
 # Weekly dependency update — agent brief
 
-You are performing the **weekly automated dependency update** for the `fdm` monorepo (pnpm + Turborepo, packages: `fdm-core`, `fdm-data`, `fdm-calculator`, `fdm-agents`, `fdm-rvo`, `fdm-helpdesk`, `fdm-api`, `fdm-app`, `fdm-docs`, plus the root workspace).
+You are performing the **weekly automated dependency update** for the `fdm` monorepo (pnpm + Turborepo). The packages are listed in `pnpm-workspace.yaml` (currently `fdm-core`, `fdm-data`, `fdm-calculator`, `fdm-agents`, `fdm-rvo`, `fdm-helpdesk`, `fdm-storage`, `fdm-reports`, `fdm-api`, `fdm-app`, `fdm-docs`), plus the root workspace.
 
 Before making changes, read `AGENTS.md` and the relevant skills under `.claude/skills/` (`fdm-schema`, `fdm-app-conventions`, `fdm-api`) for conventions you must preserve while migrating code.
 
@@ -33,7 +37,7 @@ Before finishing, for every package you touched:
 
 - Respect build order: `fdm-data` → `fdm-core` → downstream packages.
 - Run `pnpm build`, `pnpm check-types` (root and/or per-package, e.g. `fdm-app`'s `pnpm check-types` runs `react-router typegen && tsc`), and `pnpm lint`.
-- Run the targeted test suite for each touched package, e.g. `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`. A PostgreSQL/PostGIS instance is available for packages that need it (`fdm-core`, `fdm-calculator`, `fdm-rvo`, `fdm-helpdesk`); connection details are provided via `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` environment variables. If these are unset or the tests fail immediately with a missing-env-var error (see `fdm-core/src/global-setup.ts`), that's an environment configuration issue, not something caused by the dependency updates — state clearly in the PR's Validation section which suites you could not run and why (e.g. "fdm-core tests: skipped, POSTGRES_* environment variables not available in this session") rather than silently omitting them or reporting a vague "unable to test."
+- Run the targeted test suite for each touched package, e.g. `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`. A PostgreSQL/PostGIS instance is available for packages that need it (`fdm-core`, `fdm-calculator`, `fdm-helpdesk`); connection details are provided via `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` environment variables. If these are unset or the tests fail immediately with a missing-env-var error (see `fdm-core/src/global-setup.ts`), that's an environment configuration issue, not something caused by the dependency updates — state clearly in the PR's Validation section which suites you could not run and why (e.g. "fdm-core tests: skipped, POSTGRES_* environment variables not available in this session") rather than silently omitting them or reporting a vague "unable to test."
 - Fix any regression your changes caused. If a specific bump cannot be made to pass validation within reasonable effort, revert just that bump and move it to "Decisions Needed" instead of leaving a broken build.
 
 ## 5. Changesets

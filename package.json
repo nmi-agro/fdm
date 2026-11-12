@@ -14,6 +14,7 @@
     "watch": "turbo run watch",
     "changeset": "changeset",
     "check-schema": "node .claude/skills/fdm-schema/scripts/check-schema-conventions.mjs",
+    "check-types": "turbo run check-types",
     "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents && changeset publish ",
     "lint": "oxlint --type-aware",
     "lint:fix": "oxlint --type-aware --fix",
