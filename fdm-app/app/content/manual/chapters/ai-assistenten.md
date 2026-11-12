@@ -170,7 +170,7 @@ Gebruik `mcp-remote` als tussenstap. Zet dit in het configuratiebestand van je p
 }
 ```
 
-`mcp-remote` vult de sleutel zelf in vanuit `env`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien.
+`mcp-remote` vult de sleutel zelf in vanuit `env`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien. Het configuratiebestand bevat je sleutel wel: deel het niet.
 
 ## Probeer het uit {#proberen}
 

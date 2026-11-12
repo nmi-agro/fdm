@@ -51,6 +51,12 @@ describe("getMcpClientGuides", () => {
     expect(guides.developer.length).toBeLessThanOrEqual(4)
   })
 
+  it("warns that claude.ai cannot reach a server on localhost", () => {
+    const local = getMcpClientGuides({ appName: "My App", endpoint: "http://localhost:8081/mcp" })
+    expect(local.primary.intro).toContain("alleen op je eigen computer bereikbaar")
+    expect(guides.primary.intro).not.toContain("alleen op je eigen computer bereikbaar")
+  })
+
   it("names the assistants that cannot connect yet", () => {
     expect(guides.unsupported.map((client) => client.label)).toContain("ChatGPT op het web")
   })

@@ -58,7 +58,7 @@ If a user's organization membership is removed, their API key loses access to re
 
 ## Audit channel
 
-Every permission check is recorded in the FDM audit log with the channel the request came through, and the credential that authenticated it:
+Permission checks that guard an operation are recorded in the FDM audit log with the channel the request came through and, when known, the credential that authenticated it (see the limits below):
 
 | `audit_channel` | Source                                                     | `credential_id` |
 | --------------- | ---------------------------------------------------------- | --------------- |

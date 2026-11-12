@@ -105,6 +105,18 @@ export function getMcpServerName(appName: string): string {
 }
 
 /**
+ * Tells whether an address points to the user's own computer, which cloud-hosted assistants such
+ * as claude.ai cannot reach.
+ *
+ * @param endpoint - Address of the MCP endpoint.
+ * @returns `true` for `localhost`, `127.0.0.1` and `[::1]`.
+ */
+function isLocalAddress(endpoint: string): boolean {
+  const { hostname } = new URL(endpoint)
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]"
+}
+
+/**
  * Explains that a command stores only the name of the environment variable, so the variable must
  * be set wherever the program runs.
  *
@@ -175,7 +187,9 @@ export function getMcpClientGuides({
   return {
     primary: {
       title: "claude.ai en de app Claude Desktop",
-      intro: "Doe dit op een computer, in de browser of in Claude Desktop.",
+      intro: isLocalAddress(endpoint)
+        ? 'Let op: dit adres is alleen op je eigen computer bereikbaar. claude.ai en Claude Desktop verbinden vanuit de cloud van Anthropic en kunnen het niet bereiken. Gebruik Claude Code of een lokaal model (zie "Voor ontwikkelaars en lokale modellen"), of stel een publiek adres in.'
+        : "Doe dit op een computer, in de browser of in Claude Desktop.",
       steps: [
         'Ga naar "Customize" → "Connectors" en klik op "+ Add" → "Add custom connector".',
         `Vul bij de URL \`${endpoint}\` in.`,
@@ -297,7 +311,7 @@ export function getMcpClientGuides({
                 2,
               ),
             },
-            note: `mcp-remote vult de sleutel zelf in vanuit \`env\`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien.`,
+            note: `mcp-remote vult de sleutel zelf in vanuit \`env\`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien. Het configuratiebestand bevat je sleutel wel: deel het niet.`,
           },
         ],
       },

@@ -96,7 +96,7 @@ In the admin settings, add a tool server of type "MCP (Streamable HTTP)" with UR
 
 ### Clients that only support stdio
 
-[`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridges stdio to the HTTP endpoint. Add it to the client's configuration file, for example `claude_desktop_config.json` of Claude Desktop, and adapt it to your client. Every request still goes through the MCP server; the client gets no database access. `mcp-remote` replaces `${FDM_API_KEY}` with the value from `env` itself, so the key does not appear in the process arguments.
+[`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridges stdio to the HTTP endpoint. Add it to the client's configuration file, for example `claude_desktop_config.json` of Claude Desktop, and adapt it to your client. Every request still goes through the MCP server; the client gets no database access. `mcp-remote` replaces `${FDM_API_KEY}` with the value from `env` itself, so the key does not appear in the process arguments. The configuration file does hold the key, so keep it private.
 
 ```json
 {
