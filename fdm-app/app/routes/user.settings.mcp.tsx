@@ -5,8 +5,8 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { McpClientGuides } from "~/components/blocks/mcp/mcp-client-guides"
 import { CodeBlock } from "~/components/custom/copy-button"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Alert, AlertDescription } from "~/components/ui/alert"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { clientConfig } from "~/lib/config"
 import { getHelpHref } from "~/lib/manual/help-targets"
@@ -78,7 +78,7 @@ export default function UserSettingsMcpPage() {
 
             <Card className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
               <CardHeader>
-                <CardTitle asChild>
+                <CardTitle>
                   <h3>Zo koppel je een assistent</h3>
                 </CardTitle>
                 <CardDescription>In drie stappen, met een eigen API-sleutel.</CardDescription>
@@ -92,12 +92,13 @@ export default function UserSettingsMcpPage() {
                       zonder de andere. Je ziet de sleutel maar één keer: kopieer hem en kom met de
                       knop in het venster terug naar deze pagina.
                     </p>
-                    <Button variant="outline" size="sm" asChild>
-                      <NavLink to={CREATE_KEY_HREF}>
-                        <KeyRound className="h-4 w-4" />
-                        <span>Maak een API-sleutel</span>
-                      </NavLink>
-                    </Button>
+                    <NavLink
+                      to={CREATE_KEY_HREF}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      <span>Maak een API-sleutel</span>
+                    </NavLink>
                   </li>
                   <li id="adres" className="scroll-mt-20 space-y-3 pl-1">
                     <h4 className="font-medium">Kopieer het adres van de koppeling</h4>
@@ -113,7 +114,7 @@ export default function UserSettingsMcpPage() {
 
             <Card className="lg:col-start-2 lg:row-start-2">
               <CardHeader>
-                <CardTitle asChild>
+                <CardTitle>
                   <h3>Na het koppelen</h3>
                 </CardTitle>
               </CardHeader>
@@ -147,22 +148,26 @@ export default function UserSettingsMcpPage() {
                     . De assistent heeft daarna direct geen toegang meer.
                   </p>
                 </section>
-                <Button variant="link" className="h-auto p-0" asChild>
-                  <a href={getHelpHref("ai-assistenten")} target="_blank" rel="noopener noreferrer">
-                    <BookOpenIcon className="h-4 w-4" />
-                    <span>Lees meer in de handleiding</span>
-                    <span className="sr-only">(opent in een nieuw tabblad)</span>
-                  </a>
-                </Button>
+                <a
+                  href={getHelpHref("ai-assistenten")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "link", className: "h-auto p-0" })}
+                >
+                  <BookOpenIcon className="h-4 w-4" />
+                  <span>Lees meer in de handleiding</span>
+                  <span className="sr-only">(opent in een nieuw tabblad)</span>
+                </a>
               </CardContent>
             </Card>
           </div>
         ) : (
           <Alert role="note" className="max-w-3xl">
             <Info className="h-4 w-4" />
-            <AlertTitle asChild>
-              <h3>Niet beschikbaar op deze server</h3>
-            </AlertTitle>
+            {/* A heading of its own instead of AlertTitle, whose h5 would skip levels below the h2 title. */}
+            <h3 className="mb-1 leading-none font-medium tracking-tight">
+              Niet beschikbaar op deze server
+            </h3>
             <AlertDescription>
               Het koppelen van AI-assistenten is op deze server niet ingesteld. Vraag de beheerder
               van {appName} om het aan te zetten.

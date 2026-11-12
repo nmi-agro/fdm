@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { CheckIcon, CopyIcon } from "lucide-react"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 
 /** How long the button shows "Gekopieerd" after a successful copy, in milliseconds. */
 const COPIED_DURATION = 2000

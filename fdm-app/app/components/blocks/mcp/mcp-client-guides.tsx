@@ -93,11 +93,11 @@ export function McpClientGuides({ guides }: { guides: McpClientGuidesData }) {
       )}
 
       <Collapsible className="border-t pt-4">
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="group -ml-3 h-auto py-1.5">
-            <ChevronDownIcon className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
-            <span>Voor ontwikkelaars en lokale modellen</span>
-          </Button>
+        <CollapsibleTrigger
+          render={<Button variant="ghost" size="sm" className="group -ml-2.5 h-auto py-1.5" />}
+        >
+          <ChevronDownIcon className="h-4 w-4 transition-transform group-data-panel-open:rotate-180 motion-reduce:transition-none" />
+          <span>Voor ontwikkelaars en lokale modellen</span>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-4 pt-3">
           <p className="text-muted-foreground text-sm">
@@ -114,7 +114,7 @@ export function McpClientGuides({ guides }: { guides: McpClientGuidesData }) {
             in de voorbeelden door je sleutel, zonder de punthaken.
           </p>
           <Tabs defaultValue={guides.developer[0]?.id}>
-            <TabsList className="h-auto flex-wrap justify-start">
+            <TabsList className="flex-wrap justify-start group-data-horizontal/tabs:h-auto">
               {guides.developer.map((guide) => (
                 <TabsTrigger key={guide.id} value={guide.id}>
                   {guide.label}
@@ -122,7 +122,7 @@ export function McpClientGuides({ guides }: { guides: McpClientGuidesData }) {
               ))}
             </TabsList>
             {guides.developer.map((guide) => (
-              <TabsContent key={guide.id} value={guide.id} className="mt-4 space-y-6">
+              <TabsContent key={guide.id} value={guide.id} className="space-y-6 pt-2">
                 {guide.sections.map((section) => (
                   <GuideSection key={section.title} section={section} />
                 ))}

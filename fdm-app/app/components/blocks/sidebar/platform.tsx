@@ -53,12 +53,15 @@ export function SidebarPlatform() {
             </SidebarMenuItem>
             {getMcpEndpoint(clientConfig.mcpUrl) && (
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/user/settings/mcp"}>
-                  <NavLink to="/user/settings/mcp">
-                    <Bot />
-                    <span>AI-assistenten</span>
-                  </NavLink>
-                </SidebarMenuButton>
+                <SidebarMenuButton
+                  isActive={location.pathname === "/user/settings/mcp"}
+                  render={
+                    <NavLink to="/user/settings/mcp">
+                      <Bot />
+                      <span>AI-assistenten</span>
+                    </NavLink>
+                  }
+                />
               </SidebarMenuItem>
             )}
             <SidebarMenuItem>

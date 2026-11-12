@@ -216,12 +216,13 @@ export default function UserSettingsApiKeys() {
       <div className="space-y-6 px-4 pb-8 md:px-8">
         <div className="flex flex-wrap justify-end gap-2">
           {mcpAvailable && (
-            <Button variant="outline" size="sm" asChild>
-              <NavLink to="/user/settings/mcp">
-                <Bot className="h-4 w-4" />
-                <span>AI-assistenten koppelen</span>
-              </NavLink>
-            </Button>
+            <NavLink
+              to="/user/settings/mcp"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Bot className="h-4 w-4" />
+              <span>AI-assistenten koppelen</span>
+            </NavLink>
           )}
           {clientConfig.apiUrl && (
             <a
@@ -290,11 +291,9 @@ export default function UserSettingsApiKeys() {
             <DialogFooter>
               {rawKey && <CopyButton value={rawKey} context="API-sleutel" className="h-9" />}
               {fromMcp ? (
-                <Button asChild>
-                  <NavLink to="/user/settings/mcp#adres">
-                    Terug naar AI-assistenten koppelen
-                  </NavLink>
-                </Button>
+                <NavLink to="/user/settings/mcp#adres" className={buttonVariants()}>
+                  Terug naar AI-assistenten koppelen
+                </NavLink>
               ) : (
                 <Button onClick={() => setRawKeyOpen(false)}>Sluiten</Button>
               )}
