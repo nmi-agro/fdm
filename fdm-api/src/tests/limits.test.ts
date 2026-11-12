@@ -83,7 +83,7 @@ const createFieldBody = JSON.stringify({
     ],
   },
   b_start: "2024-01-01",
-  b_acquiring_method: "purchase",
+  b_acquiring_method: "nl_01",
 })
 
 describe("maximum farm size", () => {
