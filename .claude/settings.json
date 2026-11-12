@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch)",
+      "Bash(git branch --list*)",
+      "Bash(git branch --show-current)",
+      "Bash(git fetch)",
+      "Bash(git fetch origin)",
+      "Bash(git fetch --all)",
+      "Bash(git fetch --prune)",
+      "Bash(git ls-files*)",
+      "Bash(git worktree list*)",
+      "Bash(pnpm build*)",
+      "Bash(pnpm check-types*)",
+      "Bash(pnpm check-schema*)",
+      "Bash(pnpm build-docs*)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm turbo run build *)",
+      "Bash(pnpm turbo run check-types *)",
+      "Bash(pnpm turbo run test-coverage *)",
+      "Bash(pnpm --filter @nmi-agro/fdm-app test:unit*)",
+      "Bash(pnpm --filter @nmi-agro/fdm-app test:integration*)",
+      "Bash(pnpm exec oxfmt *)",
+      "Bash(pnpm exec oxlint *)",
+      "Bash(pnpm exec tsc *)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(pnpm exec dotenvx run -- vitest *)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr diff*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh run view*)",
+      "Bash(gh run list*)",
+      "PowerShell(git status*)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)",
+      "PowerShell(git show*)",
+      "PowerShell(pnpm check-types*)",
+      "PowerShell(pnpm exec oxfmt *)"
+    ],
+    "deny": [
+      "Edit(**/.env)",
+      "Edit(**/.env.local)",
+      "Edit(**/.env.test)",
+      "Edit(**/.env.e2e)",
+      "Edit(**/.env.production)",
+      "Edit(/fdm-core/src/db/migrations/**)",
+      "Edit(/fdm-core/src/db/schema-authn.ts)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "PowerShell(git push --force*)",
+      "PowerShell(git push -f*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/format-edited-file.mjs"],
+            "timeout": 20,
+            "statusMessage": "Formatting edited file"
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "impeccable@impeccable": true,
+    "playwright@anthropic-plugin-directory": true
+  }
+}
