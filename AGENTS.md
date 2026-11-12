@@ -90,7 +90,7 @@ pnpm build-docs                                # after TSDoc or fdm-docs changes
 - Edit files with your editor tools, not with Python, `sed -i` or heredoc rewrite scripts. Those scripts change line endings and break on quoting.
 - Format only the files you changed (`pnpm exec oxfmt <files>`). A repository-wide `pnpm format` touches files outside your change.
 - To work on another branch of a PR stack while the main checkout is in use, use a git worktree. Checking out a lower branch removes files that a running `pnpm dev` watches and crashes it.
-- If `git status` suddenly shows many deleted (` D`) files, for example after a GUI merge with autostash, stop and tell the user. Recover with `git restore -- <package>` per package and repair `node_modules` with `pnpm install --frozen-lockfile --force`; don't pop the whole stash.
+- If `git status` suddenly shows many deleted (` D`) files, for example after a GUI merge with autostash, stop and tell the user. First save the local edits (`git diff > <backup>.patch` and check `git stash list`), then restore only the deleted files (`git ls-files --deleted -z | xargs -0 git restore --`), never whole package folders, so unstaged edits survive. Repair `node_modules` with `pnpm install --frozen-lockfile --force`; don't pop the whole stash.
 
 ## 7. Deep domain skills (`.claude/skills/`)
 
