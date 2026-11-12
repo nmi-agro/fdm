@@ -76,7 +76,7 @@ export const CreateFieldBodySchema = z
     b_name: z.string().describe("Field display name."),
     b_id_source: z.string().nullable().optional().describe("External source identifier."),
     b_geometry: GeoJsonGeometrySchema.describe(
-      "Field boundary as GeoJSON Polygon or MultiPolygon. Maximum 10,000 coordinates.",
+      "Actual boundary of the field as GeoJSON Polygon or MultiPolygon, as provided by the user or a source such as RVO; never construct or approximate one. Maximum 10,000 coordinates.",
     ),
     b_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     b_acquiring_method: z.string().describe("Method by which the field was acquired."),
@@ -96,7 +96,9 @@ export const UpdateFieldBodySchema = z
     b_id_source: z.string().nullable().optional().describe("External source identifier."),
     b_geometry: GeoJsonGeometrySchema.nullable()
       .optional()
-      .describe("Field boundary as GeoJSON Polygon or MultiPolygon."),
+      .describe(
+        "Actual boundary of the field as GeoJSON Polygon or MultiPolygon, as provided by the user or a source such as RVO; never construct or approximate one.",
+      ),
     b_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
     b_acquiring_method: z.string().optional().describe("Method by which the field was acquired."),
     b_end: DateStringSchema.nullable()

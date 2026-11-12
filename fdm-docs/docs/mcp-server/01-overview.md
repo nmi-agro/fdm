@@ -67,7 +67,7 @@ Two read-only resource templates serve clients that browse context: `fdm://farms
 
 ## Server instructions
 
-On connect, the server gives the model instructions: look data up before changing it, find codes in the catalogues, ask the user before deleting, use `YYYY-MM-DD` and metric units, and answer in the user's language.
+On connect, the server gives the model instructions: look data up before changing it, find codes in the catalogues, never estimate or make up data and ask the user which data is missing instead, show values the user did not give and wait for confirmation before saving them, never invent a field boundary, ask the user before deleting, use `YYYY-MM-DD` and metric units, and answer in the user's language.
 
 ## Logging and analytics
 
