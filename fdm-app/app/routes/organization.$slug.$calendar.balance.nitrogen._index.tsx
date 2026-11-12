@@ -334,11 +334,16 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
               <span>{`${balanceResult.balance} / ${balanceResult.target}`}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className={`block cursor-default text-xs ${deltaClass}`}>
-                      {deltaFormatted}
-                    </span>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        className={`block w-full cursor-default text-right text-xs ${deltaClass}`}
+                      >
+                        {deltaFormatted}
+                      </button>
+                    }
+                  />
                   <TooltipContent>
                     {`Verschil t.o.v. het organisatiegemiddelde (${(Math.round((orgAverage ?? 0) * 10) / 10).toFixed(1)} kg N / ha)`}
                   </TooltipContent>
@@ -362,7 +367,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Overschot / Doel (Alle bedrijven)</CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -391,7 +396,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
             <ArrowDown className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -401,7 +406,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
             <ArrowRight className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -411,7 +416,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -423,7 +428,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
             <ArrowRightFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
@@ -456,7 +461,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
+            <CardTitle className="flex flex-row items-center gap-2">
               <p className="grow">Bedrijven</p>
               <GroupPicker groups={loaderData.farmGroups} />
               <FarmSelectDialog

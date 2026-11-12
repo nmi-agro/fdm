@@ -12,7 +12,7 @@ import type { FieldPageHandle } from "~/lib/field-page"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
 import { getSoilParametersForSoilAnalysisType } from "~/components/blocks/soil/parameters.server"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -128,12 +128,14 @@ export default function FarmFieldSoilOverviewBlock() {
 
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-3">
-        <NavLink to="../soil/analysis/new">
-          <ArrowLeft />
-          Andere manier kiezen
-        </NavLink>
-      </Button>
+      <NavLink
+        to="../soil/analysis/new"
+        className={buttonVariants({ variant: "ghost", size: "sm", className: "-ml-3" })}
+        data-slot="button"
+      >
+        <ArrowLeft />
+        Andere manier kiezen
+      </NavLink>
       <SoilAnalysisForm
         soilAnalysis={undefined}
         soilParameterDescription={loaderData.soilParameterDescription}

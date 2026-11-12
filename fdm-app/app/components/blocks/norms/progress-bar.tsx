@@ -1,3 +1,4 @@
+import { CSSProperties } from "react"
 import { Progress } from "~/components/ui/progress"
 
 /**
@@ -35,7 +36,11 @@ export function NormProgressBar({
   return (
     <Progress
       value={percentage}
-      indicatorClassName={isOverLimit ? "bg-red-500" : "bg-green-500"}
+      style={
+        {
+          "--color-primary": isOverLimit ? "var(--color-red-500)" : "var(--color-green-500)",
+        } as CSSProperties
+      }
       className={className ?? "h-2"}
     />
   )

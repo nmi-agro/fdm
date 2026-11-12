@@ -1,5 +1,5 @@
+import { cn } from "cn"
 import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 const CHIP_ACTIVE: Record<Ecosysteemdienst, string> = {
   Productie:

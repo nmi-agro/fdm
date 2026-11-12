@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import {
   CalendarX2,
   CircleAlert,
@@ -10,7 +11,6 @@ import {
 } from "lucide-react"
 import { Badge } from "~/components/ui/badge"
 import { type AttentionItem, describeAttentionItem } from "~/lib/mineralization"
-import { cn } from "~/lib/utils"
 
 function getIcon(item: AttentionItem): LucideIcon {
   if (item.kind === "missing_harvest") return CalendarX2

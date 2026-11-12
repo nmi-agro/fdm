@@ -1,5 +1,6 @@
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { useEffect, useRef } from "react"
 import {
   type ActionFunctionArgs,
@@ -16,7 +17,7 @@ import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { auth } from "~/lib/auth.server"
@@ -151,14 +152,13 @@ export default function Verify() {
           </Button>
 
           {actionData?.errors?.code && (
-            <Button asChild variant="link" className="w-full">
-              <Link
-                to={requestNewCodeUrl}
-                onClick={() => capture("signin_request_new_code_clicked")}
-              >
-                Nieuwe code aanvragen
-              </Link>
-            </Button>
+            <Link
+              to={requestNewCodeUrl}
+              onClick={() => capture("signin_request_new_code_clicked")}
+              className={cn(buttonVariants({ variant: "link" }), "w-full")}
+            >
+              Nieuwe code aanvragen
+            </Link>
           )}
         </Form>
       </AuthCard>

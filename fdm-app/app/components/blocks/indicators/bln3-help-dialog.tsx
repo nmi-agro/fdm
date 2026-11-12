@@ -15,16 +15,18 @@ import {
 export function Bln3HelpDialog() {
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground gap-1.5"
-        >
-          <HelpCircle className="h-4 w-4" />
-          Wat is BLN3?
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground gap-1.5"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Wat is BLN3?
+          </Button>
+        }
+      />
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Wat is BLN3?</DialogTitle>

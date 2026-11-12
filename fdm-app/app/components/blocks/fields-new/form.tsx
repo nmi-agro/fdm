@@ -1,27 +1,43 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertTriangle } from "lucide-react"
-import { useEffect } from "react"
-import { useWatch } from "react-hook-form"
+import { useEffect, useMemo } from "react"
+import { Controller, useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { Combobox } from "~/components/custom/combobox"
+import { FieldDeleteDialog } from "~/components/blocks/field/delete"
 import { Alert } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  createComboboxItems,
+} from "~/components/ui/combobox"
+import {
+  Field,
+  FieldLabel,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+} from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
-import { FieldDeleteDialog } from "../field/delete"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { FormSchema } from "./schema"
 
+/**
+ * Renders the details form of a new field: name, area (read-only), main crop and buffer strip.
+ *
+ * The form is reset when the given field values change, for example when another field is selected.
+ *
+ * @param props - The field values, the cultivation options and the year they apply to.
+ * @returns The form card element.
+ */
 export function NewFieldsForm({
   b_id,
   b_name,
@@ -52,8 +68,25 @@ export function NewFieldsForm({
     })
   }, [formReset, b_name, b_area, b_lu_catalogue, b_bufferstrip])
 
+  const cultivationItems = useMemo(
+    () =>
+      createComboboxItems(cultivationOptions, {
+        getValue: (option) => option.value,
+        getLabel: (option) => option.label,
+      }),
+    [cultivationOptions],
+  )
+
   const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
   const currentSelection = cultivationOptions.find((c) => c.value === current_b_lu_catalogue)
+  // The main crop cannot be cleared. The input text is controlled so it can be restored to the
+  // selected crop when the list closes or a clear is requested.
+  const selectedCultivationLabel = currentSelection?.label ?? ""
+  // Resets to the selected crop whenever the selection changes from outside (another field, reset).
+  const [cultivationInputValue, setCultivationInputValue] = useKeyedState(
+    selectedCultivationLabel,
+    (label) => label,
+  )
 
   return (
     <RemixFormProvider {...form}>
@@ -65,47 +98,72 @@ export function NewFieldsForm({
           <CardContent>
             <Form id="formField" method="POST" onSubmit={form.handleSubmit}>
               <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Naam</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel>Naam</FieldLabel>
+                      <FieldContent>
                         <Input {...field} type="text" required />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_area"
                   disabled={true}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Oppervlak (ha)</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel>Oppervlak (ha)</FieldLabel>
+                      <FieldContent>
                         <Input {...field} value={(field.value as string) ?? ""} type="text" />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_lu_catalogue"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2 items-center gap-4">
-                      <Combobox
-                        options={cultivationOptions}
-                        form={form}
-                        name={"b_lu_catalogue"}
-                        label={"Hoofdgewas"}
-                        defaultValue={b_lu_catalogue}
-                      />
+                  render={({ field, fieldState }) => (
+                    <Field className="col-span-2" data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={field.name}>Hoofdgewas</FieldLabel>
+                      <FieldContent>
+                        <Combobox
+                          items={cultivationItems}
+                          value={field.value || null}
+                          inputValue={cultivationInputValue}
+                          onInputValueChange={setCultivationInputValue}
+                          onOpenChange={(open) => {
+                            // A cleared or partially typed query must not outlive the popup.
+                            if (!open) setCultivationInputValue(selectedCultivationLabel)
+                          }}
+                          onValueChange={(value) => {
+                            if (typeof value === "string") {
+                              if (value !== field.value) field.onChange(value)
+                            } else {
+                              // A clear request (null) keeps the selected crop
+                              setCultivationInputValue(selectedCultivationLabel)
+                            }
+                          }}
+                        >
+                          <ComboboxInput
+                            id={field.name}
+                            onBlur={field.onBlur}
+                            aria-invalid={fieldState.invalid}
+                          />
+                          <ComboboxContent>
+                            <ComboboxEmpty>Geen gewassen gevonden.</ComboboxEmpty>
+                            <ComboboxList>
+                              {(item) => (
+                                <ComboboxItem key={item.value} value={item.value}>
+                                  {item.label}
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      </FieldContent>
                       {currentSelection && currentSelection.availableThisYear === false && (
                         <Alert className="border-amber-200 bg-amber-50 text-amber-700">
                           <AlertTriangle className="size-4 stroke-amber-700" />
@@ -115,25 +173,32 @@ export function NewFieldsForm({
                           </p>
                         </Alert>
                       )}
-                      <Input type="hidden" {...field} />
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
-                <FormField
+                <Controller
                   control={form.control}
                   name="b_bufferstrip"
                   render={({ field }) => (
-                    <FormItem className="col-span-2 flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4 shadow">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Bufferstrook</FormLabel>
-                        <FormDescription>Is dit perceel een bufferstrook?</FormDescription>
+                    <Field className="col-span-full flex flex-row items-center gap-4 rounded-lg border p-4 shadow-sm">
+                      <div className="h-auto shrink in-[.w-full]:w-auto">
+                        <Checkbox
+                          id={field.name}
+                          name={field.name}
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </div>
-                    </FormItem>
+                      <div className="grow space-y-0.5 in-[.w-full]:w-auto">
+                        <FieldLabel className="cursor-pointer text-base" htmlFor={field.name}>
+                          Bufferstrook
+                        </FieldLabel>
+                        <FieldDescription className="text-muted-foreground text-sm wrap-break-word">
+                          Is dit perceel een bufferstrook?{" "}
+                        </FieldDescription>
+                      </div>
+                    </Field>
                   )}
                 />
               </div>

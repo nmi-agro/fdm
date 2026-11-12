@@ -2,6 +2,7 @@ import type {
   BaseFertilizerApplication,
   Cultivation,
   CultivationCatalogue,
+  CurrentSoilData,
   Field,
   SoilAnalysis,
 } from "@nmi-agro/fdm-core"
@@ -201,11 +202,12 @@ export type FieldInput = {
     Cultivation,
     "b_lu" | "b_lu_name" | "b_lu_start" | "b_lu_end" | "b_lu_catalogue" | "m_cropresidue"
   >[]
-  /** The list of soil analyses performed on the field. */
-  soilAnalyses: Pick<
-    SoilAnalysis,
-    "a_id" | "b_sampling_date" | "a_som_loi" | "a_density_sa" | "b_soiltype_agr"
-  >[]
+  /**
+   * The current soil data of the field, as returned by `getCurrentSoilData` in fdm-core: the
+   * current value per soil parameter. Uses `a_som_loi`, `a_density_sa` and `b_soiltype_agr`;
+   * missing values are estimated where possible.
+   */
+  currentSoilData: CurrentSoilData
   /** The list of fertilizer applications on the field. */
   fertilizerApplications: BaseFertilizerApplication[]
 }
