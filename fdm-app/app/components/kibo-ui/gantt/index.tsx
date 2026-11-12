@@ -11,6 +11,7 @@ import type {
 import { DndContext, MouseSensor, useDraggable, useSensor } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { useMouse, useThrottle, useWindowScroll } from "@uidotdev/usehooks"
+import { cn } from "cn"
 import {
   addDays,
   addMonths,
@@ -21,6 +22,7 @@ import {
   endOfMonth,
   format,
   formatDate,
+  formatDistance,
   getDate,
   getDaysInMonth,
   isSameDay,
@@ -50,7 +52,6 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu"
-import { cn } from "~/lib/utils"
 
 const draggingAtom = atom(false)
 const scrollXAtom = atom(0)
@@ -395,19 +396,13 @@ const DailyHeader: FC = () => {
             columns={month.days}
             renderHeaderItem={(item: number) => (
               <div className="flex items-center justify-center gap-1">
-                <p>
-                  {format(addDays(new Date(year.year, index, 1), item), "d", {
-                    locale: nl,
-                  })}
-                </p>
+                <p>{format(addDays(new Date(year.year, index, 1), item), "d", { locale: nl })}</p>
                 <p className="text-muted-foreground">
                   {format(addDays(new Date(year.year, index, 1), item), "EEEEE", { locale: nl })}
                 </p>
               </div>
             )}
-            title={format(new Date(year.year, index, 1), "MMMM yyyy", {
-              locale: nl,
-            })}
+            title={format(new Date(year.year, index, 1), "MMMM yyyy", { locale: nl })}
           />
           <GanttColumns
             columns={month.days}
@@ -446,11 +441,7 @@ const QuarterlyHeader: FC = () => {
         <GanttContentHeader
           columns={quarter.months.length}
           renderHeaderItem={(item: number) => (
-            <p>
-              {format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM", {
-                locale: nl,
-              })}
-            </p>
+            <p>{format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM", { locale: nl })}</p>
           )}
           title={`K${quarterIndex + 1} ${year.year}`}
         />
@@ -493,6 +484,13 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
   className,
 }) => {
   const gantt = useContext(GanttContext)
+  const tempEndAt =
+    feature.endAt && isSameDay(feature.startAt, feature.endAt)
+      ? addDays(feature.endAt, 1)
+      : feature.endAt
+  const duration = tempEndAt
+    ? formatDistance(feature.startAt, tempEndAt, { locale: nl })
+    : `${formatDistance(feature.startAt, new Date(), { locale: nl })} tot nu toe`
 
   const handleClick: MouseEventHandler<HTMLDivElement> = (event) => {
     if (event.target === event.currentTarget) {
@@ -532,6 +530,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
         }}
       />
       <p className="pointer-events-none flex-1 truncate text-left font-medium">{feature.name}</p>
+      <p className="text-muted-foreground pointer-events-none">{duration}</p>
     </div>
   )
 }
@@ -849,6 +848,9 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
       distance: 10,
     },
   })
+  // dnd-kit numbers its contexts with a module-wide counter, which differs between the server
+  // and the browser; stable ids keep the accessibility attributes equal after hydration.
+  const dndId = useId()
 
   const [isItemDragging, setIsItemDragging] = useState(false)
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
@@ -925,6 +927,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
       >
         {onMove && feature.resizable !== false && (
           <DndContext
+            id={`${dndId}-left`}
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
             onDragMove={handleLeftDragMove}
@@ -934,6 +937,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           </DndContext>
         )}
         <DndContext
+          id={`${dndId}-item`}
           modifiers={[restrictToHorizontalAxis]}
           onDragCancel={() => {
             setIsItemDragging(false)
@@ -961,6 +965,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           )}
         {onMove && feature.resizable !== false && (
           <DndContext
+            id={`${dndId}-right`}
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
             onDragMove={handleRightDragMove}
@@ -1089,18 +1094,20 @@ export const GanttMarker: FC<
       }}
     >
       <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              "group bg-card text-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs whitespace-nowrap select-auto",
-              className,
-            )}
-          >
-            {label}
-            <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
-              {formatDate(date, "d MMM yyyy", { locale: nl })}
-            </span>
-          </div>
+        <ContextMenuTrigger
+          render={
+            <div
+              className={cn(
+                "group bg-card text-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs whitespace-nowrap select-auto",
+                className,
+              )}
+            />
+          }
+        >
+          {label}
+          <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
+            {formatDate(date, "d MMM yyyy", { locale: nl })}
+          </span>
         </ContextMenuTrigger>
         <ContextMenuContent>
           {onRemove ? (

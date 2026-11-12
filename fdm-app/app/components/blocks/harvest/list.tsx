@@ -98,7 +98,7 @@ export function HarvestsList({
               <Card className="hover:bg-muted/50 transition-all">
                 <CardHeader>{renderHarvestSummary(harvest)}</CardHeader>
                 {summaryParams.length > 0 && (
-                  <CardContent className="pt-0">
+                  <CardContent>
                     <div className="flex items-center space-x-6">
                       {summaryParams.map((p) => (
                         <div key={p.label}>

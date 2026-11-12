@@ -54,27 +54,25 @@ export function FieldCultivationsBadge({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="flex cursor-pointer items-center gap-1"
-          aria-label={`Bekijk teelten voor ${fieldName}`}
+      <DialogTrigger
+        type="button"
+        className="flex cursor-pointer items-center gap-1"
+        aria-label={`Bekijk teelten voor ${fieldName}`}
+      >
+        <Badge
+          variant="default"
+          className="shrink-0 text-xs font-normal text-white"
+          style={{
+            backgroundColor: color,
+          }}
         >
-          <Badge
-            variant="default"
-            className="shrink-0 text-xs font-normal text-white"
-            style={{
-              backgroundColor: color,
-            }}
-          >
-            {mainCultivation.b_lu_name ?? "Onbekend"}
-          </Badge>
-          {extraCount > 0 && (
-            <span className="text-muted-foreground text-xs font-medium whitespace-nowrap">
-              +{extraCount}
-            </span>
-          )}
-        </button>
+          {mainCultivation.b_lu_name ?? "Onbekend"}
+        </Badge>
+        {extraCount > 0 && (
+          <span className="text-muted-foreground text-xs font-medium whitespace-nowrap">
+            +{extraCount}
+          </span>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>

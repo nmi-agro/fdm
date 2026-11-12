@@ -7,7 +7,7 @@ import type {
   CultivationSuggestionResult,
 } from "~/lib/cultivation-suggestion.server"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 
 /** Explanation shown instead of the accept flow to users who may only read the farm. */
@@ -98,11 +98,13 @@ export function CultivationSuggestionBanner({
             Voorstel toevoegen
           </Button>
         ) : (
-          <Button size="sm" asChild>
-            <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
-              Voorstel toevoegen
-            </NavLink>
-          </Button>
+          <NavLink
+            to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
+            className={buttonVariants({ size: "sm" })}
+            data-slot="button"
+          >
+            Voorstel toevoegen
+          </NavLink>
         )}
       </div>
     </div>
@@ -133,11 +135,10 @@ function ReadOnlySuggestionBadge({
             e.preventDefault()
             setOpen(true)
           }}
-          asChild
+          type="button"
+          className="max-w-[10rem] cursor-pointer"
         >
-          <button type="button" className="max-w-[10rem] cursor-pointer">
-            {badge}
-          </button>
+          {badge}
         </TooltipTrigger>
         <TooltipContent>
           <p>
@@ -180,14 +181,16 @@ export function CultivationSuggestionBadge({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink
-            to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
-            className="max-w-[10rem]"
-          >
-            {badge}
-          </NavLink>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <NavLink
+              to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}
+              className="max-w-[10rem]"
+            >
+              {badge}
+            </NavLink>
+          }
+        />
         <TooltipContent>
           <p>
             BRP-schatting: {suggestion.b_lu_name} ({calendar}). Klik om toe te voegen als

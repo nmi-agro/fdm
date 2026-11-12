@@ -1,6 +1,6 @@
 import { Download } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { DialogHeader, DialogTitle } from "~/components/ui/dialog"
 
 /**
@@ -23,12 +23,17 @@ export function FileViewerDialogHeader({
   return (
     <DialogHeader className="flex-row items-center justify-between space-y-0 pr-8">
       <DialogTitle className="truncate">{title}</DialogTitle>
-      <Button variant="ghost" size="sm" asChild onClick={() => toast(downloadingMessage)}>
-        <a href={downloadUrl} download={filename} rel="noopener noreferrer">
-          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-          Downloaden
-        </a>
-      </Button>
+      <a
+        href={downloadUrl}
+        download={filename}
+        rel="noopener noreferrer"
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
+        data-slot="button"
+        onClick={() => toast(downloadingMessage)}
+      >
+        <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+        Downloaden
+      </a>
     </DialogHeader>
   )
 }
@@ -52,12 +57,16 @@ export function FileViewerFallbackPanel({
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
       <p className="text-muted-foreground text-sm">{message}</p>
-      <Button variant="outline" size="sm" asChild>
-        <a href={downloadUrl} download={filename} rel="noopener noreferrer">
-          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-          {downloadLabel}
-        </a>
-      </Button>
+      <a
+        href={downloadUrl}
+        download={filename}
+        rel="noopener noreferrer"
+        className={buttonVariants({ variant: "outline", size: "sm" })}
+        data-slot="button"
+      >
+        <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+        {downloadLabel}
+      </a>
     </div>
   )
 }

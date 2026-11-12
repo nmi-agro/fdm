@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { format, formatISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { Camera } from "lucide-react"
@@ -14,7 +15,7 @@ import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { BCS_GUIDES } from "~/components/blocks/soil-visual/bcs-scoring-guide"
 import { ImageGallery } from "~/components/blocks/soil-visual/image-gallery"
 import { DatePicker } from "~/components/custom/date-picker-v2"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   type AnnotationCoords,
@@ -25,7 +26,6 @@ import {
   type BcsVisualKey,
 } from "~/lib/bcs"
 import { uploadBcsImage } from "~/lib/bcs-image-upload.client"
-import { cn } from "~/lib/utils"
 
 interface EditImage {
   tempId: string
@@ -375,17 +375,16 @@ export function BcsEditForm({
 
       <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky bottom-0 z-20 -mx-1 border-t px-1 py-3 backdrop-blur lg:col-span-2">
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button
-            asChild
-            type="button"
-            variant="outline"
-            size="lg"
-            className="h-12 w-full px-8 text-base sm:w-auto"
+          <NavLink
+            to=".."
+            relative="path"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "h-12 w-full px-8 text-base sm:w-auto",
+            )}
           >
-            <NavLink to=".." relative="path">
-              Annuleren
-            </NavLink>
-          </Button>
+            Annuleren
+          </NavLink>
           <Button
             type="button"
             size="lg"

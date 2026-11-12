@@ -6,11 +6,12 @@ import type {
   FertilizerCatalogue,
   Field,
   PrincipalId,
-  SoilAnalysis,
+  CurrentSoilData,
 } from "@nmi-agro/fdm-core"
 import * as fdmCore from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FieldInput, OrganicMatterBalanceInput } from "./types"
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import {
   collectInputForOrganicMatterBalance,
   collectInputForOrganicMatterBalanceForFarms,
@@ -25,8 +26,8 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     getCultivations: vi.fn(),
     getCultivationsForFarm: vi.fn(),
     getHarvests: vi.fn(),
-    getSoilAnalyses: vi.fn(),
-    getSoilAnalysesForFarm: vi.fn(),
+    getCurrentSoilData: vi.fn(),
+    getCurrentSoilDataForFarm: vi.fn(),
     getFertilizerApplications: vi.fn(),
     getFertilizerApplicationsForFarm: vi.fn(),
     getCultivationsFromCatalogue: vi.fn(),
@@ -37,6 +38,19 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     getFertilizersFromCatalogues: vi.fn(),
   }
 })
+
+const mockCurrentSoilData = currentSoilDataFixture(
+  {
+    a_c_of: 25,
+    a_cn_fr: 10,
+    a_density_sa: 1.5,
+    a_n_rt: 100,
+    a_som_loi: 5,
+    b_soiltype_agr: "dekzand",
+    b_gwl_class: "II",
+  },
+  { a_id: "sa-1", b_sampling_date: new Date("2023-05-01") },
+)
 
 function createMockData() {
   return {
@@ -113,23 +127,6 @@ function createMockData() {
         b_id: "cult-2",
       },
     ] as Cultivation[],
-    mockSoilAnalysesData: [
-      {
-        a_id: "sa-1",
-        a_date: new Date(),
-        a_depth_upper: 0,
-        a_depth_lower: 30,
-        a_source: "source",
-        a_c_of: 25,
-        a_cn_fr: 10,
-        a_density_sa: 1.5,
-        a_n_rt: 100,
-        b_soiltype_agr: "SAND",
-        b_sampling_date: new Date("2023-05-01"),
-        a_som_loi: 5,
-        b_gwl_class: "HIGH",
-      },
-    ] as SoilAnalysis[],
     mockFertilizerApplicationsData: [
       {
         p_app_id: "fa-1",
@@ -224,7 +221,7 @@ describe("collectInputForOrganicMatterBalance", () => {
         (mockFields as any[]).map((f: { b_id: string }) => [f.b_id, mockCultivationsData]),
       ) as any,
     )
-    vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue(new Map() as any)
+    vi.spyOn(fdmCore, "getCurrentSoilDataForFarm").mockResolvedValue(new Map() as any)
     vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockResolvedValue(
       new Map(
         (mockFields as any[]).map((f: { b_id: string }) => [
@@ -257,7 +254,7 @@ describe("collectInputForOrganicMatterBalance", () => {
     vi.spyOn(fdmCore, "getField").mockResolvedValue(mockField as any)
     vi.spyOn(fdmCore, "getCultivations").mockResolvedValue([])
     vi.spyOn(fdmCore, "getHarvests").mockResolvedValue([])
-    vi.spyOn(fdmCore, "getSoilAnalyses").mockResolvedValue([])
+    vi.spyOn(fdmCore, "getCurrentSoilData").mockResolvedValue([])
     vi.spyOn(fdmCore, "getFertilizerApplications").mockResolvedValue([])
     vi.spyOn(fdmCore, "getFertilizersFromCatalogue").mockResolvedValue([])
     vi.spyOn(fdmCore, "getCultivationsFromCatalogue").mockResolvedValue([])
@@ -298,7 +295,7 @@ describe("collectInputForOrganicMatterBalance", () => {
     vi.spyOn(fdmCore, "getCultivationsForFarm").mockResolvedValue(
       new Map([["field1", [mockCultivation]]]) as any,
     )
-    vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockResolvedValue(new Map() as any)
+    vi.spyOn(fdmCore, "getCurrentSoilDataForFarm").mockResolvedValue(new Map() as any)
     vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockResolvedValue(
       new Map([["field1", [{ p_id_catalogue: "fert-cat-1" }]]]) as any,
     )
@@ -343,7 +340,6 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
       mockFieldsData,
       mockCultivationsData,
       mockCultivationsData2,
-      mockSoilAnalysesData,
       mockFertilizerApplicationsData,
       mockFertilizerApplicationsData2,
       mockFertilizerDetailsData,
@@ -366,17 +362,13 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
         ? new Map(mockFieldsData2.map((f) => [f.b_id, mockCultivationsData2]))
         : new Map(mockFieldsData.map((f) => [f.b_id, mockCultivationsData])),
     )
-    vi.spyOn(fdmCore, "getSoilAnalysesForFarm").mockImplementation(async (_1, _2, b_id_farm) =>
+    vi.spyOn(fdmCore, "getCurrentSoilDataForFarm").mockImplementation(async (_1, _2, b_id_farm) =>
       b_id_farm === "test-farm-id-2"
         ? (new Map(
-            mockFieldsData2.map(
-              (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
-            ),
+            mockFieldsData2.map((f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData]),
           ) as any)
         : (new Map(
-            mockFieldsData.map(
-              (f) => [f.b_id, mockSoilAnalysesData] as [string, typeof mockSoilAnalysesData],
-            ),
+            mockFieldsData.map((f) => [f.b_id, mockCurrentSoilData] as [string, CurrentSoilData]),
           ) as any),
     )
     vi.spyOn(fdmCore, "getFertilizerApplicationsForFarm").mockImplementation(
@@ -430,7 +422,7 @@ describe("collectInputForOrganicMatterBalanceForFarms", () => {
     ) => ({
       field: fieldData,
       cultivations: cultivations,
-      soilAnalyses: mockSoilAnalysesData,
+      currentSoilData: mockCurrentSoilData,
       fertilizerApplications: fertilizerApplications,
     })
     const expectedFieldInputs: FieldInput[] = mockFieldsData.map((fieldData) =>
