@@ -1,6 +1,6 @@
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { MapIcon } from "lucide-react"
-import { NavLink, Outlet, useLoaderData } from "react-router"
+import { data, NavLink, Outlet, useLoaderData } from "react-router"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -19,10 +19,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     const { b_id_farm, calendar, b_id } = params
     const timeframe = getTimeframe(params)
 
-    // Get the fields to be selected
+    // Get the fields to be selected. The requested field may be missing when it is not part of
+    // this farm in the selected year (e.g. after switching the calendar): answer with a 404
+    // instead of an unexpected error.
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
     if (!fields.some((field) => field.b_id === b_id)) {
-      throw new Error(`Field ${b_id} does not belong to this farm.`)
+      throw data("Field is not found", {
+        status: 404,
+        statusText: "Field is not found",
+      })
     }
     const fieldOptions = fields.map((field) => {
       if (!field?.b_id || !field?.b_name) {
