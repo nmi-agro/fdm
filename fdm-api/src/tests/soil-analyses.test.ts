@@ -31,7 +31,7 @@ function makeApp(services: Partial<FdmApiServices> = {}) {
 const baseSoilAnalysis = {
   a_id: "sa-1",
   a_date: new Date("2023-05-01"),
-  a_source: "Lab NL",
+  a_source: "nl-rva-l122",
   b_id_sampling: "samp-1",
   a_depth_upper: 0,
   a_depth_lower: 30,
@@ -107,7 +107,7 @@ const currentSoilDataItem = {
   sources: [
     {
       a_id: "sa-1",
-      a_source: "Lab NL",
+      a_source: "nl-rva-l122",
       b_sampling_date: new Date("2023-04-28"),
       a_depth_upper: 0,
       a_depth_lower: 30,
@@ -116,7 +116,7 @@ const currentSoilDataItem = {
     },
     {
       a_id: "sa-2",
-      a_source: "Lab NL",
+      a_source: "nl-rva-l122",
       b_sampling_date: new Date("2023-04-20"),
       a_depth_upper: 0,
       a_depth_lower: 30,
@@ -192,7 +192,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
       }),
@@ -225,7 +225,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
       }),
@@ -252,7 +252,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
         b_sampling_geometry: samplingPoints,
@@ -279,7 +279,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
         b_sampling_geometry_zone: samplingPoints,
@@ -299,7 +299,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
         },
         body: JSON.stringify({
           a_date: "2023-05-01",
-          a_source: "Lab NL",
+          a_source: "nl-rva-l122",
           a_depth_lower: 30,
           b_sampling_date: "2023-04-28",
           ...geometries,
@@ -392,7 +392,7 @@ describe("GET /soil-analyses/:a_id", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.a_id).toBe("sa-1")
-    expect(body.a_source).toBe("Lab NL")
+    expect(body.a_source).toBe("nl-rva-l122")
     expect(body.a_ph_cc).toBe(6.2)
   })
 
@@ -566,7 +566,7 @@ describe("GET /fields/:b_id/current-soil-data", () => {
     expect(body[0].sources).toEqual([
       {
         a_id: "sa-1",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         b_sampling_date: "2023-04-28",
         a_depth_upper: 0,
         a_depth_lower: 30,
@@ -575,7 +575,7 @@ describe("GET /fields/:b_id/current-soil-data", () => {
       },
       {
         a_id: "sa-2",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         b_sampling_date: "2023-04-20",
         a_depth_upper: 0,
         a_depth_lower: 30,
@@ -678,7 +678,7 @@ describe("soil condition score (BCS) parameters", () => {
       headers: { "x-api-key": "valid", "content-type": "application/json" },
       body: JSON.stringify({
         a_date: "2026-05-01",
-        a_source: "nl-other-nmi",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2026-05-01",
         a_ss_bcs: 2,
@@ -738,7 +738,7 @@ describe("Soil analyses — ordering, partial updates and missing records", () =
       headers: jsonHeaders,
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
       }),
@@ -754,22 +754,22 @@ describe("Soil analyses — ordering, partial updates and missing records", () =
       getSoilAnalysis: vi.fn().mockResolvedValue({
         ...baseSoilAnalysis,
         a_date: new Date("2023-06-01"),
-        a_source: "Lab BE",
+        a_source: "nl-rva-l136",
       }),
     })
     const res = await app.request("/soil-analyses/sa-1", {
       method: "PATCH",
       headers: jsonHeaders,
-      body: JSON.stringify({ a_date: "2023-06-01", a_source: "Lab BE" }),
+      body: JSON.stringify({ a_date: "2023-06-01", a_source: "nl-rva-l136" }),
     })
     expect(res.status).toBe(200)
     expect(updateSoilAnalysis.mock.calls[0][3]).toEqual({
       a_date: new Date("2023-06-01"),
-      a_source: "Lab BE",
+      a_source: "nl-rva-l136",
     })
     const body = await res.json()
     expect(body.a_date).toBe("2023-06-01")
-    expect(body.a_source).toBe("Lab BE")
+    expect(body.a_source).toBe("nl-rva-l136")
   })
 
   it("PATCH returns 404 when the soil analysis does not exist", async () => {

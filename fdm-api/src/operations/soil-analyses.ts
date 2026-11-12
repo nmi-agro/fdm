@@ -2,6 +2,12 @@ import type * as core from "@nmi-agro/fdm-core"
 import type { FileStorage } from "@nmi-agro/fdm-storage"
 import { z } from "@hono/zod-openapi"
 import { enrichCurrentSoilDataWithNlv } from "@nmi-agro/fdm-calculator"
+import {
+  describeCodes,
+  codeEnum,
+  SELECTABLE_SOIL_ANALYSIS_SOURCES,
+  SOIL_ANALYSIS_SOURCES,
+} from "../codes"
 import { ApiError } from "../error"
 import {
   FieldIdSchema,
@@ -59,7 +65,14 @@ export const SoilAnalysisSchema = z
   .object({
     a_id: SoilAnalysisIdSchema,
     a_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    a_source: z.string().describe("Laboratory or dataset that produced the soil analysis."),
+    a_source: z
+      .string()
+      .describe(
+        describeCodes(
+          "Laboratory or dataset that produced the soil analysis.",
+          SOIL_ANALYSIS_SOURCES,
+        ),
+      ),
     b_id_sampling: z.string().describe("Unique identifier of the soil sampling event."),
     a_depth_upper: z
       .number()
@@ -92,7 +105,10 @@ export const CurrentSoilDataSourceSchema = z
     a_source: z
       .string()
       .describe(
-        "Laboratory or dataset that produced the soil analysis, or `calculated` for a value derived from other parameters (see `d_n_supply_base` in CurrentSoilDataItem).",
+        describeCodes(
+          "Laboratory or dataset that produced the soil analysis, or `calculated` for a value derived from other parameters (see `d_n_supply_base` in CurrentSoilDataItem).",
+          SOIL_ANALYSIS_SOURCES,
+        ),
       ),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     a_depth_upper: z
@@ -186,7 +202,12 @@ const SamplingGeometriesBodySchema = z.object({
 export const CreateSoilAnalysisBodySchema = z
   .object({
     a_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    a_source: z.string().describe("Identifying source or lab that performed the analysis."),
+    a_source: codeEnum(SELECTABLE_SOIL_ANALYSIS_SOURCES).describe(
+      describeCodes(
+        "Laboratory or dataset that produced the soil analysis; 'other' when it is not listed.",
+        SELECTABLE_SOIL_ANALYSIS_SOURCES,
+      ),
+    ),
     a_depth_lower: z.number().describe("Lower sampling depth in cm."),
     b_sampling_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
     a_depth_upper: z.number().optional().describe("Upper sampling depth in cm (default 0)."),
@@ -199,7 +220,14 @@ export const CreateSoilAnalysisBodySchema = z
 export const UpdateSoilAnalysisBodySchema = z
   .object({
     a_date: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
-    a_source: z.string().optional().describe("Identifying source or lab."),
+    a_source: codeEnum(SELECTABLE_SOIL_ANALYSIS_SOURCES)
+      .optional()
+      .describe(
+        describeCodes(
+          "Laboratory or dataset that produced the soil analysis; 'other' when it is not listed.",
+          SELECTABLE_SOIL_ANALYSIS_SOURCES,
+        ),
+      ),
   })
   .merge(SoilAnalysisDataSchema)
   .merge(SamplingGeometriesBodySchema)

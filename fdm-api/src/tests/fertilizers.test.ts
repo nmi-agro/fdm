@@ -33,7 +33,7 @@ const baseCatalogue = {
   p_name_nl: "Drijfmest",
   p_name_en: "Slurry",
   p_description: null,
-  p_app_method_options: ["injecteren"],
+  p_app_method_options: ["injection"],
   p_app_amount_unit: "m3/ha",
   p_dm: null,
   p_density: 1,
