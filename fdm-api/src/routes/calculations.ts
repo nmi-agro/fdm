@@ -113,6 +113,16 @@ const nitrogenTotal = (meaning: string) => z.number().describe(`${meaning} (kg N
 /** Describes a nitrogen loss term, which is reported as a negative number (kg N/ha). */
 const nitrogenLoss = (meaning: string) =>
   z.number().describe(`${meaning}, as a negative number (kg N/ha).`)
+/** Describes a nitrous oxide emission term, which is reported as a negative number (kg N2O-N/ha). */
+const nitrousOxideLoss = (meaning: string) =>
+  z.number().describe(`${meaning}, as a negative number (kg N2O-N/ha).`)
+/** Describes a CO2-equivalent of the nitrous oxide emission, which is reported as a positive number. */
+const co2Equivalent = (meaning: string) =>
+  z
+    .number()
+    .describe(
+      `${meaning}, as a positive number (kg CO2-eq/ha), calculated with a global warming potential of 265 for N2O.`,
+    )
 
 // ---------------------------------------------------------------------------
 // Dose schema
@@ -213,12 +223,70 @@ const NitrogenEmissionAmmoniaSchema = z.object({
     .describe("Ammonia emission from crop residues left on the field."),
 })
 
+const NitrousOxideFertilizersGroupSchema = z.object({
+  total: nitrousOxideLoss("N2O emission from fertilizers of this type"),
+  applications: z
+    .array(ApplicationValueSchema)
+    .describe("N2O emission per fertilizer application (kg N2O-N/ha)."),
+})
+
+const NitrogenEmissionNitrousOxideFieldSchema = z.object({
+  total: nitrousOxideLoss("Total N2O emission: fertilizers, crop residues, soil and indirect"),
+  fertilizers: z
+    .object({
+      total: nitrousOxideLoss("Direct N2O emission from all fertilizers"),
+      mineral: NitrousOxideFertilizersGroupSchema.describe(
+        "Direct N2O emission from mineral fertilizers.",
+      ),
+      manure: NitrousOxideFertilizersGroupSchema.describe(
+        "Direct N2O emission from animal manure.",
+      ),
+      compost: NitrousOxideFertilizersGroupSchema.describe("Direct N2O emission from compost."),
+      other: NitrousOxideFertilizersGroupSchema.describe(
+        "Direct N2O emission from other fertilizers, such as sewage sludge.",
+      ),
+    })
+    .describe("Direct N2O emission from fertilizer applications."),
+  residues: z
+    .object({
+      total: nitrousOxideLoss("Direct N2O emission from crop residues left on the field"),
+      cultivations: z
+        .array(ApplicationValueSchema)
+        .describe("N2O emission from crop residues per cultivation (kg N2O-N/ha)."),
+    })
+    .describe(
+      "Direct N2O emission from the nitrogen in above-ground crop residues left on the field.",
+    ),
+  soil: z
+    .object({
+      total: nitrousOxideLoss(
+        "Direct N2O emission from the mineralisation of peat and peaty soils",
+      ),
+    })
+    .describe("Direct N2O emission from the mineralisation of organic soils."),
+  indirect: z
+    .object({
+      total: nitrousOxideLoss("Total indirect N2O emission"),
+      volatilisation: nitrousOxideLoss(
+        "Indirect N2O emission from the ammonia emitted by the field and deposited elsewhere",
+      ),
+      leaching: nitrousOxideLoss("Indirect N2O emission from the nitrate leached from the field"),
+    })
+    .describe(
+      "Indirect N2O emission from the nitrogen lost by ammonia volatilisation and nitrate leaching.",
+    ),
+  co2eq: co2Equivalent("Total N2O emission expressed as CO2-equivalent"),
+})
+
 const NitrogenEmissionFieldSchema = z.object({
   total: nitrogenLoss("Total nitrogen emission"),
   ammonia: NitrogenEmissionAmmoniaSchema.describe("Nitrogen emitted as ammonia (NH3)."),
   nitrate: z
     .object({ total: nitrogenLoss("Nitrogen leached as nitrate") })
     .describe("Nitrogen leached as nitrate (NO3)."),
+  nitrous_oxide: NitrogenEmissionNitrousOxideFieldSchema.describe(
+    "Nitrous oxide (N2O) emission according to the Dutch National Emission Model for Agriculture (NEMA). An indicator: not included in `total` and not part of the balance.",
+  ),
 })
 
 const BalanceAreaSchema = z.number().describe("Area of the field (ha).")
@@ -297,6 +365,38 @@ export const NitrogenBalanceSchema = z
           })
           .describe("Weighted average nitrogen emission as ammonia (NH3)."),
         nitrate: nitrogenLoss("Weighted average nitrogen leaching as nitrate"),
+        nitrous_oxide: z
+          .object({
+            total: nitrousOxideLoss("Weighted average total N2O emission"),
+            fertilizers: z
+              .object({
+                total: nitrousOxideLoss("Weighted average N2O emission from all fertilizers"),
+                mineral: nitrousOxideLoss("Weighted average N2O emission from mineral fertilizers"),
+                manure: nitrousOxideLoss("Weighted average N2O emission from animal manure"),
+                compost: nitrousOxideLoss("Weighted average N2O emission from compost"),
+                other: nitrousOxideLoss("Weighted average N2O emission from other fertilizers"),
+              })
+              .describe("Weighted average direct N2O emission from fertilizers."),
+            residues: nitrousOxideLoss("Weighted average N2O emission from crop residues"),
+            soil: nitrousOxideLoss("Weighted average N2O emission from organic soils"),
+            indirect: z
+              .object({
+                total: nitrousOxideLoss("Weighted average total indirect N2O emission"),
+                volatilisation: nitrousOxideLoss(
+                  "Weighted average indirect N2O emission from ammonia volatilisation",
+                ),
+                leaching: nitrousOxideLoss(
+                  "Weighted average indirect N2O emission from nitrate leaching",
+                ),
+              })
+              .describe("Weighted average indirect N2O emission."),
+            co2eq: co2Equivalent(
+              "Weighted average CO2-equivalent of the N2O emission of the fields",
+            ),
+          })
+          .describe(
+            "Weighted average nitrous oxide (N2O) emission according to NEMA. An indicator: not included in `total` and not part of the balance.",
+          ),
       })
       .describe("Weighted average nitrogen emission across all fields."),
     target: z
