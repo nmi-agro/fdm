@@ -44,7 +44,8 @@ export function calculateNitrogenInCropResiduesLeft(
     ) {
       // Prioritize the specific yield if available
       const analysisWithYield = harvest.harvestable.harvestable_analyses.find(
-        (analysis: HarvestableAnalysis) => analysis.b_lu_yield !== undefined,
+        (analysis: HarvestableAnalysis) =>
+          analysis.b_lu_yield !== undefined && analysis.b_lu_yield !== null,
       )
       if (analysisWithYield) {
         yieldForThisHarvest = new Decimal(analysisWithYield.b_lu_yield ?? 0)

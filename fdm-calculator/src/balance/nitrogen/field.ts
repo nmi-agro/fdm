@@ -137,6 +137,9 @@ export function calculateNitrogenBalanceField(
     start: new Date(Math.max(fieldStartTime, timeFrameStartTime)),
     end: new Date(Math.min(fieldEndTime, timeFrameEndTime)),
   }
+  // Keep the field period before normalization, so that the N₂O emission of organic soils can
+  // tell a period without overlap (end before start) from a one-day period
+  const fieldPeriod = { start: timeFrameField.start, end: timeFrameField.end }
   // Normalize: ensure start <= end
   if (timeFrameField.end.getTime() < timeFrameField.start.getTime()) {
     // Clamp to an empty interval at the boundary to signal “no overlap”
@@ -208,7 +211,7 @@ export function calculateNitrogenBalanceField(
     soilAnalysis,
     emission.ammonia.total,
     nitrateEmission.total,
-    timeFrameField,
+    fieldPeriod,
   )
 
   // Calculate the target for the Nitrogen balance

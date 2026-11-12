@@ -422,6 +422,16 @@ describe("calculateNitrousOxideEmissionFarm", () => {
     expect(result.co2eq.toNumber()).toBeCloseTo(2.5 * (44 / 28) * 265, 5)
   })
 
+  it("averages the CO2-equivalents of the fields, so that small emissions still count", () => {
+    const small = { ...fieldEmission(0), co2eq: 1.5 } // N2O-N rounded to 0, CO2-eq kept
+    const result = calculateNitrousOxideEmissionFarm([
+      { b_area: 10, nitrousOxide: small },
+      { b_area: 10, nitrousOxide: fieldEmission(0) },
+    ])
+    expect(result.total.isZero()).toBe(true)
+    expect(result.co2eq.toNumber()).toBeCloseTo(0.75, 8)
+  })
+
   it("counts fields without N2O emission as zero and handles no area", () => {
     const result = calculateNitrousOxideEmissionFarm([
       { b_area: 10, nitrousOxide: fieldEmission(-2) },

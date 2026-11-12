@@ -56,7 +56,8 @@ const fertilizerTypes = ["mineral", "manure", "compost", "other"] as const
  * @param soilAnalysis - The soil parameters of the field; `b_soiltype_agr` is used.
  * @param ammoniaEmission - The total ammonia emission of the field (kg N / ha, negative).
  * @param nitrateEmission - The nitrate leaching of the field (kg N / ha, negative).
- * @param timeFrame - The time frame of the calculation for this field.
+ * @param timeFrame - The period of the calculation for this field. When the end is before the start,
+ * the field has no overlap with the time frame and gets no emission from organic soils.
  * @returns The N₂O emission by source, the total N₂O emission and the CO₂-equivalent.
  * @throws {Error} If a fertilizer application has no fertilizer details, if a manure application has
  * no application method, or if a cultivation has no cultivation details.
@@ -308,8 +309,8 @@ export function createEmptyNitrousOxideEmission(): NitrogenEmissionNitrousOxide 
  * Fields without an N₂O emission are counted as zero emission.
  *
  * @param fields - The area (ha) and the N₂O emission of each field.
- * @returns The average N₂O emission per hectare of the farm (kg N₂O-N / ha) and its CO₂-equivalent
- * (kg CO₂-eq / ha).
+ * @returns The average N₂O emission per hectare of the farm (kg N₂O-N / ha) and the average
+ * CO₂-equivalent of the fields (kg CO₂-eq / ha).
  *
  * @example
  * ```ts
@@ -342,6 +343,7 @@ export function calculateNitrousOxideEmissionFarm(
       volatilisation: new Decimal(0),
       leaching: new Decimal(0),
     },
+    co2eq: new Decimal(0),
   }
 
   for (const field of fields) {
@@ -361,13 +363,13 @@ export function calculateNitrousOxideEmissionFarm(
       area.times(n2o.indirect.volatilisation),
     )
     sum.indirect.leaching = sum.indirect.leaching.add(area.times(n2o.indirect.leaching))
+    sum.co2eq = sum.co2eq.add(area.times(n2o.co2eq))
   }
 
   const average = (value: Decimal) =>
     totalArea.isZero() ? new Decimal(0) : value.dividedBy(totalArea)
-  const total = average(sum.total)
   return {
-    total,
+    total: average(sum.total),
     fertilizers: {
       total: average(sum.fertilizers.total),
       mineral: average(sum.fertilizers.mineral),
@@ -382,7 +384,8 @@ export function calculateNitrousOxideEmissionFarm(
       volatilisation: average(sum.indirect.volatilisation),
       leaching: average(sum.indirect.leaching),
     },
-    co2eq: convertNitrousOxideToCo2Equivalent(total),
+    // Average of the CO₂-equivalents of the fields, so that small field emissions still count
+    co2eq: average(sum.co2eq),
   }
 }
 
