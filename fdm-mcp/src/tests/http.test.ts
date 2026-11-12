@@ -145,7 +145,11 @@ describe("methods and endpoints", () => {
     ["GET", "/.well-known/oauth-protected-resource/mcp"],
   ])("tells a client that tries OAuth (%s %s) to use an API key", async (method, path) => {
     const { app } = makeApp()
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     const res = await app.request(path, { method })
+    // Clients probe on every connection, so the answer is not logged.
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
     expect(res.status).toBe(404)
     expect(res.headers.get("content-type")).toContain("application/problem+json")
     expect((await res.json()).detail).toContain("X-API-Key")
