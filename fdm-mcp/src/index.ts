@@ -176,6 +176,15 @@ export function createFdmMcp(
       ? originValidation(allowedOrigins.map((origin) => new URL(origin).hostname))
       : localhostOriginValidation(),
   )
+  // Authentication comes before the body limit, so a request without a valid key is refused before
+  // its body is read and buffered.
+  app.use(
+    MCP_PATH,
+    createApiKeyAuth(auth, [], {
+      channel: "mcp",
+      wwwAuthenticate: `Bearer realm="${config.appName}"`,
+    }),
+  )
   app.use(
     MCP_PATH,
     bodyLimit({
@@ -183,13 +192,6 @@ export function createFdmMcp(
       onError: () => {
         throw new ApiError(413, "payload-too-large", "The request body is larger than 5 MB.")
       },
-    }),
-  )
-  app.use(
-    MCP_PATH,
-    createApiKeyAuth(auth, [], {
-      channel: "mcp",
-      wwwAuthenticate: `Bearer realm="${config.appName}"`,
     }),
   )
 
@@ -205,8 +207,13 @@ export function createFdmMcp(
           400,
         )
       }
-      // Tool calls count in the bucket of their tool; other requests count as general reads.
-      if (!methodsOf(parsedBody).includes("tools/call")) {
+      // Tool calls count in the bucket of their tool when they run; every other message counts as
+      // a general read, also when a batch mixes it with tool calls. A body without any method,
+      // such as a lone response, counts once.
+      const methods = methodsOf(parsedBody)
+      const generalReads =
+        methods.length === 0 ? 1 : methods.filter((method) => method !== "tools/call").length
+      for (let read = 0; read < generalReads; read++) {
         const limit = await consumeRateLimit(fdm, principal.apiKeyId, "general")
         if (!limit.allowed) {
           throw new ApiError(

@@ -13,7 +13,7 @@ fdm-mcp runs as its own service, next to the REST API (`fdm-api`). It uses the s
 - **Origin**: requests from web pages are only accepted from `FDM_MCP_ALLOWED_ORIGINS`. Requests without an `Origin` header are always accepted.
 - **Tools**: every tool has a title, a description for the model, an input and an output schema, and annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) so clients ask before changes. Lists return pages of 50 with a `next_cursor`. Failures come back as a tool result with `isError: true` and a message the model can act on.
 - **Resources**: `fdm://farms/{b_id_farm}` and `fdm://fields/{b_id_field}`.
-- **Privacy**: logs and Sentry record only the tool name and outcome. PostHog MCP analytics (optional) record the tool, client, latency, outcome and the assistant's stated intent per user, never tool arguments, results or error messages.
+- **Privacy**: logs record the tool name, outcome and duration, never tool arguments or results. An unexpected failure is logged and sent to Sentry with its error and stack trace, which can contain values of the failed call. PostHog MCP analytics (optional) record the tool, client, latency, outcome and the assistant's stated intent per user, never tool arguments, results or error messages. The intent is free text from the assistant and is sent unfiltered, so it can contain names that the conversation mentions.
 
 ## Local development
 
@@ -41,6 +41,8 @@ claude mcp add --transport http fdm-local http://localhost:6174/mcp --header "X-
 ```bash
 pnpm test
 ```
+
+`@nmi-agro/fdm-api` and `@nmi-agro/fdm-core` are imported from their built `dist`, so build them first in a fresh checkout (`pnpm build` in the repository root), or run `pnpm turbo run test --filter=@nmi-agro/fdm-mcp`, which builds them for you.
 
 The tests need no database: services are mocked, and an MCP client talks to the app in process, through the full HTTP stack, on both protocol revisions.
 

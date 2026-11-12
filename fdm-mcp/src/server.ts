@@ -78,9 +78,18 @@ const server = serve({ fetch: app.fetch, port }, () => {
   console.log(`fdm-mcp listening on http://localhost:${port}/mcp`)
 })
 
-/** Sends queued analytics events and stops accepting requests before the process exits. */
+/** Longest time to wait for running requests on shutdown, before the process exits anyway. */
+const SHUTDOWN_TIMEOUT_MS = 10_000
+
+/**
+ * Stops accepting requests, waits until the running requests have finished (at most
+ * {@link SHUTDOWN_TIMEOUT_MS}), sends queued analytics events and then exits.
+ */
 process.on("SIGTERM", async () => {
-  server.close()
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, SHUTDOWN_TIMEOUT_MS).unref()
+    server.close(() => resolve())
+  })
   await posthog?.shutdown()
   process.exit(0)
 })
