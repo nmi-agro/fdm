@@ -1,6 +1,7 @@
 import type * as core from "@nmi-agro/fdm-core"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { z } from "@hono/zod-openapi"
+import { APPLICATION_METHODS, describeCodes } from "../codes"
 import { ApiError } from "../error"
 import {
   CultivationHcat3NameSchema,
@@ -201,13 +202,20 @@ export const FertilizerCatalogueSchema = z
     }),
     p_type_rvo: z.string().nullable().openapi({
       title: "RVO fertilizer code",
-      description: "Fertilizer type code according to RVO. It is an integer formatted as a string.",
-    }),
-    p_app_method_options: z.string().array().nullable().openapi({
-      title: "Application method options",
       description:
-        "List of application methods. Pass this as the p_app_method parameter when creating or updating a fertilizer application.",
+        "Fertilizer type code according to RVO. It is an integer formatted as a string. The codes and their Dutch names are listed in the developer documentation (REST API → Endpoints → RVO fertilizer codes).",
     }),
+    p_app_method_options: z
+      .string()
+      .array()
+      .nullable()
+      .openapi({
+        title: "Application method options",
+        description: describeCodes(
+          "Application methods that suit this fertilizer. Pass one as `p_app_method` when creating or updating a fertilizer application.",
+          APPLICATION_METHODS,
+        ),
+      }),
     p_app_amount_unit: z.enum(["kg/ha", "l/ha", "ton/ha", "m3/ha"]).openapi({
       title: "Application amount unit",
       description:

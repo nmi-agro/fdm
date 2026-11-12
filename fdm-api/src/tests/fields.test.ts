@@ -240,7 +240,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
         b_name: "Nieuw perceel",
         b_geometry: validGeometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(201)
@@ -264,7 +264,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
         b_name: "Too big",
         b_geometry: geometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(422)
@@ -294,7 +294,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
         b_name: "Perceel",
         b_geometry: validGeometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(403)
@@ -478,7 +478,7 @@ describe("Field mutations — missing records", () => {
         b_name: "Nieuw perceel",
         b_geometry: validGeometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(500)
