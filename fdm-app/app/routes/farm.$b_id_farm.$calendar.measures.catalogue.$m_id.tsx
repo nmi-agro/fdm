@@ -1,6 +1,4 @@
 import { checkPermission, getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
-import { format } from "date-fns"
-import { nl } from "date-fns/locale"
 import { AlertTriangle, ChevronRight, ExternalLink, Plus } from "lucide-react"
 import { type ReactNode, Suspense, useEffect, useState } from "react"
 import {
@@ -46,13 +44,9 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
-import {
-  type FieldMeasureEntry,
-  type FieldMeasureStatus,
-  getFarmMeasureStatus,
-} from "~/lib/farm-measures.server"
+import type { FieldMeasureEntry, FieldMeasureStatus } from "~/lib/farm-measures"
+import { getFarmMeasureStatus } from "~/lib/farm-measures.server"
 import { fdm } from "~/lib/fdm.server"
-import { getMeasureFamilyId } from "~/lib/indicators"
 import {
   formatConditions,
   formatEffectRange,
@@ -61,7 +55,14 @@ import {
   getMeasureReferences,
   type ImpactedIndicator,
 } from "~/lib/measure-labels"
-import { getAddMeasurePath, getMeasureCataloguePath } from "~/lib/measures-catalogue"
+import {
+  countRecommendedFieldsByIndicator,
+  formatMeasurePeriod,
+  getAddMeasurePath,
+  getMeasureCataloguePath,
+  getMeasureCode,
+  getMeasureRelations,
+} from "~/lib/measures-catalogue"
 
 export const handle: HelpHandle = { help: "maatregelencatalogus" }
 
@@ -135,61 +136,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       applicabilityFailedFieldCount: status.applicabilityFailedFieldCount,
     }))
 
-    // Only conflicts with measures that are in the catalogue and still active: a conflict with
-    // a measure that cannot be taken has no meaning for the user.
-    const activeById = new Map(
-      catalogue.filter((item) => item.m_status !== "inactive").map((item) => [item.m_id, item]),
-    )
-    const conflicts = (measure.m_conflicts ?? []).flatMap((conflict_id) => {
-      const item = activeById.get(conflict_id)
-      return item ? [{ m_id: item.m_id, m_name: item.m_name, inactive: false }] : []
-    })
-
-    const familyId = getMeasureFamilyId(measure.m_id)
-    const variants = catalogue
-      .filter((item) => item.m_id !== measure.m_id && getMeasureFamilyId(item.m_id) === familyId)
-      .map((item) => ({
-        m_id: item.m_id,
-        m_name: item.m_name,
-        inactive: item.m_status === "inactive",
-      }))
-      .sort((a, b) => a.m_id.localeCompare(b.m_id, "nl", { numeric: true }))
+    const { conflicts, variants } = getMeasureRelations(measure, catalogue)
 
     return { measure, conflicts, variants, farmWritePermission, fieldsStatus }
   } catch (error) {
     throw handleLoaderError(error)
   }
-}
-
-/** Short measure code without the source prefix, e.g. `BM7` for `bln_BM7`. */
-function getMeasureCode(m_id: string): string {
-  return m_id.replace(/^bln_/, "")
-}
-
-/**
- * Formats the period in which a measure is applied, e.g. "1-3-2026 – doorlopend".
- *
- * @param start - First day of the measure, or `null` when unknown.
- * @param end - Last day of the measure, or `null` when it is ongoing.
- */
-function formatPeriod(
-  start: Date | string | null | undefined,
-  end: Date | string | null | undefined,
-) {
-  const formatDate = (value: Date | string) => format(new Date(value), "d-M-yyyy", { locale: nl })
-  return `${start ? formatDate(start) : "?"} – ${end ? formatDate(end) : "doorlopend"}`
-}
-
-/** Fields per indicator on which the measure is recommended to improve that indicator. */
-function countRecommendedFieldsByIndicator(fields: FieldMeasureEntry[]): Map<string, number> {
-  const counts = new Map<string, number>()
-  for (const field of fields) {
-    if (field.status !== "recommended") continue
-    for (const indicatorId of field.indicatorIds ?? []) {
-      counts.set(indicatorId, (counts.get(indicatorId) ?? 0) + 1)
-    }
-  }
-  return counts
 }
 
 /**
@@ -751,7 +703,7 @@ function FieldsCard({
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 @md/fields:shrink-0 @md/fields:flex-nowrap">
                       {field.status === "applied" && (
                         <span className="text-muted-foreground tabular-nums">
-                          {formatPeriod(field.m_start, field.m_end)}
+                          {formatMeasurePeriod(field.m_start, field.m_end)}
                         </span>
                       )}
                       <MeasureStatusLabel status={field.status} className="@md/fields:w-28" />

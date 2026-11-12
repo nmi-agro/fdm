@@ -1,7 +1,5 @@
-import type { MeasureCatalogue } from "@nmi-agro/fdm-core"
 import { getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
-import fuzzysort from "fuzzysort"
 import { ChevronRight, Search, SearchX, SlidersHorizontal, X } from "lucide-react"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -48,11 +46,25 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
-import { type FieldMeasureStatus, getFarmMeasureStatus } from "~/lib/farm-measures.server"
+import { getFarmMeasureStatus } from "~/lib/farm-measures.server"
 import { fdm } from "~/lib/fdm.server"
 import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
-import { getEffectTypeInfo, getImpactedIndicators, MEASURE_COST_LEVELS } from "~/lib/measure-labels"
-import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
+import { getEffectTypeInfo, MEASURE_COST_LEVELS } from "~/lib/measure-labels"
+import type { FieldMeasureStatus } from "~/lib/farm-measures"
+import {
+  buildCatalogueRows,
+  type CatalogueFilters,
+  type CatalogueRow,
+  countStatusesByMeasure,
+  filterCatalogueRows,
+  getMeasureCataloguePath,
+  isStatusUnavailable,
+  NO_COUNTS,
+  readSearchParam,
+  type SortMode,
+  type StatusCounts,
+  type StatusFilter,
+} from "~/lib/measures-catalogue"
 
 export const handle: HelpHandle = { help: "maatregelencatalogus" }
 
@@ -69,8 +81,6 @@ export const meta: MetaFunction = () => {
     },
   ]
 }
-
-type StatusCounts = Record<FieldMeasureStatus, number>
 
 /** Per measure the number of fields per status, and which parts of the status could be loaded. */
 type CatalogueStatus = MeasureStatusAvailability & {
@@ -102,12 +112,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       catalogue,
     }).then((result) => {
-      const countsByMeasure: Record<string, StatusCounts> = {}
-      for (const [m_id, fields] of result.fieldsByMeasure) {
-        const counts: StatusCounts = { applied: 0, recommended: 0, applicable: 0 }
-        for (const field of fields) counts[field.status] += 1
-        countsByMeasure[m_id] = counts
-      }
+      const countsByMeasure = countStatusesByMeasure(result.fieldsByMeasure)
       return {
         countsByMeasure,
         recommendationsAvailable: result.recommendationsAvailable,
@@ -122,9 +127,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw handleLoaderError(error)
   }
 }
-
-type SortMode = "name" | "code" | "recommended"
-type StatusFilter = "all" | FieldMeasureStatus
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "name", label: "Alfabetisch" },
@@ -151,8 +153,6 @@ const STATUS_ADJECTIVES: Record<FieldMeasureStatus, string> = {
 /** Effect types in the order the filter lists them; only types in the catalogue are shown. */
 const EFFECT_TYPE_ORDER = ["qual", "classed", "quant"]
 
-const NO_COUNTS: StatusCounts = { applied: 0, recommended: 0, applicable: 0 }
-
 /** Names of the URL search parameters that hold the search and the filters. */
 const PARAM = {
   query: "q",
@@ -162,46 +162,6 @@ const PARAM = {
   costLevel: "kosten",
   theme: "thema",
 } as const
-
-/**
- * Returns the value of a URL search parameter when it is one of the allowed values, otherwise
- * the fallback. Keeps a hand-edited or outdated link from selecting an unknown option.
- */
-function readParam<T extends string>(
-  params: URLSearchParams,
-  name: string,
-  allowed: readonly T[],
-  fallback: T,
-): T {
-  const value = params.get(name)
-  return value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : fallback
-}
-
-/** Short measure code without the source prefix, e.g. `BM7` for `bln_BM7`. */
-function getMeasureCode(m_id: string): string {
-  return m_id.replace(/^bln_/, "")
-}
-
-/** Returns whether a status is missing because its NMI request failed. */
-function isStatusUnavailable(status: FieldMeasureStatus, availability: CatalogueStatus): boolean {
-  if (status === "recommended") return !availability.recommendationsAvailable
-  if (status === "applicable") return !availability.applicabilityAvailable
-  return false
-}
-
-type CatalogueRow = MeasureCatalogue & {
-  code: string
-  ecosysteemdiensten: Ecosysteemdienst[]
-}
-
-type Filters = {
-  query: string
-  sortMode: SortMode
-  status: StatusFilter
-  effectType: string
-  costLevel: string
-  theme: Ecosysteemdienst | "all"
-}
 
 /**
  * Renders the measures catalogue of a farm: a searchable, filterable list of all measures,
@@ -214,7 +174,7 @@ export default function MeasuresCatalogueIndex() {
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState(() => searchParams.get(PARAM.query) ?? "")
   const [sortMode, setSortMode] = useState<SortMode>(() =>
-    readParam(
+    readSearchParam(
       searchParams,
       PARAM.sort,
       SORT_OPTIONS.map((option) => option.value),
@@ -222,17 +182,17 @@ export default function MeasuresCatalogueIndex() {
     ),
   )
   const [status, setStatus] = useState<StatusFilter>(() =>
-    readParam(searchParams, PARAM.status, STATUS_FILTERS, "all"),
+    readSearchParam(searchParams, PARAM.status, STATUS_FILTERS, "all"),
   )
   const effectTypes = useMemo(() => {
     const present = new Set(catalogue.map((item) => item.m_effect_type))
     return EFFECT_TYPE_ORDER.filter((value) => present.has(value))
   }, [catalogue])
   const [effectType, setEffectType] = useState<string>(() =>
-    readParam(searchParams, PARAM.effectType, ["all", ...EFFECT_TYPE_ORDER], "all"),
+    readSearchParam(searchParams, PARAM.effectType, ["all", ...EFFECT_TYPE_ORDER], "all"),
   )
   const [costLevel, setCostLevel] = useState<string>(() =>
-    readParam(
+    readSearchParam(
       searchParams,
       PARAM.costLevel,
       ["all", ...MEASURE_COST_LEVELS.map((level) => String(level.value))],
@@ -240,7 +200,7 @@ export default function MeasuresCatalogueIndex() {
     ),
   )
   const [theme, setTheme] = useState<Ecosysteemdienst | "all">(() =>
-    readParam<Ecosysteemdienst | "all">(
+    readSearchParam<Ecosysteemdienst | "all">(
       searchParams,
       PARAM.theme,
       ["all", ...ECOSYSTEEMDIENSTEN],
@@ -290,21 +250,9 @@ export default function MeasuresCatalogueIndex() {
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  const rows = useMemo((): CatalogueRow[] => {
-    return catalogue.map((item) => ({
-      ...item,
-      code: getMeasureCode(item.m_id),
-      ecosysteemdiensten: [
-        ...new Set(
-          getImpactedIndicators(item.m_impacts_score)
-            .map((indicator) => indicator.ecosysteemdienst)
-            .filter((value): value is Ecosysteemdienst => value !== null),
-        ),
-      ],
-    }))
-  }, [catalogue])
+  const rows = useMemo(() => buildCatalogueRows(catalogue), [catalogue])
 
-  const filters: Filters = { query, sortMode, status, effectType, costLevel, theme }
+  const filters: CatalogueFilters = { query, sortMode, status, effectType, costLevel, theme }
   const resetFilters = () => {
     setQuery("")
     setStatus("all")
@@ -487,7 +435,7 @@ function CatalogueResults({
   loaded,
 }: {
   rows: CatalogueRow[]
-  filters: Filters
+  filters: CatalogueFilters
   onReset: () => void
   loaded: CatalogueStatus | "failed" | null
 }) {
@@ -498,45 +446,15 @@ function CatalogueResults({
   // A status filter can only be applied once the status is there
   const statusFilterPending = status !== "all" && loaded === null
 
-  const filtered = useMemo(() => {
-    const countsOf = (m_id: string) => countsByMeasure?.[m_id] ?? NO_COUNTS
-    const sorted = [...rows]
-    if (sortMode === "code") {
-      sorted.sort((a, b) => a.code.localeCompare(b.code, "nl", { numeric: true }))
-    } else if (sortMode === "recommended" && countsByMeasure) {
-      sorted.sort(
-        (a, b) =>
-          countsOf(b.m_id).recommended - countsOf(a.m_id).recommended ||
-          countsOf(b.m_id).applicable - countsOf(a.m_id).applicable ||
-          a.m_name.localeCompare(b.m_name, "nl"),
-      )
-    } else {
-      sorted.sort((a, b) => a.m_name.localeCompare(b.m_name, "nl"))
-    }
-    const passesFilters = sorted.filter(
-      (row) =>
-        // Measures no longer in the catalogue only show when the farm still applies them
-        (row.m_status !== "inactive" || countsOf(row.m_id).applied > 0) &&
-        (status === "all" || !countsByMeasure || countsOf(row.m_id)[status] > 0) &&
-        (effectType === "all" || row.m_effect_type === effectType) &&
-        (costLevel === "all" || String(row.m_effect_costs) === costLevel) &&
-        (theme === "all" || row.ecosysteemdiensten.includes(theme)),
-    )
-    if (!query.trim()) return passesFilters
-    const targets = passesFilters.map((row, index) => ({
-      index,
-      name: row.m_name,
-      code: row.code,
-      summary: row.m_summary ?? "",
-      description: row.m_description ?? "",
-    }))
-    const results = fuzzysort.go(query, targets, {
-      keys: ["name", "code", "summary", "description"],
-    })
-    // Keep the chosen sort order instead of the fuzzy score order
-    const matched = new Set(results.map((r) => r.obj.index))
-    return passesFilters.filter((_, index) => matched.has(index))
-  }, [rows, countsByMeasure, query, sortMode, status, effectType, costLevel, theme])
+  const filtered = useMemo(
+    () =>
+      filterCatalogueRows(
+        rows,
+        { query, sortMode, status, effectType, costLevel, theme },
+        countsByMeasure,
+      ),
+    [rows, countsByMeasure, query, sortMode, status, effectType, costLevel, theme],
+  )
 
   const hasFilters =
     query.trim().length > 0 ||

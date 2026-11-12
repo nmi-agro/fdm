@@ -20,6 +20,11 @@ import {
   type MeasureApplicabilityInfo,
 } from "~/integrations/bln3.server"
 import { reportError } from "~/lib/error"
+import {
+  type FieldMeasureEntry,
+  type FieldMeasureStatus,
+  mergeFieldMeasureStatus,
+} from "~/lib/farm-measures"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getFarmBestVariantIds, INDICATORS, isExcludedFromBln3 } from "~/lib/indicators"
@@ -192,23 +197,7 @@ export async function getFarmNextSteps({
   return { steps, opportunitiesByField, topOpportunities, measureImpacts, adviceAvailable }
 }
 
-/** Status of a measure on a field, in order of priority. */
-export type FieldMeasureStatus = "applied" | "recommended" | "applicable"
-
-/** A field with the status of one measure on it. */
-export type FieldMeasureEntry = {
-  b_id: string
-  b_name: string | null
-  status: FieldMeasureStatus
-  /** Period of the measure, only for `applied` */
-  m_start?: Date | null
-  m_end?: Date | null
-  /**
-   * Only for `recommended`: IDs of the indicators of the field that the measure improves,
-   * e.g. `NUT_N`, ordered from the largest to the smallest improvement.
-   */
-  indicatorIds?: string[]
-}
+export type { FieldMeasureEntry, FieldMeasureStatus }
 
 export type FarmMeasureStatus = {
   /** Per catalogue ID, the fields with their status for that measure */
@@ -221,12 +210,6 @@ export type FarmMeasureStatus = {
   eligibleFieldCount: number
   /** Number of those fields whose applicability could not be loaded */
   applicabilityFailedFieldCount: number
-}
-
-const STATUS_ORDER: Record<FieldMeasureStatus, number> = {
-  applied: 0,
-  recommended: 1,
-  applicable: 2,
 }
 
 /**
@@ -321,58 +304,12 @@ export async function getFarmMeasureStatus({
   const recommendationsAvailable =
     eligibleFields.length === 0 || (recommendations?.adviceAvailable ?? false)
 
-  const statusByMeasure = new Map<string, Map<string, FieldMeasureEntry>>()
-  const set = (m_id: string, entry: FieldMeasureEntry) => {
-    const perField = statusByMeasure.get(m_id) ?? new Map<string, FieldMeasureEntry>()
-    const current = perField.get(entry.b_id)
-    if (!current || STATUS_ORDER[entry.status] < STATUS_ORDER[current.status]) {
-      perField.set(entry.b_id, entry)
-    }
-    statusByMeasure.set(m_id, perField)
-  }
-
-  for (const [b_id, measures] of measuresMap) {
-    for (const measure of measures) {
-      set(measure.m_id, {
-        b_id,
-        b_name: fieldNames.get(b_id) ?? null,
-        status: "applied",
-        m_start: measure.m_start,
-        m_end: measure.m_end,
-      })
-    }
-  }
-  for (const [b_id, opportunities] of Object.entries(recommendations?.opportunitiesByField ?? {})) {
-    for (const opportunity of opportunities) {
-      set(opportunity.m_id, {
-        b_id,
-        b_name: fieldNames.get(b_id) ?? null,
-        status: "recommended",
-        indicatorIds: opportunity.indicatorImpacts
-          .filter((impact) => impact.measure_impact > 0)
-          .sort((a, b) => b.measure_impact - a.measure_impact)
-          .map((impact) => impact.indicator_id),
-      })
-    }
-  }
-  for (const [b_id, perMeasure] of Object.entries(applicabilityByField)) {
-    for (const [m_id, info] of Object.entries(perMeasure ?? {})) {
-      if (info.applicability !== "applicable") continue
-      set(m_id, { b_id, b_name: fieldNames.get(b_id) ?? null, status: "applicable" })
-    }
-  }
-
-  const fieldsByMeasure = new Map<string, FieldMeasureEntry[]>()
-  for (const [m_id, perField] of statusByMeasure) {
-    fieldsByMeasure.set(
-      m_id,
-      [...perField.values()].sort(
-        (a, b) =>
-          STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
-          (a.b_name ?? "").localeCompare(b.b_name ?? "", "nl"),
-      ),
-    )
-  }
+  const fieldsByMeasure = mergeFieldMeasureStatus({
+    fieldNames,
+    measuresMap,
+    opportunitiesByField: recommendations?.opportunitiesByField ?? {},
+    applicabilityByField,
+  })
 
   return {
     fieldsByMeasure,
