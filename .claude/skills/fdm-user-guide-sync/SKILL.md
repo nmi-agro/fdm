@@ -1,7 +1,7 @@
 ---
 name: fdm-user-guide-sync
 description: Use when the user guide in fdm-app (the public "Handleiding" at /manual, Markdown in fdm-app/app/content/manual) must catch up with changes in the app — after a PR that changes labels, flows or pages, in the weekly sync against development, or when preparing the background-page review for a release. Finds the chapters whose routes changed, compares them with the diff, updates labels, steps and in-app paths, and keeps the label test green. Not for writing new chapters from scratch, the manual's rendering code or routes (see fdm-app-conventions), visual design (see impeccable), or the agronomic content of background pages, which a person reviews.
-version: 1.0.0
+version: 1.1.0
 user-invocable: true
 argument-hint: "[pr|since <git-ref>|release] — default: pr"
 license: MIT
@@ -98,6 +98,7 @@ The guide always describes the current year's rules as the main text; earlier ye
 - **Earlier years.** Rules that only applied to an earlier year that the app still calculates go in one short section at the end of the page, `## Verschillen in <jaar> {#<jaar>}`, with a link to it from the intro. Don't interleave old-year exceptions through the main text.
 - **When a new year starts** (for example when `fdm-calculator/src/norms/nl/<jaar>` is added): rewrite the leading text to the new year's rules, move the old year's rules into a "Verschillen in <jaar>" section, drop years the app no longer calculates, and update `lastReviewed` only after a maintainer has reviewed the background pages.
 - In `release` mode, flag every page whose leading text still describes a previous year.
+- **Screenshots** follow the same rule: the demo farm's data and the `$calendar` in captured URLs use the current year (Europe/Amsterdam), computed at run time. Derogation no longer exists in the Netherlands, so don't seed or show it. If a page doesn't support the current year yet (for example norms), let the capture fail instead of falling back to an older year.
 
 ## Weekly routine
 
