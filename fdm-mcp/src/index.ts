@@ -193,11 +193,22 @@ export function createFdmMcp(
   )
   app.get("/health", (c) => c.json({ status: "ok" }))
   // Still 404, the answer a client expects when a server has no OAuth, but with a message that
-  // tells the user what to do.
+  // tells the user what to do. Clients probe these paths on every connection, so the answer is
+  // built here instead of through the error handler, which would log each probe.
   for (const path of OAUTH_PATHS) {
-    app.all(path, () => {
-      throw new ApiError(404, "not-found", OAUTH_NOT_SUPPORTED)
-    })
+    app.all(path, (c) =>
+      c.body(
+        JSON.stringify({
+          type: `${config.appUrl}/problems/not-found`,
+          title: "Not Found",
+          status: 404,
+          detail: OAUTH_NOT_SUPPORTED,
+          instance: c.req.path,
+        }),
+        404,
+        { "Content-Type": "application/problem+json" },
+      ),
+    )
   }
 
   app.use(
