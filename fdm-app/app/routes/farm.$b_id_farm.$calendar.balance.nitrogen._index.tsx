@@ -25,6 +25,7 @@ import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
+import { NitrousOxideCard } from "~/components/blocks/balance/nitrous-oxide-card"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
@@ -240,7 +241,7 @@ function FarmBalanceNitrogenOverview({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
@@ -321,6 +322,10 @@ function FarmBalanceNitrogenOverview({
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
+        <NitrousOxideCard
+          total={resolvedNitrogenBalanceResult.emission.nitrous_oxide.total}
+          co2eq={resolvedNitrogenBalanceResult.emission.nitrous_oxide.co2eq}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">

@@ -26,6 +26,7 @@ import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-war
 import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import NitrogenBalanceDetails from "~/components/blocks/balance/nitrogen-details"
+import { NitrousOxideCard } from "~/components/blocks/balance/nitrous-oxide-card"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
@@ -341,7 +342,7 @@ function NitrogenBalance({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
@@ -410,6 +411,10 @@ function NitrogenBalance({
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
+        <NitrousOxideCard
+          total={result.emission.nitrous_oxide.total}
+          co2eq={result.emission.nitrous_oxide.co2eq}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
