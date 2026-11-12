@@ -21,7 +21,7 @@ import {
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
-import { assertFieldCapacity, type LimitServices } from "../limits"
+import { assertFarmSizeSupported, assertFieldCapacity, type LimitServices } from "../limits"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   DateStringSchema,
@@ -386,6 +386,9 @@ export function registerFieldImportRoutes(
     form: z.infer<typeof CompareBodySchema>,
   ) {
     const year = Number.parseInt(form.year, 10)
+    // The review loads every field of the farm and compares it with the file, so a farm above the
+    // supported size is refused before that work starts.
+    await assertFarmSizeSupported(fdm, services, principal_id, b_id_farm)
     let result: Awaited<ReturnType<typeof reviewShapefileImport>>
     try {
       result = await services.reviewShapefileImport(
