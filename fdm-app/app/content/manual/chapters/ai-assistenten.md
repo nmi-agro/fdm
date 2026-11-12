@@ -181,6 +181,7 @@ Begin met deze vraag. Dan zie je meteen of de koppeling werkt en wat de assisten
 ## Problemen oplossen {#problemen}
 
 - Foutmelding 401: de sleutel ontbreekt, is verkeerd overgenomen of is ingetrokken. Kijk of de hele sleutel erin staat, zonder de punthaken van `<sleutel>`. Maak zo nodig een nieuwe sleutel.
+- De assistent wil dat je inlogt, toont een knop zoals "Authenticate" of meldt "Dynamic Client Registration" of "OAuth": de sleutel ontbreekt. {{appName}} ondersteunt inloggen via OAuth nog niet. Voeg de header `X-API-Key` met je sleutel toe aan de koppeling, zoals hierboven per assistent beschreven.
 - Foutmelding 429 of "Rate limit exceeded": de assistent doet te veel verzoeken achter elkaar. Wacht even; de melding zegt hoeveel seconden. Zie [Limieten](/manual/api#limieten).
 - Nieuwe hulpmiddelen verschijnen niet: vernieuw de lijst met hulpmiddelen in je assistent, of verwijder de koppeling en voeg hem opnieuw toe.
 - De assistent kiest het verkeerde hulpmiddel: noem in je vraag het bedrijf of perceel bij naam, of kies een krachtiger model.

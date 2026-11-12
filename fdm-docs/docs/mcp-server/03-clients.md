@@ -112,10 +112,11 @@ In the admin settings, add a tool server of type "MCP (Streamable HTTP)" with UR
 
 ## Troubleshooting
 
-| Symptom                                    | Cause                                                                                    |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `401`                                      | The key is missing, mistyped or revoked.                                                 |
-| `400 ambiguous-api-key`                    | Both `X-API-Key` and `Authorization` are sent. Send one.                                 |
-| `403` on connect from a browser            | The page's origin is not in `FDM_MCP_ALLOWED_ORIGINS`.                                   |
-| Tool result "Rate limit exceeded" or `429` | Too many requests for this key; wait the given seconds. See [Limits](./overview#limits). |
-| New tools do not show up                   | Refresh the tool list in the client, or remove and add the connection again.             |
+| Symptom                                                                 | Cause                                                                                                                |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `401`                                                                   | The key is missing, mistyped or revoked.                                                                             |
+| Client asks to sign in, or "Dynamic Client Registration" fails with 404 | No API key is configured: the client tries OAuth, which the server does not support yet. Add the `X-API-Key` header. |
+| `400 ambiguous-api-key`                                                 | Both `X-API-Key` and `Authorization` are sent. Send one.                                                             |
+| `403` on connect from a browser                                         | The page's origin is not in `FDM_MCP_ALLOWED_ORIGINS`.                                                               |
+| Tool result "Rate limit exceeded" or `429`                              | Too many requests for this key; wait the given seconds. See [Limits](./overview#limits).                             |
+| New tools do not show up                                                | Refresh the tool list in the client, or remove and add the connection again.                                         |
