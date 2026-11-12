@@ -28,7 +28,7 @@ import { FormSchema } from "~/components/blocks/soil/formschema"
 import { SAMPLING_PARAMETERS } from "~/components/blocks/soil/parameter-groups"
 import { SoilSamplingMapCard } from "~/components/blocks/soil/soil-sampling-map-card"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -181,9 +181,7 @@ export default function FarmFieldSoilAnalysisBlock() {
       <div className="flex flex-wrap items-center justify-end gap-2 empty:hidden">
         {soilAnalysis.a_file_path && (
           <Dialog>
-            <DialogTrigger asChild>
-              <ViewPdfButton variant="outline" size="sm" />
-            </DialogTrigger>
+            <DialogTrigger render={<ViewPdfButton variant="outline" size="sm" />} />
             <PdfViewerDialogContent
               downloadUrl={`/api/soil-analysis/download/${soilAnalysis.a_id}.pdf`}
               filename={getSoilAnalysisDownloadName(
@@ -196,12 +194,14 @@ export default function FarmFieldSoilAnalysisBlock() {
           </Dialog>
         )}
         {soilAnalysisWritePermission && !isEditing && (
-          <Button asChild size="sm">
-            <NavLink to={{ search: "?modus=bewerken" }}>
-              <Pencil />
-              Bewerken
-            </NavLink>
-          </Button>
+          <NavLink
+            to={{ search: "?modus=bewerken" }}
+            className={buttonVariants({ size: "sm" })}
+            data-slot="button"
+          >
+            <Pencil />
+            Bewerken
+          </NavLink>
         )}
       </div>
       <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,26rem)] xl:items-start">
@@ -212,9 +212,13 @@ export default function FarmFieldSoilAnalysisBlock() {
               soilParameterDescription={soilParameterDescription}
               action="."
               secondaryAction={
-                <Button asChild variant="ghost">
-                  <NavLink to={{ search: "" }}>Annuleren</NavLink>
-                </Button>
+                <NavLink
+                  to={{ search: "" }}
+                  className={buttonVariants({ variant: "ghost" })}
+                  data-slot="button"
+                >
+                  Annuleren
+                </NavLink>
               }
             />
           ) : (

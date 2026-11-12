@@ -5,6 +5,7 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Map as MapIcon } from "lucide-react"
 import { useEffect, useMemo, useState, useTransition } from "react"
 import {
@@ -24,7 +25,7 @@ import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
@@ -43,7 +44,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -284,15 +284,21 @@ export default function IndicatorsFarmIndex() {
           <section className="space-y-3">
             <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
               <Card className="border-border shadow-sm">
-                <CardHeader className="pb-3">
+                <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
-                    <Button asChild variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
-                      <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
-                        <MapIcon className="h-3.5 w-3.5" />
-                        Kaartweergave
-                      </NavLink>
-                    </Button>
+                    <NavLink
+                      to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                        className: "h-7 gap-1.5 text-xs",
+                      })}
+                      data-slot="button"
+                    >
+                      <MapIcon className="h-3.5 w-3.5" />
+                      Kaartweergave
+                    </NavLink>
                   </div>
                   {/* <CardDescription className="text-xs">
                                     Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 
@@ -329,14 +335,14 @@ export default function IndicatorsFarmIndex() {
               showPending && "pointer-events-none opacity-50",
             )}
           >
-            <CardHeader className="border-b pb-3">
+            <CardHeader className="border-b">
               <CardTitle className="text-base font-bold">Detailweergave per perceel</CardTitle>
               <CardDescription className="text-xs">
                 Alle {INDICATORS.length} indicatoren voor alle percelen, met filters en
                 zoekmogelijkheden.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 p-4">
+            <CardContent className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <CategoryFilter
                   activeCategories={activeCategories}

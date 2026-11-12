@@ -55,7 +55,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import {
   Dialog,
@@ -686,12 +686,20 @@ export default function GerritApp() {
                   en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Button asChild size="lg">
-                    <a href={`/farm/${farm.b_id_farm}/2025/gerrit`}>Switch naar 2025</a>
-                  </Button>
-                  <Button asChild size="lg">
-                    <a href={`/farm/${farm.b_id_farm}/2026/gerrit`}>Switch naar 2026</a>
-                  </Button>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2025/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2025
+                  </a>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2026/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2026
+                  </a>
                 </div>
               </div>
             </div>
@@ -806,7 +814,7 @@ export default function GerritApp() {
                   toggleRow={toggleRow}
                 />
               ) : (
-                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center border-dashed p-12 text-center">
+                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center gap-0 border-dashed p-12 text-center">
                   <div className="bg-primary/10 mb-6 rounded-full p-6">
                     <Bot className="text-primary h-12 w-12 opacity-80" />
                   </div>

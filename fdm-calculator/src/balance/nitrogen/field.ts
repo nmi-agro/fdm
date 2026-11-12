@@ -8,7 +8,7 @@ import type {
   SoilAnalysisPicked,
 } from "./types"
 import { convertDecimalToNumberRecursive } from "../shared/conversion"
-import { combineSoilAnalyses } from "../shared/soil"
+import { resolveSoilParameters } from "../shared/soil"
 import { calculateNitrogenEmission } from "./emission"
 import { calculateNitrogenEmissionViaNitrate } from "./emission/nitrate"
 import { calculateNitrogenRemoval } from "./removal"
@@ -43,8 +43,14 @@ export function calculateNitrogenBalanceField(
     nitrogenBalanceInput
 
   // Get the details of the field
-  const { field, harvests, cultivations, soilAnalyses, fertilizerApplications, depositionSupply } =
-    fieldInput
+  const {
+    field,
+    harvests,
+    cultivations,
+    currentSoilData,
+    fertilizerApplications,
+    depositionSupply,
+  } = fieldInput
 
   if (!timeFrame.start || !timeFrame.end) {
     throw new Error("Timeframe start and end dates must be provided.")
@@ -99,9 +105,9 @@ export function calculateNitrogenBalanceField(
     cultivationDetails.map((detail) => [detail.b_lu_catalogue, detail]),
   )
 
-  // Combine soil analyses
-  const soilAnalysis = combineSoilAnalyses<SoilAnalysisPicked>(
-    soilAnalyses,
+  // Read the soil parameters from the current soil data
+  const soilAnalysis = resolveSoilParameters<SoilAnalysisPicked>(
+    currentSoilData,
     ["b_soiltype_agr", "a_n_rt", "a_c_of", "a_cn_fr", "a_density_sa", "a_som_loi", "b_gwl_class"],
     true,
   )

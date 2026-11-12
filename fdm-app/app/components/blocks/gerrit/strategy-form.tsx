@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { Bot, ChevronDown } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Controller, useWatch, type UseFormReturn } from "react-hook-form"
@@ -11,7 +12,6 @@ import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
 import { useKeyedState } from "~/hooks/use-keyed-state"
-import { cn } from "~/lib/utils"
 import { type GerritFormValues, STRATEGY_LABELS } from "./schema"
 
 const TYPE_LABELS: Record<string, string> = {

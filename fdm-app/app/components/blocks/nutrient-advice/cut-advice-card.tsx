@@ -1,5 +1,6 @@
 import type { Dose, NutrientAdviceCut } from "@nmi-agro/fdm-calculator"
 import type { FertilizerApplication, Harvest } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Check } from "lucide-react"
@@ -31,7 +32,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
 
 export type CutAdviceCardProps = {
   cuts: NutrientAdviceCut[]
@@ -172,7 +172,18 @@ function CutSeasonTableRow({
         {row.derivedYieldClass ? (
           <span className="text-sm">{CUT_YIELD_CLASS_LABELS[row.derivedYieldClass]}</span>
         ) : (
-          <Select value={variant.yieldclass} onValueChange={onSelectYieldClass}>
+          <Select
+            value={variant.yieldclass}
+            items={row.variants.map((entry) => ({
+              value: entry.yieldclass,
+              label: CUT_YIELD_CLASS_LABELS[entry.yieldclass],
+            }))}
+            onValueChange={(value) => {
+              if (typeof value === "string") {
+                onSelectYieldClass(value)
+              }
+            }}
+          >
             <SelectTrigger className="h-8 w-48" aria-label={`Snedezwaarte voor snede ${row.cut}`}>
               <SelectValue />
             </SelectTrigger>

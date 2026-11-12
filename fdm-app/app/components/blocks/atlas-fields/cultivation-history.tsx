@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronUp, Copy } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -7,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/com
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 
 export type CultivationHistory = {
   year: number
@@ -74,11 +74,13 @@ export function CultivationHistoryTimeline({
                 <div className="flex items-center gap-2">
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className={cn("cursor-help truncate font-semibold")}>
-                          {cultivation.b_lu_name ?? "Onbekend gewas"}
-                        </p>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <p className={cn("cursor-help truncate font-semibold")}>
+                            {cultivation.b_lu_name ?? "Onbekend gewas"}
+                          </p>
+                        }
+                      />
                       <TooltipContent>
                         <p>{cultivation.b_lu_name ?? "Onbekend gewas"}</p>
                       </TooltipContent>
@@ -158,7 +160,7 @@ export function CultivationHistoryCard({
 
   return (
     <Card className="col-span-1 overflow-hidden lg:row-span-2">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-start justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <CardTitle className="text-xl font-bold">Gewashistorie</CardTitle>
@@ -169,17 +171,19 @@ export function CultivationHistoryCard({
         </div>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={handleCopy}
-                aria-label="Kopieer naar klembord"
-              >
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleCopy}
+                  aria-label="Kopieer naar klembord"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              }
+            />
             <TooltipContent>
               <p>Kopieer naar klembord</p>
             </TooltipContent>
@@ -189,7 +193,7 @@ export function CultivationHistoryCard({
 
       <Separator className="opacity-50" />
 
-      <CardContent className="pt-6 text-sm">
+      <CardContent className="text-sm">
         <CultivationHistoryTimeline cultivationHistory={cultivationHistory} />
       </CardContent>
     </Card>
@@ -201,7 +205,7 @@ export function CultivationHistorySkeleton() {
 
   return (
     <Card className="col-span-1 overflow-hidden lg:row-span-2">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-start justify-between">
         <div className="space-y-1">
           <CardTitle>Gewashistorie</CardTitle>
           <CardDescription>
@@ -211,7 +215,7 @@ export function CultivationHistorySkeleton() {
         <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
       </CardHeader>
       <Separator className="opacity-50" />
-      <CardContent className="pt-6 text-sm">
+      <CardContent className="text-sm">
         <div className="relative pl-1">
           {SKELETON_KEYS.map((key, index) => (
             <div key={key} className="relative flex items-start space-x-4 pb-6">

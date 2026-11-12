@@ -56,6 +56,7 @@ const SMOKE_OFF = [
   "PUBLIC_MAPTILER_API_KEY",
   "LANGSMITH_API_KEY",
   "LANGSMITH_TRACING",
+  "FDM_PRIVACY_URL",
 ]
 // Playwright starts the web server with this process's environment plus `webServer.env`, so a
 // setting is only gone when it is removed from both.

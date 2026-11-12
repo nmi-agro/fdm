@@ -118,11 +118,13 @@ export function FieldSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          Wijzig selectie
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm">
+            Wijzig selectie
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Percelen selecteren</DialogTitle>
@@ -164,7 +166,7 @@ export function FieldSelectionDialog({
             <FieldCheckboxList fields={withCrop} selected={selected} onToggle={toggle} />
           )}
           {withoutCrop.length > 0 && (
-            <Accordion type="single" collapsible>
+            <Accordion>
               <AccordionItem value="without-crop">
                 <AccordionTrigger className="text-sm">
                   Percelen zonder {cultivationName || "dit gewas"}

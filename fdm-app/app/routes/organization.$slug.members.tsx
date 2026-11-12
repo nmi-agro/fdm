@@ -1,4 +1,5 @@
 import type { Invitation, Member, Organization, OrganizationRole } from "better-auth/plugins"
+import { cn } from "cn"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { data, useFetcher, useLoaderData } from "react-router"
@@ -25,7 +26,6 @@ import { isInactiveRecipientError, renderInvitationEmail, sendEmail } from "~/li
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.members"
 
 // Meta
@@ -124,7 +124,7 @@ export default function OrganizationIndex() {
               <CardDescription>Zie wie er onderdeel uitmaakt van deze organisatie.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Separator className="my-4" />
+              <Separator />
               <div className="space-y-4">
                 <div className="text-sm font-medium">{/* People with access */}</div>
                 <div className="grid gap-6">
@@ -217,6 +217,12 @@ const MemberRow = ({
   )
 }
 
+const ORGANIZATION_ROLES = [
+  { value: "owner", label: "Eigenaar" },
+  { value: "admin", label: "Beheerder" },
+  { value: "member", label: "Lid" },
+]
+
 const MemberAction = ({
   member,
   permissions,
@@ -244,20 +250,33 @@ const MemberAction = ({
     <fetcher.Form method="post" className="flex items-center space-x-4">
       <Spinner className={cn(fetcher.state !== "submitting" && "invisible")} />
       <input type="hidden" name="memberId" value={member.id} />
-      <Select name="role" value={role} onValueChange={submitRoleChange} disabled={disabled}>
+      <Select
+        name="role"
+        value={role}
+        items={ORGANIZATION_ROLES}
+        onValueChange={(value) => {
+          if (typeof value === "string") {
+            submitRoleChange(value)
+          }
+        }}
+        disabled={disabled}
+      >
         <SelectTrigger className="ml-auto w-27.5">
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="owner">Eigenaar</SelectItem>
-          <SelectItem value="admin">Beheerder</SelectItem>
-          <SelectItem value="member">Lid</SelectItem>
+          {ORGANIZATION_ROLES.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       {permissions.canRemoveUser ? (
         <Button
           variant="destructive"
           className="shrink-0"
+          type="submit"
           name="intent"
           value="remove_user"
           disabled={disabled}
@@ -300,6 +319,7 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
         <Button
           variant="destructive"
           className="shrink-0"
+          type="submit"
           name="intent"
           value="cancel_invite"
           disabled={fetcher.state !== "idle"}
@@ -332,19 +352,22 @@ const InvitationForm = ({ organizationId }: { organizationId: Organization["id"]
           setEmail(e.target.value)
         }}
       />
-      <Select defaultValue="member" name="role">
+      <Select defaultValue="member" name="role" items={ORGANIZATION_ROLES}>
         <SelectTrigger className="ml-auto w-27.5">
           <SelectValue placeholder="Select" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="owner">Eigenaar</SelectItem>
-          <SelectItem value="admin">Beheerder</SelectItem>
-          <SelectItem value="member">Lid</SelectItem>
+          {ORGANIZATION_ROLES.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <Button
         variant="default"
         className="shrink-0"
+        type="submit"
         name="intent"
         value="invite_user"
         disabled={fetcher.state !== "idle"}

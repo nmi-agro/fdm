@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { format, parseISO } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronDown, Info } from "lucide-react"
@@ -10,7 +11,6 @@ import {
   compareVersions,
   getReleaseAnchorId,
 } from "~/lib/changelog"
-import { cn } from "~/lib/utils"
 import { useChangelogStore } from "~/store/changelog"
 
 function formatReleaseDate(date: string): string {
@@ -116,24 +116,26 @@ function ReleaseSection({
         >
           {release.title}
         </h2>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="link"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground mt-1 h-auto px-0 py-1"
-            aria-controls={contentId}
-          >
-            <span key={isOpen ? "open" : "closed"}>
-              {isOpen
-                ? "Verberg wijzigingen"
-                : `Toon ${pluralize(release.items.length, "wijziging", "wijzigingen")}`}
-            </span>
-            <ChevronDown
-              aria-hidden="true"
-              className={cn("transition-transform", isOpen && "rotate-180")}
-            />
-          </Button>
-        </CollapsibleTrigger>
+        <CollapsibleTrigger
+          render={
+            <Button
+              variant="link"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground mt-1 h-auto px-0 py-1"
+              aria-controls={contentId}
+            >
+              <span key={isOpen ? "open" : "closed"}>
+                {isOpen
+                  ? "Verberg wijzigingen"
+                  : `Toon ${pluralize(release.items.length, "wijziging", "wijzigingen")}`}
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className={cn("transition-transform", isOpen && "rotate-180")}
+              />
+            </Button>
+          }
+        />
         <CollapsibleContent id={contentId}>
           <p className="mt-3 leading-7 text-pretty">{release.description}</p>
           <ul className="mt-6 space-y-6">

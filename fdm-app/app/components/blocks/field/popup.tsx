@@ -30,9 +30,9 @@ export default function FieldDetailsInfoPopup({
             {field.properties?.b_name ?? "Onbekend Perceel"}{" "}
             {hint && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <CircleQuestionMark className="text-muted-foreground inline-block h-4" />
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={<CircleQuestionMark className="text-muted-foreground inline-block h-4" />}
+                />
                 <TooltipContent>{hint}</TooltipContent>
               </Tooltip>
             )}

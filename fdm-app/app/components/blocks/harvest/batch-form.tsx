@@ -413,7 +413,7 @@ function BatchHarvestFormItemCard({
   harvestable?: HarvestableType | null
 }) {
   return (
-    <Card className="space-y-2 p-2">
+    <Card className="gap-0 space-y-2 p-2">
       <CardHeader className="flex flex-row items-center p-0">
         <CardTitle className="grow">
           {index + 1}e {getHarvestTerm(croprotation, false, harvestable)}
