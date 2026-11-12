@@ -113,9 +113,9 @@ const nitrogenTotal = (meaning: string) => z.number().describe(`${meaning} (kg N
 /** Describes a nitrogen loss term, which is reported as a negative number (kg N/ha). */
 const nitrogenLoss = (meaning: string) =>
   z.number().describe(`${meaning}, as a negative number (kg N/ha).`)
-/** Describes a nitrous oxide emission term, which is reported as a negative number (kg N2O-N/ha). */
+/** Describes a nitrous oxide emission term, which is reported as a negative number (kg N/ha, as N2O-N). */
 const nitrousOxideLoss = (meaning: string) =>
-  z.number().describe(`${meaning}, as a negative number (kg N2O-N/ha).`)
+  z.number().describe(`${meaning}, as a negative number (kg N/ha, as N2O-N).`)
 /** Describes a CO2-equivalent of the nitrous oxide emission, which is reported as a positive number. */
 const co2Equivalent = (meaning: string) =>
   z
@@ -227,7 +227,7 @@ const NitrousOxideFertilizersGroupSchema = z.object({
   total: nitrousOxideLoss("N2O emission from fertilizers of this type"),
   applications: z
     .array(ApplicationValueSchema)
-    .describe("N2O emission per fertilizer application (kg N2O-N/ha)."),
+    .describe("N2O emission per fertilizer application (kg N/ha, as N2O-N)."),
 })
 
 const NitrogenEmissionNitrousOxideFieldSchema = z.object({
@@ -252,7 +252,7 @@ const NitrogenEmissionNitrousOxideFieldSchema = z.object({
       total: nitrousOxideLoss("Direct N2O emission from crop residues left on the field"),
       cultivations: z
         .array(ApplicationValueSchema)
-        .describe("N2O emission from crop residues per cultivation (kg N2O-N/ha)."),
+        .describe("N2O emission from crop residues per cultivation (kg N/ha, as N2O-N)."),
     })
     .describe(
       "Direct N2O emission from the nitrogen in above-ground crop residues left on the field.",

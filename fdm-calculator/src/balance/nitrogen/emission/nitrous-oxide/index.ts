@@ -45,7 +45,7 @@ const fertilizerTypes = ["mineral", "manure", "compost", "other"] as const
  *   the field.
  *
  * The emission is an indicator: it is not part of the nitrogen balance. Following the other
- * nitrogen losses, the N₂O emission is negative (kg N₂O-N / ha). The CO₂-equivalent is positive,
+ * nitrogen losses, the N₂O emission is negative (kg N / ha, as N₂O-N). The CO₂-equivalent is positive,
  * as it is a greenhouse gas emission (kg CO₂-eq / ha).
  *
  * @param cultivations - The cultivations of the field.
@@ -160,7 +160,7 @@ export function calculateNitrogenEmissionViaNitrousOxide(
 }
 
 /**
- * Determines the N₂O emission factor of a fertilizer application (kg N₂O-N per kg N applied),
+ * Determines the N₂O emission factor of a fertilizer application (kg N as N₂O-N per kg N applied),
  * according to NEMA WOT-283 (tables 2.7, 3.2 and 3.3).
  *
  * - Sewage sludge (`p_type_rvo` 113 or 114): 0.009.
@@ -225,7 +225,7 @@ export function determineNitrousOxideEmissionFactor(
 }
 
 /**
- * Calculates the N₂O emission from the mineralisation of organic soils (kg N₂O-N / ha, positive).
+ * Calculates the N₂O emission from the mineralisation of organic soils (kg N / ha as N₂O-N, positive).
  *
  * Peat (`veen`) and peaty soils (`moerige_klei`) have a yearly emission (NEMA WOT-283, section 3.4).
  * The yearly value is scaled to the length of the time frame, in the same way as the nitrogen
@@ -233,7 +233,7 @@ export function determineNitrousOxideEmissionFactor(
  *
  * @param b_soiltype_agr - The agricultural soil type of the field.
  * @param timeFrame - The time frame of the calculation for this field.
- * @returns The N₂O-N emission over the time frame, zero or positive.
+ * @returns The N₂O emission over the time frame (kg N / ha), zero or positive.
  *
  * @example
  * ```ts
@@ -257,10 +257,10 @@ export function calculateNitrousOxideEmissionOrganicSoil(
 }
 
 /**
- * Converts an N₂O emission (kg N₂O-N / ha) to the CO₂-equivalent (kg CO₂-eq / ha), using the
+ * Converts an N₂O emission (kg N / ha, as N₂O-N) to the CO₂-equivalent (kg CO₂-eq / ha), using the
  * molar mass ratio of N₂O to N₂O-N (44 / 28) and a global warming potential of 265 (IPCC AR5).
  *
- * @param nitrousOxide - The N₂O emission in kg N₂O-N / ha; the sign is ignored.
+ * @param nitrousOxide - The N₂O emission in kg N / ha (as N₂O-N); the sign is ignored.
  * @returns The CO₂-equivalent in kg CO₂-eq / ha, zero or positive.
  *
  * @example
@@ -309,7 +309,7 @@ export function createEmptyNitrousOxideEmission(): NitrogenEmissionNitrousOxide 
  * Fields without an N₂O emission are counted as zero emission.
  *
  * @param fields - The area (ha) and the N₂O emission of each field.
- * @returns The average N₂O emission per hectare of the farm (kg N₂O-N / ha) and the average
+ * @returns The average N₂O emission per hectare of the farm (kg N / ha, as N₂O-N) and the average
  * CO₂-equivalent of the fields (kg CO₂-eq / ha).
  *
  * @example

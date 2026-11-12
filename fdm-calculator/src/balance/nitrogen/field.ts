@@ -23,7 +23,7 @@ import { calculateNitrogenSupply } from "./supply"
 import { calculateTargetForNitrogenBalance } from "./target"
 
 // Number of decimals of the N₂O emission in the results
-const NITROUS_OXIDE_DECIMALS = 2
+const NITROUS_OXIDE_DECIMALS = 1
 
 /**
  * Calculates the nitrogen balance for a single field, considering nitrogen supply, removal, and emission.
@@ -230,7 +230,7 @@ export function calculateNitrogenBalanceField(
     emission: emission,
     target: target,
   }) as NitrogenBalanceFieldNumeric
-  // The N₂O emission is small, so it is rounded to more decimals than the other values
+  // The N₂O emission is small, so it is rounded to one decimal instead of a whole number
   balanceNumeric.emission.nitrous_oxide = convertDecimalToNumberRecursive(
     emission.nitrous_oxide,
     NITROUS_OXIDE_DECIMALS,
@@ -471,7 +471,7 @@ export function calculateNitrogenBalancesFieldToFarm(
   const farmWithBalanceNumeric = convertDecimalToNumberRecursive(
     farmWithBalance,
   ) as NitrogenBalanceNumeric
-  // The N₂O emission is small, so it is rounded to more decimals than the other values
+  // The N₂O emission is small, so it is rounded to one decimal instead of a whole number
   farmWithBalanceNumeric.emission.nitrous_oxide = convertDecimalToNumberRecursive(
     avgFarmEmissionNitrousOxide,
     NITROUS_OXIDE_DECIMALS,

@@ -23,9 +23,6 @@ import {
   AccordionTrigger,
 } from "~/components/ui/accordion"
 
-const UNIT_N = "kg N / ha"
-const UNIT_N2O = "kg N₂O-N / ha"
-
 interface NitrogenBalanceDetailsProps {
   balanceData: NitrogenBalanceFieldNumeric
   fieldInput: FieldInput
@@ -409,14 +406,13 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     residues: NitrogenEmissionNumeric["ammonia"]["residues"],
     fieldInput: FieldInput,
     sectionKey = "emission.ammonia.residues",
-    unit = UNIT_N,
+    formatValue: (value: number) => number | string = (value) => value,
+    title = "Gewasresten (Totaal)",
   ) => {
-    const formatValue = (value: number) => (unit === UNIT_N2O ? formatNitrousOxide(value) : value)
-
     return (
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>
-          Gewasresten (Totaal): {formatValue(residues.total)} {unit}
+          {title}: {formatValue(residues.total)} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
@@ -434,7 +430,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   key={cult.id}
                 >
                   <li className="text-muted-foreground text-sm hover:underline">
-                    {cultivation.b_lu_name}: {formatValue(cult.value)} {unit}
+                    {cultivation.b_lu_name}: {formatValue(cult.value)} kg N / ha
                   </li>
                 </NavLink>
               ) : null
@@ -453,14 +449,12 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     fieldInput: FieldInput,
     title: string,
     sectionKey: string,
-    unit = UNIT_N,
+    formatValue: (value: number) => number | string = (value) => value,
   ) => {
-    const formatValue = (value: number) => (unit === UNIT_N2O ? formatNitrousOxide(value) : value)
-
     return (
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>
-          {title} (Totaal): {formatValue(applications.total)} {unit}
+          {title} (Totaal): {formatValue(applications.total)} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
@@ -483,7 +477,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   <li className="text-muted-foreground text-sm hover:underline">
                     {application.p_name_nl} op{" "}
                     {format(application.p_app_date, "PP", { locale: nl })}: {formatValue(app.value)}{" "}
-                    {unit}
+                    kg N / ha
                   </li>
                 </NavLink>
               )
@@ -504,18 +498,18 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     return (
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>
-          Lachgas (N₂O) (Totaal): {formatNitrousOxide(nitrousOxide.total)} {UNIT_N2O}
+          Lachgas (Totaal): {formatNitrousOxide(nitrousOxide.total)} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
           <p className="text-muted-foreground ml-4 text-sm">
             <span>
-              {`CO₂-equivalent: ${formatNitrousOxide(nitrousOxide.co2eq, 0)} kg CO₂-eq / ha. Schatting volgens NEMA, het nationale emissiemodel voor de landbouw. Lachgas telt niet mee in de balans.`}
+              {`CO₂-equivalent: ${formatNitrousOxide(nitrousOxide.co2eq, 0)} kg CO₂-eq / ha`}
             </span>
           </p>
           <Accordion multiple className="ml-4">
             <AccordionItem value="nitrous_oxide.fertilizers">
               <AccordionTrigger>
-                Bemesting (Totaal): {formatNitrousOxide(fertilizers.total)} {UNIT_N2O}
+                Bemesting (Totaal): {formatNitrousOxide(fertilizers.total)} kg N / ha
               </AccordionTrigger>
               <AccordionContent>
                 <Accordion multiple className="ml-4">
@@ -524,28 +518,28 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                     fieldInput,
                     "Minerale meststoffen",
                     "nitrous_oxide.fertilizers.mineral",
-                    UNIT_N2O,
+                    formatNitrousOxide,
                   )}
                   {renderFertilizerEmissions(
                     fertilizers.manure,
                     fieldInput,
                     "Mest",
                     "nitrous_oxide.fertilizers.manure",
-                    UNIT_N2O,
+                    formatNitrousOxide,
                   )}
                   {renderFertilizerEmissions(
                     fertilizers.compost,
                     fieldInput,
                     "Compost",
                     "nitrous_oxide.fertilizers.compost",
-                    UNIT_N2O,
+                    formatNitrousOxide,
                   )}
                   {renderFertilizerEmissions(
                     fertilizers.other,
                     fieldInput,
                     "Overig",
                     "nitrous_oxide.fertilizers.other",
-                    UNIT_N2O,
+                    formatNitrousOxide,
                   )}
                 </Accordion>
               </AccordionContent>
@@ -554,27 +548,28 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
               nitrousOxide.residues,
               fieldInput,
               "nitrous_oxide.residues",
-              UNIT_N2O,
+              formatNitrousOxide,
+              "Gewasresten",
             )}
             <AccordionItem value="nitrous_oxide.soil">
               <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
-                Bodem (veen en moerige klei): {formatNitrousOxide(nitrousOxide.soil.total)}{" "}
-                {UNIT_N2O}
+                Bodem (veen en moerige klei): {formatNitrousOxide(nitrousOxide.soil.total)} kg N /
+                ha
               </p>
             </AccordionItem>
             <AccordionItem value="nitrous_oxide.indirect">
               <AccordionTrigger>
-                Indirect (Totaal): {formatNitrousOxide(nitrousOxide.indirect.total)} {UNIT_N2O}
+                Indirect (Totaal): {formatNitrousOxide(nitrousOxide.indirect.total)} kg N / ha
               </AccordionTrigger>
               <AccordionContent>
                 <ul className="ml-6 list-outside list-disc space-y-1">
                   <li className="text-muted-foreground text-sm">
-                    Via vervluchtiging (NH₃):{" "}
-                    {formatNitrousOxide(nitrousOxide.indirect.volatilisation)} {UNIT_N2O}
+                    Nitrificatie en denitrificatie na ammoniakdepositie:{" "}
+                    {formatNitrousOxide(nitrousOxide.indirect.volatilisation)} kg N / ha
                   </li>
                   <li className="text-muted-foreground text-sm">
-                    Via uitspoeling (nitraat): {formatNitrousOxide(nitrousOxide.indirect.leaching)}{" "}
-                    {UNIT_N2O}
+                    Denitrificatie van uitgespoeld nitraat:{" "}
+                    {formatNitrousOxide(nitrousOxide.indirect.leaching)} kg N / ha
                   </li>
                 </ul>
               </AccordionContent>
@@ -598,6 +593,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
           <Accordion multiple className="ml-4">
             {renderNitrateEmissions(emission.nitrate)}
           </Accordion>
+          <Accordion multiple className="ml-4">
+            {renderNitrousOxide(emission.nitrous_oxide, fieldInput)}
+          </Accordion>
         </AccordionContent>
       </AccordionItem>
     )
@@ -609,8 +607,6 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
         {renderSupply(balanceData.supply, fieldInput)}
         {renderRemoval(balanceData.removal, fieldInput)}
         {renderEmission(balanceData.emission, fieldInput)}
-        {/* N₂O is not part of the balance, so it is shown outside the total emission */}
-        {renderNitrousOxide(balanceData.emission.nitrous_oxide, fieldInput)}
       </Accordion>
     </div>
   )

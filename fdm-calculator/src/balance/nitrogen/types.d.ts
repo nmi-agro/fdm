@@ -340,7 +340,7 @@ export type NitrogenEmissionNitrate = {
  * Emission Model for Agriculture (NEMA).
  *
  * The N₂O emission is an indicator and is not part of the nitrogen balance or of `NitrogenEmission.total`.
- * Emissions are in kilograms of N₂O-N per hectare (kg N₂O-N / ha) and negative, like the other nitrogen
+ * Emissions are in kilograms of nitrogen per hectare (kg N / ha, as N₂O-N) and negative, like the other nitrogen
  * losses. The CO₂-equivalent is in kilograms of CO₂-equivalent per hectare (kg CO₂-eq / ha) and positive.
  */
 export type NitrogenEmissionNitrousOxide = {
@@ -378,7 +378,7 @@ export type NitrogenEmissionNitrousOxide = {
 
 /**
  * Represents the area-weighted average nitrous oxide (N₂O) emission of a farm.
- * Emissions are in kg N₂O-N / ha and negative; the CO₂-equivalent is in kg CO₂-eq / ha and positive.
+ * Emissions are in kg N / ha (as N₂O-N) and negative; the CO₂-equivalent is in kg CO₂-eq / ha and positive.
  */
 export type NitrogenEmissionNitrousOxideFarm = {
   total: Decimal

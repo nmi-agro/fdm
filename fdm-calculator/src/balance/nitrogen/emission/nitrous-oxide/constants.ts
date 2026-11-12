@@ -5,7 +5,7 @@
  * Van der Most, M., C. van Bruggen et al. (2025). Emissies naar lucht uit de landbouw berekend met
  * NEMA voor 1990-2023. WOT-technical report 283, WOT Natuur & Milieu, Wageningen.
  *
- * Emission factors are fractions: kg N₂O-N per kg N.
+ * Emission factors are fractions: kg N emitted as N₂O-N per kg N.
  */
 
 /**
@@ -61,7 +61,7 @@ export const EF_N2O_OTHER_ORGANIC = 0.004
 export const EF_N2O_CROP_RESIDUES = 0.01
 
 /**
- * Yearly emission from the mineralisation of organic soils, in kg N₂O-N per ha per year
+ * Yearly emission from the mineralisation of organic soils, in kg N (as N₂O-N) per ha per year
  * (NEMA WOT-283, section 3.4):
  * - peat (`veen`): 233.5 kg N mineralised × 0.02 = 4.67
  * - peaty soil (`moerige_klei`, NEMA "moerige grond"): 204.5 kg N mineralised × 0.02 = 4.09
@@ -83,7 +83,7 @@ export const EF_N2O_INDIRECT_VOLATILISATION = 0.01
 export const EF_N2O_INDIRECT_LEACHING = 0.0075
 
 /**
- * Conversion from kg N₂O-N to kg N₂O (molar masses: 44 / 28).
+ * Conversion from kg N (as N₂O-N) to kg N₂O (molar masses: 44 / 28).
  */
 export const N2O_N_TO_N2O = 44 / 28
 
