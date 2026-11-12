@@ -336,6 +336,66 @@ export type NitrogenEmissionNitrate = {
 }
 
 /**
+ * Represents the nitrous oxide (N₂O) emission of a field, calculated according to the Dutch National
+ * Emission Model for Agriculture (NEMA).
+ *
+ * The N₂O emission is an indicator and is not part of the nitrogen balance or of `NitrogenEmission.total`.
+ * Emissions are in kilograms of N₂O-N per hectare (kg N₂O-N / ha) and negative, like the other nitrogen
+ * losses. The CO₂-equivalent is in kilograms of CO₂-equivalent per hectare (kg CO₂-eq / ha) and positive.
+ */
+export type NitrogenEmissionNitrousOxide = {
+  /**
+   * The total N₂O emission: fertilizers, crop residues, soil and indirect emission.
+   */
+  total: Decimal
+  /**
+   * The direct N₂O emission from fertilizer applications, by type of fertilizer and per application.
+   */
+  fertilizers: {
+    total: Decimal
+    mineral: { total: Decimal; applications: { id: string; value: Decimal }[] }
+    manure: { total: Decimal; applications: { id: string; value: Decimal }[] }
+    compost: { total: Decimal; applications: { id: string; value: Decimal }[] }
+    other: { total: Decimal; applications: { id: string; value: Decimal }[] }
+  }
+  /**
+   * The direct N₂O emission from the nitrogen in the above-ground crop residues left on the field, per cultivation.
+   */
+  residues: { total: Decimal; cultivations: { id: string; value: Decimal }[] }
+  /**
+   * The direct N₂O emission from the mineralisation of peat and peaty soils.
+   */
+  soil: { total: Decimal }
+  /**
+   * The indirect N₂O emission from the nitrogen lost by ammonia volatilisation and by nitrate leaching.
+   */
+  indirect: { total: Decimal; volatilisation: Decimal; leaching: Decimal }
+  /**
+   * The total N₂O emission expressed as CO₂-equivalent (kg CO₂-eq / ha), positive.
+   */
+  co2eq: Decimal
+}
+
+/**
+ * Represents the area-weighted average nitrous oxide (N₂O) emission of a farm.
+ * Emissions are in kg N₂O-N / ha and negative; the CO₂-equivalent is in kg CO₂-eq / ha and positive.
+ */
+export type NitrogenEmissionNitrousOxideFarm = {
+  total: Decimal
+  fertilizers: {
+    total: Decimal
+    mineral: Decimal
+    manure: Decimal
+    compost: Decimal
+    other: Decimal
+  }
+  residues: Decimal
+  soil: Decimal
+  indirect: { total: Decimal; volatilisation: Decimal; leaching: Decimal }
+  co2eq: Decimal
+}
+
+/**
  * Represents the total nitrogen emitted for a field, specifically through ammonia emissions and nitrate leaching.
  * All values are in kilograms of nitrogen per hectare (kg N / ha).
  */
@@ -349,6 +409,10 @@ export type NitrogenEmission = {
    * The total amount of nitrogen leached as nitrate.
    */
   nitrate: NitrogenEmissionNitrate
+  /**
+   * The nitrous oxide (N₂O) emission. Not included in `total`, as it is not part of the nitrogen balance.
+   */
+  nitrous_oxide: NitrogenEmissionNitrousOxide
 }
 
 /**
@@ -436,6 +500,10 @@ export type NitrogenBalance = {
       residues: Decimal
     }
     nitrate: Decimal
+    /**
+     * The area-weighted average nitrous oxide (N₂O) emission. Not included in `total`.
+     */
+    nitrous_oxide: NitrogenEmissionNitrousOxideFarm
   }
   /**
    * The average target value for the nitrogen balance for all the fields
@@ -520,7 +588,7 @@ export type FertilizerDetail = Pick<
   | "p_type"
   // | "p_inhibitor" // TODO: implement inhibitor types
 > &
-  Partial<Pick<Fertilizer, "p_n_wc">> // Nitrogen working coefficient (-); used with `useEffectiveNitrogen`
+  Partial<Pick<Fertilizer, "p_n_wc" | "p_type_rvo">> // Nitrogen working coefficient (-), used with `useEffectiveNitrogen`; RVO fertilizer type, used for the N₂O emission of sewage sludge
 
 /**
  * Represents the overall input structure required for nitrogen balance calculation for an entire farm.
@@ -657,11 +725,44 @@ export type NitrogenEmissionAmmoniaNumeric = {
   grazing: undefined
 }
 
+// Numeric version of NitrogenEmissionNitrousOxide
+export type NitrogenEmissionNitrousOxideNumeric = {
+  total: number
+  fertilizers: {
+    total: number
+    mineral: { total: number; applications: { id: string; value: number }[] }
+    manure: { total: number; applications: { id: string; value: number }[] }
+    compost: { total: number; applications: { id: string; value: number }[] }
+    other: { total: number; applications: { id: string; value: number }[] }
+  }
+  residues: { total: number; cultivations: { id: string; value: number }[] }
+  soil: { total: number }
+  indirect: { total: number; volatilisation: number; leaching: number }
+  co2eq: number
+}
+
+// Numeric version of NitrogenEmissionNitrousOxideFarm
+export type NitrogenEmissionNitrousOxideFarmNumeric = {
+  total: number
+  fertilizers: {
+    total: number
+    mineral: number
+    manure: number
+    compost: number
+    other: number
+  }
+  residues: number
+  soil: number
+  indirect: { total: number; volatilisation: number; leaching: number }
+  co2eq: number
+}
+
 // Numeric version of NitrogenEmission
 export type NitrogenEmissionNumeric = {
   total: number
   ammonia: NitrogenEmissionAmmoniaNumeric
   nitrate: { total: number }
+  nitrous_oxide: NitrogenEmissionNitrousOxideNumeric
 }
 
 // Numeric version of NitrogenBalanceField
@@ -720,6 +821,7 @@ export type NitrogenBalanceNumeric = {
       residues: number
     }
     nitrate: number
+    nitrous_oxide: NitrogenEmissionNitrousOxideFarmNumeric
   }
   target: number
   fields: NitrogenBalanceFieldResultNumeric[]

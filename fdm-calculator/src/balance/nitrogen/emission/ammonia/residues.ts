@@ -1,6 +1,6 @@
-import type { HarvestableAnalysis } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type { CultivationDetail, FieldInput, NitrogenEmissionAmmoniaResidues } from "../../types"
+import { calculateNitrogenInCropResiduesLeft } from "../crop-residues"
 
 /**
  * Calculates the amount of Nitrogen volatilized via ammonia emissions from crop residues.
@@ -33,51 +33,13 @@ export function calculateNitrogenEmissionViaAmmoniaByResidues(
       )
     }
 
-    // If no crop residues are left or if this is not know return 0 for the amount of Nitrogen volatilized by crop residues
-    if (!cultivation.m_cropresidue) {
-      return {
-        id: cultivation.b_lu,
-        value: new Decimal(0),
-      }
-    }
-
-    // Get the (total) yield for this crop and number of harvests
-    let totalYield = new Decimal(0)
-    let harvestCount = 0
-    let b_lu_yield: Decimal
-    for (const harvest of harvests.filter((h) => h.b_lu === cultivation.b_lu)) {
-      let yieldForThisHarvest = new Decimal(cultivationDetail.b_lu_yield ?? 0)
-      if (
-        harvest.harvestable?.harvestable_analyses &&
-        harvest.harvestable.harvestable_analyses.length > 0
-      ) {
-        // Prioritize the specific yield if available
-        const analysisWithYield = harvest.harvestable.harvestable_analyses.find(
-          (analysis: HarvestableAnalysis) => analysis.b_lu_yield !== undefined,
-        )
-        if (analysisWithYield) {
-          yieldForThisHarvest = new Decimal(analysisWithYield.b_lu_yield ?? 0)
-        }
-      }
-
-      totalYield = totalYield.add(yieldForThisHarvest)
-      harvestCount++
-    }
-
-    // Get the average yield for the cultivation
-    if (harvestCount === 0) {
-      // Return default yield from cultivation catalogue
-      b_lu_yield = new Decimal(cultivationDetail.b_lu_yield ?? 0)
-    } else {
-      b_lu_yield = totalYield.dividedBy(harvestCount)
-    }
-
-    // Get the harvest index for crop residues
-    const b_lu_hi = new Decimal(cultivationDetail.b_lu_hi ?? 0)
-    const b_lu_hi_res = new Decimal(1).minus(b_lu_hi)
-
-    // If cultivation has no residues possible return 0
-    if (b_lu_hi.isZero()) {
+    // Get the amount of nitrogen in the crop residues left on the field
+    const residueNitrogen = calculateNitrogenInCropResiduesLeft(
+      cultivation,
+      harvests,
+      cultivationDetail,
+    )
+    if (residueNitrogen.isZero()) {
       return {
         id: cultivation.b_lu,
         value: new Decimal(0),
@@ -96,13 +58,7 @@ export function calculateNitrogenEmissionViaAmmoniaByResidues(
     }
 
     // Calculate the amount of Nitrogen volatilized by crop residues of this cultivation
-    const removal = b_lu_yield
-      .dividedBy(b_lu_hi)
-      .times(b_lu_hi_res)
-      .times(b_lu_n_residue)
-      .times(emissionFactor)
-      .dividedBy(new Decimal(1000)) // Convert from g N / ha to kg N / ha
-      .times(-1) // Return negative value
+    const removal = residueNitrogen.times(emissionFactor).times(-1) // Return negative value
 
     return {
       id: cultivation.b_lu,
