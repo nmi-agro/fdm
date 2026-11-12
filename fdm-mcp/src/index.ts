@@ -22,6 +22,29 @@ import { SERVER_VERSION } from "./version"
 /** Path of the MCP endpoint. */
 export const MCP_PATH = "/mcp"
 
+/**
+ * Paths where MCP clients look for OAuth sign-in: the metadata documents and the default endpoints
+ * of an authorization server. A client tries them after a 401 without an API key.
+ */
+const OAUTH_PATHS = [
+  "/.well-known/oauth-protected-resource",
+  "/.well-known/oauth-protected-resource/*",
+  "/.well-known/oauth-authorization-server",
+  "/.well-known/oauth-authorization-server/*",
+  "/.well-known/openid-configuration",
+  "/.well-known/openid-configuration/*",
+  "/register",
+  "/authorize",
+  "/token",
+]
+
+/**
+ * Shown by MCP clients that try OAuth sign-in, so the user learns that an API key is missing
+ * instead of seeing a generic "does not exist".
+ */
+export const OAUTH_NOT_SUPPORTED =
+  "This server does not support OAuth sign-in yet. Connect with an API key instead: create one in the web app (Account → API-sleutels) and send it in the X-API-Key header."
+
 /** Largest request body the MCP endpoint accepts: 5 MB, the same as the REST API. */
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 
@@ -163,6 +186,13 @@ export function createFdmMcp(
     }),
   )
   app.get("/health", (c) => c.json({ status: "ok" }))
+  // Still 404, the answer a client expects when a server has no OAuth, but with a message that
+  // tells the user what to do.
+  for (const path of OAUTH_PATHS) {
+    app.all(path, () => {
+      throw new ApiError(404, "not-found", OAUTH_NOT_SUPPORTED)
+    })
+  }
 
   app.use(
     MCP_PATH,
