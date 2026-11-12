@@ -2,9 +2,9 @@ import { ArrowLeft, CheckCircle2, Info } from "lucide-react"
 import { useMemo } from "react"
 import { NavLink, useLocation } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
+import { buttonVariants } from "~/components/ui/button"
 import { FieldFilterToggle } from "../../custom/field-filter-toggle"
 import { SidebarPage } from "../../custom/sidebar-page"
-import { Button } from "../../ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../../ui/card"
 
 export function NewFieldsSidebar({
@@ -74,18 +74,18 @@ export function NewFieldsSidebar({
         </CardContent>
         <CardFooter className="relative flex flex-col items-center space-y-2">
           {/* <Separator /> */}
-          <Button variant={"link"} asChild>
-            <NavLink
-              to={
-                isFarmCreateWizard
-                  ? `/farm/create/${b_id_farm}/${calendar}/atlas`
-                  : `/farm/${b_id_farm}/${calendar}/field/new`
-              }
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Terug naar kaart
-            </NavLink>
-          </Button>
+          <NavLink
+            to={
+              isFarmCreateWizard
+                ? `/farm/create/${b_id_farm}/${calendar}/atlas`
+                : `/farm/${b_id_farm}/${calendar}/field/new`
+            }
+            className={buttonVariants({ variant: "link" })}
+            data-slot="button"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Terug naar kaart
+          </NavLink>
         </CardFooter>
       </Card>
     </aside>

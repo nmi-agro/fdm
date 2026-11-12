@@ -6,6 +6,7 @@ import type {
   FieldInput,
   OrganicMatterBalanceInput,
 } from "./types"
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import { calculateOrganicMatterBalance } from "./index"
 
 // Mock FdmType
@@ -85,15 +86,14 @@ function generateMockData(numberOfFields: number): OrganicMatterBalanceInput {
       },
     ]
 
-    const soilAnalyses: FieldInput["soilAnalyses"] = [
+    const currentSoilData = currentSoilDataFixture(
       {
-        a_id: `sa-${fieldId}-1`,
-        b_sampling_date: new Date(2023, 2, 1),
         a_som_loi: Math.random() * 2 + 3, // 3-5%
         a_density_sa: Math.random() * 0.5 + 1.2, // 1.2-1.7
         b_soiltype_agr: "zand",
       },
-    ]
+      { a_id: `sa-${fieldId}-1`, b_sampling_date: new Date(2023, 2, 1) },
+    )
 
     const fertilizerApplications: FieldInput["fertilizerApplications"] = [
       {
@@ -111,7 +111,7 @@ function generateMockData(numberOfFields: number): OrganicMatterBalanceInput {
     fields.push({
       field,
       cultivations,
-      soilAnalyses,
+      currentSoilData,
       fertilizerApplications,
     })
   }

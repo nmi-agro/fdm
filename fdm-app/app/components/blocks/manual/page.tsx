@@ -32,9 +32,7 @@ export function ManualBreadcrumb({ items }: { items: { href?: string; title: str
             {index > 0 ? <BreadcrumbSeparator /> : null}
             <BreadcrumbItem>
               {item.href ? (
-                <BreadcrumbLink asChild>
-                  <Link to={item.href}>{item.title}</Link>
-                </BreadcrumbLink>
+                <BreadcrumbLink render={<Link to={item.href}>{item.title}</Link>} />
               ) : (
                 <BreadcrumbPage>{item.title}</BreadcrumbPage>
               )}

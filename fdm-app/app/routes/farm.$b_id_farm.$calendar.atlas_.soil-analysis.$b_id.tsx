@@ -1,11 +1,11 @@
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { MapIcon } from "lucide-react"
-import { NavLink, Outlet, useLoaderData } from "react-router"
+import { data, NavLink, Outlet, useLoaderData } from "react-router"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -19,10 +19,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     const { b_id_farm, calendar, b_id } = params
     const timeframe = getTimeframe(params)
 
-    // Get the fields to be selected
+    // Get the fields to be selected. The requested field may be missing when it is not part of
+    // this farm in the selected year (e.g. after switching the calendar): answer with a 404
+    // instead of an unexpected error.
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
     if (!fields.some((field) => field.b_id === b_id)) {
-      throw new Error(`Field ${b_id} does not belong to this farm.`)
+      throw data("Field is not found", {
+        status: 404,
+        statusText: "Field is not found",
+      })
     }
     const fieldOptions = fields.map((field) => {
       if (!field?.b_id || !field?.b_name) {
@@ -76,12 +81,14 @@ export default function AtlasSoilAnalysisFieldDetailLayout() {
       <main className="p-6">
         <Outlet />
         <div className="fixed right-6 bottom-6 z-50">
-          <Button asChild size="lg" className="rounded-full shadow-lg">
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}>
-              <MapIcon className="mr-2 h-4 w-4" />
-              Terug naar kaart
-            </NavLink>
-          </Button>
+          <NavLink
+            to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}
+            className={buttonVariants({ size: "lg", className: "rounded-full shadow-lg" })}
+            data-slot="button"
+          >
+            <MapIcon className="mr-2 h-4 w-4" />
+            Terug naar kaart
+          </NavLink>
         </div>
       </main>
     </SidebarInset>

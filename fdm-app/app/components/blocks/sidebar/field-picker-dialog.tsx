@@ -2,7 +2,7 @@ import { Plus } from "lucide-react"
 import { NavLink } from "react-router"
 import type { FieldOption } from "~/lib/hoofdteelt.server"
 import { FieldPickerItem } from "~/components/blocks/header/field-picker"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -85,12 +85,14 @@ export function FieldPickerDialog({
           </TooltipProvider>
         ) : (
           <div className="flex flex-col gap-4 p-6 pt-2">
-            <Button asChild className="w-full">
-              <NavLink to={createFieldLink}>
-                <Plus />
-                <span>Nieuw perceel aanmaken</span>
-              </NavLink>
-            </Button>
+            <NavLink
+              to={createFieldLink}
+              className={buttonVariants({ className: "w-full" })}
+              data-slot="button"
+            >
+              <Plus />
+              <span>Nieuw perceel aanmaken</span>
+            </NavLink>
           </div>
         )}
       </DialogContent>

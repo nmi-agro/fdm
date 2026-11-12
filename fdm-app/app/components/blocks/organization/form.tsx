@@ -119,7 +119,13 @@ export function OrganizationSettingsForm({
   return (
     <Card className={className}>
       <RemixFormProvider {...form}>
-        <fetcher.Form ref={formRef} action={action} method={method} onSubmit={form.handleSubmit}>
+        <fetcher.Form
+          ref={formRef}
+          action={action}
+          method={method}
+          onSubmit={form.handleSubmit}
+          className="flex flex-col gap-6"
+        >
           <CardHeader>
             <CardTitle>Organisatiegegevens</CardTitle>
             <CardDescription>Voer de gegevens van je organisatie in.</CardDescription>

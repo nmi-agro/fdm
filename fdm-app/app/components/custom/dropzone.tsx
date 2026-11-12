@@ -1,11 +1,11 @@
 "use client"
 
 import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react"
+import { cn } from "cn"
 import { X } from "lucide-react"
 import { createContext, useContext, useEffect, useId, useRef, useState } from "react"
 import { toast as notify } from "sonner"
 import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 
 type DropzoneContextType = {
   files?: File[]

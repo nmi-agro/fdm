@@ -1,6 +1,6 @@
+import { cn } from "cn"
 import { useState } from "react"
 import { useFetcher } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"

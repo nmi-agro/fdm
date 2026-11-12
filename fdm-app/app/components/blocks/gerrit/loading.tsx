@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import {
   AlertTriangle,
   BookOpenText,
@@ -27,7 +28,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Marker, MarkerContent, MarkerIcon } from "~/components/ui/marker"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 
 interface StreamEvent {
   type: string
@@ -238,7 +238,7 @@ export function GerritLoading({
   const elapsedStr = elapsed >= 60 ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s` : `${elapsed}s`
 
   return (
-    <Card className="flex flex-col shadow-sm">
+    <Card className="flex flex-col gap-0 pb-0 shadow-sm">
       <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center justify-between text-base font-semibold">
           <span className="flex items-center gap-2">
@@ -439,35 +439,37 @@ function GerritReasoning({
         <MarkerContent className="min-w-0 flex-1">
           <Collapsible className="group italic">
             {/* Collapsed view: Line 1 + Toon meer + statusNode */}
-            <div className="space-y-1 group-data-[state=open]:hidden">
+            <div className="space-y-1 group-data-open:hidden">
               <span className="line-clamp-2">{plain[firstLineIndex]}</span>
               <div className="flex items-center gap-1.5 text-xs">
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="link"
-                    className="h-auto p-0 text-xs leading-none font-medium"
-                    onClick={() => {
-                      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-                      timeoutRef.current = setTimeout(() => {
-                        const element = bottomRef.current
-                        const scrollElement = scrollRef.current
+                <CollapsibleTrigger
+                  render={
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-xs leading-none font-medium"
+                      onClick={() => {
+                        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+                        timeoutRef.current = setTimeout(() => {
+                          const element = bottomRef.current
+                          const scrollElement = scrollRef.current
 
-                        if (element && scrollElement) {
-                          const containerBottom = scrollElement.getBoundingClientRect().bottom
-                          const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
-                          if (
-                            myBottom > containerBottom &&
-                            containerBottom + AUTO_SCROLL_THRESHOLD > myTop
-                          ) {
-                            element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                          if (element && scrollElement) {
+                            const containerBottom = scrollElement.getBoundingClientRect().bottom
+                            const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
+                            if (
+                              myBottom > containerBottom &&
+                              containerBottom + AUTO_SCROLL_THRESHOLD > myTop
+                            ) {
+                              element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                            }
                           }
-                        }
-                      }, 50)
-                    }}
-                  >
-                    Toon meer
-                  </Button>
-                </CollapsibleTrigger>
+                        }, 50)
+                      }}
+                    >
+                      Toon meer
+                    </Button>
+                  }
+                />
                 {statusNode}
               </div>
             </div>
@@ -480,11 +482,13 @@ function GerritReasoning({
                 </p>
               ))}
               <div className="flex items-center gap-1.5 pt-1 text-xs">
-                <CollapsibleTrigger asChild>
-                  <Button variant="link" className="h-auto p-0 text-xs leading-none font-medium">
-                    Toon minder
-                  </Button>
-                </CollapsibleTrigger>
+                <CollapsibleTrigger
+                  render={
+                    <Button variant="link" className="h-auto p-0 text-xs leading-none font-medium">
+                      Toon minder
+                    </Button>
+                  }
+                />
                 {statusNode}
               </div>
             </CollapsibleContent>

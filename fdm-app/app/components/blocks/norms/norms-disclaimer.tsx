@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronUp, Info } from "lucide-react"
 import { useState } from "react"
 import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { cn } from "~/lib/utils"
 
 interface NormsDisclaimerProps {
   calendar?: string
@@ -30,20 +30,22 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
 
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center">
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-foreground/80 hover:bg-muted/80 hover:text-foreground -ml-1.5 h-6 px-1.5 text-xs font-medium"
-                >
-                  <span>Niet-ondersteunde situaties</span>
-                  {isOpen ? (
-                    <ChevronUp className="ml-1 h-3 w-3 opacity-70" />
-                  ) : (
-                    <ChevronDown className="ml-1 h-3 w-3 opacity-70" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-foreground/80 hover:bg-muted/80 hover:text-foreground -ml-1.5 h-6 px-1.5 text-xs font-medium"
+                  >
+                    <span>Niet-ondersteunde situaties</span>
+                    {isOpen ? (
+                      <ChevronUp className="ml-1 h-3 w-3 opacity-70" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-3 w-3 opacity-70" />
+                    )}
+                  </Button>
+                }
+              />
             </div>
 
             <CollapsibleContent className="pt-2.5">
