@@ -27,7 +27,7 @@ export interface McpGuideSection {
   /** Numbered steps. Text between backticks is shown as code. */
   steps?: string[]
   code?: McpCodeSnippet
-  /** A remark after the steps or the snippet, such as a warning. */
+  /** A remark after the steps or the snippet, such as a warning. Text between backticks is shown as code. */
   note?: string
 }
 
@@ -54,15 +54,36 @@ export interface McpClientGuides {
   developer: McpClientGuide[]
 }
 
+/** Name of the environment variable that holds the API key in the snippets that read it from there. */
+export const MCP_KEY_ENV_VAR = "FDM_API_KEY"
+
+/**
+ * Returns the configured origin of the MCP server, without a trailing slash.
+ *
+ * @param mcpUrl - The configured origin of the MCP server (`PUBLIC_FDM_MCP_URL`).
+ * @returns For example `https://mcp.example.org`, or `undefined` when no MCP server is configured
+ *   or the configured value is not an `http` or `https` address.
+ */
+export function getMcpOrigin(mcpUrl: string | undefined): string | undefined {
+  const origin = normalizeOrigin(mcpUrl)
+  if (!origin) return undefined
+  try {
+    const { protocol } = new URL(origin)
+    return protocol === "http:" || protocol === "https:" ? origin : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Returns the address of the MCP endpoint of this deployment.
  *
  * @param mcpUrl - The configured origin of the MCP server (`PUBLIC_FDM_MCP_URL`).
  * @returns For example `https://mcp.example.org/mcp`, or `undefined` when no MCP server is configured
- *   or the configured value is not a valid address.
+ *   or the configured value is not an `http` or `https` address.
  */
 export function getMcpEndpoint(mcpUrl: string | undefined): string | undefined {
-  const origin = normalizeOrigin(mcpUrl)
+  const origin = getMcpOrigin(mcpUrl)
   return origin ? `${origin}/mcp` : undefined
 }
 
@@ -81,6 +102,17 @@ export function getMcpServerName(appName: string): string {
     .filter(Boolean)
     .join("-")
   return name || "fdm"
+}
+
+/**
+ * Explains that a command stores only the name of the environment variable, so the variable must
+ * be set wherever the program runs.
+ *
+ * @param program - The program that reads the variable, such as "Codex".
+ * @returns The note.
+ */
+function envVarNote(program: string): string {
+  return `Het commando slaat alleen de naam van de variabele op. Zet \`${MCP_KEY_ENV_VAR}\` daarom vast in je omgeving, bijvoorbeeld in je shellprofiel, zodat ${program} de sleutel ook vindt als je het later of vanuit je editor start.`
 }
 
 /**
@@ -112,7 +144,7 @@ export function getMcpClientGuides({
         `Voeg onder "Request headers" de header \`${MCP_KEY_HEADER}\` toe, met je sleutel als waarde.`,
         "Sla op en zet de connector aan in een gesprek.",
       ],
-      note: "Gebruik je Claude Team of Enterprise? Voeg de connector dan niet toe voor de hele organisatie met je eigen sleutel: dan werkt iedereen in de organisatie met jouw gegevens en rechten. Laat iedereen de connector zelf toevoegen, met een eigen sleutel.",
+      note: 'Gebruik je Claude Team of Enterprise? Dan kan alleen de beheerder van je organisatie een connector toevoegen, en die stuurt voor iedereen dezelfde sleutel mee. Iedereen werkt dan met de gegevens en rechten van één persoon, dus doe dat niet. Koppel in plaats daarvan met een eigen sleutel via Claude Desktop met een configuratiebestand (zie "Andere programma\'s" onder "Voor ontwikkelaars en lokale modellen") of via Claude Code.',
     },
     unsupported: [
       {
@@ -127,18 +159,23 @@ export function getMcpClientGuides({
         sections: [
           {
             title: "Claude Code",
+            intro: `Zet je sleutel in de omgevingsvariabele \`${MCP_KEY_ENV_VAR}\` en voer uit:`,
             code: {
               language: "bash",
-              text: `claude mcp add --transport http ${name} ${endpoint} --header "${MCP_KEY_HEADER}: ${key}"`,
+              // Single quotes keep the variable out of the shell, so the key itself is not stored
+              // in the configuration or the shell history; Claude Code reads it when it starts.
+              text: `claude mcp add --transport http ${name} ${endpoint} --header '${MCP_KEY_HEADER}: \${${MCP_KEY_ENV_VAR}}'`,
             },
+            note: envVarNote("Claude Code"),
           },
           {
             title: "Codex (CLI of IDE)",
-            intro: "Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en voer uit:",
+            intro: `Zet je sleutel in de omgevingsvariabele \`${MCP_KEY_ENV_VAR}\` en voer uit:`,
             code: {
               language: "bash",
-              text: `codex mcp add ${name} --url ${endpoint} --bearer-token-env-var FDM_API_KEY`,
+              text: `codex mcp add ${name} --url ${endpoint} --bearer-token-env-var ${MCP_KEY_ENV_VAR}`,
             },
+            note: envVarNote("Codex"),
           },
         ],
       },
@@ -198,11 +235,29 @@ export function getMcpClientGuides({
         sections: [
           {
             title: "Programma's die alleen stdio ondersteunen",
-            intro: `Gebruik \`mcp-remote\` als tussenstap, met je sleutel in de omgevingsvariabele \`FDM_API_KEY\`. Alles gaat dan nog steeds via de koppeling van ${appName}; het programma krijgt geen toegang tot de database.`,
+            intro: `Gebruik \`mcp-remote\` als tussenstap. Zet dit in het configuratiebestand van je programma, zoals \`claude_desktop_config.json\` van Claude Desktop, en pas het zo nodig aan. Alles gaat dan nog steeds via de koppeling van ${appName}; het programma krijgt geen toegang tot de database.`,
             code: {
-              language: "bash",
-              text: `npx mcp-remote ${endpoint} --header "${MCP_KEY_HEADER}:\${FDM_API_KEY}"`,
+              language: "json",
+              text: JSON.stringify(
+                {
+                  mcpServers: {
+                    [name]: {
+                      command: "npx",
+                      args: [
+                        "mcp-remote",
+                        endpoint,
+                        "--header",
+                        `${MCP_KEY_HEADER}:\${${MCP_KEY_ENV_VAR}}`,
+                      ],
+                      env: { [MCP_KEY_ENV_VAR]: key },
+                    },
+                  },
+                },
+                null,
+                2,
+              ),
             },
+            note: `mcp-remote vult de sleutel zelf in vanuit \`env\`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien.`,
           },
         ],
       },

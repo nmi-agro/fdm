@@ -57,7 +57,7 @@ Each tool carries annotations so that clients can decide when to ask the user fo
 | Annotation        | Set on                      |
 | ----------------- | --------------------------- |
 | `readOnlyHint`    | tools that only read        |
-| `destructiveHint` | tools that delete           |
+| `destructiveHint` | tools that update or delete |
 | `idempotentHint`  | reads, updates and deletes  |
 | `openWorldHint`   | tools that call the NMI API |
 
@@ -71,4 +71,4 @@ On connect, the server gives the model instructions: look data up before changin
 
 ## Logging and analytics
 
-Logs and Sentry record only the tool name, outcome and duration, never arguments or results. When PostHog is configured, the server sends [PostHog MCP analytics](https://posthog.com/docs/mcp-analytics) per user: the tool, client, latency, outcome, the reason the assistant gives for a call, and reports of missing tools (`get_more_tools`). Tool arguments, results and error messages are removed before events are sent.
+Logs record the tool name, outcome and duration of every call, never its arguments or result. An unexpected failure is logged and sent to Sentry with its error and stack trace, which can contain values of the failed call, such as a farm name. When PostHog is configured, the server sends [PostHog MCP analytics](https://posthog.com/docs/mcp-analytics) per user: the tool, client, latency, outcome, the reason the assistant gives for a call, and reports of missing tools (`get_more_tools`). Tool arguments, results and error messages are removed before events are sent. The reason is free text written by the assistant and is sent as it is, so it can contain names of farms, fields or people from the conversation.

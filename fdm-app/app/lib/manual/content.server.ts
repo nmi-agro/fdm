@@ -1,5 +1,6 @@
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
+import { getMcpOrigin, getMcpServerName } from "~/lib/mcp-clients"
 import { type ManualToken, substituteTokens } from "./markdown"
 import {
   type ManualKind,
@@ -191,7 +192,8 @@ export function toManualPageView(page: ManualPage, tokens: ManualTokens): Manual
 
 /**
  * Returns the deployment settings the manual needs: the token values that replace `{{appName}}`,
- * `{{appUrl}}`, `{{apiDocsUrl}}` and `{{mcpUrl}}`, and the SEO context for metadata.
+ * `{{appUrl}}`, `{{apiDocsUrl}}`, `{{mcpUrl}}` and `{{mcpServerName}}`, and the SEO context for
+ * metadata.
  */
 export function getManualContext(): { tokens: ManualTokens; seo: ManualSeoContext } {
   const origin = normalizeOrigin(serverConfig.url)
@@ -206,7 +208,10 @@ export function getManualContext(): { tokens: ManualTokens; seo: ManualSeoContex
       apiDocsUrl: apiUrl ? `${apiUrl}/docs` : API_GUIDE_URL,
       // The address of this deployment's MCP server for AI assistants; a placeholder when it
       // has none, so the setup steps still read correctly.
-      mcpUrl: normalizeOrigin(clientConfig.mcpUrl) || MCP_URL_PLACEHOLDER,
+      mcpUrl: getMcpOrigin(clientConfig.mcpUrl) ?? MCP_URL_PLACEHOLDER,
+      // The connection name in command-line tools, which do not accept spaces; the same name as
+      // on the page "AI-assistenten".
+      mcpServerName: getMcpServerName(appName),
     },
     seo: { origin, appName, indexing: serverConfig.seo_indexing },
   }

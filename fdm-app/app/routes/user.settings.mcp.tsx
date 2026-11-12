@@ -60,8 +60,9 @@ export default function UserSettingsMcpPage() {
                   <span className="font-medium">
                     De assistent kan gegevens wijzigen en verwijderen.
                   </span>{" "}
-                  Lees elke wijziging na voordat je die goedkeurt. Een verwijdering kun je niet
-                  ongedaan maken.
+                  Of je dat eerst moet goedkeuren, hangt af van je assistent: zet goedkeuring voor
+                  wijzigingen aan en lees elke wijziging na. Een verwijdering kun je niet ongedaan
+                  maken.
                 </li>
                 <li>
                   <span className="font-medium">

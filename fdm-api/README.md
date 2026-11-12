@@ -260,7 +260,7 @@ See [Limits & Pagination](https://nmi-agro.github.io/fdm/docs/rest-api/limits-an
 
 ## MCP server for AI assistants
 
-The same operations are available to AI assistants through the separate `fdm-mcp` service, which serves the [Model Context Protocol](https://modelcontextprotocol.io) with the same API keys, permissions and rate limits. See the [MCP server docs](https://nmi-agro.github.io/fdm/docs/mcp-server/overview) and [`fdm-mcp/README.md`](../fdm-mcp/README.md).
+Most of these operations are also available to AI assistants through the separate `fdm-mcp` service, which serves the [Model Context Protocol](https://modelcontextprotocol.io) with the same API keys, permissions and rate limits. Operations that have no use as a tool, such as file uploads and downloads, are left out; the [list of operations without a tool](https://nmi-agro.github.io/fdm/docs/mcp-server/tools#not-available-as-a-tool) gives the reason for each. See the [MCP server docs](https://nmi-agro.github.io/fdm/docs/mcp-server/overview) and [`fdm-mcp/README.md`](../fdm-mcp/README.md).
 
 ---
 

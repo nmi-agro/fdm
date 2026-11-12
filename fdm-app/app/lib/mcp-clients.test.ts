@@ -17,6 +17,11 @@ describe("getMcpEndpoint", () => {
     expect(getMcpEndpoint("")).toBeUndefined()
     expect(getMcpEndpoint("undefined")).toBeUndefined()
   })
+
+  it("returns undefined for a value that is not an http or https address", () => {
+    expect(getMcpEndpoint("not-a-url")).toBeUndefined()
+    expect(getMcpEndpoint("ftp://mcp.example.org")).toBeUndefined()
+  })
 })
 
 describe("getMcpServerName", () => {
@@ -66,6 +71,27 @@ describe("getMcpClientGuides", () => {
         snippet,
       ).toBe(true)
     }
+  })
+
+  it("keeps the key out of terminal commands, which end up in the shell history", () => {
+    const commands = allSections.flatMap((section) =>
+      section.code?.language === "bash" ? [section.code.text] : [],
+    )
+    expect(commands.length).toBeGreaterThan(0)
+    for (const command of commands) {
+      expect(command, command).not.toContain(MCP_KEY_PLACEHOLDER)
+      expect(command, command).toContain("FDM_API_KEY")
+    }
+    // Single quotes, so the shell does not replace the variable with the key.
+    expect(JSON.stringify(guides)).toContain("--header 'X-API-Key: ${FDM_API_KEY}'")
+  })
+
+  it("lets mcp-remote read the key from its environment instead of its arguments", () => {
+    const other = guides.developer.find((guide) => guide.id === "other")
+    const config = JSON.parse(other?.sections[0]?.code?.text ?? "{}")
+    const server = config.mcpServers["my-app"]
+    expect(server.args).toContain("X-API-Key:${FDM_API_KEY}")
+    expect(server.env).toEqual({ FDM_API_KEY: MCP_KEY_PLACEHOLDER })
   })
 
   it("uses a connection name without spaces in commands and configuration", () => {

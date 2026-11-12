@@ -10,7 +10,7 @@ routes:
   - user.settings.api-keys.tsx
   - user.settings.mcp.tsx
 watch:
-  - fdm-mcp/src/
+  - fdm-mcp/src/**
 keywords:
   - MCP
   - AI-assistent
@@ -23,7 +23,7 @@ keywords:
 related:
   - api
   - samenwerken
-updated: 2026-11-11
+updated: 2026-11-12
 ---
 
 Met het Model Context Protocol (MCP) koppel je een AI-assistent aan {{appName}}. Je assistent kan dan je bedrijfsgegevens opzoeken, wijzigen en doorrekenen terwijl je met hem praat. Vraag bijvoorbeeld "Welke percelen hebben dit jaar nog geen bemesting?" of "Wat is de stikstofbalans van mijn bedrijf over 2025?".
@@ -45,7 +45,8 @@ Bestanden kan de assistent (nog) niet doorgeven aan {{appName}}. Een labrapport 
 
 ## Let op {#let-op}
 
-- De assistent kan gegevens wijzigen en verwijderen. De meeste assistenten vragen je om toestemming voordat ze iets wijzigen. Lees elke wijziging na voordat je die goedkeurt. Een verwijdering kun je niet ongedaan maken.
+- De assistent kan gegevens wijzigen en verwijderen. Of je een wijziging eerst moet goedkeuren, hangt af van je assistent en zijn instellingen: {{appName}} vraagt zelf niet om goedkeuring. Zet goedkeuring voor wijzigingen aan en lees elke wijziging na voordat je die goedkeurt. Een verwijdering kun je niet ongedaan maken.
+- De assistent hoort geen gegevens te schatten of te verzinnen, zoals een perceelsgrens of een hoeveelheid, maar te vragen wat ontbreekt. Stelt hij toch een geschatte waarde voor, keur die dan niet zomaar goed.
 - Je gegevens gaan naar de aanbieder van de assistent, zoals Anthropic of OpenAI. Deel geen gegevens van klanten zonder hun toestemming, en kijk na wat je organisatie hierover heeft afgesproken.
 - Controleer adviezen. Een assistent kan zich vergissen of berekeningen verkeerd uitleggen. De berekeningen zelf komen uit {{appName}}, maar de uitleg en conclusies van de assistent niet.
 - Minder krachtige modellen maken vaker fouten. Ze kiezen vaker het verkeerde hulpmiddel of vullen gegevens verkeerd in. Dat geldt voor online assistenten en voor modellen die je zelf draait: kies een model dat goed overweg kan met hulpmiddelen (tool calling).
@@ -81,13 +82,17 @@ Doe dit op een computer, in de browser of in Claude Desktop.
 4. Voeg onder "Request headers" de header `X-API-Key` toe, met je sleutel als waarde.
 5. Sla op en zet de connector aan in een gesprek.
 
-Gebruik je Claude Team of Enterprise? Voeg de connector dan niet toe voor de hele organisatie met je eigen sleutel: dan werkt iedereen in de organisatie met jouw gegevens en rechten. Laat iedereen de connector zelf toevoegen, met een eigen sleutel.
+Gebruik je Claude Team of Enterprise? Dan kan alleen de beheerder van je organisatie een connector toevoegen, en die stuurt voor iedereen dezelfde sleutel mee. Iedereen werkt dan met de gegevens en rechten van één persoon, dus doe dat niet. Koppel in plaats daarvan met een eigen sleutel via Claude Desktop met een configuratiebestand (zie [Programma's die alleen stdio ondersteunen](#stdio)) of via [Claude Code](#claude-code).
 
-### Claude Code
+### Claude Code {#claude-code}
+
+Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en voer uit:
 
 ```bash
-claude mcp add --transport http {{appName}} {{mcpUrl}}/mcp --header "X-API-Key: <sleutel>"
+claude mcp add --transport http {{mcpServerName}} {{mcpUrl}}/mcp --header 'X-API-Key: ${FDM_API_KEY}'
 ```
+
+Het commando slaat alleen de naam van de variabele op, niet de sleutel. Zet `FDM_API_KEY` daarom vast in je omgeving, bijvoorbeeld in je shellprofiel, zodat Claude Code de sleutel ook vindt als je het later of vanuit je editor start.
 
 ## OpenAI {#openai}
 
@@ -96,8 +101,10 @@ claude mcp add --transport http {{appName}} {{mcpUrl}}/mcp --header "X-API-Key: 
 Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en voer uit:
 
 ```bash
-codex mcp add {{appName}} --url {{mcpUrl}}/mcp --bearer-token-env-var FDM_API_KEY
+codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var FDM_API_KEY
 ```
+
+Ook dit commando slaat alleen de naam van de variabele op. Zet `FDM_API_KEY` vast in je omgeving, zodat Codex de sleutel ook vindt als je het later of vanuit je editor start.
 
 ### Ontwikkelaars met de OpenAI API
 
@@ -116,7 +123,7 @@ Voeg de koppeling toe aan `mcp.json`:
 ```json
 {
   "mcpServers": {
-    "{{appName}}": {
+    "{{mcpServerName}}": {
       "url": "{{mcpUrl}}/mcp",
       "headers": { "X-API-Key": "<sleutel>" }
     }
@@ -128,13 +135,23 @@ Voeg de koppeling toe aan `mcp.json`:
 
 Voeg in de beheerinstellingen een verbinding toe van het type "MCP (Streamable HTTP)", met URL `{{mcpUrl}}/mcp`, authenticatie "Bearer" en je sleutel. Kies een model dat hulpmiddelen kan gebruiken (tool calling).
 
-### Programma's die alleen stdio ondersteunen
+### Programma's die alleen stdio ondersteunen {#stdio}
 
-Gebruik `mcp-remote` als tussenstap. Alles gaat dan nog steeds via de koppeling van {{appName}}; het programma krijgt geen toegang tot de database.
+Gebruik `mcp-remote` als tussenstap. Zet dit in het configuratiebestand van je programma, zoals `claude_desktop_config.json` van Claude Desktop, en pas het zo nodig aan. Alles gaat dan nog steeds via de koppeling van {{appName}}; het programma krijgt geen toegang tot de database.
 
-```bash
-npx mcp-remote {{mcpUrl}}/mcp --header "X-API-Key:${FDM_API_KEY}"
+```json
+{
+  "mcpServers": {
+    "{{mcpServerName}}": {
+      "command": "npx",
+      "args": ["mcp-remote", "{{mcpUrl}}/mcp", "--header", "X-API-Key:${FDM_API_KEY}"],
+      "env": { "FDM_API_KEY": "<sleutel>" }
+    }
+  }
+}
 ```
+
+`mcp-remote` vult de sleutel zelf in vanuit `env`. Zo staat hij niet in de opdrachtregel die andere programma's op je computer kunnen zien.
 
 ## Problemen oplossen {#problemen}
 

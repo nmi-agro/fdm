@@ -67,3 +67,9 @@ Every permission check is recorded in the FDM audit log with the channel the req
 | `mcp`           | the [MCP server](../mcp-server/overview) for AI assistants | API key id      |
 
 This makes actions of an integration or an assistant distinguishable from web-application actions in reporting and compliance queries.
+
+The coverage has limits to keep in mind for such queries:
+
+- Checks that only decide what to show (non-strict checks, for example whether to offer an edit button) are not recorded.
+- `credential_id` is empty when a check runs without an audit context, for example in a background job.
+- When the web application cannot look up the session, the check is recorded with channel `app` and no `credential_id`.

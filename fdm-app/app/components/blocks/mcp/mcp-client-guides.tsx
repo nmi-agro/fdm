@@ -60,7 +60,11 @@ function GuideSection({ section }: { section: McpGuideSection }) {
           highlight={MCP_KEY_PLACEHOLDER}
         />
       )}
-      {section.note && <p className="text-muted-foreground text-sm">{section.note}</p>}
+      {section.note && (
+        <p className="text-muted-foreground text-sm">
+          <TextWithCode text={section.note} />
+        </p>
+      )}
     </section>
   )
 }
