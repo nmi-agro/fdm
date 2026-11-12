@@ -74,7 +74,7 @@ Kom je boven een limiet, dan krijg je een foutmelding en probeer je het even lat
 
 Om misbruik te voorkomen gelden via de API ook deze grenzen:
 
-- Een bedrijf kan via de API maximaal 500 percelen hebben. Bij een groter bedrijf werken overzichten en berekeningen van het hele bedrijf niet via de API. Gegevens van een los perceel kun je wel opvragen.
+- Een bedrijf kan via de API maximaal 500 percelen hebben. Bij een groter bedrijf werken overzichten en berekeningen van het hele bedrijf en het importeren van percelen niet via de API. Gegevens van een los perceel kun je wel opvragen.
 - Je kunt via de API maximaal 10 nieuwe bedrijven per 24 uur aanmaken, met al je sleutels samen.
 
 In {{appName}} zelf gelden deze grenzen niet.

@@ -45,8 +45,10 @@ export function scrubEvent<E extends { event: string; properties: Record<string,
  *
  * Events are tied to the user (`distinct_id` is the user id, the same id the web app uses) and
  * record the tool, client, latency and outcome. The agent's intent (`context` argument) and
- * reports of missing tools (`get_more_tools`) are captured. Tool arguments, results and error
- * messages are removed; errors go to Sentry instead.
+ * reports of missing tools (`get_more_tools`) are captured. The intent is free text written by the
+ * assistant and is sent as it is: it can contain names of farms, fields or people that the
+ * conversation mentions. Tool arguments, results and error messages are removed; errors go to
+ * Sentry instead.
  *
  * @param server - The MCP server of the request, before tools are registered.
  * @param config - The PostHog client and build identifier.

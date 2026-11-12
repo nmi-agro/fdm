@@ -177,6 +177,19 @@ describe("POST /farms/:b_id_farm/fields/import/compare", () => {
     expect(res.status).toBe(422)
   })
 
+  it("returns 422 for a farm above the supported size, before the review", async () => {
+    const { app, services } = setup({
+      countFieldsOfFarms: vi.fn().mockResolvedValue({ "farm-1": 501 }),
+    })
+    const res = await app.request("/farms/farm-1/fields/import/compare", {
+      method: "POST",
+      headers,
+      body: shapefileForm(),
+    })
+    expect(res.status).toBe(422)
+    expect(services.reviewShapefileImport).not.toHaveBeenCalled()
+  })
+
   it("returns 403 without access to the farm", async () => {
     const { app } = setup({
       reviewShapefileImport: vi.fn().mockRejectedValue(new Error("Permission denied")),
@@ -319,15 +332,16 @@ describe("POST /farms/:b_id_farm/fields/import/apply", () => {
     expect(services.applyRvoImport).not.toHaveBeenCalled()
   })
 
-  it("lets an import without new fields shrink a farm that is too large", async () => {
+  it("refuses any import into a farm that is already too large, before the review", async () => {
     const { app, services } = setup({
       countFieldsOfFarms: vi.fn().mockResolvedValue({ "farm-1": 501 }),
     })
     const res = await apply(app, {
       choices: JSON.stringify({ "rvo-1": { action: "IGNORE" }, "b-1": { action: "REMOVE_LOCAL" } }),
     })
-    expect(res.status).toBe(200)
-    expect(services.countFieldsOfFarms).not.toHaveBeenCalled()
+    expect(res.status).toBe(422)
+    expect(services.reviewShapefileImport).not.toHaveBeenCalled()
+    expect(services.applyRvoImport).not.toHaveBeenCalled()
   })
 
   it("returns 400 for choices that do not match the schema", async () => {

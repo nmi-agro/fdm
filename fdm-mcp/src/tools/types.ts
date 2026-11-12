@@ -57,8 +57,8 @@ export interface ToolMeta {
 
 /**
  * Builds the MCP tool annotations from what a tool does. Clients use them to decide when to ask
- * the user for confirmation: reads run without a prompt, writes ask first, and deletes are
- * marked destructive.
+ * the user for confirmation: reads run without a prompt, writes ask first, and updates and
+ * deletes are marked destructive because they overwrite or remove stored data.
  *
  * @param tool - The tool.
  * @returns The annotations.
@@ -69,7 +69,8 @@ export function annotationsFor(
   return {
     title: tool.title,
     readOnlyHint: tool.kind === "read",
-    destructiveHint: tool.kind === "delete",
+    // Updates overwrite stored values, so the MCP specification counts them as destructive too.
+    destructiveHint: tool.kind === "update" || tool.kind === "delete",
     idempotentHint: tool.kind === "read" || tool.kind === "update" || tool.kind === "delete",
     openWorldHint: tool.external,
   }
