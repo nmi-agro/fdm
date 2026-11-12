@@ -21,6 +21,17 @@ describe("authentication", () => {
     expect(auth.api.verifyApiKey).not.toHaveBeenCalled()
   })
 
+  it("refuses a request without an API key before it reads the body", async () => {
+    const { app } = makeApp()
+    // Larger than the body limit: with the key check first, the answer is 401 and not 413.
+    const res = await app.request("/mcp", {
+      method: "POST",
+      headers: postHeaders,
+      body: "x".repeat(6 * 1024 * 1024),
+    })
+    expect(res.status).toBe(401)
+  })
+
   it("returns 401 with a WWW-Authenticate challenge for an invalid API key", async () => {
     const auth = {
       api: { verifyApiKey: vi.fn().mockResolvedValue({ valid: false, error: null, key: null }) },

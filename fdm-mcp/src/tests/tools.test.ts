@@ -63,7 +63,7 @@ describe.each(ERAS)("tools ($name)", (era) => {
 describe("tool annotations", () => {
   const external = Object.fromEntries(TOOLS.map((tool) => [tool.name, tool.external]))
 
-  it("marks reads read-only, deletes destructive and updates idempotent", async () => {
+  it("marks reads read-only, updates and deletes destructive, and updates idempotent", async () => {
     const { app } = makeApp()
     const client = await connect(app)
     const { tools } = await client.listTools()
@@ -76,7 +76,7 @@ describe("tool annotations", () => {
     })
     expect(annotations.update_field).toMatchObject({
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
     })
     expect(annotations.delete_farm).toMatchObject({ readOnlyHint: false, destructiveHint: true })

@@ -44,6 +44,42 @@ describe("rate limits", () => {
     await client.close()
   })
 
+  it("counts every other message of a batch that also holds a tool call", async () => {
+    const { app, fdm } = makeApp({
+      getFarm: vi.fn().mockResolvedValue(farm),
+      updateFarm: vi.fn().mockResolvedValue(farm),
+    })
+    const read = (id: number) => ({
+      jsonrpc: "2.0",
+      id,
+      method: "resources/read",
+      params: { uri: "fdm://farms/farm-1" },
+    })
+    await app.request("/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json, text/event-stream",
+        "x-api-key": "key",
+      },
+      body: JSON.stringify([
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          // A write tool, so its own count goes to the write bucket and not to the general one.
+          params: { name: "update_farm", arguments: { b_id_farm: "farm-1", b_name_farm: "Nieuw" } },
+        },
+        read(2),
+        read(3),
+      ]),
+    })
+    const generalCounts = fdm.values.mock.calls.filter(
+      ([row]: [{ key: string }]) => row.key === "fdm-api:key-1:general",
+    )
+    expect(generalCounts).toHaveLength(2)
+  })
+
   it("returns a tool error with the seconds to wait when the bucket is full", async () => {
     const getFarm = vi.fn()
     const { app } = makeApp({ getFarm })

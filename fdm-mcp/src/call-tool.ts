@@ -25,8 +25,9 @@ function errorResult(message: string): CallToolResult {
  * REST API), runs the operation and returns a structured result. Failures become a result with
  * `isError: true` and a message the model can act on, not a protocol error.
  *
- * Only the tool name and the outcome are logged and sent to Sentry, never the arguments or the
- * result, because those contain farm data.
+ * The tool name, outcome and duration are logged, never the arguments or the result, because those
+ * contain farm data. An unexpected failure is logged and sent to Sentry with its error and stack
+ * trace, which can contain values of the failed call.
  *
  * @param tool - The tool to run.
  * @param ctx - Database, services and principal.
