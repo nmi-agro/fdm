@@ -168,6 +168,20 @@ describe("methods and endpoints", () => {
     expect((await res.json()).error.code).toBe(-32700)
   })
 
+  it.each([
+    ["POST", "/register"],
+    ["GET", "/authorize"],
+    ["POST", "/token"],
+    ["GET", "/.well-known/oauth-authorization-server"],
+    ["GET", "/.well-known/oauth-protected-resource/mcp"],
+  ])("tells a client that tries OAuth (%s %s) to use an API key", async (method, path) => {
+    const { app } = makeApp()
+    const res = await app.request(path, { method })
+    expect(res.status).toBe(404)
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+    expect((await res.json()).detail).toContain("X-API-Key")
+  })
+
   it("serves the health check and server info without an API key", async () => {
     const { app } = makeApp()
     expect((await app.request("/health")).status).toBe(200)
