@@ -8,8 +8,8 @@ export interface ApiPrincipalContext {
   apiKeyId: string
   /** Optional human-readable name assigned to the API key. */
   keyName: string | null
-  /** Channel marker used to distinguish API-key authentication from other auth flows. */
-  channel: "api"
+  /** Service that authenticated the request: the REST API (`"api"`) or the MCP server (`"mcp"`). */
+  channel: "api" | "mcp"
   /** Effective principal identifier used for downstream authorization checks and data access. */
   effectivePrincipalId: string
 }

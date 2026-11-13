@@ -26,6 +26,7 @@ function validKey() {
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
   return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
     getField: vi.fn().mockResolvedValue({ b_id: "field-1" }),
     getFarm: vi.fn().mockResolvedValue({ b_id_farm: "farm-1" }),
     getNmiApiKey: () => "secret-nmi-key",

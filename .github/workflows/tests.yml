@@ -403,6 +403,83 @@ jobs:
           flags: fdm-api
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # Label of the container job for fdm-mcp
+  test-mcp:
+    name: mcp
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [24]
+    permissions:
+      contents: read
+      packages: write
+    # Docker Hub image that `container-job` executes in
+    container: node:${{ matrix.node-version }}-bookworm-slim
+
+    # Service containers to run with `container-job`
+    services:
+      # PostgreSQL with PostGIS for the schema conformance test of the tools
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # Include dependencies for codecov
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y git curl gpg
+
+      # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Cache turbo build setup
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Setup pnpm 11
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.8.1
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Run tests with coverage
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-mcp
+        env:
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+
+      - name: fdm-mcp - Upload results to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./fdm-mcp/coverage/coverage-final.json
+          flags: fdm-mcp
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   test-storage-reports:
     name: storage and reports
     # Containers must run in Linux based operating systems

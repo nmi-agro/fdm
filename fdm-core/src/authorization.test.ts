@@ -13,6 +13,7 @@ import {
   revokePrincipal,
   roles,
   updateRole,
+  withAuditContext,
 } from "./authorization"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -201,6 +202,44 @@ describe("Authorization Functions", () => {
       expect(auditLogs[0].target_resource_id).toBe(farm_id)
       expect(auditLogs[0].action).toBe("read")
       expect(auditLogs[0].allowed).toBe(false)
+    })
+
+    it.each(["app", "api", "mcp"] as const)(
+      "should store the audit channel and credential when the channel is %s",
+      async (channel) => {
+        const principal_id_new = createId()
+        const credential_id = createId()
+
+        await withAuditContext({ channel, credential_id }, () =>
+          expect(
+            checkPermission(fdm, "farm", "read", farm_id, principal_id_new, "test"),
+          ).rejects.toThrowError("Principal does not have permission to perform this action"),
+        )
+
+        const auditLogs = await fdm
+          .select()
+          .from(authZSchema.audit)
+          .where(eq(authZSchema.audit.principal_id, principal_id_new))
+        expect(auditLogs).toHaveLength(1)
+        expect(auditLogs[0].audit_channel).toBe(channel)
+        expect(auditLogs[0].credential_id).toBe(credential_id)
+      },
+    )
+
+    it("should store channel app without a credential outside an audit context", async () => {
+      const principal_id_new = createId()
+
+      await expect(
+        checkPermission(fdm, "farm", "read", farm_id, principal_id_new, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+      const auditLogs = await fdm
+        .select()
+        .from(authZSchema.audit)
+        .where(eq(authZSchema.audit.principal_id, principal_id_new))
+      expect(auditLogs).toHaveLength(1)
+      expect(auditLogs[0].audit_channel).toBe("app")
+      expect(auditLogs[0].credential_id).toBeNull()
     })
 
     it("should not store the audit log if non-strict", async () => {

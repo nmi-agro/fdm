@@ -20,13 +20,19 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./operations": {
+      "import": {
+        "types": "./dist/operations/index.d.ts",
+        "default": "./dist/operations/index.js"
+      }
     }
   },
   "scripts": {
     "build": "tsdown",
     "dev": "dotenvx run -- tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "document": "typedoc src/index.ts --plugin typedoc-plugin-missing-exports --skipErrorChecking",
+    "document": "typedoc src/index.ts src/operations/index.ts --plugin typedoc-plugin-missing-exports --skipErrorChecking",
     "check-types": "tsc --noEmit",
     "preinstall": "npx only-allow pnpm",
     "test": "vitest run",

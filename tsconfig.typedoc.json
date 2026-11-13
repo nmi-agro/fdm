@@ -16,6 +16,7 @@
     "fdm-rvo/src/**/*",
     "fdm-agents/src/**/*",
     "fdm-api/src/**/*",
+    "fdm-mcp/src/**/*",
     "fdm-storage/src/**/*",
     "fdm-reports/src/**/*"
   ],

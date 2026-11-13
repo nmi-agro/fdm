@@ -61,6 +61,7 @@ const InvitationSchema = z
   .openapi("Invitation")
 
 const listInvitationsRoute = createRoute({
+  operationId: "listInvitations",
   method: "get",
   path: "/invitations",
   tags: ["Invitations"],
@@ -80,6 +81,7 @@ const listInvitationsRoute = createRoute({
 
 function respondRoute(action: "accept" | "decline") {
   return createRoute({
+    operationId: action === "accept" ? "acceptInvitation" : "declineInvitation",
     method: "post",
     path: `/invitations/{invitation_id}/${action}`,
     tags: ["Invitations"],

@@ -1,89 +1,38 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type {
-  addMeasure,
-  FdmType,
-  getMeasure,
-  getMeasures,
-  getMeasuresForFarm,
-  Measure,
-  removeMeasure,
-  updateMeasure,
-} from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { ApiError } from "../error"
-import { FarmIdSchema, FieldIdSchema, MeasureIdSchema } from "../fields"
+import type { ApiEnv } from "../types"
+import {
+  CreateMeasureBodySchema,
+  createMeasure,
+  deleteMeasure,
+  getMeasure,
+  listFarmMeasures,
+  listFieldMeasures,
+  MeasureFarmParamsSchema,
+  MeasureFieldParamsSchema,
+  MeasureParamsSchema,
+  MeasureSchema,
+  type MeasureServices,
+  UpdateMeasureBodySchema,
+  updateMeasure,
+} from "../operations/measures"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
-  DateStringSchema,
   PaginationTimeframeQuerySchema,
   paginatedResponse,
   paginatedSchema,
-  parseTimeframeQuery,
-  serializeDate,
   writeErrorResponses,
 } from "../schemas"
+import { operationContext } from "./operation-context"
+
+export type { MeasureServices } from "../operations/measures"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
-/** Defines the measure data access functions required by the measure routes. */
-export interface MeasureServices {
-  getMeasures: typeof getMeasures
-  getMeasuresForFarm: typeof getMeasuresForFarm
-  getMeasure: typeof getMeasure
-  addMeasure: typeof addMeasure
-  updateMeasure: typeof updateMeasure
-  removeMeasure: typeof removeMeasure
-}
-
-const MeasureSchema = z
-  .object({
-    b_id_measure: MeasureIdSchema,
-    m_id: z.string().describe("Identifier of the measure in the measure catalogue."),
-    b_id: FieldIdSchema.describe("Unique identifier of the field the measure is applied on."),
-    m_start: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    m_end: DateStringSchema.nullable().describe(
-      "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format.",
-    ),
-    m_name: z.string().describe("Name of the measure."),
-    m_summary: z
-      .string()
-      .nullable()
-      .describe("Short summary of the measure and its effect. `null` when not available."),
-    m_conflicts: z
-      .array(z.string())
-      .nullable()
-      .describe(
-        "Catalogue identifiers of measures that cannot be combined with this measure. `null` when none are known.",
-      ),
-  })
-  .openapi("Measure")
-
-const CreateMeasureBodySchema = z
-  .object({
-    m_id: z.string().describe("Measure catalogue identifier."),
-    m_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    m_end: DateStringSchema.nullable()
-      .optional()
-      .describe(
-        "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format. A date on 1 January is returned as 31 December of the previous year.",
-      ),
-  })
-  .openapi("CreateMeasure")
-
-const UpdateMeasureBodySchema = z
-  .object({
-    m_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
-    m_end: DateStringSchema.nullable()
-      .optional()
-      .describe(
-        "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format. A date on 1 January is returned as 31 December of the previous year.",
-      ),
-  })
-  .openapi("UpdateMeasure")
-
 const listMeasuresRoute = createRoute({
+  operationId: listFieldMeasures.name,
   method: "get",
   path: "/fields/{b_id}/measures",
   tags: ["Measures"],
@@ -91,7 +40,7 @@ const listMeasuresRoute = createRoute({
   description: "Returns all measures for the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: FieldIdSchema }),
+    params: MeasureFieldParamsSchema,
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -106,6 +55,7 @@ const listMeasuresRoute = createRoute({
 })
 
 const createMeasureRoute = createRoute({
+  operationId: createMeasure.name,
   method: "post",
   path: "/fields/{b_id}/measures",
   tags: ["Measures"],
@@ -113,7 +63,7 @@ const createMeasureRoute = createRoute({
   description: "Creates a new measure on the specified field.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id: FieldIdSchema }),
+    params: MeasureFieldParamsSchema,
     body: {
       content: {
         "application/json": { schema: CreateMeasureBodySchema },
@@ -131,13 +81,14 @@ const createMeasureRoute = createRoute({
 })
 
 const getMeasureRoute = createRoute({
+  operationId: getMeasure.name,
   method: "get",
   path: "/measures/{b_id_measure}",
   tags: ["Measures"],
   summary: "Get a measure",
   description: "Returns a single measure by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_measure: MeasureIdSchema }) },
+  request: { params: MeasureParamsSchema },
   responses: {
     200: {
       description: "The requested measure.",
@@ -148,6 +99,7 @@ const getMeasureRoute = createRoute({
 })
 
 const updateMeasureRoute = createRoute({
+  operationId: updateMeasure.name,
   method: "patch",
   path: "/measures/{b_id_measure}",
   tags: ["Measures"],
@@ -155,7 +107,7 @@ const updateMeasureRoute = createRoute({
   description: "Partially updates an existing measure.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_measure: MeasureIdSchema }),
+    params: MeasureParamsSchema,
     body: {
       content: {
         "application/json": { schema: UpdateMeasureBodySchema },
@@ -173,13 +125,14 @@ const updateMeasureRoute = createRoute({
 })
 
 const deleteMeasureRoute = createRoute({
+  operationId: deleteMeasure.name,
   method: "delete",
   path: "/measures/{b_id_measure}",
   tags: ["Measures"],
   summary: "Delete a measure",
   description: "Permanently deletes a measure.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_measure: MeasureIdSchema }) },
+  request: { params: MeasureParamsSchema },
   responses: {
     204: { description: "Measure deleted." },
     ...commonErrorResponses,
@@ -187,6 +140,7 @@ const deleteMeasureRoute = createRoute({
 })
 
 const listFarmMeasuresRoute = createRoute({
+  operationId: listFarmMeasures.name,
   method: "get",
   path: "/farms/{b_id_farm}/measures",
   tags: ["Measures"],
@@ -196,7 +150,7 @@ const listFarmMeasuresRoute = createRoute({
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   "x-badges": [{ name: "New", color: "#16a34a" }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: MeasureFarmParamsSchema,
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -211,19 +165,6 @@ const listFarmMeasuresRoute = createRoute({
     ...commonErrorResponses,
   },
 })
-
-function serialiseMeasure(measure: Measure) {
-  return {
-    b_id_measure: measure.b_id_measure,
-    m_id: measure.m_id,
-    b_id: measure.b_id,
-    m_start: serializeDate(measure.m_start),
-    m_end: serializeDate(measure.m_end),
-    m_name: measure.m_name,
-    m_summary: measure.m_summary ?? null,
-    m_conflicts: measure.m_conflicts ?? null,
-  }
-}
 
 /**
  * Registers the measure CRUD routes on the API application.
@@ -252,109 +193,68 @@ export function registerMeasureRoutes(
   )
 
   const listFarmMeasuresHandler: RouteHandler<typeof listFarmMeasuresRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof MeasureFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
-    const byKey = await services.getMeasuresForFarm(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      parseTimeframeQuery(query),
-    )
-    const items = [...byKey.values()].flat()
-    items.sort(
-      (a, b) =>
-        String(serializeDate(a.m_start) ?? "").localeCompare(
-          String(serializeDate(b.m_start) ?? ""),
-        ) || a.b_id_measure.localeCompare(b.b_id_measure),
-    )
-    return c.json(paginatedResponse(items.map(serialiseMeasure), query.limit, query.offset), 200)
+    const { limit, offset, ...timeframe } = c.req.valid("query") as z.infer<
+      typeof PaginationTimeframeQuerySchema
+    >
+    const measures = await listFarmMeasures.run(operationContext(c, fdm, services), {
+      ...params,
+      ...timeframe,
+    })
+    return c.json(paginatedResponse(measures, limit, offset), 200)
   }
 
   const listMeasuresHandler: RouteHandler<typeof listMeasuresRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id } = c.req.valid("param") as { b_id: string }
+    const params = c.req.valid("param") as z.infer<typeof MeasureFieldParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
-    const measures = await services.getMeasures(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id,
-      parseTimeframeQuery(query),
-    )
-    return c.json(paginatedResponse(measures.map(serialiseMeasure), query.limit, query.offset), 200)
+    const { limit, offset, ...timeframe } = c.req.valid("query") as z.infer<
+      typeof PaginationTimeframeQuerySchema
+    >
+    const measures = await listFieldMeasures.run(operationContext(c, fdm, services), {
+      ...params,
+      ...timeframe,
+    })
+    return c.json(paginatedResponse(measures, limit, offset), 200)
   }
 
   const createMeasureHandler: RouteHandler<typeof createMeasureRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id } = c.req.valid("param") as { b_id: string }
+    const params = c.req.valid("param") as z.infer<typeof MeasureFieldParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateMeasureBodySchema>
-    const b_id_measure = await services.addMeasure(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id,
-      body.m_id,
-      new Date(body.m_start),
-      body.m_end ? new Date(body.m_end) : undefined,
-    )
-    const measure = await services.getMeasure(fdm, principal.effectivePrincipalId, b_id_measure)
-    if (!measure?.b_id_measure) {
-      throw new ApiError(500, "internal-error", "Measure created but could not be retrieved.")
-    }
-    c.header("Location", `${new URL(c.req.url).origin}/measures/${b_id_measure}`)
-    return c.json(serialiseMeasure(measure), 201)
+    const measure = await createMeasure.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    c.header("Location", `${new URL(c.req.url).origin}/measures/${measure.b_id_measure}`)
+    return c.json(measure, 201)
   }
 
   const getMeasureHandler: RouteHandler<typeof getMeasureRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_measure } = c.req.valid("param") as {
-      b_id_measure: string
-    }
-    const measure = await services.getMeasure(fdm, principal.effectivePrincipalId, b_id_measure)
-    if (!measure?.b_id_measure) {
-      throw new ApiError(404, "not-found", `Measure '${b_id_measure}' not found.`)
-    }
-    return c.json(serialiseMeasure(measure), 200)
+    const params = c.req.valid("param") as z.infer<typeof MeasureParamsSchema>
+    return c.json(await getMeasure.run(operationContext(c, fdm, services), params), 200)
   }
 
   const updateMeasureHandler: RouteHandler<typeof updateMeasureRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_measure } = c.req.valid("param") as {
-      b_id_measure: string
-    }
+    const params = c.req.valid("param") as z.infer<typeof MeasureParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof UpdateMeasureBodySchema>
-    if (Object.values(body).every((value) => value === undefined)) {
-      throw new ApiError(400, "validation-failed", "At least one field must be provided.")
-    }
-    await services.updateMeasure(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_measure,
-      body.m_start ? new Date(body.m_start) : undefined,
-      body.m_end === undefined ? undefined : body.m_end ? new Date(body.m_end) : null,
-    )
-    const measure = await services.getMeasure(fdm, principal.effectivePrincipalId, b_id_measure)
-    if (!measure?.b_id_measure) {
-      throw new ApiError(404, "not-found", `Measure '${b_id_measure}' not found.`)
-    }
-    return c.json(serialiseMeasure(measure), 200)
+    const measure = await updateMeasure.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    return c.json(measure, 200)
   }
 
   const deleteMeasureHandler: RouteHandler<typeof deleteMeasureRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_measure } = c.req.valid("param") as {
-      b_id_measure: string
-    }
-    await services.removeMeasure(fdm, principal.effectivePrincipalId, b_id_measure)
+    const params = c.req.valid("param") as z.infer<typeof MeasureParamsSchema>
+    await deleteMeasure.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 

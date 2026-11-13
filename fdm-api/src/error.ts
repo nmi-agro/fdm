@@ -33,6 +33,7 @@ export class ApiError extends Error {
    * @param message - Human-readable problem detail included in the response payload.
    * @param extras - Optional RFC 9457 extension members to merge into the problem document.
    * @param errorId - Optional error identifier to return, e.g. one already used to log the cause.
+   * @param headers - Optional response headers, for example `Retry-After`.
    */
   constructor(
     /** HTTP status code returned to the client. */
@@ -44,10 +45,23 @@ export class ApiError extends Error {
     public readonly extras?: Record<string, unknown>,
     /** Optional error identifier returned as `error_id`; generated when omitted. */
     public readonly errorId?: string,
+    /** Optional response headers sent with the problem document. */
+    public readonly headers?: Record<string, string>,
   ) {
     super(message)
     this.name = "ApiError"
   }
+}
+
+/** Prefix of the log lines that error handling writes, unless a service sets its own. */
+const DEFAULT_LOG_PREFIX = "fdm-api"
+
+/**
+ * Logging options for the error helpers, for services other than the REST API that use them.
+ */
+export interface ErrorLogOptions {
+  /** Prefix of the log lines, without brackets, for example `"fdm-mcp"`. Defaults to `"fdm-api"`. */
+  logPrefix?: string
 }
 
 /**
@@ -59,6 +73,8 @@ export class ApiError extends Error {
  * @param detail - Human-readable explanation of the failure.
  * @param appUrl - Canonical application URL used to generate the absolute problem type URI.
  * @param extras - Optional extension members to include in the problem details payload.
+ * @param errorId - Optional error identifier to return; generated when omitted.
+ * @param options - Logging options, such as the prefix of the log line.
  * @returns A JSON response with the `application/problem+json` content type.
  * @example
  * ```ts
@@ -73,9 +89,10 @@ export function problemResponse(
   appUrl: string,
   extras?: Record<string, unknown>,
   errorId?: string,
+  options: ErrorLogOptions = {},
 ) {
   const error_id = errorId ?? nanoid()
-  const logLine = `[fdm-api] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
+  const logLine = `[${options.logPrefix ?? DEFAULT_LOG_PREFIX}] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
   if (status >= 500) {
     console.error(logLine)
   } else {
@@ -129,6 +146,15 @@ function findErrorByName(err: unknown, name: string): Error | undefined {
   return findErrorByName(err.cause, name)
 }
 
+/** Whether the error is a Zod validation error, without depending on a specific Zod instance. */
+function isZodError(err: unknown): err is Error & { issues: unknown[] } {
+  return (
+    err instanceof Error &&
+    err.name === "ZodError" &&
+    Array.isArray((err as { issues?: unknown }).issues)
+  )
+}
+
 function isPermissionDenied(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   if (PERMISSION_MESSAGES.has(err.message)) return true
@@ -137,13 +163,111 @@ function isPermissionDenied(err: unknown): boolean {
 }
 
 /**
+ * The outcome of {@link classifyError}: how a failure is reported to an API client.
+ */
+export interface ClassifiedError {
+  /** HTTP status code that describes the failure. */
+  status: number
+  /** Machine-readable problem type slug, one of the keys known to the problem documents. */
+  slug: string
+  /** Human-readable explanation that is safe to show to the client. */
+  detail: string
+  /** Optional extension members, for example validation issues. */
+  extras?: Record<string, unknown>
+  /** Error identifier for failures that were logged, for example unexpected errors. */
+  errorId?: string
+  /** Response headers that belong to the failure, for example `Retry-After`. */
+  headers?: Record<string, string>
+}
+
+/**
+ * Maps an error thrown while handling a request to a status, problem type and client-safe detail.
+ *
+ * Known failures are `ApiError`, Zod validation errors (400), fdm-core permission denials (403),
+ * application amounts out of range (422) and invalid JSON (400). Anything else is unexpected: it is logged, reported to
+ * Sentry with a generated `errorId`, and described only as an internal error, so internal
+ * messages never reach the client. Both the REST error handler and the MCP server use this.
+ *
+ * @param err - The caught error.
+ * @param options - Logging options, such as the prefix of the log line.
+ * @returns The classified error.
+ * @example
+ * ```ts
+ * const { status, slug, detail } = classifyError(err)
+ * ```
+ */
+export function classifyError(err: unknown, options: ErrorLogOptions = {}): ClassifiedError {
+  if (err instanceof ApiError) {
+    return {
+      status: err.status,
+      slug: err.slug,
+      detail: err.message,
+      extras: err.extras,
+      errorId: err.errorId,
+      headers: err.headers,
+    }
+  }
+  if (isZodError(err)) {
+    // Input that does not match an operation's schema, as the REST validation hook reports it.
+    return {
+      status: 400,
+      slug: "validation-failed",
+      detail: "The input does not match the schema.",
+      extras: { errors: err.issues },
+    }
+  }
+  const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as
+    | (Error & { p_app_amount_unit?: string; p_app_amount_display_max?: number | null })
+    | undefined
+  if (amountError) {
+    const { p_app_amount_unit: unit, p_app_amount_display_max: max } = amountError
+    const limit =
+      unit && typeof max === "number" && unit !== "kg/ha"
+        ? `${Math.floor(max * 100) / 100} ${unit} (100,000 kg/ha)`
+        : "100,000 kg/ha"
+    return {
+      status: 422,
+      slug: "unprocessable-entity",
+      detail: `The application amount must be greater than 0 and at most ${limit}.`,
+    }
+  }
+  if (isPermissionDenied(err)) {
+    return {
+      status: 403,
+      slug: "forbidden",
+      detail: "You do not have permission to access this resource.",
+    }
+  }
+  if (err instanceof SyntaxError) {
+    return {
+      status: 400,
+      slug: "validation-failed",
+      detail: `Request body contains invalid JSON: ${err.message}`,
+    }
+  }
+  console.error(`[${options.logPrefix ?? DEFAULT_LOG_PREFIX}] Unhandled error:`, err)
+  const errorId = nanoid()
+  Sentry.withScope((scope) => {
+    scope.setTag("error_id", errorId)
+    Sentry.captureException(err)
+  })
+  return {
+    status: 500,
+    slug: "internal-error",
+    detail: "An unexpected error occurred.",
+    errorId,
+  }
+}
+
+/**
  * Creates the global Hono error handler used by the API application.
  *
  * @param appUrl - Canonical application URL used to generate absolute problem type URIs.
+ * @param options - Logging options, such as the prefix of the log lines.
  * @returns An error handler that maps known API and permission failures to problem responses and falls back to a 500 response for unexpected errors.
  * @throws {ApiError} Does not throw directly, but converts upstream `ApiError` instances into HTTP responses.
  */
-export function createErrorHandler(appUrl: string): ErrorHandler {
+export function createErrorHandler(appUrl: string, options: ErrorLogOptions = {}): ErrorHandler {
   return (err, c) => {
     if (err instanceof HTTPException && err.status === 400) {
       // Hono throws this when it cannot parse the body; name the format the client sent.
@@ -158,61 +282,16 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
           ? "The request body could not be read as multipart/form-data."
           : "Request body contains invalid JSON.",
         appUrl,
+        undefined,
+        undefined,
+        options,
       )
     }
-    if (err instanceof ApiError) {
-      return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras, err.errorId)
+    const { status, slug, detail, extras, errorId, headers } = classifyError(err, options)
+    for (const [name, value] of Object.entries(headers ?? {})) {
+      c.header(name, value)
     }
-    const amountError = findErrorByName(err, "AppAmountOutOfRangeError") as
-      | (Error & { p_app_amount_unit?: string; p_app_amount_display_max?: number | null })
-      | undefined
-    if (amountError) {
-      const { p_app_amount_unit: unit, p_app_amount_display_max: max } = amountError
-      const limit =
-        unit && typeof max === "number" && unit !== "kg/ha"
-          ? `${Math.floor(max * 100) / 100} ${unit} (100,000 kg/ha)`
-          : "100,000 kg/ha"
-      return problemResponse(
-        c,
-        422,
-        "unprocessable-entity",
-        `The application amount must be greater than 0 and at most ${limit}.`,
-        appUrl,
-      )
-    }
-    if (isPermissionDenied(err)) {
-      return problemResponse(
-        c,
-        403,
-        "forbidden",
-        "You do not have permission to access this resource.",
-        appUrl,
-      )
-    }
-    if (err instanceof SyntaxError) {
-      return problemResponse(
-        c,
-        400,
-        "validation-failed",
-        `Request body contains invalid JSON: ${err.message}`,
-        appUrl,
-      )
-    }
-    console.error("[fdm-api] Unhandled error:", err)
-    const error_id = nanoid()
-    Sentry.withScope((scope) => {
-      scope.setTag("error_id", error_id)
-      Sentry.captureException(err)
-    })
-    return problemResponse(
-      c,
-      500,
-      "internal-error",
-      "An unexpected error occurred.",
-      appUrl,
-      undefined,
-      error_id,
-    )
+    return problemResponse(c, status, slug, detail, appUrl, extras, errorId, options)
   }
 }
 
@@ -220,12 +299,26 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
  * Creates the fallback handler for requests that do not match any API route.
  *
  * @param appUrl - Canonical application URL used to generate the problem type URI.
+ * @param options - Logging options, such as the prefix of the log line.
  * @returns A not-found handler that responds with a 404 RFC 9457 problem document.
  * @example
  * ```ts
  * app.notFound(createNotFoundHandler("https://example.com"))
  * ```
  */
-export function createNotFoundHandler(appUrl: string): NotFoundHandler {
-  return (c) => problemResponse(c, 404, "not-found", `${c.req.path} does not exist.`, appUrl)
+export function createNotFoundHandler(
+  appUrl: string,
+  options: ErrorLogOptions = {},
+): NotFoundHandler {
+  return (c) =>
+    problemResponse(
+      c,
+      404,
+      "not-found",
+      `${c.req.path} does not exist.`,
+      appUrl,
+      undefined,
+      undefined,
+      options,
+    )
 }
