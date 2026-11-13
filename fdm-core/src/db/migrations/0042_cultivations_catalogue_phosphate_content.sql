@@ -1,0 +1,2 @@
+ALTER TABLE "fdm"."cultivations_catalogue" ADD COLUMN IF NOT EXISTS "b_lu_p_harvestable" numeric;--> statement-breakpoint
+ALTER TABLE "fdm"."cultivations_catalogue" ADD COLUMN IF NOT EXISTS "b_lu_p_residue" numeric;

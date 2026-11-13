@@ -12,6 +12,7 @@ import {
   FieldDashboardNormsTile,
   FieldDashboardNutrientAdviceTile,
   FieldDashboardOrganicMatterBalanceTile,
+  FieldDashboardPhosphateBalanceTile,
   FieldDashboardSoilAnalysesTile,
   FieldDashboardSoilParametersTile,
 } from "./tiles"
@@ -144,6 +145,15 @@ export function buildFieldDashboardRegistry({
       detailHref: `/farm/${b_id_farm}/${calendar}/balance/organic-matter/${b_id}`,
       dataKey: "asyncInsights.organicMatterBalance",
       Component: FieldDashboardOrganicMatterBalanceTile,
+    },
+    {
+      id: "phosphate-balance",
+      section: "balansen",
+      title: "Fosfaatbalans",
+      span: "",
+      detailHref: `/farm/${b_id_farm}/${calendar}/balance/phosphate/${b_id}`,
+      dataKey: "asyncInsights.phosphateBalance",
+      Component: FieldDashboardPhosphateBalanceTile,
     },
     {
       id: "soil-parameters",

@@ -5,6 +5,7 @@ import type {
 } from "../d"
 import { hashCultivation } from "../hash"
 import brp from "./brp.json"
+import { getNmiCultivationPhosphate, type NmiCultivationPhosphate } from "./nmi"
 
 /**
  * Aggregates information for the BRP catalogue.
@@ -60,14 +61,31 @@ export async function aggregateCultivationCatalogueInfoBrpInternal(
  * `CatalogueCultivation` array, and performs validation on the `b_lu_harvestable`
  * property of each cultivation item.
  *
+ * When an NMI API key is provided, the phosphate contents of the harvestable product and the
+ * crop residue (`b_lu_p_harvestable`, `b_lu_p_residue`, g P2O5 / kg DM) are added from the NMI API
+ * cultivations lookup. Without a key, or for cultivations the NMI API does not know, these
+ * values are `null`.
+ *
+ * @param buildingContext - Shared settings for building the catalogue, such as the allowed availability years.
+ * @param aggregatedInfo - Information aggregated over all catalogues, such as the range of availability years.
+ * @param options - Optional settings.
+ * @param options.nmiApiKey - Bearer token for the NMI API, used to add the phosphate contents.
  * @returns An array of cultivation catalogue entries conforming to the `CatalogueCultivation` type.
- * @throws {Error} Throws an error if an invalid value is found for `b_lu_harvestable` in the JSON data.
+ * @throws {Error} Throws an error if an invalid value is found for `b_lu_harvestable` in the JSON data,
+ * or if an NMI API key is provided and the NMI API request fails.
  */
 export async function getCatalogueBrp(
   buildingContext: CultivationCatalogueBuildingContext,
   aggregatedInfo: AggregatedCultivationCatalogueInfo,
+  options?: { nmiApiKey?: string },
 ) {
+  const phosphate: Map<number, NmiCultivationPhosphate> = options?.nmiApiKey
+    ? await getNmiCultivationPhosphate(options.nmiApiKey)
+    : new Map()
+
   const catalogueBrpPromises = brp.map(async (cultivation) => {
+    const cultivationPhosphate = phosphateForBrp(phosphate, cultivation.b_lu_catalogue)
+
     // Validate b_lu_harvestable
     const harvestable =
       cultivation.b_lu_harvestable !== "once" &&
@@ -153,6 +171,8 @@ export async function getCatalogueBrp(
       b_lu_eom_residue: cultivation.b_lu_eom_residue,
       b_lu_n_harvestable: cultivation.b_lu_n_harvestable,
       b_lu_n_residue: cultivation.b_lu_n_residue,
+      b_lu_p_harvestable: cultivationPhosphate?.b_lu_p_harvestable ?? null,
+      b_lu_p_residue: cultivationPhosphate?.b_lu_p_residue ?? null,
       b_n_fixation: cultivation.b_n_fixation,
       b_lu_rest_oravib: cultivation.b_lu_rest_oravib,
       b_lu_variety_options:
@@ -186,4 +206,15 @@ export async function getCatalogueBrp(
 
   const catalogueBrp = await Promise.all(catalogueBrpPromises)
   return catalogueBrp
+}
+
+/**
+ * Looks up the NMI phosphate contents for a BRP catalogue id such as `nl_265`.
+ */
+function phosphateForBrp(
+  phosphate: Map<number, NmiCultivationPhosphate>,
+  b_lu_catalogue: string,
+): NmiCultivationPhosphate | undefined {
+  const code = Number(b_lu_catalogue.replace(/^nl_/, ""))
+  return Number.isInteger(code) ? phosphate.get(code) : undefined
 }

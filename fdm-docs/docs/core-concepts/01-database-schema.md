@@ -158,6 +158,8 @@ This schema holds the primary data related to farm operations.
 | **b_lu_hi**                | `numeric` (custom)         |             | Harvest index (ratio of harvested biomass to total biomass).                          |
 | **b_lu_n_harvestable**     | `numeric` (custom)         |             | Nitrogen content in the harvested portion.                                            |
 | **b_lu_n_residue**         | `numeric` (custom)         |             | Nitrogen content in the crop residue.                                                 |
+| **b_lu_p_harvestable**     | `numeric` (custom)         |             | Phosphate content in the harvested portion (g P₂O₅ / kg DM), from the NMI API.        |
+| **b_lu_p_residue**         | `numeric` (custom)         |             | Phosphate content in the crop residue (g P₂O₅ / kg DM), from the NMI API.             |
 | **b_n_fixation**           | `numeric` (custom)         |             | Nitrogen fixation rate (for legumes).                                                 |
 | **b_lu_rest_oravib**       | `boolean`                  |             | Is the cultivation a 'rustgewas' with regards to Dutch manure legislation             |
 | **b_lu_variety_options**   | `text[]`                   |             | A set of varieties (cultivars) that a cultivation may be                              |
@@ -277,8 +279,8 @@ This schema holds the primary data related to farm operations.
 | **b_lu_cp**                   | `numeric` (custom)         |             | Measured crude protein content of the harvestable product (g RE / kg DM).         |
 | **b_lu_n_harvestable**        | `numeric` (custom)         |             | Nitrogen content in the harvested portion (g N/ kg DM).                           |
 | **b_lu_n_residue**            | `numeric` (custom)         |             | Nitrogen content in the crop residue.                                             |
-| **b_lu_p_harvestable**        | `numeric` (custom)         |             | Phosphorus content in the harvested portion.                                      |
-| **b_lu_p_residue**            | `numeric` (custom)         |             | Phosphorus content in the crop residue.                                           |
+| **b_lu_p_harvestable**        | `numeric` (custom)         |             | Phosphate content in the harvested portion (g P₂O₅ / kg DM).                      |
+| **b_lu_p_residue**            | `numeric` (custom)         |             | Phosphate content in the crop residue (g P₂O₅ / kg DM).                           |
 | **b_lu_k_harvestable**        | `numeric` (custom)         |             | Potassium content in the harvested portion.                                       |
 | **b_lu_k_residue**            | `numeric` (custom)         |             | Potassium content in the crop residue.                                            |
 | **created**                   | `timestamp with time zone` | Not Null    | Timestamp when this record was created (default: now()).                          |
