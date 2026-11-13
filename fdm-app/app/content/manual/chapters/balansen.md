@@ -18,6 +18,7 @@ keywords:
   - stikstofoverschot
   - doelsturing
   - nitraatuitspoeling
+  - lachgasemissie
 related:
   - background/stikstofbalans
   - background/organische-stofbalans
@@ -36,9 +37,9 @@ De stikstofbalans zet de aanvoer af tegen de afvoer en de emissie, in kg N per h
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Aanvoer | Kunstmest, dierlijke mest, compost, overige meststoffen, binding door vlinderbloemigen (fixatie), depositie uit de lucht en mineralisatie uit de bodem |
 | Afvoer  | Wat je oogst en wat je aan gewasresten afvoert                                                                                                         |
-| Emissie | Ammoniakemissie uit mest en gewasresten                                                                                                                |
+| Emissie | Ammoniakemissie uit mest en gewasresten, nitraatuitspoeling en lachgasemissie. Alleen de ammoniakemissie telt mee in de balans                         |
 
-Bovenaan zie je het overschot naast een doel. Dat doel hangt af van je landgebruik (grasland of bouwland), je grondsoort en je grondwatertrap. Ligt je overschot onder het doel, dan zit je goed. Ligt het erboven, dan is er een risico op verliezen naar het milieu. Daarnaast toont {{appName}} de verwachte nitraatuitspoeling.
+Bovenaan zie je het overschot naast een doel. Dat doel hangt af van je landgebruik (grasland of bouwland), je grondsoort en je grondwatertrap. Ligt je overschot onder het doel, dan zit je goed. Ligt het erboven, dan is er een risico op verliezen naar het milieu. Daarnaast toont {{appName}} de **Nitraatuitspoeling** en de **Lachgasemissie** in kg N per hectare, bij lachgas met het CO₂-equivalent eronder. Ze tellen mee in de totale emissie, maar niet in de balans.
 
 Onder **Percelen** zie je per perceel de balans tegenover het doel, zodat je snel ziet welke percelen eruit springen. Op de pagina van een perceel klap je onder **Posten** elke post open, tot op de afzonderlijke bemesting of oogst. Zo zie je precies waar een overschot vandaan komt.
 
