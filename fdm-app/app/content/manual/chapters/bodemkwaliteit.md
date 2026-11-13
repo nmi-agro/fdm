@@ -13,16 +13,21 @@ routes:
 watch:
   - fdm-app/app/components/blocks/indicators/**
   - fdm-app/app/components/blocks/measures/**
+  - fdm-app/app/lib/farm-measures.server.ts
+  - fdm-app/app/lib/measure-labels.ts
+  - fdm-app/app/lib/measures-catalogue.ts
   - fdm-calculator/src/bln3/**
 keywords:
   - BLN3
   - bodemkwaliteit
   - bodemindicatoren
   - maatregelen
+  - maatregelencatalogus
   - bodemgezondheid
 related:
   - background/bln3-bodemkwaliteit
   - bodem
+updated: 2026-11-10
 ---
 
 Onder **Indicatoren** zie je hoe gezond je bodem is volgens BLN3, de Bodemindicatoren voor Landbouwgronden in Nederland. BLN3 kijkt naar meer dan alleen de bemesting: ook naar water, klimaat, de nutriëntenkringloop en de productiefunctie van de bodem.
@@ -55,6 +60,26 @@ Neem je al maatregelen om je bodem te verbeteren? Leg ze dan vast onder **Maatre
 4. Sla op.
 
 ![De maatregelen voor bodemkwaliteit, met de verwachte impact](screenshot:maatregelen)
+
+## Maatregelencatalogus {#maatregelencatalogus}
+
+De **Maatregelencatalogus** bevat alle maatregelen die je kunt vastleggen, voor het bedrijf en het jaar waarin je werkt. Je opent hem onder Maatregelen met de knop **Maatregelencatalogus**, rechts naast de titel. Bij een maatregel in je bedrijf, in de lijst bij **Maatregel toevoegen** of in de aanbevelingen opent een icoontje de maatregel in de catalogus in een nieuw tabblad.
+
+Je kunt zoeken op naam, code of beschrijving; met de toets `/` spring je naar het zoekveld. Met **Sorteer** zet je de maatregelen op naam, op code of met **Meest aanbevolen** bovenaan de maatregelen die op de meeste percelen worden aanbevolen. Onder **Meer filters** filter je ook op effect, kosten en thema. Je zoekopdracht en filters blijven bewaard in de link, zodat je ze kunt delen of met Terug terugkomt op dezelfde lijst. Met **Status** kies je welke maatregelen je ziet; achter elke status staat hoeveel maatregelen die status hebben:
+
+| Status         | Betekenis                                                                             |
+| -------------- | ------------------------------------------------------------------------------------- |
+| **Toegepast**  | De maatregel is dit jaar vastgelegd op een of meer percelen (vinkje)                  |
+| **Aanbevolen** | De maatregel staat bij de aanbevolen maatregelen van een perceel (groene sterretjes)  |
+| **Toepasbaar** | De maatregel kan op een perceel worden genomen, maar is niet aanbevolen (open rondje) |
+
+De status per perceel wordt na de lijst geladen; dat kan even duren. Lukt het niet om de aanbevolen of toepasbare maatregelen op te halen, dan zie je een melding boven de lijst en staat achter die status "(niet beschikbaar)". Een maatregel zonder aanbeveling is dan niet per se ongeschikt. Met **Opnieuw proberen** haal je de status opnieuw op.
+
+Per maatregel zie je eerst wat hij inhoudt en op welke percelen hij is toegepast, aanbevolen of toepasbaar; elk perceel linkt naar zijn maatregelen. Daarna zie je wat de maatregel kost (laag, gemiddeld of hoog), op welke indicatoren hij effect heeft en hoe groot dat effect is, wanneer hij van toepassing is, met welke maatregelen hij niet samen kan, en verwijzingen naar andere regelingen met een link naar de bron. Wordt de maatregel op je bedrijf aanbevolen, dan zie je bij elke indicator op hoeveel percelen hij die indicator verbetert.
+
+Wil je de maatregel nemen? Klik dan op **Toevoegen aan percelen**, rechts naast de titel. Je gaat naar Maatregelen met de maatregel al gekozen, en de percelen waarop hij wordt aanbevolen al aangevinkt. Maatregelen op bedrijfsniveau kun je niet per perceel vastleggen; daar staat de knop niet bij.
+
+Bij **Vast effect** is het effect op elke indicator een vaste waarde, gelijk voor alle percelen (in BLN: kwalitatief). Bij **Hangt af van perceel** hangt het effect af van de omstandigheden op het perceel, zoals grondsoort, gewas of fosfaattoestand (in BLN: geclassificeerd).
 
 ## Goed om te weten {#goed-om-te-weten}
 

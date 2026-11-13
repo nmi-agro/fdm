@@ -40,6 +40,7 @@ export const SKIP: Record<string, string> = {
   "/organization/invitations/:invitation_id/respond": "needs an organization invitation",
   "/support/settings/agents/:agent_id": "needs a helpdesk agent",
   "/support/ticket/:ticket_id": "needs a helpdesk ticket",
+  "/farm/:b_id_farm/:calendar/measures/catalogue/:m_id": "needs a synced measures catalogue",
 }
 
 /**

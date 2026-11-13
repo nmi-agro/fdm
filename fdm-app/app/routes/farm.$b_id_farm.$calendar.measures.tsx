@@ -5,6 +5,7 @@ import {
   type MetaFunction,
   Outlet,
   useLoaderData,
+  useLocation,
   useParams,
 } from "react-router"
 import type { HelpHandle } from "~/lib/manual/help-targets"
@@ -16,6 +17,7 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMeasuresCataloguePath } from "~/lib/measures-catalogue"
 
 export const handle: HelpHandle = { help: "maatregelen" }
 
@@ -24,7 +26,7 @@ export const meta: MetaFunction = () => {
     { title: `Maatregelen | ${clientConfig.name}` },
     {
       name: "description",
-      content: "Beheer de bodembeheersmaatregelen voor je percelen en bedrijf.",
+      content: "Beheer de bodembeheersmaatregelen voor uw percelen en bedrijf.",
     },
   ]
 }
@@ -78,19 +80,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function MeasuresLayout() {
   const loaderData = useLoaderData<typeof loader>()
-  const { b_id } = useParams()
+  const { b_id, m_id } = useParams()
+  const { pathname } = useLocation()
+  const isCatalogue = pathname.startsWith(
+    `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures/catalogue`,
+  )
 
-  const action = b_id
+  const action = m_id
     ? {
-        to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures`,
-        label: "Terug naar maatregelen",
+        to: getMeasuresCataloguePath(loaderData.b_id_farm, loaderData.calendar),
+        label: "Terug naar catalogus",
         disabled: false,
       }
-    : {
-        to: `/farm/${loaderData.b_id_farm}`,
-        label: "Terug naar bedrijf",
-        disabled: false,
-      }
+    : b_id || isCatalogue
+      ? {
+          to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures`,
+          label: "Terug naar maatregelen",
+          disabled: false,
+        }
+      : {
+          to: `/farm/${loaderData.b_id_farm}`,
+          label: "Terug naar bedrijf",
+          disabled: false,
+        }
 
   return (
     <SidebarInset>

@@ -60,4 +60,27 @@ describe("hashMeasure", () => {
     })
     expect(hash1).not.toBe(hash2)
   })
+
+  it("should detect changes in the effect fields", async () => {
+    const enriched: CatalogueMeasureItem = {
+      ...baseMeasure,
+      m_effect_costs: 1,
+      m_effect_type: "qual",
+      m_impacts_score: ["S_NUT_N"],
+      m_effect_size: [
+        { comment: "Base effects", conditions: [], impacts: [{ key: "S_NUT_N", value: 0.5 }] },
+      ],
+    }
+    const base = await hashMeasure(enriched)
+    expect(await hashMeasure({ ...enriched, m_effect_costs: 2 })).not.toBe(base)
+    expect(await hashMeasure({ ...enriched, m_impacts_score: ["S_NUT_P"] })).not.toBe(base)
+    expect(
+      await hashMeasure({
+        ...enriched,
+        m_effect_size: [
+          { comment: "Base effects", conditions: [], impacts: [{ key: "S_NUT_N", value: 0.6 }] },
+        ],
+      }),
+    ).not.toBe(base)
+  })
 })
