@@ -200,14 +200,12 @@ export function determineNitrousOxideEmissionFactor(
 
   const soil = isPeat ? "peat" : "mineral"
   if (fertilizerDetail.p_type === "mineral" || fertilizerDetail.p_type === "manure") {
-    // NEMA distinguishes grassland and cropland; bare soil is treated as cropland. The bare-soil
-    // crop codes of the ammonia emission are not used, so that nature grassland counts as grassland
+    // NEMA distinguishes grassland and cropland; bare soil is treated as cropland
     const cropRotationGroup =
       determineCropRotationGroupAtDate(
         application.p_app_date,
         cultivations,
         cultivationDetailsMap,
-        false,
       ) === "grassland"
         ? "grassland"
         : "cropland"

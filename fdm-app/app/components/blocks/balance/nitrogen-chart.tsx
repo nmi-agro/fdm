@@ -134,8 +134,9 @@ function buildChartDataAndLegend({
     },
     emissionNitrousOxide: {
       ...legend.emissionNitrousOxide,
-      // The N₂O emission is small compared with the other items, so keep its bar visible
-      minPointSize: 3,
+      // The N₂O emission is small compared with the other items, so keep its bar visible, but
+      // draw no bar when there is no emission
+      minPointSize: chartData.emissionNitrousOxide ? 3 : 0,
     },
   }
 

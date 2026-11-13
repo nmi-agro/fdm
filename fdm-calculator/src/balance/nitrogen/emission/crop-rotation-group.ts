@@ -19,14 +19,14 @@ const croplandRotations = new Set([
   "nature",
   "other",
 ])
-// Crop codes that are considered as bare soil, even if their crop rotation is grassland or cropland
+// Crop codes that are considered as bare soil, even if their crop rotation is cropland
 const bareSoilCropCodes = new Set([
-  "nl_6794", // Braak, zwart
-  "nl_662", // Grasland, blijvend, natuurlijk, hoofdfunctie natuur
-  "nl_6798", // Grasland, tijdelijk, hoofdfunctie natuur
-  "nl_2300", // Groenbemester
-  "nl_3802", // Groenbemester / rustgewas (geen N-bemesting)
-  "nl_3801", // Groenbemester / rustgewas (wel N-bemesting)
+  "nl_6794", // Groene braak, spontane opkomst
+  "nl_662", // Bos (sbl-regeling)
+  "nl_6798", // Perceel bedekt met gewasresten (mulching)
+  "nl_2300", // Onbeteelde grond vanwege een teeltverbod/ontheffing
+  "nl_3802", // Tijdelijk onbeteelde grond, anders dan voor publieke werken
+  "nl_3801", // Tijdelijk onbeteelde grond, i.v.m. publieke werken
 ])
 
 /**
@@ -35,13 +35,11 @@ const bareSoilCropCodes = new Set([
  *
  * A cultivation is active when it started on or before the date and has not ended before the date.
  * Grassland has priority over cropland; when neither is active, the field is considered bare soil.
- * By default, fallow, nature grassland and green manure crops count as bare soil, as in the ammonia
- * emission; set `useBareSoilCropCodes` to `false` to group them by their crop rotation instead.
+ * Fallow, forest, mulched and uncultivated land count as bare soil.
  *
  * @param date - The date for which the group is determined, e.g. the date of a fertilizer application.
  * @param cultivations - The cultivations of the field.
  * @param cultivationDetails - A map of cultivation details, with the cultivation catalogue identifier as key.
- * @param useBareSoilCropCodes - Whether the crop codes that are considered as bare soil are skipped. Defaults to `true`.
  * @returns The crop rotation group of the field on the given date.
  *
  * @example
@@ -54,7 +52,6 @@ export function determineCropRotationGroupAtDate(
   date: Date,
   cultivations: FieldInput["cultivations"],
   cultivationDetails: Map<string, CultivationDetail>,
-  useBareSoilCropCodes = true,
 ): CropRotationGroup {
   const activeCultivations = cultivations.filter((cultivation) => {
     if (!cultivation.b_lu_start) return false
@@ -71,8 +68,7 @@ export function determineCropRotationGroupAtDate(
   let hasCropland = false
   for (const cultivation of activeCultivations) {
     const rotation = cultivationDetails.get(cultivation.b_lu_catalogue)?.b_lu_croprotation
-    if (!rotation) continue
-    if (useBareSoilCropCodes && bareSoilCropCodes.has(cultivation.b_lu_catalogue)) continue
+    if (!rotation || bareSoilCropCodes.has(cultivation.b_lu_catalogue)) continue
     if (grasslandRotations.has(rotation)) hasGrassland = true
     if (croplandRotations.has(rotation)) hasCropland = true
   }
