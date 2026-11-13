@@ -22,6 +22,8 @@ type ApplicationChartConfigItem = {
   styleId?: string
   unit?: string
   detail?: string[]
+  /** Minimum width of the bar in pixels, so that a small value stays visible. */
+  minPointSize?: number
 }
 
 function buildChartDataAndLegend({
@@ -58,6 +60,7 @@ function buildChartDataAndLegend({
         ? undefined
         : Math.abs(balanceData.emission.ammonia.total),
     emissionNitrate: nitrateEmission === undefined ? undefined : Math.abs(nitrateEmission),
+    emissionNitrousOxide: Math.abs(balanceData.emission.nitrous_oxide.total),
   }
 
   const farmFixationLegend = {
@@ -105,6 +108,14 @@ function buildChartDataAndLegend({
       color: "var(--color-gray-600)",
     },
     ...(type === "farm" ? farmRemovalLegend : {}),
+    emissionNitrate: {
+      label: "Nitraatuitspoeling",
+      color: "var(--color-red-400)",
+    },
+    emissionNitrousOxide: {
+      label: "Lachgasemissie",
+      color: "var(--color-violet-600)",
+    },
   }
 
   const chartConfig: Record<string, ApplicationChartConfigItem> = {
@@ -121,9 +132,10 @@ function buildChartDataAndLegend({
       label: "Afvoer via gewasresten",
       color: "var(--color-emerald-600)",
     },
-    emissionNitrate: {
-      label: "Nitraatuitspoeling",
-      color: "var(--color-red-400)",
+    emissionNitrousOxide: {
+      ...legend.emissionNitrousOxide,
+      // The N₂O emission is small compared with the other items, so keep its bar visible
+      minPointSize: 3,
     },
   }
 
@@ -371,6 +383,7 @@ function buildChartDataAndLegend({
     ...fertilizerAmmoniaBar,
     ...residueAmmoniaBar,
     "emissionNitrate",
+    "emissionNitrousOxide",
   ]
 
   return {
@@ -453,6 +466,7 @@ export function NitrogenBalanceChart(
           radius={barRadius}
           stackId={stackId}
           fill={barStyle.color}
+          minPointSize={barStyle.minPointSize}
           onMouseEnter={() => setBarOutlineFocus(dataKey)}
           onMouseLeave={() => {
             if (dataKey === barOutlineFocus) {
@@ -467,6 +481,8 @@ export function NitrogenBalanceChart(
   return (
     <ChartContainer
       config={chartConfig}
+      // On narrow screens the wrapped legend takes most of the 16:9 height; keep room for the bars
+      className="min-h-80"
       onMouseLeave={() => {
         setBarOutlineFocus(undefined)
       }}

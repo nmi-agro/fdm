@@ -7,7 +7,7 @@ import type {
   FieldInput,
   NitrogenEmissionAmmoniaFertilizers,
 } from "../../types"
-import { determineLandTypeAtDate } from "../land-type"
+import { determineCropRotationGroupAtDate } from "../crop-rotation-group"
 
 /**
  * Calculates the total ammonia emission from all fertilizer sources (mineral, manure, compost and other fertilizers).
@@ -179,14 +179,18 @@ function determineManureAmmoniaEmissionFactor(
   const p_app_date = fertilizerApplication.p_app_date
   const p_app_method = fertilizerApplication.p_app_method
 
-  // Determine the land use at the moment of application
-  const landType = determineLandTypeAtDate(p_app_date, cultivations, cultivationDetails)
+  // Determine the crop rotation group (grassland, cropland or bare soil) at the moment of application
+  const cropRotationGroup = determineCropRotationGroupAtDate(
+    p_app_date,
+    cultivations,
+    cultivationDetails,
+  )
 
   // According to table B18.3 (column: 2019-2022) in "Bruggen, C. van, A. Bannink, A. Bleeker, D.W. Bussink, H.J.C. van Dooren, C.M. Groenestein, J.F.M. Huijsmans, J. Kros, K. Oltmer, M.B.H. Ros, M.W. van Schijndel, L. Schulte-Uebbing, G.L. Velthof en T.C. van der Zee (2024). Emissies naar lucht uit de landbouw berekend met NEMA voor 1990-2022. Wageningen, WOT Natuur & Milieu, WOT-technical report 264"
   switch (p_app_method) {
     case "slotted coulter":
       // Set to "sod injection"
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.17)
         case "cropland":
@@ -196,11 +200,11 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.24)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "incorporation":
-      switch (landType) {
+      switch (cropRotationGroup) {
         // Not specified in table, assuming similiar to "shallow injection" at grassland
         case "grassland":
           return new Decimal(0.17)
@@ -211,12 +215,12 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.46)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "incorporation 2 tracks":
       // Not specified in table, assuming similiar to "shallow injection" at grassland
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.17)
         case "cropland":
@@ -225,11 +229,11 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.46)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "injection":
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.17)
         case "cropland":
@@ -239,11 +243,11 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.02)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "shallow injection":
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.17)
         case "cropland":
@@ -252,12 +256,12 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.24)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "spraying":
       // Not specified in table, assuming similiar to "broadcasting"
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.68)
         case "cropland":
@@ -266,11 +270,11 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.69)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "broadcasting":
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.68)
         case "cropland":
@@ -279,12 +283,12 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.69)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "spoke wheel":
       // Not specified in table, assuming similiar to "shallow injection"
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.17)
         case "cropland":
@@ -293,12 +297,12 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.24)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "pocket placement":
       // Not specified in table, assuming similiar to "broadcasting"
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.68)
         case "cropland":
@@ -307,11 +311,11 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.69)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     case "narrowband":
-      switch (landType) {
+      switch (cropRotationGroup) {
         case "grassland":
           return new Decimal(0.17)
         case "cropland":
@@ -320,7 +324,7 @@ function determineManureAmmoniaEmissionFactor(
           return new Decimal(0.36)
         default:
           throw new Error(
-            `Unsupported land type ${landType} for ${p_app_name} (${p_id}) with ${p_app_method}`,
+            `Unsupported land type ${cropRotationGroup} for ${p_app_name} (${p_id}) with ${p_app_method}`,
           )
       }
     default:

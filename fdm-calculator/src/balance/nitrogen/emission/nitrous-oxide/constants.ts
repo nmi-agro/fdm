@@ -18,7 +18,7 @@ export const SURFACE_APPLICATION_METHODS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Emission factors for manure, by application method, land use and soil (NEMA WOT-283, table 2.7).
+ * Emission factors for manure, by application method, crop rotation group and soil (NEMA WOT-283, table 2.7).
  */
 export const EF_N2O_MANURE = {
   surface: {
@@ -32,7 +32,7 @@ export const EF_N2O_MANURE = {
 } as const
 
 /**
- * Emission factors for mineral fertilizers, the same for all types, by land use and soil
+ * Emission factors for mineral fertilizers, the same for all types, by crop rotation group and soil
  * (NEMA WOT-283, table 3.2).
  */
 export const EF_N2O_MINERAL = {

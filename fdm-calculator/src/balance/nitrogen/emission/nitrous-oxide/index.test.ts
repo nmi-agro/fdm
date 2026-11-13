@@ -140,7 +140,7 @@ function application(
 
 describe("determineNitrousOxideEmissionFactor", () => {
   const cases: [string, FieldInput["cultivations"], boolean, string, number][] = [
-    // manure: method × land use × soil (NEMA WOT-283, table 2.7)
+    // manure: method × crop rotation group × soil (NEMA WOT-283, table 2.7)
     ["broadcasting", grassland, true, "slurry", 0.005],
     ["broadcasting", grassland, false, "slurry", 0.001],
     ["broadcasting", wheat, true, "slurry", 0.005],
@@ -151,7 +151,7 @@ describe("determineNitrousOxideEmissionFactor", () => {
     ["shallow injection", wheat, true, "slurry", 0.01],
     ["incorporation", wheat, false, "slurry", 0.013],
     ["narrowband", wheat, false, "slurry", 0.013],
-    // mineral fertilizer: land use × soil, any method (NEMA WOT-283, table 3.2)
+    // mineral fertilizer: crop rotation group × soil, any method (NEMA WOT-283, table 3.2)
     ["broadcasting", grassland, true, "can", 0.03],
     ["broadcasting", grassland, false, "can", 0.008],
     ["injection", wheat, true, "can", 0.03],

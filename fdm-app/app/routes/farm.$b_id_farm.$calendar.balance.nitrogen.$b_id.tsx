@@ -7,7 +7,6 @@ import { checkPermission, getFarm, getField } from "@nmi-agro/fdm-core"
 import {
   ArrowDown,
   ArrowRight,
-  ArrowRightFromLine,
   ArrowRightLeft,
   ArrowUpFromLine,
   CircleAlert,
@@ -26,7 +25,10 @@ import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-war
 import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import NitrogenBalanceDetails from "~/components/blocks/balance/nitrogen-details"
-import { NitrousOxideCard } from "~/components/blocks/balance/nitrous-oxide-card"
+import {
+  NitrateLeachingCard,
+  NitrousOxideCard,
+} from "~/components/blocks/balance/nitrous-oxide-card"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
@@ -44,6 +46,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
+import { formatFixed } from "~/lib/format"
 import { useCalendarStore } from "~/store/calendar"
 
 type NitrogenFieldResultWithErrorId = NitrogenBalanceFieldResultNumeric & {
@@ -349,20 +352,28 @@ function NitrogenBalance({
               {/* The target applies to the balance with total nitrogen only */}
               {useEffectiveNitrogen ? "Overschot (Perceel)" : "Overschot / Doel (Perceel)"}
             </CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>
                   {useEffectiveNitrogen
-                    ? `${result.balance}`
-                    : `${result.balance} / ${result.target}`}
+                    ? formatFixed(result.balance)
+                    : `${formatFixed(result.balance)} / ${formatFixed(result.target)}`}
                 </p>
                 {useEffectiveNitrogen ? null : result.balance <= result.target ? (
-                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
+                  <CircleCheck
+                    className="rounded-full bg-green-100 p-0 text-green-500"
+                    role="img"
+                    aria-label="Onder het doel"
+                  />
                 ) : (
-                  <CircleAlert className="rounded-full bg-red-100 text-red-500 " />
+                  <CircleAlert
+                    className="rounded-full bg-red-100 text-red-500"
+                    role="img"
+                    aria-label="Boven het doel"
+                  />
                 )}
               </div>
             </div>
@@ -374,45 +385,36 @@ function NitrogenBalance({
             <CardTitle className="text-sm font-medium">
               {useEffectiveNitrogen ? "Aanvoer (werkzaam)" : "Aanvoer"}
             </CardTitle>
-            <ArrowDown className="text-muted-foreground text-xs" />
+            <ArrowDown className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.supply.total}</div>
+            <div className="text-2xl font-bold">{formatFixed(result.supply.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowRight className="text-muted-foreground text-xs" />
+            <ArrowRight className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.removal.total}</div>
+            <div className="text-2xl font-bold">{formatFixed(result.removal.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.emission.ammonia.total}</div>
+            <div className="text-2xl font-bold">{formatFixed(result.emission.ammonia.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
-            <ArrowRightFromLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{result.emission.nitrate.total}</div>
-            <p className="text-muted-foreground text-xs">kg N / ha</p>
-          </CardContent>
-        </Card>
+        <NitrateLeachingCard nitrate={result.emission.nitrate.total} />
         <NitrousOxideCard
-          total={result.emission.nitrous_oxide.total}
+          nitrousOxide={result.emission.nitrous_oxide.total}
           co2eq={result.emission.nitrous_oxide.co2eq}
         />
       </div>
@@ -421,9 +423,10 @@ function NitrogenBalance({
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De stikstofbalans voor {field.b_name} van {farm.b_name_farm}. De balans is het
-              verschil tussen de totale aanvoer, afvoer en emissie van stikstof. Een positieve
-              balans betekent een overschot aan stikstof, een negatieve balans een tekort.
+              De stikstofbalans voor {field.b_name} van {farm.b_name_farm}. De balans is de aanvoer
+              min de afvoer en de ammoniakemissie. Nitraatuitspoeling en lachgas tellen niet mee.
+              Een positieve balans betekent een overschot aan stikstof, een negatieve balans een
+              tekort.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">

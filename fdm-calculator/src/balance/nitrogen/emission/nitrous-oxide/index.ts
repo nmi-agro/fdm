@@ -12,7 +12,7 @@ import type {
   SoilAnalysisPicked,
 } from "../../types"
 import { calculateNitrogenInCropResiduesLeft } from "../crop-residues"
-import { determineLandTypeAtDate } from "../land-type"
+import { determineCropRotationGroupAtDate } from "../crop-rotation-group"
 import {
   EF_N2O_CROP_RESIDUES,
   EF_N2O_INDIRECT_LEACHING,
@@ -36,17 +36,17 @@ const fertilizerTypes = ["mineral", "manure", "compost", "other"] as const
  *
  * The emission consists of:
  * - direct emission from fertilizer applications: total nitrogen applied × emission factor, which
- *   depends on the type of fertilizer, the application method (manure), the land use at the date of
- *   application and whether the soil is peat;
+ *   depends on the type of fertilizer, the application method (manure), the crop rotation group
+ *   (grassland or cropland) at the date of application and whether the soil is peat;
  * - direct emission from the nitrogen in the above-ground crop residues left on the field;
  * - direct emission from the mineralisation of peat (`veen`) and peaty soils (`moerige_klei`), a
  *   yearly value scaled to the length of the time frame;
  * - indirect emission from the nitrogen lost by ammonia volatilisation and by nitrate leaching of
  *   the field.
  *
- * The emission is an indicator: it is not part of the nitrogen balance. Following the other
- * nitrogen losses, the N₂O emission is negative (kg N / ha, as N₂O-N). The CO₂-equivalent is positive,
- * as it is a greenhouse gas emission (kg CO₂-eq / ha).
+ * Like the nitrate leaching, the N₂O emission is part of the total emission but not of the
+ * nitrogen balance. Following the other nitrogen losses, the N₂O emission is negative (kg N / ha,
+ * as N₂O-N). The CO₂-equivalent is positive, as it is a greenhouse gas emission (kg CO₂-eq / ha).
  *
  * @param cultivations - The cultivations of the field.
  * @param harvests - The harvests of the field.
@@ -165,15 +165,17 @@ export function calculateNitrogenEmissionViaNitrousOxide(
  *
  * - Sewage sludge (`p_type_rvo` 113 or 114): 0.009.
  * - Manure: depends on the application method (surface spreading or low-emission application), the
- *   land use at the date of application and whether the soil is peat.
- * - Mineral fertilizer: depends on the land use at the date of application and whether the soil is peat.
+ *   crop rotation group at the date of application and whether the soil is peat.
+ * - Mineral fertilizer: depends on the crop rotation group at the date of application and whether
+ *   the soil is peat.
  * - Compost and other fertilizers: 0.004.
  *
- * Bare soil is treated as cropland.
+ * The crop rotation group is grassland or cropland; bare soil is treated as cropland. Nature
+ * grassland counts as grassland.
  *
  * @param application - The fertilizer application.
  * @param fertilizerDetail - The details of the applied fertilizer.
- * @param cultivations - The cultivations of the field, used to determine the land use.
+ * @param cultivations - The cultivations of the field, used to determine the crop rotation group.
  * @param cultivationDetailsMap - A map of cultivation details, with the cultivation catalogue identifier as key.
  * @param isPeat - Whether the soil of the field is peat (`veen`).
  * @returns The emission factor as a fraction.
@@ -198,15 +200,20 @@ export function determineNitrousOxideEmissionFactor(
 
   const soil = isPeat ? "peat" : "mineral"
   if (fertilizerDetail.p_type === "mineral" || fertilizerDetail.p_type === "manure") {
-    const landType = determineLandTypeAtDate(
-      application.p_app_date,
-      cultivations,
-      cultivationDetailsMap,
-    )
-    const landUse = landType === "grassland" ? "grassland" : "cropland"
+    // NEMA distinguishes grassland and cropland; bare soil is treated as cropland. The bare-soil
+    // crop codes of the ammonia emission are not used, so that nature grassland counts as grassland
+    const cropRotationGroup =
+      determineCropRotationGroupAtDate(
+        application.p_app_date,
+        cultivations,
+        cultivationDetailsMap,
+        false,
+      ) === "grassland"
+        ? "grassland"
+        : "cropland"
 
     if (fertilizerDetail.p_type === "mineral") {
-      return new Decimal(EF_N2O_MINERAL[landUse][soil])
+      return new Decimal(EF_N2O_MINERAL[cropRotationGroup][soil])
     }
 
     // Manure: the application method is required, as in the ammonia emission
@@ -218,7 +225,7 @@ export function determineNitrousOxideEmissionFactor(
     const method = SURFACE_APPLICATION_METHODS.has(application.p_app_method)
       ? "surface"
       : "lowEmission"
-    return new Decimal(EF_N2O_MANURE[method][landUse][soil])
+    return new Decimal(EF_N2O_MANURE[method][cropRotationGroup][soil])
   }
 
   return new Decimal(EF_N2O_OTHER_ORGANIC)

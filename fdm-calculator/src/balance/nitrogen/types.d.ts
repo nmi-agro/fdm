@@ -339,8 +339,8 @@ export type NitrogenEmissionNitrate = {
  * Represents the nitrous oxide (N₂O) emission of a field, calculated according to the Dutch National
  * Emission Model for Agriculture (NEMA).
  *
- * The N₂O emission is an indicator and is not part of the nitrogen balance or of `NitrogenEmission.total`.
- * Emissions are in kilograms of nitrogen per hectare (kg N / ha, as N₂O-N) and negative, like the other nitrogen
+ * Like the nitrate leaching, the N₂O emission is included in `NitrogenEmission.total` but not in the
+ * nitrogen balance. Emissions are in kilograms of nitrogen per hectare (kg N / ha, as N₂O-N) and negative, like the other nitrogen
  * losses. The CO₂-equivalent is in kilograms of CO₂-equivalent per hectare (kg CO₂-eq / ha) and positive.
  */
 export type NitrogenEmissionNitrousOxide = {
@@ -396,8 +396,8 @@ export type NitrogenEmissionNitrousOxideFarm = {
 }
 
 /**
- * Represents the total nitrogen emitted for a field, specifically through ammonia emissions and nitrate leaching.
- * All values are in kilograms of nitrogen per hectare (kg N / ha).
+ * Represents the total nitrogen emitted for a field, through ammonia emissions, nitrate leaching and
+ * nitrous oxide emission. All values are in kilograms of nitrogen per hectare (kg N / ha).
  */
 export type NitrogenEmission = {
   total: Decimal
@@ -410,7 +410,7 @@ export type NitrogenEmission = {
    */
   nitrate: NitrogenEmissionNitrate
   /**
-   * The nitrous oxide (N₂O) emission. Not included in `total`, as it is not part of the nitrogen balance.
+   * The nitrous oxide (N₂O) emission, included in `total`.
    */
   nitrous_oxide: NitrogenEmissionNitrousOxide
 }
@@ -501,7 +501,7 @@ export type NitrogenBalance = {
     }
     nitrate: Decimal
     /**
-     * The area-weighted average nitrous oxide (N₂O) emission. Not included in `total`.
+     * The area-weighted average nitrous oxide (N₂O) emission, included in `total`.
      */
     nitrous_oxide: NitrogenEmissionNitrousOxideFarm
   }

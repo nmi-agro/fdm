@@ -279,13 +279,13 @@ const NitrogenEmissionNitrousOxideFieldSchema = z.object({
 })
 
 const NitrogenEmissionFieldSchema = z.object({
-  total: nitrogenLoss("Total nitrogen emission"),
+  total: nitrogenLoss("Total nitrogen emission: ammonia, nitrate and nitrous oxide"),
   ammonia: NitrogenEmissionAmmoniaSchema.describe("Nitrogen emitted as ammonia (NH3)."),
   nitrate: z
     .object({ total: nitrogenLoss("Nitrogen leached as nitrate") })
     .describe("Nitrogen leached as nitrate (NO3)."),
   nitrous_oxide: NitrogenEmissionNitrousOxideFieldSchema.describe(
-    "Nitrous oxide (N2O) emission according to the Dutch National Emission Model for Agriculture (NEMA). An indicator: not included in `total` and not part of the balance.",
+    "Nitrous oxide (N2O) emission according to the Dutch National Emission Model for Agriculture (NEMA). Included in `total`, but, like the nitrate leaching, not part of the balance.",
   ),
 })
 
@@ -356,7 +356,9 @@ export const NitrogenBalanceSchema = z
       .describe("Weighted average nitrogen removal across all fields."),
     emission: z
       .object({
-        total: nitrogenLoss("Weighted average total nitrogen emission"),
+        total: nitrogenLoss(
+          "Weighted average total nitrogen emission: ammonia, nitrate and nitrous oxide",
+        ),
         ammonia: z
           .object({
             total: nitrogenLoss("Weighted average nitrogen emission as ammonia"),
@@ -395,7 +397,7 @@ export const NitrogenBalanceSchema = z
             ),
           })
           .describe(
-            "Weighted average nitrous oxide (N2O) emission according to NEMA. An indicator: not included in `total` and not part of the balance.",
+            "Weighted average nitrous oxide (N2O) emission according to NEMA. Included in `total`, but not part of the balance.",
           ),
       })
       .describe("Weighted average nitrogen emission across all fields."),
