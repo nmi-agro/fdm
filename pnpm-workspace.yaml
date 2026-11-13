@@ -12,17 +12,17 @@ packages:
   - fdm-reports
 
 catalog:
-  "@better-auth/api-key": 1.7.18
-  "@better-auth/core": 1.7.18
+  "@better-auth/api-key": 1.7.22
+  "@better-auth/core": 1.7.22
   "@types/node": ^26.6.6
   "@dotenvx/dotenvx": ^2.38.2
-  jose: ^6.2.15
+  jose: ^6.2.17
   "@vitest/coverage-v8": 5.1.0
-  better-auth: 1.7.18
+  better-auth: 1.7.22
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   nanoid: ^6.0.2
-  tsdown: 0.23.5
+  tsdown: 0.23.7
   typedoc: ^0.28.20
   typedoc-plugin-missing-exports: ^4.1.4
   typescript: ^7.0.2
