@@ -159,6 +159,9 @@ describe("calculateNitrogenBalance", () => {
     assertValidFertilizerBreakdown(result.emission.ammonia.fertilizers)
     expect(typeof result.emission.ammonia.residues).toBe("number")
     expect(typeof result.emission.nitrate).toBe("number")
+    expect(typeof result.emission.nitrous_oxide.total).toBe("number")
+    expect(result.emission.nitrous_oxide.total).toBeLessThanOrEqual(0)
+    expect(result.emission.nitrous_oxide.co2eq).toBeGreaterThanOrEqual(0)
     expect(typeof result.target).toBe("number")
     expect(Array.isArray(result.fields)).toBe(true)
   })
@@ -370,6 +373,8 @@ describe("calculateNitrogenBalance", () => {
     expect(result.supply.total).toBe(0)
     expect(result.removal.total).toBe(0)
     expect(result.emission.total).toBe(0)
+    expect(result.emission.nitrous_oxide.total).toBe(0)
+    expect(result.emission.nitrous_oxide.co2eq).toBe(0)
   })
 
   it("should return correct error message for no fields in input", async () => {

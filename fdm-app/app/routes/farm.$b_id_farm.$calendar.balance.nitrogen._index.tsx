@@ -4,7 +4,6 @@ import { getCultivationsForFarm, getFarm, getFields, getHarvestsForFarm } from "
 import {
   ArrowDown,
   ArrowRight,
-  ArrowRightFromLine,
   ArrowRightLeft,
   ArrowUpFromLine,
   CircleAlert,
@@ -25,6 +24,10 @@ import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
+import {
+  NitrateLeachingCard,
+  NitrousOxideCard,
+} from "~/components/blocks/balance/nitrous-oxide-card"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
@@ -35,6 +38,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { formatFixed } from "~/lib/format"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
@@ -240,35 +244,47 @@ function FarmBalanceNitrogenOverview({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">
               {/* The target applies to the balance with total nitrogen only */}
               {useEffectiveNitrogen ? "Overschot (Bedrijf)" : "Overschot / Doel (Bedrijf)"}
             </CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>
                   {useEffectiveNitrogen
-                    ? `${resolvedNitrogenBalanceResult.balance}`
-                    : `${resolvedNitrogenBalanceResult.balance} / ${resolvedNitrogenBalanceResult.target}`}
+                    ? formatFixed(resolvedNitrogenBalanceResult.balance)
+                    : `${formatFixed(resolvedNitrogenBalanceResult.balance)} / ${formatFixed(resolvedNitrogenBalanceResult.target)}`}
                 </p>
                 {hasErrors ? (
                   <Tooltip>
                     <TooltipTrigger>
-                      <CircleAlert className="rounded-full bg-orange-100 text-orange-500" />
+                      <CircleAlert
+                        className="rounded-full bg-orange-100 text-orange-500"
+                        role="img"
+                        aria-label="Niet alle percelen konden worden berekend"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>Niet alle percelen konden worden berekend</TooltipContent>
                   </Tooltip>
                 ) : useEffectiveNitrogen ? null : resolvedNitrogenBalanceResult.balance <=
                   resolvedNitrogenBalanceResult.target ? (
-                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
+                  <CircleCheck
+                    className="rounded-full bg-green-100 p-0 text-green-500"
+                    role="img"
+                    aria-label="Onder het doel"
+                  />
                 ) : (
-                  <CircleX className="rounded-full bg-red-100 text-red-500 " />
+                  <CircleX
+                    className="rounded-full bg-red-100 text-red-500"
+                    role="img"
+                    aria-label="Boven het doel"
+                  />
                 )}
               </div>
             </div>
@@ -280,56 +296,54 @@ function FarmBalanceNitrogenOverview({
             <CardTitle className="text-sm font-medium">
               {useEffectiveNitrogen ? "Aanvoer (werkzaam)" : "Aanvoer"}
             </CardTitle>
-            <ArrowDown className="text-muted-foreground text-xs" />
+            <ArrowDown className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resolvedNitrogenBalanceResult.supply.total}</div>
+            <div className="text-2xl font-bold">
+              {formatFixed(resolvedNitrogenBalanceResult.supply.total)}
+            </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowRight className="text-muted-foreground text-xs" />
+            <ArrowRight className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resolvedNitrogenBalanceResult.removal.total}</div>
+            <div className="text-2xl font-bold">
+              {formatFixed(resolvedNitrogenBalanceResult.removal.total)}
+            </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resolvedNitrogenBalanceResult.emission.ammonia.total}
+              {formatFixed(resolvedNitrogenBalanceResult.emission.ammonia.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
-            <ArrowRightFromLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {resolvedNitrogenBalanceResult.emission.nitrate}
-            </div>
-            <p className="text-muted-foreground text-xs">kg N / ha</p>
-          </CardContent>
-        </Card>
+        <NitrateLeachingCard nitrate={resolvedNitrogenBalanceResult.emission.nitrate} />
+        <NitrousOxideCard
+          nitrousOxide={resolvedNitrogenBalanceResult.emission.nitrous_oxide.total}
+          co2eq={resolvedNitrogenBalanceResult.emission.nitrous_oxide.co2eq}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De stikstofbalans voor alle percelen van {farm.b_name_farm}. De balans is het verschil
-              tussen de totale aanvoer, afvoer en emissie van stikstof. Een positieve balans
-              betekent een overschot aan stikstof, een negatieve balans een tekort.
+              De stikstofbalans voor alle percelen van {farm.b_name_farm}. De balans is de aanvoer
+              min de afvoer en de ammoniakemissie. Nitraatuitspoeling en lachgas tellen niet mee.
+              Een positieve balans betekent een overschot aan stikstof, een negatieve balans een
+              tekort.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
@@ -358,15 +372,27 @@ function FarmBalanceNitrogenOverview({
                       useEffectiveNitrogen ? (
                         <div className="h-6 w-6" />
                       ) : fieldResult.balance.balance <= fieldResult.balance.target ? (
-                        <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
+                        <CircleCheck
+                          className="h-6 w-6 shrink-0 rounded-full bg-green-100 p-0 text-green-500"
+                          role="img"
+                          aria-label="Onder het doel"
+                        />
                       ) : (
-                        <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
+                        <CircleX
+                          className="h-6 w-6 shrink-0 rounded-full bg-red-100 p-0 text-red-500"
+                          role="img"
+                          aria-label="Boven het doel"
+                        />
                       )
                     ) : (
-                      <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
+                      <CircleAlert
+                        className="h-6 w-6 shrink-0 rounded-full bg-orange-100 p-0 text-orange-500"
+                        role="img"
+                        aria-label="Balans niet berekend"
+                      />
                     )}
 
-                    <div className="ml-4 space-y-1">
+                    <div className="ml-4 min-w-0 space-y-1">
                       <div className="flex items-baseline gap-2">
                         <NavLink to={`./${fieldResult.b_id}${search}`}>
                           <p className="text-sm leading-none font-medium hover:underline">
@@ -382,13 +408,13 @@ function FarmBalanceNitrogenOverview({
                         fieldName={fieldData?.b_name ?? ""}
                       />
                     </div>
-                    <div className="ml-auto font-medium">
+                    <div className="ml-auto shrink-0 pl-4 text-end font-medium tabular-nums">
                       {fieldResult.balance ? (
                         useEffectiveNitrogen ? (
-                          <span key="effective">{`${fieldResult.balance.balance}`}</span>
+                          <span key="effective">{formatFixed(fieldResult.balance.balance)}</span>
                         ) : (
                           <span key="target">
-                            {`${fieldResult.balance.balance} / ${fieldResult.balance.target}`}
+                            {`${formatFixed(fieldResult.balance.balance)} / ${formatFixed(fieldResult.balance.target)}`}
                           </span>
                         )
                       ) : (

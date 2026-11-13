@@ -336,6 +336,7 @@ export function calculateLocalPreview({
         p_s_rt: fertilizer.p_s_rt,
         p_ef_nh3: fertilizer.p_ef_nh3,
         p_type: fertilizer.p_type,
+        p_type_rvo: fertilizer.p_type_rvo,
       })
     }
     for (const b_id of changedFieldIds) {

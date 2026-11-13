@@ -56,12 +56,12 @@ export function calculateNitrogenEmissionViaNitrate(
   ])
   // Define a set of crop codes that should be considered as bare soil, even if they fall into other categories
   const bareSoilCropCodes = new Set([
-    "nl_6794", // Braak, zwart
-    "nl_662", // Grasland, blijvend, natuurlijk, hoofdfunctie natuur
-    "nl_6798", // Grasland, tijdelijk, hoofdfunctie natuur
-    "nl_2300", // Groenbemester
-    "nl_3802", // Groenbemester / rustgewas (geen N-bemesting)
-    "nl_3801", // Groenbemester / rustgewas (wel N-bemesting)
+    "nl_6794", // Groene braak, spontane opkomst
+    "nl_662", // Bos (sbl-regeling)
+    "nl_6798", // Perceel bedekt met gewasresten (mulching)
+    "nl_2300", // Onbeteelde grond vanwege een teeltverbod/ontheffing
+    "nl_3802", // Tijdelijk onbeteelde grond, anders dan voor publieke werken
+    "nl_3801", // Tijdelijk onbeteelde grond, i.v.m. publieke werken
   ])
 
   // Iterate over cultivations to determine the presence of grassland and cropland

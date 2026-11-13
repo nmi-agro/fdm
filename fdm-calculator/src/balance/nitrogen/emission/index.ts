@@ -1,6 +1,7 @@
 import Decimal from "decimal.js"
 import type { CultivationDetail, FertilizerDetail, FieldInput, NitrogenEmission } from "../types"
 import { calculateNitrogenEmissionViaAmmonia } from "./ammonia"
+import { createEmptyNitrousOxideEmission } from "./nitrous-oxide"
 
 /**
  * Calculates the total nitrogen volatilization from a field, through ammonia emissions from fertilizer appplications and crop residues.
@@ -34,6 +35,8 @@ export function calculateNitrogenEmission(
     nitrate: {
       total: new Decimal(0), // Nitrate emission is calculated as factor of nitrogen surplus this will be calculated after surplus is known
     },
+    // The N₂O emission depends on the nitrate emission, so it is calculated after the surplus is known
+    nitrous_oxide: createEmptyNitrousOxideEmission(),
   }
 
   return emission

@@ -5,15 +5,44 @@ import type {
   NitrogenBalanceFieldNumeric,
   NitrogenBalanceFieldResultNumeric,
   NitrogenBalanceNumeric,
+  NitrogenEmissionNitrousOxideFarmNumeric,
+  NitrogenEmissionNitrousOxideNumeric,
   SoilAnalysisPicked,
 } from "./types"
 import { convertDecimalToNumberRecursive } from "../shared/conversion"
 import { resolveSoilParameters } from "../shared/soil"
 import { calculateNitrogenEmission } from "./emission"
 import { calculateNitrogenEmissionViaNitrate } from "./emission/nitrate"
+import {
+  calculateNitrogenEmissionViaNitrousOxide,
+  calculateNitrousOxideEmissionFarm,
+  createEmptyNitrousOxideEmission,
+} from "./emission/nitrous-oxide"
 import { calculateNitrogenRemoval } from "./removal"
 import { calculateNitrogenSupply } from "./supply"
 import { calculateTargetForNitrogenBalance } from "./target"
+
+// Number of decimals of the N₂O emission in the farm results
+const NITROUS_OXIDE_DECIMALS = 1
+// The field results keep more decimals, so that the farm average is not built from rounded values
+const NITROUS_OXIDE_DECIMALS_FIELD = 3
+
+/**
+ * Sums the ammonia, nitrate and N₂O emission as they appear in the results, so that the total
+ * emission equals the sum of its parts: ammonia and nitrate as whole numbers, N₂O rounded to one
+ * decimal.
+ *
+ * @param ammonia - The ammonia emission, rounded to a whole number (kg N / ha).
+ * @param nitrate - The nitrate leaching, rounded to a whole number (kg N / ha).
+ * @param nitrousOxide - The N₂O emission (kg N / ha, as N₂O-N).
+ * @returns The total emission (kg N / ha), with at most one decimal.
+ */
+function sumRoundedEmission(ammonia: number, nitrate: number, nitrousOxide: number): number {
+  return new Decimal(ammonia)
+    .add(nitrate)
+    .add(new Decimal(nitrousOxide).toDecimalPlaces(NITROUS_OXIDE_DECIMALS))
+    .toNumber()
+}
 
 /**
  * Calculates the nitrogen balance for a single field, considering nitrogen supply, removal, and emission.
@@ -93,6 +122,10 @@ export function calculateNitrogenBalanceField(
           grazing: undefined,
         },
         nitrate: { total: 0 },
+        nitrous_oxide: convertDecimalToNumberRecursive(
+          createEmptyNitrousOxideEmission(),
+          NITROUS_OXIDE_DECIMALS_FIELD,
+        ) as NitrogenEmissionNitrousOxideNumeric,
       },
       target: 0,
     }
@@ -123,6 +156,9 @@ export function calculateNitrogenBalanceField(
     start: new Date(Math.max(fieldStartTime, timeFrameStartTime)),
     end: new Date(Math.min(fieldEndTime, timeFrameEndTime)),
   }
+  // Keep the field period before normalization, so that the N₂O emission of organic soils can
+  // tell a period without overlap (end before start) from a one-day period
+  const fieldPeriod = { start: timeFrameField.start, end: timeFrameField.end }
   // Normalize: ensure start <= end
   if (timeFrameField.end.getTime() < timeFrameField.start.getTime()) {
     // Clamp to an empty interval at the boundary to signal “no overlap”
@@ -183,6 +219,21 @@ export function calculateNitrogenBalanceField(
   emission.nitrate = nitrateEmission
   emission.total = emission.total.add(nitrateEmission.total)
 
+  // Calculate the Nitrous Oxide (N₂O) emission. Like the nitrate leaching, it is part of the total
+  // emission but not of the balance
+  emission.nitrous_oxide = calculateNitrogenEmissionViaNitrousOxide(
+    cultivations,
+    harvests,
+    fertilizerApplications,
+    cultivationDetailsMap,
+    fertilizerDetailsMap,
+    soilAnalysis,
+    emission.ammonia.total,
+    nitrateEmission.total,
+    fieldPeriod,
+  )
+  emission.total = emission.total.add(emission.nitrous_oxide.total)
+
   // Calculate the target for the Nitrogen balance
   const target = calculateTargetForNitrogenBalance(
     cultivations,
@@ -199,6 +250,16 @@ export function calculateNitrogenBalanceField(
     emission: emission,
     target: target,
   }) as NitrogenBalanceFieldNumeric
+  // The N₂O emission is small, so it keeps decimals instead of being rounded to a whole number
+  balanceNumeric.emission.nitrous_oxide = convertDecimalToNumberRecursive(
+    emission.nitrous_oxide,
+    NITROUS_OXIDE_DECIMALS_FIELD,
+  ) as NitrogenEmissionNitrousOxideNumeric
+  balanceNumeric.emission.total = sumRoundedEmission(
+    balanceNumeric.emission.ammonia.total,
+    balanceNumeric.emission.nitrate.total,
+    balanceNumeric.emission.nitrous_oxide.total,
+  )
 
   return balanceNumeric
 }
@@ -381,6 +442,14 @@ export function calculateNitrogenBalancesFieldToFarm(
       : ammoniaByFertilizerType[fertilizerType].dividedBy(totalFarmArea)
   }
 
+  // Calculate the area-weighted average N₂O emission (part of the total emission, not of the balance)
+  const avgFarmEmissionNitrousOxide = calculateNitrousOxideEmissionFarm(
+    successfulFieldBalances.map((fieldResult) => ({
+      b_area: fieldResult.b_area,
+      nitrousOxide: fieldResult.balance.emission.nitrous_oxide,
+    })),
+  )
+
   // Calculate the average balance at farm level (Supply + Removal + Ammonia Emission)
   const avgFarmBalance = avgFarmSupply.add(avgFarmRemoval).add(avgFarmEmissionAmmonia)
 
@@ -413,6 +482,7 @@ export function calculateNitrogenBalancesFieldToFarm(
         },
       },
       nitrate: avgFarmEmissionNitrate,
+      nitrous_oxide: avgFarmEmissionNitrousOxide,
     },
     target: avgFarmTarget,
     fields: fieldsWithBalanceResults,
@@ -423,5 +493,18 @@ export function calculateNitrogenBalancesFieldToFarm(
     fieldErrorMessages: fieldErrorMessages,
   }
 
-  return convertDecimalToNumberRecursive(farmWithBalance) as NitrogenBalanceNumeric
+  const farmWithBalanceNumeric = convertDecimalToNumberRecursive(
+    farmWithBalance,
+  ) as NitrogenBalanceNumeric
+  // The N₂O emission is small, so it is rounded to one decimal instead of a whole number
+  farmWithBalanceNumeric.emission.nitrous_oxide = convertDecimalToNumberRecursive(
+    avgFarmEmissionNitrousOxide,
+    NITROUS_OXIDE_DECIMALS,
+  ) as NitrogenEmissionNitrousOxideFarmNumeric
+  farmWithBalanceNumeric.emission.total = sumRoundedEmission(
+    farmWithBalanceNumeric.emission.ammonia.total,
+    farmWithBalanceNumeric.emission.nitrate,
+    farmWithBalanceNumeric.emission.nitrous_oxide.total,
+  )
+  return farmWithBalanceNumeric
 }

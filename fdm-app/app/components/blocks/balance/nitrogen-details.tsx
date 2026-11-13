@@ -21,10 +21,22 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion"
+import { formatFixed } from "~/lib/format"
 
 interface NitrogenBalanceDetailsProps {
   balanceData: NitrogenBalanceFieldNumeric
   fieldInput: FieldInput
+}
+
+/** Formats an N₂O value, which is small, with one decimal instead of a whole number. */
+const formatNitrousOxide = (value: number) => formatFixed(value, 1)
+
+/**
+ * A row with a single value and no details, styled like an accordion row. It is not an accordion
+ * item, so that assistive technology does not announce a section that cannot be opened.
+ */
+function StaticRow({ children }: { children: React.ReactNode }) {
+  return <p className="py-4 text-sm font-medium not-last:border-b">{children}</p>
 }
 
 const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
@@ -37,7 +49,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     const sectionKey = "supply"
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Aanvoer (Totaal): {supply.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>Aanvoer (Totaal): {formatFixed(supply.total)} kg N / ha</AccordionTrigger>
         <AccordionContent>
           <Accordion multiple className="ml-4">
             {/* Render Fertilizers */}
@@ -65,7 +77,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Bemesting (Totaal): {fertilizers.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Bemesting (Totaal): {formatFixed(fertilizers.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <Accordion multiple className="ml-4">
             {/* Render Mineral Fertilizers */}
@@ -117,7 +131,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     return (
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>
-          {title} (Totaal): {applications.total} kg N / ha
+          {title} (Totaal): {formatFixed(applications.total)} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
@@ -133,15 +147,13 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                 return null
               }
               return (
-                <NavLink
-                  to={`../../${calendar}/field/${fieldInput.field.b_id}/fertilizer`}
-                  key={app.id}
-                >
-                  <li className="text-muted-foreground text-sm hover:underline">
+                <li key={app.id} className="text-muted-foreground text-sm">
+                  <NavLink to={`../../${calendar}/field/${fieldInput.field.b_id}/fertilizer`}>
                     {application.p_name_nl} op{" "}
-                    {format(application.p_app_date, "PP", { locale: nl })}: {app.value} kg N / ha
-                  </li>
-                </NavLink>
+                    {format(application.p_app_date, "PP", { locale: nl })}: {formatFixed(app.value)}{" "}
+                    kg N / ha
+                  </NavLink>
+                </li>
               )
             })}
           </ul>
@@ -158,7 +170,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Fixatie (Totaal): {fixation.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Fixatie (Totaal): {formatFixed(fixation.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
             {fixation.cultivations.map((cult: { id: string; value: number }) => {
@@ -170,14 +184,13 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                 (cultivation: { b_lu: string }) => cultivation.b_lu === cult.id,
               )
               return cultivation ? (
-                <NavLink
-                  to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
-                  key={cult.id}
-                >
-                  <li className="text-muted-foreground text-sm hover:underline">
-                    {cultivation.b_lu_name}: {cult.value} kg N / ha
-                  </li>
-                </NavLink>
+                <li key={cult.id} className="text-muted-foreground text-sm">
+                  <NavLink
+                    to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
+                  >
+                    {cultivation.b_lu_name}: {formatFixed(cult.value)} kg N / ha
+                  </NavLink>
+                </li>
               ) : null
             })}
           </ul>
@@ -186,28 +199,11 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     )
   }
   const renderDepositionSupply = (deposition: { total: number }) => {
-    const sectionKey = "supply.deposition"
-
-    return (
-      <AccordionItem value={sectionKey}>
-        <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
-          Depositie: {deposition.total} kg N / ha
-        </p>
-        <AccordionContent />
-      </AccordionItem>
-    )
+    return <StaticRow>Depositie: {formatFixed(deposition.total)} kg N / ha</StaticRow>
   }
 
   const renderMineralizationSupply = (mineralization: NitrogenSupplyMineralizationNumeric) => {
-    const sectionKey = "supply.mineralization"
-
-    return (
-      <AccordionItem value={sectionKey}>
-        <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
-          Mineralisatie: {mineralization.total} kg N / ha
-        </p>
-      </AccordionItem>
-    )
+    return <StaticRow>Mineralisatie: {formatFixed(mineralization.total)} kg N / ha</StaticRow>
   }
 
   const renderRemoval = (removal: NitrogenRemovalNumeric, fieldInput: FieldInput) => {
@@ -215,7 +211,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Afvoer (Totaal): {removal.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>Afvoer (Totaal): {formatFixed(removal.total)} kg N / ha</AccordionTrigger>
         <AccordionContent>
           <Accordion multiple className="ml-4">
             {/* Render Harvests */}
@@ -237,7 +233,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Oogsten (Totaal): {harvests.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Oogsten (Totaal): {formatFixed(harvests.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
             {harvests.harvests.map((harvest: { id: string; value: number }) => {
@@ -260,20 +258,19 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
               const harvestDate = harvestDetails.b_lu_harvest_date
 
               return (
-                <NavLink
-                  to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivationDetails.b_lu}/harvest/${harvest.id}`}
-                  key={harvest.id}
-                >
-                  <li className="text-muted-foreground text-sm hover:underline">
+                <li key={harvest.id} className="text-muted-foreground text-sm">
+                  <NavLink
+                    to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivationDetails.b_lu}/harvest/${harvest.id}`}
+                  >
                     Oogst op{" "}
                     {harvestDate
                       ? format(harvestDate, "PP", {
                           locale: nl,
                         })
                       : "onbekende datum"}
-                    : {harvest.value} kg N / ha
-                  </li>
-                </NavLink>
+                    : {formatFixed(harvest.value)} kg N / ha
+                  </NavLink>
+                </li>
               )
             })}
           </ul>
@@ -290,7 +287,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Gewasresten (Totaal): {residues.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Gewasresten (Totaal): {formatFixed(residues.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
             {residues.cultivations.map((cult: { id: string; value: number }) => {
@@ -302,14 +301,13 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                 (cultivation: { b_lu: string }) => cultivation.b_lu === cult.id,
               )
               return cultivation ? (
-                <NavLink
-                  to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
-                  key={cult.id}
-                >
-                  <li className="text-muted-foreground text-sm hover:underline">
-                    {cultivation.b_lu_name}: {cult.value} kg N / ha
-                  </li>
-                </NavLink>
+                <li key={cult.id} className="text-muted-foreground text-sm">
+                  <NavLink
+                    to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
+                  >
+                    {cultivation.b_lu_name}: {formatFixed(cult.value)} kg N / ha
+                  </NavLink>
+                </li>
               ) : null
             })}
           </ul>
@@ -326,7 +324,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Ammoniak (Totaal): {ammonia.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Ammoniak (Totaal): {formatFixed(ammonia.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <Accordion multiple className="ml-4">
             {/* Render Fertilizers */}
@@ -341,16 +341,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
   }
 
   const renderNitrateEmissions = (nitrate: NitrogenEmissionNumeric["nitrate"]) => {
-    const sectionKey = "nitraat"
-
-    return (
-      <AccordionItem value={sectionKey}>
-        <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
-          Nitraat: {nitrate.total} kg N / ha
-        </p>
-        <AccordionContent />
-      </AccordionItem>
-    )
+    return <StaticRow>Nitraat: {formatFixed(nitrate.total)} kg N / ha</StaticRow>
   }
 
   const renderFertilizersEmission = (
@@ -361,7 +352,9 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Bemesting (Totaal): {fertilizers.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Bemesting (Totaal): {formatFixed(fertilizers.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <Accordion multiple className="ml-4">
             {/* Render Mineral Fertilizers */}
@@ -404,12 +397,15 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
   const renderResiduesEmission = (
     residues: NitrogenEmissionNumeric["ammonia"]["residues"],
     fieldInput: FieldInput,
+    sectionKey = "emission.ammonia.residues",
+    formatValue: (value: number) => string = (value) => formatFixed(value),
+    title = "Gewasresten (Totaal)",
   ) => {
-    const sectionKey = "emission.ammonia.residues"
-
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Gewasresten (Totaal): {residues.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          {title}: {formatValue(residues.total)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
             {residues.cultivations.map((cult: { id: string; value: number }) => {
@@ -421,14 +417,13 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                 (cultivation: { b_lu: string }) => cultivation.b_lu === cult.id,
               )
               return cultivation ? (
-                <NavLink
-                  to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
-                  key={cult.id}
-                >
-                  <li className="text-muted-foreground text-sm hover:underline">
-                    {cultivation.b_lu_name}: {cult.value} kg N / ha
-                  </li>
-                </NavLink>
+                <li key={cult.id} className="text-muted-foreground text-sm">
+                  <NavLink
+                    to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
+                  >
+                    {cultivation.b_lu_name}: {formatValue(cult.value)} kg N / ha
+                  </NavLink>
+                </li>
               ) : null
             })}
           </ul>
@@ -445,11 +440,12 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
     fieldInput: FieldInput,
     title: string,
     sectionKey: string,
+    formatValue: (value: number) => string = (value) => formatFixed(value),
   ) => {
     return (
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>
-          {title} (Totaal): {applications.total} kg N / ha
+          {title} (Totaal): {formatValue(applications.total)} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
@@ -465,18 +461,103 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                 return null
               }
               return (
-                <NavLink
-                  to={`../../${calendar}/field/${fieldInput.field.b_id}/fertilizer`}
-                  key={app.id}
-                >
-                  <li className="text-muted-foreground text-sm hover:underline">
+                <li key={app.id} className="text-muted-foreground text-sm">
+                  <NavLink to={`../../${calendar}/field/${fieldInput.field.b_id}/fertilizer`}>
                     {application.p_name_nl} op{" "}
-                    {format(application.p_app_date, "PP", { locale: nl })}: {app.value} kg N / ha
-                  </li>
-                </NavLink>
+                    {format(application.p_app_date, "PP", { locale: nl })}: {formatValue(app.value)}{" "}
+                    kg N / ha
+                  </NavLink>
+                </li>
               )
             })}
           </ul>
+        </AccordionContent>
+      </AccordionItem>
+    )
+  }
+
+  const renderNitrousOxide = (
+    nitrousOxide: NitrogenEmissionNumeric["nitrous_oxide"],
+    fieldInput: FieldInput,
+  ) => {
+    const sectionKey = "nitrous_oxide"
+    const fertilizers = nitrousOxide.fertilizers
+
+    return (
+      <AccordionItem value={sectionKey}>
+        <AccordionTrigger>
+          Lachgas (Totaal): {formatNitrousOxide(nitrousOxide.total)} kg N / ha
+        </AccordionTrigger>
+        <AccordionContent>
+          <p className="text-muted-foreground ml-4 text-sm">
+            <span>{`CO₂-equivalent: ${formatFixed(nitrousOxide.co2eq)} kg CO₂-eq / ha`}</span>
+          </p>
+          <Accordion multiple className="ml-4">
+            <AccordionItem value="nitrous_oxide.fertilizers">
+              <AccordionTrigger>
+                Bemesting (Totaal): {formatNitrousOxide(fertilizers.total)} kg N / ha
+              </AccordionTrigger>
+              <AccordionContent>
+                <Accordion multiple className="ml-4">
+                  {renderFertilizerEmissions(
+                    fertilizers.mineral,
+                    fieldInput,
+                    "Minerale meststoffen",
+                    "nitrous_oxide.fertilizers.mineral",
+                    formatNitrousOxide,
+                  )}
+                  {renderFertilizerEmissions(
+                    fertilizers.manure,
+                    fieldInput,
+                    "Mest",
+                    "nitrous_oxide.fertilizers.manure",
+                    formatNitrousOxide,
+                  )}
+                  {renderFertilizerEmissions(
+                    fertilizers.compost,
+                    fieldInput,
+                    "Compost",
+                    "nitrous_oxide.fertilizers.compost",
+                    formatNitrousOxide,
+                  )}
+                  {renderFertilizerEmissions(
+                    fertilizers.other,
+                    fieldInput,
+                    "Overig",
+                    "nitrous_oxide.fertilizers.other",
+                    formatNitrousOxide,
+                  )}
+                </Accordion>
+              </AccordionContent>
+            </AccordionItem>
+            {renderResiduesEmission(
+              nitrousOxide.residues,
+              fieldInput,
+              "nitrous_oxide.residues",
+              formatNitrousOxide,
+              "Gewasresten",
+            )}
+            <StaticRow>
+              Bodem (veen en moerige klei): {formatNitrousOxide(nitrousOxide.soil.total)} kg N / ha
+            </StaticRow>
+            <AccordionItem value="nitrous_oxide.indirect">
+              <AccordionTrigger>
+                Indirect (Totaal): {formatNitrousOxide(nitrousOxide.indirect.total)} kg N / ha
+              </AccordionTrigger>
+              <AccordionContent>
+                <ul className="ml-6 list-outside list-disc space-y-1">
+                  <li className="text-muted-foreground text-sm">
+                    Nitrificatie en denitrificatie na ammoniakdepositie:{" "}
+                    {formatNitrousOxide(nitrousOxide.indirect.volatilisation)} kg N / ha
+                  </li>
+                  <li className="text-muted-foreground text-sm">
+                    Denitrificatie van uitgespoeld nitraat:{" "}
+                    {formatNitrousOxide(nitrousOxide.indirect.leaching)} kg N / ha
+                  </li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </AccordionContent>
       </AccordionItem>
     )
@@ -487,13 +568,18 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <AccordionTrigger>Emissie (Totaal): {emission.total} kg N / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Emissie (Totaal): {formatFixed(emission.total, 1)} kg N / ha
+        </AccordionTrigger>
         <AccordionContent>
           <Accordion multiple className="ml-4">
             {renderAmmoniaEmissions(emission.ammonia, fieldInput)}
           </Accordion>
           <Accordion multiple className="ml-4">
             {renderNitrateEmissions(emission.nitrate)}
+          </Accordion>
+          <Accordion multiple className="ml-4">
+            {renderNitrousOxide(emission.nitrous_oxide, fieldInput)}
           </Accordion>
         </AccordionContent>
       </AccordionItem>

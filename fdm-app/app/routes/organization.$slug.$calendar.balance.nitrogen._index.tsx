@@ -34,6 +34,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { getOrganizationFarmGroups, parseFarmIdsParam } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
+import { formatFixed } from "~/lib/format"
 import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
 type Farm = Awaited<ReturnType<typeof getFarms>>[number]
@@ -307,18 +308,34 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
     return (
       <div className="flex grow items-center" key={farmResult.farm.b_id_farm}>
         {balanceResult.hasErrors ? (
-          <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
+          <CircleAlert
+            className="h-6 w-6 shrink-0 rounded-full bg-orange-100 p-0 text-orange-500"
+            role="img"
+            aria-label="Niet alle percelen konden worden berekend"
+          />
         ) : Number.isFinite(balanceResult.balance) ? (
           balanceResult.balance <= balanceResult.target ? (
-            <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
+            <CircleCheck
+              className="h-6 w-6 shrink-0 rounded-full bg-green-100 p-0 text-green-500"
+              role="img"
+              aria-label="Onder het doel"
+            />
           ) : (
-            <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
+            <CircleX
+              className="h-6 w-6 shrink-0 rounded-full bg-red-100 p-0 text-red-500"
+              role="img"
+              aria-label="Boven het doel"
+            />
           )
         ) : (
-          <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
+          <CircleAlert
+            className="h-6 w-6 shrink-0 rounded-full bg-orange-100 p-0 text-orange-500"
+            role="img"
+            aria-label="Balans niet berekend"
+          />
         )}
 
-        <div className="ml-4 space-y-1">
+        <div className="ml-4 min-w-0 space-y-1">
           <NavLink to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/nitrogen`}>
             <p className="text-sm leading-none font-medium hover:underline">
               {farmResult.farm.b_name_farm ?? "Onbekende bedrijf"}
@@ -328,10 +345,10 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
             {Math.round(farmResult.totalArea * 10) / 10} ha
           </p>
         </div>
-        <div className="ml-auto text-right font-medium">
+        <div className="ml-auto shrink-0 pl-4 text-right font-medium tabular-nums">
           {!balanceResult.hasErrors ? (
             <>
-              <span>{`${balanceResult.balance} / ${balanceResult.target}`}</span>
+              <span>{`${formatFixed(balanceResult.balance)} / ${formatFixed(balanceResult.target)}`}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
                   <TooltipTrigger
@@ -369,26 +386,38 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Overschot / Doel (Alle bedrijven)</CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>
-                  {`${resolvedNitrogenBalanceResult.balance} / ${resolvedNitrogenBalanceResult.target}`}
+                  {`${formatFixed(resolvedNitrogenBalanceResult.balance)} / ${formatFixed(resolvedNitrogenBalanceResult.target)}`}
                 </p>
                 {hasErrors ? (
                   <Tooltip>
                     <TooltipTrigger>
-                      <CircleAlert className="rounded-full bg-orange-100 text-orange-500" />
+                      <CircleAlert
+                        className="rounded-full bg-orange-100 text-orange-500"
+                        role="img"
+                        aria-label="Niet alle bedrijven konden worden berekend"
+                      />
                     </TooltipTrigger>
                     <TooltipContent>Niet alle bedrijven konden worden berekend</TooltipContent>
                   </Tooltip>
                 ) : resolvedNitrogenBalanceResult.balance <=
                   resolvedNitrogenBalanceResult.target ? (
-                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
+                  <CircleCheck
+                    className="rounded-full bg-green-100 p-0 text-green-500"
+                    role="img"
+                    aria-label="Onder het doel"
+                  />
                 ) : (
-                  <CircleX className="rounded-full bg-red-100 text-red-500 " />
+                  <CircleX
+                    className="rounded-full bg-red-100 text-red-500"
+                    role="img"
+                    aria-label="Boven het doel"
+                  />
                 )}
               </div>
             </div>
@@ -398,31 +427,35 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDown className="text-muted-foreground text-xs" />
+            <ArrowDown className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resolvedNitrogenBalanceResult.supply.total}</div>
+            <div className="text-2xl font-bold">
+              {formatFixed(resolvedNitrogenBalanceResult.supply.total)}
+            </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowRight className="text-muted-foreground text-xs" />
+            <ArrowRight className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resolvedNitrogenBalanceResult.removal.total}</div>
+            <div className="text-2xl font-bold">
+              {formatFixed(resolvedNitrogenBalanceResult.removal.total)}
+            </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resolvedNitrogenBalanceResult.emission.ammonia.total}
+              {formatFixed(resolvedNitrogenBalanceResult.emission.ammonia.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -430,11 +463,11 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
-            <ArrowRightFromLine className="text-muted-foreground text-xs" />
+            <ArrowRightFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resolvedNitrogenBalanceResult.emission.nitrate}
+              {formatFixed(resolvedNitrogenBalanceResult.emission.nitrate)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -445,10 +478,11 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De gemiddelde stikstofbalans voor de geselecteerde bedrijven. De balans is het
-              verschil tussen de totale aanvoer, afvoer en emissie van stikstof. Een positieve
-              balans betekent een overschot aan stikstof, een negatieve balans een tekort. U kunt de
-              selectie van de bedrijven wijzigen om de uitschieters te identificeren.
+              De gemiddelde stikstofbalans voor de geselecteerde bedrijven. De balans is de aanvoer
+              min de afvoer en de ammoniakemissie. Nitraatuitspoeling en lachgas tellen niet mee.
+              Een positieve balans betekent een overschot aan stikstof, een negatieve balans een
+              tekort. U kunt de selectie van de bedrijven wijzigen om de uitschieters te
+              identificeren.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
