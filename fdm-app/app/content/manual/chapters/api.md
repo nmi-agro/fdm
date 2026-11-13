@@ -12,6 +12,7 @@ watch:
   - fdm-api/src/app.ts
   - fdm-api/src/auth.ts
   - fdm-api/src/rate-limit.ts
+  - fdm-api/src/limits.ts
   - fdm-api/src/routes/**
 keywords:
   - API
@@ -22,6 +23,7 @@ keywords:
 related:
   - account
   - samenwerken
+  - ai-assistenten
 ---
 
 Met de API van {{appName}} koppel je je eigen software aan je bedrijfsgegevens: een eigen dashboard, een adviessysteem of een koppeling met een ander pakket. Dit hoofdstuk is bedoeld voor technische gebruikers en ontwikkelaars. Gebruik je alleen de app, dan heb je de API niet nodig.
@@ -64,11 +66,18 @@ Per sleutel geldt een maximaal aantal verzoeken per minuut:
 | Soort verzoek                                              | Per minuut |
 | ---------------------------------------------------------- | ---------- |
 | Gegevens opvragen                                          | 120        |
-| Gegevens wijzigen                                          | 30         |
+| Gegevens wijzigen                                          | 120        |
 | Berekeningen, zoals balansen en gebruiksruimte             | 10         |
 | Diensten van NMI, zoals bodemschattingen en PDF's uitlezen | 10         |
 
 Kom je boven een limiet, dan krijg je een foutmelding en probeer je het even later opnieuw.
+
+Om misbruik te voorkomen gelden via de API ook deze grenzen:
+
+- Een bedrijf kan via de API maximaal 500 percelen hebben. Bij een groter bedrijf werken overzichten en berekeningen van het hele bedrijf en het importeren van percelen niet via de API. Gegevens van een los perceel kun je wel opvragen.
+- Je kunt via de API maximaal 10 nieuwe bedrijven per 24 uur aanmaken, met al je sleutels samen.
+
+In {{appName}} zelf gelden deze grenzen niet.
 
 ## Documentatie {#documentatie}
 

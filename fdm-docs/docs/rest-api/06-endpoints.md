@@ -219,6 +219,76 @@ Current soil data, per field and per farm, includes the nitrogen supplying capac
 | `PATCH` | `/api/fertilizers/{p_id}`                     | Update a custom fertilizer (`422` for a standard catalogue product) |
 | `GET`   | `/api/cultivations/{b_lu}/harvest-parameters` | Parameters a harvest needs and their default values                 |
 
+### RVO fertilizer codes
+
+The fertilizer catalogue returns `p_type_rvo`, the fertilizer type code of RVO. The web app shows the Dutch name.
+
+| `p_type_rvo` | Dutch name                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `10`         | Rundvee - Vaste mest                                                                             |
+| `11`         | Rundvee - Filtraat na mestscheiding                                                              |
+| `12`         | Rundvee - Gier                                                                                   |
+| `13`         | Rundvee - Koek na mestscheiding                                                                  |
+| `14`         | Rundvee - Drijfmest behalve van vleeskalveren                                                    |
+| `17`         | Rundvee - Bewerkte kalvergier                                                                    |
+| `18`         | Rundvee - Vleeskalveren, witvlees                                                                |
+| `19`         | Rundvee - Vleeskalveren, rosevlees                                                               |
+| `23`         | Kalkoenen - Mest, alle systemen                                                                  |
+| `30`         | Kippen - Drijfmest                                                                               |
+| `31`         | Kippen - Deeppitstal, kanalenstal                                                                |
+| `32`         | Kippen - Mestband                                                                                |
+| `33`         | Kippen - Mestband + nadroog                                                                      |
+| `35`         | Kippen - Geheel of gedeeltelijk strooiselstal (incl. volièrestal/scharrelstal)                   |
+| `39`         | Vleeskuikens en parelhoenders - Mest, alle systemen                                              |
+| `40`         | Varkens - Vaste mest                                                                             |
+| `41`         | Varkens - Filtraat na mestscheiding                                                              |
+| `42`         | Varkens - Gier                                                                                   |
+| `43`         | Varkens - Koek na mestscheiding                                                                  |
+| `46`         | Varkens - Drijfmest fokzeugen, incl. biggen, opfokzeugen/-beren, dekberen                        |
+| `50`         | Varkens - Drijfmest vleesvarkens                                                                 |
+| `56`         | Schapen - Mest, alle systemen                                                                    |
+| `60`         | Geiten - Drijfmest                                                                               |
+| `61`         | Geiten - Vaste mest                                                                              |
+| `75`         | Nertsen - Vaste mest                                                                             |
+| `76`         | Nertsen - Drijfmest                                                                              |
+| `80`         | Eenden - Vaste mest                                                                              |
+| `81`         | Eenden - Drijfmest                                                                               |
+| `90`         | Konijnen - Vaste mest                                                                            |
+| `91`         | Konijnen - Drijfmest met percentage droge stof < 2,5%                                            |
+| `92`         | Konijnen - Drijfmest                                                                             |
+| `25`         | Paarden - Vaste mest                                                                             |
+| `26`         | Ezels - Vaste mest                                                                               |
+| `27`         | Pony’s - Vaste mest                                                                              |
+| `95`         | Herten - Vaste mest                                                                              |
+| `96`         | Waterbuffels - Mest, alle systemen                                                               |
+| `97`         | Knobbelgans - Vaste mest                                                                         |
+| `98`         | Grauwe gans - Vaste mest                                                                         |
+| `99`         | Fazanten en patrijzen - Vaste mest                                                               |
+| `100`        | Struisvogels, emoes en nandoes - Vaste mest                                                      |
+| `101`        | Vleesduif - Vaste mest                                                                           |
+| `102`        | Bruine rat - Vaste mest                                                                          |
+| `103`        | Tamme muis - Vaste mest                                                                          |
+| `104`        | Cavia - Vaste mest                                                                               |
+| `105`        | Goudhamster - Vaste mest                                                                         |
+| `106`        | Gerbil - Vaste mest                                                                              |
+| `107`        | Fase 1 substraat                                                                                 |
+| `108`        | Fase 2 substraat                                                                                 |
+| `109`        | Fase 3 substraat                                                                                 |
+| `110`        | Champost                                                                                         |
+| `111`        | Compost                                                                                          |
+| `112`        | Zeer schone compost                                                                              |
+| `113`        | Zuiveringsslib vloeibaar                                                                         |
+| `114`        | Zuiveringsslib steekvast                                                                         |
+| `115`        | Kunstmest                                                                                        |
+| `116`        | Overige mestsoorten                                                                              |
+| `117`        | Gescheiden champost                                                                              |
+| `120`        | Mineralenconcentraat (alleen geldig voor 2025 en eerder; Kies Renure-variant voor 2026 en later) |
+| `130`        | Ammoniumsulfaat (Renure)                                                                         |
+| `131`        | Ammoniumnitraat (Renure)                                                                         |
+| `132`        | Mineralenconcentraat (Renure)                                                                    |
+| `133`        | Struviet (Renure)                                                                                |
+| `134`        | Ander ammoniumzout (Renure)                                                                      |
+
 ---
 
 ## Invitations

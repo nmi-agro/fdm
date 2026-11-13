@@ -1,22 +1,20 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type {
-  addFarm,
-  addFertilizer,
-  enableCultivationCatalogue,
-  enableFertilizerCatalogue,
-  enableMeasureCatalogue,
-  FdmType,
-  getFarm,
-  getFarmGroup,
-  getFarms,
-  getFertilizersFromCatalogue,
-  removeFarm,
-  updateFarm,
-} from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { ApiError } from "../error"
-import { FarmIdSchema } from "../fields"
+import type { ApiEnv } from "../types"
+import {
+  CreateFarmBodySchema,
+  createFarm,
+  deleteFarm,
+  FarmParamsSchema,
+  FarmSchema,
+  type FarmServices,
+  getFarm,
+  ListFarmsFilterSchema,
+  listFarms,
+  UpdateFarmBodySchema,
+  updateFarm,
+} from "../operations/farms"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -25,98 +23,16 @@ import {
   paginatedSchema,
   writeErrorResponses,
 } from "../schemas"
+import { operationContext } from "./operation-context"
+
+export type { FarmServices } from "../operations/farms"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
-/**
- * Defines the farm data access functions required by the farm routes.
- */
-export interface FarmServices {
-  /** Returns all farms visible to the authenticated principal. */
-  getFarms: typeof getFarms
-  /** Returns a single farm visible to the authenticated principal. */
-  getFarm: typeof getFarm
-  /** Creates a new farm owned by the authenticated principal. */
-  addFarm: typeof addFarm
-  /** Enables a fertilizer catalogue for the farm. */
-  enableFertilizerCatalogue: typeof enableFertilizerCatalogue
-  /** Enables a cultivation catalogue for the farm. */
-  enableCultivationCatalogue: typeof enableCultivationCatalogue
-  /** Enables a field measure catalogue for the farm. */
-  enableMeasureCatalogue: typeof enableMeasureCatalogue
-  /** Lists the fertilizers in the catalogues enabled on a farm. */
-  getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
-  /** Adds a catalogue fertilizer to the farm's fertilizer list. */
-  addFertilizer: typeof addFertilizer
-  /** Updates the metadata of an existing farm. */
-  updateFarm: typeof updateFarm
-  /** Permanently deletes a farm and all its associated resources. */
-  removeFarm: typeof removeFarm
-  /** Returns a farm group, used to filter farms by group. */
-  getFarmGroup: typeof getFarmGroup
-}
-
-const FarmSchema = z
-  .object({
-    b_id_farm: FarmIdSchema,
-    b_name_farm: z.string().nullable().describe("Farm display name. `null` when not set."),
-    b_businessid_farm: z
-      .string()
-      .nullable()
-      .describe("Chamber of commerce or business registration number. `null` when not set."),
-    b_address_farm: z
-      .string()
-      .nullable()
-      .describe("Street address of the farm. `null` when not set."),
-    b_postalcode_farm: z
-      .string()
-      .nullable()
-      .describe("Postal code of the farm address. `null` when not set."),
-  })
-  .openapi("Farm")
-
-const CreateFarmBodySchema = z
-  .object({
-    b_name_farm: z.string().optional().describe("Farm display name."),
-    b_businessid_farm: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Chamber of commerce or business registration number."),
-    b_address_farm: z.string().nullable().optional().describe("Street address of the farm."),
-    b_postalcode_farm: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Postal code of the farm address."),
-  })
-  .openapi("CreateFarm")
-
-const UpdateFarmBodySchema = z
-  .object({
-    b_name_farm: z.string().nullable().optional().describe("Farm display name."),
-    b_businessid_farm: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Chamber of commerce or business registration number."),
-    b_address_farm: z.string().nullable().optional().describe("Street address of the farm."),
-    b_postalcode_farm: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Postal code of the farm address."),
-  })
-  .openapi("UpdateFarm")
-
-const ListFarmsQuerySchema = PaginationQuerySchema.extend({
-  b_id_group: z
-    .string()
-    .optional()
-    .describe("Only list the farms that are a member of this group."),
-})
+const ListFarmsQuerySchema = PaginationQuerySchema.extend(ListFarmsFilterSchema.shape)
 
 const listFarmsRoute = createRoute({
+  operationId: listFarms.name,
   method: "get",
   path: "/farms",
   tags: ["Farms"],
@@ -136,13 +52,14 @@ const listFarmsRoute = createRoute({
 })
 
 const getFarmRoute = createRoute({
+  operationId: getFarm.name,
   method: "get",
   path: "/farms/{b_id_farm}",
   tags: ["Farms"],
   summary: "Get a farm",
   description: "Returns a single farm by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: FarmIdSchema }) },
+  request: { params: FarmParamsSchema },
   responses: {
     200: {
       description: "The requested farm.",
@@ -153,6 +70,7 @@ const getFarmRoute = createRoute({
 })
 
 const createFarmRoute = createRoute({
+  operationId: createFarm.name,
   method: "post",
   path: "/farms",
   tags: ["Farms"],
@@ -176,6 +94,7 @@ const createFarmRoute = createRoute({
 })
 
 const updateFarmRoute = createRoute({
+  operationId: updateFarm.name,
   method: "patch",
   path: "/farms/{b_id_farm}",
   tags: ["Farms"],
@@ -184,7 +103,7 @@ const updateFarmRoute = createRoute({
     "Partially updates the metadata of an existing farm. Only supplied fields are changed.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: FarmParamsSchema,
     body: {
       content: { "application/json": { schema: UpdateFarmBodySchema } },
       required: true,
@@ -200,6 +119,7 @@ const updateFarmRoute = createRoute({
 })
 
 const deleteFarmRoute = createRoute({
+  operationId: deleteFarm.name,
   method: "delete",
   path: "/farms/{b_id_farm}",
   tags: ["Farms"],
@@ -207,28 +127,12 @@ const deleteFarmRoute = createRoute({
   description:
     "Permanently deletes a farm and all its associated fields, cultivations, and soil analyses.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_farm: FarmIdSchema }) },
+  request: { params: FarmParamsSchema },
   responses: {
     204: { description: "Farm deleted." },
     ...commonErrorResponses,
   },
 })
-
-function serialiseFarm(farm: {
-  b_id_farm: string
-  b_name_farm: string | null
-  b_businessid_farm: string | null
-  b_address_farm: string | null
-  b_postalcode_farm: string | null
-}) {
-  return {
-    b_id_farm: farm.b_id_farm,
-    b_name_farm: farm.b_name_farm ?? null,
-    b_businessid_farm: farm.b_businessid_farm ?? null,
-    b_address_farm: farm.b_address_farm ?? null,
-    b_postalcode_farm: farm.b_postalcode_farm ?? null,
-  }
-}
 
 /**
  * Registers the farm CRUD routes on the API application.
@@ -256,136 +160,41 @@ export function registerFarmRoutes(
   )
 
   const listFarmsHandler: RouteHandler<typeof listFarmsRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { limit, offset, b_id_group } = c.req.valid("query") as z.infer<
+    const { limit, offset, ...filter } = c.req.valid("query") as z.infer<
       typeof ListFarmsQuerySchema
     >
-    let farms = await services.getFarms(fdm, principal.effectivePrincipalId)
-    if (b_id_group) {
-      const group = await services.getFarmGroup(fdm, principal.effectivePrincipalId, b_id_group)
-      const members = new Set(group.b_id_farms)
-      farms = farms.filter((farm) => members.has(farm.b_id_farm))
-    }
-    return c.json(paginatedResponse(farms.map(serialiseFarm), limit, offset), 200)
+    const farms = await listFarms.run(operationContext(c, fdm, services), filter)
+    return c.json(paginatedResponse(farms, limit, offset), 200)
   }
 
   const getFarmHandler: RouteHandler<typeof getFarmRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
-    const farm = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
-    if (!farm?.b_id_farm) {
-      throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
-    }
-    return c.json(serialiseFarm(farm), 200)
+    const params = c.req.valid("param") as z.infer<typeof FarmParamsSchema>
+    return c.json(await getFarm.run(operationContext(c, fdm, services), params), 200)
   }
 
   const createFarmHandler: RouteHandler<typeof createFarmRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateFarmBodySchema>
-    const farm = await fdm.transaction(async (tx) => {
-      // Add the farm.
-      const b_id_farm = await services.addFarm(
-        tx,
-        principal.effectivePrincipalId,
-        body.b_name_farm ?? null,
-        body.b_businessid_farm ?? null,
-        body.b_address_farm ?? null,
-        body.b_postalcode_farm ?? null,
-      )
-      // Enable default catalogues.
-      const fertilizerCatalogueEnablement = ["baat", b_id_farm].map((p_source) =>
-        services.enableFertilizerCatalogue(tx, principal.effectivePrincipalId, b_id_farm, p_source),
-      )
-      const cultivationCatalogueEnablement = ["brp"].map((b_lu_source) =>
-        services.enableCultivationCatalogue(
-          tx,
-          principal.effectivePrincipalId,
-          b_id_farm,
-          b_lu_source,
-        ),
-      )
-      const measureCatalogueEnablement = ["bln"].map((m_source) =>
-        services.enableMeasureCatalogue(tx, principal.effectivePrincipalId, b_id_farm, m_source),
-      )
-      const catEnablementResult = await Promise.allSettled([
-        ...fertilizerCatalogueEnablement,
-        ...cultivationCatalogueEnablement,
-        ...measureCatalogueEnablement,
-      ])
-      for (const result of catEnablementResult) {
-        if (result.status === "rejected") {
-          throw result.reason
-        }
-      }
-      // Add the catalogue fertilizers to the farm's fertilizer list.
-      const fertilizers = await services.getFertilizersFromCatalogue(
-        tx,
-        principal.effectivePrincipalId,
-        b_id_farm,
-      )
-      const addFertilizerResults = await Promise.allSettled(
-        fertilizers.map((fertilizer) =>
-          services.addFertilizer(
-            tx,
-            principal.effectivePrincipalId,
-            fertilizer.p_id_catalogue,
-            b_id_farm,
-            null,
-            null,
-          ),
-        ),
-      )
-      const rejectedAddFertilizer = addFertilizerResults.find((r) => r.status === "rejected")
-      if (rejectedAddFertilizer) {
-        throw rejectedAddFertilizer.reason
-      }
-      // Get the newly created farm.
-      const farm = await services.getFarm(tx, principal.effectivePrincipalId, b_id_farm)
-      if (!farm?.b_id_farm) {
-        throw new ApiError(500, "internal-error", "Farm created but could not be retrieved.")
-      }
-      return farm
-    })
+    const farm = await createFarm.run(operationContext(c, fdm, services), body)
     c.header("Location", `${new URL(c.req.url).origin}/farms/${farm.b_id_farm}`)
-    return c.json(serialiseFarm(farm), 201)
+    return c.json(farm, 201)
   }
 
   const updateFarmHandler: RouteHandler<typeof updateFarmRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof FarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof UpdateFarmBodySchema>
-    if (Object.values(body).every((v) => v === undefined)) {
-      throw new ApiError(400, "validation-failed", "At least one field must be provided.")
-    }
-    const existing = await services.getFarm(fdm, principal.effectivePrincipalId, b_id_farm)
-    if (!existing?.b_id_farm) {
-      throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
-    }
-    const updated = await services.updateFarm(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      body.b_name_farm !== undefined ? body.b_name_farm : existing.b_name_farm,
-      body.b_businessid_farm !== undefined ? body.b_businessid_farm : existing.b_businessid_farm,
-      body.b_address_farm !== undefined ? body.b_address_farm : existing.b_address_farm,
-      body.b_postalcode_farm !== undefined ? body.b_postalcode_farm : existing.b_postalcode_farm,
-    )
-    if (!updated?.b_id_farm) {
-      throw new ApiError(404, "not-found", `Farm '${b_id_farm}' not found.`)
-    }
-    return c.json(serialiseFarm(updated), 200)
+    const farm = await updateFarm.run(operationContext(c, fdm, services), { ...params, ...body })
+    return c.json(farm, 200)
   }
 
   const deleteFarmHandler: RouteHandler<typeof deleteFarmRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
-    await services.removeFarm(fdm, principal.effectivePrincipalId, b_id_farm)
+    const params = c.req.valid("param") as z.infer<typeof FarmParamsSchema>
+    await deleteFarm.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 

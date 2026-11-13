@@ -8,7 +8,7 @@
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { ApiError, createErrorHandler, createNotFoundHandler } from "../error"
+import { ApiError, classifyError, createErrorHandler, createNotFoundHandler } from "../error"
 
 const APP_URL = "https://test.example.com"
 
@@ -182,6 +182,31 @@ describe("createErrorHandler", () => {
     await app.request("/unknown-error")
     expect(consoleErrorSpy).toHaveBeenCalled()
   })
+
+  it("prefixes log lines with fdm-api by default, or with the configured prefix", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    await makeTestApp().request("/api-error")
+    expect(String(warn.mock.calls.at(-1)?.[0])).toMatch(/^\[fdm-api\] /)
+
+    const app = new Hono()
+    app.onError(createErrorHandler(APP_URL, { logPrefix: "other" }))
+    app.notFound(createNotFoundHandler(APP_URL, { logPrefix: "other" }))
+    app.get("/fail", () => {
+      throw new ApiError(422, "unprocessable-entity", "Bad input.")
+    })
+    app.get("/bad-json", () => {
+      throw new HTTPException(400, { message: "Malformed JSON" })
+    })
+    await app.request("/fail")
+    await app.request("/bad-json")
+    await app.request("/missing")
+    await app.request("/missing")
+    const lines = warn.mock.calls.slice(-4).map(([line]) => String(line))
+    for (const line of lines) {
+      expect(line).toMatch(/^\[other\] /)
+    }
+    warn.mockRestore()
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -257,5 +282,59 @@ describe("createErrorHandler: malformed JSON via full API", () => {
     const body = await res.json()
     expect(body.type).toContain("validation-failed")
     consoleErrorSpy.mockRestore()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// classifyError (unit)
+// ---------------------------------------------------------------------------
+describe("classifyError", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+  })
+
+  it("keeps the status, slug, detail and extras of an ApiError", () => {
+    const result = classifyError(new ApiError(404, "not-found", "Farm 'x' not found.", { a: 1 }))
+    expect(result).toEqual({
+      status: 404,
+      slug: "not-found",
+      detail: "Farm 'x' not found.",
+      extras: { a: 1 },
+      errorId: undefined,
+    })
+  })
+
+  it("maps a permission denial in the cause chain to 403 forbidden", () => {
+    const err = new Error("Exception for getFarm", {
+      cause: new Error("Principal does not have permission to perform this action"),
+    })
+    expect(classifyError(err)).toMatchObject({ status: 403, slug: "forbidden" })
+  })
+
+  it("maps an application amount out of range to 422 with the limit", () => {
+    const cause = Object.assign(new Error("out of range"), {
+      name: "AppAmountOutOfRangeError",
+      p_app_amount_unit: "kg/ha",
+    })
+    const result = classifyError(new Error("Exception for addFertilizerApplication", { cause }))
+    expect(result.status).toBe(422)
+    expect(result.slug).toBe("unprocessable-entity")
+    expect(result.detail).toContain("100,000 kg/ha")
+  })
+
+  it("maps a SyntaxError to 400 validation-failed", () => {
+    expect(classifyError(new SyntaxError("Unexpected token"))).toMatchObject({
+      status: 400,
+      slug: "validation-failed",
+    })
+  })
+
+  it("hides the message of an unexpected error and returns an error id", () => {
+    const result = classifyError(new Error("connection to 10.0.0.1 failed"))
+    expect(result.status).toBe(500)
+    expect(result.slug).toBe("internal-error")
+    expect(result.detail).toBe("An unexpected error occurred.")
+    expect(result.detail).not.toContain("10.0.0.1")
+    expect(result.errorId).toEqual(expect.any(String))
   })
 })

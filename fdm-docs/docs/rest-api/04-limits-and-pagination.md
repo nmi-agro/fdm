@@ -51,7 +51,7 @@ Rate limits are enforced **per API key**. Limits reset on a rolling one-minute w
 | Request category                     | Limit                                            |
 | ------------------------------------ | ------------------------------------------------ |
 | General (all GET requests)           | **120 requests / minute**                        |
-| Write / delete (POST, PATCH, DELETE) | **30 requests / minute**                         |
+| Write / delete (POST, PATCH, DELETE) | **120 requests / minute**                        |
 | Calculation endpoints                | **10 requests / minute**                         |
 | Endpoints that use the NMI API       | **10 requests / minute** (separate `nmi` bucket) |
 | Key-management endpoints             | Subject to the general limit                     |
@@ -65,7 +65,7 @@ When a limit is exceeded, the API returns `429` with a `Retry-After` header indi
   "type": "https://fdm.app/api/errors/rate-limit-exceeded",
   "title": "Rate Limit Exceeded",
   "status": 429,
-  "detail": "You have exceeded the rate limit of 30 write requests per minute.",
+  "detail": "You have exceeded the rate limit of 120 write requests per minute.",
   "instance": "/api/farms",
   "error_id": "QRST-7890"
 }
@@ -76,6 +76,18 @@ HTTP/1.1 429 Too Many Requests
 Retry-After: 23
 Content-Type: application/problem+json
 ```
+
+## Usage limits
+
+To prevent misuse, the API supports farms up to a fixed size and limits how many farms a user can create. These limits apply to the REST API and the MCP server; the web application does not have them.
+
+| Limit              | Value                                                | Error on violation                                    |
+| ------------------ | ---------------------------------------------------- | ----------------------------------------------------- |
+| Fields per farm    | **500**                                              | `422 unprocessable-entity`                            |
+| New farms per user | **10 per 24 hours**, across all API keys of the user | `429 rate-limit-exceeded` with a `Retry-After` header |
+
+- **Fields per farm.** Adding a field (`POST /farms/{b_id_farm}/fields`) or applying a field import fails when the farm would have more than 500 fields. Fields that an import removes make room for the fields it adds. For a farm that already has more than 500 fields, farm-level lists and calculations fail: the fields, cultivations, harvests, fertilizer applications, measures, soil analyses and current soil data of the farm, its balances, norms, nutrient advice and indicators, and the aggregations of a farm group or organization that includes it, and the comparison and application of a field import. Requests for a single field, cultivation or other record keep working. The count includes every field that was ever linked to the farm.
+- **New farms per user.** The 24 hours start at the first farm the user creates in a new window. The `Retry-After` header and the `retry_after` member of the problem document give the number of seconds until the window ends.
 
 ## Pagination
 

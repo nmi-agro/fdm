@@ -68,6 +68,7 @@ const measureSummary = (b_id_farm: string, fieldCount: number, start: string) =>
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
   return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
     getFarmGroup: vi.fn().mockResolvedValue(group),
     getFarmIdsOfOrganization: vi.fn().mockResolvedValue(["farm-a", "farm-b", "farm-c"]),
     getNmiApiKey: () => "key",
@@ -228,7 +229,8 @@ describe("farm group aggregations", () => {
     expect(res2.status).toBe(403)
   })
 
-  it("leaves a farm whose measures fail out of the total", async () => {
+  it("leaves a farm whose measures fail out of the total, and logs the failure", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
     const getFarmMeasureSummary = vi
       .fn()
       .mockResolvedValueOnce(measureSummary("farm-a", 2, "2026-03-01"))
@@ -242,6 +244,10 @@ describe("farm group aggregations", () => {
       error: "The result of this farm could not be calculated.",
     })
     expect(body.total.measures[0]).toMatchObject({ b_id_farms: ["farm-a"], field_count: 2 })
+    expect(String(error.mock.calls.at(-1)?.[0])).toMatch(
+      /^\[fdm-api\] error_id=\S+ A farm in the measure aggregation failed/,
+    )
+    error.mockRestore()
   })
 
   it("returns 403 when the measures of a farm are not accessible", async () => {

@@ -8,7 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
-import { RATE_LIMITS } from "../rate-limit"
+import { consumeRateLimit, RATE_LIMITS } from "../rate-limit"
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
 
@@ -36,7 +36,10 @@ function makeMocks(count = 1) {
 }
 
 function makeApp(mockFdm: any, mockAuth: any, services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -322,4 +325,34 @@ describe("rate-limit: all rate-limited paths call the DB exactly once", () => {
       expect(mockFdm.insert).toHaveBeenCalledTimes(1)
     })
   }
+})
+
+// ---------------------------------------------------------------------------
+// consumeRateLimit (unit)
+// ---------------------------------------------------------------------------
+describe("consumeRateLimit", () => {
+  it("counts the request under the shared per-key bucket key", async () => {
+    const { mockFdm } = makeMocks(1)
+    await consumeRateLimit(mockFdm, "key-7", "calc")
+    expect(mockFdm.values).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "fdm-api:key-7:calc", count: 1 }),
+    )
+  })
+
+  it("allows a request within the limit and reports what is left", async () => {
+    const { mockFdm } = makeMocks(3)
+    const result = await consumeRateLimit(mockFdm, "key-1", "write")
+    expect(result.allowed).toBe(true)
+    expect(result.limit).toBe(RATE_LIMITS.write)
+    expect(result.remaining).toBe(RATE_LIMITS.write - 3)
+    expect(result.resetIn).toBeGreaterThanOrEqual(0)
+  })
+
+  it("refuses a request over the limit with at least one second to wait", async () => {
+    const { mockFdm } = makeMocks(RATE_LIMITS.nmi + 1)
+    const result = await consumeRateLimit(mockFdm, "key-1", "nmi")
+    expect(result.allowed).toBe(false)
+    expect(result.remaining).toBe(0)
+    expect(result.resetIn).toBeGreaterThanOrEqual(1)
+  })
 })

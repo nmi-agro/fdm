@@ -1,93 +1,40 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type {
-  addHarvest,
-  FdmType,
-  getCultivation,
-  getCultivationsFromCatalogue,
-  getField,
-  getHarvest,
-  getHarvests,
-  getHarvestsForFarm,
-  Harvest,
-  removeHarvest,
-  updateHarvest,
-} from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
+import type { ApiEnv } from "../types"
+import { CultivationParamsSchema } from "../operations/cultivations"
+import { FarmParamsSchema } from "../operations/farms"
 import {
-  getDefaultsForHarvestParameters,
-  getEffectiveHarvestable,
-  getParametersForHarvestCat,
-} from "@nmi-agro/fdm-core"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { ApiError } from "../error"
-import { CultivationIdSchema, FarmIdSchema, HarvestIdSchema, harvestAnalysisShape } from "../fields"
+  CreateHarvestBodySchema,
+  createHarvest,
+  deleteHarvest,
+  getCultivationHarvestParameters,
+  getHarvest,
+  HarvestParamsSchema,
+  HarvestParametersSchema,
+  HarvestSchema,
+  type HarvestServices,
+  listCultivationHarvests,
+  listFarmHarvests,
+  UpdateHarvestBodySchema,
+  updateHarvest,
+} from "../operations/harvests"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
-  DateStringSchema,
   PaginationTimeframeQuerySchema,
   paginatedResponse,
   paginatedSchema,
-  parseTimeframeQuery,
-  serializeDate,
   writeErrorResponses,
 } from "../schemas"
+import { operationContext } from "./operation-context"
+
+export type { HarvestServices } from "../operations/harvests"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
-/** Defines the harvest data access functions required by the harvest routes. */
-export interface HarvestServices {
-  getHarvests: typeof getHarvests
-  getCultivation: typeof getCultivation
-  getField: typeof getField
-  getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
-  getHarvestsForFarm: typeof getHarvestsForFarm
-  getHarvest: typeof getHarvest
-  addHarvest: typeof addHarvest
-  updateHarvest: typeof updateHarvest
-  removeHarvest: typeof removeHarvest
-}
-
-const HarvestPropertyShape = harvestAnalysisShape((schema) => schema.nullable().optional())
-
-const HarvestableAnalysisSchema = z.object({
-  b_id_harvestable_analysis: z
-    .string()
-    .describe("Unique identifier of the analysis of the harvested product."),
-  ...harvestAnalysisShape((schema) => schema.nullable()),
-})
-
-const HarvestSchema = z
-  .object({
-    b_id_harvesting: HarvestIdSchema,
-    b_lu_harvest_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    b_lu: CultivationIdSchema.describe("Unique identifier of the harvested cultivation."),
-    harvestable: z
-      .object({
-        b_id_harvestable: z.string().describe("Unique identifier of the harvested product."),
-        harvestable_analyses: z
-          .array(HarvestableAnalysisSchema)
-          .describe("Analyses of the harvested product. Values are `null` when not measured."),
-      })
-      .describe("The product that was harvested."),
-  })
-  .openapi("Harvest")
-
-const CreateHarvestBodySchema = z
-  .object({
-    b_lu_harvest_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    ...HarvestPropertyShape,
-  })
-  .openapi("CreateHarvest")
-
-const UpdateHarvestBodySchema = z
-  .object({
-    b_lu_harvest_date: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    ...HarvestPropertyShape,
-  })
-  .openapi("UpdateHarvest")
-
 const listHarvestsRoute = createRoute({
+  operationId: listCultivationHarvests.name,
   method: "get",
   path: "/cultivations/{b_lu}/harvests",
   tags: ["Harvests"],
@@ -95,7 +42,7 @@ const listHarvestsRoute = createRoute({
   description: "Returns all harvests for the specified cultivation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_lu: CultivationIdSchema }),
+    params: CultivationParamsSchema,
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -110,6 +57,7 @@ const listHarvestsRoute = createRoute({
 })
 
 const createHarvestRoute = createRoute({
+  operationId: createHarvest.name,
   method: "post",
   path: "/cultivations/{b_lu}/harvests",
   tags: ["Harvests"],
@@ -117,7 +65,7 @@ const createHarvestRoute = createRoute({
   description: "Creates a new harvest on the specified cultivation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_lu: CultivationIdSchema }),
+    params: CultivationParamsSchema,
     body: {
       content: {
         "application/json": { schema: CreateHarvestBodySchema },
@@ -135,13 +83,14 @@ const createHarvestRoute = createRoute({
 })
 
 const getHarvestRoute = createRoute({
+  operationId: getHarvest.name,
   method: "get",
   path: "/harvests/{b_id_harvesting}",
   tags: ["Harvests"],
   summary: "Get a harvest",
   description: "Returns a single harvest by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_harvesting: HarvestIdSchema }) },
+  request: { params: HarvestParamsSchema },
   responses: {
     200: {
       description: "The requested harvest.",
@@ -152,6 +101,7 @@ const getHarvestRoute = createRoute({
 })
 
 const updateHarvestRoute = createRoute({
+  operationId: updateHarvest.name,
   method: "patch",
   path: "/harvests/{b_id_harvesting}",
   tags: ["Harvests"],
@@ -159,7 +109,7 @@ const updateHarvestRoute = createRoute({
   description: "Updates an existing harvest.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_harvesting: HarvestIdSchema }),
+    params: HarvestParamsSchema,
     body: {
       content: {
         "application/json": { schema: UpdateHarvestBodySchema },
@@ -177,13 +127,14 @@ const updateHarvestRoute = createRoute({
 })
 
 const deleteHarvestRoute = createRoute({
+  operationId: deleteHarvest.name,
   method: "delete",
   path: "/harvests/{b_id_harvesting}",
   tags: ["Harvests"],
   summary: "Delete a harvest",
   description: "Permanently deletes a harvest.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_harvesting: HarvestIdSchema }) },
+  request: { params: HarvestParamsSchema },
   responses: {
     204: { description: "Harvest deleted." },
     ...commonErrorResponses,
@@ -191,6 +142,7 @@ const deleteHarvestRoute = createRoute({
 })
 
 const listFarmHarvestsRoute = createRoute({
+  operationId: listFarmHarvests.name,
   method: "get",
   path: "/farms/{b_id_farm}/harvests",
   tags: ["Harvests"],
@@ -200,7 +152,7 @@ const listFarmHarvestsRoute = createRoute({
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   "x-badges": [{ name: "New", color: "#16a34a" }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: FarmParamsSchema,
     query: PaginationTimeframeQuerySchema,
   },
   responses: {
@@ -216,52 +168,8 @@ const listFarmHarvestsRoute = createRoute({
   },
 })
 
-const harvestParameterCodes = [
-  "b_lu_yield",
-  "b_lu_yield_fresh",
-  "b_lu_yield_bruto",
-  "b_lu_tarra",
-  "b_lu_uww",
-  "b_lu_moist",
-  "b_lu_dm",
-  "b_lu_cp",
-  "b_lu_n_harvestable",
-] as const
-
-const HarvestParametersSchema = z
-  .object({
-    b_lu: CultivationIdSchema.describe("Unique identifier of the cultivation."),
-    b_lu_catalogue: z.string().describe("Cultivation catalogue code of the cultivation."),
-    b_lu_harvestcat: z
-      .string()
-      .nullable()
-      .describe(
-        "Harvest category of the crop (HC010–HC050), which decides the parameters of a harvest. `null` when the crop has no harvest category.",
-      ),
-    b_lu_harvestable: z
-      .enum(["none", "once", "multiple"])
-      .describe(
-        "How often the cultivation can be harvested: `none`, `once`, or `multiple` (several cuts, only for grassland).",
-      ),
-    parameters: z
-      .array(z.enum(harvestParameterCodes))
-      .describe(
-        "Parameters required to register a harvest of this cultivation. Send these in `POST /cultivations/{b_lu}/harvests`. Empty when the crop is not harvested.",
-      ),
-    defaults: z
-      .object(harvestAnalysisShape((schema) => schema.optional()))
-      .pick(
-        Object.fromEntries(harvestParameterCodes.map((code) => [code, true])) as {
-          [K in (typeof harvestParameterCodes)[number]]: true
-        },
-      )
-      .describe(
-        "Default value of each required parameter, based on the typical yield and dry matter content of the crop. Only parameters in `parameters` can be present; a parameter without a typical value is omitted.",
-      ),
-  })
-  .openapi("HarvestParameters")
-
 const getHarvestParametersRoute = createRoute({
+  operationId: getCultivationHarvestParameters.name,
   method: "get",
   path: "/cultivations/{b_lu}/harvest-parameters",
   tags: ["Harvests"],
@@ -270,7 +178,7 @@ const getHarvestParametersRoute = createRoute({
     "Returns which parameters a harvest of this cultivation needs and their default values, the same as the harvest form in the web app. Use it before `POST /cultivations/{b_lu}/harvests`.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   "x-badges": [{ name: "New", color: "#16a34a" }],
-  request: { params: z.object({ b_lu: CultivationIdSchema }) },
+  request: { params: CultivationParamsSchema },
   responses: {
     200: {
       description: "Harvest parameters and their default values.",
@@ -279,56 +187,6 @@ const getHarvestParametersRoute = createRoute({
     ...commonErrorResponses,
   },
 })
-
-function serialiseHarvest(harvest: Harvest) {
-  return {
-    b_id_harvesting: harvest.b_id_harvesting,
-    b_lu_harvest_date: serializeDate(harvest.b_lu_harvest_date),
-    b_lu: harvest.b_lu,
-    harvestable: {
-      b_id_harvestable: harvest.harvestable.b_id_harvestable,
-      harvestable_analyses: harvest.harvestable.harvestable_analyses.map((analysis) => ({
-        b_id_harvestable_analysis: analysis.b_id_harvestable_analysis,
-        b_lu_yield: analysis.b_lu_yield ?? null,
-        b_lu_yield_fresh: analysis.b_lu_yield_fresh ?? null,
-        b_lu_yield_bruto: analysis.b_lu_yield_bruto ?? null,
-        b_lu_tarra: analysis.b_lu_tarra ?? null,
-        b_lu_dm: analysis.b_lu_dm ?? null,
-        b_lu_moist: analysis.b_lu_moist ?? null,
-        b_lu_uww: analysis.b_lu_uww ?? null,
-        b_lu_cp: analysis.b_lu_cp ?? null,
-        b_lu_n_harvestable: analysis.b_lu_n_harvestable ?? null,
-        b_lu_n_residue: analysis.b_lu_n_residue ?? null,
-        b_lu_p_harvestable: analysis.b_lu_p_harvestable ?? null,
-        b_lu_p_residue: analysis.b_lu_p_residue ?? null,
-        b_lu_k_harvestable: analysis.b_lu_k_harvestable ?? null,
-        b_lu_k_residue: analysis.b_lu_k_residue ?? null,
-      })),
-    },
-  }
-}
-
-function getHarvestProperties(
-  body: z.infer<typeof CreateHarvestBodySchema> | z.infer<typeof UpdateHarvestBodySchema>,
-) {
-  const properties = {
-    b_lu_yield: body.b_lu_yield,
-    b_lu_yield_bruto: body.b_lu_yield_bruto,
-    b_lu_yield_fresh: body.b_lu_yield_fresh,
-    b_lu_tarra: body.b_lu_tarra,
-    b_lu_dm: body.b_lu_dm,
-    b_lu_moist: body.b_lu_moist,
-    b_lu_uww: body.b_lu_uww,
-    b_lu_cp: body.b_lu_cp,
-    b_lu_n_harvestable: body.b_lu_n_harvestable,
-    b_lu_n_residue: body.b_lu_n_residue,
-    b_lu_p_harvestable: body.b_lu_p_harvestable,
-    b_lu_p_residue: body.b_lu_p_residue,
-    b_lu_k_harvestable: body.b_lu_k_harvestable,
-    b_lu_k_residue: body.b_lu_k_residue,
-  }
-  return Object.values(properties).some((value) => value !== undefined) ? properties : undefined
-}
 
 /**
  * Registers the harvest CRUD routes on the API application.
@@ -357,149 +215,78 @@ export function registerHarvestRoutes(
   )
 
   const listFarmHarvestsHandler: RouteHandler<typeof listFarmHarvestsRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof FarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
-    const byKey = await services.getHarvestsForFarm(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      parseTimeframeQuery(query),
-    )
-    const items = [...byKey.values()].flat()
-    items.sort(
-      (a, b) =>
-        String(serializeDate(a.b_lu_harvest_date)).localeCompare(
-          String(serializeDate(b.b_lu_harvest_date)),
-        ) || a.b_id_harvesting.localeCompare(b.b_id_harvesting),
-    )
-    return c.json(paginatedResponse(items.map(serialiseHarvest), query.limit, query.offset), 200)
+    const { limit, offset, ...timeframe } = c.req.valid("query") as z.infer<
+      typeof PaginationTimeframeQuerySchema
+    >
+    const harvests = await listFarmHarvests.run(operationContext(c, fdm, services), {
+      ...params,
+      ...timeframe,
+    })
+    return c.json(paginatedResponse(harvests, limit, offset), 200)
   }
 
   const getHarvestParametersHandler: RouteHandler<typeof getHarvestParametersRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_lu } = c.req.valid("param") as { b_lu: string }
-    const cultivation = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
-    if (!cultivation) {
-      throw new ApiError(404, "not-found", `Cultivation '${b_lu}' not found.`)
-    }
-    const field = await services.getField(fdm, principal.effectivePrincipalId, cultivation.b_id)
-    if (!field) {
-      throw new ApiError(404, "not-found", `Cultivation '${b_lu}' not found.`)
-    }
-    const catalogue = await services.getCultivationsFromCatalogue(
-      fdm,
-      principal.effectivePrincipalId,
-      field.b_id_farm,
+    const params = c.req.valid("param") as z.infer<typeof CultivationParamsSchema>
+    const harvestParameters = await getCultivationHarvestParameters.run(
+      operationContext(c, fdm, services),
+      params,
     )
-    const b_lu_harvestable = getEffectiveHarvestable(
-      cultivation.b_lu_harvestable,
-      cultivation.b_lu_croprotation,
-    )
-    const parameters =
-      b_lu_harvestable === "none" ? [] : getParametersForHarvestCat(cultivation.b_lu_harvestcat)
-    const defaults =
-      parameters.length > 0 &&
-      catalogue.some((item) => item.b_lu_catalogue === cultivation.b_lu_catalogue)
-        ? getDefaultsForHarvestParameters(cultivation.b_lu_catalogue, catalogue)
-        : {}
-    return c.json(
-      {
-        b_lu,
-        b_lu_catalogue: cultivation.b_lu_catalogue,
-        b_lu_harvestcat: cultivation.b_lu_harvestcat ?? null,
-        b_lu_harvestable,
-        parameters,
-        defaults,
-      } as z.infer<typeof HarvestParametersSchema>,
-      200,
-    )
+    return c.json(harvestParameters, 200)
   }
 
   const listHarvestsHandler: RouteHandler<typeof listHarvestsRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_lu } = c.req.valid("param") as { b_lu: string }
+    const params = c.req.valid("param") as z.infer<typeof CultivationParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const query = c.req.valid("query") as z.infer<typeof PaginationTimeframeQuerySchema>
-    const harvests = await services.getHarvests(
-      fdm,
-      principal.effectivePrincipalId,
-      b_lu,
-      parseTimeframeQuery(query),
-    )
-    return c.json(paginatedResponse(harvests.map(serialiseHarvest), query.limit, query.offset), 200)
+    const { limit, offset, ...timeframe } = c.req.valid("query") as z.infer<
+      typeof PaginationTimeframeQuerySchema
+    >
+    const harvests = await listCultivationHarvests.run(operationContext(c, fdm, services), {
+      ...params,
+      ...timeframe,
+    })
+    return c.json(paginatedResponse(harvests, limit, offset), 200)
   }
 
   const createHarvestHandler: RouteHandler<typeof createHarvestRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_lu } = c.req.valid("param") as { b_lu: string }
+    const params = c.req.valid("param") as z.infer<typeof CultivationParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateHarvestBodySchema>
-    const b_id_harvesting = await services.addHarvest(
-      fdm,
-      principal.effectivePrincipalId,
-      b_lu,
-      new Date(body.b_lu_harvest_date),
-      getHarvestProperties(body),
-    )
-    const harvest = await services.getHarvest(fdm, principal.effectivePrincipalId, b_id_harvesting)
-    if (!harvest?.b_id_harvesting) {
-      throw new ApiError(500, "internal-error", "Harvest created but could not be retrieved.")
-    }
-    c.header("Location", `${new URL(c.req.url).origin}/harvests/${b_id_harvesting}`)
-    return c.json(serialiseHarvest(harvest), 201)
+    const harvest = await createHarvest.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    c.header("Location", `${new URL(c.req.url).origin}/harvests/${harvest.b_id_harvesting}`)
+    return c.json(harvest, 201)
   }
 
   const getHarvestHandler: RouteHandler<typeof getHarvestRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_harvesting } = c.req.valid("param") as {
-      b_id_harvesting: string
-    }
-    const harvest = await services.getHarvest(fdm, principal.effectivePrincipalId, b_id_harvesting)
-    if (!harvest?.b_id_harvesting) {
-      throw new ApiError(404, "not-found", `Harvest '${b_id_harvesting}' not found.`)
-    }
-    return c.json(serialiseHarvest(harvest), 200)
+    const params = c.req.valid("param") as z.infer<typeof HarvestParamsSchema>
+    return c.json(await getHarvest.run(operationContext(c, fdm, services), params), 200)
   }
 
   const updateHarvestHandler: RouteHandler<typeof updateHarvestRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_harvesting } = c.req.valid("param") as {
-      b_id_harvesting: string
-    }
+    const params = c.req.valid("param") as z.infer<typeof HarvestParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof UpdateHarvestBodySchema>
-    if (Object.values(body).every((value) => value === undefined)) {
-      throw new ApiError(400, "validation-failed", "At least one field must be provided.")
-    }
-    await services.updateHarvest(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_harvesting,
-      new Date(body.b_lu_harvest_date),
-      getHarvestProperties(body),
-    )
-    const harvest = await services.getHarvest(fdm, principal.effectivePrincipalId, b_id_harvesting)
-    if (!harvest?.b_id_harvesting) {
-      throw new ApiError(404, "not-found", `Harvest '${b_id_harvesting}' not found.`)
-    }
-    return c.json(serialiseHarvest(harvest), 200)
+    const harvest = await updateHarvest.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    return c.json(harvest, 200)
   }
 
   const deleteHarvestHandler: RouteHandler<typeof deleteHarvestRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_harvesting } = c.req.valid("param") as {
-      b_id_harvesting: string
-    }
-    await services.removeHarvest(fdm, principal.effectivePrincipalId, b_id_harvesting)
+    const params = c.req.valid("param") as z.infer<typeof HarvestParamsSchema>
+    await deleteHarvest.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 

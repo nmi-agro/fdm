@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
+import { updateCustomFertilizer } from "../operations/fertilizers"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 const mockFdm = {
@@ -20,7 +21,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const baseCatalogue = {
@@ -29,7 +33,7 @@ const baseCatalogue = {
   p_name_nl: "Drijfmest",
   p_name_en: "Slurry",
   p_description: null,
-  p_app_method_options: ["injecteren"],
+  p_app_method_options: ["injection"],
   p_app_amount_unit: "m3/ha",
   p_dm: null,
   p_density: 1,
@@ -395,5 +399,28 @@ describe("PATCH /fertilizers/:p_id", () => {
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe("Fertilizer mutations — edge cases", () => {
+  beforeEach(validKey)
+
+  it("POST returns 500 when the acquired fertilizer cannot be retrieved", async () => {
+    const app = makeApp({
+      addFertilizer: vi.fn().mockResolvedValue("fert-new"),
+      getFertilizer: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/farms/farm-1/fertilizers", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_id_catalogue: "cat-1" }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("the updateCustomFertilizer input requires at least one property besides p_id", () => {
+    expect(updateCustomFertilizer.input.safeParse({ p_id: "p-1" }).success).toBe(false)
+    expect(updateCustomFertilizer.input.safeParse({ p_id: "p-1", p_n_rt: 5 }).success).toBe(true)
   })
 })

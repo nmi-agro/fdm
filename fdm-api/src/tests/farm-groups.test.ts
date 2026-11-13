@@ -26,7 +26,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const headers = { "x-api-key": "valid" }
@@ -548,5 +551,96 @@ describe("DELETE /farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}", 
       method: "DELETE",
     })
     expect(noKey.status).toBe(401)
+  })
+})
+
+describe("farm groups — core validation errors and missing groups", () => {
+  beforeEach(() => validKey())
+
+  it("POST returns 500 when the created group cannot be retrieved", async () => {
+    const createFarmGroup = vi.fn().mockResolvedValue("group-1")
+    const getFarmGroup = vi.fn().mockResolvedValue(undefined)
+    const res = await makeApp({ createFarmGroup, getFarmGroup }).request(
+      "/organizations/org-1/farm-groups",
+      { method: "POST", headers: jsonHeaders, body: JSON.stringify({ b_name_group: "Project A" }) },
+    )
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("GET returns 404 when the service returns no group", async () => {
+    const getFarmGroup = vi.fn().mockResolvedValue(undefined)
+    const res = await makeApp({ getFarmGroup }).request("/farm-groups/missing", { headers })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+  })
+
+  it("PATCH returns 400 when fdm-core rejects the name as missing", async () => {
+    const renameFarmGroup = vi
+      .fn()
+      .mockRejectedValue(coreError("Name of the farm group is required"))
+    const res = await makeApp({ renameFarmGroup }).request("/farm-groups/group-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_name_group: "   " }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.type).toMatch(/\/problems\/validation-failed$/)
+    expect(body.detail).toBe("The name of the farm group is required.")
+  })
+
+  it("PATCH returns 404 when the renamed group cannot be retrieved", async () => {
+    const renameFarmGroup = vi.fn().mockResolvedValue(undefined)
+    const getFarmGroup = vi.fn().mockResolvedValue(undefined)
+    const res = await makeApp({ renameFarmGroup, getFarmGroup }).request("/farm-groups/group-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_name_group: "Renamed" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+  })
+
+  it.each(["b_group_joined is not a valid date", "b_group_leaved must be after b_group_joined"])(
+    "membership POST returns 400 with the core message for '%s'",
+    async (cause) => {
+      const addFarmToGroup = vi.fn().mockRejectedValue(coreError(cause))
+      const res = await makeApp({ addFarmToGroup }).request("/farm-groups/group-1/farms", {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({ b_id_farm: "farm-1" }),
+      })
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.type).toMatch(/\/problems\/validation-failed$/)
+      expect(body.detail).toBe(cause)
+    },
+  )
+
+  it("membership POST returns 404 when the group cannot be retrieved afterwards", async () => {
+    const addFarmToGroup = vi.fn().mockResolvedValue(undefined)
+    const getFarmGroup = vi.fn().mockResolvedValue(undefined)
+    const res = await makeApp({ addFarmToGroup, getFarmGroup }).request(
+      "/farm-groups/group-1/farms",
+      { method: "POST", headers: jsonHeaders, body: JSON.stringify({ b_id_farm: "farm-1" }) },
+    )
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+  })
+
+  it("membership PATCH returns 404 when the group cannot be retrieved afterwards", async () => {
+    const updateFarmGroupMembership = vi.fn().mockResolvedValue(undefined)
+    const getFarmGroup = vi.fn().mockResolvedValue(undefined)
+    const res = await makeApp({ updateFarmGroupMembership, getFarmGroup }).request(
+      "/farm-groups/group-1/farms/farm-1/2020-01-01",
+      {
+        method: "PATCH",
+        headers: jsonHeaders,
+        body: JSON.stringify({ b_group_leaved: "2030-01-01" }),
+      },
+    )
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
   })
 })

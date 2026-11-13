@@ -21,6 +21,7 @@ import {
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
+import { assertFarmSizeSupported, assertFieldCapacity, type LimitServices } from "../limits"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   DateStringSchema,
@@ -31,7 +32,7 @@ import {
 } from "../schemas"
 
 /** Defines the functions required by the field import routes. */
-export interface FieldImportServices {
+export interface FieldImportServices extends LimitServices {
   reviewShapefileImport: typeof reviewShapefileImport
   applyRvoImport: typeof applyRvoImport
   getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
@@ -239,6 +240,7 @@ const FieldImportChoiceSchema = ChoiceSchema.openapi("FieldImportChoice")
 // ---------------------------------------------------------------------------
 
 const compareRoute = createRoute({
+  operationId: "compareFieldImport",
   method: "post",
   path: "/farms/{b_id_farm}/fields/import/compare",
   tags: ["Field Import"],
@@ -266,6 +268,7 @@ const compareRoute = createRoute({
 })
 
 const applyRoute = createRoute({
+  operationId: "applyFieldImport",
   method: "post",
   path: "/farms/{b_id_farm}/fields/import/apply",
   tags: ["Field Import"],
@@ -383,6 +386,9 @@ export function registerFieldImportRoutes(
     form: z.infer<typeof CompareBodySchema>,
   ) {
     const year = Number.parseInt(form.year, 10)
+    // The review loads every field of the farm and compares it with the file, so a farm above the
+    // supported size is refused before that work starts.
+    await assertFarmSizeSupported(fdm, services, principal_id, b_id_farm)
     let result: Awaited<ReturnType<typeof reviewShapefileImport>>
     try {
       result = await services.reviewShapefileImport(
@@ -518,6 +524,18 @@ export function registerFieldImportRoutes(
         })
       }
       throw err
+    }
+
+    // Fields that the import deletes make room for the fields it adds. An import that adds fields
+    // is checked even when it removes as many, so a farm that is already too large cannot grow.
+    if (plan.fieldsToAdd.length > 0) {
+      await assertFieldCapacity(
+        fdm,
+        services,
+        principal.effectivePrincipalId,
+        b_id_farm,
+        plan.fieldsToAdd.length - plan.fieldsToRemove.length,
+      )
     }
 
     const result = await services.applyRvoImport(
