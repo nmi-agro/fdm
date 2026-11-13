@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import { PHOSPHATE_VERDICT_TEXT } from "~/components/blocks/balance/phosphate-format"
 import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
@@ -703,6 +704,82 @@ export function FieldDashboardOrganicMatterBalanceTile({
               </div>
             </FieldDashboardTile>
           ))
+        }
+      </Await>
+    </Suspense>
+  )
+}
+
+/** Colours of the phosphate verdict (same rule as the balance pages); the label is always shown. */
+const PHOSPHATE_STATUS_BADGE = {
+  good: "bg-emerald-100 text-emerald-800",
+  attention: "bg-amber-100 text-amber-800",
+  adjust: "bg-red-100 text-red-800",
+  unknown: "bg-muted text-muted-foreground",
+} as const
+
+/**
+ * Phosphate balance tile: the saldo, the verdict and aim of the soil phosphorus status, the PSD now and its threshold, the
+ * years until the threshold is crossed (as a class) and whether the PSD is measured or estimated.
+ */
+export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDashboardTileProps) {
+  return (
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
+      <Await
+        resolve={dashboard.asyncInsights.phosphateBalance}
+        errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
+      >
+        {(result) =>
+          renderAsyncState(tile.title, tile.detailHref, result, (data) => {
+            const badgeClass = PHOSPHATE_STATUS_BADGE[data.status]
+            const badgeText = PHOSPHATE_VERDICT_TEXT[data.status]
+            return (
+              <FieldDashboardTile
+                title={tile.title}
+                detailHref={tile.detailHref}
+                statusBadge={
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
+                      badgeClass,
+                    )}
+                    title={badgeText.description}
+                  >
+                    {data.status === "good" ? <CheckCircle2 className="size-3.5" /> : null}
+                    {badgeText.label}
+                  </span>
+                }
+              >
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-3xl font-semibold">{Math.round(data.balance)}</p>
+                    <p className="text-muted-foreground text-sm">Balans in {data.unit}</p>
+                    <p className="text-muted-foreground text-sm">{data.aim}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-muted-foreground text-xs uppercase">Verzadiging (PSD)</p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {data.psd === null ? "–" : `${Math.round(data.psd)} %`}
+                        {data.threshold === null ? "" : ` / grens ${Math.round(data.threshold)} %`}
+                      </p>
+                      {data.psdSource ? (
+                        <p className="text-muted-foreground text-xs">{data.psdSource}</p>
+                      ) : null}
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-muted-foreground text-xs uppercase">
+                        {data.years?.label ?? "Grens"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">{data.years?.value ?? "–"}</p>
+                    </div>
+                  </div>
+                </div>
+              </FieldDashboardTile>
+            )
+          })
         }
       </Await>
     </Suspense>

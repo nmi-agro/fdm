@@ -110,7 +110,7 @@ export async function getCultivationsFromCatalogues(
  * Adds a new cultivation to the catalogue.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
- * @param properties The properties of the cultivation to add. This includes fields like `b_lu_catalogue`, `b_lu_name`, `b_lu_harvestable`, `b_lu_eom`, `b_lu_eom_residue`, and optionally `b_lu_variety_options` to specify available varieties.
+ * @param properties The properties of the cultivation to add. This includes fields like `b_lu_catalogue`, `b_lu_name`, `b_lu_harvestable`, `b_lu_eom`, `b_lu_eom_residue`, and optionally `b_lu_variety_options` to specify available varieties and `b_lu_p_harvestable` / `b_lu_p_residue` for the phosphate content of the harvestable product and the crop residue (g P2O5 / kg DM).
  * @returns A Promise that resolves when the cultivation is added.
  * @throws If the insertion fails.
  * @alpha
@@ -132,6 +132,8 @@ export async function addCultivationToCatalogue(
     b_lu_hi: schema.cultivationsCatalogueTypeInsert["b_lu_hi"]
     b_lu_n_harvestable: schema.cultivationsCatalogueTypeInsert["b_lu_n_harvestable"]
     b_lu_n_residue: schema.cultivationsCatalogueTypeInsert["b_lu_n_residue"]
+    b_lu_p_harvestable?: schema.cultivationsCatalogueTypeInsert["b_lu_p_harvestable"]
+    b_lu_p_residue?: schema.cultivationsCatalogueTypeInsert["b_lu_p_residue"]
     b_n_fixation: schema.cultivationsCatalogueTypeInsert["b_n_fixation"]
     b_lu_eom: schema.cultivationsCatalogueTypeInsert["b_lu_eom"]
     b_lu_eom_residue: schema.cultivationsCatalogueTypeInsert["b_lu_eom_residue"]
