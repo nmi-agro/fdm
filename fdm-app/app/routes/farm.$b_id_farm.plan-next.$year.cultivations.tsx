@@ -399,7 +399,8 @@ function CultivationRow({
   const [replace, setReplace] = useState(false)
 
   /** Shows the proposal of another source year for this field. */
-  const changeSourceYear = (value: string) => {
+  const changeSourceYear = (value: string | null) => {
+    if (value === null) return
     const next = new URLSearchParams(searchParams)
     next.set(`${SOURCE_PARAM_PREFIX}${row.b_id}`, value)
     setSearchParams(next, { preventScrollReset: true, replace: true })
@@ -423,7 +424,7 @@ function CultivationRow({
       <TableCell>
         {row.availableSourceYears.length > 0 ? (
           <Select
-            value={row.sourceYear ? String(row.sourceYear) : undefined}
+            value={row.sourceYear ? String(row.sourceYear) : null}
             onValueChange={changeSourceYear}
           >
             <SelectTrigger className="w-28">

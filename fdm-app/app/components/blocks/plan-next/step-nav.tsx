@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { Circle, CircleCheck } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import type { SeasonPlanStepSummary } from "~/lib/season-plan.server"
 import { buttonVariants } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 import { getPlanNextPath, PLAN_NEXT_STEPS } from "./steps"
 
 /**

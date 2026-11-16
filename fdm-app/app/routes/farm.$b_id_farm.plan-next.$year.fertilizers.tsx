@@ -22,7 +22,7 @@ import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { PlanNextNormsCard } from "~/components/blocks/plan-next/norms-card"
 import { PlanNextStepFooter } from "~/components/blocks/plan-next/step-footer"
 import { getPlanNextPath, getPlanNextStep } from "~/components/blocks/plan-next/steps"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
@@ -373,13 +373,12 @@ export default function PlanNextFertilizers() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button asChild>
-                <NavLink
-                  to={`/farm/${b_id_farm}/${year}/gerrit?returnTo=${encodeURIComponent(getPlanNextPath(b_id_farm, year, "fertilizers"))}`}
-                >
-                  <span>{`Gerrit openen voor ${year}`}</span>
-                </NavLink>
-              </Button>
+              <NavLink
+                to={`/farm/${b_id_farm}/${year}/gerrit?returnTo=${encodeURIComponent(getPlanNextPath(b_id_farm, year, "fertilizers"))}`}
+                className={buttonVariants()}
+              >
+                <span>{`Gerrit openen voor ${year}`}</span>
+              </NavLink>
             </CardContent>
           </Card>
         </TabsContent>
@@ -428,11 +427,12 @@ function FertilizerField({
               : `Nog geen hoofdteelt in ${year}`}
           </span>
         </div>
-        <Button asChild size="sm" variant="ghost">
-          <NavLink to={`/farm/${b_id_farm}/${year}/field/${row.b_id}/fertilizer`}>
-            <span>Bemesting bewerken</span>
-          </NavLink>
-        </Button>
+        <NavLink
+          to={`/farm/${b_id_farm}/${year}/field/${row.b_id}/fertilizer`}
+          className={buttonVariants({ size: "sm", variant: "ghost" })}
+        >
+          <span>Bemesting bewerken</span>
+        </NavLink>
       </div>
 
       {hasExisting ? (

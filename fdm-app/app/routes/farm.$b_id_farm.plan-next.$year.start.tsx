@@ -7,7 +7,7 @@ import { data, type LoaderFunctionArgs, NavLink, redirect, useLoaderData } from 
 import { PlanNextStepFooter } from "~/components/blocks/plan-next/step-footer"
 import { getPlanNextPath, getPlanNextStep } from "~/components/blocks/plan-next/steps"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Table,
@@ -124,11 +124,13 @@ export default function PlanNextStart() {
             {(other ? [year, other.year] : [year])
               .sort((a, b) => a - b)
               .map((option) => (
-                <Button key={option} asChild variant={option === year ? "default" : "outline"}>
-                  <NavLink to={getPlanNextPath(b_id_farm, option, "start")}>
-                    <span>{option}</span>
-                  </NavLink>
-                </Button>
+                <NavLink
+                  key={option}
+                  to={getPlanNextPath(b_id_farm, option, "start")}
+                  className={buttonVariants({ variant: option === year ? "default" : "outline" })}
+                >
+                  <span>{option}</span>
+                </NavLink>
               ))}
           </div>
           {other ? (

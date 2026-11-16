@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Table,
@@ -312,21 +312,24 @@ export default function PlanNextFields() {
         <CardContent className="flex flex-wrap gap-2">
           {canWrite ? (
             <>
-              <Button asChild variant="outline">
-                <NavLink to={`/farm/${b_id_farm}/${year}/field/new`}>
-                  <span>Kies op de kaart</span>
-                </NavLink>
-              </Button>
-              <Button asChild variant="outline">
-                <NavLink to={`/farm/${b_id_farm}/${year}/rvo`}>
-                  <span>Ophalen bij RVO</span>
-                </NavLink>
-              </Button>
-              <Button asChild variant="outline">
-                <NavLink to={`/farm/${b_id_farm}/${year}/upload`}>
-                  <span>Shapefile uploaden</span>
-                </NavLink>
-              </Button>
+              <NavLink
+                to={`/farm/${b_id_farm}/${year}/field/new`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <span>Kies op de kaart</span>
+              </NavLink>
+              <NavLink
+                to={`/farm/${b_id_farm}/${year}/rvo`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <span>Ophalen bij RVO</span>
+              </NavLink>
+              <NavLink
+                to={`/farm/${b_id_farm}/${year}/upload`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <span>Shapefile uploaden</span>
+              </NavLink>
             </>
           ) : (
             <p className="text-muted-foreground text-sm">

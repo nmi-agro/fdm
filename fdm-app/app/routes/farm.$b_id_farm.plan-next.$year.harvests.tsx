@@ -33,7 +33,7 @@ import {
   PLAN_NEXT_STEPS,
 } from "~/components/blocks/plan-next/steps"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Table,
@@ -440,13 +440,12 @@ export default function PlanNextHarvests() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button asChild size="sm" variant="ghost">
-                        <NavLink
-                          to={`/farm/${b_id_farm}/${year}/field/${row.b_id}/cultivation/${row.b_lu}`}
-                        >
-                          <span>Oogst bewerken</span>
-                        </NavLink>
-                      </Button>
+                      <NavLink
+                        to={`/farm/${b_id_farm}/${year}/field/${row.b_id}/cultivation/${row.b_lu}`}
+                        className={buttonVariants({ size: "sm", variant: "ghost" })}
+                      >
+                        <span>Oogst bewerken</span>
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -565,11 +564,12 @@ export default function PlanNextHarvests() {
             </ul>
           )}
           <div className="flex flex-wrap gap-2 pt-2">
-            <Button asChild variant="outline">
-              <NavLink to={`/farm/${b_id_farm}/bemestingsplan`}>
-                <span>Bemestingsplan (PDF)</span>
-              </NavLink>
-            </Button>
+            <NavLink
+              to={`/farm/${b_id_farm}/bemestingsplan`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <span>Bemestingsplan (PDF)</span>
+            </NavLink>
           </div>
         </CardContent>
       </Card>

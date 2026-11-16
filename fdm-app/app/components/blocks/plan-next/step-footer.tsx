@@ -2,7 +2,7 @@ import type { SeasonPlanStep } from "@nmi-agro/fdm-core"
 import type { ReactNode } from "react"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getAdjacentPlanNextSteps, getPlanNextPath } from "./steps"
 
@@ -30,35 +30,33 @@ export function PlanNextStepFooter({
       <Separator />
       <div className="flex flex-wrap items-center gap-2">
         {previous ? (
-          <Button asChild variant="ghost">
-            <NavLink to={getPlanNextPath(b_id_farm, year, previous.key)}>
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              <span>Terug</span>
-            </NavLink>
-          </Button>
+          <NavLink
+            to={getPlanNextPath(b_id_farm, year, previous.key)}
+            className={buttonVariants({ variant: "ghost" })}
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            <span>Terug</span>
+          </NavLink>
         ) : null}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {next && primary ? (
-            <Button asChild variant="outline">
-              <NavLink to={getPlanNextPath(b_id_farm, year, next.key)}>
-                <span>Overslaan</span>
-              </NavLink>
-            </Button>
+            <NavLink
+              to={getPlanNextPath(b_id_farm, year, next.key)}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <span>Overslaan</span>
+            </NavLink>
           ) : null}
           {primary ??
             (next ? (
-              <Button asChild>
-                <NavLink to={getPlanNextPath(b_id_farm, year, next.key)}>
-                  <span>Verder</span>
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </NavLink>
-              </Button>
+              <NavLink to={getPlanNextPath(b_id_farm, year, next.key)} className={buttonVariants()}>
+                <span>Verder</span>
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </NavLink>
             ) : (
-              <Button asChild>
-                <NavLink to={`/farm/${b_id_farm}`}>
-                  <span>Naar bedrijf</span>
-                </NavLink>
-              </Button>
+              <NavLink to={`/farm/${b_id_farm}`} className={buttonVariants()}>
+                <span>Naar bedrijf</span>
+              </NavLink>
             ))}
         </div>
       </div>

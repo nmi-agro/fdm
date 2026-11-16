@@ -19,7 +19,7 @@ import { dataWithSuccess } from "remix-toast"
 import { PlanNextStepFooter } from "~/components/blocks/plan-next/step-footer"
 import { getPlanNextPath, getPlanNextStep } from "~/components/blocks/plan-next/steps"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -209,11 +209,12 @@ export default function PlanNextMeasures() {
             ))
           )}
           {canWrite ? (
-            <Button asChild variant="outline">
-              <NavLink to={`/farm/${b_id_farm}/${year}/measures`}>
-                <span>Nieuwe maatregel toevoegen</span>
-              </NavLink>
-            </Button>
+            <NavLink
+              to={`/farm/${b_id_farm}/${year}/measures`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <span>Nieuwe maatregel toevoegen</span>
+            </NavLink>
           ) : null}
         </CardContent>
       </Card>

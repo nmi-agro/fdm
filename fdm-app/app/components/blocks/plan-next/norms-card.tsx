@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import type { PlanNormsSummary } from "~/lib/season-plan.server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Progress } from "~/components/ui/progress"
@@ -45,7 +46,11 @@ export function PlanNextNormsCard({
                 </div>
                 <Progress
                   value={Math.min(percentage, 100)}
-                  indicatorClassName={over ? "bg-red-600" : undefined}
+                  style={
+                    over
+                      ? ({ "--color-primary": "var(--color-red-600)" } as CSSProperties)
+                      : undefined
+                  }
                 />
               </div>
             )
