@@ -110,6 +110,16 @@ const nitrogenTotal = (meaning: string) => z.number().describe(`${meaning} (kg N
 /** Describes a nitrogen loss term, which is reported as a negative number (kg N/ha). */
 const nitrogenLoss = (meaning: string) =>
   z.number().describe(`${meaning}, as a negative number (kg N/ha).`)
+/** Describes a nitrous oxide emission term, which is reported as a negative number (kg N/ha, as N2O-N). */
+const nitrousOxideLoss = (meaning: string) =>
+  z.number().describe(`${meaning}, as a negative number (kg N/ha, as N2O-N).`)
+/** Describes a CO2-equivalent of the nitrous oxide emission, which is reported as a positive number. */
+const co2Equivalent = (meaning: string) =>
+  z
+    .number()
+    .describe(
+      `${meaning}, as a positive number (kg CO2-eq/ha), calculated with a global warming potential of 265 for N2O.`,
+    )
 
 // ---------------------------------------------------------------------------
 // Dose schema
@@ -211,12 +221,59 @@ const NitrogenEmissionAmmoniaSchema = z.object({
     .describe("Ammonia emission from crop residues left on the field."),
 })
 
+const NitrousOxideFertilizersGroupSchema = z.object({
+  total: nitrousOxideLoss("N2O emission from fertilizers of this type"),
+  applications: z
+    .array(ApplicationValueSchema)
+    .describe("N2O emission per fertilizer application (kg N/ha, as N2O-N)."),
+})
+
+const NitrogenEmissionNitrousOxideFieldSchema = z.object({
+  total: nitrousOxideLoss("Total direct N2O emission: fertilizers, crop residues and soil"),
+  fertilizers: z
+    .object({
+      total: nitrousOxideLoss("Direct N2O emission from all fertilizers"),
+      mineral: NitrousOxideFertilizersGroupSchema.describe(
+        "Direct N2O emission from mineral fertilizers.",
+      ),
+      manure: NitrousOxideFertilizersGroupSchema.describe(
+        "Direct N2O emission from animal manure.",
+      ),
+      compost: NitrousOxideFertilizersGroupSchema.describe("Direct N2O emission from compost."),
+      other: NitrousOxideFertilizersGroupSchema.describe(
+        "Direct N2O emission from other fertilizers, such as sewage sludge.",
+      ),
+    })
+    .describe("Direct N2O emission from fertilizer applications."),
+  residues: z
+    .object({
+      total: nitrousOxideLoss("Direct N2O emission from crop residues left on the field"),
+      cultivations: z
+        .array(ApplicationValueSchema)
+        .describe("N2O emission from crop residues per cultivation (kg N/ha, as N2O-N)."),
+    })
+    .describe(
+      "Direct N2O emission from the nitrogen in above-ground crop residues left on the field.",
+    ),
+  soil: z
+    .object({
+      total: nitrousOxideLoss(
+        "Direct N2O emission from the mineralisation of peat and peaty soils",
+      ),
+    })
+    .describe("Direct N2O emission from the mineralisation of organic soils."),
+  co2eq: co2Equivalent("Total N2O emission expressed as CO2-equivalent"),
+})
+
 const NitrogenEmissionFieldSchema = z.object({
-  total: nitrogenLoss("Total nitrogen emission"),
+  total: nitrogenLoss("Total nitrogen emission: ammonia, nitrate and nitrous oxide"),
   ammonia: NitrogenEmissionAmmoniaSchema.describe("Nitrogen emitted as ammonia (NH3)."),
   nitrate: z
     .object({ total: nitrogenLoss("Nitrogen leached as nitrate") })
     .describe("Nitrogen leached as nitrate (NO3)."),
+  nitrous_oxide: NitrogenEmissionNitrousOxideFieldSchema.describe(
+    "Direct nitrous oxide (N2O) emission according to the Dutch National Emission Model for Agriculture (NEMA). Included in `total` and in the balance.",
+  ),
 })
 
 const BalanceAreaSchema = z.number().describe("Area of the field (ha).")
@@ -240,7 +297,9 @@ export const NitrogenBalanceFieldResultSchema = z
         b_id: FieldIdSchema,
         balance: z
           .number()
-          .describe("Nitrogen balance of the field: supply plus removal plus emission (kg N/ha)."),
+          .describe(
+            "Nitrogen balance of the field: supply plus removal plus the ammonia and N2O emission (kg N/ha). The nitrate leaching is calculated from this balance and is not part of it.",
+          ),
         supply: NitrogenSupplyFieldSchema.describe("Nitrogen supplied to the field."),
         removal: NitrogenRemovalFieldSchema.describe("Nitrogen removed from the field."),
         emission: NitrogenEmissionFieldSchema.describe("Nitrogen lost to the environment."),
@@ -258,7 +317,11 @@ export const NitrogenBalanceFieldResultSchema = z
 /** Nitrogen balance of a farm, shared with the farm group and organization operations. */
 export const NitrogenBalanceSchema = z
   .object({
-    balance: z.number().describe("Weighted average nitrogen balance across all fields in kg N/ha"),
+    balance: z
+      .number()
+      .describe(
+        "Weighted average nitrogen balance across all fields in kg N/ha: supply plus removal plus the ammonia and N2O emission",
+      ),
     supply: z
       .object({
         total: nitrogenTotal("Weighted average total nitrogen supply"),
@@ -287,7 +350,9 @@ export const NitrogenBalanceSchema = z
       .describe("Weighted average nitrogen removal across all fields."),
     emission: z
       .object({
-        total: nitrogenLoss("Weighted average total nitrogen emission"),
+        total: nitrogenLoss(
+          "Weighted average total nitrogen emission: ammonia, nitrate and nitrous oxide",
+        ),
         ammonia: z
           .object({
             total: nitrogenLoss("Weighted average nitrogen emission as ammonia"),
@@ -296,6 +361,27 @@ export const NitrogenBalanceSchema = z
           })
           .describe("Weighted average nitrogen emission as ammonia (NH3)."),
         nitrate: nitrogenLoss("Weighted average nitrogen leaching as nitrate"),
+        nitrous_oxide: z
+          .object({
+            total: nitrousOxideLoss("Weighted average total N2O emission"),
+            fertilizers: z
+              .object({
+                total: nitrousOxideLoss("Weighted average N2O emission from all fertilizers"),
+                mineral: nitrousOxideLoss("Weighted average N2O emission from mineral fertilizers"),
+                manure: nitrousOxideLoss("Weighted average N2O emission from animal manure"),
+                compost: nitrousOxideLoss("Weighted average N2O emission from compost"),
+                other: nitrousOxideLoss("Weighted average N2O emission from other fertilizers"),
+              })
+              .describe("Weighted average direct N2O emission from fertilizers."),
+            residues: nitrousOxideLoss("Weighted average N2O emission from crop residues"),
+            soil: nitrousOxideLoss("Weighted average N2O emission from organic soils"),
+            co2eq: co2Equivalent(
+              "Weighted average CO2-equivalent of the N2O emission of the fields",
+            ),
+          })
+          .describe(
+            "Weighted average direct nitrous oxide (N2O) emission according to NEMA. Included in `total` and in the balance.",
+          ),
       })
       .describe("Weighted average nitrogen emission across all fields."),
     target: z

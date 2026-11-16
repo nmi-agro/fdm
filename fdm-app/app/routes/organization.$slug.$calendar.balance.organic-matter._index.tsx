@@ -35,6 +35,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { getOrganizationFarmGroups, parseFarmIdsParam } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
+import { formatBalanceDifference, formatBalanceValue } from "~/lib/format"
 import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
 type Farm = Awaited<ReturnType<typeof getFarms>>[number]
@@ -299,10 +300,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
       : undefined
     const delta =
       farmBalance !== undefined && orgAverage !== undefined ? farmBalance - orgAverage : undefined
-    const deltaFormatted =
-      delta !== undefined
-        ? `${delta >= 0 ? "+" : ""}${(Math.round(delta * 10) / 10).toFixed(1)}`
-        : undefined
+    const deltaFormatted = delta !== undefined ? formatBalanceDifference(delta) : undefined
     const deltaClass =
       delta === undefined ? "text-orange-500" : delta < 0 ? "text-red-600" : "text-green-600"
     return (
@@ -332,7 +330,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
         <div className="ml-auto text-right font-medium">
           {!balanceResult.hasErrors ? (
             <>
-              <span>{balanceResult.balance}</span>
+              <span>{formatBalanceValue(balanceResult.balance)}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
                   <TooltipTrigger
@@ -346,7 +344,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                     }
                   />
                   <TooltipContent>
-                    {`Verschil t.o.v. het organisatiegemiddelde (${(Math.round((orgAverage ?? 0) * 10) / 10).toFixed(1)} kg OS / ha)`}
+                    {`Verschil t.o.v. het organisatiegemiddelde (${formatBalanceValue(orgAverage ?? 0)} kg OS / ha)`}
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -377,7 +375,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{resolvedOrganicMatterBalanceResult.balance}</p>
+                <p>{formatBalanceValue(resolvedOrganicMatterBalanceResult.balance)}</p>
                 {hasErrors ? (
                   <Tooltip>
                     <TooltipTrigger>
@@ -401,7 +399,9 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resolvedOrganicMatterBalanceResult.supply}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(resolvedOrganicMatterBalanceResult.supply)}
+            </div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
@@ -412,7 +412,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resolvedOrganicMatterBalanceResult.degradation}
+              {formatBalanceValue(resolvedOrganicMatterBalanceResult.degradation)}
             </div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>

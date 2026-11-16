@@ -2,6 +2,7 @@ import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
+import { NitrogenBalanceFieldResultSchema, NitrogenBalanceSchema } from "../operations/calculations"
 
 // ---------------------------------------------------------------------------
 // Shared test setup
@@ -193,6 +194,20 @@ const mockFieldNitrogenBalance = {
     nitrate: { total: 4.5 },
   },
   target: 20,
+}
+
+const mockFieldNitrousOxide = {
+  total: -0.9,
+  fertilizers: {
+    total: -0.8,
+    mineral: { total: -0.5, applications: [{ id: "app-1", value: -0.5 }] },
+    manure: { total: -0.3, applications: [] },
+    compost: { total: 0, applications: [] },
+    other: { total: 0, applications: [] },
+  },
+  residues: { total: -0.1, cultivations: [{ id: "cult-1", value: -0.1 }] },
+  soil: { total: 0 },
+  co2eq: 374.8,
 }
 
 const mockFieldOrganicMatterBalance = {
@@ -611,6 +626,54 @@ describe("GET /fields/:b_id/calculations/nitrogen-balance", () => {
       { headers: { "x-api-key": "valid-key" } },
     )
     expect(res.status).toBe(400)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Nitrogen balance output schemas
+// ---------------------------------------------------------------------------
+// Other services (such as the MCP server) parse operation results with these schemas, which
+// drops every property the schema does not declare.
+describe("nitrogen balance output schemas", () => {
+  it("keep the N2O emission of a field", () => {
+    const result = {
+      b_id: "field-1",
+      b_area: 5,
+      b_bufferstrip: false,
+      balance: {
+        ...mockFieldNitrogenBalance,
+        emission: { ...mockFieldNitrogenBalance.emission, nitrous_oxide: mockFieldNitrousOxide },
+      },
+    }
+    const parsed = NitrogenBalanceFieldResultSchema.parse(result)
+    expect(parsed.balance?.emission.nitrous_oxide).toEqual(mockFieldNitrousOxide)
+  })
+
+  it("keep the weighted average N2O emission of a farm", () => {
+    const nitrous_oxide = {
+      total: -0.9,
+      fertilizers: { total: -0.8, mineral: -0.5, manure: -0.3, compost: 0, other: 0 },
+      residues: -0.1,
+      soil: 0,
+      co2eq: 374.8,
+    }
+    const emission = {
+      total: -15.4,
+      ammonia: { total: -10, fertilizers: {}, residues: -2 },
+      nitrate: -4.5,
+      nitrous_oxide,
+    }
+    const parsed = NitrogenBalanceSchema.shape.emission.parse(emission)
+    expect(parsed.nitrous_oxide).toEqual(nitrous_oxide)
+  })
+
+  it("reject a field result without the N2O emission", () => {
+    const result = {
+      b_id: "field-1",
+      b_area: 5,
+      balance: mockFieldNitrogenBalance,
+    }
+    expect(NitrogenBalanceFieldResultSchema.safeParse(result).success).toBe(false)
   })
 })
 

@@ -17,7 +17,9 @@ import type {
  * - **Time Frame**: Adjusts the target value based on the length of the specified time period.
  *
  * The function uses a predefined set of target values based on combinations of these factors,
- * derived from Ros et al. 2023.
+ * derived from Ros et al. 2023. The target applies to the surplus of the balance, which subtracts
+ * the ammonia and the direct N₂O emission; the N₂O emission is small compared with the targets, so
+ * the target values are used unchanged.
  * @returns A Decimal representing the calculated target nitrogen balance in kg N / ha, adjusted for the given time frame.
  */
 export function calculateTargetForNitrogenBalance(

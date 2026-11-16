@@ -17,6 +17,7 @@ keywords:
   - doelsturing stikstof
   - nitraatuitspoeling
   - ammoniakemissie
+  - lachgasemissie
 related:
   - balansen
   - background/mineralisatie
@@ -24,15 +25,17 @@ related:
   - bemesting
 ---
 
-De stikstofbalans zet alle stikstof die op een perceel binnenkomt af tegen wat er weer af gaat met de oogst en wat als ammoniak vervliegt. Wat overblijft is het stikstofoverschot, in kg N per hectare. Hoe hoger dat overschot, hoe groter de kans dat stikstof uitspoelt naar grond- en oppervlaktewater. Daarom is de balans een goede maat voor hoe efficiënt je met stikstof omgaat.
+De stikstofbalans zet alle stikstof die op een perceel binnenkomt af tegen wat er weer af gaat met de oogst en wat als ammoniak en lachgas vervliegt. Wat overblijft is het stikstofoverschot, in kg N per hectare. Hoe hoger dat overschot, hoe groter de kans dat stikstof uitspoelt naar grond- en oppervlaktewater. Daarom is de balans een goede maat voor hoe efficiënt je met stikstof omgaat.
 
 ## Wat is de stikstofbalans? {#wat-is-het}
 
 {{appName}} rekent de balans per perceel uit voor de periode die je in de kalender kiest, meestal een kalenderjaar. De formule is:
 
-overschot = aanvoer − afvoer − ammoniakemissie
+overschot = aanvoer − afvoer − ammoniakemissie − lachgasemissie
 
 De bedrijfsbalans is het oppervlaktegewogen gemiddelde van de percelen: per perceel worden de posten vermenigvuldigd met de oppervlakte, opgeteld en gedeeld door de totale oppervlakte. Bufferstroken tellen niet mee.
+
+Naast de balans rekent {{appName}} de nitraatuitspoeling uit. Samen met de ammoniak- en lachgasemissie vormt die de totale emissie. De nitraatuitspoeling is een gevolg van het overschot en wordt er niet van afgetrokken.
 
 ## Welke gegevens tellen mee? {#invoer}
 
@@ -45,6 +48,7 @@ De bedrijfsbalans is het oppervlaktegewogen gemiddelde van de percelen: per perc
 | Afvoer via oogst                                        | Opbrengst × stikstofgehalte van het geoogste product                                      |
 | Afvoer via gewasresten                                  | Alleen als je de gewasresten van het perceel afvoert                                      |
 | Ammoniakemissie                                         | Uit bemesting en uit gewasresten die op het land blijven                                  |
+| Lachgasemissie                                          | Uit bemesting, uit gewasresten die op het land blijven en uit veen en moerige klei        |
 
 Daarnaast heeft {{appName}} uit je bodemanalyse het bodemtype, de grondwatertrap, organische stof, organische koolstof, totaal stikstof, de C/N-ratio en de dichtheid nodig. Ontbreekt een waarde, dan wordt die waar mogelijk afgeleid uit andere waarden, bijvoorbeeld organische koolstof uit het organischestofgehalte. Lukt dat niet, dan kan de balans voor dat perceel niet worden berekend. Meer hierover lees je in [Bodemanalyse](/manual/background/bodemanalyse).
 
@@ -86,6 +90,26 @@ Is het overschot positief, dan schat {{appName}} welk deel ervan als nitraat uit
 
 Op zandgrond hangt de fractie af van de grondwatertrap: hoe droger (hogere Gt), hoe hoger de fractie. De uitspoeling is een gevolg van het overschot en wordt er niet nog eens van afgetrokken.
 
+### Lachgasemissie {#lachgas}
+
+Lachgas (N₂O) is een sterk broeikasgas. {{appName}} rekent de lachgasemissie uit met de rekenregels van het rekenmodel NEMA, dat ook voor de landelijke emissiecijfers wordt gebruikt. De emissie staat in kg N per hectare: de stikstof die als lachgas het perceel verlaat, net als bij ammoniak en nitraat. Net als de ammoniakemissie wordt de lachgasemissie van het overschot afgetrokken. De nitraatuitspoeling wordt daarna uit dat lagere overschot berekend. {{appName}} rekent alleen de directe emissie van het perceel zelf, uit drie bronnen:
+
+- Bemesting: de stikstof die je toedient × een emissiefactor. Die factor hangt af van de meststof, of het perceel op de dag van toediening grasland of bouwland is en of de grond veen is. Zie de tabel hieronder.
+- Gewasresten: 1% van de stikstof in gewasresten die op het land blijven.
+- Veen en moerige klei: door afbraak van het veen komt elk jaar lachgas vrij, 4,67 kg N/ha op veen en 4,09 kg N/ha op moerige klei. Voor een kortere periode wordt dat naar rato meegeteld.
+
+| Meststof                       | Grasland, minerale grond | Bouwland, minerale grond | Veen |
+| ------------------------------ | ------------------------ | ------------------------ | ---- |
+| Kunstmest                      | 0,8%                     | 0,7%                     | 3%   |
+| Dierlijke mest, breedwerpig    | 0,1%                     | 0,6%                     | 0,5% |
+| Dierlijke mest, emissiearm     | 0,3%                     | 1,3%                     | 1%   |
+| Zuiveringsslib                 | 0,9%                     | 0,9%                     | 0,9% |
+| Compost en overige meststoffen | 0,4%                     | 0,4%                     | 0,4% |
+
+Onbegroeid land telt als bouwland. Emissiearm toedienen geeft minder ammoniak, maar door de hogere factor iets meer lachgas.
+
+Het CO₂-equivalent laat zien hoe zwaar de emissie als broeikasgas weegt. Daarvoor wordt de stikstof omgerekend naar lachgas (× 44/28) en vermenigvuldigd met het opwarmingsvermogen van lachgas (265). Zo staat 1 kg N als lachgas gelijk aan ongeveer 416 kg CO₂.
+
 ### Het doel {#doel}
 
 Het doel is een richtwaarde voor het overschot, afgeleid uit onderzoek naar doelsturing op stikstof (Ros e.a., 2023). Het hangt af van landgebruik, grondsoort en grondwatertrap:
@@ -114,7 +138,9 @@ Met de schakelaar _Totale stikstof_ / _Werkzame stikstof_ kies je hoe de bemesti
 
 ## Beperkingen {#beperkingen}
 
-- Mest die tijdens het weiden op het land komt en de ammoniak daaruit tellen (nog) niet mee. Alleen ingevoerde bemestingen tellen.
+- Mest die tijdens het weiden op het land komt en de ammoniak en het lachgas daaruit tellen (nog) niet mee. Alleen ingevoerde bemestingen tellen.
+- De lachgasemissie is een schatting met landelijk gemiddelde factoren en heeft een grote onzekerheid. Verschillen tussen kunstmestsoorten, remmers en het tijdstip van bemesten worden (nog) niet meegenomen.
+- De indirecte lachgasemissie telt (nog) niet mee: het lachgas dat elders ontstaat uit stikstof die als ammoniak is vervlogen of als nitraat is uitgespoeld.
 - Mineralisatie, depositie, fixatie en de uitspoelingsfracties zijn vaste of gemiddelde waarden. Het werkelijke jaar kan door weer en beheer flink afwijken.
 - Zonder ingevulde opbrengst rekent {{appName}} met een standaardopbrengst. Bij een veel hogere of lagere oogst klopt de afvoer dan niet.
 - De balans is een hulpmiddel voor je eigen bedrijfsvoering, geen wettelijke verantwoording.
