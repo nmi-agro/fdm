@@ -6,7 +6,7 @@ order: 1
 inApp:
   - Balans
   - Stikstof
-lastReviewed: 2026-11-13
+lastReviewed: 2026-11-05
 routes: []
 watch:
   - fdm-calculator/src/balance/nitrogen/**
