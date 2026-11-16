@@ -12,6 +12,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router"
+import type { FieldMeasureStatus } from "~/lib/farm-measures"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -50,10 +51,10 @@ import { getFarmMeasureStatus } from "~/lib/farm-measures.server"
 import { fdm } from "~/lib/fdm.server"
 import { ECOSYSTEEMDIENSTEN, type Ecosysteemdienst } from "~/lib/indicators"
 import { getEffectTypeInfo, MEASURE_COST_LEVELS } from "~/lib/measure-labels"
-import type { FieldMeasureStatus } from "~/lib/farm-measures"
 import {
   buildCatalogueRows,
   type CatalogueFilters,
+  type CatalogueReturnState,
   type CatalogueRow,
   countStatusesByMeasure,
   filterCatalogueRows,
@@ -64,6 +65,7 @@ import {
   type SortMode,
   type StatusCounts,
   type StatusFilter,
+  toSearchString,
 } from "~/lib/measures-catalogue"
 
 export const handle: HelpHandle = { help: "maatregelencatalogus" }
@@ -163,6 +165,19 @@ const PARAM = {
   theme: "thema",
 } as const
 
+/** The URL search parameters of the search and filters; a filter at its default is empty. */
+function getFilterSearchValues(filters: CatalogueFilters): Record<string, string> {
+  const { query, sortMode, status, effectType, costLevel, theme } = filters
+  return {
+    [PARAM.query]: query.trim(),
+    [PARAM.sort]: sortMode === "name" ? "" : sortMode,
+    [PARAM.status]: status === "all" ? "" : status,
+    [PARAM.effectType]: effectType === "all" ? "" : effectType,
+    [PARAM.costLevel]: costLevel === "all" ? "" : costLevel,
+    [PARAM.theme]: theme === "all" ? "" : theme,
+  }
+}
+
 /**
  * Renders the measures catalogue of a farm: a searchable, filterable list of all measures,
  * with on how many fields each measure is applied, recommended or applicable.
@@ -215,14 +230,7 @@ export default function MeasuresCatalogueIndex() {
   // the loaders of this page and the farm again on every keystroke.
   useEffect(() => {
     const url = new URL(window.location.href)
-    const values: Record<string, string> = {
-      [PARAM.query]: query.trim(),
-      [PARAM.sort]: sortMode === "name" ? "" : sortMode,
-      [PARAM.status]: status === "all" ? "" : status,
-      [PARAM.effectType]: effectType === "all" ? "" : effectType,
-      [PARAM.costLevel]: costLevel === "all" ? "" : costLevel,
-      [PARAM.theme]: theme === "all" ? "" : theme,
-    }
+    const values = getFilterSearchValues({ query, sortMode, status, effectType, costLevel, theme })
     for (const [name, value] of Object.entries(values)) {
       if (value) url.searchParams.set(name, value)
       else url.searchParams.delete(name)
@@ -445,6 +453,11 @@ function CatalogueResults({
   const { query, sortMode, status, effectType, costLevel, theme } = filters
   // A status filter can only be applied once the status is there
   const statusFilterPending = status !== "all" && loaded === null
+  // Passed to the detail page, so its "Terug naar catalogus" returns to this filtered list. The
+  // filters are written to the URL without a navigation, so the router location lags behind.
+  const returnState: CatalogueReturnState = {
+    catalogueSearch: toSearchString(getFilterSearchValues(filters)),
+  }
 
   const filtered = useMemo(
     () =>
@@ -542,6 +555,7 @@ function CatalogueResults({
               key={row.m_id}
               row={row}
               href={getMeasureCataloguePath(b_id_farm, calendar, row.m_id)}
+              returnState={returnState}
               counts={countsByMeasure ? (countsByMeasure[row.m_id] ?? NO_COUNTS) : null}
               statusPending={loaded === null}
             />
@@ -560,11 +574,13 @@ function CatalogueResults({
 function CatalogueListRow({
   row,
   href,
+  returnState,
   counts,
   statusPending,
 }: {
   row: CatalogueRow
   href: string
+  returnState: CatalogueReturnState
   counts: StatusCounts | null
   statusPending: boolean
 }) {
@@ -577,6 +593,7 @@ function CatalogueListRow({
     <li>
       <Link
         to={href}
+        state={returnState}
         aria-labelledby={`${idBase}-name`}
         aria-describedby={`${idBase}-details ${idBase}-status`}
         className="hover:bg-muted/50 focus-visible:ring-ring grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset @2xl/catalogue:grid-cols-[minmax(0,1fr)_13rem_1rem] @2xl/catalogue:items-center"

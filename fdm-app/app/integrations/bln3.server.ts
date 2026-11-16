@@ -479,7 +479,8 @@ export type FarmMeasureOpportunity = FieldTopOpportunity & {
  * best variant). `candidates` holds every eligible variant per field, so
  * callers can choose one variant per family over several fields.
  *
- * Advice failures are represented by missing entries and skipped. A rejection
+ * Fields whose advice, applicability or score could not be loaded are skipped;
+ * `adviceAvailable` is `true` only when at least one field had all three. A rejection
  * of either batch fetch is intentionally propagated so route loaders can
  * report it and hide the lazy recommendation surface.
  *
@@ -515,7 +516,14 @@ export async function getFarmMeasureOpportunities({
   const missingIds = b_ids.filter((b_id) => !preloadedApplicability?.[b_id])
   const [fetchedApplicability, adviceByField] = await Promise.all([
     missingIds.length > 0
-      ? getMeasureApplicabilityForFields({ principal_id, b_ids: missingIds, b_year, timeframe })
+      ? getMeasureApplicabilityForFields({
+          principal_id,
+          b_ids: missingIds,
+          b_year,
+          timeframe,
+          // A failed lookup stays `null`, so it is skipped instead of read as "nothing applicable"
+          reportFailures: true,
+        })
       : Promise.resolve({}),
     getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
   ])
@@ -535,10 +543,14 @@ export async function getFarmMeasureOpportunities({
     const applicability = applicabilityByField[b_id]
     if (applicability === null || applicability === undefined) continue
 
+    // Without a score the weak indicators are unknown, so the field cannot get recommendations
+    const score = scoreByBid.get(b_id) ?? null
+    if (!score) continue
+
     adviceAvailable = true
     const fieldCandidates = getFieldOpportunityCandidates({
       advice,
-      score: scoreByBid.get(b_id) ?? null,
+      score,
       applicability,
       activeMeasureIds: activeMeasureIdsByField.get(b_id) ?? new Set(),
     })

@@ -454,6 +454,18 @@ export function AddMeasureDialog({
     })
   }, [catalogue, computedApplicabilityMap])
 
+  // The top three recommendations among the measures that can be selected
+  const topRecommendations = useMemo(
+    () =>
+      (effectiveTopOpportunities ?? [])
+        .flatMap((opp) => {
+          const item = fieldLevelCatalogue.find((c) => c.m_id === opp.m_id)
+          return item ? [{ opp, item }] : []
+        })
+        .slice(0, 3),
+    [effectiveTopOpportunities, fieldLevelCatalogue],
+  )
+
   // Fuzzy search — search against indexed combined strings per catalogue item
   const filteredCatalogue = useMemo(() => {
     if (!query.trim()) return fieldLevelCatalogue
@@ -621,7 +633,8 @@ export function AddMeasureDialog({
       return
     }
     if (!initialMeasureId || appliedInitialMeasureIdRef.current === initialMeasureId) return
-    const item = catalogue.find((c) => c.m_id === initialMeasureId)
+    // Only measures that can be selected in the list, so not inactive or farm-level ones
+    const item = fieldLevelCatalogue.find((c) => c.m_id === initialMeasureId)
     if (!item) return
     const isAlreadyActive = activeMeasureIds.has(item.m_id)
     const hasConflict = conflictMap.has(item.m_id)
@@ -636,7 +649,7 @@ export function AddMeasureDialog({
   }, [
     open,
     initialMeasureId,
-    catalogue,
+    fieldLevelCatalogue,
     activeMeasureIds,
     conflictMap,
     computedApplicabilityMap,
@@ -690,57 +703,52 @@ export function AddMeasureDialog({
             </div>
 
             {/* Top-3 recommended measures */}
-            {sortMode !== "impact" &&
-              effectiveTopOpportunities &&
-              effectiveTopOpportunities.length > 0 &&
-              !query && (
-                <div className="space-y-1.5 rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
-                  <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {selectedFieldIds.size === 1
-                      ? "Aanbevolen voor dit perceel"
-                      : fields
-                        ? "Aanbevolen voor dit bedrijf"
-                        : "Aanbevolen voor dit perceel"}
-                  </p>
-                  <div className="space-y-1">
-                    {effectiveTopOpportunities.slice(0, 3).map((opp) => {
-                      const item = catalogue.find((c) => c.m_id === opp.m_id)
-                      if (!item) return null
-                      const topIndicator = [...opp.indicatorImpacts].sort(
-                        (a, b) => b.measure_impact - a.measure_impact,
-                      )[0]
-                      const indicatorName = topIndicator
-                        ? (getIndicatorInfo(topIndicator.indicator_id)?.name ??
-                          topIndicator.indicator_id)
-                        : null
-                      return (
-                        <button
-                          key={opp.m_id}
-                          type="button"
-                          onClick={() => handleSelectMeasure(item)}
-                          className="bg-background flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors hover:border-emerald-400"
-                        >
-                          <span className="min-w-0 flex-1 truncate">
-                            <span className="text-muted-foreground mr-1.5 font-mono">
-                              {item.m_id.replace("bln_", "")}
+            {sortMode !== "impact" && topRecommendations.length > 0 && !query && (
+              <div className="space-y-1.5 rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {selectedFieldIds.size === 1
+                    ? "Aanbevolen voor dit perceel"
+                    : fields
+                      ? "Aanbevolen voor dit bedrijf"
+                      : "Aanbevolen voor dit perceel"}
+                </p>
+                <div className="space-y-1">
+                  {topRecommendations.map(({ opp, item }) => {
+                    const topIndicator = [...opp.indicatorImpacts].sort(
+                      (a, b) => b.measure_impact - a.measure_impact,
+                    )[0]
+                    const indicatorName = topIndicator
+                      ? (getIndicatorInfo(topIndicator.indicator_id)?.name ??
+                        topIndicator.indicator_id)
+                      : null
+                    return (
+                      <button
+                        key={opp.m_id}
+                        type="button"
+                        onClick={() => handleSelectMeasure(item)}
+                        className="bg-background flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors hover:border-emerald-400"
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          <span className="text-muted-foreground mr-1.5 font-mono">
+                            {item.m_id.replace("bln_", "")}
+                          </span>
+                          <span className="font-medium">{item.m_name}</span>
+                          {indicatorName && (
+                            <span className="text-muted-foreground ml-1.5">
+                              — verbetert vooral {indicatorName}
                             </span>
-                            <span className="font-medium">{item.m_name}</span>
-                            {indicatorName && (
-                              <span className="text-muted-foreground ml-1.5">
-                                — verbetert vooral {indicatorName}
-                              </span>
-                            )}
-                          </span>
-                          <span className="shrink-0 font-semibold text-emerald-700 dark:text-emerald-400">
-                            + Toevoegen
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
+                          )}
+                        </span>
+                        <span className="shrink-0 font-semibold text-emerald-700 dark:text-emerald-400">
+                          + Toevoegen
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
-              )}
+              </div>
+            )}
 
             {/* Catalogue list — capped lower than the dialog so the
                 recommendations block above keeps room on short viewports;

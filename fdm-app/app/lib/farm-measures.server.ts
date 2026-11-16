@@ -19,6 +19,7 @@ import {
   getMeasureApplicabilityForFields,
   type MeasureApplicabilityInfo,
 } from "~/integrations/bln3.server"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { reportError } from "~/lib/error"
 import {
   type FieldMeasureEntry,
@@ -113,7 +114,11 @@ export async function getFarmNextSteps({
   const bestVariantIds = getFarmBestVariantIds(
     candidates.map((c) => ({ b_id: c.b_id, m_id: c.m_id, impact: c.aggregateImpact })),
   )
-  const opportunities = candidates.filter((c) => bestVariantIds.has(c.m_id))
+  // A measure is only recommended on a field where it improves the weak indicators, as on the
+  // field pages. Candidates without a positive impact still counted in the variant choice above.
+  const opportunities = candidates.filter(
+    (c) => bestVariantIds.has(c.m_id) && c.aggregateImpact > 0,
+  )
 
   const opportunitiesByField: Record<string, FieldTopOpportunity[]> = {}
   const farmOpportunitiesByMId = new Map<string, FieldTopOpportunity>()
@@ -284,6 +289,11 @@ export async function getFarmMeasureStatus({
   if (failedFields.length > 0) {
     applicabilityAvailable = false
     applicabilityFailedFieldCount = failedFields.length
+  }
+  // Without an NMI API key the lookup returns empty records, which are not a real result
+  if (!getNmiApiKey() && eligibleFields.length > 0) {
+    applicabilityAvailable = false
+    applicabilityFailedFieldCount = eligibleFields.length
   }
 
   const recommendations = await getFarmNextSteps({

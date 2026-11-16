@@ -17,7 +17,7 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getMeasuresCataloguePath } from "~/lib/measures-catalogue"
+import { getCatalogueReturnSearch, getMeasuresCataloguePath } from "~/lib/measures-catalogue"
 
 export const handle: HelpHandle = { help: "maatregelen" }
 
@@ -81,14 +81,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function MeasuresLayout() {
   const loaderData = useLoaderData<typeof loader>()
   const { b_id, m_id } = useParams()
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   const isCatalogue = pathname.startsWith(
     `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures/catalogue`,
   )
 
   const action = m_id
     ? {
-        to: getMeasuresCataloguePath(loaderData.b_id_farm, loaderData.calendar),
+        // Back to the filtered list the measure was opened from, if any
+        to:
+          getMeasuresCataloguePath(loaderData.b_id_farm, loaderData.calendar) +
+          getCatalogueReturnSearch(state),
         label: "Terug naar catalogus",
         disabled: false,
       }

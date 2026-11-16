@@ -40,7 +40,10 @@ export function getMeasureStatusUnavailableMessage(
     ? `voor ${applicabilityFailedFieldCount} van de ${eligibleFieldCount} percelen`
     : "voor dit bedrijf"
   if (!recommendationsAvailable && !applicabilityAvailable) {
-    return `Aanbevolen en toepasbare maatregelen konden ${scope} niet worden geladen. Een maatregel zonder aanbeveling is dus niet per se ongeschikt.`
+    // Recommendations are loaded for the whole farm, so only the applicability can be partial
+    return partial
+      ? `Aanbevolen maatregelen konden niet worden geladen, en toepasbare maatregelen niet ${scope}. Een maatregel zonder aanbeveling is dus niet per se ongeschikt.`
+      : "Aanbevolen en toepasbare maatregelen konden voor dit bedrijf niet worden geladen. Een maatregel zonder aanbeveling is dus niet per se ongeschikt."
   }
   if (!recommendationsAvailable) {
     return "Aanbevolen maatregelen konden niet worden geladen. Een maatregel zonder aanbeveling is dus niet per se ongeschikt."

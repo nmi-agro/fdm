@@ -39,4 +39,15 @@ describe("getMeasureStatusUnavailableMessage", () => {
       }),
     ).toContain("voor dit bedrijf")
   })
+
+  it("keeps the farm-wide recommendations apart from a partial applicability failure", () => {
+    const message = getMeasureStatusUnavailableMessage({
+      ...available,
+      recommendationsAvailable: false,
+      applicabilityAvailable: false,
+      applicabilityFailedFieldCount: 1,
+    })
+    expect(message).toMatch(/^Aanbevolen maatregelen konden niet worden geladen, /)
+    expect(message).toContain("toepasbare maatregelen niet voor 1 van de 4 percelen")
+  })
 })

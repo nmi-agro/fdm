@@ -56,6 +56,45 @@ export function getAddMeasurePath(
   return `/farm/${b_id_farm}/${calendar}/measures?${params.toString()}`
 }
 
+/**
+ * Location state with which the catalogue list opens a measure, so the detail page can return
+ * to the same filtered list.
+ */
+export type CatalogueReturnState = {
+  /** Search string of the list, e.g. `?q=kalk&status=recommended`, or `""` without filters */
+  catalogueSearch: string
+}
+
+/**
+ * Turns search parameter values into a search string; empty values are left out.
+ *
+ * @param values - Value per parameter name.
+ * @returns The search string with a leading `?`, or `""` when every value is empty.
+ */
+export function toSearchString(values: Record<string, string>): string {
+  const params = new URLSearchParams()
+  for (const [name, value] of Object.entries(values)) {
+    if (value) params.set(name, value)
+  }
+  const search = params.toString()
+  return search ? `?${search}` : ""
+}
+
+/**
+ * Returns the search string of the catalogue list a detail page was opened from, so
+ * "Terug naar catalogus" returns to the same filtered list.
+ *
+ * @param state - The location state of the detail page.
+ * @returns The search string, or `""` when the page was not opened from the list.
+ */
+export function getCatalogueReturnSearch(state: unknown): string {
+  if (typeof state !== "object" || state === null || !("catalogueSearch" in state)) return ""
+  const { catalogueSearch } = state
+  return typeof catalogueSearch === "string" && catalogueSearch.startsWith("?")
+    ? catalogueSearch
+    : ""
+}
+
 // ── Catalogue list ─────────────────────────────────────────────────────────
 
 /** Number of fields per status of a measure. */
@@ -235,9 +274,9 @@ export type RelatedMeasure = { m_id: string; m_name: string; inactive: boolean }
  * Returns the measures that conflict with a measure and the other variants of the same
  * measure family.
  *
- * Only conflicts with active measures in the catalogue are listed: a conflict with a measure
- * that cannot be taken has no meaning for the user. Variants include inactive measures,
- * marked as such, ordered by ID.
+ * Conflicts and variants include inactive measures, marked as such: an inactive measure can
+ * still be applied on the farm, so a conflict with it still matters. Conflicts with measures
+ * that are not in the catalogue are left out. Variants are ordered by ID.
  *
  * @param measure - The measure.
  * @param catalogue - The measures catalogue.
@@ -246,12 +285,12 @@ export function getMeasureRelations(
   measure: MeasureCatalogue,
   catalogue: MeasureCatalogue[],
 ): { conflicts: RelatedMeasure[]; variants: RelatedMeasure[] } {
-  const activeById = new Map(
-    catalogue.filter((item) => item.m_status !== "inactive").map((item) => [item.m_id, item]),
-  )
+  const byId = new Map(catalogue.map((item) => [item.m_id, item]))
   const conflicts = (measure.m_conflicts ?? []).flatMap((conflict_id) => {
-    const item = activeById.get(conflict_id)
-    return item ? [{ m_id: item.m_id, m_name: item.m_name, inactive: false }] : []
+    const item = byId.get(conflict_id)
+    return item
+      ? [{ m_id: item.m_id, m_name: item.m_name, inactive: item.m_status === "inactive" }]
+      : []
   })
 
   const familyId = getMeasureFamilyId(measure.m_id)

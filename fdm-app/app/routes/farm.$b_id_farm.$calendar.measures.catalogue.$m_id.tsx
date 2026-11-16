@@ -8,9 +8,11 @@ import {
   type MetaFunction,
   Link,
   useLoaderData,
+  useLocation,
   useParams,
   useSearchParams,
 } from "react-router"
+import type { FieldMeasureEntry, FieldMeasureStatus } from "~/lib/farm-measures"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -44,7 +46,6 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
-import type { FieldMeasureEntry, FieldMeasureStatus } from "~/lib/farm-measures"
 import { getFarmMeasureStatus } from "~/lib/farm-measures.server"
 import { fdm } from "~/lib/fdm.server"
 import {
@@ -179,7 +180,10 @@ export default function MeasureCatalogueDetail() {
               <Badge variant="outline">Perceelsniveau</Badge>
             )}
             {isInactive && <Badge variant="secondary">Niet meer beschikbaar</Badge>}
-            {canAdd && <AddMeasureLink m_id={measure.m_id} fieldsStatus={fieldsStatus} />}
+            {canAdd && (
+              // Keyed on the measure, so the preselected fields of another measure are not reused
+              <AddMeasureLink key={measure.m_id} m_id={measure.m_id} fieldsStatus={fieldsStatus} />
+            )}
           </div>
         }
       />
@@ -666,10 +670,24 @@ function FieldsCard({
     >
       <MeasureStatusUnavailable availability={loaded} />
       {fields.length === 0 ? (
-        <p className="text-muted-foreground max-w-[75ch] text-sm">
-          Deze maatregel is in {calendar} op geen enkel perceel toegepast, aanbevolen of toepasbaar.
-          Percelen zonder BLN3-score, zoals bufferstroken en natuur, tellen hier niet mee.
-        </p>
+        loaded.recommendationsAvailable && loaded.applicabilityAvailable ? (
+          <p className="text-muted-foreground max-w-[75ch] text-sm">
+            Deze maatregel is in {calendar} op geen enkel perceel toegepast, aanbevolen of
+            toepasbaar. Percelen zonder BLN3-score, zoals bufferstroken en natuur, tellen hier niet
+            mee.
+          </p>
+        ) : (
+          <p className="text-muted-foreground max-w-[75ch] text-sm">
+            {/* Name only the status that is missing; the notice above says for how many fields */}
+            {`Deze maatregel is in ${calendar} op geen enkel perceel toegepast. ${
+              !loaded.recommendationsAvailable && !loaded.applicabilityAvailable
+                ? "Of hij aanbevolen of toepasbaar is, kon niet worden geladen."
+                : !loaded.recommendationsAvailable
+                  ? "Of hij aanbevolen is, kon niet worden geladen."
+                  : "Of hij toepasbaar is, kon niet voor alle percelen worden geladen."
+            }`}
+          </p>
+        )
       ) : visible.length === 0 ? (
         <p className="text-muted-foreground text-sm">Geen percelen met deze status.</p>
       ) : (
@@ -745,12 +763,15 @@ function MeasureList({
   b_id_farm: string
   calendar: string
 }) {
+  // Pass on the catalogue list this page came from, so "Terug naar catalogus" still returns there
+  const { state } = useLocation()
   return (
     <ul className="divide-y rounded-md border">
       {items.map((item) => (
         <li key={item.m_id}>
           <Link
             to={getMeasureCataloguePath(b_id_farm, calendar, item.m_id)}
+            state={state}
             className="hover:bg-muted/50 focus-visible:ring-ring flex items-center gap-2 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset pointer-coarse:min-h-11"
           >
             <span className="text-muted-foreground shrink-0 tabular-nums">

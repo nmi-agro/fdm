@@ -9,6 +9,7 @@ import {
   filterCatalogueRows,
   formatMeasurePeriod,
   getAddMeasurePath,
+  getCatalogueReturnSearch,
   getMeasureCataloguePath,
   getMeasureCode,
   getMeasureRelations,
@@ -16,6 +17,7 @@ import {
   isStatusUnavailable,
   readSearchParam,
   type StatusCounts,
+  toSearchString,
 } from "./measures-catalogue"
 
 /** A synthetic catalogue measure. */
@@ -65,6 +67,19 @@ describe("measures catalogue paths", () => {
     const params = new URL(path, "https://example.org").searchParams
     expect(params.get("openMeasure")).toBe("bln_BM7")
     expect(params.get("fields")).toBe("f1,f2")
+  })
+
+  it("builds a search string without the empty values", () => {
+    expect(toSearchString({ q: "kalk", status: "", thema: "Bodem" })).toBe("?q=kalk&thema=Bodem")
+    expect(toSearchString({ q: "", status: "" })).toBe("")
+  })
+
+  it("reads the catalogue search from the location state, and nothing else", () => {
+    expect(getCatalogueReturnSearch({ catalogueSearch: "?q=kalk" })).toBe("?q=kalk")
+    expect(getCatalogueReturnSearch({ catalogueSearch: "https://example.org" })).toBe("")
+    expect(getCatalogueReturnSearch({ catalogueSearch: 1 })).toBe("")
+    expect(getCatalogueReturnSearch(null)).toBe("")
+    expect(getCatalogueReturnSearch(undefined)).toBe("")
   })
 })
 
@@ -251,9 +266,12 @@ describe("getMeasureRelations", () => {
     measure("bln_BM2", { m_name: "Vervallen", m_status: "inactive" }),
   ]
 
-  it("lists active conflicts and the other variants of the family", () => {
+  it("lists the conflicts and other variants, marking inactive ones", () => {
     expect(getMeasureRelations(catalogue[0], catalogue)).toEqual({
-      conflicts: [{ m_id: "bln_BM1", m_name: "Actief", inactive: false }],
+      conflicts: [
+        { m_id: "bln_BM1", m_name: "Actief", inactive: false },
+        { m_id: "bln_BM2", m_name: "Vervallen", inactive: true },
+      ],
       variants: [
         { m_id: "bln_BM56a", m_name: "Variant a", inactive: true },
         { m_id: "bln_BM56c", m_name: "Variant c", inactive: false },
