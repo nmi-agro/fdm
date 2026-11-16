@@ -7,7 +7,7 @@ import { visit } from "unist-util-visit"
  * Tokens that manual content may use. They are replaced per request, because the product name
  * and URL differ per deployment of this white-label application.
  */
-export const KNOWN_TOKENS = ["appName", "appUrl", "apiDocsUrl"] as const
+export const KNOWN_TOKENS = ["appName", "appUrl", "apiDocsUrl", "mcpUrl", "mcpServerName"] as const
 
 /** A token name that manual content may use, such as `appName` in `{{appName}}`. */
 export type ManualToken = (typeof KNOWN_TOKENS)[number]

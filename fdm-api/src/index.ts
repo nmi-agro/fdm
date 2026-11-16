@@ -125,6 +125,7 @@ import {
 import { applyRvoImport, reviewShapefileImport } from "@nmi-agro/fdm-rvo"
 import { createGcsStorage, type FileStorage, isGcsConfigured } from "@nmi-agro/fdm-storage"
 import { buildApp } from "./app"
+import { type CountFieldsOfFarms, countFieldsOfFarms } from "./limits"
 
 /**
  * Describes the public configuration used to mount the FDM API application.
@@ -230,6 +231,8 @@ export interface FdmApiServices {
   getFieldMeasureOptions: typeof getFieldMeasureOptions
   /** Resolves the server-side NMI API key; `undefined` when not configured. */
   getNmiApiKey: () => string | undefined
+  /** Counts the fields of farms, to enforce the farm size that the API supports. */
+  countFieldsOfFarms: CountFieldsOfFarms
   // Organic certifications
   listOrganicCertifications: typeof listOrganicCertifications
   addOrganicCertification: typeof addOrganicCertification
@@ -315,7 +318,12 @@ export interface FdmApiServices {
   getReportBranding: () => Promise<ReportBranding>
 }
 
-const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
+/**
+ * The production implementations of {@link FdmApiServices}, backed by fdm-core, fdm-calculator
+ * and the other FDM packages. `getReportBranding` is configured per deployment and is not included.
+ * Other services that reuse the API operations, such as the MCP server, start from this object.
+ */
+export const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   getFarms,
   getFarm,
   addFarm,
@@ -374,6 +382,7 @@ const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   getFarmIndicators,
   getFieldMeasureOptions,
   getNmiApiKey: () => process.env.NMI_API_KEY || undefined,
+  countFieldsOfFarms,
   listOrganicCertifications,
   addOrganicCertification,
   getOrganicCertification,
@@ -475,5 +484,15 @@ export function createFdmApi(
 }
 
 export type { ApiEnv, ApiPrincipalContext } from "./types"
+export { type ApiKeyAuthOptions, createApiKeyAuth } from "./auth"
+export {
+  ApiError,
+  type ClassifiedError,
+  classifyError,
+  createErrorHandler,
+  createNotFoundHandler,
+  type ErrorLogOptions,
+} from "./error"
+export { consumeRateLimit, RATE_LIMITS, type RateBucket, type RateLimitResult } from "./rate-limit"
 export type { FileStorage } from "@nmi-agro/fdm-storage"
 export type { ReportBranding } from "@nmi-agro/fdm-reports"

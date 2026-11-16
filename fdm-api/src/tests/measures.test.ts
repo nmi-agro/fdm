@@ -20,7 +20,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const baseMeasure = {
@@ -215,5 +218,37 @@ describe("DELETE /measures/:b_id_measure", () => {
       headers: { "x-api-key": "valid" },
     })
     expect(res.status).toBe(403)
+  })
+})
+
+describe("Measure mutations — records that cannot be read back", () => {
+  beforeEach(validKey)
+
+  it("POST returns 500 when the created measure cannot be retrieved", async () => {
+    const app = makeApp({
+      addMeasure: vi.fn().mockResolvedValue("measure-new"),
+      getMeasure: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/field-1/measures", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ m_id: "bm-1", m_start: "2024-01-01" }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH returns 404 when the measure does not exist", async () => {
+    const app = makeApp({
+      updateMeasure: vi.fn().mockResolvedValue(undefined),
+      getMeasure: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/measures/measure-x", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ m_start: "2024-02-01" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
   })
 })

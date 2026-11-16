@@ -164,6 +164,7 @@ const ApplyResultSchema = z
 // ---------------------------------------------------------------------------
 
 const compareRoute = createRoute({
+  operationId: "compareSoilAnalysisImport",
   method: "post",
   path: "/farms/{b_id_farm}/soil-analyses/import/compare",
   tags: ["Soil Analyses"],
@@ -200,6 +201,7 @@ const compareRoute = createRoute({
 })
 
 const applyRoute = createRoute({
+  operationId: "applySoilAnalysisImport",
   method: "post",
   path: "/farms/{b_id_farm}/soil-analyses/import/apply",
   tags: ["Soil Analyses"],

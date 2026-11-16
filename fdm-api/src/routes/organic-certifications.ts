@@ -1,63 +1,34 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type {
-  addOrganicCertification,
-  FdmType,
+import type { FdmType } from "@nmi-agro/fdm-core"
+import { createRoute, z } from "@hono/zod-openapi"
+import type { ApiEnv } from "../types"
+import {
+  CreateOrganicCertificationBodySchema,
+  createOrganicCertification,
+  deleteOrganicCertification,
   getOrganicCertification,
   listOrganicCertifications,
-  OrganicCertification,
-  removeOrganicCertification,
-} from "@nmi-agro/fdm-core"
-import { createRoute, z } from "@hono/zod-openapi"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { ApiError } from "../error"
-import { FarmIdSchema, OrganicCertificationIdSchema } from "../fields"
+  OrganicCertificationFarmParamsSchema,
+  OrganicCertificationParamsSchema,
+  OrganicCertificationSchema,
+  type OrganicCertificationServices,
+} from "../operations/organic-certifications"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
-  DateStringSchema,
   PaginationQuerySchema,
   paginatedResponse,
   paginatedSchema,
-  serializeDate,
   writeErrorResponses,
 } from "../schemas"
+import { operationContext } from "./operation-context"
+
+export type { OrganicCertificationServices } from "../operations/organic-certifications"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
-/** Defines the organic certification data access functions required by the organic certification routes. */
-export interface OrganicCertificationServices {
-  listOrganicCertifications: typeof listOrganicCertifications
-  addOrganicCertification: typeof addOrganicCertification
-  getOrganicCertification: typeof getOrganicCertification
-  removeOrganicCertification: typeof removeOrganicCertification
-}
-
-const OrganicCertificationSchema = z
-  .object({
-    b_id_organic: OrganicCertificationIdSchema,
-    b_organic_traces: z
-      .string()
-      .nullable()
-      .describe("TRACES number of the organic certificate. `null` when not set."),
-    b_organic_skal: z
-      .string()
-      .nullable()
-      .describe("SKAL number of the organic certificate. `null` when not set."),
-    b_organic_issued: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    b_organic_expires: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-  })
-  .openapi("OrganicCertification")
-
-const CreateOrganicCertificationBodySchema = z
-  .object({
-    b_organic_traces: z.string().nullable().optional().describe("Organic TRACES number."),
-    b_organic_skal: z.string().nullable().optional().describe("Organic SKAL number."),
-    b_organic_issued: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    b_organic_expires: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-  })
-  .openapi("CreateOrganicCertification")
-
 const listOrganicCertificationsRoute = createRoute({
+  operationId: listOrganicCertifications.name,
   method: "get",
   path: "/farms/{b_id_farm}/organic-certifications",
   tags: ["Organic Certifications"],
@@ -65,7 +36,7 @@ const listOrganicCertificationsRoute = createRoute({
   description: "Returns all organic certifications for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: OrganicCertificationFarmParamsSchema,
     query: PaginationQuerySchema,
   },
   responses: {
@@ -82,6 +53,7 @@ const listOrganicCertificationsRoute = createRoute({
 })
 
 const createOrganicCertificationRoute = createRoute({
+  operationId: createOrganicCertification.name,
   method: "post",
   path: "/farms/{b_id_farm}/organic-certifications",
   tags: ["Organic Certifications"],
@@ -89,7 +61,7 @@ const createOrganicCertificationRoute = createRoute({
   description: "Creates a new organic certification on the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: OrganicCertificationFarmParamsSchema,
     body: {
       content: {
         "application/json": {
@@ -111,13 +83,14 @@ const createOrganicCertificationRoute = createRoute({
 })
 
 const getOrganicCertificationRoute = createRoute({
+  operationId: getOrganicCertification.name,
   method: "get",
   path: "/organic-certifications/{b_id_organic}",
   tags: ["Organic Certifications"],
   summary: "Get an organic certification",
   description: "Returns a single organic certification by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_organic: OrganicCertificationIdSchema }) },
+  request: { params: OrganicCertificationParamsSchema },
   responses: {
     200: {
       description: "The requested organic certification.",
@@ -130,28 +103,19 @@ const getOrganicCertificationRoute = createRoute({
 })
 
 const deleteOrganicCertificationRoute = createRoute({
+  operationId: deleteOrganicCertification.name,
   method: "delete",
   path: "/organic-certifications/{b_id_organic}",
   tags: ["Organic Certifications"],
   summary: "Delete an organic certification",
   description: "Permanently deletes an organic certification.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_organic: OrganicCertificationIdSchema }) },
+  request: { params: OrganicCertificationParamsSchema },
   responses: {
     204: { description: "Organic certification deleted." },
     ...commonErrorResponses,
   },
 })
-
-function serialiseOrganicCertification(certification: OrganicCertification) {
-  return {
-    b_id_organic: certification.b_id_organic,
-    b_organic_traces: certification.b_organic_traces ?? null,
-    b_organic_skal: certification.b_organic_skal ?? null,
-    b_organic_issued: serializeDate(certification.b_organic_issued),
-    b_organic_expires: serializeDate(certification.b_organic_expires),
-  }
-}
 
 /**
  * Registers the organic certification CRUD routes on the API application.
@@ -182,83 +146,52 @@ export function registerOrganicCertificationRoutes(
   const listOrganicCertificationsHandler: RouteHandler<
     typeof listOrganicCertificationsRoute
   > = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof OrganicCertificationFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const certifications = await services.listOrganicCertifications(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
+    const certifications = await listOrganicCertifications.run(
+      operationContext(c, fdm, services),
+      params,
     )
-    return c.json(
-      paginatedResponse(certifications.map(serialiseOrganicCertification), limit, offset),
-      200,
-    )
+    return c.json(paginatedResponse(certifications, limit, offset), 200)
   }
 
   const createOrganicCertificationHandler: RouteHandler<
     typeof createOrganicCertificationRoute
   > = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof OrganicCertificationFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateOrganicCertificationBodySchema>
-    const b_id_organic = await services.addOrganicCertification(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      body.b_organic_traces ?? null,
-      body.b_organic_skal ?? null,
-      new Date(body.b_organic_issued),
-      new Date(body.b_organic_expires),
+    const certification = await createOrganicCertification.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    c.header(
+      "Location",
+      `${new URL(c.req.url).origin}/organic-certifications/${certification.b_id_organic}`,
     )
-    const certification = await services.getOrganicCertification(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_organic,
-    )
-    if (!certification?.b_id_organic) {
-      throw new ApiError(
-        500,
-        "internal-error",
-        "Organic certification created but could not be retrieved.",
-      )
-    }
-    c.header("Location", `${new URL(c.req.url).origin}/organic-certifications/${b_id_organic}`)
-    return c.json(serialiseOrganicCertification(certification), 201)
+    return c.json(certification, 201)
   }
 
   const getOrganicCertificationHandler: RouteHandler<typeof getOrganicCertificationRoute> = async (
     c,
   ) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_organic } = c.req.valid("param") as {
-      b_id_organic: string
-    }
-    const certification = await services.getOrganicCertification(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_organic,
+    const params = c.req.valid("param") as z.infer<typeof OrganicCertificationParamsSchema>
+    return c.json(
+      await getOrganicCertification.run(operationContext(c, fdm, services), params),
+      200,
     )
-    if (!certification?.b_id_organic) {
-      throw new ApiError(404, "not-found", `Organic certification '${b_id_organic}' not found.`)
-    }
-    return c.json(serialiseOrganicCertification(certification), 200)
   }
 
   const deleteOrganicCertificationHandler: RouteHandler<
     typeof deleteOrganicCertificationRoute
   > = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_organic } = c.req.valid("param") as {
-      b_id_organic: string
-    }
-    await services.removeOrganicCertification(fdm, principal.effectivePrincipalId, b_id_organic)
+    const params = c.req.valid("param") as z.infer<typeof OrganicCertificationParamsSchema>
+    await deleteOrganicCertification.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 

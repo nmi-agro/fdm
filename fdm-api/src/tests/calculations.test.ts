@@ -1,3 +1,4 @@
+import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
@@ -27,7 +28,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const START = "2025-01-01"
@@ -484,6 +488,36 @@ describe("GET /fields/:b_id/calculations/nitrogen-balance", () => {
     validKey()
   })
 
+  it("returns 422 naming the missing soil parameters instead of an internal error", async () => {
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      getNitrogenBalanceField: vi
+        .fn()
+        .mockRejectedValue(new Error("Missing required soil parameters: a_n_rt, b_gwl_class")),
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(422)
+    expect((await res.json()).detail).toContain("a_n_rt, b_gwl_class")
+  })
+
+  it("passes other calculation errors on as internal errors", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      getNitrogenBalanceField: vi.fn().mockRejectedValue(new Error("calculation failed")),
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(500)
+  })
+
   it("returns 200 with field nitrogen balance result", async () => {
     const getFieldFn = vi.fn().mockResolvedValue(mockField)
     const collectInput = vi.fn().mockResolvedValue(mockNitrogenInput)
@@ -899,5 +933,161 @@ describe("nutrient advice", () => {
     const app = makeApp({ getNmiApiKey: () => "key" })
     const res = await app.request("/fields/f1/calculations/nutrient-advice?year=2026")
     expect(res.status).toBe(401)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Missing field input, failed field balances and norms for 2026
+// ---------------------------------------------------------------------------
+describe("Calculations — edge cases", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    validKey()
+  })
+
+  const headers = { "x-api-key": "valid-key" }
+
+  /** Norm services whose three norm functions all behave the same way. */
+  function normServices(behaviour: "resolve" | "not-applicable" | "fail") {
+    const result = (value: unknown) =>
+      behaviour === "resolve"
+        ? vi.fn().mockResolvedValue(value)
+        : vi
+            .fn()
+            .mockRejectedValue(
+              behaviour === "not-applicable"
+                ? new NormNotApplicableError("Norm does not apply")
+                : new Error("Calculation failed"),
+            )
+    const functions = {
+      collectInputForNormsForFarm: vi.fn().mockResolvedValue(new Map([["field-1", {}]])),
+      collectInputForNorms: vi.fn().mockResolvedValue({}),
+      calculateNormForNitrogen: result(mockFarmNorms.nitrogen),
+      calculateNormForManure: result(mockFarmNorms.manure),
+      calculateNormForPhosphate: result(mockFarmNorms.phosphate),
+    }
+    return {
+      functions,
+      services: {
+        createFunctionsForNorms: vi.fn(() => functions),
+        getField: vi.fn().mockResolvedValue({ b_id: "field-1", b_id_farm: "farm-1" }),
+      },
+    }
+  }
+
+  it("farm nitrogen balance keeps fields without a balance when effective_nitrogen=true", async () => {
+    const failedField = {
+      b_id: "field-2",
+      b_area: 2.0,
+      b_bufferstrip: false,
+      errorMessage: "Missing soil analysis",
+    }
+    const app = makeApp({
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      calculateNitrogenBalance: vi.fn().mockResolvedValue({
+        ...mockNitrogenBalance,
+        fields: [failedField],
+        hasErrors: true,
+      }),
+    })
+    const res = await app.request(
+      `/farms/farm-1/calculations/nitrogen-balance?start=${START}&end=${END}&effective_nitrogen=true`,
+      { headers },
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.fields).toEqual([failedField])
+    expect(body).not.toHaveProperty("target")
+  })
+
+  it("field nitrogen balance returns 404 when the farm input does not contain the field", async () => {
+    const getNitrogenBalanceField = vi.fn()
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi
+        .fn()
+        .mockResolvedValue({ ...mockNitrogenInput, fields: [] }),
+      getNitrogenBalanceField,
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers },
+    )
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+    expect(getNitrogenBalanceField).not.toHaveBeenCalled()
+  })
+
+  it("field organic matter balance returns 404 when the farm input does not contain the field", async () => {
+    const getOrganicMatterBalanceField = vi.fn()
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForOrganicMatterBalance: vi
+        .fn()
+        .mockResolvedValue({ ...mockOrganicMatterInput, fields: [] }),
+      getOrganicMatterBalanceField,
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/organic-matter-balance?start=${START}&end=${END}`,
+      { headers },
+    )
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+    expect(getOrganicMatterBalanceField).not.toHaveBeenCalled()
+  })
+
+  it("farm norms use the 2026 rules when no year is given", async () => {
+    const { services } = normServices("resolve")
+    const app = makeApp(services)
+    const res = await app.request("/farms/farm-1/calculations/norms", { headers })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      b_id_farm: "farm-1",
+      year: 2026,
+      fields: [{ b_id: "field-1", ...mockFarmNorms }],
+    })
+    expect(services.createFunctionsForNorms).toHaveBeenCalledWith("NL", "2026")
+  })
+
+  it("field norms use the 2026 rules for year=2026", async () => {
+    const { services } = normServices("resolve")
+    const app = makeApp(services)
+    const res = await app.request("/fields/field-1/calculations/norms?year=2026", { headers })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ b_id: "field-1", year: 2026, ...mockFarmNorms })
+    expect(services.createFunctionsForNorms).toHaveBeenCalledWith("NL", "2026")
+  })
+
+  it("field norms return 404 when the field does not exist", async () => {
+    const { services } = normServices("resolve")
+    services.getField.mockResolvedValue(null)
+    const app = makeApp(services)
+    const res = await app.request("/fields/no-such-field/calculations/norms?year=2025", {
+      headers,
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+    expect(services.createFunctionsForNorms).not.toHaveBeenCalled()
+  })
+
+  it("returns null for norms that do not apply to the field", async () => {
+    const { services } = normServices("not-applicable")
+    const app = makeApp(services)
+    const res = await app.request("/fields/field-1/calculations/norms?year=2025", { headers })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      b_id: "field-1",
+      year: 2025,
+      nitrogen: null,
+      manure: null,
+      phosphate: null,
+    })
+  })
+
+  it("does not hide other norm calculation errors", async () => {
+    const { services } = normServices("fail")
+    const app = makeApp(services)
+    const res = await app.request("/farms/farm-1/calculations/norms?year=2026", { headers })
+    expect(res.status).toBe(500)
   })
 })

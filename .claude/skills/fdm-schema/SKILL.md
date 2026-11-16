@@ -1,7 +1,7 @@
 ---
 name: fdm-schema
 description: Use when working on the FDM database schema or data model — adding or changing tables and columns in fdm-core/src/db/schema.ts, generating or reviewing Drizzle migrations, naming columns and parameters, modelling a new farm asset or farm event, registering a new authorization resource, or reviewing a schema diff for convention drift. Covers the Asset–Action model, the b_/p_/a_/m_/l_/f_ column prefix vocabulary, table naming, enum and custom-type patterns, the schema-change workflow, and schema anti-patterns. Not for fdm-app UI work, agronomic calculation logic in fdm-calculator, agent prompts in fdm-agents, or REST endpoint design in fdm-api.
-version: 1.0.0
+version: 1.0.1
 user-invocable: true
 argument-hint: "[explain|add-table|add-column|review|check] [target]"
 license: MIT
@@ -75,7 +75,7 @@ If a calculation is expensive enough to need caching, cache it in the `fdm-calcu
 
 ### Time and lifecycle, not deletion
 
-An asset that stops being relevant is *ended*, not deleted, because the history of what happened to it stays true. Ending is itself an action, in its own table: `field_discarding` (`b_end`), `cultivation_ending` (`b_lu_end`), `fertilizer_picking` (`p_picking_date`), `organic_certifications_holding`. Start and end timestamps use the owning domain's prefix: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. `b_end` and `m_end` are the last day of the period (inclusive, Europe/Amsterdam); fdm-core stores them as entered and, when reading, returns 1 January as the end of 31 December of the previous year (`adjustEndDateAtYearStart`).
+An asset that stops being relevant is *ended*, not deleted, because the history of what happened to it stays true. Ending is itself an action, in its own table: `field_discarding` (`b_end`), `cultivation_ending` (`b_lu_end`), `organic_certifications_holding`. (`fertilizer_picking` is not an ending: it links a farm's fertilizer to its catalogue entry.) Start and end timestamps use the owning domain's prefix: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. `b_end` and `m_end` are the last day of the period (inclusive, Europe/Amsterdam); fdm-core stores them as entered and, when reading, returns 1 January as the end of 31 December of the previous year (`adjustEndDateAtYearStart`).
 
 ```ts
 // WRONG — flags and jsonb bags lose who, when and why

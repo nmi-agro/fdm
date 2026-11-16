@@ -7,6 +7,7 @@
 - [ ] A changeset is added (one per affected package), or this PR needs none
 - [ ] TSDoc and fdm-docs are updated where the public API or behaviour changed
 - [ ] User manual (`fdm-app/app/content/manual`) updated for changed labels, flows or pages, or not needed
+- [ ] Agent instructions (`AGENTS.md`, `CLAUDE.md`, `.claude/skills`, `.claude/commands`) updated where packages, commands, paths or conventions changed, or not needed
 - [ ] No real farm or field coordinates, identifiers or personal data in code, fixtures or screenshots
 
 ## How to test

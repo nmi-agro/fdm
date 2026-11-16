@@ -25,7 +25,7 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.69.0",
+    "lucide-react": "^1.72.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -39,6 +39,7 @@
     "@nmi-agro/fdm-calculator": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
     "@nmi-agro/fdm-data": "workspace:*",
+    "@nmi-agro/fdm-mcp": "workspace:*",
     "@nmi-agro/fdm-reports": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:*",
     "@nmi-agro/fdm-storage": "workspace:*",
