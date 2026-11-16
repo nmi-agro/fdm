@@ -109,13 +109,13 @@ function buildChartDataAndLegend({
       color: "var(--color-gray-600)",
     },
     ...(type === "farm" ? farmRemovalLegend : {}),
-    emissionNitrate: {
-      label: "Nitraatuitspoeling",
-      color: "var(--color-red-400)",
-    },
     emissionNitrousOxide: {
       label: "Lachgasemissie",
       color: "var(--color-violet-600)",
+    },
+    emissionNitrate: {
+      label: "Nitraatuitspoeling",
+      color: "var(--color-red-400)",
     },
   }
 
@@ -384,8 +384,9 @@ function buildChartDataAndLegend({
     ...removalBar,
     ...fertilizerAmmoniaBar,
     ...residueAmmoniaBar,
-    "emissionNitrate",
+    // N₂O is part of the balance, so it comes before the nitrate leaching, which is not
     "emissionNitrousOxide",
+    "emissionNitrate",
   ]
 
   return {

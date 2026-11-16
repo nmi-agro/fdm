@@ -460,11 +460,11 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
-        <NitrateLeachingCard nitrate={resolvedNitrogenBalanceResult.emission.nitrate} />
         <NitrousOxideCard
           nitrousOxide={resolvedNitrogenBalanceResult.emission.nitrous_oxide.total}
           co2eq={resolvedNitrogenBalanceResult.emission.nitrous_oxide.co2eq}
         />
+        <NitrateLeachingCard nitrate={resolvedNitrogenBalanceResult.emission.nitrate} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">

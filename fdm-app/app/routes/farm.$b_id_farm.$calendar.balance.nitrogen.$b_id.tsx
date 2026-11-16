@@ -414,11 +414,11 @@ function NitrogenBalance({
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
-        <NitrateLeachingCard nitrate={result.emission.nitrate.total} />
         <NitrousOxideCard
           nitrousOxide={result.emission.nitrous_oxide.total}
           co2eq={result.emission.nitrous_oxide.co2eq}
         />
+        <NitrateLeachingCard nitrate={result.emission.nitrate.total} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">

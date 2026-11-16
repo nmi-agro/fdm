@@ -315,6 +315,24 @@ N₂O from grazing and the indirect N₂O emission (formed outside the field fro
   2. These total farm-level amounts (in kg N) are then divided by the total farm area (ha) to provide an average farm-level balance (`N Supply - N Removal - Ammonia Emission - N2O Emission`) in kg N / ha. The total emission is the sum of its rounded parts.
   3. The N₂O emission is aggregated in the same way. The farm CO₂-equivalent is the area-weighted average of the CO₂-equivalents of the fields.
 
+### 4.1. Target
+
+Each field gets a target for its surplus (`target`, in kg N / ha), derived from research on nitrogen target values (Ros et al., 2023). The target depends on the land use (grassland when a cultivation of the field has the crop rotation `grass`, otherwise arable land), the soil type and the groundwater class:
+
+| Land use    | Soil type                             | Groundwater class | Target (kg N / ha per year) |
+| ----------- | ------------------------------------- | ----------------- | --------------------------- |
+| Grassland   | Sand or loess                         | Dry (VII, VIII)   | 80                          |
+| Grassland   | Other                                 | Any               | 125                         |
+| Arable land | Sand or loess                         | Dry (VII, VIII)   | 50                          |
+| Arable land | Sand or loess                         | Average (V, VI)   | 70                          |
+| Arable land | Sand or loess                         | Wet (I to IV)     | 125                         |
+| Arable land | Clay or peat (including moerige_klei) | Dry (VII, VIII)   | 115                         |
+| Arable land | Clay or peat (including moerige_klei) | Average or wet    | 125                         |
+
+For a time frame shorter than a year, the target is scaled by (number of days + 1) / 365. The farm target is the area-weighted average of the field targets.
+
+The target values are used unchanged for the surplus as defined in this document, which subtracts both the ammonia and the direct N₂O emission. The direct N₂O emission is a small term compared with the targets: with the NEMA emission factors it is typically a few kg N / ha per year on mineral soils, and higher on peat, where the emission factors are higher and the soil itself emits N₂O (Section 3.3.5). Subtracting it lowers the surplus by that amount, so a field just above its target can come out just below it. The nitrate leaching fractions (Section 3.3.1) are applied to the same surplus.
+
 ## 5. Output
 
 The final output (`NitrogenBalanceNumeric`) provides:
