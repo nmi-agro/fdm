@@ -3,7 +3,6 @@ import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   ArrowDown,
   ArrowRight,
-  ArrowRightFromLine,
   ArrowRightLeft,
   ArrowUpFromLine,
   CircleAlert,
@@ -23,6 +22,10 @@ import {
 import type { OrganizationFarmGroup } from "~/lib/farm-groups"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
+import {
+  NitrateLeachingCard,
+  NitrousOxideCard,
+} from "~/components/blocks/balance/nitrous-oxide-card"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
@@ -382,7 +385,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
   }
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Overschot / Doel (Alle bedrijven)</CardTitle>
@@ -460,18 +463,11 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
-            <ArrowRightFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.emission.nitrate)}
-            </div>
-            <p className="text-muted-foreground text-xs">kg N / ha</p>
-          </CardContent>
-        </Card>
+        <NitrateLeachingCard nitrate={resolvedNitrogenBalanceResult.emission.nitrate} />
+        <NitrousOxideCard
+          nitrousOxide={resolvedNitrogenBalanceResult.emission.nitrous_oxide.total}
+          co2eq={resolvedNitrogenBalanceResult.emission.nitrous_oxide.co2eq}
+        />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
@@ -479,9 +475,9 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
             <CardTitle>Balans</CardTitle>
             <CardDescription>
               De gemiddelde stikstofbalans voor de geselecteerde bedrijven. De balans is de aanvoer
-              min de afvoer en de ammoniakemissie. Nitraatuitspoeling en lachgas tellen niet mee.
-              Een positieve balans betekent een overschot aan stikstof, een negatieve balans een
-              tekort. U kunt de selectie van de bedrijven wijzigen om de uitschieters te
+              min de afvoer, de ammoniakemissie en de lachgasemissie. Nitraatuitspoeling telt niet
+              mee. Een positieve balans betekent een overschot aan stikstof, een negatieve balans
+              een tekort. U kunt de selectie van de bedrijven wijzigen om de uitschieters te
               identificeren.
             </CardDescription>
           </CardHeader>

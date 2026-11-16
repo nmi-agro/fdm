@@ -5,12 +5,8 @@ import type { CultivationDetail, FieldInput } from "../types"
 /**
  * Calculates the amount of nitrogen in the above-ground crop residues that are left on the field.
  *
- * The amount of crop residues is derived from the yield and the harvest index of the cultivation:
- * `yield / b_lu_hi * (1 - b_lu_hi)`. The yield is the average of the yields of the harvests of the
- * cultivation, or the default yield of the cultivation catalogue when no yield is known. The amount
- * of nitrogen is the amount of residues multiplied by their nitrogen content (`b_lu_n_residue`).
- *
- * Only residues that are known to be left on the field (`m_cropresidue` is `true`) are counted.
+ * Only residues that are known to be left on the field (`m_cropresidue` is `true`) are counted; see
+ * {@link calculateNitrogenInCropResidues} for the calculation.
  *
  * @param cultivation - The cultivation for which the crop residues are calculated.
  * @param harvests - The harvests of the field; only the harvests of this cultivation are used.
@@ -32,7 +28,34 @@ export function calculateNitrogenInCropResiduesLeft(
   if (!cultivation.m_cropresidue) {
     return new Decimal(0)
   }
+  return calculateNitrogenInCropResidues(cultivation, harvests, cultivationDetail)
+}
 
+/**
+ * Calculates the amount of nitrogen in the above-ground crop residues of a cultivation, whether
+ * they are left on the field or removed.
+ *
+ * The amount of crop residues is derived from the yield and the harvest index of the cultivation:
+ * `yield / b_lu_hi * (1 - b_lu_hi)`. The yield is the average of the yields of the harvests of the
+ * cultivation, or the default yield of the cultivation catalogue when no yield is known. The amount
+ * of nitrogen is the amount of residues multiplied by their nitrogen content (`b_lu_n_residue`).
+ *
+ * @param cultivation - The cultivation for which the crop residues are calculated.
+ * @param harvests - The harvests of the field; only the harvests of this cultivation are used.
+ * @param cultivationDetail - The details of the cultivation from the cultivation catalogue.
+ * @returns The amount of nitrogen in the crop residues (kg N / ha), zero or positive.
+ *
+ * @example
+ * ```ts
+ * const residueN = calculateNitrogenInCropResidues(cultivation, harvests, cultivationDetail)
+ * // Decimal(35)
+ * ```
+ */
+export function calculateNitrogenInCropResidues(
+  cultivation: Pick<FieldInput["cultivations"][number], "b_lu">,
+  harvests: FieldInput["harvests"],
+  cultivationDetail: CultivationDetail,
+): Decimal {
   // Get the (total) yield for this crop and number of harvests
   let totalYield = new Decimal(0)
   let harvestCount = 0

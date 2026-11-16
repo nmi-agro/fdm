@@ -540,23 +540,6 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
             <StaticRow>
               Bodem (veen en moerige klei): {formatNitrousOxide(nitrousOxide.soil.total)} kg N / ha
             </StaticRow>
-            <AccordionItem value="nitrous_oxide.indirect">
-              <AccordionTrigger>
-                Indirect (Totaal): {formatNitrousOxide(nitrousOxide.indirect.total)} kg N / ha
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="ml-6 list-outside list-disc space-y-1">
-                  <li className="text-muted-foreground text-sm">
-                    Nitrificatie en denitrificatie na ammoniakdepositie:{" "}
-                    {formatNitrousOxide(nitrousOxide.indirect.volatilisation)} kg N / ha
-                  </li>
-                  <li className="text-muted-foreground text-sm">
-                    Denitrificatie van uitgespoeld nitraat:{" "}
-                    {formatNitrousOxide(nitrousOxide.indirect.leaching)} kg N / ha
-                  </li>
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
         </AccordionContent>
       </AccordionItem>

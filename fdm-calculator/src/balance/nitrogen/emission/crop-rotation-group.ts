@@ -64,9 +64,33 @@ export function determineCropRotationGroupAtDate(
     return cultivation.b_lu_start.getTime() <= date.getTime()
   })
 
+  return determineCropRotationGroup(activeCultivations, cultivationDetails)
+}
+
+/**
+ * Determines the crop rotation group of a set of cultivations, from their crop rotation
+ * (`b_lu_croprotation`).
+ *
+ * Grassland has priority over cropland; when there is neither, the group is bare soil. Fallow,
+ * forest, mulched and uncultivated land count as bare soil.
+ *
+ * @param cultivations - The cultivations to classify, e.g. all cultivations of a field in the period.
+ * @param cultivationDetails - A map of cultivation details, with the cultivation catalogue identifier as key.
+ * @returns The crop rotation group of the cultivations.
+ *
+ * @example
+ * ```ts
+ * const group = determineCropRotationGroup(cultivations, cultivationDetails)
+ * // "grassland"
+ * ```
+ */
+export function determineCropRotationGroup(
+  cultivations: Pick<FieldInput["cultivations"][number], "b_lu_catalogue">[],
+  cultivationDetails: Map<string, CultivationDetail>,
+): CropRotationGroup {
   let hasGrassland = false
   let hasCropland = false
-  for (const cultivation of activeCultivations) {
+  for (const cultivation of cultivations) {
     const rotation = cultivationDetails.get(cultivation.b_lu_catalogue)?.b_lu_croprotation
     if (!rotation || bareSoilCropCodes.has(cultivation.b_lu_catalogue)) continue
     if (grasslandRotations.has(rotation)) hasGrassland = true

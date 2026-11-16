@@ -341,9 +341,9 @@ function FarmBalanceNitrogenOverview({
             <CardTitle>Balans</CardTitle>
             <CardDescription>
               De stikstofbalans voor alle percelen van {farm.b_name_farm}. De balans is de aanvoer
-              min de afvoer en de ammoniakemissie. Nitraatuitspoeling en lachgas tellen niet mee.
-              Een positieve balans betekent een overschot aan stikstof, een negatieve balans een
-              tekort.
+              min de afvoer, de ammoniakemissie en de lachgasemissie. Nitraatuitspoeling telt niet
+              mee. Een positieve balans betekent een overschot aan stikstof, een negatieve balans
+              een tekort.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">

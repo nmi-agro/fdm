@@ -32,7 +32,7 @@ export const calculationTools: McpTool[] = [
     {
       name: "calculate_nitrogen_balance",
       title: "Calculate the nitrogen balance",
-      description: `Calculates the nitrogen balance in kg N/ha: supply (fertilizers, fixation, deposition, mineralization), removal (harvests, crop residues) and emission (ammonia, nitrate, nitrous oxide with its CO2-equivalent; nitrate and nitrous oxide are not part of the balance). ${SCOPE_ORDER} For a field or farm give the period with \`start\` and \`end\` (YYYY-MM-DD); for a group or organization give the \`year\` (optionally only some farms with \`b_id_farm\`).`,
+      description: `Calculates the nitrogen balance in kg N/ha: supply (fertilizers, fixation, deposition, mineralization), removal (harvests, crop residues) and emission (ammonia, nitrate, direct nitrous oxide with its CO2-equivalent). The balance is supply plus removal plus the ammonia and nitrous oxide emission; nitrate leaching is calculated from it and is not part of it. ${SCOPE_ORDER} For a field or farm give the period with \`start\` and \`end\` (YYYY-MM-DD); for a group or organization give the \`year\` (optionally only some farms with \`b_id_farm\`).`,
     },
     [
       {

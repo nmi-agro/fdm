@@ -5,6 +5,7 @@ import type {
   NitrogenEmissionNitrate,
   SoilAnalysisPicked,
 } from "../../types"
+import { determineCropRotationGroup } from "../crop-rotation-group"
 
 /**
  * Calculates the nitrogen emission via nitrate leaching.
@@ -35,66 +36,8 @@ export function calculateNitrogenEmissionViaNitrate(
   soilAnalysis: SoilAnalysisPicked,
   cultivationDetails: Map<string, CultivationDetail>,
 ): NitrogenEmissionNitrate {
-  // Determine land type based on active cultivations, prioritizing cropland
-  let landType: "grassland" | "cropland" | "bare soil"
-  let hasGrassland = false
-  let hasCropland = false
-
-  // Define sets for different crop rotation types for efficient lookup
-  const grasslandRotations = new Set(["grass", "clover"])
-  const croplandRotations = new Set([
-    "potato",
-    "rapeseed",
-    "starch",
-    "maize",
-    "cereal",
-    "sugarbeet",
-    "catchcrop",
-    "alfalfa",
-    "nature",
-    "other",
-  ])
-  // Define a set of crop codes that should be considered as bare soil, even if they fall into other categories
-  const bareSoilCropCodes = new Set([
-    "nl_6794", // Groene braak, spontane opkomst
-    "nl_662", // Bos (sbl-regeling)
-    "nl_6798", // Perceel bedekt met gewasresten (mulching)
-    "nl_2300", // Onbeteelde grond vanwege een teeltverbod/ontheffing
-    "nl_3802", // Tijdelijk onbeteelde grond, anders dan voor publieke werken
-    "nl_3801", // Tijdelijk onbeteelde grond, i.v.m. publieke werken
-  ])
-
-  // Iterate over cultivations to determine the presence of grassland and cropland
-  for (const cultivation of cultivations) {
-    const rotation = cultivationDetails.get(cultivation.b_lu_catalogue)?.b_lu_croprotation
-
-    // Check for grassland, excluding bare soil types
-    if (
-      rotation &&
-      grasslandRotations.has(rotation) &&
-      !bareSoilCropCodes.has(cultivation.b_lu_catalogue)
-    ) {
-      hasGrassland = true
-    }
-
-    // Check for cropland, excluding bare soil types
-    if (
-      rotation &&
-      croplandRotations.has(rotation) &&
-      !bareSoilCropCodes.has(cultivation.b_lu_catalogue)
-    ) {
-      hasCropland = true
-    }
-  }
-
-  // Set land type based on the presence of different cultivation types
-  if (hasGrassland) {
-    landType = "grassland"
-  } else if (hasCropland) {
-    landType = "cropland"
-  } else {
-    landType = "bare soil"
-  }
+  // Determine the land type from all cultivations of the field, with grassland before cropland
+  const landType = determineCropRotationGroup(cultivations, cultivationDetails)
 
   const b_soiltype_agr = soilAnalysis.b_soiltype_agr
   const b_gwl_class = soilAnalysis.b_gwl_class

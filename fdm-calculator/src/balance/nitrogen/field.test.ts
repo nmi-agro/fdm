@@ -74,11 +74,14 @@ describe("calculateNitrogenBalanceField with nitrous oxide", () => {
     timeFrame: { start: new Date("2025-01-01"), end: new Date("2025-12-31") },
   }
 
-  it("includes the N2O emission in the total emission, but not in the balance", () => {
+  it("includes the N2O emission in the total emission and in the balance", () => {
     const result = calculateNitrogenBalanceField(input)
     const { emission } = result
 
-    expect(emission.nitrous_oxide.total).toBeLessThan(0)
+    // Direct emission only: 123 kg N injected slurry on cereals × 0.013 and 35 kg N in the crop
+    // residues × 0.01
+    expect(emission.nitrous_oxide.total).toBeCloseTo(-1.949, 3)
+    expect(emission.nitrous_oxide).not.toHaveProperty("indirect")
     // The total emission is the sum of its parts as they are shown: ammonia and nitrate as whole
     // numbers, N2O with one decimal
     const nitrousOxideShown = new Decimal(emission.nitrous_oxide.total)
@@ -86,8 +89,27 @@ describe("calculateNitrogenBalanceField with nitrous oxide", () => {
       .toNumber()
     const sum = emission.ammonia.total + emission.nitrate.total + nitrousOxideShown
     expect(emission.total).toBeCloseTo(sum, 10)
-    // The balance is supply + removal + ammonia, without nitrate and N2O
-    const balance = result.supply.total + result.removal.total + emission.ammonia.total
+    // The balance is supply + removal + ammonia + N2O, without nitrate (rounding of 1 allowed)
+    const balance =
+      result.supply.total +
+      result.removal.total +
+      emission.ammonia.total +
+      emission.nitrous_oxide.total
     expect(Math.abs(result.balance - balance)).toBeLessThanOrEqual(1)
+  })
+
+  it("calculates the nitrate leaching from the surplus after the N2O emission", () => {
+    const result = calculateNitrogenBalanceField(input)
+    const withoutResidues = calculateNitrogenBalanceField({
+      ...input,
+      fieldInput: {
+        ...input.fieldInput,
+        cultivations: [{ ...input.fieldInput.cultivations[0], m_cropresidue: false }],
+      },
+    })
+    // Dekzand with groundwater class V on cropland: 44% of the surplus leaches as nitrate
+    for (const { balance, emission } of [result, withoutResidues]) {
+      expect(Math.abs(emission.nitrate.total + 0.44 * balance)).toBeLessThanOrEqual(1)
+    }
   })
 })

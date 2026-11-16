@@ -12,7 +12,7 @@ Nitrogen is a macronutrient essential for plant growth, playing a vital role in 
 The final nitrogen balance for each field is determined by the formula:
 
 ```text
-N Balance (kg N / ha) = N Supply - N Removal - N-NH3 Emission
+N Balance (kg N / ha) = N Supply - N Removal - N-NH3 Emission - N-N2O Emission
 ```
 
 Where:
@@ -20,10 +20,11 @@ Where:
 - **N Supply:** Nitrogen added to the field.
 - **N Removal:** Nitrogen taken off the field.
 - **N-NH3 Emission:** Nitrogen lost to the environment due to ammonia volatilization.
+- **N-N2O Emission:** Nitrogen lost to the environment as nitrous oxide (N₂O), directly from the field.
 
-(Note: In the calculation, N Removal and N-NH3 Emission are typically treated as negative values when summing components to derive the final balance.)
+(Note: In the calculation, N Removal and the emissions are typically treated as negative values when summing components to derive the final balance.)
 
-Next to the balance, the calculator reports the nitrate leaching and the nitrous oxide (N₂O) emission of each field. Together with the ammonia emission they form the total emission, but only the ammonia emission is subtracted in the balance (see Section 3.3).
+Next to the balance, the calculator reports the nitrate leaching of each field. Together with the ammonia and N₂O emission it forms the total emission. The nitrate leaching is calculated from the balance and is not subtracted in it (see Section 3.3).
 
 The calculations are performed for a user-defined **Time Frame**.
 
@@ -168,7 +169,7 @@ The calculations for ammonia emissions are derived from the **NEMA model (Nutrie
 
 #### 3.3.1. Nitrate Leaching
 
-Nitrate leaching represents the loss of nitrogen to water bodies (groundwater). In the FDM Calculator, this is calculated as a fraction of the **Nitrogen Surplus**. The surplus is defined as `N Supply - N Removal - Ammonia Emission`. This approach acknowledges that leaching is primarily driven by the excess nitrogen that remains in the soil.
+Nitrate leaching represents the loss of nitrogen to water bodies (groundwater). In the FDM Calculator, this is calculated as a fraction of the **Nitrogen Surplus**. The surplus is defined as `N Supply - N Removal - Ammonia Emission - N2O Emission`. This approach acknowledges that leaching is primarily driven by the excess nitrogen that remains in the soil.
 
 - **Formula:**
   `NO3 Leaching (kg N / ha) = Nitrogen Surplus (kg N / ha) * Leaching Factor * -1`
@@ -283,16 +284,11 @@ Ammonia emissions from grazing are currently not calculated in the FDM Calculato
 
 Nitrous oxide is a strong greenhouse gas that is formed in the soil during nitrification and denitrification. The calculator estimates the N₂O emission with the emission factors of the NEMA model, as described in _Emissies naar lucht uit de landbouw berekend met NEMA voor 1990-2023_ (WOT-technical report 283). The emission is the nitrogen that leaves the field as N₂O (N₂O-N), reported in kg N / ha as a negative value like the other nitrogen losses, together with its CO₂-equivalent.
 
-Like the nitrate leaching, the N₂O emission is included in the total emission (`emission.total`) but not subtracted in the balance. It is reported in `emission.nitrous_oxide`, as the sum of four parts:
+Like the ammonia emission, the N₂O emission is subtracted in the balance, and the nitrate leaching is calculated from the surplus after it. It is also included in the total emission (`emission.total`). Only the direct emission from the field is calculated. It is reported in `emission.nitrous_oxide`, as the sum of three parts:
 
 - **Fertilizers:** per application, `N2O (kg N / ha) = Application Amount (kg / ha) * Total N Content (g N / kg) / 1000 * Emission Factor`. The total nitrogen applied is used; the ammonia emission is not subtracted.
 - **Crop residues:** `N2O (kg N / ha) = Residue N Content (kg N / ha) * 0.01`, with the same residue N as in Section 3.3.3. Only residues that are left on the field (`m_cropresidue` is `true`) are counted.
 - **Organic soils:** a yearly emission from the mineralisation of organic soils: 4.67 kg N / ha / year for `veen` (233.5 kg N mineralised × 0.02) and 4.09 kg N / ha / year for `moerige_klei` (204.5 kg N mineralised × 0.02). It is pro-rated for the time frame like the deposition: `Annual_Emission * (Days_in_TimeFrame + 1) / 365`. Other soil types have no emission from mineralisation.
-- **Indirect emission:** N₂O that is formed outside the field from nitrogen the field has lost:
-  - nitrification and denitrification of the ammonia that volatilises from the field and is deposited elsewhere: `0.01 * |NH3 Emission|`;
-  - denitrification of the nitrate leached from the field: `0.0075 * |NO3 Leaching|`.
-
-  The atmospheric deposition that the field receives (Section 3.1.3) is not used for N₂O, as its indirect emission is attributed to its source.
 
 **Emission factors for fertilizers** (fraction of the total nitrogen applied):
 
@@ -309,14 +305,14 @@ Like the nitrate leaching, the N₂O emission is included in the total emission 
 
 **CO₂-equivalent:** `CO2-eq (kg CO2-eq / ha) = |N2O-N (kg N / ha)| * 44 / 28 * 265`, with a global warming potential of 265 for N₂O (IPCC AR5), as used by NEMA. The CO₂-equivalent is reported as a positive value.
 
-N₂O from grazing is not calculated. The emission factors are national averages; differences between types of mineral fertilizer, inhibitors and the timing of application are not taken into account.
+N₂O from grazing and the indirect N₂O emission (formed outside the field from the ammonia volatilised and the nitrate leached from it) are not calculated. The emission factors are national averages; differences between types of mineral fertilizer, inhibitors and the timing of application are not taken into account.
 
 ## 4. Field and Farm Level Balance
 
-- **Field Surplus (Field Balance):** For each field, the **N Surplus** is calculated as `N Supply - N Removal - Ammonia Emission`. This value is reported as the `balance` for each field in the output.
+- **Field Surplus (Field Balance):** For each field, the **N Surplus** is calculated as `N Supply - N Removal - Ammonia Emission - N2O Emission`. This value is reported as the `balance` for each field in the output.
 - **Farm Balance:**
-  1. The total N supplied, removed, and total emitted (including ammonia, nitrate and nitrous oxide) for each field (kg N / ha \* field area (ha) = kg N per field) are summed across all fields.
-  2. These total farm-level amounts (in kg N) are then divided by the total farm area (ha) to provide an average farm-level balance (`N Supply - N Removal -  Ammonia Emission`) in kg N / ha.
+  1. The N supplied, removed and emitted (ammonia, nitrate and nitrous oxide) for each field (kg N / ha \* field area (ha) = kg N per field) are summed across all fields.
+  2. These total farm-level amounts (in kg N) are then divided by the total farm area (ha) to provide an average farm-level balance (`N Supply - N Removal - Ammonia Emission - N2O Emission`) in kg N / ha. The total emission is the sum of its rounded parts.
   3. The N₂O emission is aggregated in the same way. The farm CO₂-equivalent is the area-weighted average of the CO₂-equivalents of the fields.
 
 ## 5. Output
@@ -326,9 +322,9 @@ The final output (`NitrogenBalanceNumeric`) provides:
 - Overall farm balance, supply, removal, and total emission (kg N / ha).
 - A list of balances for each field (`NitrogenBalanceFieldNumeric`), which includes:
   - Field ID.
-  - Field-specific **N Surplus** (reported as `balance`, in kg N / ha). This is calculated as `N Supply - N Removal - Ammonia Emission`.
+  - Field-specific **N Surplus** (reported as `balance`, in kg N / ha). This is calculated as `N Supply - N Removal - Ammonia Emission - N2O Emission`.
   - Supply breakdown (total, fertilizers by type, fixation, deposition, mineralization).
   - Removal breakdown (total, harvests, residues).
-  - Emission breakdown (total, plus sub-components for ammonia, nitrate and nitrous oxide). The nitrous oxide emission (`nitrous_oxide`) is split into fertilizers (by type and per application), crop residues, organic soils and indirect emission (volatilisation and leaching), with the CO₂-equivalent (`co2eq`).
+  - Emission breakdown (total, plus sub-components for ammonia, nitrate and nitrous oxide). The nitrous oxide emission (`nitrous_oxide`) is split into fertilizers (by type and per application), crop residues and organic soils, with the CO₂-equivalent (`co2eq`).
 
-All values are rounded to whole numbers, except the nitrous oxide emission, which is rounded to one decimal.
+All values are rounded to whole numbers, except the nitrous oxide emission and its CO₂-equivalent. These have three decimals in the field results, so that the farm average is not built from rounded values, and one decimal in the farm results. The total emission is the sum of its rounded parts, with the nitrous oxide emission rounded to one decimal.

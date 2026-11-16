@@ -72,17 +72,6 @@ export const YEARLY_N2O_ORGANIC_SOILS: Readonly<Record<string, number>> = {
 }
 
 /**
- * Indirect emission factor for the nitrogen volatilised as ammonia and deposited elsewhere
- * (NEMA WOT-283, table 4.1; IPCC 2006).
- */
-export const EF_N2O_INDIRECT_VOLATILISATION = 0.01
-
-/**
- * Indirect emission factor for the nitrogen lost by leaching and runoff (NEMA WOT-283, table 4.1; IPCC 2006).
- */
-export const EF_N2O_INDIRECT_LEACHING = 0.0075
-
-/**
  * Conversion from kg N (as N₂O-N) to kg N₂O (molar masses: 44 / 28).
  */
 export const N2O_N_TO_N2O = 44 / 28

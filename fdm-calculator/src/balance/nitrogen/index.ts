@@ -121,10 +121,17 @@ async function calculateNitrogenBalanceBatched(
   )
 }
 
+/**
+ * Revision of the shape of the field result. The calculator version only changes on a release, so
+ * bump this when the shape changes, so that results cached by an earlier build of the same version
+ * are not reused. Revision 2 added `emission.nitrous_oxide`.
+ */
+const NITROGEN_BALANCE_FIELD_RESULT_REVISION = 2
+
 const getNitrogenBalanceFieldCached = withCalculationCache(
   calculateNitrogenBalanceField,
   "calculateNitrogenBalanceField",
-  pkg.calculatorVersion,
+  `${pkg.calculatorVersion}+r${NITROGEN_BALANCE_FIELD_RESULT_REVISION}`,
 )
 
 /**

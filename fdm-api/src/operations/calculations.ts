@@ -229,7 +229,7 @@ const NitrousOxideFertilizersGroupSchema = z.object({
 })
 
 const NitrogenEmissionNitrousOxideFieldSchema = z.object({
-  total: nitrousOxideLoss("Total N2O emission: fertilizers, crop residues, soil and indirect"),
+  total: nitrousOxideLoss("Total direct N2O emission: fertilizers, crop residues and soil"),
   fertilizers: z
     .object({
       total: nitrousOxideLoss("Direct N2O emission from all fertilizers"),
@@ -262,17 +262,6 @@ const NitrogenEmissionNitrousOxideFieldSchema = z.object({
       ),
     })
     .describe("Direct N2O emission from the mineralisation of organic soils."),
-  indirect: z
-    .object({
-      total: nitrousOxideLoss("Total indirect N2O emission"),
-      volatilisation: nitrousOxideLoss(
-        "Indirect N2O emission from the ammonia emitted by the field and deposited elsewhere",
-      ),
-      leaching: nitrousOxideLoss("Indirect N2O emission from the nitrate leached from the field"),
-    })
-    .describe(
-      "Indirect N2O emission from the nitrogen lost by ammonia volatilisation and nitrate leaching.",
-    ),
   co2eq: co2Equivalent("Total N2O emission expressed as CO2-equivalent"),
 })
 
@@ -283,7 +272,7 @@ const NitrogenEmissionFieldSchema = z.object({
     .object({ total: nitrogenLoss("Nitrogen leached as nitrate") })
     .describe("Nitrogen leached as nitrate (NO3)."),
   nitrous_oxide: NitrogenEmissionNitrousOxideFieldSchema.describe(
-    "Nitrous oxide (N2O) emission according to the Dutch National Emission Model for Agriculture (NEMA). Included in `total`, but, like the nitrate leaching, not part of the balance.",
+    "Direct nitrous oxide (N2O) emission according to the Dutch National Emission Model for Agriculture (NEMA). Included in `total` and in the balance.",
   ),
 })
 
@@ -308,7 +297,9 @@ export const NitrogenBalanceFieldResultSchema = z
         b_id: FieldIdSchema,
         balance: z
           .number()
-          .describe("Nitrogen balance of the field: supply plus removal plus emission (kg N/ha)."),
+          .describe(
+            "Nitrogen balance of the field: supply plus removal plus the ammonia and N2O emission (kg N/ha). The nitrate leaching is calculated from this balance and is not part of it.",
+          ),
         supply: NitrogenSupplyFieldSchema.describe("Nitrogen supplied to the field."),
         removal: NitrogenRemovalFieldSchema.describe("Nitrogen removed from the field."),
         emission: NitrogenEmissionFieldSchema.describe("Nitrogen lost to the environment."),
@@ -326,7 +317,11 @@ export const NitrogenBalanceFieldResultSchema = z
 /** Nitrogen balance of a farm, shared with the farm group and organization operations. */
 export const NitrogenBalanceSchema = z
   .object({
-    balance: z.number().describe("Weighted average nitrogen balance across all fields in kg N/ha"),
+    balance: z
+      .number()
+      .describe(
+        "Weighted average nitrogen balance across all fields in kg N/ha: supply plus removal plus the ammonia and N2O emission",
+      ),
     supply: z
       .object({
         total: nitrogenTotal("Weighted average total nitrogen supply"),
@@ -380,23 +375,12 @@ export const NitrogenBalanceSchema = z
               .describe("Weighted average direct N2O emission from fertilizers."),
             residues: nitrousOxideLoss("Weighted average N2O emission from crop residues"),
             soil: nitrousOxideLoss("Weighted average N2O emission from organic soils"),
-            indirect: z
-              .object({
-                total: nitrousOxideLoss("Weighted average total indirect N2O emission"),
-                volatilisation: nitrousOxideLoss(
-                  "Weighted average indirect N2O emission from ammonia volatilisation",
-                ),
-                leaching: nitrousOxideLoss(
-                  "Weighted average indirect N2O emission from nitrate leaching",
-                ),
-              })
-              .describe("Weighted average indirect N2O emission."),
             co2eq: co2Equivalent(
               "Weighted average CO2-equivalent of the N2O emission of the fields",
             ),
           })
           .describe(
-            "Weighted average nitrous oxide (N2O) emission according to NEMA. Included in `total`, but not part of the balance.",
+            "Weighted average direct nitrous oxide (N2O) emission according to NEMA. Included in `total` and in the balance.",
           ),
       })
       .describe("Weighted average nitrogen emission across all fields."),

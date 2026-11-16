@@ -336,40 +336,85 @@ export type NitrogenEmissionNitrate = {
 }
 
 /**
- * Represents the nitrous oxide (N₂O) emission of a field, calculated according to the Dutch National
- * Emission Model for Agriculture (NEMA).
+ * Represents the direct nitrous oxide (N₂O) emission from fertilizer applications, by type of
+ * fertilizer and per application. All values are in kilograms of nitrogen per hectare
+ * (kg N / ha, as N₂O-N) and negative.
+ */
+export type NitrogenEmissionNitrousOxideFertilizers = {
+  /**
+   * The N₂O emission from all fertilizer applications.
+   */
+  total: Decimal
+  /**
+   * The N₂O emission from mineral fertilizers, in total and per application (`id`, `value`).
+   */
+  mineral: { total: Decimal; applications: { id: string; value: Decimal }[] }
+  /**
+   * The N₂O emission from manure, in total and per application (`id`, `value`).
+   */
+  manure: { total: Decimal; applications: { id: string; value: Decimal }[] }
+  /**
+   * The N₂O emission from compost, in total and per application (`id`, `value`).
+   */
+  compost: { total: Decimal; applications: { id: string; value: Decimal }[] }
+  /**
+   * The N₂O emission from other fertilizers, such as sewage sludge, in total and per application (`id`, `value`).
+   */
+  other: { total: Decimal; applications: { id: string; value: Decimal }[] }
+}
+
+/**
+ * Represents the direct nitrous oxide (N₂O) emission from the nitrogen in the above-ground crop
+ * residues left on the field. All values are in kilograms of nitrogen per hectare
+ * (kg N / ha, as N₂O-N) and negative.
+ */
+export type NitrogenEmissionNitrousOxideResidues = {
+  /**
+   * The N₂O emission from all crop residues left on the field.
+   */
+  total: Decimal
+  /**
+   * The N₂O emission per cultivation (`id`, `value`).
+   */
+  cultivations: { id: string; value: Decimal }[]
+}
+
+/**
+ * Represents the direct nitrous oxide (N₂O) emission from the mineralisation of peat and peaty
+ * soils, in kilograms of nitrogen per hectare (kg N / ha, as N₂O-N) and negative.
+ */
+export type NitrogenEmissionNitrousOxideSoil = {
+  /**
+   * The N₂O emission from the mineralisation of the soil.
+   */
+  total: Decimal
+}
+
+/**
+ * Represents the direct nitrous oxide (N₂O) emission of a field, calculated according to the Dutch
+ * National Emission Model for Agriculture (NEMA).
  *
- * Like the nitrate leaching, the N₂O emission is included in `NitrogenEmission.total` but not in the
- * nitrogen balance. Emissions are in kilograms of nitrogen per hectare (kg N / ha, as N₂O-N) and negative, like the other nitrogen
+ * The N₂O emission is part of the nitrogen balance and of `NitrogenEmission.total`. Emissions are in
+ * kilograms of nitrogen per hectare (kg N / ha, as N₂O-N) and negative, like the other nitrogen
  * losses. The CO₂-equivalent is in kilograms of CO₂-equivalent per hectare (kg CO₂-eq / ha) and positive.
  */
 export type NitrogenEmissionNitrousOxide = {
   /**
-   * The total N₂O emission: fertilizers, crop residues, soil and indirect emission.
+   * The total N₂O emission: fertilizers, crop residues and soil.
    */
   total: Decimal
   /**
-   * The direct N₂O emission from fertilizer applications, by type of fertilizer and per application.
+   * The N₂O emission from fertilizer applications.
    */
-  fertilizers: {
-    total: Decimal
-    mineral: { total: Decimal; applications: { id: string; value: Decimal }[] }
-    manure: { total: Decimal; applications: { id: string; value: Decimal }[] }
-    compost: { total: Decimal; applications: { id: string; value: Decimal }[] }
-    other: { total: Decimal; applications: { id: string; value: Decimal }[] }
-  }
+  fertilizers: NitrogenEmissionNitrousOxideFertilizers
   /**
-   * The direct N₂O emission from the nitrogen in the above-ground crop residues left on the field, per cultivation.
+   * The N₂O emission from the crop residues left on the field.
    */
-  residues: { total: Decimal; cultivations: { id: string; value: Decimal }[] }
+  residues: NitrogenEmissionNitrousOxideResidues
   /**
-   * The direct N₂O emission from the mineralisation of peat and peaty soils.
+   * The N₂O emission from the mineralisation of peat and peaty soils.
    */
-  soil: { total: Decimal }
-  /**
-   * The indirect N₂O emission from the nitrogen lost by ammonia volatilisation and by nitrate leaching.
-   */
-  indirect: { total: Decimal; volatilisation: Decimal; leaching: Decimal }
+  soil: NitrogenEmissionNitrousOxideSoil
   /**
    * The total N₂O emission expressed as CO₂-equivalent (kg CO₂-eq / ha), positive.
    */
@@ -391,7 +436,6 @@ export type NitrogenEmissionNitrousOxideFarm = {
   }
   residues: Decimal
   soil: Decimal
-  indirect: { total: Decimal; volatilisation: Decimal; leaching: Decimal }
   co2eq: Decimal
 }
 
@@ -410,7 +454,7 @@ export type NitrogenEmission = {
    */
   nitrate: NitrogenEmissionNitrate
   /**
-   * The nitrous oxide (N₂O) emission, included in `total`.
+   * The nitrous oxide (N₂O) emission, included in `total` and in the balance.
    */
   nitrous_oxide: NitrogenEmissionNitrousOxide
 }
@@ -501,7 +545,7 @@ export type NitrogenBalance = {
     }
     nitrate: Decimal
     /**
-     * The area-weighted average nitrous oxide (N₂O) emission, included in `total`.
+     * The area-weighted average nitrous oxide (N₂O) emission, included in `total` and in the balance.
      */
     nitrous_oxide: NitrogenEmissionNitrousOxideFarm
   }
@@ -737,7 +781,6 @@ export type NitrogenEmissionNitrousOxideNumeric = {
   }
   residues: { total: number; cultivations: { id: string; value: number }[] }
   soil: { total: number }
-  indirect: { total: number; volatilisation: number; leaching: number }
   co2eq: number
 }
 
@@ -753,7 +796,6 @@ export type NitrogenEmissionNitrousOxideFarmNumeric = {
   }
   residues: number
   soil: number
-  indirect: { total: number; volatilisation: number; leaching: number }
   co2eq: number
 }
 

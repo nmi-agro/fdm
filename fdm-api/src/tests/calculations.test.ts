@@ -197,7 +197,7 @@ const mockFieldNitrogenBalance = {
 }
 
 const mockFieldNitrousOxide = {
-  total: -1.2,
+  total: -0.9,
   fertilizers: {
     total: -0.8,
     mineral: { total: -0.5, applications: [{ id: "app-1", value: -0.5 }] },
@@ -207,8 +207,7 @@ const mockFieldNitrousOxide = {
   },
   residues: { total: -0.1, cultivations: [{ id: "cult-1", value: -0.1 }] },
   soil: { total: 0 },
-  indirect: { total: -0.3, volatilisation: -0.1, leaching: -0.2 },
-  co2eq: 499.7,
+  co2eq: 374.8,
 }
 
 const mockFieldOrganicMatterBalance = {
@@ -652,15 +651,14 @@ describe("nitrogen balance output schemas", () => {
 
   it("keep the weighted average N2O emission of a farm", () => {
     const nitrous_oxide = {
-      total: -1.2,
+      total: -0.9,
       fertilizers: { total: -0.8, mineral: -0.5, manure: -0.3, compost: 0, other: 0 },
       residues: -0.1,
       soil: 0,
-      indirect: { total: -0.3, volatilisation: -0.1, leaching: -0.2 },
-      co2eq: 499.7,
+      co2eq: 374.8,
     }
     const emission = {
-      total: -15.7,
+      total: -15.4,
       ammonia: { total: -10, fertilizers: {}, residues: -2 },
       nitrate: -4.5,
       nitrous_oxide,
