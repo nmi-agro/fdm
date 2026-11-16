@@ -163,6 +163,11 @@ function getColormapTexture(device: Device): Texture {
 export class ElevationTiles {
   /** Loaded tiles per layer id, so a removed layer can release all of its tiles at once. */
   private readonly layers = new Map<string, Set<ElevationTile>>()
+  /**
+   * Per layer, the tiles it last showed for the whole view (`onViewportLoad`): one zoom level,
+   * without the tiles of other levels its cache still holds.
+   */
+  private readonly displayed = new Map<string, readonly ElevationTile[]>()
   private readonly listeners = new Set<() => void>()
   private pending = 0
   /** Whether a tile of the current loading round failed. */
@@ -286,7 +291,27 @@ export class ElevationTiles {
     if (!layer) return
     for (const tile of layer) tile.texture.destroy()
     this.layers.delete(layerId)
+    this.displayed.delete(layerId)
     this.notify()
+  }
+
+  /** Records the tiles a layer shows once all tiles in view have loaded. */
+  onViewportLoad(layerId: string, tiles: readonly { content: ElevationTile | null }[]) {
+    this.displayed.set(
+      layerId,
+      tiles.flatMap((tile) => (tile.content ? [tile.content] : [])),
+    )
+    this.notify()
+  }
+
+  /** Counts a request, such as opening a kaartblad's header, towards the loading status. */
+  async track<T>(request: Promise<T>): Promise<T> {
+    this.beginLoad()
+    try {
+      return await request
+    } finally {
+      this.endLoad()
+    }
   }
 
   onTileError = (error: unknown) => {
@@ -328,7 +353,10 @@ export class ElevationTiles {
       row0: number
       row1: number
     }[] = []
-    for (const tile of this.tiles()) {
+    // Only the tiles on screen: cached tiles of other zoom levels would count areas twice and
+    // weigh earlier views.
+    const displayedTiles = [...this.displayed.values()].flat()
+    for (const tile of displayedTiles) {
       const [a, , c, , e, f] = tile.transform
       const col0 = Math.max(0, Math.floor((minX - c) / a))
       const col1 = Math.min(tile.width - 1, Math.floor((maxX - c) / a))
@@ -433,7 +461,9 @@ export function createElevationLayer({
     id: "ahn-elevation",
     data: items,
     getSource: (item, options) =>
-      COGSource.open(item.url, { ...options, epsgResolver: resolveRdNew }),
+      tiles.track(COGSource.open(item.url, { ...options, epsgResolver: resolveRdNew })),
+    // A kaartblad whose header fails to open has no COGLayer yet, so report it here.
+    onSourceError: (_item, { error }) => tiles.onTileError(error),
     renderSource: (_item, { source, subLayerProps }) => {
       if (!source) return null
       const props: ElevationCOGLayerProps = {
@@ -444,6 +474,7 @@ export function createElevationLayer({
         renderTile,
         onTileUnload: tiles.onTileUnload,
         onTileError: tiles.onTileError,
+        onViewportLoad: (loaded) => tiles.onViewportLoad(subLayerProps.id, loaded),
         updateTriggers: { renderTile: [min, max] },
       }
       return new ElevationCOGLayer(props)

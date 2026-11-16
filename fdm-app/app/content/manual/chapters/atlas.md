@@ -20,6 +20,7 @@ keywords:
 related:
   - bodem
   - bodemkwaliteit
+updated: 2026-11-16
 ---
 
 De Atlas is de kaartomgeving van {{appName}}. Je bekijkt er je eigen percelen, maar ook die van heel Nederland, met informatie over gewashistorie, bodem, hoogte en bodemkwaliteit. Een deel van de Atlas werkt zelfs zonder eigen bedrijf, dus ook handig als je een perceel wilt bekijken voordat je het pacht of koopt.
@@ -61,7 +62,7 @@ Deze gegevens zijn schattingen van NMI op basis van landelijke bestanden, geen m
 
 Op de **Bodemkaart** klik je op een vlak om te zien welke bodem daar ligt, met de bodemcode en een korte beschrijving. Deze kaart werkt het best met de satellietondergrond.
 
-De **Hoogtekaart** laat met kleuren zien waar het hoger en lager ligt. De kleurschaal past zich aan het stuk kaart aan dat je bekijkt, zodat je ook kleine hoogteverschillen binnen een perceel ziet. Beweeg met je muis over de kaart om de precieze hoogte te zien. Zoom ver genoeg in voor het meeste detail.
+De **Hoogtekaart** laat met kleuren zien waar het hoger en lager ligt. De kleurschaal past zich aan het stuk kaart aan dat je bekijkt, zodat je ook kleine hoogteverschillen binnen een perceel ziet. De hoogste en laagste 2% van wat je ziet, zoals een dijk of een slootbodem, telt daarbij niet mee; die krijgen de kleur van het uiteinde van de schaal. Beweeg met je muis over de kaart om de precieze hoogte te zien. Zoom ver genoeg in voor het meeste detail.
 
 ![De Hoogtekaart rond de percelen van het demobedrijf](screenshot:atlas-hoogtekaart)
 
