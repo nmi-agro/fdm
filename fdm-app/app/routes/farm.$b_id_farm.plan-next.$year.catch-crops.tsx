@@ -16,6 +16,7 @@ import {
   startOfDayInFdmTimeZone,
   toFdmDateString,
 } from "@nmi-agro/fdm-core"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -25,13 +26,13 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import { PeriodDateField } from "~/components/blocks/farm-groups/period-date-field"
 import { CropPicker, type CropOption } from "~/components/blocks/plan-next/crop-picker"
 import { PlanNextStepFooter } from "~/components/blocks/plan-next/step-footer"
 import { getPlanNextPath, getPlanNextStep } from "~/components/blocks/plan-next/steps"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { Input } from "~/components/ui/input"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -372,6 +373,8 @@ function CatchCropField({
 }) {
   const fetcher = useFetcher()
   const isBusy = fetcher.state !== "idle"
+  const [start, setStart] = useState(row.defaultStart)
+  const [end, setEnd] = useState(row.defaultEnd)
 
   return (
     <div className="space-y-3 rounded-md border p-4">
@@ -432,18 +435,22 @@ function CatchCropField({
         >
           <input type="hidden" name="intent" value="add_catch_crop" />
           <input type="hidden" name="b_id" value={row.b_id} />
-          <label className="flex flex-col gap-1 text-xs">
-            <span>Vanggewas of groenbemester</span>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm leading-none font-medium">Vanggewas of groenbemester</span>
             <CropPicker name="crop" options={options} placeholder="Kies een gewas" />
           </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span>Zaaidatum</span>
-            <Input type="date" name="start" defaultValue={row.defaultStart} className="w-40" />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span>Einddatum</span>
-            <Input type="date" name="end" defaultValue={row.defaultEnd} className="w-40" />
-          </label>
+          <div className="sm:w-48">
+            <PeriodDateField
+              label="Zaaidatum"
+              name="start"
+              value={start}
+              onChange={setStart}
+              required
+            />
+          </div>
+          <div className="sm:w-48">
+            <PeriodDateField label="Einddatum" name="end" value={end} onChange={setEnd} required />
+          </div>
           <Button type="submit" variant="outline" disabled={isBusy}>
             <span key={isBusy ? "busy" : "idle"}>{isBusy ? "Opslaan..." : "Toevoegen"}</span>
           </Button>

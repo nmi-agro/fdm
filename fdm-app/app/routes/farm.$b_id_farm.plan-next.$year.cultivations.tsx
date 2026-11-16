@@ -20,13 +20,13 @@ import {
   useSearchParams,
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
+import { PeriodDateField } from "~/components/blocks/farm-groups/period-date-field"
 import { CropPicker, type CropOption } from "~/components/blocks/plan-next/crop-picker"
 import { PlanNextStepFooter } from "~/components/blocks/plan-next/step-footer"
 import { getPlanNextPath, getPlanNextStep } from "~/components/blocks/plan-next/steps"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -397,6 +397,7 @@ function CultivationRow({
 }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [replace, setReplace] = useState(false)
+  const [end, setEnd] = useState("")
 
   /** Shows the proposal of another source year for this field. */
   const changeSourceYear = (value: string | null) => {
@@ -468,13 +469,15 @@ function CultivationRow({
                 <div className="bg-muted/40 flex flex-col gap-2 rounded-md p-3">
                   <input type="hidden" name={`mode.${row.b_id}`} value="replace" />
                   {row.continuing ? (
-                    <label className="flex flex-col gap-1 text-xs">
-                      <span>Laatste dag van {row.current.b_lu_name}</span>
-                      <Input type="date" name={`end.${row.b_id}`} className="w-44" />
-                      <span className="text-muted-foreground">
-                        Leeg laten: de dag vóór de zaaidatum van het nieuwe gewas.
-                      </span>
-                    </label>
+                    <div className="sm:w-64">
+                      <PeriodDateField
+                        label={`Laatste dag van ${row.current.b_lu_name}`}
+                        name={`end.${row.b_id}`}
+                        value={end}
+                        onChange={setEnd}
+                        description="Leeg laten: de dag vóór de zaaidatum van het nieuwe gewas."
+                      />
+                    </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">
                       {`${row.current.b_lu_name} wordt vervangen, inclusief de bijbehorende oogsten.`}
