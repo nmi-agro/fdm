@@ -1,7 +1,7 @@
 import type { RenderTileResult } from "@developmentseed/deck.gl-raster"
 import type { Device, Texture } from "@luma.gl/core"
 import type { FeatureCollection } from "geojson"
-import { Deck, type LayersList, MapView } from "@deck.gl/core"
+import { Deck, type LayerContext, type LayersList, MapView } from "@deck.gl/core"
 import { PathStyleExtension } from "@deck.gl/extensions"
 import { GeoJsonLayer } from "@deck.gl/layers"
 import {
@@ -96,6 +96,8 @@ const resolveRdNew: NonNullable<COGSourceOptions["epsgResolver"]> = async (epsg)
 
 /** A decoded AHN tile: the elevation values on the CPU, and as a texture on the GPU. */
 export interface ElevationTile {
+  /** Id of the {@link COGLayer} (one per kaartblad) that loaded the tile. */
+  layerId: string
   width: number
   height: number
   byteLength: number
@@ -159,11 +161,18 @@ function getColormapTexture(device: Device): Texture {
  * and it reports the loading status through `subscribe`/`getStatus` (for `useSyncExternalStore`).
  */
 export class ElevationTiles {
-  private readonly tiles = new Set<ElevationTile>()
+  /** Loaded tiles per layer id, so a removed layer can release all of its tiles at once. */
+  private readonly layers = new Map<string, Set<ElevationTile>>()
   private readonly listeners = new Set<() => void>()
   private pending = 0
+  /** Whether a tile of the current loading round failed. */
+  private failed = false
   private status: ElevationTilesStatus = "idle"
-  private slowTimer: ReturnType<typeof setTimeout> | undefined
+  private slowTimer: ReturnType<typeof setTimeout> | undefined;
+
+  private *tiles(): Generator<ElevationTile> {
+    for (const layer of this.layers.values()) yield* layer
+  }
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener)
@@ -186,6 +195,7 @@ export class ElevationTiles {
   private beginLoad() {
     this.pending++
     if (this.pending === 1) {
+      this.failed = false
       this.setStatus("loading")
       this.slowTimer = setTimeout(() => {
         if (this.pending > 0) this.setStatus("slow")
@@ -197,16 +207,26 @@ export class ElevationTiles {
     this.pending = Math.max(0, this.pending - 1)
     if (this.pending === 0) {
       clearTimeout(this.slowTimer)
-      if (this.status !== "error") this.setStatus("idle")
+      this.setStatus(this.failed ? "error" : "idle")
     }
   }
 
-  /** Fetches and decodes one tile of a kaartblad, and uploads it as a float texture. */
-  getTileData = async (image: TileImage, options: GetTileDataOptions): Promise<ElevationTile> => {
+  /**
+   * Fetches and decodes one tile of a kaartblad, and uploads it as a float texture.
+   *
+   * @param layerId - Id of the {@link COGLayer} the tile belongs to.
+   */
+  async getTileData(
+    layerId: string,
+    image: TileImage,
+    options: GetTileDataOptions,
+  ): Promise<ElevationTile> {
     const { device, x, y, signal, pool } = options
     this.beginLoad()
     try {
       const { array } = await image.fetchTile(x, y, { boundless: false, pool, signal })
+      // deck.gl drops the result of an aborted tile without unloading it, so don't keep it.
+      signal?.throwIfAborted()
       const raw = array.layout === "pixel-interleaved" ? array.data : array.bands[0]
       const values = raw instanceof Float32Array ? raw : Float32Array.from(raw)
       const nodata = array.nodata
@@ -227,6 +247,7 @@ export class ElevationTiles {
         sampler: { minFilter: "nearest", magFilter: "nearest" },
       })
       const tile: ElevationTile = {
+        layerId,
         width: array.width,
         height: array.height,
         byteLength: values.byteLength,
@@ -235,7 +256,12 @@ export class ElevationTiles {
         texture,
         colormap: getColormapTexture(device),
       }
-      this.tiles.add(tile)
+      let layer = this.layers.get(layerId)
+      if (!layer) {
+        layer = new Set()
+        this.layers.set(layerId, layer)
+      }
+      layer.add(tile)
       this.notify()
       return tile
     } finally {
@@ -243,17 +269,32 @@ export class ElevationTiles {
     }
   }
 
+  /** Releases a tile that its layer's tile cache evicted. */
   onTileUnload = (tile: { content: ElevationTile | null }) => {
     const data = tile.content
     if (!data) return
-    this.tiles.delete(data)
+    this.layers.get(data.layerId)?.delete(data)
     data.texture.destroy()
+  }
+
+  /**
+   * Releases every tile of a layer that deck.gl removed, such as the layer of a kaartblad that
+   * left the view. deck.gl doesn't call `onTileUnload` for those.
+   */
+  releaseLayer(layerId: string) {
+    const layer = this.layers.get(layerId)
+    if (!layer) return
+    for (const tile of layer) tile.texture.destroy()
+    this.layers.delete(layerId)
+    this.notify()
   }
 
   onTileError = (error: unknown) => {
     if (error instanceof Error && error.name === "AbortError") return
     console.error("Error loading AHN tile:", error)
-    this.setStatus("error")
+    this.failed = true
+    // The tile's own load has already ended; report it now unless others are still loading.
+    if (this.pending === 0) this.setStatus("error")
   }
 
   /**
@@ -287,7 +328,7 @@ export class ElevationTiles {
       row0: number
       row1: number
     }[] = []
-    for (const tile of this.tiles) {
+    for (const tile of this.tiles()) {
       const [a, , c, , e, f] = tile.transform
       const col0 = Math.max(0, Math.floor((minX - c) / a))
       const col1 = Math.min(tile.width - 1, Math.floor((maxX - c) / a))
@@ -351,7 +392,7 @@ export class ElevationTiles {
   valueAt(lng: number, lat: number): number | null {
     const [x, y] = toRd.forward([lng, lat])
     let best: { size: number; value: number } | null = null
-    for (const tile of this.tiles) {
+    for (const tile of this.tiles()) {
       const [a, , c, , e, f] = tile.transform
       const col = Math.floor((x - c) / a)
       const row = Math.floor((y - f) / e)
@@ -393,19 +434,41 @@ export function createElevationLayer({
     data: items,
     getSource: (item, options) =>
       COGSource.open(item.url, { ...options, epsgResolver: resolveRdNew }),
-    renderSource: (_item, { source, subLayerProps }) =>
-      source
-        ? new COGLayer<ElevationTile>({
-            ...subLayerProps,
-            source,
-            getTileData: tiles.getTileData,
-            renderTile,
-            onTileUnload: tiles.onTileUnload,
-            onTileError: tiles.onTileError,
-            updateTriggers: { renderTile: [min, max] },
-          })
-        : null,
+    renderSource: (_item, { source, subLayerProps }) => {
+      if (!source) return null
+      const props: ElevationCOGLayerProps = {
+        ...subLayerProps,
+        source,
+        tiles,
+        getTileData: (image, options) => tiles.getTileData(subLayerProps.id, image, options),
+        renderTile,
+        onTileUnload: tiles.onTileUnload,
+        onTileError: tiles.onTileError,
+        updateTriggers: { renderTile: [min, max] },
+      }
+      return new ElevationCOGLayer(props)
+    },
   })
+}
+
+type ElevationCOGLayerProps = COGLayerProps<ElevationTile> & {
+  /** The store the layer's tiles are kept in. */
+  tiles: ElevationTiles
+}
+
+/**
+ * A {@link COGLayer} that releases its tiles from {@link ElevationTiles} when deck.gl removes
+ * it: deck.gl's tile cache is cleared without `onTileUnload` then, which would keep their
+ * textures and values alive.
+ */
+class ElevationCOGLayer extends COGLayer<ElevationTile> {
+  static layerName = "ElevationCOGLayer"
+
+  finalizeState(context: LayerContext) {
+    super.finalizeState(context)
+    const { tiles } = this.props as typeof this.props & Partial<ElevationCOGLayerProps>
+    tiles?.releaseLayer(this.props.id)
+  }
 }
 
 const dashExtension = new PathStyleExtension({ dash: true })
