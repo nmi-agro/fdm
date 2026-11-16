@@ -33,7 +33,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
-import { Button, buttonVariants } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -388,8 +388,8 @@ export default function AppIndex() {
 
               <div className="grid w-full gap-6 sm:grid-cols-2">
                 <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
-                  <NavLink to="/farm/create" className="flex h-full flex-col">
-                    <CardHeader className="pb-4">
+                  <NavLink to="/farm/create" className="flex h-full flex-col gap-6">
+                    <CardHeader>
                       <div
                         aria-hidden="true"
                         className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
@@ -436,7 +436,7 @@ export default function AppIndex() {
                         </li>
                       </ul>
                     </CardContent>
-                    <CardFooter className="pt-2">
+                    <CardFooter>
                       <span
                         className={buttonVariants({
                           size: "lg",
@@ -454,9 +454,9 @@ export default function AppIndex() {
                 <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
                   <NavLink
                     to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/fields`}
-                    className="flex h-full flex-col"
+                    className="flex h-full flex-col gap-6"
                   >
-                    <CardHeader className="pb-4">
+                    <CardHeader>
                       <div
                         aria-hidden="true"
                         className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
@@ -502,7 +502,7 @@ export default function AppIndex() {
                         </li>
                       </ul>
                     </CardContent>
-                    <CardFooter className="pt-2">
+                    <CardFooter>
                       <span
                         className={buttonVariants({
                           variant: "outline",
@@ -668,16 +668,17 @@ export default function AppIndex() {
                     ))}
 
                     <Card className="hover:border-primary/50 hover:bg-muted/50 flex flex-col border-dashed transition-all">
-                      <NavLink to="/organization/new" className="flex h-full flex-col">
-                        <CardHeader className="grow items-center justify-center text-center">
-                          <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-                            <Plus className="h-6 w-6" />
-                          </div>
-                          <CardTitle>Nieuwe organisatie</CardTitle>
-                          <CardDescription>
-                            Voeg een extra organisatie toe aan uw account.
-                          </CardDescription>
-                        </CardHeader>
+                      <NavLink
+                        to="/organization/new"
+                        className="flex h-full flex-col items-center justify-center"
+                      >
+                        <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+                          <Plus className="h-6 w-6" />
+                        </div>
+                        <CardTitle>Nieuwe organisatie</CardTitle>
+                        <CardDescription>
+                          Voeg een extra organisatie toe aan uw account.
+                        </CardDescription>
                       </NavLink>
                     </Card>
                   </div>
@@ -716,9 +717,13 @@ export default function AppIndex() {
                     U hebt nog geen organisatie.
                   </h2>
                   <div className="relative flex flex-col items-center">
-                    <Button asChild>
-                      <NavLink to="/organization/new">Maak een organisatie</NavLink>
-                    </Button>
+                    <NavLink
+                      to="/organization/new"
+                      className={buttonVariants({})}
+                      data-slot="button"
+                    >
+                      Maak een organisatie
+                    </NavLink>
                   </div>
                   <p className="text-muted-foreground text-center text-sm">
                     Of vraag een organisatie om u uit te nodigen.

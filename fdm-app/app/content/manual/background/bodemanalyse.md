@@ -70,7 +70,7 @@ Dat zijn vuistregels. Een gemeten waarde is altijd beter.
 
 ## De actuele waarde per parameter {#actuele-waarde}
 
-Je hebt vaak meerdere analyses van een perceel, van verschillende jaren en soms voor verschillende delen van het perceel. Voor de bodempagina, het bemestingsadvies, de gebruiksnormen en Dyna bepaalt {{appName}} daarom per parameter apart welke waarde actueel is:
+Je hebt vaak meerdere analyses van een perceel, van verschillende jaren en soms voor verschillende delen van het perceel. Voor de bodempagina, het bemestingsadvies, de gebruiksnormen, de stikstofbalans, de organische-stofbalans en Dyna bepaalt {{appName}} daarom per parameter apart welke waarde actueel is:
 
 1. De meest recente analyse met een waarde voor die parameter beslist.
 2. Geldt die analyse voor het hele perceel, dan wordt die waarde gebruikt.
@@ -82,7 +82,9 @@ Bedekken de zones samen minder dan 95% van het perceel, dan krijg je een waarsch
 
 Omdat dit per parameter gebeurt, vervangt een nieuwe analyse alleen de waarden die erin staan. Laat je bijvoorbeeld alleen Nmin meten, dan blijven je waarden voor fosfaat, kalium en organische stof gewoon staan.
 
-De balansen en BLN3 gebruiken een eenvoudiger regel: per parameter de meest recente waarde, zonder zones te combineren. BLN3 kijkt naar alle analyses tot en met het gekozen jaar. De balansen kijken op dit moment alleen naar analyses uit de periode die je in de kalender hebt gekozen. Een oudere analyse telt daar dus nog niet mee; dat wordt aangepast, zodat de balansen ook de meest recente eerdere analyse gebruiken.
+De balansen kijken naar alle analyses tot en met het einde van de periode die je in de kalender hebt gekozen. Een analyse van vóór die periode telt dus ook mee; een analyse van na die periode niet.
+
+BLN3 gebruikt een eenvoudiger regel: per parameter de meest recente waarde tot en met het gekozen jaar, zonder zones te combineren.
 
 ## Nmin: stikstof in de bodem op dit moment {#nmin}
 

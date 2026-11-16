@@ -16,7 +16,7 @@ import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { FormSchema } from "~/components/blocks/auth/auth-formschema"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useKeyedState } from "~/hooks/use-keyed-state"
@@ -242,16 +242,18 @@ export default function SignIn() {
               )}
             </resendFetcher.Form>
           )}
-          <Button
-            asChild
-            variant="link"
-            size="sm"
-            className="text-muted-foreground h-auto p-0 text-xs"
+          <NavLink
+            to="/signin"
+            onClick={() => capture("signin_different_email_clicked")}
+            className={buttonVariants({
+              variant: "link",
+              size: "sm",
+              className: "text-muted-foreground h-auto p-0 text-xs",
+            })}
+            data-slot="button"
           >
-            <NavLink to="/signin" onClick={() => capture("signin_different_email_clicked")}>
-              Ander e-mailadres gebruiken
-            </NavLink>
-          </Button>
+            Ander e-mailadres gebruiken
+          </NavLink>
         </div>
       </AuthCard>
     </AuthLayout>

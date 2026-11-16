@@ -1,4 +1,5 @@
 import { type ColumnDef, FlexRender, tableFeatures, useTable } from "@tanstack/react-table"
+import { cn } from "cn"
 import { useMemo } from "react"
 import { NavLink } from "react-router"
 import type { FieldBln3Score } from "~/integrations/bln3.server"
@@ -10,7 +11,6 @@ import {
   type IndicatorInfo,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { HeatmapCell } from "./table-cell"
 
 type FieldRow = {
@@ -132,11 +132,13 @@ export function HeatmapTable({
       id: "knelpunten",
       header: () => (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="vertical-header cursor-default self-stretch text-xs font-medium text-red-700 dark:text-red-400">
-              Knelpunten
-            </span>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <span className="vertical-header cursor-default self-stretch text-xs font-medium text-red-700 dark:text-red-400">
+                Knelpunten
+              </span>
+            }
+          />
           <TooltipContent
             side="right"
             className="bg-popover text-popover-foreground max-w-[220px] border text-xs shadow-md"
@@ -164,11 +166,13 @@ export function HeatmapTable({
         // Rotated indicator name header — full name always visible via tooltip
         header: () => (
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="vertical-header text-foreground cursor-default self-stretch text-xs font-medium">
-                {ind.name}
-              </span>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <span className="vertical-header text-foreground cursor-default self-stretch text-xs font-medium">
+                  {ind.name}
+                </span>
+              }
+            />
             <TooltipContent
               side="right"
               className="bg-popover text-popover-foreground max-w-[220px] border text-xs shadow-md"

@@ -1,7 +1,7 @@
 import type { PriorityString } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { ChevronDown } from "lucide-react"
 import { useFetcher } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -55,18 +55,20 @@ export function TicketPrioritySelector({
   return (
     <DropdownMenu>
       <div className="flex flex-row items-center gap-2">
-        <DropdownMenuTrigger asChild>
-          <Button
-            id={triggerId}
-            variant="outline"
-            size="sm"
-            className="gap-2 font-medium"
-            disabled={!canModify || fetcher.state !== "idle"}
-          >
-            {priorityInfo.label}
-            <ChevronDown className="ms-1 size-3 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              id={triggerId}
+              variant="outline"
+              size="sm"
+              className="gap-2 font-medium"
+              disabled={!canModify || fetcher.state !== "idle"}
+            >
+              {priorityInfo.label}
+              <ChevronDown className="ms-1 size-3 opacity-50" />
+            </Button>
+          }
+        />
         <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
       </div>
       <DropdownMenuContent align="start">

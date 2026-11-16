@@ -5,10 +5,11 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -24,7 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
 import type { columns as ColumnsT, Fertilizer } from "./columns"
 import { fertilizerTableFeatures } from "./table-features"
 
@@ -122,9 +122,7 @@ export function DataTable<TData extends Fertilizer>({
         />
         <div className="flex shrink-0 items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">Kolommen</Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger render={<Button variant="outline">Kolommen</Button>} />
             <DropdownMenuContent align="end" className="max-h-100 overflow-y-auto">
               {table
                 .getAllColumns()
@@ -144,13 +142,11 @@ export function DataTable<TData extends Fertilizer>({
             </DropdownMenuContent>
           </DropdownMenu>
           <div className={cn(!canAddItem ? "hidden" : "")}>
-            <Button asChild>
-              <NavLink to={"./new"}>
-                <Plus className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Meststof toevoegen</span>
-                <span className="sm:hidden">Toevoegen</span>
-              </NavLink>
-            </Button>
+            <NavLink to={"./new"} className={buttonVariants({})} data-slot="button">
+              <Plus className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Meststof toevoegen</span>
+              <span className="sm:hidden">Toevoegen</span>
+            </NavLink>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   updateCultivation,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { cn } from "cn"
 import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -24,7 +25,7 @@ import { type CropRow, columns, FieldRow } from "~/components/blocks/rotation/co
 import { RotationTableFormSchema } from "~/components/blocks/rotation/schema"
 import { DataTable } from "~/components/blocks/rotation/table"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
@@ -34,7 +35,6 @@ import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation"
 
 const dutchCollator = new Intl.Collator("nl-NL", { sensitivity: "base", usage: "sort" })
@@ -385,20 +385,23 @@ export default function FarmRotationIndex() {
               </div>
               <div className="relative flex flex-col items-center">
                 {loaderData.hasFields ? (
-                  <Button asChild>
-                    <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}>
-                      Naar percelen
-                    </NavLink>
-                  </Button>
-                ) : (
-                  <Button
-                    asChild
-                    className={cn(!loaderData.farmWritePermission ? "invisible" : "")}
+                  <NavLink
+                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}
+                    className={buttonVariants({})}
+                    data-slot="button"
                   >
-                    <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}>
-                      Maak een perceel
-                    </NavLink>
-                  </Button>
+                    Naar percelen
+                  </NavLink>
+                ) : (
+                  <NavLink
+                    to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}
+                    className={buttonVariants({
+                      className: cn(!loaderData.farmWritePermission ? "invisible" : ""),
+                    })}
+                    data-slot="button"
+                  >
+                    Maak een perceel
+                  </NavLink>
                 )}
               </div>
             </div>

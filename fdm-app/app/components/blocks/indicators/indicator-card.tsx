@@ -10,6 +10,7 @@
  */
 
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
+import { cn } from "cn"
 import { ChevronDown, ChevronUp, ExternalLink, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
@@ -21,7 +22,6 @@ import {
   type IndicatorInfo,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { ScoreBadge } from "./score-badge"
 
 /** A measure recommended to improve a specific indicator on this field. */

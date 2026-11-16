@@ -4,7 +4,7 @@ import { Skeleton } from "~/components/ui/skeleton"
 export function NitrogenBalanceCardSkeleton() {
   return (
     <Card className="animate-pulse">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="bg-muted h-4 w-24 rounded" />
         <Skeleton className="h-4 w-4 rounded-full" />
       </CardHeader>

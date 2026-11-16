@@ -13,9 +13,9 @@ import {
 } from "~/components/ui/select"
 import type { TimelineFilters } from "./gantt-view"
 
-// Radix's Select.Item doesn't support an empty string as its value (that's reserved internally
-// for "no selection"), so the "show everything" period option — which is modeled as value ""
-// everywhere else in the timeline — needs a non-empty stand-in only at this Select boundary.
+// The "show everything" period option is modeled as value "" everywhere else in the timeline,
+// while Base UI's Select reserves null for
+// "no selection", so it gets a non-empty stand-in only at this Select boundary.
 const ALL_PERIOD_VALUE = "__all__"
 
 export const defaultTimelineFilters: TimelineFilters = {
@@ -54,23 +54,25 @@ export function TimelineFiltersPopover({
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
-        <Button size="lg" variant="outline">
-          <Filter className="size-4" />
-          <span key={isPeriodFiltered ? `period-${periodLabel}` : "filters"}>
-            {isPeriodFiltered ? periodLabel : "Filters"}
-          </span>
-          {activeFilterCount > 0 && (
-            <Badge
-              className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
-              key={activeFilterCount}
-              variant="secondary"
-            >
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <Button size="lg" variant="outline">
+            <Filter className="size-4" />
+            <span key={isPeriodFiltered ? `period-${periodLabel}` : "filters"}>
+              {isPeriodFiltered ? periodLabel : "Filters"}
+            </span>
+            {activeFilterCount > 0 && (
+              <Badge
+                className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
+                key={activeFilterCount}
+                variant="secondary"
+              >
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+        }
+      />
       <PopoverContent align={align} className="w-64 space-y-4">
         {period && (
           <div className="space-y-2">
@@ -87,8 +89,16 @@ export function TimelineFiltersPopover({
               )}
             </div>
             <Select
-              onValueChange={(value) => period.onChange(value === ALL_PERIOD_VALUE ? "" : value)}
+              onValueChange={(value) => {
+                if (typeof value === "string") {
+                  period.onChange(value === ALL_PERIOD_VALUE ? "" : value)
+                }
+              }}
               value={period.value === "" ? ALL_PERIOD_VALUE : period.value}
+              items={period.options.map((option) => ({
+                value: option.value === "" ? ALL_PERIOD_VALUE : option.value,
+                label: option.label,
+              }))}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />

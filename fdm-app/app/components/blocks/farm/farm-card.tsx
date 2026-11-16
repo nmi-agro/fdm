@@ -23,9 +23,9 @@ export interface FarmWithRoles {
 
 export function FarmCard({ farm }: { farm: FarmWithRoles }) {
   return (
-    <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
+    <Card className="group hover:border-primary/50 relative flex flex-col py-0 transition-all hover:shadow-md">
       <NavLink to={`/farm/${farm.b_id_farm}`} className="flex h-full flex-col">
-        <CardHeader>
+        <CardHeader className="pt-6 pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
@@ -89,7 +89,7 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
             </div>
           </dl>
         </CardContent>
-        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
+        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 flex h-10 items-center border-t py-0!">
           <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
             Selecteer bedrijf <ArrowRight className="ml-2 h-4 w-4" />
           </span>

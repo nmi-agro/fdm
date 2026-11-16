@@ -24,7 +24,7 @@ import {
   type AccessVerificationProvider,
 } from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -126,13 +126,10 @@ export default function CreateFarmAccessStep() {
             </div>
 
             <div className="ml-auto">
-              <Button asChild>
-                <NavLink to={`/farm/${b_id_farm}`}>
-                  {" "}
-                  {/* Navigate to the main farm page */}
-                  Voltooien
-                </NavLink>
-              </Button>
+              <NavLink to={`/farm/${b_id_farm}`} className={buttonVariants({})} data-slot="button">
+                {" "}
+                {/* Navigate to the main farm page */}Voltooien
+              </NavLink>
             </div>
           </div>
           <Separator className="my-6" />

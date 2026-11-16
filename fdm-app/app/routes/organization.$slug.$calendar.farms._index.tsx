@@ -18,7 +18,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type FarmExtended } from "~/components/blocks/farms/columns"
 import { DataTable } from "~/components/blocks/farms/table"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { auth, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -332,9 +332,9 @@ export default function OrganizationFarmsPage() {
           to: `/organization/${organization.slug}`,
         }}
         rightNode={
-          <Button variant="outline" asChild>
-            <NavLink to={groupsPath}>Groepen beheren</NavLink>
-          </Button>
+          <NavLink to={groupsPath} className={buttonVariants({ variant: "outline" })}>
+            Groepen beheren
+          </NavLink>
         }
       />
       <FarmContent>

@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { Eye } from "lucide-react"
 import { ComponentProps, useEffect } from "react"
 import { modifySearchParams } from "@/app/lib/url-utils"
@@ -5,7 +6,6 @@ import { Button } from "~/components/ui/button"
 import { DialogContent } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import { useKeyedState } from "~/hooks/use-keyed-state"
-import { cn } from "~/lib/utils"
 import { FileViewerDialogHeader, FileViewerFallbackPanel } from "./file-viewer-parts"
 
 /**

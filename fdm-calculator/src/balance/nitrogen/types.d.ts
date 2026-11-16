@@ -2,6 +2,7 @@ import type {
   BaseFertilizerApplication,
   Cultivation,
   CultivationCatalogue,
+  CurrentSoilData,
   Fertilizer,
   Field,
   Harvest,
@@ -481,18 +482,12 @@ export type FieldInput = {
     | "b_lu_croprotation"
   >[]
   harvests: Harvest[]
-  soilAnalyses: Pick<
-    SoilAnalysis,
-    | "a_id"
-    | "b_sampling_date"
-    | "a_c_of" // g C / kg
-    | "a_cn_fr" // -
-    | "a_density_sa" // g / cm^3
-    | "a_n_rt" // mg N / kg
-    | "a_som_loi" // %
-    | "b_soiltype_agr"
-    | "b_gwl_class"
-  >[]
+  /**
+   * The current soil data of the field, as returned by `getCurrentSoilData` in fdm-core: the
+   * current value per soil parameter. Uses `a_c_of`, `a_cn_fr`, `a_density_sa`, `a_n_rt`,
+   * `a_som_loi`, `b_soiltype_agr` and `b_gwl_class`; missing values are estimated where possible.
+   */
+  currentSoilData: CurrentSoilData
   fertilizerApplications: BaseFertilizerApplication[]
   depositionSupply?: NitrogenSupplyDeposition
 }

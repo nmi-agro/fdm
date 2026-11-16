@@ -717,7 +717,7 @@ export default function IndicatorsFieldDetail() {
                 <div className="flex flex-col gap-4">
                   {fieldScore && (
                     <Card className="border-border shadow-sm">
-                      <CardHeader className="pb-3">
+                      <CardHeader>
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
@@ -831,7 +831,15 @@ export default function IndicatorsFieldDetail() {
             <div className="relative h-64 overflow-hidden rounded-lg border sm:h-80 lg:sticky lg:top-4 lg:h-[560px]">
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
-                <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
+                <Select
+                  value={mapScoreKey}
+                  items={MAP_SCORE_OPTION_GROUPS.flatMap((group) => group.options)}
+                  onValueChange={(value) => {
+                    if (typeof value === "string") {
+                      setMapScoreKey(value)
+                    }
+                  }}
+                >
                   <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>

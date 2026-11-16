@@ -11,6 +11,7 @@ import {
   calculateNitrogenBalancesFieldToFarm,
   getNitrogenBalanceField,
 } from "."
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import { calculateNitrogenSupplyBySoilMineralizationUsingMinip } from "./supply/mineralization"
 
 // Mock FdmType
@@ -77,19 +78,15 @@ describe("calculateNitrogenBalance", () => {
               },
             },
           ],
-          soilAnalyses: [
-            {
-              a_id: "soil1",
-              b_sampling_date: new Date(),
-              a_c_of: 20,
-              a_cn_fr: 10,
-              a_density_sa: 1.2,
-              a_n_rt: 3000,
-              a_som_loi: 2,
-              b_soiltype_agr: "dekzand",
-              b_gwl_class: "II",
-            },
-          ],
+          currentSoilData: currentSoilDataFixture({
+            a_c_of: 20,
+            a_cn_fr: 10,
+            a_density_sa: 1.2,
+            a_n_rt: 3000,
+            a_som_loi: 2,
+            b_soiltype_agr: "dekzand",
+            b_gwl_class: "II",
+          }),
           fertilizerApplications: [
             {
               p_id_catalogue: "fertilizer1",
@@ -218,19 +215,15 @@ describe("calculateNitrogenBalance", () => {
               },
             },
           ],
-          soilAnalyses: [
-            {
-              a_id: "soil1",
-              b_sampling_date: new Date(),
-              a_c_of: 20,
-              a_cn_fr: 10,
-              a_density_sa: 1.2,
-              a_n_rt: 3000,
-              a_som_loi: 2,
-              b_soiltype_agr: "dekzand",
-              b_gwl_class: "II",
-            },
-          ],
+          currentSoilData: currentSoilDataFixture({
+            a_c_of: 20,
+            a_cn_fr: 10,
+            a_density_sa: 1.2,
+            a_n_rt: 3000,
+            a_som_loi: 2,
+            b_soiltype_agr: "dekzand",
+            b_gwl_class: "II",
+          }),
           fertilizerApplications: [
             {
               p_id_catalogue: "fertilizer1",
@@ -319,7 +312,7 @@ describe("calculateNitrogenBalance", () => {
           },
           cultivations: [],
           harvests: [],
-          soilAnalyses: [],
+          currentSoilData: [],
           fertilizerApplications: [],
           depositionSupply: {
             total: new Decimal(0),
@@ -354,7 +347,7 @@ describe("calculateNitrogenBalance", () => {
           },
           cultivations: [],
           harvests: [],
-          soilAnalyses: [],
+          currentSoilData: [],
           fertilizerApplications: [],
           depositionSupply: {
             total: new Decimal(0),
@@ -500,7 +493,7 @@ describe("getNitrogenBalanceField", () => {
         },
         cultivations: [],
         harvests: [],
-        soilAnalyses: [],
+        currentSoilData: [],
         fertilizerApplications: [],
         depositionSupply: { total: new Decimal(0) },
       },

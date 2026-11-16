@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { type CodeOption, codeEnum, describeCodes, GROUNDWATER_CLASSES, SOIL_TYPES } from "./codes"
 
 /*
  * Shared, described field schemas.
@@ -98,8 +99,8 @@ export const soilParameterDescriptions = {
   a_som_loi:
     "Soil organic matter content, determined by loss on ignition (%). Typical range 0.5–75.",
   a_zn_cc: "Plant-available zinc (µg Zn/kg). Typical range 5–50000.",
-  b_gwl_class: "Groundwater class (Dutch 'grondwatertrap'), for example 'II' or 'VIII'.",
-  b_soiltype_agr: "Agricultural soil type, for example 'dekzand', 'zeeklei' or 'veen'.",
+  b_gwl_class: describeCodes("Groundwater class (Dutch 'grondwatertrap').", GROUNDWATER_CLASSES),
+  b_soiltype_agr: describeCodes("Agricultural soil type.", SOIL_TYPES),
   // Soil condition score (BCS): visual scores from a field assessment, 0, 1 or 2 each.
   a_ss_bcs:
     "Soil condition score (BCS): soil structure, judged from clod size and aggregate stability. 0 (poor), 1 (moderate) or 2 (good).",
@@ -126,8 +127,11 @@ export type SoilParameterCode = keyof typeof soilParameterDescriptions
 type CategoricalSoilParameterCode = "b_gwl_class" | "b_soiltype_agr"
 type NumericSoilParameterCode = Exclude<SoilParameterCode, CategoricalSoilParameterCode>
 
-/** Soil parameters that hold a category instead of a number. */
-const categoricalSoilParameters = new Set<SoilParameterCode>(["b_gwl_class", "b_soiltype_agr"])
+/** Soil parameters that hold a category instead of a number, with their codes. */
+const categoricalSoilParameterCodes: Partial<Record<string, readonly CodeOption[]>> = {
+  b_gwl_class: GROUNDWATER_CLASSES,
+  b_soiltype_agr: SOIL_TYPES,
+}
 
 /** Soil parameter fields that are nullable, as returned in responses. */
 type NullableSoilParameterShape = {
@@ -137,7 +141,9 @@ type NullableSoilParameterShape = {
 /** Soil parameter fields that are nullable and may be omitted, as accepted in requests. */
 type OptionalSoilParameterShape = {
   [K in NumericSoilParameterCode]: z.ZodOptional<z.ZodNullable<z.ZodNumber>>
-} & { [K in CategoricalSoilParameterCode]: z.ZodOptional<z.ZodNullable<z.ZodString>> }
+} & {
+  [K in CategoricalSoilParameterCode]: z.ZodOptional<z.ZodNullable<ReturnType<typeof codeEnum>>>
+}
 
 /**
  * Builds an object shape with one described schema per soil parameter.
@@ -153,8 +159,11 @@ export function soilParameterShape(
 ): NullableSoilParameterShape | OptionalSoilParameterShape {
   return Object.fromEntries(
     Object.entries(soilParameterDescriptions).map(([code, description]) => {
-      const base = categoricalSoilParameters.has(code as SoilParameterCode)
-        ? z.string().nullable()
+      // Requests accept only the known codes of a categorical parameter; responses are described
+      // with the same codes but not restricted, so an unexpected stored value never breaks them.
+      const codes = categoricalSoilParameterCodes[code as CategoricalSoilParameterCode]
+      const base = codes
+        ? (mode === "optional" ? codeEnum(codes) : z.string()).nullable()
         : z.number().nullable()
       return [code, (mode === "optional" ? base.optional() : base).describe(description)]
     }),

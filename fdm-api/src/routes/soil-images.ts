@@ -230,6 +230,7 @@ const UpdateAnnotationBodySchema = CreateAnnotationBodySchema.omit({
 // ---------------------------------------------------------------------------
 
 const listSoilImagesRoute = createRoute({
+  operationId: "listSoilImages",
   method: "get",
   path: "/soil-analyses/{a_id}/images",
   tags: ["Soil Images"],
@@ -249,6 +250,7 @@ const listSoilImagesRoute = createRoute({
 })
 
 const uploadSoilImageRoute = createRoute({
+  operationId: "uploadSoilImage",
   method: "post",
   path: "/soil-analyses/{a_id}/images",
   tags: ["Soil Images"],
@@ -277,6 +279,7 @@ const uploadSoilImageRoute = createRoute({
 })
 
 const downloadSoilImageRoute = createRoute({
+  operationId: "downloadSoilImage",
   method: "get",
   path: "/soil-images/{a_id_image}",
   tags: ["Soil Images"],
@@ -296,6 +299,7 @@ const downloadSoilImageRoute = createRoute({
 })
 
 const deleteSoilImageRoute = createRoute({
+  operationId: "deleteSoilImage",
   method: "delete",
   path: "/soil-images/{a_id_image}",
   tags: ["Soil Images"],
@@ -311,6 +315,7 @@ const deleteSoilImageRoute = createRoute({
 })
 
 const createAnnotationRoute = createRoute({
+  operationId: "createSoilImageAnnotation",
   method: "post",
   path: "/soil-images/{a_id_image}/annotations",
   tags: ["Soil Images"],
@@ -335,6 +340,7 @@ const createAnnotationRoute = createRoute({
 })
 
 const updateAnnotationRoute = createRoute({
+  operationId: "updateSoilImageAnnotation",
   method: "patch",
   path: "/soil-image-annotations/{a_id_annotation}",
   tags: ["Soil Images"],
@@ -360,6 +366,7 @@ const updateAnnotationRoute = createRoute({
 })
 
 const deleteAnnotationRoute = createRoute({
+  operationId: "deleteSoilImageAnnotation",
   method: "delete",
   path: "/soil-image-annotations/{a_id_annotation}",
   tags: ["Soil Images"],

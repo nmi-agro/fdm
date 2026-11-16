@@ -55,13 +55,42 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
 
 ## Tests
 
-- **Unit tests** (`pnpm test`) cover pure modules, such as the user manual's content checks. They need no database.
-- **End-to-end runs** use Playwright (`playwright.config.ts`, code in `e2e/`). The app runs as a production build (`node server.js`) against an empty PostGIS database:
-  - `e2e/seed` creates a synthetic user and farm through `fdm-core` (variant `minimal` or `demo`). It refuses to run when the database already contains farms.
-  - `e2e/support/auth.ts` signs in through the normal magic-link flow and reads the one-time code from the database, so no test-only login mode is needed.
-  - The `screenshots` project captures the user manual's screenshots; see `app/content/manual/README.md`.
+The app has three kinds of tests. CI runs all of them in the `app` check (`.github/workflows/fdm-app.yml`, on every pull request, including pull requests from forks), after a production build (`react-router build`), which itself catches server-only imports in client code and invalid route exports.
 
-To run them locally:
+| Kind              | Where                                | Command                 | Needs                                                        |
+| ----------------- | ------------------------------------ | ----------------------- | ------------------------------------------------------------ |
+| Unit              | `app/**/*.test.ts`, next to the code | `pnpm test:unit`        | nothing                                                      |
+| Loader and action | `test/**/*.integration.test.ts`      | `pnpm test:integration` | a PostGIS test database (`.env.test`)                        |
+| End-to-end smoke  | `e2e/smoke` (Playwright)             | `pnpm e2e`              | a build, Chromium and an empty PostGIS database (`.env.e2e`) |
+
+`pnpm test` runs the unit and loader/action tests together, and `pnpm turbo run test --filter=@nmi-agro/fdm-app` does the same after building the packages the app depends on. The repository-wide `pnpm test` (which runs `test-coverage` in every package) only runs the app's unit tests, so the app's database tests never run alongside fdm-core's, whose teardown empties the users and roles. Run the commands in `fdm-app/`, or from the root with `pnpm --filter @nmi-agro/fdm-app <command>`.
+
+### Unit tests
+
+Pure modules in `app/lib` and the Zustand stores in `app/store`, plus the user manual's content, label and SEO checks. Put a `*.test.ts` file next to the module. Do not put test files in `app/routes`: every file there becomes a route.
+
+### Loader and action tests
+
+These call the `loader` and `action` of a route module directly, with the real database code. Only the session is replaced: `signInAs(user)` from `test/session.ts` decides who `getSession` returns, and `signInAs(null)` makes the request anonymous. `test/helpers.ts` has `seedUserWithFarm()` (a new user with a synthetic two-field farm on every call), `loaderArgs`/`actionArgs` to build the arguments and `runRoute` to read a result, redirect or thrown response as `{ status, location, data }`.
+
+Create `fdm-app/.env.test` with the `POSTGRES_*` settings of a **separate test database** with PostGIS (not the database of `.env`, and not fdm-core's test database: the tests add users and farms). Its settings take precedence over `POSTGRES_*` variables in your shell. The global setup runs the migrations and syncs the catalogues.
+
+### End-to-end tests
+
+Playwright (`playwright.config.ts`, code in `e2e/`) runs the app as a production build (`node server.js`) against an empty PostGIS database. `E2E_SUITE` picks the suite:
+
+- `smoke` (`pnpm e2e`, runs on every pull request): `e2e/smoke/routes.spec.ts` visits every GET route of the build and fails on an error page, a 5xx response or an error in the browser; `e2e/smoke/flows.spec.ts` runs the critical flows. External services are off: the app gets no API keys and the browser cannot reach other origins.
+- `screenshots` (`pnpm screenshots`): captures the user manual's screenshots; see `app/content/manual/README.md`.
+
+Shared code:
+
+- `e2e/seed` creates a synthetic user and farm through `fdm-core` (variant `minimal` or `demo`). It refuses to run when the database already contains farms. `e2e/seed/organization.ts` adds an organization with access to that farm and a farm group, so the smoke suite also covers the organization pages.
+- `e2e/support/auth.ts` signs in through the normal magic-link flow and reads the one-time code from the database, so the app needs no test-only login mode.
+- `e2e/support/app.ts` blocks external requests and collects errors on a page.
+
+When you add a route with a param, the crawler fails until `e2e/smoke/route-params.ts` can fill in the param, or lists the route in `SKIP` with a reason.
+
+To run the end-to-end tests locally:
 
 1. Create an empty database with PostGIS, for example `fdm_e2e` (`CREATE EXTENSION postgis;`).
 2. Create `fdm-app/.env.e2e` from `.env.e2e.example` and point `POSTGRES_*` at that database.
@@ -72,9 +101,9 @@ To run them locally:
    pnpm --filter @nmi-agro/fdm-app e2e:install
    ```
 
-4. Run a project, for example `pnpm --filter @nmi-agro/fdm-app screenshots`. Drop and recreate the database before the next run.
+4. Run a suite, for example `pnpm --filter @nmi-agro/fdm-app e2e`. Drop and recreate the database before the next run. When a test fails, open the trace that Playwright prints with `pnpm exec playwright show-trace <file>`.
 
-Starting the server can take a few minutes. To try changes quickly, keep the server running in a second terminal (`pnpm exec dotenvx run -f .env.e2e -- sh -c "node ./app/lib/fdm-migrate.server.js && node ./server.js"`, with the environment that `playwright.config.ts` gives the app (`appEnv`)). Playwright reuses it. After the first run, set `E2E_REUSE_SEED=1` to keep the seeded farm, and add `--grep <id>` to capture a single screenshot. Every run signs in once, and the app allows 5 sign-ins per 15 minutes; after that the setup fails with "Te veel pogingen" until the window has passed.
+Starting the server can take a few minutes. To try changes quickly, keep the server running in a second terminal (`pnpm exec dotenvx run -f .env.e2e -- sh -c "node ./app/lib/fdm-migrate.server.js && node ./server.js"`, with the environment that `playwright.config.ts` gives the app (`appEnv`)). Playwright reuses it. After the first run, set `E2E_REUSE_SEED=1` to keep the seeded farm, and add `--grep <title>` to run a single test. Every run signs in once, and the app allows 5 sign-ins per 15 minutes; after that the setup fails with "Te veel pogingen" until the window has passed. With `E2E_REUSE_SEED=1` the smoke suite also reuses the session.
 
 ## Key Functionalities
 

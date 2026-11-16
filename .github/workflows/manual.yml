@@ -36,7 +36,7 @@ jobs:
       # Content, label and SEO tests. They need no database and no build; a stale UI label
       # in the manual fails this step.
       - name: Test the manual
-        run: pnpm --filter @nmi-agro/fdm-app test
+        run: pnpm --filter @nmi-agro/fdm-app test:unit
 
       # Warns, never fails: lists manual pages whose routes changed in this PR.
       - name: Check route drift

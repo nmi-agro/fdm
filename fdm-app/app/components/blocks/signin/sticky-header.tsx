@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useScroll } from "framer-motion"
 import { useEffect, useState } from "react"
 import { Link } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 
 /** Smoothly scrolls to the top of the page, respecting reduced-motion preferences. */
@@ -39,9 +39,13 @@ export function StickyHeader() {
               <span className="font-semibold">{clientConfig.name}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button asChild variant="ghost">
-                <Link to="/manual">Handleiding</Link>
-              </Button>
+              <Link
+                to="/manual"
+                className={buttonVariants({ variant: "ghost" })}
+                data-slot="button"
+              >
+                Handleiding
+              </Link>
               <Button onClick={scrollToTop}>Aanmelden</Button>
             </div>
           </div>

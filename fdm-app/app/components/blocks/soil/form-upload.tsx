@@ -1,16 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { AlertCircle, ChevronRight, FileUp } from "lucide-react"
 import { useMemo } from "react"
-import { useWatch } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { Dropzone } from "~/components/custom/dropzone"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
-import { FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 
 /** Laboratories whose PDF reports can be read automatically. */
 const SUPPORTED_LABS = [
@@ -107,12 +107,11 @@ export function SoilAnalysisUploadForm({
         <Form id="soilAnalysisUploadForm" method="post" encType="multipart/form-data">
           <input type="hidden" name="intent" value="extract" />
           <fieldset disabled={isReading || disabled} className="space-y-4">
-            <FormField
-              control={form.control}
+            <Controller
               name="soilAnalysisFile"
-              render={({ field: { name, onBlur, ref } }) => (
-                <FormItem>
-                  <FormLabel className="sr-only">PDF-rapport van het lab</FormLabel>
+              render={({ field: { name, onBlur, ref }, fieldState }) => (
+                <Field>
+                  <FieldLabel className="sr-only">PDF-rapport van het lab</FieldLabel>
                   <Dropzone
                     label="Kies het PDF-rapport van het lab of sleep het hierheen"
                     ref={ref}
@@ -146,8 +145,8 @@ export function SoilAnalysisUploadForm({
                       )}
                     </div>
                   </Dropzone>
-                  <FormMessage />
-                </FormItem>
+                  <FieldError errors={[fieldState.error]} />
+                </Field>
               )}
             />
             <div aria-live="polite" className="sr-only">

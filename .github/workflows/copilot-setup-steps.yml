@@ -21,10 +21,9 @@ name: "Copilot Setup Steps"
 # only exposed to that live session via repository/organization "Agents" secrets and
 # variables (Settings → Secrets and variables → Agents) — not via `env:` set here.
 # Without POSTGRES_HOST/PORT/USER/PASSWORD/DB configured as Agents variables (matching
-# the values below), fdm-core/fdm-calculator/fdm-rvo/fdm-helpdesk tests will fail fast
+# the values below), fdm-core/fdm-calculator/fdm-helpdesk tests will fail fast
 # in the agent's real session (see fdm-core/src/global-setup.ts), even though this
-# workflow itself passes. See fdm-docs/docs/contributing/05-weekly-dependency-updates.md
-# for the exact values to configure.
+# workflow itself passes. Configure the same values as the `postgres` service below.
 on:
   workflow_dispatch:
   push:
@@ -43,8 +42,8 @@ jobs:
     permissions:
       contents: read
 
-    # Postgres/PostGIS is required to run the test suites for fdm-core, fdm-calculator,
-    # fdm-rvo and fdm-helpdesk (see .github/workflows/tests.yml for the same setup).
+    # Postgres/PostGIS is required to run the test suites for fdm-core, fdm-calculator
+    # and fdm-helpdesk (see .github/workflows/tests.yml for the same setup).
     services:
       postgres:
         image: postgis/postgis:17-3.5

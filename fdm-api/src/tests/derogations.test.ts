@@ -20,7 +20,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const baseDerogation = {
@@ -41,6 +44,22 @@ describe("GET /farms/:b_id_farm/derogations", () => {
     })
     expect(res.status).toBe(200)
     expect((await res.json()).data[0].b_id_derogation).toBe("derogation-1")
+  })
+
+  it("returns each derogation with its farm, as documented", async () => {
+    const app = makeApp({
+      listDerogations: vi
+        .fn()
+        .mockResolvedValue([
+          { b_id_derogation: "derogation-1", b_derogation_year: 2025, created: new Date() },
+        ]),
+    })
+    const res = await app.request("/farms/farm-1/derogations", {
+      headers: { "x-api-key": "valid" },
+    })
+    expect((await res.json()).data).toEqual([
+      { b_id_derogation: "derogation-1", b_id_farm: "farm-1", b_derogation_year: 2025 },
+    ])
   })
 
   it("returns 403 when principal lacks access", async () => {

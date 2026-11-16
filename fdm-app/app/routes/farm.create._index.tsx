@@ -287,7 +287,7 @@ export default function AddFarmPage() {
             <Card className="w-full">
               <RemixFormProvider {...form}>
                 <Form id="formFarm" onSubmit={form.handleSubmit} method="POST">
-                  <fieldset disabled={form.formState.isSubmitting}>
+                  <fieldset disabled={form.formState.isSubmitting} className="flex flex-col gap-6">
                     <CardHeader>
                       <CardTitle>Bedrijf toevoegen</CardTitle>
                       <CardDescription>

@@ -1,5 +1,6 @@
 import type { ReactNode, Ref, SubmitEventHandler } from "react"
 import imageCompression from "browser-image-compression"
+import { cn } from "cn"
 import { LucideImage } from "lucide-react"
 import { useEffect, useId, useState, useTransition } from "react"
 import { useFetcher } from "react-router"
@@ -28,7 +29,6 @@ import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { compressAvatar } from "~/lib/image-upload.client"
 import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
-import { cn } from "~/lib/utils"
 
 const DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME = "file"
 
@@ -262,12 +262,14 @@ export function ProfilePictureManager({
         ) : currentPicture ? (
           <>
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="destructive" disabled={isDeleting}>
-                  <span>Verwijderen</span>
-                  {isDeleting ? <Spinner /> : undefined}
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button type="button" variant="destructive" disabled={isDeleting}>
+                    <span>Verwijderen</span>
+                    {isDeleting ? <Spinner /> : undefined}
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
@@ -290,9 +292,12 @@ export function ProfilePictureManager({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button type="button" variant="outline" asChild>
-              <label htmlFor={fileInputId}>Kies één nieuwe</label>
-            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              nativeButton={false}
+              render={<label htmlFor={fileInputId}>Kies één nieuwe</label>}
+            />
           </>
         ) : (
           <Button type="submit" disabled>

@@ -1,5 +1,6 @@
 import type { Dose } from "@nmi-agro/fdm-calculator"
 import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronDown, ChevronUp, CirclePlus, TriangleAlert } from "lucide-react"
@@ -9,7 +10,7 @@ import {
   AdviceProgressBar,
   formatSignedDifference,
 } from "~/components/blocks/nutrient-advice/progress-bar"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Separator } from "~/components/ui/separator"
@@ -57,7 +58,7 @@ export function NutrientCard({
 
   return (
     <Card className="relative">
-      <CardHeader className="pb-2">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-muted rounded-md p-2">{description.symbol}</div>
@@ -94,16 +95,18 @@ export function NutrientCard({
 
         {fertilizerApplications.length > 0 && numberOfApplicationsForNutrient > 0 ? (
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="h-auto w-full justify-between p-0">
-                <span className="text-sm font-medium">Bemestingen</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
+            <CollapsibleTrigger
+              render={
+                <Button variant="ghost" className="h-auto w-full justify-between p-0">
+                  <span className="text-sm font-medium">Bemestingen</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              }
+            />
             <CollapsibleContent className="mt-3 space-y-2">
               <Separator />
               <div className="space-y-3">
@@ -161,12 +164,18 @@ export function NutrientCard({
         ) : (
           <div className="flex items-center justify-between gap-2">
             <p className="text-muted-foreground text-sm">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
-            <Button variant="ghost" size="sm" className="h-auto shrink-0 p-0" asChild>
-              <NavLink to={to} className="flex items-center gap-1">
-                <CirclePlus className="h-3.5 w-3.5" />
-                Toevoegen
-              </NavLink>
-            </Button>
+            <NavLink
+              to={to}
+              className={buttonVariants({
+                variant: "ghost",
+                size: "sm",
+                className: cn("h-auto shrink-0 p-0", "flex items-center gap-1"),
+              })}
+              data-slot="button"
+            >
+              <CirclePlus className="h-3.5 w-3.5" />
+              Toevoegen
+            </NavLink>
           </div>
         )}
       </CardContent>

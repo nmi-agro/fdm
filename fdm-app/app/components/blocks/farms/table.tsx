@@ -5,6 +5,7 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { ChevronDown } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -27,7 +28,6 @@ import {
 } from "~/components/ui/table"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import { AssignGroupsDialog } from "./assign-groups-dialog"
 import { groupsColumn, selectColumn, type columns as ColumnsT, type FarmExtended } from "./columns"
 import { farmTableFeatures } from "./table-features"
@@ -142,18 +142,20 @@ export function DataTable<TData extends FarmExtended>({
           )}
           {hasGroups && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <span>{groupFilter.length > 0 ? `Groep (${groupFilter.length})` : "Groep"}</span>
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline">
+                    <span>Groep{groupFilter.length > 0 ? ` (${groupFilter.length})` : ""}</span>
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end">
                 {groups.map((group) => (
                   <DropdownMenuCheckboxItem
                     key={group.b_id_group}
                     checked={groupFilter.includes(group.b_id_group)}
-                    onSelect={(event) => event.preventDefault()}
+                    closeOnClick={false}
                     onCheckedChange={(checked) => {
                       const next = checked
                         ? [...groupFilter, group.b_id_group]
@@ -168,12 +170,14 @@ export function DataTable<TData extends FarmExtended>({
             </DropdownMenu>
           )}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {table
                 .getAllColumns()

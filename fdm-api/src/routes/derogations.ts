@@ -1,8 +1,17 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type { addDerogation, FdmType, listDerogations, removeDerogation } from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { DerogationIdSchema, FarmIdSchema } from "../fields"
+import type { ApiEnv } from "../types"
+import {
+  CreateDerogationBodySchema,
+  createDerogation,
+  DerogationFarmParamsSchema,
+  DerogationParamsSchema,
+  DerogationSchema,
+  type DerogationServices,
+  deleteDerogation,
+  listDerogations,
+} from "../operations/derogations"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
@@ -11,34 +20,14 @@ import {
   paginatedSchema,
   writeErrorResponses,
 } from "../schemas"
+import { operationContext } from "./operation-context"
+
+export type { DerogationServices } from "../operations/derogations"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
 
-/** Defines the derogation data access functions required by the derogation routes. */
-export interface DerogationServices {
-  listDerogations: typeof listDerogations
-  addDerogation: typeof addDerogation
-  removeDerogation: typeof removeDerogation
-}
-
-const DerogationSchema = z
-  .object({
-    b_id_derogation: DerogationIdSchema,
-    b_id_farm: FarmIdSchema,
-    b_derogation_year: z
-      .number()
-      .int()
-      .describe("Calendar year for which the farm is granted derogation, for example 2025."),
-  })
-  .openapi("Derogation")
-
-const CreateDerogationBodySchema = z
-  .object({
-    b_derogation_year: z.number().int().describe("Derogation year."),
-  })
-  .openapi("CreateDerogation")
-
 const listDerogationsRoute = createRoute({
+  operationId: listDerogations.name,
   method: "get",
   path: "/farms/{b_id_farm}/derogations",
   tags: ["Derogations"],
@@ -46,7 +35,7 @@ const listDerogationsRoute = createRoute({
   description: "Returns all derogations for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: DerogationFarmParamsSchema,
     query: PaginationQuerySchema,
   },
   responses: {
@@ -63,6 +52,7 @@ const listDerogationsRoute = createRoute({
 })
 
 const createDerogationRoute = createRoute({
+  operationId: createDerogation.name,
   method: "post",
   path: "/farms/{b_id_farm}/derogations",
   tags: ["Derogations"],
@@ -70,7 +60,7 @@ const createDerogationRoute = createRoute({
   description: "Creates a new derogation on the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: FarmIdSchema }),
+    params: DerogationFarmParamsSchema,
     body: {
       content: {
         "application/json": { schema: CreateDerogationBodySchema },
@@ -88,13 +78,14 @@ const createDerogationRoute = createRoute({
 })
 
 const deleteDerogationRoute = createRoute({
+  operationId: deleteDerogation.name,
   method: "delete",
   path: "/derogations/{b_id_derogation}",
   tags: ["Derogations"],
   summary: "Delete a derogation",
   description: "Permanently deletes a derogation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_derogation: DerogationIdSchema }) },
+  request: { params: DerogationParamsSchema },
   responses: {
     204: { description: "Derogation deleted." },
     ...commonErrorResponses,
@@ -127,49 +118,31 @@ export function registerDerogationRoutes(
   )
 
   const listDerogationsHandler: RouteHandler<typeof listDerogationsRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof DerogationFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const derogations = await services.listDerogations(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-    )
+    const derogations = await listDerogations.run(operationContext(c, fdm, services), params)
     return c.json(paginatedResponse(derogations, limit, offset), 200)
   }
 
   const createDerogationHandler: RouteHandler<typeof createDerogationRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof DerogationFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateDerogationBodySchema>
-    const b_id_derogation = await services.addDerogation(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      body.b_derogation_year,
-    )
-    c.header("Location", `${new URL(c.req.url).origin}/derogations/${b_id_derogation}`)
-    return c.json(
-      {
-        b_id_derogation,
-        b_id_farm,
-        b_derogation_year: body.b_derogation_year,
-      },
-      201,
-    )
+    const derogation = await createDerogation.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    c.header("Location", `${new URL(c.req.url).origin}/derogations/${derogation.b_id_derogation}`)
+    return c.json(derogation, 201)
   }
 
   const deleteDerogationHandler: RouteHandler<typeof deleteDerogationRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_derogation } = c.req.valid("param") as {
-      b_id_derogation: string
-    }
-    await services.removeDerogation(fdm, principal.effectivePrincipalId, b_id_derogation)
+    const params = c.req.valid("param") as z.infer<typeof DerogationParamsSchema>
+    await deleteDerogation.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 

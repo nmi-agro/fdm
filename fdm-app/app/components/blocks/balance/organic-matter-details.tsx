@@ -84,7 +84,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
       <AccordionItem value="supply.fertilizers">
         <AccordionTrigger>Bemesting (Totaal): {fertilizers.total} kg EOM / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {renderFertilizerApplications(
               fertilizers.manure,
               fieldInput,
@@ -175,7 +175,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
       <AccordionItem value="supply">
         <AccordionTrigger>Aanvoer (Totaal): {supply.total} kg EOM / ha</AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {renderFertilizersSupply(supply.fertilizers, fieldInput)}
             {renderCultivationsSupply(supply.cultivations, fieldInput)}
             {renderResiduesSupply(supply.residues, fieldInput)}
@@ -197,7 +197,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
 
   return (
     <div>
-      <Accordion type="multiple" className="w-full">
+      <Accordion multiple className="w-full">
         {renderSupply(balanceData.supply, fieldInput)}
         {renderDegradation(balanceData.degradation)}
       </Accordion>

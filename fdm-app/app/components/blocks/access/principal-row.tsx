@@ -30,6 +30,12 @@ import { Spinner } from "~/components/ui/spinner"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 
+export const FARM_ROLES = [
+  { value: "owner", label: "Eigenaar" },
+  { value: "advisor", label: "Adviseur" },
+  { value: "researcher", label: "Onderzoeker" },
+] as const
+
 // Define the props type based on usage in the original file
 type PrincipalRowProps = {
   username: string
@@ -142,7 +148,9 @@ export const PrincipalRow = ({
             <Select
               value={selectedRole}
               name="role"
+              items={FARM_ROLES}
               onValueChange={(value) => {
+                if (typeof value !== "string") return
                 const formData = new FormData()
                 formData.append("intent", "update_role")
                 formData.append("username", username)
@@ -155,25 +163,29 @@ export const PrincipalRow = ({
                 <SelectValue placeholder="Selecteer rol" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owner">Eigenaar</SelectItem>
-                <SelectItem value="advisor">Adviseur</SelectItem>
-                <SelectItem value="researcher">Onderzoeker</SelectItem>
+                {FARM_ROLES.map((desc) => (
+                  <SelectItem key={desc.value} value={desc.value}>
+                    {desc.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           )}
           {/* Button to trigger removal */}
           {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm{isLastVerificationProvider ? (
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="shrink-0"
-                  disabled={fetcher.state !== "idle"}
-                >
-                  Verwijder
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="shrink-0"
+                    disabled={fetcher.state !== "idle"}
+                  >
+                    Verwijder
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>

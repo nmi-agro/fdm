@@ -63,6 +63,7 @@ export const helpTargets = {
   account: { kind: "chapter", slug: "account" },
   api: { kind: "chapter", slug: "api" },
   "api-sleutels": { kind: "chapter", slug: "api", anchor: "api-sleutels" },
+  "ai-assistenten": { kind: "chapter", slug: "ai-assistenten" },
   hulp: { kind: "chapter", slug: "hulp" },
   "achtergrond-stikstofbalans": { kind: "background", slug: "stikstofbalans" },
   "achtergrond-organische-stofbalans": { kind: "background", slug: "organische-stofbalans" },

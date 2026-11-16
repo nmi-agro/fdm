@@ -25,7 +25,6 @@ import {
   getFertilizers,
   getFields,
   getGrazingIntention,
-  getSoilAnalysesForFarm,
   isDerogationGrantedForYear,
   isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
@@ -107,7 +106,6 @@ export async function collectFertilizerPlanInput(
     fertilizersCatalogue,
     cultivationsMap,
     fertilizerApplicationsMap,
-    soilAnalysesMap,
     currentSoilDataMap,
     derogationGranted,
     has_organic_certification,
@@ -119,7 +117,6 @@ export async function collectFertilizerPlanInput(
     getFertilizers(fdm, principal_id, b_id_farm),
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe),
     getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe),
     DEROGATION_GRANTED_NEEDED_FOR_YEARS.includes(year)
       ? isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year)
@@ -141,7 +138,6 @@ export async function collectFertilizerPlanInput(
       ...field,
       fertilizerApplications: fertilizerApplicationsMap.get(field.b_id) ?? [],
       cultivations: cultivationsMap.get(field.b_id) ?? [],
-      soilAnalyses: soilAnalysesMap.get(field.b_id) ?? [],
       currentSoilData: currentSoilDataMap.get(field.b_id) ?? [],
     })),
     fertilizersCatalogue: fertilizersCatalogue,
@@ -210,8 +206,7 @@ export async function computeFertilizerPlanData(
   for (let batchStart = 0; batchStart < fields.length; batchStart += batchSize) {
     await Promise.all(
       fields.slice(batchStart, batchStart + batchSize).map(async (fieldExtended) => {
-        const { fertilizerApplications, cultivations, soilAnalyses, currentSoilData, ...field } =
-          fieldExtended
+        const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
         try {
           // Main cultivation
           const mainCultivation = getMainCultivation(cultivations, year)
@@ -384,7 +379,7 @@ export async function computeFertilizerPlanData(
             fieldInput: {
               field: field,
               cultivations: cultivations,
-              soilAnalyses: soilAnalyses,
+              currentSoilData: currentSoilData,
               fertilizerApplications: fertilizerApplications,
             },
             fertilizerDetails: fertilizersCatalogue,

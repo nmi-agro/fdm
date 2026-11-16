@@ -1,9 +1,9 @@
 import { createColumnHelper, type Row } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ChevronRight } from "lucide-react"
 import { useMemo } from "react"
 import { NavLink } from "react-router"
 import type { CultivationAvailabilityResult } from "~/components/blocks/cultivation/availability-warning"
-import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
@@ -155,13 +155,15 @@ function FieldsDisplayCell({
     return (
       cultivation.type === "crop" && (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost">
-              <p className="text-muted-foreground">
-                {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
-              </p>
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost">
+                <p className="text-muted-foreground">
+                  {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
+                </p>
+              </Button>
+            }
+          />
           <DropdownMenuContent>
             <ScrollArea className={fieldsSorted.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}>
               <div className="grid grid-cols-1 gap-2">
@@ -214,13 +216,8 @@ export const columns = columnHelper.columns([
       return (
         <div className="pe-4">
           <Checkbox
-            checked={
-              table.getIsAllRowsSelected()
-                ? true
-                : table.getIsSomeRowsSelected()
-                  ? "indeterminate"
-                  : false
-            }
+            checked={table.getIsAllRowsSelected()}
+            indeterminate={table.getIsSomeRowsSelected()}
             onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
             aria-label="Selecteer alle rijen"
           />
@@ -230,7 +227,8 @@ export const columns = columnHelper.columns([
     cell: ({ row, table }) => (
       <div className={cn(row.original.type === "field" ? "ps-4" : "pe-4")}>
         <Checkbox
-          checked={row.getIsSelected() ? true : row.getIsSomeSelected() ? "indeterminate" : false}
+          checked={row.getIsSelected()}
+          indeterminate={row.getIsSomeSelected()}
           // Do not use row.getToggleSelectedHandler() here since it doesn't have the exact child-parent selection behavior we want.
           // It selects all children of the last crop row, while we want to only select until the last clicked field row.
           onClick={(event) => handleRowSelection(row, table, event)}

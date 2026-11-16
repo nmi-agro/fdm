@@ -509,7 +509,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         />
       </Atlas>
       {/* Soil Parameter Dropdown */}
-      <Card className="absolute top-3 left-3 z-10 w-52 shadow-md">
+      <Card className="absolute top-3 left-3 z-10 w-52 py-0 shadow-md">
         <CardContent className="p-2">
           <Select
             value={selectedParameter}
@@ -518,8 +518,8 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
             <SelectTrigger className="h-8 w-full text-xs">
               {parameterDescription?.name}
             </SelectTrigger>
-            {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
-            <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
+            {/* var(--available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
+            <SelectContent className="max-h-[min(var(--available-height,100vh),calc(var(--anchor-height,0)+100*var(--spacing)))]">
               {soilParameterOptions.map((opt) => {
                 return (
                   <SelectItem key={opt.parameter} value={opt.parameter}>

@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import {
@@ -25,11 +26,10 @@ import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { Dialog, DialogTrigger } from "../../ui/dialog"
 import {
   FieldDashboardTile,
@@ -292,12 +292,14 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
                 <p className="text-muted-foreground text-xs uppercase">{harvestDateTerm}</p>
                 <p className="mt-1 text-sm font-medium">{formatDateLabel(latestHarvest.date)}</p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link to={latestHarvest.detailHref}>
-                  Bekijken
-                  <MoveRight className="size-4" />
-                </Link>
-              </Button>
+              <Link
+                to={latestHarvest.detailHref}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                data-slot="button"
+              >
+                Bekijken
+                <MoveRight className="size-4" />
+              </Link>
             </div>
             {latestHarvest.metrics.length > 0 ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -742,11 +744,13 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
               <div className="space-y-1">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
-                        {card.title}
-                      </p>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
+                          {card.title}
+                        </p>
+                      }
+                    />
                     <TooltipContent className="max-w-xs">{card.description}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -816,9 +820,9 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
           </div>
           {latestAnalysisPdf && (
             <Dialog>
-              <DialogTrigger asChild>
-                <ViewPdfButton variant="outline" size="sm" className="shrink-0" />
-              </DialogTrigger>
+              <DialogTrigger
+                render={<ViewPdfButton variant="outline" size="sm" className="shrink-0" />}
+              />
               <PdfViewerDialogContent
                 downloadUrl={`/api/soil-analysis/download/${latestAnalysisPdf.a_id}.pdf`}
                 filename={latestAnalysisPdf.filename}

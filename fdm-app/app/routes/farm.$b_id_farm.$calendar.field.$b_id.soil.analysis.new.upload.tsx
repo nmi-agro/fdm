@@ -12,7 +12,7 @@ import {
   PdfReadingUnavailableAlert,
   SoilAnalysisUploadFlow,
 } from "~/components/blocks/soil/upload-flow"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
@@ -93,12 +93,14 @@ export default function FarmFieldSoilAnalysisUploadBlock() {
 
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-3">
-        <NavLink to="../soil/analysis/new">
-          <ArrowLeft />
-          Andere manier kiezen
-        </NavLink>
-      </Button>
+      <NavLink
+        to="../soil/analysis/new"
+        className={buttonVariants({ variant: "ghost", size: "sm", className: "-ml-3" })}
+        data-slot="button"
+      >
+        <ArrowLeft />
+        Andere manier kiezen
+      </NavLink>
       {!isNmiConfigured && (
         <PdfReadingUnavailableAlert manualEntryHref="../soil/analysis/new/standard" />
       )}

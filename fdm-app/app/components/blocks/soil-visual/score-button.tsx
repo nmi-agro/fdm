@@ -1,10 +1,10 @@
+import { cn } from "cn"
 import type { BcsIndicatorKey } from "~/lib/bcs"
 import {
   BCS_COLOR_CLASSES,
   indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 
 interface ScoreButtonProps {
   indicator: BcsIndicatorKey

@@ -1,7 +1,8 @@
 import type { ComponentType, ReactNode } from "react"
+import { cn } from "cn"
 import { ArrowRight, CircleAlert, Plus } from "lucide-react"
 import { Link } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Empty,
@@ -13,7 +14,6 @@ import {
 } from "~/components/ui/empty"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
-import { cn } from "~/lib/utils"
 
 export function FieldDashboardSectionHeading({ title }: { title: string }) {
   return (
@@ -52,13 +52,13 @@ export function FieldDashboardTile({
         className,
       )}
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
         <CardTitle className="text-base">{title}</CardTitle>
         {statusBadge ? <div className="shrink-0">{statusBadge}</div> : null}
       </CardHeader>
       <CardContent className={cn("space-y-4", contentClassName)}>{children}</CardContent>
       {footer && detailHref ? (
-        <CardFooter className="border-t pt-4">
+        <CardFooter className="border-t">
           <Link
             to={detailHref}
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -146,9 +146,13 @@ export function FieldDashboardTileEmpty({
         </EmptyHeader>
         {action ? (
           <EmptyContent>
-            <Button asChild variant="outline">
-              <Link to={action.href}>{action.label}</Link>
-            </Button>
+            <Link
+              to={action.href}
+              className={buttonVariants({ variant: "outline" })}
+              data-slot="button"
+            >
+              {action.label}
+            </Link>
           </EmptyContent>
         ) : null}
       </Empty>

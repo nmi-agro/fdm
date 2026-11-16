@@ -1,10 +1,10 @@
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { useEffect, useId, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import {
   Field,
@@ -40,6 +40,11 @@ const formDefaultValues = {
   is_internal: false,
   attachments: [],
 } as const
+
+const senderRoleOptions = [
+  { value: "agent", label: "als medewerker" },
+  { value: "customer", label: "als gebruiker" },
+]
 
 export function MessageComposer({
   intent,
@@ -152,6 +157,7 @@ export function MessageComposer({
                       <div data-invalid={fieldState.invalid} className="w-auto shrink-0 grow-0">
                         <Select
                           value={field.value}
+                          items={senderRoleOptions}
                           onValueChange={(value) => {
                             form.setValue("sender_role", value as "agent" | "customer")
                             if (value !== "agent") {
@@ -163,8 +169,11 @@ export function MessageComposer({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="agent">als medewerker</SelectItem>
-                            <SelectItem value="customer">als gebruiker</SelectItem>
+                            {senderRoleOptions.map((desc) => (
+                              <SelectItem key={desc.value} value={desc.value}>
+                                {desc.label}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FieldError errors={[fieldState.error]} />
