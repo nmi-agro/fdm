@@ -1,19 +1,31 @@
 import type { FeatureCollection, Geometry } from "geojson"
-import { cogProtocol, locationValues, proj4 } from "@geomatico/maplibre-cog-protocol"
+import type { Map as MaplibreMap } from "maplibre-gl"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import throttle from "lodash.throttle"
-import * as maplibregl from "maplibre-gl"
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Layer, type MapLayerMouseEvent, type MapRef, Source } from "react-map-gl/maplibre"
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import {
+  Layer,
+  type LayerProps,
+  type MapLayerMouseEvent,
+  type MapRef,
+  Source,
+} from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import {
+  buildAhnItems,
+  createElevationLayer,
+  createFieldOutlineLayer,
+  DeckGlCanvas,
+  ElevationTiles,
+} from "~/components/blocks/atlas/atlas-elevation.client"
 import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { SATELLITE_BACKGROUND_REQUIRED_MESSAGE } from "~/components/blocks/atlas/atlas-style-select"
-import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { getDottedFieldOutlineStyle, getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { useAnalytics } from "~/hooks/use-analytics"
@@ -24,47 +36,9 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-// Register the projection for RD New (EPSG:28992)
-proj4.defs(
-  "EPSG:28992",
-  "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.2369,50.0087,465.658,-0.406857330322398,0.350732676542563,-1.8703473836068,4.0812 +units=m +no_defs",
-)
-
-// Register the COG protocol
-maplibregl.addProtocol("cog", cogProtocol)
-
-// Helper: Simple Point in Polygon for RD coordinates (Ray Casting)
-function isPointInPolygon(point: [number, number], vs: [number, number][]) {
-  const x = point[0]
-  const y = point[1]
-  let inside = false
-  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    const xi = vs[i][0]
-    const yi = vs[i][1]
-    const xj = vs[j][0]
-    const yj = vs[j][1]
-    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
-    if (intersect) inside = !inside
-  }
-  return inside
-}
-
-// Helper: Check if polygon intersects polygon (simple AABB check for index speed)
-// For now, we just check if any point of tile is in view or view in tile
-// Simpler: Convert Viewport to RD Polygon, check intersection with Tile Polygon (also RD).
-function polygonIntersectsPolygon(poly1: [number, number][], poly2: [number, number][]) {
-  // Simplified: Check if any point of poly1 is in poly2 OR any point of poly2 is in poly1
-  // This is not 100% robust for crossing polygons but good enough for tiles
-  for (const p of poly1) if (isPointInPolygon(p, poly2)) return true
-  for (const p of poly2) if (isPointInPolygon(p, poly1)) return true
-  return false
-}
-
-interface ActiveTile {
-  id: string
-  url: string
-  cogUrl: string | null
-}
+/** From this zoom level on the map draws the AHN kaartbladen; below it the PDOK WMS overview. */
+const ZOOM_LEVEL_ELEVATION = 13
+const DEFAULT_RANGE = { min: -5, max: 50 }
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -146,31 +120,35 @@ export default function FarmAtlasElevationBlock() {
 
   // State
   const [indexData, setIndexData] = useState<FeatureCollection | null>(null)
-  const [activeTiles, setActiveTiles] = useState<ActiveTile[]>([])
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [legendMin, setLegendMin] = useState<number>(-5)
-  const [legendMax, setLegendMax] = useState<number>(50)
+  const [indexStatus, setIndexStatus] = useState<"idle" | "loading" | "error">("idle")
+  const [range, setRange] = useState(DEFAULT_RANGE)
   const [hoverElevation, setHoverElevation] = useState<number | null>(null)
   const [showFields, setShowFields] = useState(true)
   const [showElevation, setShowElevation] = useState(true)
-  const [networkStatus, setNetworkStatus] = useState<"idle" | "loading" | "slow" | "error">("idle")
+  const [currentZoom, setCurrentZoom] = useState<number>(0)
 
   const fieldsSavedId = "fieldsSaved"
   const fieldsSavedStyle = getFieldsStyle(fieldsSavedId)
-  const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
-
-  const onToggleElevation = useCallback(() => {
-    setShowElevation((prev) => !prev)
-  }, [])
+  // White dotted outline around every field; keep its round caps and add the visibility toggle
+  const dottedOutlineStyle = getDottedFieldOutlineStyle()
+  const fieldsOutlineLayer = {
+    ...dottedOutlineStyle,
+    layout: { ...dottedOutlineStyle.layout, ...layerLayout },
+  } as LayerProps
 
   const initialViewState = getViewState(fields)
+
+  // The decoded AHN tiles on the map, shared by the layer, the legend range and the hover value.
+  const [tiles] = useState(() => new ElevationTiles())
+  const tilesStatus = useSyncExternalStore(tiles.subscribe, tiles.getStatus, () => "idle" as const)
+  const items = useMemo(() => (indexData ? buildAhnItems(indexData) : []), [indexData])
 
   // Fetch COG Index once
   useEffect(() => {
     async function fetchIndex() {
       const cacheKey = "ahn_kaartbladindex_v1"
-      setNetworkStatus("loading")
+      setIndexStatus("loading")
 
       // Try cache first
       try {
@@ -181,7 +159,7 @@ export default function FarmAtlasElevationBlock() {
             // Cache for 24 hours and ensure data is valid
             if (data?.features?.length > 0 && Date.now() - timestamp < 24 * 60 * 60 * 1000) {
               setIndexData(data)
-              setNetworkStatus("idle")
+              setIndexStatus("idle")
               return
             }
           }
@@ -206,7 +184,7 @@ export default function FarmAtlasElevationBlock() {
         }
 
         setIndexData(data)
-        setNetworkStatus("idle")
+        setIndexStatus("idle")
 
         if (typeof localStorage !== "undefined") {
           try {
@@ -227,314 +205,83 @@ export default function FarmAtlasElevationBlock() {
               if (data?.features?.length > 0) {
                 console.warn("Network failed, using expired cache as fallback")
                 setIndexData(data)
-                setNetworkStatus("idle")
+                setIndexStatus("idle")
                 return
               }
             }
           } catch {}
         }
 
-        setNetworkStatus("error")
+        setIndexStatus("error")
       }
     }
     void fetchIndex()
   }, [])
 
-  const updateId = useRef(0)
-  const abortControllerRef = useRef<AbortController | null>(null)
-
-  // Function to update visible tiles
-  const activeTilesLengthRef = useRef(activeTiles.length)
-  useEffect(() => {
-    activeTilesLengthRef.current = activeTiles.length
-  }, [activeTiles])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-    }
-  }, [])
-
-  const updateVisibleTiles = useCallback(async () => {
-    if (!mapRef.current || !indexData) {
-      setIsUpdating(false)
-      return
-    }
-
-    const bounds = mapRef.current.getBounds()
-    const zoom = mapRef.current.getZoom()
-
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
-    // If zoomed out, clear active tiles to save resources (WMS will take over)
-    if (zoom < 13) {
-      if (activeTilesLengthRef.current > 0) {
-        setActiveTiles([])
-      }
-      setIsUpdating(false)
-      setNetworkStatus("idle")
-      return
-    }
-
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
-    const signal = abortController.signal
-
-    const currentId = ++updateId.current
-
-    setIsUpdating(true)
-    setNetworkStatus("loading")
-
-    // Detect slow network
-    const slowTimer = setTimeout(() => {
-      if (updateId.current === currentId && !signal.aborted) {
-        setNetworkStatus("slow")
-      }
-    }, 2000)
-
-    const sw = bounds.getSouthWest()
-    const ne = bounds.getNorthEast()
-    const nw = bounds.getNorthWest()
-    const se = bounds.getSouthEast()
-
-    // Convert viewport corners to RD (EPSG:28992)
-    try {
-      if (signal.aborted) return
-
-      const rdCoords = [
-        proj4("EPSG:28992").forward([nw.lng, nw.lat]),
-        proj4("EPSG:28992").forward([ne.lng, ne.lat]),
-        proj4("EPSG:28992").forward([se.lng, se.lat]),
-        proj4("EPSG:28992").forward([sw.lng, sw.lat]),
-      ] as [number, number][]
-
-      // Find intersecting tiles
-      // Optimization: limit to 12 tiles to avoid overload
-      const visibleFeatures = indexData.features
-        .filter((f) => {
-          if (f.geometry?.type !== "Polygon") return false
-          const ring = (f.geometry as any).coordinates[0]
-          return polygonIntersectsPolygon(rdCoords, ring)
-        })
-        .slice(0, 12)
-
-      // Calculate global min/max for the viewport by sampling
-      const samplePoints: { lng: number; lat: number }[] = []
-      const gridSize = 2 // Reduced from 3 (9 points instead of 16)
-      for (let i = 0; i <= gridSize; i++) {
-        for (let j = 0; j <= gridSize; j++) {
-          const lng = sw.lng + (ne.lng - sw.lng) * (i / gridSize)
-          const lat = sw.lat + (ne.lat - sw.lat) * (j / gridSize)
-          samplePoints.push({ lng, lat })
-        }
-      }
-
-      let min: number
-      let max: number
-
-      // Gather values for samples with concurrency limit
-      const results: (number | null)[] = []
-      const chunkSize = 2 // Reduced from 4
-      for (let i = 0; i < samplePoints.length; i += chunkSize) {
-        if (signal.aborted || updateId.current !== currentId) break
-
-        const chunk = samplePoints.slice(i, i + chunkSize)
-        const chunkResults = await Promise.all(
-          chunk.map(async (p) => {
-            try {
-              const rdP = proj4("EPSG:28992").forward([p.lng, p.lat]) as [number, number]
-              // Find which tile contains this point
-              const feature = visibleFeatures.find((f) => {
-                if (f.geometry?.type !== "Polygon") return false
-                const ring = (f.geometry as any).coordinates[0]
-                return isPointInPolygon(rdP, ring)
-              })
-              if (feature?.properties) {
-                const url =
-                  feature.properties.url ||
-                  feature.properties.href ||
-                  feature.properties.download_url
-                if (url) {
-                  // Requesting location value
-                  const vals = await locationValues(url, {
-                    longitude: p.lng,
-                    latitude: p.lat,
-                  })
-                  if (
-                    vals &&
-                    vals.length > 0 &&
-                    !Number.isNaN(vals[0]) &&
-                    vals[0] > -100 &&
-                    vals[0] < 1000
-                  ) {
-                    return vals[0]
-                  }
-                }
-              }
-            } catch {
-              // Ignore errors for individual points
-            }
-            return null
-          }),
-        )
-        results.push(...chunkResults)
-      }
-
-      const values = results
-
-      if (signal.aborted || updateId.current !== currentId) return
-
-      const validValues = values.filter((v) => v !== null) as number[]
-      if (validValues.length > 0) {
-        min = Math.min(...validValues)
-        max = Math.max(...validValues)
-      } else {
-        min = -5
-        max = 50
-      }
-
-      // Ensure minimum contrast
-      if (max - min < 1) {
-        min -= 0.5
-        max += 0.5
-      }
-
-      // Pad range slightly
-      const range = max - min
-      min -= range * 0.05
-      max += range * 0.05
-
-      setLegendMin(min)
-      setLegendMax(max)
-
-      // Format for color scale
-      const colorParam = `#color:BrewerSpectral11,${min},${max},-c`
-
-      const newTiles: ActiveTile[] = []
-      for (const feature of visibleFeatures) {
-        if (!feature.properties) continue
-        const url =
-          feature.properties.url || feature.properties.href || feature.properties.download_url
-
-        if (!url) continue
-        const id = feature.properties.kaartbladNr || url
-
-        newTiles.push({
-          id,
-          url,
-          cogUrl: `cog://${url}${colorParam}`,
-        })
-      }
-
-      setActiveTiles(newTiles)
-      setNetworkStatus("idle")
-    } catch (e) {
-      if (!signal.aborted) {
-        console.error("Error updating visible tiles:", e)
-        if (updateId.current === currentId) {
-          setNetworkStatus("error")
-        }
-      }
-    } finally {
-      if (updateId.current === currentId) {
-        setIsUpdating(false)
-      }
-      clearTimeout(slowTimer)
-    }
-  }, [indexData])
-
-  // Throttle updates
-  const updateRef = useRef(updateVisibleTiles)
-  useEffect(() => {
-    updateRef.current = updateVisibleTiles
-  }, [updateVisibleTiles])
-
-  const throttledUpdate = useMemo(
+  // Legend range: lowest and highest elevation of the loaded pixels in view, recomputed when the
+  // view changes and when tiles arrive. The layer is coloured with the same range.
+  const updateRange = useMemo(
     () =>
       throttle(
-        // Reads the latest updateVisibleTiles via a ref kept fresh above, so the throttle
-        // wrapper (and its internal timer) never needs recreating when it changes.
-        // oxlint-disable-next-line react/refs
-        () => updateRef.current(),
-        500,
-        {
-          leading: true,
-          trailing: true,
-        },
-      ),
-    [],
-  )
+        (map: Pick<MaplibreMap, "getZoom" | "getBounds">) => {
+          if (map.getZoom() < ZOOM_LEVEL_ELEVATION) return
+          const bounds = map.getBounds()
+          const found = tiles.rangeIn(
+            [
+              bounds.getNorthWest(),
+              bounds.getNorthEast(),
+              bounds.getSouthEast(),
+              bounds.getSouthWest(),
+            ].map((corner): [number, number] => [corner.lng, corner.lat]),
+          )
+          if (!found) return
 
-  // Initial update when map loads or index loads
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void throttledUpdate()
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [throttledUpdate])
-
-  // Refs for state accessible in throttled functions
-  const stateRef = useRef({ indexData, activeTiles })
-  useEffect(() => {
-    stateRef.current = { indexData, activeTiles }
-  }, [indexData, activeTiles])
-
-  // Handle hover to show elevation value
-  const handleMouseMove = useMemo(
-    () =>
-      // Reads the latest indexData/activeTiles via a ref kept fresh above; this callback only
-      // ever runs from a real mouse event, never during render.
-      // oxlint-disable-next-line react/refs
-      throttle(async (event: MapLayerMouseEvent) => {
-        const { indexData, activeTiles } = stateRef.current
-
-        if (!mapRef.current || mapRef.current.getZoom() < 13) {
-          setHoverElevation(null)
-          return
-        }
-
-        if (!indexData || activeTiles.length === 0) return
-
-        const { lng, lat } = event.lngLat
-
-        try {
-          const rdP = proj4("EPSG:28992").forward([lng, lat]) as [number, number]
-
-          const feature = indexData.features.find((f) => {
-            if (f.geometry?.type !== "Polygon") return false
-            const ring = (f.geometry as any).coordinates[0]
-            return isPointInPolygon(rdP, ring)
-          })
-
-          if (feature?.properties) {
-            const url =
-              feature.properties.url || feature.properties.href || feature.properties.download_url
-            if (url) {
-              const values = await locationValues(url, {
-                longitude: lng,
-                latitude: lat,
-              })
-              if (values && values.length > 0 && !Number.isNaN(values[0])) {
-                setHoverElevation(values[0])
-                return
-              }
-            }
+          let { min, max } = found
+          // Ensure minimum contrast
+          if (max - min < 1) {
+            min -= 0.5
+            max += 0.5
           }
-          setHoverElevation(null)
-        } catch {
-          setHoverElevation(null)
-        }
-      }, 200),
-    [],
+          // Pad range slightly
+          const padding = (max - min) * 0.05
+          setRange({ min: min - padding, max: max + padding })
+        },
+        300,
+        { leading: true, trailing: true },
+      ),
+    [tiles],
   )
 
-  const [currentZoom, setCurrentZoom] = useState<number>(0)
+  useEffect(
+    () =>
+      tiles.subscribe(() => {
+        const map = mapRef.current
+        if (map) updateRange(map)
+      }),
+    [tiles, updateRange],
+  )
+  useEffect(() => () => updateRange.cancel(), [updateRange])
+
+  // Hover: read the elevation from the loaded tiles, without a request.
+  const handleMouseMove = (event: MapLayerMouseEvent) => {
+    if (event.target.getZoom() < ZOOM_LEVEL_ELEVATION) {
+      setHoverElevation(null)
+      return
+    }
+    setHoverElevation(tiles.valueAt(event.lngLat.lng, event.lngLat.lat))
+  }
+
+  const showTiles = showElevation && currentZoom >= ZOOM_LEVEL_ELEVATION && items.length > 0
+  // The deck.gl canvas lies on top of the map, so it draws the field outlines over the elevation.
+  const deckLayers = showTiles
+    ? [
+        createElevationLayer({ items, tiles, min: range.min, max: range.max }),
+        fields ? createFieldOutlineLayer(fields, showFields) : null,
+      ]
+    : []
+
+  const networkStatus =
+    indexStatus === "error" ? "error" : indexStatus === "loading" ? "loading" : tilesStatus
 
   return (
     <div className="relative h-full w-full">
@@ -543,13 +290,10 @@ export default function FarmAtlasElevationBlock() {
         initialViewState={initialViewState}
         interactive={true}
         mapStyle="satellite"
-        onMoveEnd={throttledUpdate}
+        onMoveEnd={(e) => updateRange(e.target)}
         onMouseMove={showElevation ? handleMouseMove : undefined}
         onZoom={(e) => setCurrentZoom(e.viewState.zoom)}
-        onLoad={(e) => {
-          setCurrentZoom(e.target.getZoom())
-          void throttledUpdate()
-        }}
+        onLoad={(e) => setCurrentZoom(e.target.getZoom())}
       >
         <Controls
           showFlyToFields={fields && fields.features.length > 0}
@@ -559,13 +303,13 @@ export default function FarmAtlasElevationBlock() {
           showFields={showFields}
           onToggleFields={() => setShowFields(!showFields)}
           showElevation={showElevation}
-          onToggleElevation={onToggleElevation}
+          onToggleElevation={() => setShowElevation(!showElevation)}
         />
 
         <MapTilerAttribution />
 
         {/* WMS Overview Layer (Zoom < 13) */}
-        {showElevation && currentZoom < 13 && (
+        {showElevation && currentZoom < ZOOM_LEVEL_ELEVATION && (
           <Source
             id="ahn-wms"
             type="raster"
@@ -573,7 +317,7 @@ export default function FarmAtlasElevationBlock() {
               "https://service.pdok.nl/rws/ahn/wms/v1_0?service=WMS&request=GetMap&layers=dtm_05m&styles=&format=image/png&transparent=true&version=1.3.0&width=256&height=256&crs=EPSG:3857&bbox={bbox-epsg-3857}",
             ]}
             tileSize={256}
-            maxzoom={13}
+            maxzoom={ZOOM_LEVEL_ELEVATION}
             attribution="&copy; <a href='https://www.pdok.nl/'>PDOK</a>, <a href='https://www.ahn.nl/'>AHN</a>"
           >
             <Layer
@@ -585,40 +329,14 @@ export default function FarmAtlasElevationBlock() {
           </Source>
         )}
 
-        {/* Render Active Tiles (Zoom >= 13) */}
-        {showElevation &&
-          activeTiles.map((tile) => (
-            <Fragment key={tile.id}>
-              <Source
-                id={`ahn-cog-${tile.id}`}
-                type="raster"
-                url={tile.cogUrl!}
-                tileSize={256}
-                bounds={[3.3, 50.7, 7.2, 53.7]}
-                minzoom={0}
-                maxzoom={24}
-                attribution="&copy; <a href='https://www.pdok.nl/'>PDOK</a>, <a href='https://www.ahn.nl/'>AHN</a>"
-              >
-                <Layer
-                  id={`ahn-layer-${tile.id}`}
-                  type="raster"
-                  paint={{ "raster-opacity": 1 }}
-                  beforeId={fields ? "fieldsSavedOutline" : undefined}
-                />
-              </Source>
-            </Fragment>
-          ))}
+        {/* AHN kaartbladen (Zoom >= 13) and field outlines, drawn by deck.gl above the map */}
+        <DeckGlCanvas layers={deckLayers} />
 
         {/* Fields Overlay (Saved Fields) */}
         {fields && (
           <Source id={fieldsSavedId} type="geojson" data={fields}>
-            {/* Outline Layer - Visual */}
-            <Layer
-              {...({
-                ...fieldsSavedOutlineStyle,
-                layout: layerLayout,
-              } as any)}
-            />
+            {/* Outline Layer - white dotted, as in the other thematic atlas layers */}
+            <Layer id="fieldsSavedOutline" {...fieldsOutlineLayer} />
             {/* Fill Layer - Invisible but Clickable/Hoverable */}
             <Layer
               {...({
@@ -632,13 +350,17 @@ export default function FarmAtlasElevationBlock() {
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <ElevationLegend
-              min={legendMin}
-              max={legendMax}
-              loading={isUpdating}
+              min={range.min}
+              max={range.max}
+              loading={networkStatus === "loading" || networkStatus === "slow"}
               hoverValue={hoverElevation}
-              showScale={currentZoom >= 13 && showElevation}
+              showScale={currentZoom >= ZOOM_LEVEL_ELEVATION && showElevation}
               networkStatus={networkStatus}
-              message={showElevation && currentZoom < 13 ? "Zoom in voor meer detail" : undefined}
+              message={
+                showElevation && currentZoom < ZOOM_LEVEL_ELEVATION
+                  ? "Zoom in voor meer detail"
+                  : undefined
+              }
             />
           </div>
           <FieldTooltip zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
