@@ -29,6 +29,7 @@ Klik op je naam onderaan de zijbalk en kies **Account**.
 - **Profiel**: pas je naam en profielfoto aan met **Bijwerken**. Je e-mailadres kun je hier niet wijzigen; neem daarvoor contact op via Ondersteuning.
 - **Cookies**: pas je cookie-instellingen aan.
 - **API-sleutels**: voor wie {{appName}} wil koppelen aan een eigen systeem of dashboard (zie [Koppelen met de API](/manual/api)).
+- **AI-assistenten**: het adres en de instellingen om een AI-assistent zoals Claude te koppelen (zie [AI-assistenten koppelen](/manual/ai-assistenten)).
 
 ![Het profiel in het account van de gebruiker](screenshot:account-profiel)
 

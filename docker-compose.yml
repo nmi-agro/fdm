@@ -12,6 +12,9 @@ services:
       - PUBLIC_FDM_NAME=${PUBLIC_FDM_NAME:-FDM}
       - PUBLIC_FDM_URL=${PUBLIC_FDM_URL:-http://localhost:5173}
       - PUBLIC_FDM_API_URL=${PUBLIC_FDM_API_URL:-http://fdm-api:8080}
+      # claude.ai and Claude Desktop connectors connect from Anthropic's cloud and cannot reach
+      # localhost: test locally with Claude Code or a local model, or set a public address.
+      - PUBLIC_FDM_MCP_URL=${PUBLIC_FDM_MCP_URL:-http://localhost:8081}
       - PUBLIC_FDM_DATASETS_URL=${PUBLIC_FDM_DATASETS_URL:-https://storage.googleapis.com/fdm-public-data}
       - FDM_SESSION_SECRET=${FDM_SESSION_SECRET:-dev-session-secret-change-in-production-min-32-chars}
 
@@ -97,6 +100,43 @@ services:
       - PUBLIC_FDM_URL=${PUBLIC_FDM_URL_API:-http://localhost:8080}
       - FDM_API_ALLOWED_ORIGINS=${FDM_API_ALLOWED_ORIGINS:-http://localhost:5173}
       - NMI_API_KEY=${NMI_API_KEY:-}
+      - PUBLIC_SENTRY_DSN=${PUBLIC_SENTRY_DSN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fdm-app:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - fdm-network
+
+  fdm-mcp:
+    build:
+      context: .
+      dockerfile: ./fdm-mcp/dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=8080
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=fdm-app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-better-auth-secret-change-in-production-min-32-chars}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL_MCP:-http://localhost:8081}
+      - PUBLIC_FDM_NAME=${PUBLIC_FDM_NAME:-FDM}
+      - PUBLIC_FDM_MCP_URL=${PUBLIC_FDM_MCP_URL:-http://localhost:8081}
+      - FDM_MCP_ALLOWED_ORIGINS=${FDM_MCP_ALLOWED_ORIGINS:-}
+      - NMI_API_KEY=${NMI_API_KEY:-}
+      - PUBLIC_POSTHOG_KEY=${PUBLIC_POSTHOG_KEY:-}
+      - PUBLIC_POSTHOG_HOST=${PUBLIC_POSTHOG_HOST:-}
       - PUBLIC_SENTRY_DSN=${PUBLIC_SENTRY_DSN:-}
     depends_on:
       postgres:

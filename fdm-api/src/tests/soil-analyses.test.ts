@@ -22,13 +22,16 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const baseSoilAnalysis = {
   a_id: "sa-1",
   a_date: new Date("2023-05-01"),
-  a_source: "Lab NL",
+  a_source: "nl-rva-l122",
   b_id_sampling: "samp-1",
   a_depth_upper: 0,
   a_depth_lower: 30,
@@ -104,7 +107,7 @@ const currentSoilDataItem = {
   sources: [
     {
       a_id: "sa-1",
-      a_source: "Lab NL",
+      a_source: "nl-rva-l122",
       b_sampling_date: new Date("2023-04-28"),
       a_depth_upper: 0,
       a_depth_lower: 30,
@@ -113,7 +116,7 @@ const currentSoilDataItem = {
     },
     {
       a_id: "sa-2",
-      a_source: "Lab NL",
+      a_source: "nl-rva-l122",
       b_sampling_date: new Date("2023-04-20"),
       a_depth_upper: 0,
       a_depth_lower: 30,
@@ -189,7 +192,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
       }),
@@ -222,7 +225,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
       }),
@@ -249,7 +252,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
         b_sampling_geometry: samplingPoints,
@@ -276,7 +279,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
       },
       body: JSON.stringify({
         a_date: "2023-05-01",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2023-04-28",
         b_sampling_geometry_zone: samplingPoints,
@@ -296,7 +299,7 @@ describe("POST /fields/:b_id/soil-analyses", () => {
         },
         body: JSON.stringify({
           a_date: "2023-05-01",
-          a_source: "Lab NL",
+          a_source: "nl-rva-l122",
           a_depth_lower: 30,
           b_sampling_date: "2023-04-28",
           ...geometries,
@@ -389,7 +392,7 @@ describe("GET /soil-analyses/:a_id", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.a_id).toBe("sa-1")
-    expect(body.a_source).toBe("Lab NL")
+    expect(body.a_source).toBe("nl-rva-l122")
     expect(body.a_ph_cc).toBe(6.2)
   })
 
@@ -563,7 +566,7 @@ describe("GET /fields/:b_id/current-soil-data", () => {
     expect(body[0].sources).toEqual([
       {
         a_id: "sa-1",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         b_sampling_date: "2023-04-28",
         a_depth_upper: 0,
         a_depth_lower: 30,
@@ -572,7 +575,7 @@ describe("GET /fields/:b_id/current-soil-data", () => {
       },
       {
         a_id: "sa-2",
-        a_source: "Lab NL",
+        a_source: "nl-rva-l122",
         b_sampling_date: "2023-04-20",
         a_depth_upper: 0,
         a_depth_lower: 30,
@@ -675,7 +678,7 @@ describe("soil condition score (BCS) parameters", () => {
       headers: { "x-api-key": "valid", "content-type": "application/json" },
       body: JSON.stringify({
         a_date: "2026-05-01",
-        a_source: "nl-other-nmi",
+        a_source: "nl-rva-l122",
         a_depth_lower: 30,
         b_sampling_date: "2026-05-01",
         a_ss_bcs: 2,
@@ -689,5 +692,97 @@ describe("soil condition score (BCS) parameters", () => {
     expect(body.a_rt_bcs).toBeNull()
     const analysisData = addSoilAnalysis.mock.calls[0]?.[7]
     expect(analysisData).toMatchObject({ a_ss_bcs: 2, a_p_bcs: 0 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Ordering, partial updates and records that cannot be read back
+// ---------------------------------------------------------------------------
+describe("Soil analyses — ordering, partial updates and missing records", () => {
+  beforeEach(() => {
+    validKey()
+  })
+
+  const jsonHeaders = { "x-api-key": "valid", "content-type": "application/json" }
+
+  it("GET /farms/:b_id_farm/soil-analyses orders analyses with the same date by a_id", async () => {
+    const app = makeApp({
+      getSoilAnalysesForFarm: vi.fn().mockResolvedValue(
+        new Map([
+          [
+            "field-1",
+            [
+              { ...baseSoilAnalysis, a_id: "sa-c", a_date: new Date("2023-05-01") },
+              { ...baseSoilAnalysis, a_id: "sa-a", a_date: new Date("2023-05-01") },
+            ],
+          ],
+          ["field-2", [{ ...baseSoilAnalysis, a_id: "sa-b", a_date: new Date("2022-03-01") }]],
+        ]),
+      ),
+    })
+    const res = await app.request("/farms/farm-1/soil-analyses", {
+      headers: { "x-api-key": "valid" },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.data.map((a: { a_id: string }) => a.a_id)).toEqual(["sa-b", "sa-a", "sa-c"])
+  })
+
+  it("POST returns 500 when the created soil analysis cannot be retrieved", async () => {
+    const app = makeApp({
+      addSoilAnalysis: vi.fn().mockResolvedValue("sa-new"),
+      getSoilAnalysis: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/field-1/soil-analyses", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        a_date: "2023-05-01",
+        a_source: "nl-rva-l122",
+        a_depth_lower: 30,
+        b_sampling_date: "2023-04-28",
+      }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH passes a new date and source on to the service", async () => {
+    const updateSoilAnalysis = vi.fn().mockResolvedValue(undefined)
+    const app = makeApp({
+      updateSoilAnalysis,
+      getSoilAnalysis: vi.fn().mockResolvedValue({
+        ...baseSoilAnalysis,
+        a_date: new Date("2023-06-01"),
+        a_source: "nl-rva-l136",
+      }),
+    })
+    const res = await app.request("/soil-analyses/sa-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ a_date: "2023-06-01", a_source: "nl-rva-l136" }),
+    })
+    expect(res.status).toBe(200)
+    expect(updateSoilAnalysis.mock.calls[0][3]).toEqual({
+      a_date: new Date("2023-06-01"),
+      a_source: "nl-rva-l136",
+    })
+    const body = await res.json()
+    expect(body.a_date).toBe("2023-06-01")
+    expect(body.a_source).toBe("nl-rva-l136")
+  })
+
+  it("PATCH returns 404 when the soil analysis does not exist", async () => {
+    const app = makeApp({
+      updateSoilAnalysis: vi.fn().mockResolvedValue(undefined),
+      getSoilAnalysis: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/soil-analyses/sa-x", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ a_ph_cc: 6.8 }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
   })
 })

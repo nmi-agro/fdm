@@ -67,7 +67,12 @@ for (const name of SUITE === "smoke" ? [...ALWAYS_OFF, ...SMOKE_OFF] : ALWAYS_OF
 // Public settings are emptied rather than removed: when one is missing at runtime, the server
 // falls back to the value built into the app, but the browser does not, and the page fails to
 // hydrate.
-for (const name of ["PUBLIC_SENTRY_DSN", "PUBLIC_POSTHOG_KEY", "PUBLIC_FDM_API_URL"]) {
+for (const name of [
+  "PUBLIC_SENTRY_DSN",
+  "PUBLIC_POSTHOG_KEY",
+  "PUBLIC_FDM_API_URL",
+  "PUBLIC_FDM_MCP_URL",
+]) {
   appEnv[name] = ""
 }
 

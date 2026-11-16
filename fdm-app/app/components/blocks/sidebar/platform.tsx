@@ -1,4 +1,4 @@
-import { ArrowLeft, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
+import { ArrowLeft, Bot, Cookie, KeyRound, Languages, Sparkles, User } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { clientConfig } from "@/app/lib/config"
 import { buttonVariants } from "~/components/ui/button"
@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { getMcpEndpoint } from "~/lib/mcp-clients"
 import { useCookieConsentStore } from "~/store/cookie-consent"
 
 export function SidebarPlatform() {
@@ -50,6 +51,19 @@ export function SidebarPlatform() {
                 }
               />
             </SidebarMenuItem>
+            {getMcpEndpoint(clientConfig.mcpUrl) && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={location.pathname === "/user/settings/mcp"}
+                  render={
+                    <NavLink to="/user/settings/mcp">
+                      <Bot />
+                      <span>AI-assistenten</span>
+                    </NavLink>
+                  }
+                />
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               <SidebarMenuButton
                 isActive={location.pathname === "/user/settings/api-keys"}
