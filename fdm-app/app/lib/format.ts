@@ -2,25 +2,10 @@
 const formatters = new Map<number, Intl.NumberFormat>()
 
 /**
- * Formats a number with Dutch separators and a fixed number of decimals, e.g. 1245.06 as "1.245"
- * (0 decimals, the default) and -2.99 as "-3,0" (1 decimal).
- *
- * Use it for the values of the balances, so that whole numbers and decimals are written the same
- * way across cards, details and charts. A negative value that rounds to zero is shown without a
- * minus sign, e.g. -0.04 as "0,0" (1 decimal).
- *
- * @param value - The number to format.
- * @param fractionDigits - The number of decimals. Defaults to 0.
- * @returns The formatted number.
- *
- * @example
- * ```ts
- * formatFixed(1245.06) // "1.245"
- * formatFixed(-2.99, 1) // "-3,0"
- * formatFixed(-0.04, 1) // "0,0"
- * ```
+ * Formats a number with Dutch separators and a fixed number of decimals. A negative value that
+ * rounds to zero is shown without a minus sign.
  */
-export function formatFixed(value: number, fractionDigits = 0): string {
+function formatFixed(value: number, fractionDigits: number): string {
   let formatter = formatters.get(fractionDigits)
   if (!formatter) {
     formatter = new Intl.NumberFormat("nl-NL", {
@@ -32,4 +17,49 @@ export function formatFixed(value: number, fractionDigits = 0): string {
   // A value that rounds to zero is formatted as zero, so that it gets no minus sign
   const roundsToZero = Math.abs(value) * 10 ** fractionDigits < 0.5
   return formatter.format(roundsToZero ? 0 : value)
+}
+
+/**
+ * Formats a value of a balance with Dutch separators, as a whole number, but with one decimal when
+ * it is between 0 and 5 and not a whole number, so that a small value, such as an N₂O emission,
+ * does not show as 0. A value that rounds to zero is shown as "0".
+ *
+ * Use it for all values of the balances, so that they are written the same way across cards,
+ * details and charts.
+ *
+ * @param value - The value to format.
+ * @returns The formatted value.
+ *
+ * @example
+ * ```ts
+ * formatBalanceValue(1245.06) // "1.245"
+ * formatBalanceValue(-1.34) // "-1,3"
+ * formatBalanceValue(3) // "3"
+ * formatBalanceValue(-0.04) // "0"
+ * ```
+ */
+export function formatBalanceValue(value: number): string {
+  const roundedToOneDecimal = Math.round(Math.abs(value) * 10) / 10
+  const showDecimal =
+    roundedToOneDecimal > 0 && roundedToOneDecimal < 5 && !Number.isInteger(roundedToOneDecimal)
+  return formatFixed(value, showDecimal ? 1 : 0)
+}
+
+/**
+ * Formats a difference between two balance values like {@link formatBalanceValue}, with a plus sign
+ * when it is positive.
+ *
+ * @param value - The difference to format.
+ * @returns The formatted difference.
+ *
+ * @example
+ * ```ts
+ * formatBalanceDifference(12.4) // "+12"
+ * formatBalanceDifference(-1.34) // "-1,3"
+ * formatBalanceDifference(0.02) // "0"
+ * ```
+ */
+export function formatBalanceDifference(value: number): string {
+  const formatted = formatBalanceValue(value)
+  return value > 0 && formatted !== "0" ? `+${formatted}` : formatted
 }

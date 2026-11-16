@@ -37,7 +37,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { getOrganizationFarmGroups, parseFarmIdsParam } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
-import { formatFixed } from "~/lib/format"
+import { formatBalanceDifference, formatBalanceValue } from "~/lib/format"
 import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
 type Farm = Awaited<ReturnType<typeof getFarms>>[number]
@@ -302,10 +302,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
       : undefined
     const delta =
       farmBalance !== undefined && orgAverage !== undefined ? farmBalance - orgAverage : undefined
-    const deltaFormatted =
-      delta !== undefined
-        ? `${delta >= 0 ? "+" : ""}${(Math.round(delta * 10) / 10).toFixed(1)}`
-        : undefined
+    const deltaFormatted = delta !== undefined ? formatBalanceDifference(delta) : undefined
     const deltaClass =
       delta === undefined ? "text-orange-500" : delta < 0 ? "text-green-600" : "text-red-600"
     return (
@@ -351,7 +348,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
         <div className="ml-auto shrink-0 pl-4 text-right font-medium tabular-nums">
           {!balanceResult.hasErrors ? (
             <>
-              <span>{`${formatFixed(balanceResult.balance)} / ${formatFixed(balanceResult.target)}`}</span>
+              <span>{`${formatBalanceValue(balanceResult.balance)} / ${formatBalanceValue(balanceResult.target)}`}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
                   <TooltipTrigger
@@ -365,7 +362,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
                     }
                   />
                   <TooltipContent>
-                    {`Verschil t.o.v. het organisatiegemiddelde (${(Math.round((orgAverage ?? 0) * 10) / 10).toFixed(1)} kg N / ha)`}
+                    {`Verschil t.o.v. het organisatiegemiddelde (${formatBalanceValue(orgAverage ?? 0)} kg N / ha)`}
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -395,7 +392,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>
-                  {`${formatFixed(resolvedNitrogenBalanceResult.balance)} / ${formatFixed(resolvedNitrogenBalanceResult.target)}`}
+                  {`${formatBalanceValue(resolvedNitrogenBalanceResult.balance)} / ${formatBalanceValue(resolvedNitrogenBalanceResult.target)}`}
                 </p>
                 {hasErrors ? (
                   <Tooltip>
@@ -434,7 +431,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.supply.total)}
+              {formatBalanceValue(resolvedNitrogenBalanceResult.supply.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -446,7 +443,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.removal.total)}
+              {formatBalanceValue(resolvedNitrogenBalanceResult.removal.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -458,7 +455,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.emission.ammonia.total)}
+              {formatBalanceValue(resolvedNitrogenBalanceResult.emission.ammonia.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>

@@ -11,6 +11,7 @@ import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { ChartContainer, ChartLegend, ChartTooltip } from "~/components/ui/chart"
+import { formatBalanceValue } from "~/lib/format"
 
 type FieldInput = FdmFieldInput
 type FarmBalanceData = NitrogenBalanceNumeric
@@ -538,7 +539,10 @@ export function NitrogenBalanceChart(
                 <CardContent>
                   <div className="font-bold">
                     <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
-                    {chartData[name]} {itemConfig.unit ?? "kg N / ha"}
+                    {typeof chartData[name] === "number"
+                      ? formatBalanceValue(chartData[name])
+                      : chartData[name]}{" "}
+                    {itemConfig.unit ?? "kg N / ha"}
                   </div>
                 </CardContent>
               </Card>

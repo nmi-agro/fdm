@@ -13,4 +13,4 @@ Also:
 - `FertilizerDetail` accepts an optional `p_type_rvo`, used to recognise sewage sludge.
 - The types `NitrogenEmissionNitrousOxideNumeric` and `NitrogenEmissionNitrousOxideFarmNumeric` are exported.
 - The nitrogen in crop residues is calculated by one shared function for the removal, the ammonia emission and the N₂O emission, and the crop rotation group (grassland, cropland or bare soil) by one shared function for the nitrate leaching and the emissions. The results do not change.
-- Field balances cached by an earlier build of the same version are no longer reused, because the shape of the result changed.
+- The calculator version in the key of cached calculations now includes a hash of the calculator source (`fdm-calculator:<version>+<hash>`), so a cached result of older code is not reused, also between releases and during local development.

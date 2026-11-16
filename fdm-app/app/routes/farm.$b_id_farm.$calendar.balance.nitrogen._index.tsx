@@ -38,7 +38,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { formatFixed } from "~/lib/format"
+import { formatBalanceValue } from "~/lib/format"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
@@ -258,8 +258,8 @@ function FarmBalanceNitrogenOverview({
               <div className="flex items-center gap-4">
                 <p>
                   {useEffectiveNitrogen
-                    ? formatFixed(resolvedNitrogenBalanceResult.balance)
-                    : `${formatFixed(resolvedNitrogenBalanceResult.balance)} / ${formatFixed(resolvedNitrogenBalanceResult.target)}`}
+                    ? formatBalanceValue(resolvedNitrogenBalanceResult.balance)
+                    : `${formatBalanceValue(resolvedNitrogenBalanceResult.balance)} / ${formatBalanceValue(resolvedNitrogenBalanceResult.target)}`}
                 </p>
                 {hasErrors ? (
                   <Tooltip>
@@ -300,7 +300,7 @@ function FarmBalanceNitrogenOverview({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.supply.total)}
+              {formatBalanceValue(resolvedNitrogenBalanceResult.supply.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -312,7 +312,7 @@ function FarmBalanceNitrogenOverview({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.removal.total)}
+              {formatBalanceValue(resolvedNitrogenBalanceResult.removal.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -324,7 +324,7 @@ function FarmBalanceNitrogenOverview({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFixed(resolvedNitrogenBalanceResult.emission.ammonia.total)}
+              {formatBalanceValue(resolvedNitrogenBalanceResult.emission.ammonia.total)}
             </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
@@ -411,10 +411,12 @@ function FarmBalanceNitrogenOverview({
                     <div className="ml-auto shrink-0 pl-4 text-end font-medium tabular-nums">
                       {fieldResult.balance ? (
                         useEffectiveNitrogen ? (
-                          <span key="effective">{formatFixed(fieldResult.balance.balance)}</span>
+                          <span key="effective">
+                            {formatBalanceValue(fieldResult.balance.balance)}
+                          </span>
                         ) : (
                           <span key="target">
-                            {`${formatFixed(fieldResult.balance.balance)} / ${formatFixed(fieldResult.balance.target)}`}
+                            {`${formatBalanceValue(fieldResult.balance.balance)} / ${formatBalanceValue(fieldResult.balance.target)}`}
                           </span>
                         )
                       ) : (

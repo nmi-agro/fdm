@@ -46,7 +46,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
-import { formatFixed } from "~/lib/format"
+import { formatBalanceValue } from "~/lib/format"
 import { useCalendarStore } from "~/store/calendar"
 
 type NitrogenFieldResultWithErrorId = NitrogenBalanceFieldResultNumeric & {
@@ -359,8 +359,8 @@ function NitrogenBalance({
               <div className="flex items-center gap-4">
                 <p>
                   {useEffectiveNitrogen
-                    ? formatFixed(result.balance)
-                    : `${formatFixed(result.balance)} / ${formatFixed(result.target)}`}
+                    ? formatBalanceValue(result.balance)
+                    : `${formatBalanceValue(result.balance)} / ${formatBalanceValue(result.target)}`}
                 </p>
                 {useEffectiveNitrogen ? null : result.balance <= result.target ? (
                   <CircleCheck
@@ -388,7 +388,7 @@ function NitrogenBalance({
             <ArrowDown className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatFixed(result.supply.total)}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.supply.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
@@ -398,7 +398,7 @@ function NitrogenBalance({
             <ArrowRight className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatFixed(result.removal.total)}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.removal.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
@@ -408,7 +408,9 @@ function NitrogenBalance({
             <ArrowUpFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatFixed(result.emission.ammonia.total)}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(result.emission.ammonia.total)}
+            </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>

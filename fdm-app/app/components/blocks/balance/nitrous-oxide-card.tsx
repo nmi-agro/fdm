@@ -1,6 +1,6 @@
-import { ArrowRightFromLine, Cloud } from "lucide-react"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
-import { formatFixed } from "~/lib/format"
+import { ArrowRightFromLine, ArrowUpFromLine } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { formatBalanceValue } from "~/lib/format"
 
 interface NitrateLeachingCardProps {
   /** The nitrate leaching in kg N / ha (negative). */
@@ -19,12 +19,10 @@ export function NitrateLeachingCard({ nitrate }: NitrateLeachingCardProps) {
         <ArrowRightFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatFixed(nitrate)}</div>
+        <div className="text-2xl font-bold">{formatBalanceValue(nitrate)}</div>
         <p className="text-muted-foreground text-xs">kg N / ha</p>
-      </CardContent>
-      <CardFooter>
         <p className="text-muted-foreground text-xs">Telt niet mee in de balans</p>
-      </CardFooter>
+      </CardContent>
     </Card>
   )
 }
@@ -46,13 +44,13 @@ export function NitrousOxideCard({ nitrousOxide, co2eq }: NitrousOxideCardProps)
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium">Lachgasemissie</CardTitle>
-        <Cloud className="text-muted-foreground text-xs" aria-hidden="true" />
+        <ArrowUpFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatFixed(nitrousOxide, 1)}</div>
+        <div className="text-2xl font-bold">{formatBalanceValue(nitrousOxide)}</div>
         <p className="text-muted-foreground text-xs">kg N / ha</p>
         <p className="text-muted-foreground text-xs">
-          <span>{`${formatFixed(co2eq)} kg CO₂-eq / ha`}</span>
+          <span>{`${formatBalanceValue(co2eq)} kg CO₂-eq / ha`}</span>
         </p>
       </CardContent>
     </Card>
