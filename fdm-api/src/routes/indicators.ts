@@ -57,6 +57,14 @@ const FarmMetricSchema = z.object({
   score: z.number().describe("Area-weighted score (0..1)."),
 })
 
+/** Why a field has no indicator score or measure options in the year. */
+const ExclusionReasonSchema = z
+  .enum(["bufferstrip", "nature", "no_main_cultivation"])
+  .nullable()
+  .describe(
+    "Why the field is excluded: 'bufferstrip', 'nature' (nature or other non-agricultural main cultivation) or 'no_main_cultivation' (no main cultivation in the year). `null` when the field is not excluded.",
+  )
+
 const FieldIndicatorsSchema = z
   .object({
     b_id: z.string(),
@@ -64,8 +72,9 @@ const FieldIndicatorsSchema = z
     is_excluded: z
       .boolean()
       .describe(
-        "`true` for buffer strips and nature fields, which have no indicator score. `indicators` and `aggregations` are then empty.",
+        "`true` for buffer strips, nature fields and fields without a main cultivation in the year, which have no indicator score. `indicators` and `aggregations` are then empty.",
       ),
+    exclusion_reason: ExclusionReasonSchema,
     indicators: z.array(IndicatorScoreSchema),
     aggregations: z.array(AggregationScoreSchema),
   })
@@ -84,7 +93,9 @@ const FarmIndicatorsSchema = z
           aggregations: z.array(AggregationScoreSchema),
         }),
       )
-      .describe("Eligible fields only; buffer strips and nature fields are left out."),
+      .describe(
+        "Eligible fields only; buffer strips, nature fields and fields without a main cultivation in the year are left out.",
+      ),
     farm: z
       .object({
         indicators: z.array(FarmMetricSchema.extend({ indicator_id: z.string() })),
@@ -164,6 +175,7 @@ const FieldMeasureOptionsSchema = z
     b_id: z.string(),
     year: z.number().int(),
     is_excluded: z.boolean().describe("`true` for excluded fields; `data` is then empty."),
+    exclusion_reason: ExclusionReasonSchema,
     data: z.array(MeasureOptionSchema),
   })
   .openapi("FieldMeasureOptions")
@@ -191,7 +203,7 @@ const fieldIndicatorsRoute = createRoute({
   "x-badges": [NEW_BADGE],
   summary: "Get indicator scores of a field",
   description:
-    "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips and nature fields return `is_excluded: true` with empty arrays. Counts against the `nmi` rate limit.",
+    "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips, nature fields and fields without a main cultivation in the year return `is_excluded: true` with their `exclusion_reason` and empty arrays. Counts against the `nmi` rate limit.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: { params: z.object({ b_id: z.string() }), query: YearQuerySchema },
   responses: {
@@ -315,6 +327,7 @@ export function registerIndicatorRoutes(
         b_id: result.b_id,
         year: result.year,
         is_excluded: result.is_excluded,
+        exclusion_reason: result.exclusion_reason,
         indicators: result.score?.indicators ?? [],
         aggregations: result.score?.aggregations ?? [],
       },

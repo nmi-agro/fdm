@@ -27,13 +27,14 @@ const SOIL_ANALYSIS_FIELDS = [
 /**
  * Request fields sent to `POST /maatwerk/bln3/score/field`.
  *
- * `b_bufferstrip`, `b_lu_croprotation`, `b_lu_catalogue` and `isExcluded` are
- * deliberately absent: they are only used internally to decide whether a field
+ * `b_bufferstrip`, `b_lu_croprotation`, `b_lu_catalogue`, `isExcluded` and
+ * `exclusionReason` are deliberately absent: they are only used internally to decide whether a field
  * is excluded and use FDM vocabulary the NMI API does not accept.
  */
 export const BLN3_SCORE_FIELDS = [
   "a_lat",
   "a_lon",
+  "b_year",
   "cultivations",
   "b_soiltype_agr",
   "b_gwl_class",

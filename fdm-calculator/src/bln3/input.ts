@@ -13,14 +13,7 @@ import type {
   Bln3ScoreCollectedInputs,
 } from "./types"
 import { findHoofdteelt } from "../shared/hoofdteelt"
-
-const EXCLUDED_BRP_CODES = ["nl_343", "nl_6801"]
-
-function isExcludedCultivation(croprotation?: string | null, catalogue?: string | null): boolean {
-  if (croprotation === "nature") return true
-  if (catalogue && EXCLUDED_BRP_CODES.includes(catalogue)) return true
-  return false
-}
+import { getBln3ExclusionReason } from "./exclusion"
 
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
@@ -40,7 +33,11 @@ function isExcludedCultivation(croprotation?: string | null, catalogue?: string 
  *   Start date is ignored when retrieving soil analyses.
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 calculation.
+ *   `b_year` is the year of the timeframe end (or start); without a timeframe, the latest
+ *   year with a cultivation, else the current year.
  * @returns A promise resolving to the collected BLN3 score inputs (without `nmiApiKey`).
+ *   `isExcluded` and `exclusionReason` are set for buffer strips, nature fields and fields
+ *   without a main cultivation in `b_year`.
  * @throws {Error} If data collection fails.
  */
 export async function collectInputForBln3Score(
@@ -143,9 +140,8 @@ export async function collectInputForBln3Score(
       }
     }
 
-    // Determine if the field is excluded (buffer strip, nature crop rotation, or excluded BRP codes)
-    const isBufferstrip = field.b_bufferstrip === true
-    const evaluationYear =
+    // Year of the score: the selected year, else the latest year with a cultivation.
+    const b_year =
       timeframe?.end?.getFullYear() ??
       timeframe?.start?.getFullYear() ??
       (cultivationsWithStart.length > 0
@@ -155,11 +151,14 @@ export async function collectInputForBln3Score(
           }, 0)
         : new Date().getFullYear())
 
-    const targetMainCultivation = findHoofdteelt(cultivations, evaluationYear, true)
+    const targetMainCultivation = findHoofdteelt(cultivations, b_year, true)
     const catalogueCode = targetMainCultivation?.b_lu_catalogue
-    const isExcluded =
-      isBufferstrip ||
-      isExcludedCultivation(targetMainCultivation?.b_lu_croprotation, catalogueCode)
+    const exclusionReason = getBln3ExclusionReason({
+      b_bufferstrip: field.b_bufferstrip,
+      hasMainCultivation: targetMainCultivation !== null,
+      b_lu_croprotation: targetMainCultivation?.b_lu_croprotation,
+      b_lu_catalogue: catalogueCode,
+    })
 
     // Map measures: "bln_BM3" → { measure_id: "BM3", year: 2025 }
     const fallbackYear = timeframe?.end?.getFullYear()
@@ -178,6 +177,7 @@ export async function collectInputForBln3Score(
     return {
       a_lat,
       a_lon,
+      b_year,
       b_soiltype_agr: (latestWithSoiltype?.b_soiltype_agr ??
         undefined) as Bln3ScoreCollectedInputs["b_soiltype_agr"],
       b_gwl_class: (latestWithGwlClass?.b_gwl_class ??
@@ -187,7 +187,7 @@ export async function collectInputForBln3Score(
         b_lu_croprotation: targetMainCultivation.b_lu_croprotation,
       }),
       ...(catalogueCode && { b_lu_catalogue: catalogueCode }),
-      ...(isExcluded && { isExcluded: true }),
+      ...(exclusionReason && { isExcluded: true, exclusionReason }),
       ...(bln3Cultivations.length > 0 && {
         cultivations: bln3Cultivations,
       }),
@@ -221,6 +221,8 @@ export async function collectInputForBln3Score(
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 measure applicability estimation.
  * @returns A promise resolving to collected BLN3 measure applicability inputs.
+ *   `isExcluded` and `exclusionReason` are set for buffer strips, nature fields and fields
+ *   without a main cultivation in `b_year`.
  */
 export async function collectInputForBln3MeasureApplicability(
   fdm: FdmType,
@@ -307,13 +309,14 @@ export async function collectInputForBln3MeasureApplicability(
       ),
     ) as string[]
 
-    // Determine if the field is excluded (buffer strip, nature crop rotation, or excluded BRP codes)
-    const isBufferstrip = field.b_bufferstrip === true
     const targetMainCultivation = findHoofdteelt(cultivations, b_year, true)
     const catalogueCode = targetMainCultivation?.b_lu_catalogue
-    const isExcluded =
-      isBufferstrip ||
-      isExcludedCultivation(targetMainCultivation?.b_lu_croprotation, catalogueCode)
+    const exclusionReason = getBln3ExclusionReason({
+      b_bufferstrip: field.b_bufferstrip,
+      hasMainCultivation: targetMainCultivation !== null,
+      b_lu_croprotation: targetMainCultivation?.b_lu_croprotation,
+      b_lu_catalogue: catalogueCode,
+    })
 
     return {
       a_lat,
@@ -326,7 +329,7 @@ export async function collectInputForBln3MeasureApplicability(
         b_lu_croprotation: targetMainCultivation.b_lu_croprotation,
       }),
       ...(catalogueCode && { b_lu_catalogue: catalogueCode }),
-      ...(isExcluded && { isExcluded: true }),
+      ...(exclusionReason && { isExcluded: true, exclusionReason }),
       ...(appMethods.length > 0 && { p_app_method: appMethods }),
       ...(bln3Cultivations.length > 0 && { cultivations: bln3Cultivations }),
       ...soilData,

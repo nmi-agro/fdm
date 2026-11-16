@@ -72,7 +72,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
+import { getBln3ExclusionMessage, getBln3ExclusionReason } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
@@ -167,11 +167,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       ? activeCultivation.b_lu_end.toISOString().split("T")[0]
       : null
 
-    const isExcluded = isExcludedFromBln3({
+    // Same rule as the BLN3 input collectors: the main cultivation of b_year decides
+    const bln3MainCultivation = getMainCultivation(cultivations, String(b_year))
+    const exclusionReason = getBln3ExclusionReason({
       b_bufferstrip: field.b_bufferstrip,
-      b_lu_croprotation: activeCultivation?.b_lu_croprotation,
-      b_lu_catalogue: activeCultivation?.b_lu_catalogue,
+      hasMainCultivation: bln3MainCultivation !== undefined,
+      b_lu_croprotation: bln3MainCultivation?.b_lu_croprotation,
+      b_lu_catalogue: bln3MainCultivation?.b_lu_catalogue,
     })
+    const isExcluded = exclusionReason !== null
 
     const [bln3Result, applicabilityMap, advice] = isExcluded
       ? [null, null, null]
@@ -280,6 +284,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       field,
       isExcluded,
+      exclusionReason,
       activeCultivationName: activeCultivation?.b_lu_name ?? null,
       fieldWritePermission,
       measures,
@@ -317,17 +322,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (intent === "add") {
       const field = await getField(fdm, session.principal_id, b_id)
       const fieldCultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
-      const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
+      const calendarYear = Number(calendar)
+      const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
+      const defaultCultivation = getMainCultivation(fieldCultivations, String(b_year))
       if (
-        isExcludedFromBln3({
+        getBln3ExclusionReason({
           b_bufferstrip: field.b_bufferstrip,
+          hasMainCultivation: defaultCultivation !== undefined,
           b_lu_croprotation: defaultCultivation?.b_lu_croprotation,
           b_lu_catalogue: defaultCultivation?.b_lu_catalogue,
-        })
+        }) !== null
       ) {
         return dataWithError(
           "forbidden: excluded field",
-          "Maatregelen kunnen niet worden toegevoegd aan bufferstroken of natuurpercelen.",
+          "Maatregelen kunnen niet worden toegevoegd aan bufferstroken, natuurpercelen of percelen zonder hoofdteelt.",
         )
       }
 
@@ -658,6 +666,7 @@ export default function MeasuresFieldDetail() {
   const {
     field,
     isExcluded,
+    exclusionReason,
     activeCultivationName,
     measures,
     catalogue,
@@ -707,6 +716,7 @@ export default function MeasuresFieldDetail() {
               b_bufferstrip: field.b_bufferstrip,
               cultivationName: activeCultivationName,
               calendarYear: calendar,
+              exclusionReason,
             })}
           </p>
         </div>

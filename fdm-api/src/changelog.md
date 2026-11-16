@@ -1,5 +1,12 @@
 Notable changes to the REST API, newest first. Operations that were added recently carry a **New** badge in this reference.
 
+## 0.3.3
+
+### Indicators: fields without a main cultivation
+
+- A field without a main cultivation in the requested year now gets no indicator scores and no measure options. `GET /fields/{b_id}/indicators` and `GET /fields/{b_id}/measures/catalogue` return it with `is_excluded: true` and empty lists, and `GET /farms/{b_id_farm}/indicators` leaves it out of `fields` and the farm scores.
+- Both field endpoints return the new `exclusion_reason`: `bufferstrip`, `nature`, `no_main_cultivation`, or `null` when the field is not excluded.
+
 ## 0.3.0
 
 ### Breaking: fertilizer catalogue endpoint removed

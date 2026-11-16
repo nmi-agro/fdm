@@ -574,6 +574,59 @@ describe("collectInputForBln3Score", () => {
 
     expect(result.b_lu_catalogue).toBe("nl_343")
     expect(result.isExcluded).toBe(true)
+    expect(result.exclusionReason).toBe("nature")
+  })
+
+  it("should set b_year to the year of the timeframe", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.b_year).toBe(2024)
+    expect(result.isExcluded).toBeUndefined()
+    expect(result.exclusionReason).toBeUndefined()
+  })
+
+  it("should set b_year to the latest cultivation year without a timeframe", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id)
+
+    expect(result.b_year).toBe(2024)
+    expect(result.isExcluded).toBeUndefined()
+  })
+
+  it("should exclude a year without a main cultivation", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, {
+      start: new Date("2026-01-01"),
+      end: new Date("2026-12-31"),
+    })
+
+    expect(result.b_year).toBe(2026)
+    expect(result.isExcluded).toBe(true)
+    expect(result.exclusionReason).toBe("no_main_cultivation")
+  })
+
+  it("should give the buffer strip reason precedence over a missing main cultivation", async () => {
+    mockedGetField.mockResolvedValue({ ...mockField, b_bufferstrip: true })
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.exclusionReason).toBe("bufferstrip")
   })
 })
 
@@ -693,6 +746,32 @@ describe("collectInputForBln3MeasureApplicability", () => {
 
     expect(result.b_lu_catalogue).toBe("nl_6801")
     expect(result.isExcluded).toBe(true)
+    expect(result.exclusionReason).toBe("nature")
+  })
+
+  it("should not exclude a year with a main cultivation", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2024)
+
+    expect(result.isExcluded).toBeUndefined()
+    expect(result.exclusionReason).toBeUndefined()
+  })
+
+  it("should exclude a b_year without a main cultivation", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026)
+
+    expect(result.b_year).toBe(2026)
+    expect(result.isExcluded).toBe(true)
+    expect(result.exclusionReason).toBe("no_main_cultivation")
   })
 })
 
