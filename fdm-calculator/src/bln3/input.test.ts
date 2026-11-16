@@ -602,6 +602,36 @@ describe("collectInputForBln3Score", () => {
     expect(result.isExcluded).toBeUndefined()
   })
 
+  it("should use the latest year with a main cultivation for a multi-year timeframe", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, {
+      start: new Date("2020-01-01"),
+      end: new Date("2027-12-31"),
+    })
+
+    expect(result.b_year).toBe(2024)
+    expect(result.isExcluded).toBeUndefined()
+  })
+
+  it("should exclude a field without any main cultivation for a multi-year timeframe", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, {
+      start: new Date("2020-01-01"),
+      end: new Date("2027-12-31"),
+    })
+
+    expect(result.b_year).toBe(2027)
+    expect(result.exclusionReason).toBe("no_main_cultivation")
+  })
+
   it("should exclude a year without a main cultivation", async () => {
     mockedGetField.mockResolvedValue(mockField)
     mockedGetSoilAnalyses.mockResolvedValue([])

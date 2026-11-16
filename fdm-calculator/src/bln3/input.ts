@@ -12,8 +12,52 @@ import type {
   Bln3MeasureApplicabilityCollectedInputs,
   Bln3ScoreCollectedInputs,
 } from "./types"
-import { findHoofdteelt } from "../shared/hoofdteelt"
+import { type CultivationForHoofdteelt, findHoofdteelt } from "../shared/hoofdteelt"
 import { getBln3ExclusionReason } from "./exclusion"
+
+/** A timeframe shorter than this covers a single calendar year. */
+const MAX_SINGLE_YEAR_MS = 366 * 24 * 60 * 60 * 1000
+
+/**
+ * Resolves the calendar year a BLN3 score is calculated for.
+ *
+ * A timeframe of one calendar year (or with only an end date) gives the year of its end.
+ * A longer timeframe, or none, gives the latest year with a main cultivation, up to the end
+ * of the timeframe (without a timeframe: up to the current year or the latest cultivation).
+ * When no year has a main cultivation, the end year of the timeframe or the current year is
+ * returned, so the field is excluded for lack of a main cultivation.
+ *
+ * @param cultivations - All cultivations of the field.
+ * @param timeframe - Optional timeframe of the request.
+ * @returns The calendar year of the score.
+ */
+function resolveBln3ScoreYear(
+  cultivations: CultivationForHoofdteelt[],
+  timeframe?: Timeframe,
+): number {
+  const endYear = timeframe?.end?.getFullYear()
+  if (
+    timeframe?.end &&
+    (!timeframe.start || timeframe.end.getTime() - timeframe.start.getTime() < MAX_SINGLE_YEAR_MS)
+  ) {
+    return timeframe.end.getFullYear()
+  }
+
+  const startYears = cultivations
+    .map((c) => c.b_lu_start?.getFullYear())
+    .filter((y): y is number => y !== undefined)
+  const coveredYears = cultivations
+    .map((c) => c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear())
+    .filter((y): y is number => y !== undefined)
+  const currentYear = new Date().getFullYear()
+  const upperYear = endYear ?? Math.max(currentYear, ...coveredYears)
+  const lowerYear = startYears.length > 0 ? Math.min(...startYears) : upperYear
+
+  for (let year = upperYear; year >= lowerYear; year--) {
+    if (findHoofdteelt(cultivations, year, true)) return year
+  }
+  return endYear ?? currentYear
+}
 
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
@@ -33,8 +77,8 @@ import { getBln3ExclusionReason } from "./exclusion"
  *   Start date is ignored when retrieving soil analyses.
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 calculation.
- *   `b_year` is the year of the timeframe end (or start); without a timeframe, the latest
- *   year with a cultivation, else the current year.
+ *   `b_year` is the year of a single-year timeframe. For a multi-year timeframe or none, it
+ *   is the latest year with a main cultivation (up to the end of the timeframe).
  * @returns A promise resolving to the collected BLN3 score inputs (without `nmiApiKey`).
  *   `isExcluded` and `exclusionReason` are set for buffer strips, nature fields and fields
  *   without a main cultivation in `b_year`.
@@ -140,16 +184,7 @@ export async function collectInputForBln3Score(
       }
     }
 
-    // Year of the score: the selected year, else the latest year with a cultivation.
-    const b_year =
-      timeframe?.end?.getFullYear() ??
-      timeframe?.start?.getFullYear() ??
-      (cultivationsWithStart.length > 0
-        ? cultivationsWithStart.reduce((max, c) => {
-            const y = c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear()
-            return y !== undefined && y > max ? y : max
-          }, 0)
-        : new Date().getFullYear())
+    const b_year = resolveBln3ScoreYear(cultivations, timeframe)
 
     const targetMainCultivation = findHoofdteelt(cultivations, b_year, true)
     const catalogueCode = targetMainCultivation?.b_lu_catalogue
