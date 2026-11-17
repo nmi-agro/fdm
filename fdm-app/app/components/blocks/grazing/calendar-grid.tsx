@@ -110,9 +110,6 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
     setDragEndWeek(null)
   }
 
-  const huiskavelFields = matrix.fields.filter((f) => f.isHuiskavel)
-  const otherFields = matrix.fields.filter((f) => !f.isHuiskavel)
-
   return (
     <TooltipProvider>
       <div className="space-y-4" onMouseUp={handleMouseUp}>
@@ -190,94 +187,8 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
             </thead>
 
             <tbody className="divide-border/60 divide-y">
-              {/* Huiskavel Section Header if any */}
-              {huiskavelFields.length > 0 && (
-                <tr className="bg-muted/30">
-                  <td
-                    colSpan={54}
-                    className="text-muted-foreground px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
-                  >
-                    Huiskavel (opgegeven in planner)
-                  </td>
-                </tr>
-              )}
-
-              {huiskavelFields.map((field) => (
-                <tr key={field.b_id} className="hover:bg-muted/20">
-                  <td className="bg-card/95 sticky left-0 z-10 border-r px-3 py-2 font-medium backdrop-blur-xs">
-                    <div className="max-w-40 truncate">{field.b_name}</div>
-                    {field.recentRestDays !== null && (
-                      <div className="text-muted-foreground text-[10px]">
-                        ░ {field.recentRestDays}d rust
-                      </div>
-                    )}
-                  </td>
-                  <td className="text-muted-foreground border-r px-2 py-2 text-right">
-                    {field.b_area}
-                  </td>
-
-                  {field.weeks.map((cell, wIdx) => {
-                    const isSelected =
-                      isDragging &&
-                      dragField?.b_id === field.b_id &&
-                      dragStartWeek !== null &&
-                      dragEndWeek !== null &&
-                      wIdx >= Math.min(dragStartWeek, dragEndWeek) &&
-                      wIdx <= Math.max(dragStartWeek, dragEndWeek)
-
-                    return (
-                      <td
-                        key={cell.key}
-                        className={cn(
-                          "border-border/40 relative cursor-pointer border-l p-0.5 text-center transition-colors select-none",
-                          isSelected && "bg-primary/30",
-                          wIdx % 4 === 0 && "border-l-border",
-                        )}
-                        onMouseDown={() => handleMouseDown(field, wIdx)}
-                        onMouseEnter={() => handleMouseEnter(wIdx)}
-                        onClick={() => handleCellClick(field, cell)}
-                        role="gridcell"
-                        aria-label={`${field.b_name}, week ${wIdx + 1}, ${cell.type}`}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-7 w-full items-center justify-center rounded-xs text-[10px] transition-all",
-                            cell.type === "empty" && "hover:bg-muted/60",
-                            cell.type === "weiden" &&
-                              !cell.isPlanned &&
-                              "border border-emerald-500/40 bg-emerald-500/25 font-medium text-emerald-950 dark:text-emerald-200",
-                            cell.type === "weiden" &&
-                              cell.isPlanned &&
-                              "border border-dashed border-emerald-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.2)_2px,rgba(16,185,129,0.2)_4px)] font-normal text-emerald-800 opacity-75 dark:text-emerald-300",
-                            cell.type === "maaien" &&
-                              "border border-amber-500/40 bg-amber-500/25 font-medium text-amber-950 dark:text-amber-200",
-                            cell.type === "mixed" &&
-                              "border border-emerald-500/40 bg-gradient-to-r from-emerald-500/30 to-amber-500/30 font-semibold",
-                          )}
-                        >
-                          {cell.type === "weiden" && (cell.isPlanned ? "▨ gepl." : "▨")}
-                          {cell.type === "maaien" && "▤"}
-                          {cell.type === "mixed" && "▨▤"}
-                        </div>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-
-              {/* Other Fields Section Header if any */}
-              {otherFields.length > 0 && (
-                <tr className="bg-muted/30">
-                  <td
-                    colSpan={54}
-                    className="text-muted-foreground px-3 py-1.5 text-[11px] font-semibold tracking-wider uppercase"
-                  >
-                    Overige percelen (gesorteerd op aantal weidedagen)
-                  </td>
-                </tr>
-              )}
-
-              {otherFields.map((field) => (
+              {/* Fields sorted by number of grazing days, then by name */}
+              {matrix.fields.map((field) => (
                 <tr key={field.b_id} className="hover:bg-muted/20">
                   <td className="bg-card/95 sticky left-0 z-10 border-r px-3 py-2 font-medium backdrop-blur-xs">
                     <div className="max-w-40 truncate">{field.b_name}</div>

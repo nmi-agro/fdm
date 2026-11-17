@@ -6,7 +6,7 @@ import {
   removeGrazing,
   updateGrazing,
 } from "@nmi-agro/fdm-core"
-import { Compass, Plus, Sparkles, SquareArrowRightExit, Warehouse } from "lucide-react"
+import { ChartColumn, Compass, Plus, Sparkles, SquareArrowRightExit, Warehouse } from "lucide-react"
 import { useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -220,6 +220,16 @@ export default function BeweidingskalenderPage() {
               >
                 <Compass className="text-primary h-3.5 w-3.5" />
                 Vandaag op de kaart
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                nativeButton={false}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/insights`} />}
+              >
+                <ChartColumn className="text-primary h-3.5 w-3.5" />
+                Weidegang
               </Button>
               {farmWritePermission && (
                 <Button

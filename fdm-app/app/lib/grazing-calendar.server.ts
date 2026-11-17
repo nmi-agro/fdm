@@ -65,7 +65,6 @@ export interface GrazingCalendarFieldRow {
   b_id: string
   b_name: string
   b_area: number
-  isHuiskavel: boolean
   totalGrazingDays: number
   weeks: GrazingCalendarCell[]
   recentRestDays: number | null
@@ -114,7 +113,6 @@ export async function fetchGrazingCalendarMatrix(
   principal_id: string,
   b_id_farm: string,
   calendarYear: number,
-  huiskavelFieldIds: string[] = [],
 ): Promise<GrazingCalendarMatrix> {
   const timeframe: Timeframe = {
     start: new Date(`${calendarYear}-01-01T00:00:00.000Z`),
@@ -324,19 +322,14 @@ export async function fetchGrazingCalendarMatrix(
       b_id: field.b_id,
       b_name: field.b_name,
       b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
-      isHuiskavel: huiskavelFieldIds.includes(field.b_id),
       totalGrazingDays,
       weeks,
       recentRestDays,
     }
   })
 
-  // Sort: Huiskavel fields first (if any specified), then by totalGrazingDays descending, then name
+  // Sort by totalGrazingDays descending, then name
   fieldRows.sort((a, b) => {
-    if (huiskavelFieldIds.length > 0) {
-      if (a.isHuiskavel && !b.isHuiskavel) return -1
-      if (!a.isHuiskavel && b.isHuiskavel) return 1
-    }
     if (b.totalGrazingDays !== a.totalGrazingDays) {
       return b.totalGrazingDays - a.totalGrazingDays
     }
