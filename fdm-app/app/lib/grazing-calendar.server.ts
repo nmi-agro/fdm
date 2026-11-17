@@ -5,12 +5,17 @@ import {
   getCensusForFarm,
   getCultivationsForFarm,
   getFertilizerApplicationsForFarm,
+  getFertilizers,
   getFields,
   getGrazedAreaForFarm,
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
+import {
+  type FertilizerKind,
+  getFertilizerCategoryFromRvoCode,
+} from "~/components/blocks/fertilizer/utils"
 import { fdm } from "~/lib/fdm.server"
 
 /**
@@ -69,6 +74,8 @@ export interface GrazingCalendarCell {
     p_name_nl: string | null
     p_app_amount_display: number | null
     p_app_amount_unit: string
+    /** Kind of fertilizer, for the colour of its marker (as on the fertilizer badge). */
+    p_type: FertilizerKind
     p_app_date: string
   }>
 }
@@ -78,16 +85,13 @@ export interface GrazingCalendarFieldRow {
   b_name: string
   b_area: number
   totalGrazingDays: number
-  /** One cell per column of the view: a week, or a day of the shown month. */
+  /** One cell per day of the grazing season. */
   cells: GrazingCalendarCell[]
   recentRestDays: number | null
 }
 
-/** How the calendar is shown: 52 weeks of the year, or every day of the grazing season. */
-export type GrazingCalendarView = { kind: "week" } | { kind: "day" }
-
 /**
- * The grazing season the day view shows: 1 March up to and including 31 October, as in the
+ * The grazing season the calendar shows: 1 March up to and including 31 October, as in the
  * grassland calendars of Nieuw Nederlands Weiden.
  */
 const SEASON_FIRST_MONTH = 3
@@ -111,18 +115,17 @@ const MONTH_NAMES = [
 /** A column of the calendar. */
 export interface GrazingCalendarColumn {
   key: string
-  /** Header text: the week number, or the month name on the first day of a month. */
+  /** Header text: the month name on the first day of a month, otherwise empty. */
   label: string
   dateStart: string
   dateEnd: string
-  /** Starts a group (every fourth week, or the first day of a month), drawn with a stronger line. */
+  /** The first day of a month, drawn with a stronger line. */
   groupStart: boolean
 }
 
 export interface GrazingCalendarMatrix {
   year: number
   todayKey: string
-  view: GrazingCalendarView
   columns: GrazingCalendarColumn[]
   fields: GrazingCalendarFieldRow[]
   herds: Array<{
@@ -162,58 +165,28 @@ function grazingEnd(start: Date, end: Date | string | null | undefined, today: D
   return today > start ? today : start
 }
 
-/**
- * The columns of the calendar with their period: 52 ISO weeks of the year, starting at the Monday
- * of the week with 4 January, or every day of the grazing season.
- */
+/** The columns of the calendar: every day of the grazing season. */
 function getCalendarColumns(
   calendarYear: number,
-  view: GrazingCalendarView,
 ): Array<GrazingCalendarColumn & { start: Date; end: Date }> {
   const columns: Array<GrazingCalendarColumn & { start: Date; end: Date }> = []
-  const endOfDay = (date: Date) => {
-    const end = new Date(date)
-    end.setUTCHours(23, 59, 59, 999)
-    return end
-  }
-
-  if (view.kind === "day") {
-    const last = new Date(Date.UTC(calendarYear, SEASON_LAST_MONTH, 0))
-    for (
-      let start = new Date(Date.UTC(calendarYear, SEASON_FIRST_MONTH - 1, 1));
-      start <= last;
-      start = new Date(start.getTime() + 86_400_000)
-    ) {
-      const isMonthStart = start.getUTCDate() === 1
-      columns.push({
-        key: `d-${toIsoDate(start)}`,
-        label: isMonthStart ? MONTH_NAMES[start.getUTCMonth()] : "",
-        dateStart: toIsoDate(start),
-        dateEnd: toIsoDate(start),
-        groupStart: isMonthStart,
-        start,
-        end: endOfDay(start),
-      })
-    }
-    return columns
-  }
-
-  const jan4 = new Date(Date.UTC(calendarYear, 0, 4))
-  const firstMonday = new Date(jan4)
-  firstMonday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1))
-  for (let week = 1; week <= 52; week++) {
-    const start = new Date(firstMonday)
-    start.setUTCDate(firstMonday.getUTCDate() + (week - 1) * 7)
+  const last = new Date(Date.UTC(calendarYear, SEASON_LAST_MONTH, 0))
+  for (
+    let start = new Date(Date.UTC(calendarYear, SEASON_FIRST_MONTH - 1, 1));
+    start <= last;
+    start = new Date(start.getTime() + 86_400_000)
+  ) {
     const end = new Date(start)
-    end.setUTCDate(start.getUTCDate() + 6)
+    end.setUTCHours(23, 59, 59, 999)
+    const isMonthStart = start.getUTCDate() === 1
     columns.push({
-      key: `w-${week}`,
-      label: String(week),
+      key: `d-${toIsoDate(start)}`,
+      label: isMonthStart ? MONTH_NAMES[start.getUTCMonth()] : "",
       dateStart: toIsoDate(start),
-      dateEnd: toIsoDate(end),
-      groupStart: week % 4 === 1,
+      dateEnd: toIsoDate(start),
+      groupStart: isMonthStart,
       start,
-      end: endOfDay(end),
+      end,
     })
   }
   return columns
@@ -223,7 +196,6 @@ export async function fetchGrazingCalendarMatrix(
   principal_id: string,
   b_id_farm: string,
   calendarYear: number,
-  view: GrazingCalendarView = { kind: "week" },
 ): Promise<GrazingCalendarMatrix> {
   const yearStart = new Date(`${calendarYear}-01-01T00:00:00.000Z`)
   const yearEnd = new Date(`${calendarYear}-12-31T23:59:59.999Z`)
@@ -243,6 +215,7 @@ export async function fetchGrazingCalendarMatrix(
     grazedArea,
     census,
     fertilizerApplicationsByField,
+    fertilizers,
   ] = await Promise.all([
     getFields(fdm, principal_id, b_id_farm, timeframe),
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
@@ -252,7 +225,12 @@ export async function fetchGrazingCalendarMatrix(
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
     getCensusForFarm(fdm, principal_id, b_id_farm),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getFertilizers(fdm, principal_id, b_id_farm),
   ])
+  // Kind of each fertilizer of the farm, derived from its RVO code as on the fertilizer badge
+  const fertilizerKinds = new Map(
+    fertilizers.map((f) => [f.p_id, getFertilizerCategoryFromRvoCode(f.p_type_rvo)]),
+  )
   const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
   // Filter grassland fields (crop rotation === "grass" and not a buffer strip)
@@ -300,7 +278,7 @@ export async function fetchGrazingCalendarMatrix(
     harvestsByField.set(field.b_id, fieldHarvests)
   }
 
-  const columns = getCalendarColumns(calendarYear, view)
+  const columns = getCalendarColumns(calendarYear)
 
   // Group grazings by field
   const grazingsByField = new Map<string, typeof grazings>()
@@ -395,6 +373,7 @@ export async function fetchGrazingCalendarMatrix(
         .map((a) => ({
           p_app_id: a.p_app_id,
           p_name_nl: a.p_name_nl,
+          p_type: fertilizerKinds.get(a.p_id) ?? ("other" as const),
           p_app_amount_display: a.p_app_amount_display,
           p_app_amount_unit: a.p_app_amount_unit,
           p_app_date: toIsoDate(new Date(a.p_app_date)),
@@ -492,7 +471,6 @@ export async function fetchGrazingCalendarMatrix(
   return {
     year: calendarYear,
     todayKey,
-    view,
     columns: columns.map(({ start: _start, end: _end, ...column }) => column),
     fields: fieldRows,
     herds: herdList,

@@ -46,7 +46,7 @@ import {
   isFieldEventIntent,
 } from "~/lib/field-events.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { fetchGrazingCalendarMatrix, type GrazingCalendarView } from "~/lib/grazing-calendar.server"
+import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { defaultMapDay } from "~/lib/grazing-map"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
@@ -59,14 +59,6 @@ export const meta: MetaFunction = () => {
       content: "Beweidingskalender en graslandgebruik per perceel.",
     },
   ]
-}
-
-/**
- * The view of the calendar from the URL: `?weergave=dag` shows every day of the grazing season,
- * anything else the weeks of the year.
- */
-function getCalendarView(searchParams: URLSearchParams): GrazingCalendarView {
-  return searchParams.get("weergave") === "dag" ? { kind: "day" } : { kind: "week" }
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -84,12 +76,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const [farm, farms, matrix, timelineFields, fertilizerOptions] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
       getFarms(fdm, session.principal_id),
-      fetchGrazingCalendarMatrix(
-        session.principal_id,
-        b_id_farm,
-        calendarYear,
-        getCalendarView(new URL(request.url).searchParams),
-      ),
+      fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
       // Cultivations, harvests and fertilizer applications per field, for the mowing and
       // fertilizing forms shared with the Tijdlijn
       fetchTimelineFields(session.principal_id, b_id_farm, getTimeframe(params)),
@@ -382,6 +369,7 @@ export default function BeweidingskalenderPage() {
         cultivationOptions={[]}
         // This page is an index route; React Router only adds "?index" itself without an action
         formAction="?index"
+        presentation="dialog"
       />
     </SidebarInset>
   )

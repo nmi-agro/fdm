@@ -261,7 +261,7 @@ export function HerdCard({
             {status.type === "idle" && (
               <Badge variant="outline" className="text-muted-foreground">
                 <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" />
-                Niet in beweiding
+                Wordt vandaag niet geweid
               </Badge>
             )}
           </div>
