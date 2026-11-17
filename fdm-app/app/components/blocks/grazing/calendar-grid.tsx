@@ -66,8 +66,8 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
         l_grazing_geometry_zone: g.l_grazing_geometry_zone,
       })
       setPopoverStartDate(g.l_grazing_start)
-      // For a grazing that still runs, suggest the end of the clicked week
-      setPopoverEndDate(g.l_grazing_end ?? cell.dateEnd)
+      // A grazing that still runs has no end date, so saving it keeps it running
+      setPopoverEndDate(g.l_grazing_end ?? undefined)
     } else {
       setPopoverExistingGrazing(null)
       setPopoverStartDate(cell.dateStart)

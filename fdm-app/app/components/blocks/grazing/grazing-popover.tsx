@@ -90,9 +90,14 @@ export function GrazingPopover({
     ? format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd")
     : (initialStartDate ?? today)
 
+  // A grazing that still runs (cows out without an end date) keeps an empty end, so saving it
+  // does not end it
+  const isRunning = Boolean(existingGrazing) && !existingGrazing?.l_grazing_end
   const defaultEnd = existingGrazing?.l_grazing_end
     ? format(new Date(existingGrazing.l_grazing_end), "yyyy-MM-dd")
-    : (initialEndDate ?? defaultStart)
+    : isRunning
+      ? ""
+      : (initialEndDate ?? defaultStart)
 
   // Start from the defaults, which may still change once "today" is known
   const [startDate, setStartDate] = useKeyedState(defaultStart, (day) => day)
@@ -141,7 +146,8 @@ export function GrazingPopover({
 
   // Calculations for live preview
   const sDate = new Date(startDate)
-  const eDate = new Date(endDate)
+  // A running grazing counts up to today
+  const eDate = new Date(endDate || today)
   const diffDays =
     !isNaN(sDate.getTime()) && !isNaN(eDate.getTime())
       ? Math.max(1, Math.floor((eDate.getTime() - sDate.getTime()) / 86400000) + 1)
@@ -165,7 +171,8 @@ export function GrazingPopover({
     }
 
     formData.set("l_grazing_start", startDate)
-    formData.set("l_grazing_end", endDate)
+    // Without an end date the grazing keeps running
+    if (endDate !== "") formData.set("l_grazing_end", endDate)
     formData.set("l_grazing_hours", String(hours))
     // Always send both, so an update can switch between whole field, area and zone
     formData.set(GRAZING_AREA_FIELD, areaMode === "partial" ? String(partialArea) : "")
@@ -252,7 +259,8 @@ export function GrazingPopover({
                   required
                 />
                 <DatePicker
-                  label="t/m *"
+                  label={isRunning ? "t/m" : "t/m *"}
+                  description={isRunning ? "Leeg laten: de koeien lopen nog buiten." : undefined}
                   field={{
                     name: "l_grazing_end",
                     value: endDate,
@@ -269,7 +277,7 @@ export function GrazingPopover({
                     isDirty: false,
                     isValidating: false,
                   }}
-                  required
+                  required={!isRunning}
                 />
               </div>
 

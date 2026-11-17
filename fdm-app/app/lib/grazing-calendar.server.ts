@@ -113,6 +113,16 @@ function toIsoDate(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+/**
+ * The last day a grazing covers in the calendar: its end date, or today for a grazing that still
+ * runs (cows out without an end date). A running grazing that starts in the future covers its
+ * start day only.
+ */
+function grazingEnd(start: Date, end: Date | string | null | undefined, today: Date): Date {
+  if (end) return new Date(end)
+  return today > start ? today : start
+}
+
 export async function fetchGrazingCalendarMatrix(
   principal_id: string,
   b_id_farm: string,
@@ -234,7 +244,7 @@ export async function fetchGrazingCalendarMatrix(
     const grazingDaysSet = new Set<string>()
     for (const g of fieldGrazings) {
       const gStart = new Date(g.l_grazing_start)
-      const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
+      const gEnd = grazingEnd(gStart, g.l_grazing_end, today)
       const cur = new Date(
         Date.UTC(gStart.getUTCFullYear(), gStart.getUTCMonth(), gStart.getUTCDate()),
       )
@@ -252,7 +262,7 @@ export async function fetchGrazingCalendarMatrix(
     const weeks: GrazingCalendarCell[] = weeksInfo.map((wInfo) => {
       const cellGrazings = fieldGrazings.filter((g) => {
         const gStart = new Date(g.l_grazing_start)
-        const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
+        const gEnd = grazingEnd(gStart, g.l_grazing_end, today)
         return gStart <= wInfo.end && gEnd >= wInfo.start
       })
 
