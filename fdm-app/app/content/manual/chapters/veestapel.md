@@ -54,7 +54,7 @@ Met **Alle dieren bekijken** open je de lijst van alle dieren op het bedrijf. Je
 
 Klik op een dier om de details te openen. Daar:
 
-- vul je oormerk, ras, geslacht en geboortedatum aan en sla je ze op met **Wijzigingen opslaan**;
+- vul je werknummer, oormerk, geslacht en geboortedatum aan en sla je ze op met **Wijzigingen opslaan**;
 - verplaats je het dier naar een andere koppel met **Verplaats naar koppel**;
 - leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**;
 - zie je de beweidingshistorie van het dier en in welke koppels het heeft gelopen.
