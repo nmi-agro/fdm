@@ -24,7 +24,7 @@ import {
 import { cn } from "cn"
 import { format } from "date-fns"
 import { AlertTriangle, CheckCircle2, Info, Sparkles } from "lucide-react"
-import { useMemo, useState } from "react"
+import { lazy, Suspense, useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -35,6 +35,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { PlanPreviewZone } from "~/components/blocks/grazing/plan-preview-map"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -62,6 +63,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { Skeleton } from "~/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -82,6 +84,8 @@ import { grazingZoneSchema } from "~/lib/grazing-zone"
 
 /** How the generator sizes the grazed part of a field for a strip system. */
 type PartialMode = "percentage" | "strips"
+
+const PlanPreviewMap = lazy(() => import("~/components/blocks/grazing/plan-preview-map"))
 
 const STRIP_DIRECTIONS = [
   { value: "0", label: "Naar het noorden" },
@@ -526,6 +530,35 @@ export default function GrazingPlanAssistent() {
     plotArea,
     plotsPerDay,
   ])
+
+  // The planned strips or plots for the map preview, each drawn once although the plan returns to
+  // them, and the strip of every plan row
+  const { previewZones, rowZoneIds } = useMemo(() => {
+    const idByGeometry = new Map<string, string>()
+    const zones: PlanPreviewZone[] = []
+    const ids = generatedRows.map((row) => {
+      const zone = row.l_grazing_geometry_zone
+      if (!zone) return null
+      const key = JSON.stringify(zone.coordinates)
+      let id = idByGeometry.get(key)
+      if (!id) {
+        id = `zone-${idByGeometry.size}`
+        idByGeometry.set(key, id)
+        zones.push({ id, geometry: zone })
+      }
+      return id
+    })
+    return { previewZones: zones, rowZoneIds: ids }
+  }, [generatedRows])
+  const previewFields = useMemo(
+    () =>
+      grasslandFields
+        .filter((f) => selectedFieldIds.includes(f.b_id) && f.b_geometry)
+        .map((f) => f.b_geometry as Area),
+    [grasslandFields, selectedFieldIds],
+  )
+  // The strip under the pointer, in the table or on the map
+  const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null)
 
   // Grazing days: with Nieuw Nederlands Weiden every day has its own plot(s)
   const totalWeidedagen = isNnw
@@ -1016,6 +1049,19 @@ export default function GrazingPlanAssistent() {
                       </div>
                     )}
 
+                    {previewZones.length > 0 && (
+                      <div className="overflow-hidden rounded-lg border">
+                        <Suspense fallback={<Skeleton className="h-[320px] w-full" />}>
+                          <PlanPreviewMap
+                            fields={previewFields}
+                            zones={previewZones}
+                            highlightedZoneId={hoveredZoneId}
+                            onZoneHover={setHoveredZoneId}
+                          />
+                        </Suspense>
+                      </div>
+                    )}
+
                     <div className="max-h-64 overflow-y-auto rounded-lg border">
                       <Table>
                         <TableHeader>
@@ -1038,7 +1084,18 @@ export default function GrazingPlanAssistent() {
                             </TableRow>
                           ) : (
                             generatedRows.map((row, idx) => (
-                              <TableRow key={idx}>
+                              <TableRow
+                                key={idx}
+                                // Highlights the strip of this row on the map, and the rows of the
+                                // strip under the pointer on the map
+                                onMouseEnter={() => setHoveredZoneId(rowZoneIds[idx])}
+                                onMouseLeave={() => setHoveredZoneId(null)}
+                                className={cn(
+                                  rowZoneIds[idx] !== null &&
+                                    rowZoneIds[idx] === hoveredZoneId &&
+                                    "bg-green-100",
+                                )}
+                              >
                                 <TableCell className="font-mono text-xs">
                                   {format(new Date(row.l_grazing_start), "dd-MM")} →{" "}
                                   {format(new Date(row.l_grazing_end), "dd-MM")}
@@ -1060,7 +1117,9 @@ export default function GrazingPlanAssistent() {
                                 </TableCell>
                                 <TableCell className="text-xs">
                                   {row.l_grazing_geometry_zone
-                                    ? "Strook op de kaart"
+                                    ? isNnw
+                                      ? "Perceel op de kaart"
+                                      : "Strook op de kaart"
                                     : row.l_grazing_area
                                       ? `Deelperceel (${partialPercentage}%, zonder kaart)`
                                       : "Volledig"}
