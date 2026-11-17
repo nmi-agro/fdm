@@ -557,9 +557,9 @@ export default function FarmDashboardIndex() {
               {/* Quick Actions - primary, most-used destinations get the most visual weight */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzichten</h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <NavLink to={`${calendar}/field`}>
-                    <Card className="transition-all hover:shadow-md">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
                           <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
@@ -577,7 +577,7 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <NavLink to={`${calendar}/rotation`}>
-                    <Card className="transition-all hover:shadow-md">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
                           <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
@@ -594,6 +594,23 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
+                  {loaderData.hasHerds && (
+                    <NavLink to={`${calendar}/grazing/insights`}>
+                      <Card className="h-full transition-all hover:shadow-md">
+                        <CardHeader>
+                          <div className="flex items-center gap-4">
+                            <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
+                              <Icon iconNode={cowHead} className="h-7 w-7" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg">Weidegang</CardTitle>
+                              <CardDescription>Weidedagen, uren en veebezetting.</CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </NavLink>
+                  )}
                 </div>
               </div>
 
@@ -685,23 +702,6 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
-                  {loaderData.hasHerds && (
-                    <NavLink to={`${calendar}/grazing/insights`}>
-                      <Card className="h-full transition-all hover:shadow-md">
-                        <CardHeader>
-                          <div className="flex items-center gap-4">
-                            <div className="bg-muted rounded-lg p-3">
-                              <Icon iconNode={cowHead} className="text-primary h-6 w-6" />
-                            </div>
-                            <div>
-                              <CardTitle>Weidegang</CardTitle>
-                              <CardDescription>Weidedagen, uren en veebezetting.</CardDescription>
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    </NavLink>
-                  )}
                   <Card>
                     <NavLink
                       to="bemestingsplan"
