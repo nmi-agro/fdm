@@ -23,6 +23,14 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -64,6 +72,7 @@ export function AddEventSheet({
   fertilizerOptions,
   cultivationOptions,
   formAction = "#",
+  presentation = "sheet",
 }: {
   request: AddEventSheetRequest | undefined
   onOpenChange: (open: boolean) => void
@@ -85,6 +94,8 @@ export function AddEventSheet({
    * `"?index"`, because React Router only adds that itself when no action is given.
    */
   formAction?: string
+  /** A side sheet (Tijdlijn) or a dialog (grazing calendar, like its grazing dialog). */
+  presentation?: "sheet" | "dialog"
 }) {
   const open = !!request
   const field = request ? fields.find((f) => f.b_id === request.context.b_id) : undefined
@@ -217,205 +228,231 @@ export function AddEventSheet({
     ? Math.min(lastCultivationAvailabilityYear, request.context.date.getFullYear())
     : undefined
 
+  const title = !request
+    ? ""
+    : request.type === "harvest-edit"
+      ? `${getHarvestTerm(cultivation?.b_lu_croprotation, false, cultivation?.b_lu_harvestable, true)} bewerken`
+      : request.type === "harvest"
+        ? `${getHarvestTerm(cultivation?.b_lu_croprotation, false, cultivation?.b_lu_harvestable, true)} toevoegen`
+        : SHEET_TITLES[request.type]
+  const description = field ? `Perceel: ${field.b_name}` : "Kies eerst een perceel"
+
+  const body = (
+    <div className={presentation === "dialog" ? undefined : "px-4 pb-6"}>
+      {request && field && request.type === "fertilizer" ? (
+        <FertilizerApplicationForm
+          intent="add_fertilizer"
+          b_id={field.b_id}
+          action={formAction}
+          b_id_farm={b_id_farm}
+          b_id_or_b_lu_catalogue={field.b_id}
+          fertilizerApplication={{ p_app_date: request.context.date }}
+          options={fertilizerOptions}
+          navigation={navigation as never}
+          fieldsClassName="md:grid-cols-1"
+          schema={
+            FertilizerApplicationFormSchema as unknown as typeof FertilizerApplicationFormSchemaPartial
+          }
+        />
+      ) : null}
+      {request && field && request.type === "harvest" ? (
+        cultivation ? (
+          cultivation.b_lu_harvestable === "none" ? (
+            <p className="text-muted-foreground text-sm">Dit gewas kan niet geoogst worden.</p>
+          ) : (
+            <HarvestForm
+              key={loadedHarvestableAnalysis.b_lu_catalogue}
+              editable={!areHarvestParametersLoading}
+              allowBatch={false}
+              isHarvestUpdate={false}
+              b_date_harvest_default={loadedHarvestableAnalysis.b_date_harvest_default}
+              b_lu={cultivation.b_lu}
+              b_lu_cp={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_cp ?? undefined}
+              b_lu_croprotation={cultivation.b_lu_croprotation ?? undefined}
+              b_lu_dm={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_dm ?? undefined}
+              b_lu_end={cultivation.b_lu_end}
+              b_lu_harvest_date={request.context.date}
+              b_lu_harvestable={cultivation.b_lu_harvestable}
+              b_lu_moist={
+                loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_moist ?? undefined
+              }
+              b_lu_n_harvestable={
+                loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_n_harvestable ?? undefined
+              }
+              b_lu_start={cultivation.b_lu_start}
+              b_lu_tarra={
+                loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_tarra ?? undefined
+              }
+              b_lu_uww={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_uww ?? undefined}
+              b_lu_yield={
+                loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield ?? undefined
+              }
+              b_lu_yield_bruto={
+                loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_bruto ?? undefined
+              }
+              b_lu_yield_fresh={
+                loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_fresh ?? undefined
+              }
+              harvestParameters={loadedHarvestableAnalysis.harvestParameters ?? []}
+            />
+          )
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Er is geen actief gewas op dit perceel voor deze datum.
+          </p>
+        )
+      ) : null}
+      {request && field && request.type === "cultivation-add" ? (
+        <CultivationAddForm
+          intent="add_cultivation"
+          b_id={field.b_id}
+          b_lu={undefined}
+          defaultValues={{
+            b_lu_catalogue: "",
+            b_lu_start: request.context.date ?? today,
+            b_lu_end: undefined,
+          }}
+          lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+          options={cultivationOptions.filter(
+            (c) =>
+              c.value === request.context.b_lu ||
+              (request.context.date &&
+                (typeof cultivationAvailabilityYear !== "number" ||
+                  c.b_lu_ya === null ||
+                  c.b_lu_ya.includes(cultivationAvailabilityYear))),
+          )}
+        />
+      ) : null}
+      {request &&
+      field &&
+      (request.type === "cultivation-edit" || request.type === "cultivation-end") ? (
+        <CultivationAddForm
+          intent="update_cultivation"
+          b_id={field.b_id}
+          b_lu={request.context.b_lu}
+          defaultValues={{
+            b_lu_catalogue: cultivation?.b_lu_catalogue ?? "",
+            b_lu_start: cultivation?.b_lu_start ?? today,
+            b_lu_end:
+              request.type === "cultivation-end" && request.context.date
+                ? request.context.date
+                : (cultivation?.b_lu_end ?? undefined),
+          }}
+          lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+          options={cultivationOptions}
+        />
+      ) : null}
+      {request && field && request.type === "fertilizer-edit" && fertilizerApplication ? (
+        <FertilizerApplicationForm
+          intent="update_fertilizer"
+          action={formAction}
+          b_id={field.b_id}
+          b_id_farm={b_id_farm}
+          b_id_or_b_lu_catalogue={field.b_id}
+          fertilizerApplication={{
+            ...fertilizerApplication,
+            p_app_amount_display: fertilizerApplication.p_app_amount_display ?? undefined,
+            p_app_method: fertilizerApplication.p_app_method ?? undefined,
+          }}
+          fieldsClassName="md:grid-cols-1"
+          navigation={navigation as never}
+          options={fertilizerOptions}
+          schema={
+            FertilizerApplicationFormSchemaModify as unknown as typeof FertilizerApplicationFormSchemaPartial
+          }
+        />
+      ) : null}
+      {request && cultivation && request.type === "harvest-edit" && harvest ? (
+        <HarvestForm
+          intent={"update_single_harvest"}
+          allowBatch={false}
+          isHarvestUpdate={true}
+          b_lu={cultivation.b_lu}
+          b_id_harvesting={harvest.b_id_harvesting}
+          b_lu_cp={harvest.harvestableAnalysis?.b_lu_cp ?? undefined}
+          b_lu_croprotation={cultivation?.b_lu_croprotation ?? undefined}
+          b_lu_dm={harvest.harvestableAnalysis?.b_lu_dm ?? undefined}
+          b_lu_end={cultivation.b_lu_end}
+          b_lu_harvest_date={harvest.b_lu_harvest_date}
+          b_lu_harvestable={cultivation.b_lu_harvestable}
+          b_lu_moist={harvest.harvestableAnalysis?.b_lu_moist ?? undefined}
+          b_lu_n_harvestable={harvest.harvestableAnalysis?.b_lu_n_harvestable ?? undefined}
+          b_lu_start={cultivation.b_lu_start}
+          b_lu_tarra={harvest.harvestableAnalysis?.b_lu_tarra ?? undefined}
+          b_lu_uww={harvest.harvestableAnalysis?.b_lu_uww ?? undefined}
+          b_lu_yield={harvest.harvestableAnalysis?.b_lu_yield ?? undefined}
+          b_lu_yield_bruto={harvest.harvestableAnalysis?.b_lu_yield_bruto ?? undefined}
+          b_lu_yield_fresh={harvest.harvestableAnalysis?.b_lu_yield_fresh ?? undefined}
+          harvestParameters={harvest.parameters.map((x) => x.id)}
+          onDelete={() => setConfirmingDelete(true)}
+        />
+      ) : null}
+    </div>
+  )
+
+  const footer = request ? (
+    <>
+      {canModify && isEditRequest ? (
+        <Button onClick={() => setConfirmingDelete(true)} type="button" variant="destructive">
+          Verwijderen
+        </Button>
+      ) : (
+        <span />
+      )}
+      <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+        Annuleren
+      </Button>
+    </>
+  ) : null
+
+  const confirmDelete = (
+    <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+          <AlertDialogDescription>Dit kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuleren</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmDelete}>Verwijderen</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+
+  if (presentation === "dialog") {
+    return (
+      <Dialog onOpenChange={onOpenChange} open={open}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          {body}
+          {footer && (
+            <DialogFooter className="flex-row justify-between border-t pt-4 sm:justify-between">
+              {footer}
+            </DialogFooter>
+          )}
+        </DialogContent>
+        {confirmDelete}
+      </Dialog>
+    )
+  }
+
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-lg">
         <SheetHeader className="mb-4">
-          <SheetTitle>
-            {!request
-              ? ""
-              : request.type === "harvest-edit"
-                ? `${getHarvestTerm(cultivation?.b_lu_croprotation, false, cultivation?.b_lu_harvestable, true)} bewerken`
-                : request.type === "harvest"
-                  ? `${getHarvestTerm(cultivation?.b_lu_croprotation, false, cultivation?.b_lu_harvestable, true)} toevoegen`
-                  : SHEET_TITLES[request.type]}
-          </SheetTitle>
-          <SheetDescription>
-            {field ? `Perceel: ${field.b_name}` : "Kies eerst een perceel"}
-          </SheetDescription>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
-        <div className="px-4 pb-6">
-          {request && field && request.type === "fertilizer" ? (
-            <FertilizerApplicationForm
-              intent="add_fertilizer"
-              b_id={field.b_id}
-              action={formAction}
-              b_id_farm={b_id_farm}
-              b_id_or_b_lu_catalogue={field.b_id}
-              fertilizerApplication={{ p_app_date: request.context.date }}
-              options={fertilizerOptions}
-              navigation={navigation as never}
-              fieldsClassName="md:grid-cols-1"
-              schema={
-                FertilizerApplicationFormSchema as unknown as typeof FertilizerApplicationFormSchemaPartial
-              }
-            />
-          ) : null}
-          {request && field && request.type === "harvest" ? (
-            cultivation ? (
-              cultivation.b_lu_harvestable === "none" ? (
-                <p className="text-muted-foreground text-sm">Dit gewas kan niet geoogst worden.</p>
-              ) : (
-                <HarvestForm
-                  key={loadedHarvestableAnalysis.b_lu_catalogue}
-                  editable={!areHarvestParametersLoading}
-                  allowBatch={false}
-                  isHarvestUpdate={false}
-                  b_date_harvest_default={loadedHarvestableAnalysis.b_date_harvest_default}
-                  b_lu={cultivation.b_lu}
-                  b_lu_cp={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_cp ?? undefined}
-                  b_lu_croprotation={cultivation.b_lu_croprotation ?? undefined}
-                  b_lu_dm={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_dm ?? undefined}
-                  b_lu_end={cultivation.b_lu_end}
-                  b_lu_harvest_date={request.context.date}
-                  b_lu_harvestable={cultivation.b_lu_harvestable}
-                  b_lu_moist={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_moist ?? undefined
-                  }
-                  b_lu_n_harvestable={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_n_harvestable ??
-                    undefined
-                  }
-                  b_lu_start={cultivation.b_lu_start}
-                  b_lu_tarra={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_tarra ?? undefined
-                  }
-                  b_lu_uww={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_uww ?? undefined
-                  }
-                  b_lu_yield={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield ?? undefined
-                  }
-                  b_lu_yield_bruto={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_bruto ??
-                    undefined
-                  }
-                  b_lu_yield_fresh={
-                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_fresh ??
-                    undefined
-                  }
-                  harvestParameters={loadedHarvestableAnalysis.harvestParameters ?? []}
-                />
-              )
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Er is geen actief gewas op dit perceel voor deze datum.
-              </p>
-            )
-          ) : null}
-          {request && field && request.type === "cultivation-add" ? (
-            <CultivationAddForm
-              intent="add_cultivation"
-              b_id={field.b_id}
-              b_lu={undefined}
-              defaultValues={{
-                b_lu_catalogue: "",
-                b_lu_start: request.context.date ?? today,
-                b_lu_end: undefined,
-              }}
-              lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
-              options={cultivationOptions.filter(
-                (c) =>
-                  c.value === request.context.b_lu ||
-                  (request.context.date &&
-                    (typeof cultivationAvailabilityYear !== "number" ||
-                      c.b_lu_ya === null ||
-                      c.b_lu_ya.includes(cultivationAvailabilityYear))),
-              )}
-            />
-          ) : null}
-          {request &&
-          field &&
-          (request.type === "cultivation-edit" || request.type === "cultivation-end") ? (
-            <CultivationAddForm
-              intent="update_cultivation"
-              b_id={field.b_id}
-              b_lu={request.context.b_lu}
-              defaultValues={{
-                b_lu_catalogue: cultivation?.b_lu_catalogue ?? "",
-                b_lu_start: cultivation?.b_lu_start ?? today,
-                b_lu_end:
-                  request.type === "cultivation-end" && request.context.date
-                    ? request.context.date
-                    : (cultivation?.b_lu_end ?? undefined),
-              }}
-              lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
-              options={cultivationOptions}
-            />
-          ) : null}
-          {request && field && request.type === "fertilizer-edit" && fertilizerApplication ? (
-            <FertilizerApplicationForm
-              intent="update_fertilizer"
-              action={formAction}
-              b_id={field.b_id}
-              b_id_farm={b_id_farm}
-              b_id_or_b_lu_catalogue={field.b_id}
-              fertilizerApplication={{
-                ...fertilizerApplication,
-                p_app_amount_display: fertilizerApplication.p_app_amount_display ?? undefined,
-                p_app_method: fertilizerApplication.p_app_method ?? undefined,
-              }}
-              fieldsClassName="md:grid-cols-1"
-              navigation={navigation as never}
-              options={fertilizerOptions}
-              schema={
-                FertilizerApplicationFormSchemaModify as unknown as typeof FertilizerApplicationFormSchemaPartial
-              }
-            />
-          ) : null}
-          {request && cultivation && request.type === "harvest-edit" && harvest ? (
-            <HarvestForm
-              intent={"update_single_harvest"}
-              allowBatch={false}
-              isHarvestUpdate={true}
-              b_lu={cultivation.b_lu}
-              b_id_harvesting={harvest.b_id_harvesting}
-              b_lu_cp={harvest.harvestableAnalysis?.b_lu_cp ?? undefined}
-              b_lu_croprotation={cultivation?.b_lu_croprotation ?? undefined}
-              b_lu_dm={harvest.harvestableAnalysis?.b_lu_dm ?? undefined}
-              b_lu_end={cultivation.b_lu_end}
-              b_lu_harvest_date={harvest.b_lu_harvest_date}
-              b_lu_harvestable={cultivation.b_lu_harvestable}
-              b_lu_moist={harvest.harvestableAnalysis?.b_lu_moist ?? undefined}
-              b_lu_n_harvestable={harvest.harvestableAnalysis?.b_lu_n_harvestable ?? undefined}
-              b_lu_start={cultivation.b_lu_start}
-              b_lu_tarra={harvest.harvestableAnalysis?.b_lu_tarra ?? undefined}
-              b_lu_uww={harvest.harvestableAnalysis?.b_lu_uww ?? undefined}
-              b_lu_yield={harvest.harvestableAnalysis?.b_lu_yield ?? undefined}
-              b_lu_yield_bruto={harvest.harvestableAnalysis?.b_lu_yield_bruto ?? undefined}
-              b_lu_yield_fresh={harvest.harvestableAnalysis?.b_lu_yield_fresh ?? undefined}
-              harvestParameters={harvest.parameters.map((x) => x.id)}
-              onDelete={() => setConfirmingDelete(true)}
-            />
-          ) : null}
-        </div>
-        {request && (
-          <SheetFooter className="flex-row justify-between border-t pt-4">
-            {canModify && isEditRequest ? (
-              <Button onClick={() => setConfirmingDelete(true)} type="button" variant="destructive">
-                Verwijderen
-              </Button>
-            ) : (
-              <span />
-            )}
-            <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
-              Annuleren
-            </Button>
-          </SheetFooter>
+        {body}
+        {footer && (
+          <SheetFooter className="flex-row justify-between border-t pt-4">{footer}</SheetFooter>
         )}
       </SheetContent>
-      <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
-            <AlertDialogDescription>Dit kan niet ongedaan worden gemaakt.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Verwijderen</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {confirmDelete}
     </Sheet>
   )
 }

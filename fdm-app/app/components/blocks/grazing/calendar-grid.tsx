@@ -1,20 +1,36 @@
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, Shovel, Wheat } from "lucide-react"
-import { type MouseEvent, useState } from "react"
-import { useSearchParams } from "react-router"
+import { AlertTriangle, Plus, Shovel, Wheat } from "lucide-react"
+import { useState } from "react"
+import type { FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import type {
   GrazingCalendarCell,
   GrazingCalendarFieldRow,
   GrazingCalendarMatrix,
-  GrazingCalendarView,
 } from "~/lib/grazing-calendar.server"
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
+import { FERTILIZER_CATEGORY_SOLID_CLASSES } from "~/components/custom/fertilizer-badge"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuTrigger,
+} from "~/components/ui/context-menu"
 import { TooltipProvider } from "~/components/ui/tooltip"
 import { useToday } from "~/hooks/use-today"
 import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
+
+/**
+ * Colours of the calendar: light green for grazing, dark green for mowing. Fertilizer applications
+ * take the colour of their fertilizer badge (see `FertilizerDot`).
+ */
+const GRAZING_FILL = "bg-green-300"
+const PLANNED_GRAZING_FILL =
+  "bg-[repeating-linear-gradient(45deg,rgba(134,239,172,0.35),rgba(134,239,172,0.35)_2px,rgba(134,239,172,1)_2px,rgba(134,239,172,1)_4px)]"
+const MOWING_FILL = "bg-green-800"
 
 const HERD_COLORS = [
   "bg-emerald-600 text-white dark:bg-emerald-500",
@@ -25,15 +41,26 @@ const HERD_COLORS = [
   "bg-cyan-600 text-white dark:bg-cyan-500",
 ]
 
+const formatLongDay = (day: string) =>
+  format(new Date(`${day}T12:00:00`), "EEEE d MMMM", { locale: nl })
+
 export interface CalendarGridProps {
   matrix: GrazingCalendarMatrix
   b_id_farm: string
   calendar: string
   canWrite?: boolean
-  /** Opens the form of a mowing or fertilizer application in the week, to change or remove it. */
+  /** Opens the form to add, change or remove a mowing or fertilizer application. */
   onSheetRequest?: (request: AddEventSheetRequest) => void
 }
 
+/**
+ * Every day of the grazing season per grassland field, in narrow columns that scroll sideways on a
+ * smaller screen.
+ *
+ * - A left click on an empty day adds a grazing on that day; dragging over several days adds a
+ *   longer period. A click on a day with a grazing, mowing or fertilizer application opens it.
+ * - A right click on a day offers to add a grazing, a mowing or a fertilizer application there.
+ */
 export function CalendarGrid({
   matrix,
   b_id_farm,
@@ -46,14 +73,18 @@ export function CalendarGrid({
   // Drag-to-paint state
   const [isDragging, setIsDragging] = useState(false)
   const [dragField, setDragField] = useState<GrazingCalendarFieldRow | null>(null)
-  const [dragStartWeek, setDragStartWeek] = useState<number | null>(null)
-  const [dragEndWeek, setDragEndWeek] = useState<number | null>(null)
+  const [dragStart, setDragStart] = useState<number | null>(null)
+  const [dragEnd, setDragEnd] = useState<number | null>(null)
+
+  // The day that was right-clicked, for the context menu
+  const [menuTarget, setMenuTarget] = useState<{
+    field: GrazingCalendarFieldRow
+    day: string
+  } | null>(null)
 
   // "Today" is only known on the client; empty until then
   const todayDate = useToday()
   const todayKey = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
-  // The day view shows every day of the season in narrow columns
-  const isDayView = matrix.view.kind === "day"
 
   // Popover state
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -67,81 +98,105 @@ export function CalendarGrid({
   const [popoverExistingGrazing, setPopoverExistingGrazing] =
     useState<GrazingPopoverProps["existingGrazing"]>(null)
 
-  // Bumped on every open so the popover remounts and starts from the clicked cell's values.
+  // Bumped on every open so the popover remounts and starts from the clicked day's values.
   const [popoverSession, setPopoverSession] = useState(0)
 
-  const handleCellClick = (field: GrazingCalendarFieldRow, cell: GrazingCalendarCell) => {
+  /** Opens the grazing dialog for a new grazing on the field, from `start` up to `end`. */
+  const openNewGrazing = (field: GrazingCalendarFieldRow, start: string, end: string) => {
     setPopoverSession((s) => s + 1)
     setPopoverField({ b_id: field.b_id, b_name: field.b_name, b_area: field.b_area })
-
-    if (cell.grazingEntries && cell.grazingEntries.length > 0) {
-      // Edit the grazing with its own dates, not those of the week that was clicked
-      const g = cell.grazingEntries[0]
-      setPopoverExistingGrazing({
-        l_id_grazing: g.l_id_grazing,
-        l_id_herd: g.l_id_herd,
-        l_grazing_start: g.l_grazing_start,
-        l_grazing_end: g.l_grazing_end,
-        l_grazing_hours: g.l_grazing_hours,
-        l_grazing_area: g.l_grazing_area,
-        l_grazing_geometry_zone: g.l_grazing_geometry_zone,
-      })
-      setPopoverStartDate(g.l_grazing_start)
-      // A grazing that still runs has no end date, so saving it keeps it running
-      setPopoverEndDate(g.l_grazing_end ?? undefined)
-    } else {
-      // A new grazing covers one day: today when it falls in the clicked week, otherwise the first
-      // day of the week (or the clicked day). Dragging over several cells records a longer period.
-      const day = todayKey >= cell.dateStart && todayKey <= cell.dateEnd ? todayKey : cell.dateStart
-      setPopoverExistingGrazing(null)
-      setPopoverStartDate(day)
-      setPopoverEndDate(day)
-    }
-
+    setPopoverExistingGrazing(null)
+    setPopoverStartDate(start)
+    setPopoverEndDate(end)
     setPopoverOpen(true)
   }
 
-  const handleMouseDown = (field: GrazingCalendarFieldRow, weekIndex: number) => {
-    if (!canWrite) return
-    setIsDragging(true)
-    setDragField(field)
-    setDragStartWeek(weekIndex)
-    setDragEndWeek(weekIndex)
+  const handleCellClick = (field: GrazingCalendarFieldRow, cell: GrazingCalendarCell) => {
+    const grazing = cell.grazingEntries?.[0]
+    if (grazing) {
+      // Edit the grazing with its own dates, not those of the day that was clicked
+      setPopoverSession((s) => s + 1)
+      setPopoverField({ b_id: field.b_id, b_name: field.b_name, b_area: field.b_area })
+      setPopoverExistingGrazing({
+        l_id_grazing: grazing.l_id_grazing,
+        l_id_herd: grazing.l_id_herd,
+        l_grazing_start: grazing.l_grazing_start,
+        l_grazing_end: grazing.l_grazing_end,
+        l_grazing_hours: grazing.l_grazing_hours,
+        l_grazing_area: grazing.l_grazing_area,
+        l_grazing_geometry_zone: grazing.l_grazing_geometry_zone,
+      })
+      setPopoverStartDate(grazing.l_grazing_start)
+      // A grazing that still runs has no end date, so saving it keeps it running
+      setPopoverEndDate(grazing.l_grazing_end ?? undefined)
+      setPopoverOpen(true)
+      return
+    }
+
+    // A day with mowing or fertilizing opens that item to change or remove it
+    const harvest = cell.harvestEntries?.[0]
+    const fertilizer = cell.fertilizerEntries?.[0]
+    if (onSheetRequest && canWrite && harvest) {
+      onSheetRequest({
+        type: "harvest-edit",
+        context: { b_id: field.b_id, b_lu: harvest.b_lu, b_id_harvesting: harvest.b_id_harvesting },
+      })
+      return
+    }
+    if (onSheetRequest && canWrite && fertilizer) {
+      onSheetRequest({
+        type: "fertilizer-edit",
+        context: { b_id: field.b_id, p_app_id: fertilizer.p_app_id },
+      })
+      return
+    }
+
+    if (canWrite) openNewGrazing(field, cell.dateStart, cell.dateEnd)
   }
 
-  const handleMouseEnter = (weekIndex: number) => {
+  const handleMouseDown = (
+    event: React.MouseEvent,
+    field: GrazingCalendarFieldRow,
+    index: number,
+  ) => {
+    // Only the left button paints; a right click opens the context menu
+    if (!canWrite || event.button !== 0) return
+    setIsDragging(true)
+    setDragField(field)
+    setDragStart(index)
+    setDragEnd(index)
+  }
+
+  const handleMouseEnter = (index: number) => {
     if (isDragging && dragField) {
-      setDragEndWeek(weekIndex)
+      setDragEnd(index)
     }
   }
 
   const handleMouseUp = () => {
-    if (isDragging && dragField && dragStartWeek !== null && dragEndWeek !== null) {
-      const minW = Math.min(dragStartWeek, dragEndWeek)
-      const maxW = Math.max(dragStartWeek, dragEndWeek)
-
-      const startCell = dragField.cells[minW]
-      const endCell = dragField.cells[maxW]
-
-      setPopoverSession((s) => s + 1)
-      setPopoverField({ b_id: dragField.b_id, b_name: dragField.b_name, b_area: dragField.b_area })
-      setPopoverExistingGrazing(null)
-      setPopoverStartDate(startCell.dateStart)
-      setPopoverEndDate(endCell.dateEnd)
-      setPopoverOpen(true)
+    // A drag over more than one day adds a grazing for that period; a single day is a click
+    if (
+      isDragging &&
+      dragField &&
+      dragStart !== null &&
+      dragEnd !== null &&
+      dragStart !== dragEnd
+    ) {
+      const startCell = dragField.cells[Math.min(dragStart, dragEnd)]
+      const endCell = dragField.cells[Math.max(dragStart, dragEnd)]
+      openNewGrazing(dragField, startCell.dateStart, endCell.dateEnd)
     }
     setIsDragging(false)
     setDragField(null)
-    setDragStartWeek(null)
-    setDragEndWeek(null)
+    setDragStart(null)
+    setDragEnd(null)
   }
 
   return (
     <TooltipProvider>
       <div className="space-y-4" onMouseUp={handleMouseUp}>
-        {/* Top toolbar: Koppels legend + Use Legend */}
+        {/* Top toolbar: herds and legend */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3 text-xs">
-          {/* Herds filter/legend */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground font-medium">Koppels:</span>
             {matrix.herds.map((h) => (
@@ -167,177 +222,170 @@ export function CalendarGrid({
             ))}
           </div>
 
-          {/* Usage symbols legend */}
           <div className="text-muted-foreground flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-4 rounded-xs border border-emerald-600/40 bg-emerald-500/30" />
+              <span className={cn("inline-block h-3.5 w-4 rounded-xs", GRAZING_FILL)} />
               <span>Weiden</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex h-3.5 w-4 items-center justify-center rounded-xs border border-amber-600/40 bg-amber-500/30">
-                <Wheat className="size-2.5 text-amber-800" aria-hidden="true" />
-              </span>
+              <span className={cn("inline-block h-3.5 w-4 rounded-xs", MOWING_FILL)} />
               <span>Maaien</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Shovel className="size-3.5 text-sky-700" aria-hidden="true" />
-              <span>Bemesten</span>
+              <FertilizerDot kind="manure" />
+              <span>Dierlijke mest</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-4 rounded-xs border border-dashed border-emerald-500/50 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.2)_2px,rgba(16,185,129,0.2)_4px)] opacity-70" />
+              <FertilizerDot kind="mineral" />
+              <span>Kunstmest</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={cn("inline-block h-3.5 w-4 rounded-xs", PLANNED_GRAZING_FILL)} />
               <span>Gepland</span>
             </div>
           </div>
         </div>
 
-        <CalendarViewSwitch view={matrix.view} />
+        <p className="text-muted-foreground text-xs">
+          Elke dag van 1 maart tot en met 31 oktober. Klik op een lege dag om een beweiding toe te
+          voegen, of klik met de rechtermuisknop voor maaien en bemesten.
+        </p>
 
-        {/* Matrix Table */}
-        <div className="bg-card relative overflow-x-auto rounded-xl border shadow-xs">
-          <table className="w-full border-collapse text-left text-xs" role="grid">
-            <thead>
-              <tr className="bg-muted/40 text-muted-foreground border-b font-medium">
-                <th className="bg-muted/90 sticky left-0 z-20 min-w-44 p-3 backdrop-blur-xs">
-                  Perceel
-                </th>
-                <th className="w-16 p-3 text-right">ha</th>
-                {/* Week numbers, or the days of the season with the month name on the 1st */}
-                {matrix.columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={cn(
-                      "font-normal",
-                      isDayView
-                        ? "relative h-9 w-1.5 min-w-1.5 p-0 text-[10px]"
-                        : "border-border/40 min-w-8 border-l p-1.5 text-center text-[11px]",
-                      column.groupStart && "border-l-border text-foreground border-l font-semibold",
-                      column.dateStart <= todayKey && todayKey <= column.dateEnd && "bg-primary/30",
-                    )}
-                  >
-                    {isDayView ? (
-                      // The month name overflows into the next days, which have no label
+        {/* Calendar: one narrow column per day; the context menu belongs to the right-clicked day */}
+        <ContextMenu>
+          <ContextMenuTrigger
+            // A right click outside a day (a name or the header) has no day to add to
+            onContextMenuCapture={() => setMenuTarget(null)}
+            render={
+              <div className="bg-card relative overflow-x-auto rounded-xl border shadow-xs" />
+            }
+          >
+            <table className="w-full border-collapse text-left text-xs" role="grid">
+              <thead>
+                <tr className="bg-muted/40 text-muted-foreground border-b font-medium">
+                  <th className="bg-muted/90 sticky left-0 z-20 min-w-44 p-3 backdrop-blur-xs">
+                    Perceel
+                  </th>
+                  <th className="w-16 p-3 text-right">ha</th>
+                  {matrix.columns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={cn(
+                        "relative h-9 w-1.5 min-w-1.5 p-0 text-[10px] font-normal",
+                        column.groupStart &&
+                          "border-l-border text-foreground border-l font-semibold",
+                        column.dateStart === todayKey && "bg-primary/30",
+                      )}
+                    >
+                      {/* The month name on the 1st overflows into the next days, which have none */}
                       <span className="absolute top-1/2 left-1 -translate-y-1/2 whitespace-nowrap">
                         {column.label}
                       </span>
-                    ) : (
-                      column.label
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody className="divide-border/60 divide-y">
-              {/* Grazed fields first, then the largest fields first (sorted by the loader) */}
-              {matrix.fields.map((field) => (
-                <tr key={field.b_id} className="hover:bg-muted/20">
-                  <td className="bg-card/95 sticky left-0 z-10 border-r px-3 py-2 font-medium backdrop-blur-xs">
-                    <div className="max-w-40 truncate">{field.b_name}</div>
-                    {field.recentRestDays !== null && (
-                      <div className="text-muted-foreground text-[10px]">
-                        ░ {field.recentRestDays}d rust
-                      </div>
-                    )}
-                  </td>
-                  <td className="text-muted-foreground border-r px-2 py-2 text-right">
-                    {field.b_area}
-                  </td>
-
-                  {field.cells.map((cell, wIdx) => {
-                    const isSelected =
-                      isDragging &&
-                      dragField?.b_id === field.b_id &&
-                      dragStartWeek !== null &&
-                      dragEndWeek !== null &&
-                      wIdx >= Math.min(dragStartWeek, dragEndWeek) &&
-                      wIdx <= Math.max(dragStartWeek, dragEndWeek)
-
-                    return (
-                      <td
-                        key={cell.key}
-                        className={cn(
-                          "relative cursor-pointer text-center transition-colors select-none",
-                          isDayView
-                            ? "w-1.5 min-w-1.5 p-0 py-0.5"
-                            : "border-border/40 border-l p-0.5",
-                          isSelected && "bg-primary/30",
-                          matrix.columns[wIdx]?.groupStart && "border-l-border border-l",
-                        )}
-                        onMouseDown={() => handleMouseDown(field, wIdx)}
-                        onMouseEnter={() => handleMouseEnter(wIdx)}
-                        onClick={() => {
-                          // A day is too narrow for markers to click: a day with mowing or
-                          // fertilizing but no grazing opens that item instead
-                          const harvest = cell.harvestEntries?.[0]
-                          const fertilizer = cell.fertilizerEntries?.[0]
-                          if (isDayView && !cell.grazingEntries && onSheetRequest && canWrite) {
-                            if (harvest) {
-                              onSheetRequest({
-                                type: "harvest-edit",
-                                context: {
-                                  b_id: field.b_id,
-                                  b_lu: harvest.b_lu,
-                                  b_id_harvesting: harvest.b_id_harvesting,
-                                },
-                              })
-                              return
-                            }
-                            if (fertilizer) {
-                              onSheetRequest({
-                                type: "fertilizer-edit",
-                                context: { b_id: field.b_id, p_app_id: fertilizer.p_app_id },
-                              })
-                              return
-                            }
-                          }
-                          handleCellClick(field, cell)
-                        }}
-                        role="gridcell"
-                        aria-label={`${field.b_name}, ${
-                          matrix.view.kind === "day"
-                            ? format(new Date(`${cell.dateStart}T12:00:00`), "d MMMM", {
-                                locale: nl,
-                              })
-                            : `week ${cell.label}`
-                        }, ${cell.type}`}
-                      >
-                        {isDayView ? (
-                          <DayCell cell={cell} />
-                        ) : (
-                          <div
-                            className={cn(
-                              "flex h-7 w-full items-center justify-center gap-0.5 rounded-xs text-[10px] transition-all",
-                              cell.type === "empty" && "hover:bg-muted/60",
-                              cell.type === "weiden" &&
-                                !cell.isPlanned &&
-                                "border border-emerald-500/40 bg-emerald-500/25 font-medium text-emerald-950 dark:text-emerald-200",
-                              cell.type === "weiden" &&
-                                cell.isPlanned &&
-                                "border border-dashed border-emerald-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.2)_2px,rgba(16,185,129,0.2)_4px)] font-normal text-emerald-800 opacity-75 dark:text-emerald-300",
-                              cell.type === "maaien" &&
-                                "border border-amber-500/40 bg-amber-500/25 font-medium text-amber-950 dark:text-amber-200",
-                              cell.type === "mixed" &&
-                                "border border-emerald-500/40 bg-gradient-to-r from-emerald-500/30 to-amber-500/30 font-semibold",
-                            )}
-                          >
-                            {(cell.type === "weiden" || cell.type === "mixed") && (
-                              <span>{cell.isPlanned ? "▨ gepl." : "▨"}</span>
-                            )}
-                            <CellEventMarkers
-                              cell={cell}
-                              b_id={field.b_id}
-                              onSheetRequest={canWrite ? onSheetRequest : undefined}
-                            />
-                          </div>
-                        )}
-                      </td>
-                    )
-                  })}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+
+              <tbody className="divide-border/60 divide-y">
+                {/* Grazed fields first, then the largest fields first (sorted by the loader) */}
+                {matrix.fields.map((field) => (
+                  <tr key={field.b_id} className="hover:bg-muted/20">
+                    <td className="bg-card/95 sticky left-0 z-10 border-r px-3 py-2 font-medium backdrop-blur-xs">
+                      <div className="max-w-40 truncate">{field.b_name}</div>
+                      {field.recentRestDays !== null && (
+                        <div className="text-muted-foreground text-[10px]">
+                          ░ {field.recentRestDays}d rust
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-muted-foreground border-r px-2 py-2 text-right">
+                      {field.b_area}
+                    </td>
+
+                    {field.cells.map((cell, index) => {
+                      const isSelected =
+                        isDragging &&
+                        dragField?.b_id === field.b_id &&
+                        dragStart !== null &&
+                        dragEnd !== null &&
+                        index >= Math.min(dragStart, dragEnd) &&
+                        index <= Math.max(dragStart, dragEnd)
+
+                      return (
+                        <td
+                          key={cell.key}
+                          className={cn(
+                            "relative w-1.5 min-w-1.5 cursor-pointer p-0 py-0.5 transition-colors select-none",
+                            isSelected && "bg-primary/30",
+                            matrix.columns[index]?.groupStart && "border-l-border border-l",
+                          )}
+                          onMouseDown={(event) => handleMouseDown(event, field, index)}
+                          onMouseEnter={() => handleMouseEnter(index)}
+                          onClick={() => handleCellClick(field, cell)}
+                          onContextMenu={() => setMenuTarget({ field, day: cell.dateStart })}
+                          role="gridcell"
+                          aria-label={`${field.b_name}, ${formatLongDay(cell.dateStart)}, ${cell.type}`}
+                        >
+                          <DayCell cell={cell} />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            {menuTarget ? (
+              <ContextMenuGroup>
+                <ContextMenuLabel>
+                  {menuTarget.field.b_name} · {formatLongDay(menuTarget.day)}
+                </ContextMenuLabel>
+                <ContextMenuItem
+                  disabled={!canWrite}
+                  onClick={() => openNewGrazing(menuTarget.field, menuTarget.day, menuTarget.day)}
+                >
+                  <Plus />
+                  Beweiding toevoegen
+                </ContextMenuItem>
+                <ContextMenuItem
+                  disabled={!canWrite || !onSheetRequest}
+                  onClick={() =>
+                    onSheetRequest?.({
+                      type: "harvest",
+                      context: {
+                        b_id: menuTarget.field.b_id,
+                        date: new Date(`${menuTarget.day}T12:00:00`),
+                      },
+                    })
+                  }
+                >
+                  <Wheat />
+                  Maaisnede toevoegen
+                </ContextMenuItem>
+                <ContextMenuItem
+                  disabled={!canWrite || !onSheetRequest}
+                  onClick={() =>
+                    onSheetRequest?.({
+                      type: "fertilizer",
+                      context: {
+                        b_id: menuTarget.field.b_id,
+                        date: new Date(`${menuTarget.day}T12:00:00`),
+                      },
+                    })
+                  }
+                >
+                  <Shovel />
+                  Bemesting toevoegen
+                </ContextMenuItem>
+              </ContextMenuGroup>
+            ) : (
+              <ContextMenuGroup>
+                <ContextMenuLabel>Klik op een dag van een perceel</ContextMenuLabel>
+              </ContextMenuGroup>
+            )}
+          </ContextMenuContent>
+        </ContextMenu>
 
         {/* Season Summary Strip */}
         <div className="bg-card space-y-2 rounded-xl border p-4 shadow-xs">
@@ -385,7 +433,6 @@ export function CalendarGrid({
         </div>
       </div>
 
-      {/* Popover */}
       <GrazingPopover
         key={popoverSession}
         open={popoverOpen}
@@ -404,59 +451,36 @@ export function CalendarGrid({
   )
 }
 
-const formatDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
-
-/**
- * Switches the calendar between the weeks of the year and every day of the grazing season. The
- * view lives in the URL (`weergave=dag`), so the loader builds the matching columns and a link
- * keeps the view.
- */
-function CalendarViewSwitch({ view }: { view: GrazingCalendarView }) {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const setView = (kind: GrazingCalendarView["kind"]) => {
-    const params = new URLSearchParams(searchParams)
-    if (kind === "day") params.set("weergave", "dag")
-    else params.delete("weergave")
-    setSearchParams(params, { preventScrollReset: true })
-  }
+/** A dot in the colour of the fertilizer badge of a kind: brown for manure, blue for mineral. */
+function FertilizerDot({ kind, className }: { kind: FertilizerKind; className?: string }) {
+  // The badge background is the first class of its solid style
+  const background = (
+    FERTILIZER_CATEGORY_SOLID_CLASSES[kind] ?? FERTILIZER_CATEGORY_SOLID_CLASSES.other
+  ).split(" ")[0]
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <ToggleGroup
-        size="sm"
-        variant="outline"
-        value={[view.kind]}
-        // Base UI sends an empty array when the active item is clicked again; keep the view then
-        onValueChange={([value]) => {
-          if (value === "week" || value === "day") setView(value)
-        }}
-        aria-label="Weergave van de kalender"
-      >
-        <ToggleGroupItem value="week" className="px-3 text-xs">
-          Week
-        </ToggleGroupItem>
-        <ToggleGroupItem value="day" className="px-3 text-xs">
-          Dag
-        </ToggleGroupItem>
-      </ToggleGroup>
-      <p key={view.kind} className="text-muted-foreground text-xs">
-        {view.kind === "day"
-          ? "Elke dag van 1 maart tot en met 31 oktober"
-          : "Alle weken van het jaar"}
-      </p>
-    </div>
+    <span
+      aria-hidden="true"
+      className={cn(
+        "inline-block size-2.5 shrink-0 rounded-full ring-1 ring-white",
+        background,
+        className,
+      )}
+    />
   )
 }
 
 /**
- * A day of the season: a narrow coloured bar for grazing (striped when planned) or mowing, with a
- * dot for a fertilizer application. The title lists what happened that day.
+ * A day of the season: a narrow coloured bar for grazing (light green, striped when planned) or
+ * mowing (dark green), with a dot in the badge colour of a fertilizer application. The title lists
+ * what happened that day.
  */
 function DayCell({ cell }: { cell: GrazingCalendarCell }) {
-  const grazing = cell.grazingEntries?.[0]
   const title = [
     ...(cell.grazingEntries ?? []).map(
       (g) =>
-        `${g.isPlanned ? "Gepland: " : ""}${g.l_herd_name}${g.l_grazing_hours ? `, ${g.l_grazing_hours} uur` : ""}`,
+        `${g.isPlanned ? "Gepland: " : ""}${g.l_herd_name}${
+          g.l_grazing_hours ? `, ${g.l_grazing_hours} uur` : ""
+        }`,
     ),
     ...(cell.harvestEntries ?? []).map(() => "Maaien"),
     ...(cell.fertilizerEntries ?? []).map(
@@ -475,110 +499,17 @@ function DayCell({ cell }: { cell: GrazingCalendarCell }) {
       className={cn(
         "relative h-7 w-full",
         cell.type === "empty" && "hover:bg-muted/60",
-        grazing &&
-          (cell.isPlanned
-            ? "bg-[repeating-linear-gradient(45deg,rgba(16,185,129,0.15),rgba(16,185,129,0.15)_2px,rgba(16,185,129,0.45)_2px,rgba(16,185,129,0.45)_4px)]"
-            : "bg-emerald-500/60"),
-        cell.type === "maaien" && "bg-amber-500/70",
-        cell.type === "mixed" && "bg-gradient-to-b from-emerald-500/60 to-amber-500/70",
+        cell.type === "weiden" && (cell.isPlanned ? PLANNED_GRAZING_FILL : GRAZING_FILL),
+        cell.type === "maaien" && MOWING_FILL,
+        cell.type === "mixed" && "bg-gradient-to-b from-green-300 to-green-800",
       )}
     >
       {cell.fertilizerEntries && (
-        <span
-          aria-hidden="true"
-          className="absolute top-0.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-sky-600"
+        <FertilizerDot
+          kind={cell.fertilizerEntries[0].p_type}
+          className="absolute top-0.5 left-1/2 size-1.5 -translate-x-1/2"
         />
       )}
     </div>
-  )
-}
-
-/**
- * Markers for the mowing and fertilizer applications in a week. With write permission they are
- * buttons that open the first item of the week to change or remove it; the label lists them all.
- * They stop the click and the drag of the cell, which records a grazing.
- */
-function CellEventMarkers({
-  cell,
-  b_id,
-  onSheetRequest,
-}: {
-  cell: GrazingCalendarCell
-  b_id: string
-  onSheetRequest?: (request: AddEventSheetRequest) => void
-}) {
-  const harvests = cell.harvestEntries ?? []
-  const fertilizers = cell.fertilizerEntries ?? []
-  if (harvests.length === 0 && fertilizers.length === 0) return null
-
-  const harvestLabel = harvests.map((h) => `Maaien ${formatDay(h.harvestDate)}`).join(", ")
-  const fertilizerLabel = fertilizers
-    .map(
-      (f) =>
-        `${f.p_name_nl ?? "Bemesting"}${
-          f.p_app_amount_display != null
-            ? ` ${f.p_app_amount_display.toLocaleString("nl-NL")} ${f.p_app_amount_unit}`
-            : ""
-        } (${formatDay(f.p_app_date)})`,
-    )
-    .join(", ")
-
-  const stop = (e: MouseEvent) => e.stopPropagation()
-  const markerClassName =
-    "inline-flex size-4 items-center justify-center rounded-xs pointer-coarse:size-6"
-
-  return (
-    <span className="flex items-center gap-px">
-      {harvests.length > 0 &&
-        (onSheetRequest ? (
-          <button
-            type="button"
-            className={cn(markerClassName, "hover:bg-amber-500/30")}
-            title={harvestLabel}
-            aria-label={`${harvestLabel}: bewerken`}
-            onMouseDown={stop}
-            onClick={(e) => {
-              stop(e)
-              onSheetRequest({
-                type: "harvest-edit",
-                context: {
-                  b_id,
-                  b_lu: harvests[0].b_lu,
-                  b_id_harvesting: harvests[0].b_id_harvesting,
-                },
-              })
-            }}
-          >
-            <Wheat className="size-3 text-amber-800" aria-hidden="true" />
-          </button>
-        ) : (
-          <span className={markerClassName} title={harvestLabel}>
-            <Wheat className="size-3 text-amber-800" aria-label={harvestLabel} />
-          </span>
-        ))}
-      {fertilizers.length > 0 &&
-        (onSheetRequest ? (
-          <button
-            type="button"
-            className={cn(markerClassName, "hover:bg-sky-500/20")}
-            title={fertilizerLabel}
-            aria-label={`${fertilizerLabel}: bewerken`}
-            onMouseDown={stop}
-            onClick={(e) => {
-              stop(e)
-              onSheetRequest({
-                type: "fertilizer-edit",
-                context: { b_id, p_app_id: fertilizers[0].p_app_id },
-              })
-            }}
-          >
-            <Shovel className="size-3 text-sky-700" aria-hidden="true" />
-          </button>
-        ) : (
-          <span className={markerClassName} title={fertilizerLabel}>
-            <Shovel className="size-3 text-sky-700" aria-label={fertilizerLabel} />
-          </span>
-        ))}
-    </span>
   )
 }
