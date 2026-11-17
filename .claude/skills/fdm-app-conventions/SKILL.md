@@ -1,7 +1,7 @@
 ---
 name: fdm-app-conventions
 description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this large, lightly tested package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
-version: 1.1.0
+version: 1.2.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
@@ -114,6 +114,8 @@ Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
 
+The app runs under the name each deployment configures, so never write "FDM" (or another product name) in UI copy. Use `clientConfig.name` from `~/lib/config`, which comes from `PUBLIC_FDM_NAME`, as the `meta` titles already do: `` `${clientConfig.name} schat de oppervlakte…` ``. Code comments, package names and identifiers are not UI copy.
+
 ### Consistency across the app
 
 Consistency is what makes `fdm-app` easy to use: a user who has learned one screen should already know how the next one works. Treat it as a requirement, not a polish item.
@@ -216,6 +218,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Ref-compare against a "previous value", or a `setTimeout`-deferred `setState`, to dodge a compiler lint error | Pick the matching pattern from "Client-side state and the React Compiler" |
 | A lazy `useState(() => window…)` initializer for a client-only value | `useSyncExternalStore` with an explicit server snapshot |
 | English UI strings | Dutch |
+| "FDM" written in UI copy | `clientConfig.name` (from `PUBLIC_FDM_NAME`) |
 | A new page or component that looks or behaves differently from its siblings | Follow the nearest existing screen; reuse its blocks (see "Consistency across the app") |
 | `<input type="date">` | `DatePicker` from `~/components/custom/date-picker-v2` |
 | Local advice thresholds or colours | `computeAdviceProgress` and the maps in `progress-bar.tsx` |
