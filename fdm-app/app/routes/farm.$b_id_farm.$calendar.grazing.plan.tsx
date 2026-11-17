@@ -6,6 +6,8 @@ import {
   GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   type GrazingSystemKey,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_DAY_AND_NIGHT_HOURS,
+  NNW_PLOT_AREA_HA_PER_COW,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "@nmi-agro/fdm-calculator/browser"
 import {
@@ -75,7 +77,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { type Area, areaHa, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
+import { type Area, areaHa, cutEqualPlots, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
 import { grazingZoneSchema } from "~/lib/grazing-zone"
 
 /** How the generator sizes the grazed part of a field for a strip system. */
@@ -315,6 +317,17 @@ export default function GrazingPlanAssistent() {
       : null
   const useStrips = selectedSystem.grazingType === "partial" && partialMode === "strips"
 
+  // Nieuw Nederlands Weiden: the chosen fields are divided into plots of equal size, and the herd
+  // gets a new plot every day, or every half day when it grazes day and night
+  const isNnw = systemKey === "nieuw_nederlands_weiden"
+  const defaultPlotArea =
+    selectedHerdCount > 0
+      ? Math.max(0.1, Math.round(selectedHerdCount * NNW_PLOT_AREA_HA_PER_COW * 10) / 10)
+      : Math.round(120 * NNW_PLOT_AREA_HA_PER_COW * 10) / 10
+  // Follows the herd until the user enters a plot size
+  const [plotArea, setPlotArea] = useKeyedState(String(defaultPlotArea), (value) => Number(value))
+  const plotsPerDay = hoursPerDay > NNW_DAY_AND_NIGHT_HOURS ? 2 : 1
+
   const handleSystemSelect = (key: GrazingSystemKey) => {
     setSystemKey(key)
     const sys = GRAZING_SYSTEMS[key]
@@ -362,6 +375,67 @@ export default function GrazingPlanAssistent() {
       reason: string
     }> = []
 
+    const overlapsExisting = (b_id: string, from: Date, to: Date) =>
+      existingGrazings.some((g) => {
+        if (g.l_id_herd !== selectedHerdId) return false
+        if (g.b_id && g.b_id !== b_id) return false
+        const gStart = new Date(g.l_grazing_start)
+        const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
+        return from <= gEnd && to >= gStart
+      })
+
+    if (isNnw) {
+      // The chosen fields divided into plots of equal size, in a fixed order over the platform.
+      // A field without an outline is one plot.
+      const plots = fieldsToUse.flatMap((f) => {
+        const cut = f.b_geometry
+          ? cutEqualPlots({
+              field: f.b_geometry as Area,
+              plotAreaHa: plotArea,
+              bearing: Number(stripDirection),
+            })
+          : []
+        return cut.length > 0
+          ? cut.map((plot) => ({ field: f, plot: plot as Area | null }))
+          : [{ field: f, plot: null }]
+      })
+      const hoursPerPlot = hoursPerDay / plotsPerDay
+      let plotIndex = 0
+      for (
+        const day = new Date(startDate);
+        format(day, "yyyy-MM-dd") <= endDate;
+        day.setDate(day.getDate() + 1)
+      ) {
+        const dayStr = format(day, "yyyy-MM-dd")
+        // One new plot a day, or one in the morning and one in the evening
+        for (let k = 0; k < plotsPerDay; k++) {
+          const { field: f, plot } = plots[plotIndex % plots.length]
+          plotIndex++
+          if (overlapsExisting(f.b_id, day, day)) {
+            skippedCollisions.push({
+              fieldName: f.b_name,
+              startDate: dayStr,
+              endDate: dayStr,
+              reason: "Overlapt met bestaande registratie",
+            })
+            continue
+          }
+          rows.push({
+            l_id_herd: selectedHerdId,
+            b_id: f.b_id,
+            fieldName: f.b_name,
+            fieldArea: f.b_area,
+            l_grazing_start: dayStr,
+            l_grazing_end: dayStr,
+            l_grazing_hours: hoursPerPlot,
+            l_grazing_geometry_zone: plot ? toMultiPolygon(plot) : undefined,
+            zoneArea: plot ? Number(areaHa(plot).toFixed(2)) : undefined,
+          })
+        }
+      }
+      return { generatedRows: rows, collisions: skippedCollisions }
+    }
+
     const start = new Date(startDate)
     const end = new Date(endDate)
     let currentStart = new Date(start)
@@ -379,15 +453,7 @@ export default function GrazingPlanAssistent() {
       const eStr = format(currentEnd, "yyyy-MM-dd")
 
       // Check for collision with existing records for this herd & field
-      const hasCollision = existingGrazings.some((g) => {
-        if (g.l_id_herd !== selectedHerdId) return false
-        if (g.b_id && g.b_id !== activeField.b_id) return false
-        const gStart = new Date(g.l_grazing_start)
-        const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-        return currentStart <= gEnd && currentEnd >= gStart
-      })
-
-      if (hasCollision) {
+      if (overlapsExisting(activeField.b_id, currentStart, currentEnd)) {
         skippedCollisions.push({
           fieldName: activeField.b_name,
           startDate: sStr,
@@ -456,9 +522,15 @@ export default function GrazingPlanAssistent() {
     useStrips,
     stripAllocation,
     stripDirection,
+    isNnw,
+    plotArea,
+    plotsPerDay,
   ])
 
-  const totalWeidedagen = generatedRows.length * periodDays
+  // Grazing days: with Nieuw Nederlands Weiden every day has its own plot(s)
+  const totalWeidedagen = isNnw
+    ? new Set(generatedRows.map((row) => row.l_grazing_start)).size
+    : generatedRows.length * periodDays
 
   return (
     <SidebarInset>
@@ -661,20 +733,77 @@ export default function GrazingPlanAssistent() {
                           />
                         </Field>
 
-                        <Field>
-                          <FieldLabel htmlFor="plan-days">
-                            Wissel van perceel elke (dagen)
-                          </FieldLabel>
-                          <Input
-                            id="plan-days"
-                            type="number"
-                            min="1"
-                            max="60"
-                            value={periodDays}
-                            onChange={(e) => setPeriodDays(parseInt(e.target.value || "4", 10))}
-                          />
-                        </Field>
+                        {!isNnw && (
+                          <Field>
+                            <FieldLabel htmlFor="plan-days">
+                              Wissel van perceel elke (dagen)
+                            </FieldLabel>
+                            <Input
+                              id="plan-days"
+                              type="number"
+                              min="1"
+                              max="60"
+                              value={periodDays}
+                              onChange={(e) => setPeriodDays(parseInt(e.target.value || "4", 10))}
+                            />
+                          </Field>
+                        )}
                       </div>
+
+                      {isNnw && (
+                        <Field className="bg-muted/20 space-y-3 rounded-lg border p-3.5">
+                          <FieldLabel>Percelen van gelijke grootte</FieldLabel>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <Field>
+                              <FieldLabel htmlFor="plan-plot-area" className="text-xs">
+                                Perceelsgrootte (ha)
+                              </FieldLabel>
+                              <Input
+                                id="plan-plot-area"
+                                type="number"
+                                min="0.1"
+                                step="0.1"
+                                value={plotArea}
+                                onChange={(e) => setPlotArea(parseFloat(e.target.value || "0"))}
+                                className="h-8 text-xs"
+                              />
+                            </Field>
+                            <Field>
+                              <FieldLabel htmlFor="plan-plot-direction" className="text-xs">
+                                Richting
+                              </FieldLabel>
+                              <Select
+                                value={stripDirection}
+                                items={STRIP_DIRECTIONS}
+                                onValueChange={(v) => {
+                                  if (v !== null) setStripDirection(v)
+                                }}
+                              >
+                                <SelectTrigger id="plan-plot-direction" className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {STRIP_DIRECTIONS.map((d) => (
+                                    <SelectItem key={d.value} value={d.value}>
+                                      {d.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+                          </div>
+                          <p className="text-muted-foreground text-[11px]">
+                            {clientConfig.name} deelt de gekozen percelen op in percelen van
+                            ongeveer deze grootte, alle even groot binnen een perceel. De koppel
+                            krijgt elke dag een nieuw perceel
+                            {plotsPerDay === 2
+                              ? `; bij dag en nacht weiden (meer dan ${NNW_DAY_AND_NIGHT_HOURS} uur) 's ochtends en 's avonds een nieuw perceel, elk met de helft van de uren`
+                              : ""}
+                            . De standaard is 2,5 ha per 120 koeien, zoals in de voorbeelden van
+                            Nieuw Nederlands Weiden, omgerekend naar deze koppel.
+                          </p>
+                        </Field>
+                      )}
 
                       {selectedSystem.grazingType === "partial" && (
                         <Field className="bg-muted/20 space-y-3 rounded-lg border p-3.5">

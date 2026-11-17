@@ -156,6 +156,23 @@ export type GrazingSystemKey = keyof typeof GRAZING_SYSTEMS
 export const NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM = 15
 
 /**
+ * Size of a plot per cow (ha) when the home plot is divided into plots of equal size for Nieuw
+ * Nederlands Weiden: every example divides the home plot into plots of 2,5 ha for 120 cows.
+ * Assumption: the plot size scales with the number of cows.
+ * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden" ("Bij elk
+ * voorbeeld gaan we uit van 120 koeien en verdelen we de huiskavel in percelen van 2,5 hectare").
+ */
+export const NNW_PLOT_AREA_HA_PER_COW = 2.5 / 120
+
+/**
+ * Grazing hours per day above which the cows graze day and night and get a new plot in the
+ * morning and in the evening.
+ * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden", example XL
+ * ("Dag en nacht weiden > 12 uur", "Ochtend en avond een nieuw perceel").
+ */
+export const NNW_DAY_AND_NIGHT_HOURS = 12
+
+/**
  * Reference values for the average daily grass growth in the Netherlands (kg DM/ha/day) in spring,
  * summer and autumn. The growth curve peaks around 80 in late April and May, is around 60 in summer
  * and around 40 in September.

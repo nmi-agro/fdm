@@ -4,6 +4,7 @@ import {
   type Area,
   areaHa,
   clipZoneToField,
+  cutEqualPlots,
   cutStrip,
   cutStrips,
   intersectAreas,
@@ -213,5 +214,39 @@ describe("clipZoneToField", () => {
       ],
     }
     expect(clipZoneToField(outside, field)).toBeNull()
+  })
+})
+
+describe("cutEqualPlots", () => {
+  it("divides a field into plots of equal size that cover the field", () => {
+    const fieldArea = areaHa(field)
+    const plots = cutEqualPlots({ field, plotAreaHa: 10, bearing: 90 })
+    const expectedCount = Math.round(fieldArea / 10)
+    expect(plots).toHaveLength(expectedCount)
+    for (const plot of plots) {
+      expect(areaHa(plot)).toBeCloseTo(fieldArea / expectedCount, 0)
+    }
+    const total = plots.reduce((sum, plot) => sum + areaHa(plot), 0)
+    expect(total).toBeCloseTo(fieldArea, 1)
+    expect(overlapHa(plots[0], plots[1])).toBeLessThan(0.01)
+  })
+
+  it("divides a concave field", () => {
+    const plots = cutEqualPlots({ field: lField, plotAreaHa: 8, bearing: 0 })
+    const fieldArea = areaHa(lField)
+    expect(plots.length).toBe(Math.round(fieldArea / 8))
+    for (const plot of plots) {
+      expect(areaHa(plot)).toBeCloseTo(fieldArea / plots.length, 0)
+    }
+  })
+
+  it("keeps a field smaller than one plot as one plot", () => {
+    const plots = cutEqualPlots({ field, plotAreaHa: 500, bearing: 0 })
+    expect(plots).toHaveLength(1)
+    expect(areaHa(plots[0])).toBeCloseTo(areaHa(field), 1)
+  })
+
+  it("returns no plots for a plot size of 0", () => {
+    expect(cutEqualPlots({ field, plotAreaHa: 0, bearing: 0 })).toEqual([])
   })
 })

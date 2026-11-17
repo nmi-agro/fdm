@@ -140,6 +140,73 @@ export function cutStrip({
 }
 
 /**
+ * Divides a field into plots of equal size, as Nieuw Nederlands Weiden asks: the number of plots
+ * follows from the intended plot size, and every plot gets the same share of the field. The plots
+ * are bands perpendicular to `bearing`, in order of use.
+ *
+ * @param options - Field, intended plot size (ha) and direction.
+ * @returns The plots in order of use; one plot for a field smaller than about one plot, none for an
+ *   empty field or plot size.
+ */
+export function cutEqualPlots({
+  field,
+  plotAreaHa,
+  bearing,
+}: {
+  field: Area
+  plotAreaHa: number
+  bearing: number
+}): Area[] {
+  const fieldArea = areaHa(field)
+  if (!(plotAreaHa > 0) || !(fieldArea > 0)) return []
+  const count = Math.max(1, Math.round(fieldArea / plotAreaHa))
+  if (count === 1) return [field]
+
+  // As in cutStrip: rotate so the plots advance eastwards. The plots are bands between fence
+  // lines, each found by bisection on the area west of it, so no plot is subtracted from another
+  // (which fails on edges that almost coincide)
+  const pivot = centroid(field).geometry.coordinates as Position
+  const toFrame = 90 - bearing
+  const rotated = transformRotate(feature(field), toFrame, { pivot }).geometry as Area
+  const [minX, minY, maxX, maxY] = bbox(rotated)
+  const rotatedArea = areaHa(rotated)
+  const areaWestOf = (x: number) => {
+    const band = intersectAreas(rotated, bboxPolygon([minX, minY, x, maxY]).geometry)
+    return band ? areaHa(band) : 0
+  }
+
+  const fences = [minX]
+  for (let k = 1; k < count; k++) {
+    const target = (rotatedArea * k) / count
+    let low = fences[k - 1]
+    let high = maxX
+    for (let step = 0; step < MAX_STEPS; step++) {
+      const x = (low + high) / 2
+      const area = areaWestOf(x)
+      if (Math.abs(area - target) <= (rotatedArea / count) * AREA_TOLERANCE) {
+        low = x
+        high = x
+        break
+      }
+      if (area < target) low = x
+      else high = x
+    }
+    fences.push((low + high) / 2)
+  }
+  fences.push(maxX)
+
+  const plots: Area[] = []
+  for (let k = 0; k < count; k++) {
+    const band = intersectAreas(
+      rotated,
+      bboxPolygon([fences[k], minY, fences[k + 1], maxY]).geometry,
+    )
+    if (band) plots.push(transformRotate(feature(band), -toFrame, { pivot }).geometry as Area)
+  }
+  return plots
+}
+
+/**
  * Cuts successive strips from a field, each connecting to the previous one. When the field is used
  * up, the next strip starts again at the back of the field, as the herd returns to the first strip
  * after its rest period.
