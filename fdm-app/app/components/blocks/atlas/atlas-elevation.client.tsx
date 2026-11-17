@@ -176,6 +176,11 @@ export class ElevationTiles {
   private pending = 0
   /** Whether a tile of the current loading round failed. */
   private failed = false
+  /**
+   * Kaartbladen whose header failed to open. MosaicLayer doesn't retry them, so they stay missing
+   * across loading rounds until they open after all or leave its cache.
+   */
+  private readonly failedSources = new Set<string>()
   private status: ElevationTilesStatus = "idle"
   private slowTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -227,8 +232,12 @@ export class ElevationTiles {
     this.pending = Math.max(0, this.pending - 1)
     if (this.pending === 0) {
       clearTimeout(this.slowTimer)
-      this.setStatus(this.failed ? "error" : "idle")
+      this.setStatus(this.hasFailure() ? "error" : "idle")
     }
+  }
+
+  private hasFailure() {
+    return this.failed || this.failedSources.size > 0
   }
 
   /**
@@ -335,6 +344,20 @@ export class ElevationTiles {
     this.failed = true
     // The tile's own load has already ended; report it now unless others are still loading.
     if (this.pending === 0) this.setStatus("error")
+  }
+
+  /** Records a kaartblad whose header failed to open; it counts as an error until it settles. */
+  onSourceError(itemId: string, error: unknown) {
+    if (error instanceof Error && error.name === "AbortError") return
+    console.error("Error opening AHN kaartblad:", error)
+    this.failedSources.add(itemId)
+    if (this.pending === 0) this.setStatus("error")
+  }
+
+  /** Clears a kaartblad's failure once it opened after all or left MosaicLayer's cache. */
+  onSourceSettled(itemId: string) {
+    if (!this.failedSources.delete(itemId)) return
+    if (this.pending === 0) this.setStatus(this.hasFailure() ? "error" : "idle")
   }
 
   /**
@@ -478,7 +501,9 @@ export function createElevationLayer({
     getSource: (item, options) =>
       tiles.track(COGSource.open(item.url, { ...options, epsgResolver: resolveRdNew })),
     // A kaartblad whose header fails to open has no COGLayer yet, so report it here.
-    onSourceError: (_item, { error }) => tiles.onTileError(error),
+    onSourceError: (item, { error }) => tiles.onSourceError(item.id, error),
+    onSourceLoad: (item) => tiles.onSourceSettled(item.id),
+    onSourceUnload: (item) => tiles.onSourceSettled(item.id),
     renderSource: (_item, { source, subLayerProps }) => {
       if (!source) return null
       const props: ElevationCOGLayerProps = {
