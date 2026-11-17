@@ -51,7 +51,7 @@ import { handleLivestockEvent } from "~/lib/livestock-events.server"
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Dieren overzicht | ${clientConfig.name}` },
+    { title: `Vee | ${clientConfig.name}` },
     {
       name: "description",
       content: "Bekijk alle individuele dieren en koppels op dit bedrijf.",
@@ -221,12 +221,12 @@ export default function AnimalsOverviewPage() {
           Melkvee
         </BreadcrumbLink>
         <BreadcrumbSeparator />
-        <BreadcrumbItem>Dieren</BreadcrumbItem>
+        <BreadcrumbItem>Vee</BreadcrumbItem>
       </Header>
 
       <main>
         <FarmTitle
-          title="Dieren & Koppels"
+          title="Vee"
           description={`Overzicht van alle ${animals.length} geregistreerde dieren op dit bedrijf.`}
           rightNode={
             farmWritePermission && (

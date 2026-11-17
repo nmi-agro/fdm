@@ -363,7 +363,7 @@ export default function AnimalDetailPage() {
         <BreadcrumbLink
           render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
         >
-          Dieren
+          Vee
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
@@ -383,7 +383,7 @@ export default function AnimalDetailPage() {
                 render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
               >
                 <ArrowLeft className="h-4 w-4" />
-                Dieren
+                Vee
               </Button>
               <span className="text-muted-foreground">/</span>
               <span className="text-sm font-semibold">

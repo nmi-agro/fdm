@@ -602,7 +602,7 @@ export function SidebarFarm({
                           render={
                             <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock/animals`}>
                               <Warehouse className="size-4" />
-                              <span>Dieren</span>
+                              <span>Vee</span>
                             </NavLink>
                           }
                         />
