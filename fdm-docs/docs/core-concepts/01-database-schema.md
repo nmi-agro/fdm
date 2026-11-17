@@ -603,6 +603,25 @@ This schema holds the primary data related to farm operations.
 
 - The schema intentionally uses the plural `animal_categories_catalogue` for the catalogue table but the singular `animal_category_catalogue_selecting` for the farm-selection table. Additionally the database column name for species is `l_specie` (singular) — this was an intentional, breaking rename. Integrations and queries must use the exact schema names above to avoid runtime errors.
 
+#### **`grazing`**
+
+**Purpose**: Records a period in which a herd grazed, on a field or without a known field.
+
+| Column                      | Type                                 | Constraints                                          | Description                                                                                                                                                      |
+| --------------------------- | ------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **l_id_grazing**            | `text`                               | Primary Key                                          | Unique identifier of the grazing record.                                                                                                                         |
+| **b_id**                    | `text`                               | Foreign Key (references `fields.b_id`)               | The grazed field. `null` when the field is not known.                                                                                                            |
+| **l_id_herd**               | `text`                               | Not Null, Foreign Key (references `herds.l_id_herd`) | The herd that grazed.                                                                                                                                            |
+| **l_grazing_start**         | `timestamp with time zone`           | Not Null                                             | Start of the grazing period.                                                                                                                                     |
+| **l_grazing_end**           | `timestamp with time zone`           |                                                      | End of the grazing period. `null` while the herd is still grazing.                                                                                               |
+| **l_grazing_hours**         | `numeric`                            |                                                      | Grazing hours per day.                                                                                                                                           |
+| **l_grazing_area**          | `numeric`                            |                                                      | Grazed part of the field (ha) when its location is not known. Only set without a zone.                                                                           |
+| **l_grazing_geometry_zone** | `geometry` (MultiPolygon, SRID 4326) | GiST index                                           | Grazed part of the field as a zone within the field. `null` means the whole field, or the part given by `l_grazing_area`. A Polygon is stored as a MultiPolygon. |
+| **created**                 | `timestamp with time zone`           | Not Null                                             | Timestamp when this record was created (default: now()).                                                                                                         |
+| **updated**                 | `timestamp with time zone`           |                                                      | Timestamp when this record was last updated.                                                                                                                     |
+
+As with soil sampling zones, a zone is stored as given and clipped to the field outline when areas are calculated. The grazing functions in `fdm-core` return the derived `l_grazing_area_grazed` (ha), and `getGrazedAreaForFarm` combines all zones on a field into one grazed area, so successive strips add up.
+
 ---
 
 ### Feeds
@@ -611,18 +630,18 @@ This schema holds the primary data related to farm operations.
 
 **Purpose**: Stores standardized and farm-specific feed catalogue entries.
 
-| Column          | Type                       | Constraints | Description                                      |
-| --------------- | -------------------------- | ----------- | ------------------------------------------------ |
-| **f_id_catalogue** | `text`                  | Primary Key | Opaque catalogue identifier.                     |
-| **f_source**    | `text`                     | Not Null    | Catalogue source, such as `nmi` or a farm ID.    |
-| **f_name_nl**   | `text`                     | Not Null    | Dutch feed name.                                 |
-| **f_type_rvo**  | `text`                     | Not Null    | Original stable feed option code.               |
-| **f_dm**        | `numeric` (custom)         |             | g DM / kg fresh product.                         |
-| **f_n_dm**      | `numeric` (custom)         |             | g N / kg DM.                                     |
-| **f_p_dm**      | `numeric` (custom)         |             | g P2O5 / kg DM.                                  |
-| **hash**        | `text`                     |             | Content hash for catalogue synchronization.      |
-| **created**     | `timestamp with time zone` | Not Null    | Timestamp when the row was created.              |
-| **updated**     | `timestamp with time zone` |             | Timestamp when the row was last updated.         |
+| Column             | Type                       | Constraints | Description                                   |
+| ------------------ | -------------------------- | ----------- | --------------------------------------------- |
+| **f_id_catalogue** | `text`                     | Primary Key | Opaque catalogue identifier.                  |
+| **f_source**       | `text`                     | Not Null    | Catalogue source, such as `nmi` or a farm ID. |
+| **f_name_nl**      | `text`                     | Not Null    | Dutch feed name.                              |
+| **f_type_rvo**     | `text`                     | Not Null    | Original stable feed option code.             |
+| **f_dm**           | `numeric` (custom)         |             | g DM / kg fresh product.                      |
+| **f_n_dm**         | `numeric` (custom)         |             | g N / kg DM.                                  |
+| **f_p_dm**         | `numeric` (custom)         |             | g P2O5 / kg DM.                               |
+| **hash**           | `text`                     |             | Content hash for catalogue synchronization.   |
+| **created**        | `timestamp with time zone` | Not Null    | Timestamp when the row was created.           |
+| **updated**        | `timestamp with time zone` |             | Timestamp when the row was last updated.      |
 
 The bundled `nmi` source is based on [RVO Tabel 8 (January 2026)](https://www.rvo.nl/sites/default/files/2026-02/Tabel-8-Opbrengst-en-stikstof-en-fosfaat-in-diervoer-2026.pdf). The former `overig` enum value is removed.
 

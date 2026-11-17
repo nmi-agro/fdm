@@ -90,7 +90,6 @@ export {
   arrivingMethodOptions,
   bcsIndicatorOptions,
   feedOriginOptions,
-  grazingTypeOptions,
   gwlClassesOptions,
   leavingMethodOptions,
   soilTypesOptions,
@@ -463,8 +462,16 @@ export {
   getGrazingForFarm,
   getGrazingForField,
   getGrazingForHerd,
+  getGrazingZonesForField,
+  getGrazedAreaForFarm,
   removeGrazing,
   updateGrazing,
 } from "./grazing"
-export type { Grazing, GrazingCalendarEntry } from "./grazing.types"
+export type {
+  GrazedFieldArea,
+  Grazing,
+  GrazingCalendarEntry,
+  GrazingZone,
+  GrazingZoneInput,
+} from "./grazing.types"
 export { fdmSchema }

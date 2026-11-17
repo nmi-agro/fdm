@@ -1,5 +1,5 @@
 {
-  "id": "6b98a27c-eaaf-4d26-9e01-f58cb6feb5d8",
+  "id": "60f81d7b-6e9c-4a13-bd03-86450c7a9886",
   "prevId": "0ec73bcf-252b-4562-8440-c399a38110fb",
   "version": "7",
   "dialect": "postgresql",
@@ -3659,10 +3659,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "l_grazing_type": {
-          "name": "l_grazing_type",
-          "type": "l_grazing_type",
-          "typeSchema": "fdm",
+        "l_grazing_geometry_zone": {
+          "name": "l_grazing_geometry_zone",
+          "type": "geometry(MultiPolygon,4326)",
           "primaryKey": false,
           "notNull": false
         },
@@ -3694,6 +3693,21 @@
           "isUnique": false,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "grazing_zone_idx": {
+          "name": "grazing_zone_idx",
+          "columns": [
+            {
+              "expression": "l_grazing_geometry_zone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
           "with": {}
         }
       },
@@ -8108,14 +8122,6 @@
       "values": [
         "own_land",
         "purchased"
-      ]
-    },
-    "fdm.l_grazing_type": {
-      "name": "l_grazing_type",
-      "schema": "fdm",
-      "values": [
-        "full",
-        "partial"
       ]
     },
     "fdm.b_gwl_class": {

@@ -2,7 +2,6 @@ CREATE TYPE "fdm"."l_sex" AS ENUM('female', 'male');--> statement-breakpoint
 CREATE TYPE "fdm"."l_specie" AS ENUM('cattle', 'pig', 'poultry', 'turkey', 'duck', 'goat', 'sheep', 'horse', 'pony', 'other');--> statement-breakpoint
 CREATE TYPE "fdm"."l_arriving_method" AS ENUM('born', 'purchased', 'imported');--> statement-breakpoint
 CREATE TYPE "fdm"."f_batch_origin" AS ENUM('own_land', 'purchased');--> statement-breakpoint
-CREATE TYPE "fdm"."l_grazing_type" AS ENUM('full', 'partial');--> statement-breakpoint
 CREATE TYPE "fdm"."l_leaving_method" AS ENUM('died', 'sold', 'slaughtered', 'exported');--> statement-breakpoint
 CREATE TABLE "fdm"."animal_arriving" (
 	"l_id_animal" text NOT NULL,
@@ -182,7 +181,7 @@ CREATE TABLE "fdm"."grazing" (
 	"l_grazing_end" timestamp with time zone,
 	"l_grazing_hours" numeric,
 	"l_grazing_area" numeric,
-	"l_grazing_type" "fdm"."l_grazing_type",
+	"l_grazing_geometry_zone" geometry(MultiPolygon,4326),
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
@@ -384,6 +383,7 @@ CREATE UNIQUE INDEX "f_id_feed_analysis_idx" ON "fdm"."feed_analyses" USING btre
 CREATE UNIQUE INDEX "f_id_batch_idx" ON "fdm"."feed_batches" USING btree ("f_id_batch");--> statement-breakpoint
 CREATE UNIQUE INDEX "f_id_catalogue_idx" ON "fdm"."feeds_catalogue" USING btree ("f_id_catalogue");--> statement-breakpoint
 CREATE INDEX "grazing_l_id_herd_idx" ON "fdm"."grazing" USING btree ("l_id_herd");--> statement-breakpoint
+CREATE INDEX "grazing_zone_idx" ON "fdm"."grazing" USING gist ("l_grazing_geometry_zone");--> statement-breakpoint
 CREATE UNIQUE INDEX "l_id_herd_idx" ON "fdm"."herds" USING btree ("l_id_herd");--> statement-breakpoint
 CREATE UNIQUE INDEX "p_id_analysis_idx" ON "fdm"."manure_analyses" USING btree ("p_id_analysis");--> statement-breakpoint
 CREATE UNIQUE INDEX "p_id_delivery_idx" ON "fdm"."manure_deliveries" USING btree ("p_id_delivery");--> statement-breakpoint

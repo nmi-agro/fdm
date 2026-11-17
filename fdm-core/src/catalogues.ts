@@ -17,7 +17,7 @@ import {
   hashFertilizer,
   hashMeasure,
 } from "@nmi-agro/fdm-data"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
@@ -893,13 +893,22 @@ export async function syncFeedCatalogueArray(
 async function ensureAnimalCategoryCatalogueSelection(fdm: FdmType): Promise<void> {
   await fdm.transaction(async (tx) => {
     try {
-      const farms = await tx.select({ b_id_farm: schema.farms.b_id_farm }).from(schema.farms)
-      for (const farm of farms) {
-        await tx
-          .insert(schema.animalCategoryCatalogueSelecting)
-          .values({ b_id_farm: farm.b_id_farm, l_category_source: "rvo" })
-          .onConflictDoNothing()
-      }
+      // One INSERT ... SELECT that locks the farms it reads: a farm removed at the same time is
+      // skipped instead of breaking the sync on the foreign key
+      await tx
+        .insert(schema.animalCategoryCatalogueSelecting)
+        .select(
+          tx
+            .select({
+              b_id_farm: schema.farms.b_id_farm,
+              l_category_source: sql<string>`'rvo'`.as("l_category_source"),
+              created: sql<Date>`now()`.as("created"),
+              updated: sql<Date | null>`NULL::timestamptz`.as("updated"),
+            })
+            .from(schema.farms)
+            .for("key share"),
+        )
+        .onConflictDoNothing()
     } catch (error) {
       throw handleError(error, "Exception for ensureAnimalCategoryCatalogueSelection")
     }

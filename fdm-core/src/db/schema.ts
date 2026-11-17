@@ -1350,15 +1350,6 @@ export const feedOriginEnum = fdmSchema.enum(
   feedOriginOptions.map((x) => x.value) as [string, ...string[]],
 )
 
-export const grazingTypeOptions = [
-  { value: "full", label: "Volledig perceel" },
-  { value: "partial", label: "Gedeeltelijk perceel" },
-] as const
-export const grazingTypeEnum = fdmSchema.enum(
-  "l_grazing_type",
-  grazingTypeOptions.map((x) => x.value) as [string, ...string[]],
-)
-
 // Herds
 export const herds = fdmSchema.table(
   "herds",
@@ -1929,12 +1920,20 @@ export const grazing = fdmSchema.table(
     l_grazing_start: timestamp({ withTimezone: true }).notNull(),
     l_grazing_end: timestamp({ withTimezone: true }),
     l_grazing_hours: numericCasted(), // hours per day
-    l_grazing_area: numericCasted(),
-    l_grazing_type: grazingTypeEnum(),
+    // Grazed part of the field without a known location; only set when there is no zone
+    l_grazing_area: numericCasted(), // ha
+    // Grazed part of the field as a geometry within the field. Stored as MultiPolygon; null means
+    // the whole field, or the part given by l_grazing_area
+    l_grazing_geometry_zone: geometry("l_grazing_geometry_zone", {
+      type: "MultiPolygon",
+    }),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [index("grazing_l_id_herd_idx").on(table.l_id_herd)],
+  (table) => [
+    index("grazing_l_id_herd_idx").on(table.l_id_herd),
+    index("grazing_zone_idx").using("gist", table.l_grazing_geometry_zone),
+  ],
 )
 
 export type grazingTypeSelect = typeof grazing.$inferSelect

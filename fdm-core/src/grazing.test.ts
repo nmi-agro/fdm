@@ -1,23 +1,25 @@
-import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addField } from "./field"
 import {
   addGrazing,
   addGrazings,
+  getGrazedAreaForFarm,
   getGrazing,
   getGrazingCalendarForFarm,
   getGrazingForFarm,
   getGrazingForField,
   getGrazingForHerd,
+  getGrazingZonesForField,
   removeGrazing,
   updateGrazing,
 } from "./grazing"
 import { getGrazingIntention, setGrazingIntention } from "./grazing_intention"
 import { addHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Grazing Domain", () => {
   let fdm: FdmType
@@ -55,14 +57,15 @@ describe("Grazing Domain", () => {
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
       l_grazing_hours: 8,
       l_grazing_area: 25,
-      l_grazing_type: "full",
     })
 
     const herdGrazing = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     expect(herdGrazing.length).toBe(1)
     expect(herdGrazing[0].l_grazing_hours).toBe(8)
     expect(herdGrazing[0].l_grazing_area).toBe(25)
-    expect(herdGrazing[0].l_grazing_type).toBe("full")
+    // Without a field the recorded area is the grazed area
+    expect(herdGrazing[0].l_grazing_area_grazed).toBe(25)
+    expect(herdGrazing[0].l_grazing_geometry_zone).toBeNull()
 
     const farmGrazing = await getGrazingForFarm(fdm, principal_id, b_id_farm)
     expect(farmGrazing.length).toBe(1)
@@ -74,9 +77,7 @@ describe("Grazing Domain", () => {
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
 
-    await addGrazing(fdm, principal_id, l_id_herd, grazingDate, {
-      l_grazing_type: "full",
-    })
+    await addGrazing(fdm, principal_id, l_id_herd, grazingDate)
 
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
   })
@@ -147,7 +148,6 @@ describe("Grazing Domain", () => {
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, new Date("2025-04-15T00:00:00.000Z"), {
         l_grazing_end: new Date("2025-04-25T00:00:00.000Z"),
-        l_grazing_type: "full",
         l_grazing_hours: 24,
       }),
     ).rejects.toThrowError("Exception for addGrazing")
@@ -178,7 +178,15 @@ describe("Grazing Domain", () => {
       "src_f1",
       {
         type: "Polygon" as const,
-        coordinates: [[[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]]],
+        coordinates: [
+          [
+            [-1, -1],
+            [-1, 1],
+            [1, 1],
+            [1, -1],
+            [-1, -1],
+          ],
+        ],
       },
       new Date(),
       "nl_01",
@@ -191,7 +199,15 @@ describe("Grazing Domain", () => {
       "src_f2",
       {
         type: "Polygon" as const,
-        coordinates: [[[2, 2], [2, 4], [4, 4], [4, 2], [2, 2]]],
+        coordinates: [
+          [
+            [2, 2],
+            [2, 4],
+            [4, 4],
+            [4, 2],
+            [2, 2],
+          ],
+        ],
       },
       new Date(),
       "nl_01",
@@ -239,7 +255,15 @@ describe("Grazing Domain", () => {
       "src_fb1",
       {
         type: "Polygon" as const,
-        coordinates: [[[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]]],
+        coordinates: [
+          [
+            [-1, -1],
+            [-1, 1],
+            [1, 1],
+            [1, -1],
+            [-1, -1],
+          ],
+        ],
       },
       new Date(),
       "nl_01",
@@ -303,7 +327,15 @@ describe("Grazing Domain", () => {
       "src_hoek",
       {
         type: "Polygon" as const,
-        coordinates: [[[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]]],
+        coordinates: [
+          [
+            [-1, -1],
+            [-1, 1],
+            [1, 1],
+            [1, -1],
+            [-1, -1],
+          ],
+        ],
       },
       new Date(),
       "nl_01",
@@ -313,7 +345,6 @@ describe("Grazing Domain", () => {
       b_id: field,
       l_grazing_end: new Date("2025-08-04T00:00:00.000Z"),
       l_grazing_hours: 8,
-      l_grazing_type: "full",
     })
 
     const calendar = await getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, {
@@ -429,7 +460,6 @@ describe("Grazing Domain", () => {
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
       l_grazing_hours: 8,
       l_grazing_area: 25,
-      l_grazing_type: "full",
     })
 
     const [grazingRecord] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
@@ -441,12 +471,10 @@ describe("Grazing Domain", () => {
 
     await updateGrazing(fdm, principal_id, grazingRecord.l_id_grazing, {
       l_grazing_area: 30,
-      l_grazing_type: "partial",
     })
 
     const [updated] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     expect(updated.l_grazing_area).toBe(30)
-    expect(updated.l_grazing_type).toBe("partial")
 
     await removeGrazing(fdm, principal_id, grazingRecord.l_id_grazing)
     const remaining = await getGrazingForHerd(fdm, principal_id, l_id_herd)
@@ -515,8 +543,235 @@ describe("Grazing Domain", () => {
       updateGrazing(fdm, invalidUser, grazingRecord.l_id_grazing, { l_grazing_area: 20 }),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
+    await expect(removeGrazing(fdm, invalidUser, grazingRecord.l_id_grazing)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+    await expect(getGrazingZonesForField(fdm, invalidUser, b_id)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+    await expect(getGrazedAreaForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+  })
+})
+
+describe("Grazing zones", () => {
+  let fdm: FdmType
+  let principal_id: string
+  let b_id_farm: string
+  let l_id_herd: string
+  let b_id: string
+  let fieldArea: number
+
+  /** Rectangle between two longitudes on the synthetic test field (latitude 52.00-52.01). */
+  const strip = (lonMin: number, lonMax: number) => ({
+    type: "Polygon" as const,
+    coordinates: [
+      [
+        [lonMin, 52.0],
+        [lonMin, 52.01],
+        [lonMax, 52.01],
+        [lonMax, 52.0],
+        [lonMin, 52.0],
+      ],
+    ],
+  })
+
+  const day = (d: number) => new Date(Date.UTC(2025, 5, d))
+
+  beforeEach(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+    principal_id = "test_principal"
+    b_id_farm = await addFarm(fdm, principal_id, "Zone Farm", "123456", "Weg 1", "1234AB")
+    l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_id_category: "rvo_100",
+    })
+    b_id = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Huiskavel",
+      "zone_src",
+      strip(5.0, 5.01),
+      new Date("2025-01-01"),
+      "nl_01",
+    )
+
+    // The whole-field grazed area equals the field area
+    await addGrazing(fdm, principal_id, l_id_herd, day(1), { b_id, l_grazing_end: day(2) })
+    const [whole] = await getGrazingForField(fdm, principal_id, b_id)
+    fieldArea = whole.l_grazing_area_grazed as number
+    await removeGrazing(fdm, principal_id, whole.l_id_grazing)
+  })
+
+  it("stores a Polygon zone as MultiPolygon and clips its area to the field", async () => {
+    expect(fieldArea).toBeGreaterThan(50)
+
+    // Half of this zone lies west of the field
+    await addGrazing(fdm, principal_id, l_id_herd, day(3), {
+      b_id,
+      l_grazing_end: day(4),
+      l_grazing_geometry_zone: strip(4.995, 5.005),
+    })
+
+    const [grazing] = await getGrazingForField(fdm, principal_id, b_id)
+    expect(grazing.l_grazing_geometry_zone?.type).toBe("MultiPolygon")
+    expect(grazing.l_grazing_area).toBeNull()
+    expect(grazing.l_grazing_area_grazed).toBeCloseTo(fieldArea / 2, 0)
+  })
+
+  it("caps an area without a location at the field area", async () => {
+    await addGrazing(fdm, principal_id, l_id_herd, day(3), {
+      b_id,
+      l_grazing_end: day(4),
+      l_grazing_area: 5,
+    })
+    await addGrazing(fdm, principal_id, l_id_herd, day(5), {
+      b_id,
+      l_grazing_end: day(6),
+      l_grazing_area: 10000,
+    })
+
+    const grazings = await getGrazingForField(fdm, principal_id, b_id)
+    expect(grazings.map((g) => g.l_grazing_area_grazed)).toEqual([fieldArea, 5])
+  })
+
+  it("rejects a zone together with an area, a zone without a field and an invalid zone", async () => {
     await expect(
-      removeGrazing(fdm, invalidUser, grazingRecord.l_id_grazing),
-    ).rejects.toThrowError("Principal does not have permission to perform this action")
+      addGrazing(fdm, principal_id, l_id_herd, day(3), {
+        b_id,
+        l_grazing_area: 5,
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      }),
+    ).rejects.toThrowError("Exception for addGrazing")
+
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, day(3), {
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      }),
+    ).rejects.toThrowError("Exception for addGrazing")
+
+    await expect(
+      addGrazings(fdm, principal_id, [
+        {
+          l_id_herd,
+          b_id,
+          l_grazing_start: day(3),
+          l_grazing_geometry_zone: { type: "Polygon", coordinates: [[[5, 52]]] },
+        },
+      ]),
+    ).rejects.toThrowError("Exception for addGrazings")
+  })
+
+  it("switches a grazing between an area and a zone", async () => {
+    await addGrazing(fdm, principal_id, l_id_herd, day(3), {
+      b_id,
+      l_grazing_end: day(4),
+      l_grazing_area: 5,
+    })
+    const [grazing] = await getGrazingForField(fdm, principal_id, b_id)
+
+    // The area must be cleared when a zone is set
+    await expect(
+      updateGrazing(fdm, principal_id, grazing.l_id_grazing, {
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      }),
+    ).rejects.toThrowError("Exception for updateGrazing")
+
+    await updateGrazing(fdm, principal_id, grazing.l_id_grazing, {
+      l_grazing_area: null,
+      l_grazing_geometry_zone: strip(5.0, 5.005),
+    })
+    const zoned = await getGrazing(fdm, principal_id, grazing.l_id_grazing)
+    expect(zoned.l_grazing_area).toBeNull()
+    expect(zoned.l_grazing_area_grazed).toBeCloseTo(fieldArea / 2, 0)
+
+    await updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_geometry_zone: null })
+    const whole = await getGrazing(fdm, principal_id, grazing.l_id_grazing)
+    expect(whole.l_grazing_geometry_zone).toBeNull()
+    expect(whole.l_grazing_area_grazed).toBe(fieldArea)
+  })
+
+  it("lists earlier zones once, most recently used first", async () => {
+    await addGrazings(fdm, principal_id, [
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(3),
+        l_grazing_end: day(4),
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      },
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(5),
+        l_grazing_end: day(6),
+        l_grazing_geometry_zone: strip(5.005, 5.01),
+      },
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(7),
+        l_grazing_end: day(8),
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      },
+      { l_id_herd, b_id, l_grazing_start: day(9), l_grazing_end: day(10) },
+    ])
+
+    const zones = await getGrazingZonesForField(fdm, principal_id, b_id)
+    expect(zones.length).toBe(2)
+    expect(zones[0].usage_count).toBe(2)
+    expect(zones[0].last_used).toEqual(day(7))
+    expect(zones[0].l_herd_names).toEqual(["Melkkoeien"])
+    expect(zones[0].l_grazing_geometry_zone.type).toBe("MultiPolygon")
+    expect(zones[0].l_grazing_area_grazed).toBeCloseTo(fieldArea / 2, 0)
+    expect(zones[1].usage_count).toBe(1)
+  })
+
+  it("adds up successive strips in the grazed area of a field", async () => {
+    await addGrazings(fdm, principal_id, [
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(3),
+        l_grazing_end: day(4),
+        l_grazing_geometry_zone: strip(5.0, 5.0025),
+      },
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(4),
+        l_grazing_end: day(5),
+        l_grazing_geometry_zone: strip(5.0025, 5.005),
+      },
+    ])
+    const timeframe = { start: day(1), end: day(30) }
+
+    const [strips] = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, timeframe)
+    expect(strips.b_id).toBe(b_id)
+    expect(strips.b_area).toBe(fieldArea)
+    expect(strips.b_area_grazed).toBeCloseTo(fieldArea / 2, 0)
+
+    // An area without a location only counts when it is larger than the zones
+    await addGrazing(fdm, principal_id, l_id_herd, day(6), {
+      b_id,
+      l_grazing_end: day(7),
+      l_grazing_area: fieldArea * 0.75,
+    })
+    const [withArea] = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, timeframe)
+    expect(withArea.b_area_grazed).toBeCloseTo(fieldArea * 0.75, 1)
+
+    // A grazing of the whole field makes the whole field grazed
+    await addGrazing(fdm, principal_id, l_id_herd, day(8), { b_id, l_grazing_end: day(9) })
+    const [whole] = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, timeframe)
+    expect(whole.b_area_grazed).toBe(fieldArea)
   })
 })
