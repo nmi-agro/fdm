@@ -219,10 +219,10 @@ export default function BeweidingskalenderPage() {
                 size="sm"
                 className="gap-1.5 text-xs"
                 nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/today`} />}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/grazing`} />}
               >
                 <Compass className="text-primary h-3.5 w-3.5" />
-                Vandaag op de kaart
+                Beweiding op de kaart
               </Button>
               <Button
                 variant="outline"

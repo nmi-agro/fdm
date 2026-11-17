@@ -87,17 +87,19 @@ Weiden je koeien zonder vaste einddatum, leg dan alleen vast wanneer ze naar bui
 
 Zolang de koeien buiten lopen, staat de beweiding in de kalender tot en met vandaag. Open je hem daar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft de beweiding lopen.
 
-## Vandaag op de kaart {#vandaag}
+## Beweiding op de kaart {#vandaag}
 
-**Vandaag op de kaart** toont al je percelen met hun status van vandaag: beweid, gemaaid, de dagen rust sinds het laatste gebruik of nog niet gebruikt. Zones die vandaag worden beweid, staan op het perceel getekend. Met de pijlen ga je een dag terug of vooruit; klik op de datum om terug te gaan naar vandaag.
+In de [Atlas](/manual/atlas) staat de kaartlaag _Beweiding_. Je opent hem met **Beweiding op de kaart** op de beweidingskalender, met **Beweiding vandaag** onder _Acties_ op de bedrijfspagina, of via de lijst met kaartlagen in de Atlas.
 
-De kaart blijft binnen het gekozen jaar. Bekijk je een eerder jaar, dan begint hij op 31 december van dat jaar; bij een later jaar op 1 januari. De dagen rust tellen alleen vanaf een gebruik in dat jaar.
+De kaart kleurt je percelen naar hun gebruik op één dag: beweid, gemaaid, in rust of nog niet gebruikt in het gekozen jaar. Percelen zonder grasland zijn grijs. Zones die die dag worden beweid, staan donkergroen op het perceel. De legenda telt hoeveel percelen elke status hebben.
 
-Klik op een graslandperceel om er direct koeien naartoe te sturen; dat werkt hetzelfde als **Koeien naar buiten / binnen**.
+- _Dag kiezen_: met de pijlen ga je een dag terug of vooruit, en met de datumkiezer spring je naar een andere dag. De kaart opent op de datum van vandaag in het gekozen jaar en blijft binnen dat jaar. Met **Vandaag** ga je terug naar die dag. **Beweiding vandaag** opent altijd het huidige jaar.
+- _Perceel bekijken_: ga met de muis over een perceel voor de koppel en de uren per dag, de opbrengst van een maaisnede of het aantal dagen rust. De dagen rust tellen alleen vanaf een gebruik in het gekozen jaar. Klik op een graslandperceel om de beweidingspagina van dat perceel te openen; op een telefoon tik je op het perceel en daarna op **Bekijk beweiding**.
+- _Koeien naar buiten of binnen_: met **Koeien naar buiten / binnen** in het paneel links boven leg je dat direct vast, zoals hierboven beschreven.
 
-Je komt hier ook snel vanaf de bedrijfspagina: onder _Acties_ staat **Beweiding vandaag**, zodra je bedrijf een koppel heeft.
+Heeft je bedrijf nog geen koppel, dan staat de kaartlaag grijs in de lijst. Voeg eerst een koppel toe bij [Veestapel](/manual/veestapel).
 
-![Vandaag op de kaart: de status per perceel en de zone die vandaag wordt beweid](screenshot:beweiding-vandaag)
+![De kaartlaag Beweiding: de status per perceel, de beweide zone en de legenda](screenshot:beweiding-vandaag)
 
 ## Je weideseizoen plannen {#plannen}
 

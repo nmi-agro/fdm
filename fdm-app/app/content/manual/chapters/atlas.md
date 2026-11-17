@@ -45,6 +45,7 @@ Klik in de zijbalk op **Atlas** en kies een kaartlaag. Op een kaart wissel je va
 | **Hoogtekaart**   | De hoogte van het maaiveld volgens AHN4, in meters ten opzichte van NAP.                                          | Nee            |
 | **Bodemanalyses** | Je eigen percelen, gekleurd naar de waarde van een bodemparameter die je kiest.                                   | Ja             |
 | **Indicatoren**   | De BLN3-bodemkwaliteitsscores van je percelen.                                                                    | Ja             |
+| _Beweiding_       | Per dag welke percelen worden beweid, gemaaid of rusten. Actief zodra je bedrijf een koppel heeft.                | Ja             |
 
 ## Gewaspercelen: alles over één perceel {#gewaspercelen}
 
@@ -71,6 +72,10 @@ De **Hoogtekaart** laat met kleuren zien waar het hoger en lager ligt. De kleurs
 Kies een parameter, bijvoorbeeld organische stof, pH of P-Al. Je percelen kleuren dan van laag naar hoog. Zo zie je in één oogopslag welke percelen achterblijven. Percelen zonder analyse staan als **Geen data** in de legenda. Klik op een perceel en daarna op **Bekijk analyse** om de analyse zelf te openen.
 
 ![De bodemanalyses op de kaart, per zone gekleurd naar het organischestofgehalte](screenshot:atlas-bodemanalyses)
+
+## Beweiding op de kaart {#beweiding-op-de-kaart}
+
+Met melkvee laat de kaartlaag _Beweiding_ per dag zien welke percelen worden beweid, gemaaid of rusten, en waar je koeien in een zone lopen. Hoe je de dag kiest en koeien naar buiten of binnen stuurt, lees je in [Beweiding](/manual/beweiding#vandaag).
 
 ## Indicatoren op de kaart {#indicatoren-op-de-kaart}
 

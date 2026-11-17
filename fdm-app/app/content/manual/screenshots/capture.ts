@@ -332,15 +332,11 @@ export const captures = {
     ],
   },
   "beweiding-vandaag": {
-    route: "/farm/{farm}?calendar={year}",
-    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    route: "/farm/{farm}/{year}/atlas/grazing",
+    ready: { selector: ".maplibregl-canvas" },
+    // The demo farm grazes the home plot in mid-June
     clock: "{year}-06-15T12:00:00+02:00",
-    steps: [
-      { click: { role: "button", name: "Melkvee", exact: true } },
-      { click: { selector: 'a[href$="/grazing"]' } },
-      { click: { role: "link", name: "Vandaag op de kaart" } },
-      { waitFor: { text: "Legenda perceelstatus" } },
-    ],
+    steps: [{ waitFor: { text: "Nog niet gebruikt" } }],
     map: true,
   },
   "beweiding-inzichten": {
