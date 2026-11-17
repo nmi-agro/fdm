@@ -128,13 +128,14 @@ export async function fetchGrazingCalendarMatrix(
   b_id_farm: string,
   calendarYear: number,
 ): Promise<GrazingCalendarMatrix> {
-  const timeframe: Timeframe = {
-    start: new Date(`${calendarYear}-01-01T00:00:00.000Z`),
-    end: new Date(`${calendarYear}-12-31T23:59:59.999Z`),
-  }
+  const yearStart = new Date(`${calendarYear}-01-01T00:00:00.000Z`)
+  const yearEnd = new Date(`${calendarYear}-12-31T23:59:59.999Z`)
+  const timeframe: Timeframe = { start: yearStart, end: yearEnd }
 
   const today = new Date()
   const todayKey = toIsoDate(today)
+  // The day up to which rest is counted: today, or the last day of a past year
+  const restReference = today < yearEnd ? today : yearEnd
 
   const [
     allFields,
@@ -321,17 +322,25 @@ export async function fetchGrazingCalendarMatrix(
       }
     })
 
-    // Compute recent rest days (days since last use up to today or between uses)
-    const allEvents = [
-      ...fieldGrazings.map((g) => ({ date: new Date(g.l_grazing_end ?? g.l_grazing_start) })),
-      ...fieldHarvests.map((h) => ({ date: h.harvestDate })),
-    ].sort((a, b) => b.date.getTime() - a.date.getTime())
-
+    // Rest days: from the last use in the selected year up to today, or up to the end of a past
+    // year. Uses in other years and planned uses after that day do not count.
     let recentRestDays: number | null = null
-    if (allEvents.length > 0) {
-      const lastEventDate = allEvents[0].date
-      const diffMs = today.getTime() - lastEventDate.getTime()
-      recentRestDays = Math.max(0, Math.floor(diffMs / 86400000))
+    if (restReference >= yearStart) {
+      const lastUse = [
+        ...fieldGrazings
+          .filter((g) => new Date(g.l_grazing_start) <= restReference)
+          .map((g) => {
+            const end = grazingEnd(new Date(g.l_grazing_start), g.l_grazing_end, today)
+            return end < restReference ? end : restReference
+          }),
+        ...fieldHarvests.map((h) => h.harvestDate).filter((date) => date <= restReference),
+      ].reduce<Date | null>((latest, date) => (!latest || date > latest ? date : latest), null)
+      if (lastUse && lastUse >= yearStart) {
+        recentRestDays = Math.max(
+          0,
+          Math.floor((restReference.getTime() - lastUse.getTime()) / 86400000),
+        )
+      }
     }
 
     return {

@@ -179,6 +179,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_id_farm,
       b_name_farm: farm.b_name_farm,
       calendar,
+      calendarYear,
       farmOptions,
       matrix,
       openGrazings: matrix.openGrazings,
@@ -254,10 +255,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 }
 
+/**
+ * The last day of a grazing (YYYY-MM-DD); a grazing that still runs lasts up to today.
+ */
+function grazingEndStr(
+  g: { l_grazing_start: string; l_grazing_end: string | null },
+  todayStr: string,
+): string {
+  return g.l_grazing_end ?? (todayStr > g.l_grazing_start ? todayStr : g.l_grazing_start)
+}
+
 export default function TodayMapPage() {
   const {
     b_id_farm,
     calendar,
+    calendarYear,
     farmOptions,
     matrix,
     openGrazings,
@@ -268,13 +280,23 @@ export default function TodayMapPage() {
     farmWritePermission,
   } = useLoaderData<typeof loader>()
 
-  // "Today" is only known on the client; the selected day is an offset from it
+  // "Today" is only known on the client; the selected day is an offset from a day in the selected
+  // year: today, or the last day of a past year or the first day of a future year, so the map only
+  // shows the selected year
   const today = useToday()
+  const todayStr = today ? format(today, "yyyy-MM-dd") : ""
+  const firstDayStr = `${calendarYear}-01-01`
+  const lastDayStr = `${calendarYear}-12-31`
+  const baseDate = !today
+    ? undefined
+    : today.getFullYear() === calendarYear
+      ? today
+      : new Date(today.getFullYear() > calendarYear ? lastDayStr : firstDayStr)
   const [dayOffset, setDayOffset] = useState(0)
   const [quickEntryFieldId, setQuickEntryFieldId] = useState<string | undefined>(undefined)
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false)
 
-  const currentDate = today ? addDays(today, dayOffset) : undefined
+  const currentDate = baseDate ? addDays(baseDate, dayOffset) : undefined
   const dateStr = currentDate ? format(currentDate, "yyyy-MM-dd") : ""
   const displayDate = currentDate
     ? format(currentDate, "EEEE d MMMM yyyy", { locale: nl })
@@ -293,12 +315,12 @@ export default function TodayMapPage() {
   const todayZones = useMemo(
     () =>
       grazings.flatMap((g) => {
-        const end = g.l_grazing_end ?? g.l_grazing_start
+        const end = grazingEndStr(g, todayStr)
         return g.l_grazing_geometry_zone && dateStr >= g.l_grazing_start && dateStr <= end
           ? [g.l_grazing_geometry_zone]
           : []
       }),
-    [grazings, dateStr],
+    [grazings, dateStr, todayStr],
   )
 
   // Derive dynamic map GeoJSON with exact daily status, colors, and badge labels
@@ -328,9 +350,7 @@ export default function TodayMapPage() {
         // 2. Active grazing today on this field
         const activeGrazing = grazings.find((g) => {
           if (g.b_id !== b_id) return false
-          const start = g.l_grazing_start
-          const end = g.l_grazing_end ?? start
-          return dateStr >= start && dateStr <= end
+          return dateStr >= g.l_grazing_start && dateStr <= grazingEndStr(g, todayStr)
         })
 
         if (activeGrazing) {
@@ -376,16 +396,18 @@ export default function TodayMapPage() {
           }
         }
 
-        // 4. Inactive today -> Find last previous use (grazing or mowing) on or before dateStr
+        // 4. Inactive today -> Find the last use (grazing or mowing) before dateStr in the
+        // selected year; rest is not counted from a use in another year
         const pastGrazings = grazings
           .filter((g) => g.b_id === b_id && g.l_grazing_start < dateStr)
           .map((g) => ({
             type: "weiden" as const,
-            date: g.l_grazing_end ?? g.l_grazing_start,
+            date: grazingEndStr(g, todayStr),
           }))
+          .filter((e) => e.date >= firstDayStr)
 
         const pastHarvests = fieldHarvests
-          .filter((h) => h.harvestDate < dateStr)
+          .filter((h) => h.harvestDate < dateStr && h.harvestDate >= firstDayStr)
           .map((h) => ({
             type: "maaien" as const,
             date: h.harvestDate,
@@ -432,7 +454,7 @@ export default function TodayMapPage() {
         }
       }),
     }
-  }, [fieldsGeoJSON, grazings, harvestsByField, herdCensusMap, dateStr])
+  }, [fieldsGeoJSON, grazings, harvestsByField, herdCensusMap, dateStr, todayStr, firstDayStr])
 
   return (
     <SidebarInset className="relative flex h-[calc(100vh-theme(spacing.16))] flex-col overflow-hidden">
@@ -470,6 +492,7 @@ export default function TodayMapPage() {
                 size="icon"
                 className="h-8 w-8 rounded-lg"
                 onClick={handlePrevDay}
+                disabled={dateStr === "" || dateStr <= firstDayStr}
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">Vorige dag</span>
@@ -487,6 +510,7 @@ export default function TodayMapPage() {
                 size="icon"
                 className="h-8 w-8 rounded-lg"
                 onClick={handleNextDay}
+                disabled={dateStr === "" || dateStr >= lastDayStr}
               >
                 <ChevronRight className="h-4 w-4" />
                 <span className="sr-only">Volgende dag</span>
