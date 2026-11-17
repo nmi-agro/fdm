@@ -16,6 +16,7 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { getMeasureCode } from "~/lib/measures-catalogue"
 import { MeasureDetailLink } from "./measure-detail-link"
 import { measuresTableFeatures } from "./table-features"
 
@@ -59,7 +60,7 @@ export function getColumns(
             />
           </p>
           <p className="text-muted-foreground text-xs tabular-nums">
-            {row.original.m_id.replace("bln_", "")}
+            {getMeasureCode(row.original.m_id)}
           </p>
         </div>
       ),

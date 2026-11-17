@@ -67,16 +67,16 @@ export function MeasureStatusUnavailable({
   className?: string
 }) {
   const revalidator = useRevalidator()
-  const message =
-    availability === "failed"
-      ? "De status van de maatregelen op uw percelen kon niet worden geladen. De catalogus zelf is wel volledig."
-      : getMeasureStatusUnavailableMessage(availability)
+  const failed = availability === "failed"
+  const message = failed
+    ? "De status van de maatregelen op uw percelen kon niet worden geladen. De beschrijving en kenmerken van de maatregelen zijn wel volledig."
+    : getMeasureStatusUnavailableMessage(availability)
   if (!message) return null
   const isRetrying = revalidator.state === "loading"
   return (
     <Alert className={className}>
       <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-      <AlertTitle>Status niet volledig</AlertTitle>
+      <AlertTitle>{failed ? "Status niet beschikbaar" : "Status niet volledig"}</AlertTitle>
       <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p>{message}</p>
         <Button

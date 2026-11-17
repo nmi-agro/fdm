@@ -586,6 +586,8 @@ function CatalogueResults({
               {filtered.length === 1
                 ? "1 maatregel gevonden"
                 : `${filtered.length} maatregelen gevonden`}
+              {/* The row skeletons are hidden from screen readers, so announce the wait here */}
+              {loaded === null && <span className="sr-only">, status per perceel laden…</span>}
             </span>
           )}
         </p>
@@ -728,6 +730,12 @@ function CatalogueListRow({
         >
           {statusPending ? (
             <Skeleton className="h-3.5 w-32" aria-hidden="true" />
+          ) : counts && statusKeys.length === 0 ? (
+            // Loaded, but on no field: say so instead of leaving an empty column
+            <span className="text-muted-foreground">
+              <span aria-hidden="true">—</span>
+              <span className="sr-only">Niet op uw percelen</span>
+            </span>
           ) : (
             statusKeys.map((key) => (
               <MeasureStatusLabel key={key} status={key} count={counts?.[key]} />

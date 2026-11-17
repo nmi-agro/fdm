@@ -69,7 +69,7 @@ import { type FarmRecommendationsData, getFarmNextSteps } from "~/lib/farm-measu
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { isExcludedFromBln3 } from "~/lib/indicators"
-import { getMeasuresCataloguePath } from "~/lib/measures-catalogue"
+import { getMeasureCode, getMeasuresCataloguePath } from "~/lib/measures-catalogue"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
 
@@ -139,7 +139,7 @@ function GroupedRecommendations({
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-wrap items-baseline gap-x-2">
                 <span className="text-muted-foreground text-xs tabular-nums">
-                  {group.m_id.replace("bln_", "")}
+                  {getMeasureCode(group.m_id)}
                 </span>
                 <span className="font-medium">{group.m_name}</span>
                 <MeasureDetailLink

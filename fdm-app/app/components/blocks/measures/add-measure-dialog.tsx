@@ -34,6 +34,7 @@ import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getIndicatorInfo } from "~/lib/indicators"
+import { getMeasureCode } from "~/lib/measures-catalogue"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
 import { MeasureDetailLink } from "./measure-detail-link"
 
@@ -730,8 +731,8 @@ export function AddMeasureDialog({
                         className="bg-background flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors hover:border-emerald-400"
                       >
                         <span className="min-w-0 flex-1 truncate">
-                          <span className="text-muted-foreground mr-1.5 font-mono">
-                            {item.m_id.replace("bln_", "")}
+                          <span className="text-muted-foreground mr-1.5 tabular-nums">
+                            {getMeasureCode(item.m_id)}
                           </span>
                           <span className="font-medium">{item.m_name}</span>
                           {indicatorName && (
@@ -806,8 +807,8 @@ export function AddMeasureDialog({
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                                {item.m_id.replace("bln_", "")}
+                              <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                                {getMeasureCode(item.m_id)}
                               </span>
                               <span className="truncate text-sm font-medium">{item.m_name}</span>
                               {isRecommended && (
@@ -912,8 +913,8 @@ export function AddMeasureDialog({
                 <div>
                   <p className="flex items-center gap-1 text-sm font-semibold">
                     <span>
-                      <span className="text-muted-foreground mr-2 font-mono text-xs">
-                        {selected.m_id.replace("bln_", "")}
+                      <span className="text-muted-foreground mr-2 text-xs tabular-nums">
+                        {getMeasureCode(selected.m_id)}
                       </span>
                       {selected.m_name}
                     </span>

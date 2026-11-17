@@ -175,10 +175,8 @@ export default function MeasureCatalogueDetail() {
         }
         rightNode={
           <div className="flex flex-wrap items-center gap-2">
+            {/* Only the exception is marked: measures are recorded per field by default */}
             {isFarmLevel && <Badge variant="outline">Bedrijfsniveau</Badge>}
-            {measure.m_stage_applicability === "field" && (
-              <Badge variant="outline">Perceelsniveau</Badge>
-            )}
             {isInactive && <Badge variant="secondary">Niet meer beschikbaar</Badge>}
             {canAdd && (
               // Keyed on the measure, so the preselected fields of another measure are not reused

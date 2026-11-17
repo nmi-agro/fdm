@@ -76,7 +76,7 @@ import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
-import { getMeasureCataloguePath } from "~/lib/measures-catalogue"
+import { getMeasureCataloguePath, getMeasureCode } from "~/lib/measures-catalogue"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 
@@ -773,8 +773,8 @@ export default function MeasuresFieldDetail() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                        {m.m_id.replace("bln_", "")}
+                      <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                        {getMeasureCode(m.m_id)}
                       </span>
                       <Link
                         to={getMeasureCataloguePath(b_id_farm ?? "", calendar ?? "", m.m_id)}
