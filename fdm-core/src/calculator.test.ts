@@ -1,7 +1,13 @@
 import { and, eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import type { FdmType } from "./fdm.types"
-import { generateCalculationHash, setCachedCalculation, withCalculationCache } from "./calculator"
+import {
+  generateCalculationHash,
+  getCachedCalculations,
+  setCachedCalculation,
+  setCachedCalculations,
+  withCalculationCache,
+} from "./calculator"
 import { calculationCache, calculationErrors } from "./db/schema-calculator"
 import { createFdmServer } from "./fdm-server"
 
@@ -293,5 +299,331 @@ describe("withCalculationCache", () => {
 
     const storedInput = cached[0].input as any
     expect(storedInput.data.apiKey).toBe("REDACTED")
+  })
+
+  it("should not store an empty result", async () => {
+    const calculate = vi.fn(async () => null)
+    const input = { empty: true }
+    const getCalculation = withCalculationCache(calculate, "calculateEmpty", "1.0.0")
+    const insertSpy = vi.spyOn(fdm, "insert")
+
+    await expect(getCalculation(fdm, input)).resolves.toBeNull()
+    await expect(getCalculation(fdm, input)).resolves.toBeNull()
+
+    // An empty result is never a hit, so it is calculated again and never written
+    expect(calculate).toHaveBeenCalledTimes(2)
+    expect(insertSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe("getCachedCalculations and setCachedCalculations", () => {
+  let fdm: FdmType
+
+  beforeEach(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    await fdm.delete(calculationCache)
+  })
+
+  it("should write several rows and read them back by hash", async () => {
+    const rows = [1, 2, 3].map((value) => ({
+      calculation_hash: generateCalculationHash("batchTest", "1.0.0", { value }),
+      calculation_function: "batchTest",
+      calculator_version: "1.0.0",
+      input: { value },
+      result: { doubled: value * 2 },
+    }))
+    // A duplicate row in the same call and a second call are both skipped
+    await setCachedCalculations(fdm, [...rows, rows[0]])
+    await setCachedCalculations(fdm, [rows[1]])
+
+    const missingHash = generateCalculationHash("batchTest", "1.0.0", { value: 4 })
+    const results = await getCachedCalculations<{ doubled: number }>(fdm, [
+      rows[0].calculation_hash,
+      rows[2].calculation_hash,
+      rows[0].calculation_hash,
+      missingHash,
+    ])
+
+    expect(results.size).toBe(2)
+    expect(results.get(rows[0].calculation_hash)).toEqual({ doubled: 2 })
+    expect(results.get(rows[2].calculation_hash)).toEqual({ doubled: 6 })
+    expect(results.has(missingHash)).toBe(false)
+  })
+
+  it("should split large requests into chunks", async () => {
+    const rows = Array.from({ length: 501 }, (_, value) => ({
+      calculation_hash: generateCalculationHash("chunkTest", "1.0.0", { value }),
+      calculation_function: "chunkTest",
+      calculator_version: "1.0.0",
+      input: { value },
+      result: { value },
+    }))
+    const insertSpy = vi.spyOn(fdm, "insert")
+    await setCachedCalculations(fdm, rows)
+    expect(insertSpy).toHaveBeenCalledTimes(6) // 100 rows per insert
+
+    const selectSpy = vi.spyOn(fdm, "select")
+    const results = await getCachedCalculations(
+      fdm,
+      rows.map((row) => row.calculation_hash),
+    )
+    expect(selectSpy).toHaveBeenCalledTimes(2) // 500 hashes per query
+    expect(results.size).toBe(501)
+  })
+
+  it("should do nothing for empty lists", async () => {
+    const selectSpy = vi.spyOn(fdm, "select")
+    const insertSpy = vi.spyOn(fdm, "insert")
+    await expect(getCachedCalculations(fdm, [])).resolves.toEqual(new Map())
+    await setCachedCalculations(fdm, [])
+    expect(selectSpy).not.toHaveBeenCalled()
+    expect(insertSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe("withCalculationCache many", () => {
+  let fdm: FdmType
+  const calculatorVersion = "1.0.0"
+
+  beforeEach(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    await fdm.delete(calculationCache)
+    await fdm.delete(calculationErrors)
+  })
+
+  /** Waits until all given hashes are visible in the cache table. */
+  async function waitForCachedHashes(hashes: string[]) {
+    return vi.waitFor(async () => {
+      const results = await getCachedCalculations(fdm, hashes)
+      expect(results.size).toBe(new Set(hashes).size)
+      return results
+    })
+  }
+
+  it("should read the cache once, calculate all misses and write them with one insert", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => input.value * 2)
+    const getCalculation = withCalculationCache(calculate, "manyMiss", calculatorVersion)
+    const inputs = [1, 2, 3, 4].map((value) => ({ value }))
+    const selectSpy = vi.spyOn(fdm, "select")
+    const insertSpy = vi.spyOn(fdm, "insert")
+
+    const results = await Promise.all(getCalculation.many(fdm, inputs))
+
+    expect(results).toEqual([2, 4, 6, 8])
+    expect(calculate).toHaveBeenCalledTimes(4)
+    expect(selectSpy).toHaveBeenCalledTimes(1)
+    const hashes = inputs.map((input) =>
+      generateCalculationHash("manyMiss", calculatorVersion, input),
+    )
+    const cached = await waitForCachedHashes(hashes)
+    expect(insertSpy).toHaveBeenCalledTimes(1)
+    expect(cached.get(hashes[2])).toBe(6)
+  })
+
+  it("should only calculate the inputs without a cached result", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => input.value * 2)
+    const getCalculation = withCalculationCache(calculate, "manyPartial", calculatorVersion)
+    await setCachedCalculation(
+      fdm,
+      generateCalculationHash("manyPartial", calculatorVersion, { value: 1 }),
+      "manyPartial",
+      calculatorVersion,
+      { value: 1 },
+      "cached",
+    )
+
+    const results = await Promise.all(getCalculation.many(fdm, [{ value: 1 }, { value: 2 }]))
+
+    expect(results).toEqual(["cached", 4])
+    expect(calculate).toHaveBeenCalledTimes(1)
+    expect(calculate).toHaveBeenCalledWith({ value: 2 })
+  })
+
+  it("should calculate identical inputs once and keep the order of the inputs", async () => {
+    const calculate = vi.fn(async (input: { value: number; delay: number }) => {
+      await new Promise((resolve) => setTimeout(resolve, input.delay))
+      return input.value
+    })
+    const getCalculation = withCalculationCache(calculate, "manyOrder", calculatorVersion)
+    const inputs = [
+      { value: 1, delay: 30 },
+      { value: 2, delay: 0 },
+      { value: 1, delay: 30 },
+    ]
+
+    const results = await Promise.all(getCalculation.many(fdm, inputs))
+
+    expect(results).toEqual([1, 2, 1])
+    expect(calculate).toHaveBeenCalledTimes(2)
+  })
+
+  it("should reject only the promise of an input whose calculation fails", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => {
+      if (input.value === 2) throw new Error("value 2 is not allowed")
+      return input.value
+    })
+    const getCalculation = withCalculationCache(calculate, "manyError", calculatorVersion)
+
+    const results = await Promise.allSettled(
+      getCalculation.many(fdm, [{ value: 1 }, { value: 2 }, { value: 3 }]),
+    )
+
+    expect(results.map((result) => result.status)).toEqual(["fulfilled", "rejected", "fulfilled"])
+    expect((results[1] as PromiseRejectedResult).reason).toEqual(
+      new Error("value 2 is not allowed"),
+    )
+
+    // The error is recorded and the successful results are still cached
+    await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationErrors)
+        .where(eq(calculationErrors.calculation_function, "manyError"))
+      expect(rows).toHaveLength(1)
+    })
+    await waitForCachedHashes([
+      generateCalculationHash("manyError", calculatorVersion, { value: 1 }),
+      generateCalculationHash("manyError", calculatorVersion, { value: 3 }),
+    ])
+  })
+
+  it("should record the errors of several inputs with one insert", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => {
+      throw new Error(`value ${input.value} is not allowed`)
+    })
+    const getCalculation = withCalculationCache(calculate, "manyErrors", calculatorVersion)
+    const insertSpy = vi.spyOn(fdm, "insert")
+
+    const results = await Promise.allSettled(
+      getCalculation.many(fdm, [{ value: 1 }, { value: 2 }, { value: 3 }]),
+    )
+
+    expect(results.every((result) => result.status === "rejected")).toBe(true)
+    const rows = await vi.waitFor(async () => {
+      const errorRows = await fdm
+        .select()
+        .from(calculationErrors)
+        .where(eq(calculationErrors.calculation_function, "manyErrors"))
+      expect(errorRows).toHaveLength(3)
+      return errorRows
+    })
+    expect(insertSpy).toHaveBeenCalledTimes(1)
+    expect(rows.map((row) => row.error_message).sort()).toEqual([
+      "value 1 is not allowed",
+      "value 2 is not allowed",
+      "value 3 is not allowed",
+    ])
+    expect(rows.every((row) => row.stack_trace)).toBe(true)
+  })
+
+  it("should calculate without caching when the cache read fails", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => input.value * 10)
+    const getCalculation = withCalculationCache(calculate, "manyReadFailure", calculatorVersion)
+    vi.spyOn(fdm, "select").mockImplementationOnce(() => {
+      throw new Error("Database connection lost during cache read")
+    })
+    const insertSpy = vi.spyOn(fdm, "insert")
+
+    const results = await Promise.all(getCalculation.many(fdm, [{ value: 1 }, { value: 2 }]))
+
+    expect(results).toEqual([10, 20])
+    // Give a fire-and-forget write the chance to happen
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(insertSpy).not.toHaveBeenCalled()
+  })
+
+  it("should limit the number of misses calculated at the same time", async () => {
+    let running = 0
+    let maxRunning = 0
+    const calculate = vi.fn(async (input: { value: number }) => {
+      running += 1
+      maxRunning = Math.max(maxRunning, running)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      running -= 1
+      return input.value
+    })
+    const getCalculation = withCalculationCache(calculate, "manyConcurrency", calculatorVersion)
+    const inputs = Array.from({ length: 7 }, (_, value) => ({ value }))
+
+    const results = await Promise.all(getCalculation.many(fdm, inputs, { concurrency: 2 }))
+
+    expect(results).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(maxRunning).toBe(2)
+  })
+
+  it("should resolve cache hits without waiting for the misses", async () => {
+    const calculate = vi.fn(
+      (input: { value: number }) =>
+        new Promise<number>((resolve) => setTimeout(() => resolve(input.value), 200)),
+    )
+    const getCalculation = withCalculationCache(calculate, "manyStreaming", calculatorVersion)
+    await setCachedCalculation(
+      fdm,
+      generateCalculationHash("manyStreaming", calculatorVersion, { value: 1 }),
+      "manyStreaming",
+      calculatorVersion,
+      { value: 1 },
+      100,
+    )
+
+    const [hit, miss] = getCalculation.many(fdm, [{ value: 1 }, { value: 2 }])
+    const first = await Promise.race([hit.then(() => "hit"), miss.then(() => "miss")])
+
+    expect(first).toBe("hit")
+    await expect(hit).resolves.toBe(100)
+    await expect(miss).resolves.toBe(2)
+  })
+
+  it("should redact sensitive keys and use the same cache entries as a single call", async () => {
+    const calculate = vi.fn(
+      async (input: { data: string; apiKey: string }) => `result ${input.data}`,
+    )
+    const getCalculation = withCalculationCache(calculate, "manyRedact", calculatorVersion, [
+      "apiKey",
+    ])
+    const input = { data: "public", apiKey: "secret" }
+
+    await expect(Promise.all(getCalculation.many(fdm, [input]))).resolves.toEqual(["result public"])
+    expect(calculate).toHaveBeenCalledWith(input)
+
+    const hash = generateCalculationHash("manyRedact", calculatorVersion, {
+      data: "public",
+      apiKey: "REDACTED",
+    })
+    await waitForCachedHashes([hash])
+    const rows = await fdm
+      .select()
+      .from(calculationCache)
+      .where(eq(calculationCache.calculation_hash, hash))
+    expect((rows[0].input as { apiKey: string }).apiKey).toBe("REDACTED")
+
+    // A single call with another key finds the entry written by `many`
+    await expect(getCalculation(fdm, { ...input, apiKey: "other" })).resolves.toBe("result public")
+    expect(calculate).toHaveBeenCalledTimes(1)
+  })
+
+  it("should return an empty list for no inputs", async () => {
+    const calculate = vi.fn(async () => 1)
+    const getCalculation = withCalculationCache(calculate, "manyEmpty", calculatorVersion)
+    expect(getCalculation.many(fdm, [])).toEqual([])
+    expect(calculate).not.toHaveBeenCalled()
+  })
+
+  it("should reject all inputs when the cache configuration is invalid", async () => {
+    const getCalculation = withCalculationCache(async () => 1, "", calculatorVersion)
+    const results = await Promise.allSettled(getCalculation.many(fdm, [{ a: 1 }, { a: 2 }]))
+    expect(results.every((result) => result.status === "rejected")).toBe(true)
   })
 })

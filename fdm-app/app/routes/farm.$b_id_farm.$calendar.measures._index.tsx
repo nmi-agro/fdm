@@ -3,7 +3,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addMeasure,
   checkPermission,
-  getCultivations,
   getCultivationsForFarm,
   getFarm,
   getFields,
@@ -125,6 +124,7 @@ async function getFarmNextSteps({
   )
   const { candidates } = await getFarmMeasureOpportunities({
     principal_id,
+    b_id_farm,
     b_ids,
     b_year,
     timeframe,
@@ -397,9 +397,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
-    const [applicabilityByField, fieldCultivations] = await Promise.all([
+    const [applicabilityByField, cultivationsByField] = await Promise.all([
       getMeasureApplicabilityForFields({
         principal_id: session.principal_id,
+        b_id_farm,
         b_ids: fieldIds,
         b_year,
         timeframe,
@@ -407,14 +408,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         reportError(error, { page: "farm measures applicability" })
         return {}
       }),
-      Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
+      // All cultivations of each field, not only those in the calendar year
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm),
     ])
 
-    const fieldsWithCultivations = fields.map((f, i) => ({
-      field: f,
-      cultivations: fieldCultivations[i],
-      mainCultivation: getMainCultivation(fieldCultivations[i], calendar) ?? null,
-    }))
+    const fieldsWithCultivations = fields.map((f) => {
+      const cultivations = cultivationsByField.get(f.b_id) ?? []
+      return {
+        field: f,
+        cultivations,
+        mainCultivation: getMainCultivation(cultivations, calendar) ?? null,
+      }
+    })
 
     // Exclude buffer strips, nature plots, and non-agricultural fields from measures recommendations
     const eligibleFieldsWithCultivations = fieldsWithCultivations.filter(

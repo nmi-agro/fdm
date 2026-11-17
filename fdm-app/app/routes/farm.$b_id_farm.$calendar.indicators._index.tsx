@@ -83,6 +83,7 @@ async function getFarmMeasureRecommendations({
 
   const { opportunities, candidates, adviceAvailable } = await getFarmMeasureOpportunities({
     principal_id,
+    b_id_farm,
     b_ids,
     b_year,
     timeframe,

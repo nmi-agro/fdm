@@ -13,13 +13,20 @@ const core = vi.hoisted(() => ({
   isOrganicCertificationValid: vi.fn(),
   getGrazingIntention: vi.fn(),
 }))
+// Cached calculator functions have a `many` method; here it calls the single mock per input
+const { cached } = vi.hoisted(() => ({
+  cached: <T extends (...args: any[]) => any>(fn: T) =>
+    Object.assign(fn, {
+      many: (fdm: unknown, inputs: unknown[]) => inputs.map((input) => fn(fdm, input)),
+    }),
+}))
 const calculator = vi.hoisted(() => ({
   calculateDose: vi.fn(),
   createFunctionsForFertilizerApplicationFilling: vi.fn(),
   createFunctionsForNorms: vi.fn(),
   getMainCultivation: vi.fn(),
-  getNutrientAdvice: vi.fn(),
-  getOrganicMatterBalanceField: vi.fn(),
+  getNutrientAdvice: cached(vi.fn()),
+  getOrganicMatterBalanceField: cached(vi.fn()),
 }))
 
 vi.mock("@nmi-agro/fdm-core", async (importOriginal) => ({
@@ -42,21 +49,27 @@ const filling = (normFilling: number) => ({ normFilling, applicationFilling: [] 
 
 function normFunctions(withRenure: boolean) {
   return {
-    calculateNormForNitrogen: vi.fn().mockResolvedValue(norm(200)),
-    calculateNormForManure: vi.fn().mockResolvedValue(norm(170)),
-    calculateNormForPhosphate: vi.fn().mockResolvedValue(norm(75)),
-    ...(withRenure ? { calculateNormForRenure: vi.fn().mockResolvedValue(norm(100)) } : {}),
+    calculateNormForNitrogen: cached(vi.fn().mockResolvedValue(norm(200))),
+    calculateNormForManure: cached(vi.fn().mockResolvedValue(norm(170))),
+    calculateNormForPhosphate: cached(vi.fn().mockResolvedValue(norm(75))),
+    ...(withRenure ? { calculateNormForRenure: cached(vi.fn().mockResolvedValue(norm(100))) } : {}),
   }
 }
 
 function fillingFunctions(withRenure: boolean) {
   return {
-    calculateFertilizerApplicationFillingForNitrogen: vi.fn().mockResolvedValue(filling(50)),
-    calculateFertilizerApplicationFillingForPhosphate: vi.fn().mockResolvedValue(filling(20)),
-    calculateFertilizerApplicationFillingForManure: vi.fn().mockResolvedValue(filling(40)),
+    calculateFertilizerApplicationFillingForNitrogen: cached(
+      vi.fn().mockResolvedValue(filling(50)),
+    ),
+    calculateFertilizerApplicationFillingForPhosphate: cached(
+      vi.fn().mockResolvedValue(filling(20)),
+    ),
+    calculateFertilizerApplicationFillingForManure: cached(vi.fn().mockResolvedValue(filling(40))),
     ...(withRenure
       ? {
-          calculateFertilizerApplicationFillingForRenure: vi.fn().mockResolvedValue(filling(10)),
+          calculateFertilizerApplicationFillingForRenure: cached(
+            vi.fn().mockResolvedValue(filling(10)),
+          ),
         }
       : {}),
   }
@@ -339,10 +352,10 @@ describe("computeFertilizerPlanData", () => {
     // per field; an unhandled rejection would stop the server process.
     calculator.createFunctionsForNorms.mockReturnValue({
       ...normFunctions(true),
-      calculateNormForNitrogen: vi.fn(
-        () => new Promise((resolve) => setTimeout(() => resolve(norm(200)), 20)),
+      calculateNormForNitrogen: cached(
+        vi.fn(() => new Promise((resolve) => setTimeout(() => resolve(norm(200)), 20))),
       ),
-      calculateNormForPhosphate: vi.fn().mockRejectedValue(new Error("no soil data")),
+      calculateNormForPhosphate: cached(vi.fn().mockRejectedValue(new Error("no soil data"))),
     })
     const data = await computeFertilizerPlanData(
       fdm,
@@ -350,6 +363,68 @@ describe("computeFertilizerPlanData", () => {
       options,
     )
     expect(data.fields.map((f) => f.mainCrop).sort()).toEqual(["Fout bij laden", "Fout bij laden"])
+  })
+
+  it("requests each calculation once for all fields, without the fields whose norms fail", async () => {
+    const norms = {
+      ...normFunctions(true),
+      calculateNormForPhosphate: cached(
+        vi.fn(async (_fdm: unknown, normInput: { field: { b_id: string } }) => {
+          if (normInput.field.b_id === "f2") throw new Error("no soil data")
+          return norm(75)
+        }),
+      ),
+    }
+    calculator.createFunctionsForNorms.mockReturnValue(norms)
+    const nitrogenMany = vi.spyOn(norms.calculateNormForNitrogen, "many")
+    const adviceMany = vi.spyOn(calculator.getNutrientAdvice, "many")
+    const omMany = vi.spyOn(calculator.getOrganicMatterBalanceField, "many")
+
+    const data = await computeFertilizerPlanData(
+      fdm,
+      input(
+        2026,
+        ["f1", "f2", "f3"].map((b_id) => field(b_id, { cultivations: [mainCultivation] })),
+        null,
+      ),
+      options,
+    )
+
+    expect(nitrogenMany).toHaveBeenCalledTimes(1)
+    expect(nitrogenMany.mock.calls[0]?.[1]).toHaveLength(3)
+    // The field whose norms fail gets no advice or balance
+    expect(adviceMany).toHaveBeenCalledTimes(1)
+    expect(adviceMany.mock.calls[0]?.[1]).toHaveLength(2)
+    expect(omMany).toHaveBeenCalledTimes(1)
+    expect(omMany.mock.calls[0]?.[1]).toHaveLength(2)
+    expect(data.fields.map((f) => [f.id, f.mainCrop])).toEqual([
+      ["f1", "Grasland"],
+      ["f2", "Fout bij laden"],
+      ["f3", "Grasland"],
+    ])
+  })
+
+  it("adds a placeholder row for a field whose inputs cannot be built", async () => {
+    calculator.getMainCultivation.mockImplementation((cultivations: { b_lu: string }[]) => {
+      if (cultivations[0]?.b_lu === "broken") throw new Error("invalid cultivation")
+      return cultivations[0]
+    })
+    const data = await computeFertilizerPlanData(
+      fdm,
+      input(
+        2026,
+        [
+          field("f1", { cultivations: [mainCultivation] }),
+          field("f2", { cultivations: [{ ...mainCultivation, b_lu: "broken" }] }),
+        ],
+        null,
+      ),
+      options,
+    )
+    expect(data.fields.map((f) => [f.id, f.mainCrop])).toEqual([
+      ["f1", "Grasland"],
+      ["f2", "Fout bij laden"],
+    ])
   })
 
   it("adds a placeholder row for a field that fails", async () => {

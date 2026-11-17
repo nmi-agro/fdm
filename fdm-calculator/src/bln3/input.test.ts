@@ -10,23 +10,38 @@ import type {
 } from "@nmi-agro/fdm-core"
 import {
   getCultivations,
+  getCultivationsForFarm,
   getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
   getField,
+  getFields,
   getMeasures,
+  getMeasuresForFarm,
   getSoilAnalyses,
+  getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
+import {
+  collectInputForBln3MeasureApplicability,
+  collectInputForBln3MeasureApplicabilityForFarm,
+  collectInputForBln3Score,
+  collectInputForBln3ScoreForFarm,
+} from "./input"
 
 vi.mock("@nmi-agro/fdm-core", async () => {
   const actual = await vi.importActual("@nmi-agro/fdm-core")
   return {
     ...actual,
     getField: vi.fn(),
+    getFields: vi.fn(),
     getSoilAnalyses: vi.fn(),
+    getSoilAnalysesForFarm: vi.fn(),
     getCultivations: vi.fn(),
+    getCultivationsForFarm: vi.fn(),
     getMeasures: vi.fn(),
+    getMeasuresForFarm: vi.fn(),
     getFertilizerApplications: vi.fn(),
+    getFertilizerApplicationsForFarm: vi.fn(),
   }
 })
 
@@ -39,6 +54,11 @@ const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
 const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetMeasures = vi.mocked(getMeasures)
 const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
+const mockedGetFields = vi.mocked(getFields)
+const mockedGetSoilAnalysesForFarm = vi.mocked(getSoilAnalysesForFarm)
+const mockedGetCultivationsForFarm = vi.mocked(getCultivationsForFarm)
+const mockedGetMeasuresForFarm = vi.mocked(getMeasuresForFarm)
+const mockedGetFertilizerApplicationsForFarm = vi.mocked(getFertilizerApplicationsForFarm)
 
 // Minimal FdmType mock — collect functions don't use transactions
 const mockFdm = {} as FdmType
@@ -853,5 +873,268 @@ describe("findHoofdteelt boundary and tie-break cases", () => {
       2024,
     )
     expect(result.b_lu_catalogue).toBe("nl_100")
+  })
+})
+
+describe("farm collectors give the same inputs as the field collectors", () => {
+  // The farm collectors read their data in a transaction
+  const txFdm = {} as FdmType
+  const farmFdm = {
+    transaction: (fn: (tx: FdmType) => unknown) => fn(txFdm),
+  } as unknown as FdmType
+  const b_id_farm = "farm-1"
+
+  /** The data of one synthetic field, as returned by the getters. */
+  type Scenario = {
+    name: string
+    field: Field
+    soilAnalyses: SoilAnalysis[]
+    cultivations: Cultivation[]
+    measures: Measure[]
+    fertilizerApplications: FertilizerApplication[]
+    timeframe?: Timeframe
+  }
+
+  const bcsAnalysis = {
+    ...mockSoilAnalysis,
+    a_id: "sa-bcs",
+    a_date: new Date("2024-02-01"),
+    a_ss_bcs: 1,
+    a_rd_bcs: 0,
+    a_som_loi: undefined,
+  } as unknown as SoilAnalysis
+  const estimate = {
+    ...mockSoilAnalysis,
+    a_id: "sa-estimate",
+    a_date: null,
+    a_source: "nl-other-nmi",
+    a_cec_co: 120,
+  } as unknown as SoilAnalysis
+  const grass = {
+    ...mockCultivation,
+    b_lu: "cult-grass",
+    b_lu_catalogue: "nl_265",
+    b_lu_start: new Date("2022-03-01"),
+    b_lu_end: null,
+    b_lu_croprotation: "grass",
+  } as unknown as Cultivation
+  const application = {
+    p_app_id: "app-1",
+    p_app_method: "injection",
+    p_app_date: new Date("2024-03-01"),
+  } as unknown as FertilizerApplication
+
+  const scenarios: Scenario[] = [
+    {
+      name: "a field with all data in a single-year timeframe",
+      field: mockField,
+      soilAnalyses: [bcsAnalysis, mockSoilAnalysis, estimate],
+      cultivations: [mockCultivation, grass],
+      measures: [mockMeasure, { ...mockMeasure, m_id: "other_X1", b_id_measure: "meas-2" }],
+      fertilizerApplications: [application, { ...application, p_app_id: "app-2" }],
+      timeframe,
+    },
+    {
+      name: "a field with all data without a timeframe",
+      field: mockField,
+      soilAnalyses: [mockSoilAnalysis],
+      cultivations: [mockCultivation, grass],
+      measures: [{ ...mockMeasure, m_start: null } as unknown as Measure],
+      fertilizerApplications: [application],
+    },
+    {
+      name: "a field in a multi-year timeframe",
+      field: mockField,
+      soilAnalyses: [mockSoilAnalysis],
+      cultivations: [mockCultivation, grass],
+      measures: [mockMeasure],
+      fertilizerApplications: [],
+      timeframe: { start: new Date("2020-01-01"), end: new Date("2026-12-31") },
+    },
+    {
+      name: "a buffer strip",
+      field: { ...mockField, b_bufferstrip: true },
+      soilAnalyses: [],
+      cultivations: [grass],
+      measures: [],
+      fertilizerApplications: [],
+      timeframe,
+    },
+    {
+      name: "a nature field",
+      field: mockField,
+      soilAnalyses: [mockSoilAnalysis],
+      cultivations: [
+        { ...mockCultivation, b_lu_catalogue: "nl_331", b_lu_croprotation: "nature" },
+      ] as Cultivation[],
+      measures: [],
+      fertilizerApplications: [],
+      timeframe,
+    },
+    {
+      name: "a field without a main cultivation",
+      field: mockField,
+      soilAnalyses: [mockSoilAnalysis],
+      cultivations: [
+        { ...mockCultivation, b_lu_start: new Date("2024-08-01"), b_lu_end: null },
+      ] as Cultivation[],
+      measures: [],
+      fertilizerApplications: [],
+      timeframe,
+    },
+    {
+      name: "a field without data",
+      field: mockField,
+      soilAnalyses: [],
+      cultivations: [],
+      measures: [],
+      fertilizerApplications: [],
+      timeframe,
+    },
+  ]
+
+  // Another field of the farm, which must not leak into the inputs of the scenario field
+  const otherField: Field = { ...mockField, b_id: "field-2", b_centroid: [6, 52] }
+
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  function mockFieldGetters(scenario: Scenario) {
+    mockedGetField.mockResolvedValue(scenario.field)
+    mockedGetSoilAnalyses.mockResolvedValue(scenario.soilAnalyses)
+    mockedGetCultivations.mockResolvedValue(scenario.cultivations)
+    mockedGetMeasures.mockResolvedValue(scenario.measures)
+    mockedGetFertilizerApplications.mockResolvedValue(scenario.fertilizerApplications)
+  }
+
+  function mockFarmGetters(scenario: Scenario) {
+    mockedGetFields.mockResolvedValue([scenario.field, otherField])
+    mockedGetSoilAnalysesForFarm.mockResolvedValue(
+      new Map([
+        [b_id, scenario.soilAnalyses],
+        [otherField.b_id, [mockSoilAnalysis]],
+        // A field outside the timeframe, which getFields does not return
+        ["field-old", [mockSoilAnalysis]],
+      ]),
+    )
+    mockedGetCultivationsForFarm.mockResolvedValue(
+      new Map([
+        [b_id, scenario.cultivations],
+        [otherField.b_id, [grass]],
+      ]),
+    )
+    mockedGetMeasuresForFarm.mockResolvedValue(new Map([[b_id, scenario.measures]]))
+    mockedGetFertilizerApplicationsForFarm.mockResolvedValue(
+      new Map([[b_id, scenario.fertilizerApplications]]),
+    )
+  }
+
+  for (const scenario of scenarios) {
+    it(`should give the same BLN3 score inputs for ${scenario.name}`, async () => {
+      mockFieldGetters(scenario)
+      const expected = await collectInputForBln3Score(
+        mockFdm,
+        principal_id,
+        b_id,
+        scenario.timeframe,
+      )
+      mockFarmGetters(scenario)
+
+      const inputs = await collectInputForBln3ScoreForFarm(
+        farmFdm,
+        principal_id,
+        b_id_farm,
+        scenario.timeframe,
+      )
+
+      expect([...inputs.keys()]).toEqual([b_id, otherField.b_id])
+      expect(inputs.get(b_id)).toEqual(expected)
+    })
+
+    it(`should give the same measure applicability inputs for ${scenario.name}`, async () => {
+      mockFieldGetters(scenario)
+      const expected = await collectInputForBln3MeasureApplicability(
+        mockFdm,
+        principal_id,
+        b_id,
+        2024,
+        scenario.timeframe,
+      )
+      mockFarmGetters(scenario)
+
+      const inputs = await collectInputForBln3MeasureApplicabilityForFarm(
+        farmFdm,
+        principal_id,
+        b_id_farm,
+        2024,
+        scenario.timeframe,
+      )
+
+      expect([...inputs.keys()]).toEqual([b_id, otherField.b_id])
+      expect(inputs.get(b_id)).toEqual(expected)
+    })
+  }
+
+  it("should read the farm data with farm-level getters in one transaction", async () => {
+    mockFarmGetters(scenarios[0])
+
+    await collectInputForBln3ScoreForFarm(farmFdm, principal_id, b_id_farm, timeframe)
+
+    expect(mockedGetFields).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, timeframe)
+    expect(mockedGetSoilAnalysesForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: timeframe.end,
+    })
+    // Cultivations without a timeframe, for the multi-year history
+    expect(mockedGetCultivationsForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm)
+    expect(mockedGetMeasuresForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, timeframe)
+    expect(mockedGetField).not.toHaveBeenCalled()
+  })
+
+  it("should keep the applicability inputs when the fertilizer applications cannot be read", async () => {
+    const scenario = { ...scenarios[0], fertilizerApplications: [] }
+    mockFieldGetters(scenario)
+    mockedGetFertilizerApplications.mockRejectedValue(new Error("no access"))
+    const expected = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2024,
+      timeframe,
+    )
+    mockFarmGetters(scenario)
+    mockedGetFertilizerApplicationsForFarm.mockRejectedValue(new Error("no access"))
+
+    const inputs = await collectInputForBln3MeasureApplicabilityForFarm(
+      farmFdm,
+      principal_id,
+      b_id_farm,
+      2024,
+      timeframe,
+    )
+
+    expect(inputs.get(b_id)).toEqual(expected)
+    expect(inputs.get(b_id)?.p_app_method).toBeUndefined()
+  })
+
+  it("should wrap errors with the farm ID", async () => {
+    mockFarmGetters(scenarios[0])
+    mockedGetFields.mockRejectedValue(new Error("Permission denied"))
+
+    await expect(
+      collectInputForBln3ScoreForFarm(farmFdm, principal_id, b_id_farm, timeframe),
+    ).rejects.toThrow("Failed to collect BLN3 score inputs for farm farm-1: Permission denied")
+    await expect(
+      collectInputForBln3MeasureApplicabilityForFarm(
+        farmFdm,
+        principal_id,
+        b_id_farm,
+        2024,
+        timeframe,
+      ),
+    ).rejects.toThrow(
+      "Failed to collect BLN3 measure applicability inputs for farm farm-1: Permission denied",
+    )
   })
 })

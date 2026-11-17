@@ -166,9 +166,11 @@ function errorRow(
  * field of a farm, and returns one promise per field so callers can show each field when it is
  * ready.
  *
- * Farm-wide data is read once. The nutrient advice is then requested per field, with at most
- * `concurrency` requests at the same time. The promises never reject: a failure becomes a row
- * with `error` set, so one field does not break the whole overview.
+ * Farm-wide data is read once, and the cached nutrient advice of all fields is looked up with
+ * one query. Only the fields without a cached advice are requested from the NMI API, with at
+ * most `concurrency` requests at the same time (the same limit applies separately to the
+ * cultivation suggestions for fields without a main cultivation). The promises never reject: a
+ * failure becomes a row with `error` set, so one field does not break the whole overview.
  *
  * @param input - Farm, year, fields and NMI API key.
  * @returns One promise per field, in the same order as `input.fields`. Values are per hectare.
@@ -199,90 +201,155 @@ export function startFarmNutrientAdviceRows(
     (error: unknown) => ({ ok: false as const, message: errorMessage(error) }),
   )
 
-  async function getRow(
-    field: FarmNutrientAdviceField,
-    data: Extract<Awaited<typeof farmData>, { ok: true }>,
-  ): Promise<FarmNutrientAdviceRow> {
-    const cultivations = data.cultivationsByField.get(field.b_id) ?? []
-    const b_area = field.b_area ?? 0
+  const concurrency = Math.max(1, input.concurrency ?? NUTRIENT_ADVICE_CONCURRENCY)
+  type FarmData = Extract<Awaited<typeof farmData>, { ok: true }>
+  type MainCultivation = NonNullable<FarmNutrientAdviceRow["mainCultivation"]>
 
-    if (cultivations.length === 0) {
-      return errorRow(field, "no_cultivation", "No cultivation registered for this field.")
-    }
-
-    const main = findMainCultivation(cultivations, year)
-    if (!main) {
-      const cultivationSuggestion = await getCultivationSuggestion(
-        fdm,
-        principal_id,
-        b_id_farm,
-        field.b_id,
-        year,
-        nmiApiKey,
-      )
-      return {
-        ...errorRow(field, "no_main_cultivation", `No main cultivation found for ${year}.`),
-        cultivationSuggestion,
-      }
-    }
-
-    const mainCultivation = {
-      b_lu: main.b_lu,
-      b_lu_catalogue: main.b_lu_catalogue,
-      b_lu_name: main.b_lu_name,
-      b_lu_croprotation: main.b_lu_croprotation ?? null,
-    }
-
-    try {
-      const doses = calculateDose({
-        applications: data.fertilizerApplicationsByField.get(field.b_id) ?? [],
-        fertilizers: data.fertilizers,
-      })
-      const advice = await getNutrientAdvice(fdm, {
-        b_lu_catalogue: main.b_lu_catalogue,
-        b_centroid: field.b_centroid,
-        currentSoilData: data.soilDataByField.get(field.b_id) ?? [],
-        nmiApiKey,
-        b_bufferstrip: field.b_bufferstrip,
-      })
-
-      const values: FarmNutrientAdviceRow["values"] = {}
-      for (const nutrient of FARM_NUTRIENT_ADVICE_NUTRIENTS) {
-        const adviceValue = advice[nutrient.adviceParameter] ?? 0
-        const doseValue = (doses.dose[nutrient.doseParameter] as number | undefined) ?? 0
-        values[nutrient.symbol] = {
-          advice: adviceValue,
-          dose: doseValue,
-          remaining: adviceValue - doseValue,
-        }
-      }
-
-      return { b_id: field.b_id, b_name: field.b_name, b_area, mainCultivation, values }
-    } catch (error) {
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area,
-        mainCultivation,
-        error: { code: "advice_failed", message: errorMessage(error) },
-        values: {},
-      }
+  /** Returns the row of a field without a main cultivation, with a suggested cultivation. */
+  async function getSuggestionRow(field: FarmNutrientAdviceField): Promise<FarmNutrientAdviceRow> {
+    const cultivationSuggestion = await getCultivationSuggestion(
+      fdm,
+      principal_id,
+      b_id_farm,
+      field.b_id,
+      year,
+      nmiApiKey,
+    )
+    return {
+      ...errorRow(field, "no_main_cultivation", `No main cultivation found for ${year}.`),
+      cultivationSuggestion,
     }
   }
 
-  const semaphore = new Semaphore(Math.max(1, input.concurrency ?? NUTRIENT_ADVICE_CONCURRENCY))
-  return fields.map(async (field) => {
-    const data = await farmData
-    if (!data.ok) return errorRow(field, "farm_data_unavailable", data.message)
-    await semaphore.acquire()
+  /** Returns the row of a field with its advice, its applied dose and the remaining advice. */
+  function getAdviceRow(
+    field: FarmNutrientAdviceField,
+    mainCultivation: MainCultivation,
+    doses: ReturnType<typeof calculateDose>,
+    advice: NutrientAdvice,
+  ): FarmNutrientAdviceRow {
+    const values: FarmNutrientAdviceRow["values"] = {}
+    for (const nutrient of FARM_NUTRIENT_ADVICE_NUTRIENTS) {
+      const adviceValue = advice[nutrient.adviceParameter] ?? 0
+      const doseValue = (doses.dose[nutrient.doseParameter] as number | undefined) ?? 0
+      values[nutrient.symbol] = {
+        advice: adviceValue,
+        dose: doseValue,
+        remaining: adviceValue - doseValue,
+      }
+    }
+    return {
+      b_id: field.b_id,
+      b_name: field.b_name,
+      b_area: field.b_area ?? 0,
+      mainCultivation,
+      values,
+    }
+  }
+
+  function adviceFailedRow(
+    field: FarmNutrientAdviceField,
+    mainCultivation: MainCultivation,
+    error: unknown,
+  ): FarmNutrientAdviceRow {
+    return {
+      ...errorRow(field, "advice_failed", errorMessage(error)),
+      mainCultivation,
+    }
+  }
+
+  /** Starts the rows of all fields once the farm data is available. */
+  function startRows(data: FarmData): Promise<FarmNutrientAdviceRow>[] {
+    const semaphore = new Semaphore(concurrency)
+    const adviceFields: {
+      index: number
+      mainCultivation: MainCultivation
+      doses: ReturnType<typeof calculateDose>
+      input: Parameters<typeof getNutrientAdvice>[1]
+    }[] = []
+    const rows: Promise<FarmNutrientAdviceRow>[] = fields.map((field, index) => {
+      const cultivations = data.cultivationsByField.get(field.b_id) ?? []
+      if (cultivations.length === 0) {
+        return Promise.resolve(
+          errorRow(field, "no_cultivation", "No cultivation registered for this field."),
+        )
+      }
+
+      const main = findMainCultivation(cultivations, year)
+      if (!main) {
+        return (async () => {
+          await semaphore.acquire()
+          try {
+            return await getSuggestionRow(field)
+          } catch (error) {
+            return errorRow(field, "advice_failed", errorMessage(error))
+          } finally {
+            semaphore.release()
+          }
+        })()
+      }
+
+      const mainCultivation = {
+        b_lu: main.b_lu,
+        b_lu_catalogue: main.b_lu_catalogue,
+        b_lu_name: main.b_lu_name,
+        b_lu_croprotation: main.b_lu_croprotation ?? null,
+      }
+      try {
+        const doses = calculateDose({
+          applications: data.fertilizerApplicationsByField.get(field.b_id) ?? [],
+          fertilizers: data.fertilizers,
+        })
+        adviceFields.push({
+          index,
+          mainCultivation,
+          doses,
+          input: {
+            b_lu_catalogue: main.b_lu_catalogue,
+            b_centroid: field.b_centroid,
+            currentSoilData: data.soilDataByField.get(field.b_id) ?? [],
+            nmiApiKey,
+            b_bufferstrip: field.b_bufferstrip,
+          },
+        })
+      } catch (error) {
+        return Promise.resolve(adviceFailedRow(field, mainCultivation, error))
+      }
+      // Replaced below by the row with the advice
+      return Promise.resolve(errorRow(field, "advice_failed", "Advice not requested."))
+    })
+
+    // Look up the advice of all fields at once; each row resolves when its advice is ready
+    const advices = getNutrientAdvice.many(
+      fdm,
+      adviceFields.map(({ input }) => input),
+      { concurrency },
+    )
+    for (const [i, { index, mainCultivation, doses }] of adviceFields.entries()) {
+      const field = fields[index]
+      rows[index] = advices[i].then(
+        (advice) => getAdviceRow(field, mainCultivation, doses, advice),
+        (error: unknown) => adviceFailedRow(field, mainCultivation, error),
+      )
+    }
+    return rows
+  }
+
+  const rows = farmData.then((data) => {
+    if (!data.ok) {
+      return fields.map((field) =>
+        Promise.resolve(errorRow(field, "farm_data_unavailable", data.message)),
+      )
+    }
     try {
-      return await getRow(field, data)
+      return startRows(data)
     } catch (error) {
-      return errorRow(field, "advice_failed", errorMessage(error))
-    } finally {
-      semaphore.release()
+      return fields.map((field) =>
+        Promise.resolve(errorRow(field, "advice_failed", errorMessage(error))),
+      )
     }
   })
+  return fields.map((_, index) => rows.then((started) => started[index]))
 }
 
 /**
