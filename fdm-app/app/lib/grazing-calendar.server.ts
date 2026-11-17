@@ -78,13 +78,30 @@ export interface GrazingCalendarFieldRow {
   b_name: string
   b_area: number
   totalGrazingDays: number
-  weeks: GrazingCalendarCell[]
+  /** One cell per column of the view: a week, or a day of the shown month. */
+  cells: GrazingCalendarCell[]
   recentRestDays: number | null
+}
+
+/** How the calendar is shown: 52 weeks of the year, or the days of one month. */
+export type GrazingCalendarView = { kind: "week" } | { kind: "day"; month: number }
+
+/** A column of the calendar. */
+export interface GrazingCalendarColumn {
+  key: string
+  /** Header text: the week number or the day of the month. */
+  label: string
+  dateStart: string
+  dateEnd: string
+  /** Starts a group (every fourth week, or a Monday), drawn with a stronger line. */
+  groupStart: boolean
 }
 
 export interface GrazingCalendarMatrix {
   year: number
   todayKey: string
+  view: GrazingCalendarView
+  columns: GrazingCalendarColumn[]
   fields: GrazingCalendarFieldRow[]
   herds: Array<{
     l_id_herd: string
@@ -131,10 +148,64 @@ function grazingEnd(start: Date, end: Date | string | null | undefined, today: D
   return today > start ? today : start
 }
 
+/**
+ * The columns of the calendar with their period: 52 ISO weeks of the year, starting at the Monday
+ * of the week with 4 January, or the days of one month.
+ */
+function getCalendarColumns(
+  calendarYear: number,
+  view: GrazingCalendarView,
+): Array<GrazingCalendarColumn & { start: Date; end: Date }> {
+  const columns: Array<GrazingCalendarColumn & { start: Date; end: Date }> = []
+  const endOfDay = (date: Date) => {
+    const end = new Date(date)
+    end.setUTCHours(23, 59, 59, 999)
+    return end
+  }
+
+  if (view.kind === "day") {
+    const daysInMonth = new Date(Date.UTC(calendarYear, view.month, 0)).getUTCDate()
+    for (let day = 1; day <= daysInMonth; day++) {
+      const start = new Date(Date.UTC(calendarYear, view.month - 1, day))
+      columns.push({
+        key: `d-${toIsoDate(start)}`,
+        label: String(day),
+        dateStart: toIsoDate(start),
+        dateEnd: toIsoDate(start),
+        groupStart: start.getUTCDay() === 1,
+        start,
+        end: endOfDay(start),
+      })
+    }
+    return columns
+  }
+
+  const jan4 = new Date(Date.UTC(calendarYear, 0, 4))
+  const firstMonday = new Date(jan4)
+  firstMonday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1))
+  for (let week = 1; week <= 52; week++) {
+    const start = new Date(firstMonday)
+    start.setUTCDate(firstMonday.getUTCDate() + (week - 1) * 7)
+    const end = new Date(start)
+    end.setUTCDate(start.getUTCDate() + 6)
+    columns.push({
+      key: `w-${week}`,
+      label: String(week),
+      dateStart: toIsoDate(start),
+      dateEnd: toIsoDate(end),
+      groupStart: week % 4 === 1,
+      start,
+      end: endOfDay(end),
+    })
+  }
+  return columns
+}
+
 export async function fetchGrazingCalendarMatrix(
   principal_id: string,
   b_id_farm: string,
   calendarYear: number,
+  view: GrazingCalendarView = { kind: "week" },
 ): Promise<GrazingCalendarMatrix> {
   const yearStart = new Date(`${calendarYear}-01-01T00:00:00.000Z`)
   const yearEnd = new Date(`${calendarYear}-12-31T23:59:59.999Z`)
@@ -211,29 +282,7 @@ export async function fetchGrazingCalendarMatrix(
     harvestsByField.set(field.b_id, fieldHarvests)
   }
 
-  // Pre-calculate 52 weeks intervals for the calendar year
-  // Weeks from week 14 (approx early April) to week 44 (late October) or full 52 weeks
-  const weeksInfo: Array<{ weekNum: number; start: Date; end: Date; label: string }> = []
-  // Standard 52 weeks
-  const jan4 = new Date(Date.UTC(calendarYear, 0, 4))
-  const dayOfWeek = jan4.getUTCDay() || 7
-  const firstMonday = new Date(jan4)
-  firstMonday.setUTCDate(jan4.getUTCDate() - (dayOfWeek - 1))
-
-  for (let w = 1; w <= 52; w++) {
-    const wStart = new Date(firstMonday)
-    wStart.setUTCDate(firstMonday.getUTCDate() + (w - 1) * 7)
-    const wEnd = new Date(wStart)
-    wEnd.setUTCDate(wStart.getUTCDate() + 6)
-    wEnd.setUTCHours(23, 59, 59, 999)
-
-    weeksInfo.push({
-      weekNum: w,
-      start: wStart,
-      end: wEnd,
-      label: `Wk ${w}`,
-    })
-  }
+  const columns = getCalendarColumns(calendarYear, view)
 
   // Group grazings by field
   const grazingsByField = new Map<string, typeof grazings>()
@@ -269,16 +318,16 @@ export async function fetchGrazingCalendarMatrix(
     }
     const totalGrazingDays = grazingDaysSet.size
 
-    // Build week cells
-    const weeks: GrazingCalendarCell[] = weeksInfo.map((wInfo) => {
+    // One cell per column: a week, or a day of the shown month
+    const cells: GrazingCalendarCell[] = columns.map((column) => {
       const cellGrazings = fieldGrazings.filter((g) => {
         const gStart = new Date(g.l_grazing_start)
         const gEnd = grazingEnd(gStart, g.l_grazing_end, today)
-        return gStart <= wInfo.end && gEnd >= wInfo.start
+        return gStart <= column.end && gEnd >= column.start
       })
 
       const cellHarvests = fieldHarvests.filter(
-        (h) => h.harvestDate <= wInfo.end && h.harvestDate >= wInfo.start,
+        (h) => h.harvestDate <= column.end && h.harvestDate >= column.start,
       )
 
       let type: GrazingCalendarCell["type"] = "empty"
@@ -323,7 +372,7 @@ export async function fetchGrazingCalendarMatrix(
       const fertilizerEntries = (fertilizerApplicationsByField.get(field.b_id) ?? [])
         .filter((a) => {
           const date = new Date(a.p_app_date)
-          return date >= wInfo.start && date <= wInfo.end
+          return date >= column.start && date <= column.end
         })
         .map((a) => ({
           p_app_id: a.p_app_id,
@@ -334,10 +383,10 @@ export async function fetchGrazingCalendarMatrix(
         }))
 
       return {
-        key: `w-${wInfo.weekNum}`,
-        label: wInfo.label,
-        dateStart: toIsoDate(wInfo.start),
-        dateEnd: toIsoDate(wInfo.end),
+        key: column.key,
+        label: column.label,
+        dateStart: column.dateStart,
+        dateEnd: column.dateEnd,
         type,
         isPlanned,
         grazingEntries: grazingEntries.length > 0 ? grazingEntries : undefined,
@@ -372,7 +421,7 @@ export async function fetchGrazingCalendarMatrix(
       b_name: field.b_name,
       b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
       totalGrazingDays,
-      weeks,
+      cells,
       recentRestDays,
     }
   })
@@ -435,6 +484,8 @@ export async function fetchGrazingCalendarMatrix(
   return {
     year: calendarYear,
     todayKey,
+    view,
+    columns: columns.map(({ start: _start, end: _end, ...column }) => column),
     fields: fieldRows,
     herds: herdList,
     openGrazings,

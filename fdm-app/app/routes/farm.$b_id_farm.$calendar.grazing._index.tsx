@@ -62,7 +62,7 @@ import {
   isFieldEventIntent,
 } from "~/lib/field-events.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import { fetchGrazingCalendarMatrix, type GrazingCalendarView } from "~/lib/grazing-calendar.server"
 import { defaultMapDay } from "~/lib/grazing-map"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD, parseGrazingExtent } from "~/lib/grazing-zone"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
@@ -75,6 +75,19 @@ export const meta: MetaFunction = () => {
       content: "Beweidingskalender en graslandgebruik per perceel.",
     },
   ]
+}
+
+/**
+ * The view of the calendar from the URL: `?weergave=dag&maand=6` shows the days of June, anything
+ * else the weeks of the year. Without a month, the day view shows the current month.
+ */
+function getCalendarView(searchParams: URLSearchParams): GrazingCalendarView {
+  if (searchParams.get("weergave") !== "dag") return { kind: "week" }
+  const month = Number(searchParams.get("maand"))
+  return {
+    kind: "day",
+    month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : new Date().getMonth() + 1,
+  }
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -92,7 +105,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const [farm, farms, matrix, timelineFields, fertilizerOptions] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
       getFarms(fdm, session.principal_id),
-      fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
+      fetchGrazingCalendarMatrix(
+        session.principal_id,
+        b_id_farm,
+        calendarYear,
+        getCalendarView(new URL(request.url).searchParams),
+      ),
       // Cultivations, harvests and fertilizer applications per field, for the mowing and
       // fertilizing forms shared with the Tijdlijn
       fetchTimelineFields(session.principal_id, b_id_farm, getTimeframe(params)),
