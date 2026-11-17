@@ -278,7 +278,7 @@ export default function MeasureCatalogueDetail() {
                   {conflicts.length === 0 && (
                     <div className="space-y-1">
                       <dt className="text-muted-foreground">Conflicterende maatregelen</dt>
-                      <dd>Geen</dd>
+                      <dd className="text-muted-foreground">Geen</dd>
                     </div>
                   )}
                   <div className="space-y-1">
@@ -328,7 +328,7 @@ export default function MeasureCatalogueDetail() {
                   Impact op indicatoren
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="@container/impact space-y-3">
                 {indicators.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
                     Voor deze maatregel zijn geen indicatoren bekend.
@@ -490,6 +490,10 @@ function AddMeasureLink({
  * The indicators the measure affects with the catalogue's effect size and, once the
  * recommendations are loaded, on how many fields of this farm the measure is recommended to
  * improve that indicator.
+ *
+ * Sized by its card (`@container/impact`), not the viewport: on a narrow card the number of
+ * fields moves under the indicator name and the theme is left out, so the long Dutch indicator
+ * names are not cut off.
  */
 function ImpactTable({
   indicators,
@@ -499,14 +503,17 @@ function ImpactTable({
   recommendedByIndicator?: Map<string, number>
 }) {
   const showFarm = recommendedByIndicator !== undefined && recommendedByIndicator.size > 0
+  const fieldCount = (count: number) => (count === 1 ? "1 perceel" : `${count} percelen`)
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Indicator</TableHead>
-          <TableHead className="hidden sm:table-cell">Thema</TableHead>
+          <TableHead className="hidden @lg/impact:table-cell">Thema</TableHead>
           <TableHead className="text-right">Effectgrootte</TableHead>
-          {showFarm && <TableHead className="text-right">Aanbevolen op</TableHead>}
+          {showFarm && (
+            <TableHead className="hidden text-right @md/impact:table-cell">Aanbevolen op</TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -514,21 +521,26 @@ function ImpactTable({
           const recommended = recommendedByIndicator?.get(indicator.id) ?? 0
           return (
             <TableRow key={indicator.id}>
-              <TableCell className="font-medium whitespace-normal">{indicator.name}</TableCell>
-              <TableCell className="text-muted-foreground hidden sm:table-cell">
+              <TableCell className="font-medium whitespace-normal">
+                {indicator.name}
+                {showFarm && recommended > 0 && (
+                  <span className="text-muted-foreground mt-0.5 block text-xs font-normal @md/impact:hidden">
+                    Aanbevolen op {fieldCount(recommended)}
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="text-muted-foreground hidden @lg/impact:table-cell">
                 {indicator.ecosysteemdienst ?? "—"}
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {formatEffectRange(indicator.effectRange)}
               </TableCell>
               {showFarm && (
-                <TableCell className="text-right tabular-nums">
+                <TableCell className="hidden text-right tabular-nums @md/impact:table-cell">
                   {recommended === 0 ? (
                     <span className="text-muted-foreground">—</span>
-                  ) : recommended === 1 ? (
-                    "1 perceel"
                   ) : (
-                    `${recommended} percelen`
+                    fieldCount(recommended)
                   )}
                 </TableCell>
               )}

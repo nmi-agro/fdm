@@ -42,7 +42,11 @@ export function FarmTitle({
     <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
         <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="flex flex-wrap items-center gap-3">
+          {/* A wrapping title keeps the help icon beside its first line instead of on a line
+              of its own */}
+          <div
+            className={wrapTitle ? "flex items-start gap-3" : "flex flex-wrap items-center gap-3"}
+          >
             <h2
               className={
                 wrapTitle
@@ -52,7 +56,9 @@ export function FarmTitle({
             >
               {title}
             </h2>
-            {help ? <HelpLink target={help} className="-ml-1" /> : null}
+            {help ? (
+              <HelpLink target={help} className={wrapTitle ? "-ml-1 shrink-0" : "-ml-1"} />
+            ) : null}
           </div>
           {descriptionNode ?? (
             <p className="text-muted-foreground wrap-break-word">{description}</p>
