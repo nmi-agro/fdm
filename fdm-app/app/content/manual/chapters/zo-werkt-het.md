@@ -60,13 +60,13 @@ Handig om te weten: het jaar staat ook in het webadres. Stuur je een link naar e
 
 ### De zijbalk {#zijbalk}
 
-| Groep       | Wat je er vindt                                                                                                                                       |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bedrijf     | **Mijn bedrijven**, **Kalender**, **Percelen**, **Bouwplan**, **Tijdlijn**, **Maatregelen**, **Meststoffen** en de perceelkiezer **Kies een perceel** |
-| Apps        | **Atlas**, **Balans** (Stikstof en Organische stof), **Bemestingsadvies**, **Gebruiksruimte** en **Indicatoren**                                      |
-| Labs        | **Mineralisatie** en **Gerrit**: nieuwe, experimentele functies                                                                                       |
-| Organisatie | **Mijn organisaties** en, als je een organisatie kiest, de overzichten over meerdere bedrijven                                                        |
-| Onderaan    | **Handleiding**, **Ondersteuning**, de melding **Wat is er nieuw?** en het menu onder je naam (Account, Cookies, Organisaties, Uitloggen)             |
+| Groep       | Wat je er vindt                                                                                                                                                                                                 |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bedrijf     | **Mijn bedrijven**, **Kalender**, **Percelen**, **Bouwplan**, [**Plan volgend seizoen**](/manual/plan-volgend-seizoen), **Tijdlijn**, **Maatregelen**, **Meststoffen** en de perceelkiezer **Kies een perceel** |
+| Apps        | **Atlas**, **Balans** (Stikstof en Organische stof), **Bemestingsadvies**, **Gebruiksruimte** en **Indicatoren**                                                                                                |
+| Labs        | **Mineralisatie** en **Gerrit**: nieuwe, experimentele functies                                                                                                                                                 |
+| Organisatie | **Mijn organisaties** en, als je een organisatie kiest, de overzichten over meerdere bedrijven                                                                                                                  |
+| Onderaan    | **Handleiding**, **Ondersteuning**, de melding **Wat is er nieuw?** en het menu onder je naam (Account, Cookies, Organisaties, Uitloggen)                                                                       |
 
 Is een onderdeel grijs? Dan heb je nog geen bedrijf gekozen. Klik erop en kies een bedrijf in het venster **Kies een bedrijf**.
 
@@ -79,6 +79,7 @@ Op veel pagina's staat rechtsboven een vraagteken. Daarmee open je het deel van 
 Klik je op een bedrijf, dan kom je op het dashboard. Dit is je startpunt:
 
 - Onder **Apps** staan kaarten naar Atlas, Stikstofbalans, OS Balans, Bemestingsadvies, Gebruiksruimte en Bemestingsplan.
+- Onder **Overzichten** staat de kaart om het [volgende seizoen te plannen](/manual/plan-volgend-seizoen), met het aantal open punten.
 - Onder **Acties** vind je de dingen die je vaak doet als je gegevens wilt toevoegen, zoals **Nieuwe percelen**, **Ophalen bij RVO**, **RVO Shapefile uploaden** en **Upload bodemanalyses**.
 
 ![Het bedrijfsdashboard van een demobedrijf, met de apps en de acties](screenshot:bedrijf-dashboard)

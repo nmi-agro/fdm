@@ -22,8 +22,8 @@ vi.mock("@nmi-agro/fdm-core", () => ({
 // ---------------------------------------------------------------------------
 vi.mock("@nmi-agro/fdm-calculator", () => ({
   getNutrientAdvice: vi.fn(),
-  createFunctionsForNorms: vi.fn(),
-  createUncachedFunctionsForFertilizerApplicationFilling: vi.fn(),
+  createFunctionsForNormsForYear: vi.fn(),
+  createUncachedFunctionsForFertilizerApplicationFillingForYear: vi.fn(),
   calculateOrganicMatterBalanceField: vi.fn(),
   collectInputForOrganicMatterBalance: vi.fn(),
   calculateNitrogenBalanceField: vi.fn(),
@@ -43,8 +43,8 @@ import {
   calculateOrganicMatterBalanceField,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
-  createFunctionsForNorms,
-  createUncachedFunctionsForFertilizerApplicationFilling,
+  createFunctionsForNormsForYear,
+  createUncachedFunctionsForFertilizerApplicationFillingForYear,
   getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -182,13 +182,16 @@ function setupDefaultMocks() {
     fertilizerDetails: [],
     cultivationDetails: [],
   })
-  ;(createFunctionsForNorms as any).mockReturnValue({
+  ;(createFunctionsForNormsForYear as any).mockReturnValue({
     collectInputForNorms: vi.fn().mockResolvedValue({}),
     calculateNormForManure: vi.fn().mockResolvedValue({ normValue: 170, normSource: "NL-2025" }),
     calculateNormForPhosphate: vi.fn().mockResolvedValue({ normValue: 80, normSource: "NL-2025" }),
     calculateNormForNitrogen: vi.fn().mockResolvedValue({ normValue: 230, normSource: "NL-2025" }),
+    targetYear: 2025,
+    normsYear: "2025",
+    provisional: false,
   })
-  ;(createUncachedFunctionsForFertilizerApplicationFilling as any).mockReturnValue({
+  ;(createUncachedFunctionsForFertilizerApplicationFillingForYear as any).mockReturnValue({
     collectInputForFertilizerApplicationFilling: vi.fn().mockResolvedValue({}),
     calculateFertilizerApplicationFillingForManure: vi
       .fn()
@@ -544,6 +547,8 @@ describe("tool execute functions", () => {
       expect(result.normsPerField[0].b_id).toBe("field-1")
       expect(result.normsPerField[0].norms.animalManureN).toBe(170)
       expect(result.normsPerField[0].norms.workableN).toBe(230)
+      expect(result.normsYear).toBe("2025")
+      expect(result.provisional).toBe(false)
       expect(result.normsPerField[0].norms.phosphate).toBe(80)
     })
   })

@@ -6,6 +6,7 @@ import {
   collectInputForOrganicMatterBalance,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
+  createFunctionsForNormsForYear,
   type GebruiksnormResult,
   getNitrogenBalanceField,
   getNutrientAdvice,
@@ -133,6 +134,43 @@ export async function getFieldNormValues({
   ])
 
   return { manure, phosphate, nitrogen }
+}
+
+/**
+ * Returns the norm values of a field for any supported year. Years without own norms (for
+ * example a year that is planned ahead) use the newest norms provisionally; see
+ * `createFunctionsForNormsForYear` in fdm-calculator.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The ID of the principal.
+ * @param b_id - The ID of the field.
+ * @param year - The year that is calculated.
+ * @returns The norm values of the field.
+ */
+export async function getFieldNormValuesForYear({
+  fdm,
+  principal_id,
+  b_id,
+  year,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id: Field["b_id"]
+  year: number
+}): Promise<FieldNormValues> {
+  const functionsForNorms = createFunctionsForNormsForYear("NL", year)
+  const normsInput = await functionsForNorms.collectInputForNorms(fdm, principal_id, b_id)
+  const calculate = (fn: unknown): Promise<GebruiksnormResult> =>
+    (fn as (fdm: FdmType, input: typeof normsInput) => Promise<GebruiksnormResult>)(fdm, normsInput)
+  const [manure, phosphate, nitrogen, renure] = await Promise.all([
+    calculate(functionsForNorms.calculateNormForManure),
+    calculate(functionsForNorms.calculateNormForPhosphate),
+    calculate(functionsForNorms.calculateNormForNitrogen),
+    "calculateNormForRenure" in functionsForNorms
+      ? calculate(functionsForNorms.calculateNormForRenure)
+      : Promise.resolve(undefined),
+  ])
+  return renure ? { manure, phosphate, nitrogen, renure } : { manure, phosphate, nitrogen }
 }
 
 async function getFieldNormFillings({

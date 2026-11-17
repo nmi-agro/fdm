@@ -1,0 +1,5 @@
+---
+"@nmi-agro/fdm-core": minor
+---
+
+Add season planning for the wizard that plans the coming season of a farm. `getSeasonPlanProgress` derives the progress of each planning step for a target year from the recorded data, `resolveSeasonPlanTarget` returns the year to plan by default (the current year while it is incomplete, else the next year), and `getSeasonPlanProposal` proposes per field the main cultivation (from the rotation history or the previous year), rotation warnings, the fertilizer applications to copy and the measures to review. `copyFertilizerApplications` copies the applications of a field to another year without duplicates, and `closeOngoingMeasuresOfField` ends the measures of a field that is no longer available. The year-dependent choices are kept in `seasonPlanRules`, so a new year can be supported by adding an entry. The pure functions (`evaluateSeasonPlanProgress`, `buildSeasonPlanProposal`, `resolveSeasonPlanTargetFromData`, `detectRotationCycle`, `shiftDateToYear`) are exported as well. `findHoofdteelt` and `GROENE_BRAAK` are now defined in fdm-core.

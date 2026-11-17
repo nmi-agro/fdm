@@ -7,7 +7,7 @@ import {
   calculateOrganicMatterBalanceField,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
-  createFunctionsForFertilizerApplicationFilling,
+  createFunctionsForFertilizerApplicationFillingForYear,
   getNutrientAdvice,
   type NormFilling,
   type NutrientAdvice,
@@ -20,7 +20,7 @@ import {
   type PrincipalId,
 } from "@nmi-agro/fdm-core"
 import type { FieldMetrics } from "~/components/blocks/gerrit/types"
-import { getFieldNormValues } from "~/integrations/calculator"
+import { getFieldNormValuesForYear } from "~/integrations/calculator"
 import { fdm } from "~/lib/fdm.server"
 
 function isValidDutchCropCatalogue(b_lu_catalogue: string | undefined) {
@@ -89,13 +89,16 @@ export async function computePlanMetrics(
   fertilizers: any[],
   nmiApiKey?: string,
 ) {
-  if (!["2025", "2026"].includes(calendar)) {
+  // Years without own norms (planned ahead) use the newest norms provisionally. Years before the
+  // first norm year fall back to 2025, as before.
+  const parsedYear = /^\d{4}$/.test(calendar) ? Number(calendar) : Number.NaN
+  if (!Number.isInteger(parsedYear) || parsedYear < 2025) {
     console.warn(
       `[computePlanMetrics] Unsupported calendar value "${calendar}"; falling back to "2025".`,
     )
   }
-  const year = (["2025", "2026"].includes(calendar) ? calendar : "2025") as "2025" | "2026"
-  const fillingFuncs = createFunctionsForFertilizerApplicationFilling("NL", year)
+  const year = Number.isInteger(parsedYear) && parsedYear >= 2025 ? parsedYear : 2025
+  const fillingFuncs = createFunctionsForFertilizerApplicationFillingForYear("NL", year)
   const fieldMetricsMap: Record<string, FieldMetrics> = {}
 
   const timeframe = {
@@ -117,11 +120,11 @@ export async function computePlanMetrics(
         let phosphate: { normValue: number; normSource: string } | undefined
         let renure: { normValue: number; normSource: string } | undefined
         try {
-          const norms = await getFieldNormValues({
+          const norms = await getFieldNormValuesForYear({
             fdm,
             principal_id: principalId,
             b_id: field.b_id,
-            calendar: year,
+            year,
           })
           if (norms.manure && norms.phosphate && norms.nitrogen) {
             manure = norms.manure
@@ -156,7 +159,7 @@ export async function computePlanMetrics(
               p_source: "fdm" as const,
               p_source_id: null,
               b_id: field.b_id,
-              b_calendar: year,
+              b_calendar: calendar,
             } as unknown as FertilizerApplication
           })
           .filter((app): app is FertilizerApplication => app !== null)
@@ -186,12 +189,9 @@ export async function computePlanMetrics(
             Promise.resolve(
               fillingFuncs.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
             ),
-            year === "2026"
+            "calculateFertilizerApplicationFillingForRenure" in fillingFuncs
               ? Promise.resolve(
-                  createFunctionsForFertilizerApplicationFilling(
-                    "NL",
-                    "2026",
-                  ).calculateFertilizerApplicationFillingForRenure(fdm, fillingInput),
+                  fillingFuncs.calculateFertilizerApplicationFillingForRenure(fdm, fillingInput),
                 )
               : Promise.resolve(undefined),
           ])
@@ -329,11 +329,11 @@ export async function computePlanMetrics(
       .filter((f) => !f.b_bufferstrip && f.b_area)
       .map(async (f) => {
         try {
-          const norms = await getFieldNormValues({
+          const norms = await getFieldNormValuesForYear({
             fdm,
             principal_id: principalId,
             b_id: f.b_id,
-            calendar: year,
+            year,
           })
           return {
             b_id: f.b_id,

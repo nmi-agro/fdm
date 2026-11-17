@@ -3,6 +3,7 @@ import {
   Bot,
   Bubbles,
   Calendar,
+  CalendarPlus,
   Check,
   ChevronRight,
   ClipboardList,
@@ -436,6 +437,20 @@ export function SidebarFarm({
                 </Tooltip>
               )}
             </SidebarMenuItem>
+            {isFarmSelected ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={location.pathname.startsWith(`/farm/${farmId}/plan-next`)}
+                  tooltip="Plan volgend seizoen"
+                  render={
+                    <NavLink to={`/farm/${farmId}/plan-next`}>
+                      <CalendarPlus />
+                      <span>Plan volgend seizoen</span>
+                    </NavLink>
+                  }
+                />
+              </SidebarMenuItem>
+            ) : null}
             <SidebarMenuItem>
               {timelineLink ? (
                 <SidebarMenuButton
