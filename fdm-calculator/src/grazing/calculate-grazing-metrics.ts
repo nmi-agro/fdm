@@ -27,7 +27,9 @@ function toDateKey(date: Date): string {
 
 function getDaysBetween(start: Date, end: Date): string[] {
   const days: string[] = []
-  const current = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+  const current = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()),
+  )
   const last = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()))
 
   while (current <= last) {
@@ -62,7 +64,8 @@ function getDaysBetween(start: Date, end: Date): string[] {
  *    Periods starting on or before `today` are computed as realised metrics. Future-dated periods are tracked
  *    separately as planned values and are never added to realised totals.
  * 5. **Beweidingsplatform & Veebezetting**:
- *    Computes unique grassland area with started grazing (accounting for partial parcel grazing) and derives
+ *    Computes unique grassland area with started grazing (the grazed area per field, with grazing zones
+ *    combined when `fields[].b_area_grazed` is given) and derives
  *    stocking density in GVE/ha with qualitative classification (extensief, gemiddeld, intensief).
  * 6. **Rustperiodes & Overgrazing Alerts**:
  *    Calculates rest intervals between consecutive uses (grazing and mowing/harvests) per parcel. Flags
@@ -252,7 +255,10 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
   const weidemelkMargin = weidemelkQualifyingDays - WEIDEMELK_TARGET_DAYS
 
   // 4. Monthly Distribution
-  const monthlyMap = new Map<number, { realised: Set<string>; planned: Set<string>; herdDays: Record<string, Set<string>> }>()
+  const monthlyMap = new Map<
+    number,
+    { realised: Set<string>; planned: Set<string>; herdDays: Record<string, Set<string>> }
+  >()
   for (let m = 1; m <= 12; m++) {
     monthlyMap.set(m, {
       realised: new Set(),
@@ -320,12 +326,12 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
     }
 
     platformHerds.add(g.l_id_herd)
-    const fullFieldArea = field.b_area
-    let effectiveArea = fullFieldArea
-
-    if (g.l_grazing_type === "partial" && g.l_grazing_area && g.l_grazing_area > 0) {
-      effectiveArea = Math.min(g.l_grazing_area, fullFieldArea)
-    }
+    // Prefer the grazed area with all zones combined; otherwise the largest grazed area of a
+    // single grazing, capped at the field area
+    const effectiveArea =
+      field.b_area_grazed != null
+        ? Math.min(field.b_area_grazed, field.b_area)
+        : Math.min(g.l_grazing_area_grazed ?? field.b_area, field.b_area)
 
     const currentMax = platformFieldsMap.get(g.b_id) ?? 0
     platformFieldsMap.set(g.b_id, Math.max(currentMax, effectiveArea))
@@ -362,8 +368,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
   totalGve = Number(totalGve.toFixed(1))
   platformGve = Number(platformGve.toFixed(1))
 
-  const platformGvePerHa =
-    platformArea > 0 ? Number((platformGve / platformArea).toFixed(1)) : null
+  const platformGvePerHa = platformArea > 0 ? Number((platformGve / platformArea).toFixed(1)) : null
   const totalGrasslandGvePerHa =
     totalGrasslandArea > 0 ? Number((totalGve / totalGrasslandArea).toFixed(1)) : null
 

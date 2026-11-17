@@ -36,10 +36,11 @@ export interface GrazingInput {
   l_grazing_end?: Date | null
   /** Number of grazing hours per day (typically 8 for limited grazing, 24 for day & night). */
   l_grazing_hours?: number | null
-  /** Grazed area in hectares (when grazing a partial field). */
-  l_grazing_area?: number | null
-  /** Spatial extent type ("full" for full field, "partial" for a strip/portion). */
-  l_grazing_type?: "full" | "partial" | null
+  /**
+   * Grazed area in hectares: the zone within the field, the recorded part of the field, or the
+   * whole field (`l_grazing_area_grazed` from fdm-core). When omitted, the whole field is assumed.
+   */
+  l_grazing_area_grazed?: number | null
 }
 
 /**
@@ -52,6 +53,12 @@ export interface FieldInput {
   b_name?: string | null
   /** Area of the field in hectares. */
   b_area: number
+  /**
+   * Area of the field grazed in the evaluated period (ha), with all grazing zones combined
+   * (`b_area_grazed` from fdm-core's `getGrazedAreaForFarm`). When omitted, the largest
+   * `l_grazing_area_grazed` of the field's grazings is used, which undercounts successive strips.
+   */
+  b_area_grazed?: number | null
   /** Flag indicating whether this field is in active grassland cultivation. */
   isGrassland: boolean
 }

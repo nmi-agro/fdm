@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { calculateGrazingMetrics } from "./calculate-grazing-metrics"
 import type { GrazingMetricsInput } from "./types"
+import { calculateGrazingMetrics } from "./calculate-grazing-metrics"
 
 describe("calculateGrazingMetrics", () => {
   it("should calculate distinct weidedagen and prevent double counting across fields on the same day", () => {
@@ -8,7 +8,13 @@ describe("calculateGrazingMetrics", () => {
       year: 2026,
       today: new Date("2026-06-01T23:59:59.999Z"),
       herds: [
-        { l_id_herd: "herd-1", l_herd_name: "Melkkoeien", l_id_category: "rvo_100", l_lsu: 1.0, count: 80 },
+        {
+          l_id_herd: "herd-1",
+          l_herd_name: "Melkkoeien",
+          l_id_category: "rvo_100",
+          l_lsu: 1.0,
+          count: 80,
+        },
       ],
       fields: [
         { b_id: "f1", b_name: "De Hoek", b_area: 4.0, isGrassland: true },
@@ -69,9 +75,27 @@ describe("calculateGrazingMetrics", () => {
       year: 2026,
       today: new Date("2026-10-01T23:59:59.999Z"),
       herds: [
-        { l_id_herd: "herd-group-a", l_herd_name: "Melkkoeien A", l_id_category: "rvo_100", l_lsu: 1.0, count: 50 },
-        { l_id_herd: "herd-group-b", l_herd_name: "Melkkoeien B", l_id_category: "rvo_100", l_lsu: 1.0, count: 40 },
-        { l_id_herd: "herd-jongvee", l_herd_name: "Jongvee", l_id_category: "rvo_101", l_lsu: 0.23, count: 20 },
+        {
+          l_id_herd: "herd-group-a",
+          l_herd_name: "Melkkoeien A",
+          l_id_category: "rvo_100",
+          l_lsu: 1.0,
+          count: 50,
+        },
+        {
+          l_id_herd: "herd-group-b",
+          l_herd_name: "Melkkoeien B",
+          l_id_category: "rvo_100",
+          l_lsu: 1.0,
+          count: 40,
+        },
+        {
+          l_id_herd: "herd-jongvee",
+          l_herd_name: "Jongvee",
+          l_id_category: "rvo_101",
+          l_lsu: 0.23,
+          count: 20,
+        },
       ],
       fields: [{ b_id: "f1", b_name: "Weide", b_area: 10.0, isGrassland: true }],
       grazings: [
@@ -162,7 +186,13 @@ describe("calculateGrazingMetrics", () => {
       year: 2026,
       today: new Date("2026-07-01T00:00:00.000Z"),
       herds: [
-        { l_id_herd: "h1", l_herd_name: "Melkkoeien", l_id_category: "rvo_100", l_lsu: 1.0, count: 96 },
+        {
+          l_id_herd: "h1",
+          l_herd_name: "Melkkoeien",
+          l_id_category: "rvo_100",
+          l_lsu: 1.0,
+          count: 96,
+        },
       ],
       fields: [
         { b_id: "f1", b_name: "De Hoek", b_area: 4.2, isGrassland: true },
@@ -178,7 +208,6 @@ describe("calculateGrazingMetrics", () => {
           l_grazing_start: new Date("2026-05-01T00:00:00.000Z"),
           l_grazing_end: new Date("2026-05-04T23:59:59.999Z"),
           l_grazing_hours: 8,
-          l_grazing_type: "full",
         },
         // Second grazing on f1: May 12 - May 15 (7 days rest after May 4 -> overgrazing alert!)
         {
@@ -188,7 +217,6 @@ describe("calculateGrazingMetrics", () => {
           l_grazing_start: new Date("2026-05-12T00:00:00.000Z"),
           l_grazing_end: new Date("2026-05-15T23:59:59.999Z"),
           l_grazing_hours: 8,
-          l_grazing_type: "full",
         },
         // Grazing on f2 with partial area
         {
@@ -198,8 +226,7 @@ describe("calculateGrazingMetrics", () => {
           l_grazing_start: new Date("2026-05-20T00:00:00.000Z"),
           l_grazing_end: new Date("2026-05-24T23:59:59.999Z"),
           l_grazing_hours: 8,
-          l_grazing_type: "partial",
-          l_grazing_area: 2.0,
+          l_grazing_area_grazed: 2.0,
         },
       ],
       harvests: [
@@ -226,6 +253,37 @@ describe("calculateGrazingMetrics", () => {
     expect(result.overbeweidingAlerts.length).toBe(1)
     expect(result.overbeweidingAlerts[0].b_id).toBe("f1")
     expect(result.overbeweidingAlerts[0].restDays).toBe(7)
+  })
+
+  it("should use the combined grazed area of a field for the platform", () => {
+    const strip = (id: string, day: number) => ({
+      l_id_grazing: id,
+      l_id_herd: "h1",
+      b_id: "f1",
+      l_grazing_start: new Date(Date.UTC(2026, 4, day)),
+      l_grazing_end: new Date(Date.UTC(2026, 4, day + 1)),
+      l_grazing_hours: 8,
+      l_grazing_area_grazed: 0.3,
+    })
+    const base: GrazingMetricsInput = {
+      year: 2026,
+      today: new Date("2026-06-01T00:00:00.000Z"),
+      herds: [{ l_id_herd: "h1", count: 30, l_lsu: 1 }],
+      fields: [{ b_id: "f1", b_area: 3.0, isGrassland: true }],
+      grazings: [strip("s1", 1), strip("s2", 2)],
+      harvests: [],
+    }
+
+    // Without the combined area, a single strip is counted
+    expect(calculateGrazingMetrics(base).beweidingsplatform.areaHa).toBe(0.3)
+
+    // With the combined area, both strips count
+    const combined = calculateGrazingMetrics({
+      ...base,
+      fields: [{ b_id: "f1", b_area: 3.0, b_area_grazed: 0.6, isGrassland: true }],
+    })
+    expect(combined.beweidingsplatform.areaHa).toBe(0.6)
+    expect(combined.veebezetting.platformGvePerHa).toBe(50)
   })
 
   it("should identify incomplete records where grazing hours are missing", () => {

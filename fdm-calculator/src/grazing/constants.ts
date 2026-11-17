@@ -118,3 +118,51 @@ export const GRAZING_SYSTEMS = {
 } as const
 
 export type GrazingSystemKey = keyof typeof GRAZING_SYSTEMS
+
+/**
+ * Total daily roughage intake per dairy cow (kg DM/day) that the Nieuw Nederlands Weiden examples
+ * assume. Grass from the pasture covers part of it; the rest is supplemented as roughage.
+ * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden", example XL
+ * ("Deze berekening geldt bij een totale opname 15 kg ds opname uit ruwvoer per dag").
+ */
+export const NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM = 15
+
+/**
+ * Reference values for the average daily grass growth in the Netherlands (kg DM/ha/day) in spring,
+ * summer and autumn. The growth curve peaks around 80 in late April and May, is around 60 in summer
+ * and around 40 in September.
+ * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden",
+ * "Gemiddelde grasgroei in Nederland". The split into three seasons is a simplification of that curve.
+ */
+export const GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY = {
+  voorjaar: 80,
+  zomer: 60,
+  najaar: 40,
+} as const
+
+export type GrassGrowthSeason = keyof typeof GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY
+
+/**
+ * Minimum number of grazing hours per kg DM grass intake: tune the grazing hours to the intake from
+ * the pasture.
+ * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden"
+ * ("minimaal 1 uur per kg droge stof").
+ */
+export const GRAZING_HOURS_PER_KG_DM_MIN = 1
+
+/**
+ * Sward height (cm) at in-grazing (inscharen) and out-grazing (uitscharen) per grazing system.
+ * Source: Groen Kennisnet, "4.1.1 Graslandbeheer en beweidingssystemen".
+ */
+export const SWARD_HEIGHT_CM = {
+  omweiden: { inscharen: [17, 17], uitscharen: [6, 6] },
+  stripgrazen: { inscharen: [18, 20], uitscharen: [6, 6] },
+  nieuw_nederlands_weiden: { inscharen: [10, 12], uitscharen: [9, 11] },
+} as const
+
+/**
+ * Sward height (cm) at out-grazing that signals the supplementation is off: above the upper value
+ * feed less, below the lower value feed more.
+ * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden".
+ */
+export const UITSCHAREN_SUPPLEMENTATION_SIGNAL_CM = { lower: 8, upper: 12 } as const
