@@ -418,7 +418,7 @@ export default function MelkveeOverview() {
                     render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
                   >
                     <Warehouse className="h-3.5 w-3.5" />
-                    Alle dieren bekijken
+                    Al het vee bekijken
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

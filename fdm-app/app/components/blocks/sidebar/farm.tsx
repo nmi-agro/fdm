@@ -114,8 +114,10 @@ export function SidebarFarm({
   // Defaults to open whenever a field is active; re-derives per field, so the user's own
   // collapse/expand still sticks until they navigate to a different field.
   const [isPerceelOpen, setIsPerceelOpen] = useKeyedState(activeFieldId, (id) => !!id)
-  // The Melkvee pages all live under /livestock; their subitems show while one of them is open
+  // The Melkvee pages all live under /livestock. The group is expanded by default while one of
+  // them is open; the user's own toggle sticks until they enter or leave the Melkvee pages.
   const isMelkveeRoute = location.pathname.includes("/livestock")
+  const [isMelkveeOpen, setIsMelkveeOpen] = useKeyedState(isMelkveeRoute, (onRoute) => onRoute)
   const isMelkveeOverview = /\/livestock\/?$/.test(location.pathname)
   const isGrazingInsights = location.pathname.includes("/livestock/grazing/insights")
   const isGrazingCalendar = location.pathname.includes("/livestock/grazing") && !isGrazingInsights
@@ -557,59 +559,80 @@ export function SidebarFarm({
             {/* Melkvee group or onboarding CTA */}
             {isFarmSelected &&
               (hasHerds ? (
-                // "Melkvee" opens the overview; on a Melkvee page its subpages are listed below it,
-                // and only the page that is open is highlighted
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip="Melkvee"
-                    isActive={isMelkveeOverview}
-                    render={
-                      <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`}>
-                        <Icon iconNode={cowHead} className="size-4" />
-                        <span>Melkvee</span>
-                      </NavLink>
-                    }
-                  />
-                  {isMelkveeRoute && (
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          isActive={isGrazingCalendar}
+                // "Melkvee" opens the overview; the chevron expands its subpages, and only the
+                // page that is open is highlighted
+                <Collapsible
+                  open={isMelkveeOpen}
+                  className="group/collapsible"
+                  onOpenChange={setIsMelkveeOpen}
+                  render={
+                    <SidebarMenuItem>
+                      <div className="flex w-full items-center">
+                        <SidebarMenuButton
+                          tooltip="Melkvee"
+                          isActive={isMelkveeOverview}
+                          className="min-w-0 flex-1"
                           render={
-                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing`}>
-                              <CalendarDays className="size-4" />
-                              <span>Beweidingskalender</span>
+                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`}>
+                              <Icon iconNode={cowHead} className="size-4" />
+                              <span>Melkvee</span>
                             </NavLink>
                           }
                         />
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          isActive={isGrazingInsights}
-                          render={
-                            <NavLink
-                              to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing/insights`}
-                            >
-                              <ChartColumn className="size-4" />
-                              <span>Weidegang</span>
-                            </NavLink>
-                          }
-                        />
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          isActive={isAnimals}
-                          render={
-                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock/animals`}>
-                              <Warehouse className="size-4" />
-                              <span>Dieren</span>
-                            </NavLink>
-                          }
-                        />
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  )}
-                </SidebarMenuItem>
+                        <CollapsibleTrigger
+                          type="button"
+                          aria-label="Melkvee sectie in- of uitklappen"
+                          className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-open/collapsible:rotate-90"
+                        >
+                          <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={isGrazingCalendar}
+                              render={
+                                <NavLink
+                                  to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing`}
+                                >
+                                  <CalendarDays className="size-4" />
+                                  <span>Beweidingskalender</span>
+                                </NavLink>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={isGrazingInsights}
+                              render={
+                                <NavLink
+                                  to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing/insights`}
+                                >
+                                  <ChartColumn className="size-4" />
+                                  <span>Weidegang</span>
+                                </NavLink>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={isAnimals}
+                              render={
+                                <NavLink
+                                  to={`/farm/${farmId}/${selectedCalendar}/livestock/animals`}
+                                >
+                                  <Warehouse className="size-4" />
+                                  <span>Vee</span>
+                                </NavLink>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  }
+                />
               ) : (
                 <SidebarMenuItem>
                   <SidebarMenuButton
