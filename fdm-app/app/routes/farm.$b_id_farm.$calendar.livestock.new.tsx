@@ -154,7 +154,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     )
 
     return redirectWithSuccess(
-      `/farm/${b_id_farm}/${calendar}/grazing`,
+      `/farm/${b_id_farm}/${calendar}/livestock`,
       `Koppel ${l_herd_name} aangemaakt met ${count} dieren.`,
     )
   } catch (error) {
@@ -192,14 +192,14 @@ export default function LivestockOnboarding() {
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
-          label: "Terug naar Veestapel",
+          label: "Terug naar Melkvee",
           disabled: false,
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
         <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Veestapel
+          Melkvee
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Melkvee toevoegen</BreadcrumbItem>

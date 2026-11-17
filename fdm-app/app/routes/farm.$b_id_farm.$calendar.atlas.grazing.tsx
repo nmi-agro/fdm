@@ -525,7 +525,7 @@ function GrazingLayer() {
             />
           )}
           <NavLink
-            to={`/farm/${b_id_farm}/${calendar}/grazing`}
+            to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`}
             className={buttonVariants({
               variant: "outline",
               size: "sm",

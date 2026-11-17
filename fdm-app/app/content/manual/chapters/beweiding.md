@@ -5,9 +5,9 @@ section: Gegevens vastleggen
 order: 9
 inApp:
   - Melkvee
-  - Beweiding
+  - Beweidingskalender
 routes:
-  - farm.$b_id_farm.$calendar.grazing*
+  - farm.$b_id_farm.$calendar.livestock.grazing*
   - farm.$b_id_farm.$calendar.field.$b_id.grazing*
 watch:
   - fdm-app/app/components/blocks/grazing/**
@@ -27,7 +27,7 @@ related:
   - gebruiksruimte
 ---
 
-Op **Beweiding** leg je vast welke koppel wanneer op welk perceel heeft geweid, en hoeveel uur per dag. {{appName}} rekent daaruit je weidedagen, de voortgang naar Weidemelk (120 dagen × 6 uur) en de veebezetting op het beweidingsplatform. Je hebt hiervoor minstens één koppel nodig (zie [Veestapel](/manual/veestapel)) en percelen met grasland in je [bouwplan](/manual/bouwplan).
+Op de **Beweidingskalender**, onder **Melkvee** in het menu, leg je vast welke koppel wanneer op welk perceel heeft geweid, en hoeveel uur per dag. {{appName}} rekent daaruit je weidedagen, de voortgang naar Weidemelk (120 dagen × 6 uur) en de veebezetting op het beweidingsplatform. De beweiding van deze dagen zie je ook op het [Melkvee-overzicht](/manual/veestapel#overzicht). Je hebt hiervoor minstens één koppel nodig (zie [Melkvee](/manual/veestapel)) en percelen met grasland in je [bouwplan](/manual/bouwplan).
 
 ## De beweidingskalender {#kalender}
 
@@ -135,7 +135,7 @@ De rust telt per deel van het perceel: bij stripgrazen krijgt elke strook zijn e
 
 ## Inzichten in je weidegang {#inzichten}
 
-Met **Weidegang** op de beweidingskalender, of de kaart **Weidegang** op het bedrijfsdashboard, open je de inzichten van het jaar:
+Met **Weidegang** in het menu onder Melkvee, op de beweidingskalender of op het Melkvee-overzicht, of met de kaart **Weidegang** op het bedrijfsdashboard, open je de inzichten van het jaar:
 
 - weidedagen, gemiddelde weide-uren per dag, het beweidingsplatform en de veebezetting op dat platform;
 - de voortgang naar Weidemelk: 120 dagen met minstens 6 uur weidegang van de melkkoeien;

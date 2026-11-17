@@ -37,7 +37,7 @@ export type AtlasLayerConfig = {
 }
 
 /** Why a layer that needs a herd is greyed out. */
-export const ATLAS_LAYER_REQUIRES_HERDS = "Voeg eerst een koppel toe bij Veestapel"
+export const ATLAS_LAYER_REQUIRES_HERDS = "Voeg eerst een koppel toe bij Melkvee"
 
 function getCalendarWithFallback(params: Record<string, string | undefined>) {
   return params.calendar ?? useCalendarStore.getState().calendar

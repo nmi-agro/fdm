@@ -108,14 +108,16 @@ export default function GrazingInsightsPage() {
     <SidebarInset>
       <Header
         action={{
-          to: `/farm/${b_id_farm}/${calendar}/grazing`,
+          to: `/farm/${b_id_farm}/${calendar}/livestock/grazing`,
           label: "Terug naar Beweidingskalender",
           disabled: false,
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}>
+        <BreadcrumbLink
+          render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
+        >
           Beweiding
         </BreadcrumbLink>
         <BreadcrumbSeparator />
@@ -356,7 +358,7 @@ export default function GrazingInsightsPage() {
                       </span>
                     </div>
                     <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/grazing`}
+                      to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`}
                       className="text-primary flex items-center gap-1 font-medium hover:underline"
                     >
                       Aanvullen in kalender →

@@ -598,7 +598,7 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   {loaderData.hasHerds && (
-                    <NavLink to={`${calendar}/grazing/insights`}>
+                    <NavLink to={`${calendar}/livestock/grazing/insights`}>
                       <Card className="h-full transition-all hover:shadow-md">
                         <CardHeader>
                           <div className="flex items-center gap-4">

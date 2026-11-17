@@ -1,13 +1,14 @@
 ---
-title: Veestapel
-description: Leg je melkvee vast in koppels, houd het aantal dieren bij en registreer per dier oormerk, koppel en afvoer. De basis voor beweiding en veebezetting.
+title: Melkvee
+description: Het Melkvee-overzicht met koppels, beweiding en kengetallen. Leg je melkvee vast in koppels en registreer per dier oormerk, koppel en afvoer.
 section: Gegevens vastleggen
 order: 8
 inApp:
   - Melkvee
-  - Veestapel
 routes:
-  - farm.$b_id_farm.$calendar.livestock*
+  - farm.$b_id_farm.$calendar.livestock._index.tsx
+  - farm.$b_id_farm.$calendar.livestock.new.tsx
+  - farm.$b_id_farm.$calendar.livestock.animal*
 watch:
   - fdm-app/app/components/blocks/livestock/**
 keywords:
@@ -32,15 +33,23 @@ Heeft je bedrijf nog geen dieren, dan zie je in het menu **Melkvee toevoegen**. 
 2. Vul het aantal dieren in.
 3. Klik op **Koppel aanmaken**.
 
-{{appName}} maakt het aantal dieren aan zonder oormerk. Voor beweiding en veebezetting is het aantal genoeg; oormerk en levensnummer kun je later per dier aanvullen. Na het opslaan ga je direct door naar de beweidingskalender.
+{{appName}} maakt het aantal dieren aan zonder oormerk. Voor beweiding en veebezetting is het aantal genoeg; oormerk en levensnummer kun je later per dier aanvullen. Na het opslaan kom je op het Melkvee-overzicht.
 
-Vanaf dat moment staat in het menu de groep **Melkvee**, met **Veestapel** en **Beweiding**.
+## Het Melkvee-overzicht {#overzicht}
+
+Vanaf dat moment staat **Melkvee** in het menu. Het opent het Melkvee-overzicht. Sta je op een Melkvee-pagina, dan staan daaronder ook **Beweidingskalender**, **Weidegang** en **Dieren**.
+
+Het overzicht heeft drie delen:
+
+- _Kengetallen:_ het aantal dieren en de GVE, de weidedagen, de voortgang naar Weidemelk en het beweidingsplatform. Met **Weidegang** open je de [inzichten](/manual/beweiding#inzichten).
+- _Beweiding:_ per perceel de afgelopen week en de komende week, in de kleuren van de [beweidingskalender](/manual/beweiding#kalender), met daaronder de geplande beweiding van deze week. Met **Beweidingskalender** open je de hele kalender.
+- _Koppels:_ een kaart per koppel, met het aantal dieren, de GVE en of de koppel nu weidt.
+
+Bovenaan voeg je direct iets toe: **Beweiding toevoegen** (kies een perceel), **Dier toevoegen** of **Koppel toevoegen**.
+
+![Het Melkvee-overzicht met kengetallen, beweiding en koppels](screenshot:veestapel-overzicht)
 
 ## Koppels beheren {#koppels}
-
-Op **Veestapel** zie je een kaart per koppel, met het aantal dieren, de GVE en of de koppel nu weidt. Onderaan staan het totaal aantal dieren, de GVE en de veebezetting op je grasland in GVE per hectare.
-
-![De veestapel met een kaart per koppel](screenshot:veestapel-overzicht)
 
 - _Aantal aanpassen:_ met de plus en min op de kaart. Met de plus voeg je dieren zonder oormerk toe. Met de min voer je een dier af; je bevestigt dat met **Afvoeren bevestigen**. Dieren zonder oormerk worden als eerste afgevoerd.
 - _Nog een koppel:_ klik op **Koppel toevoegen**, bijvoorbeeld voor droogstaande koeien of jongvee.
@@ -50,7 +59,7 @@ Het aantal dieren in een koppel wordt niet apart opgeslagen: {{appName}} telt de
 
 ## Dieren {#dieren}
 
-Met **Alle dieren bekijken** open je de lijst van alle dieren op het bedrijf. Je zoekt op werknummer of levensnummer en filtert op koppel. Een dier zonder oormerk heeft het label _Geen oormerk_. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
+Met **Alle dieren bekijken** of **Dieren** in het menu open je de lijst van alle dieren op het bedrijf. Je zoekt op werknummer of levensnummer en filtert op koppel. Een dier zonder oormerk heeft het label _Geen oormerk_. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
 
 Klik op een dier om de details te openen. Daar:
 
@@ -63,6 +72,6 @@ De diercategorie van de koppel bepaalt welk geslacht een dier mag hebben. Een di
 
 ## GVE en veebezetting {#gve}
 
-Elke diercategorie heeft een vast aantal GVE per dier, uit de diercategorieën van RVO: een melkkoe telt als 1 GVE, jongvee minder. De GVE van een koppel is het aantal dieren maal die factor. De veebezetting op de pagina **Veestapel** is de GVE van alle koppels gedeeld door de oppervlakte grasland van het bedrijf (zonder bufferstroken).
+Elke diercategorie heeft een vast aantal GVE per dier, uit de diercategorieën van RVO: een melkkoe telt als 1 GVE, jongvee minder. De GVE van een koppel is het aantal dieren maal die factor. De veebezetting op grasland onder de koppels in het Melkvee-overzicht is de GVE van alle koppels gedeeld door de oppervlakte grasland van het bedrijf (zonder bufferstroken).
 
 Hoe {{appName}} de veebezetting op het beweidingsplatform berekent, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#veebezetting).

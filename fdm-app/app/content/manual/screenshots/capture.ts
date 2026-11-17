@@ -272,7 +272,6 @@ export const captures = {
     ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
     clock: "{year}-06-15T12:00:00+02:00",
     steps: [
-      { click: { role: "button", name: "Melkvee", exact: true } },
       { click: { selector: 'a[href$="/livestock"]' } },
       { waitFor: { text: "Alle dieren bekijken" } },
     ],
@@ -282,8 +281,8 @@ export const captures = {
     ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
     clock: "{year}-06-15T12:00:00+02:00",
     steps: [
-      { click: { role: "button", name: "Melkvee", exact: true } },
-      { click: { selector: 'a[href$="/grazing"]' } },
+      { click: { selector: 'a[href$="/livestock"]' } },
+      { click: { selector: 'a[href$="/livestock/grazing"]' } },
       { waitFor: { text: "Koppels:" } },
     ],
   },
@@ -323,8 +322,8 @@ export const captures = {
     ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
     clock: "{year}-06-15T12:00:00+02:00",
     steps: [
-      { click: { role: "button", name: "Melkvee", exact: true } },
-      { click: { selector: 'a[href$="/grazing"]' } },
+      { click: { selector: 'a[href$="/livestock"]' } },
+      { click: { selector: 'a[href$="/livestock/grazing"]' } },
       { click: { role: "link", name: "Graslandgebruiksysteem planner" } },
       { click: { text: "Stripgrazen", exact: true } },
       { click: { role: "button", name: "Stroken op de kaart" } },
