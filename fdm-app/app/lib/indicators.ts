@@ -17,8 +17,10 @@ export type IndicatorInfo = {
 }
 
 import {
+  type Bln3ExclusionReason,
   EXCLUDED_BLN3_BRP_CODES,
   getBestVariantIds,
+  getBln3ExclusionReason,
   getFarmBestVariantIds,
   getMeasureFamilyId,
   getScoreTier,
@@ -31,13 +33,14 @@ import {
 export {
   EXCLUDED_BLN3_BRP_CODES,
   getBestVariantIds,
+  getBln3ExclusionReason,
   getFarmBestVariantIds,
   getMeasureFamilyId,
   getScoreTier,
   isExcludedFromBln3,
   scoreToDisplay,
 }
-export type { ScoreTier }
+export type { Bln3ExclusionReason, ScoreTier }
 
 /**
  * A measure as returned by the React Router loader after JSON serialization.
@@ -374,15 +377,20 @@ export function getBln3ExclusionMessage({
   b_bufferstrip,
   cultivationName,
   calendarYear,
+  exclusionReason,
 }: {
   b_bufferstrip?: boolean | null
   cultivationName?: string | null
   calendarYear?: number | string | null
+  exclusionReason?: Bln3ExclusionReason | null
 }): string {
-  if (b_bufferstrip) {
+  if (b_bufferstrip || exclusionReason === "bufferstrip") {
     return "Dit perceel is geregistreerd als bufferstrook. Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn niet beschikbaar voor bufferstroken."
   }
   const yearStr = calendarYear ? String(calendarYear) : "dit jaar"
+  if (exclusionReason === "no_main_cultivation") {
+    return `Voor ${yearStr} is op dit perceel geen hoofdteelt geregistreerd. Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn pas beschikbaar als er een hoofdteelt is.`
+  }
   if (cultivationName) {
     return `Voor ${yearStr} is op dit perceel '${cultivationName}' geregistreerd (natuur/geen gewasperceel). Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn voor dit type perceel in ${yearStr} niet beschikbaar.`
   }

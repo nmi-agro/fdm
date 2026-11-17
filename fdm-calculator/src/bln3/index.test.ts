@@ -66,12 +66,14 @@ const score = (value: number): Bln3Score => ({
   aggregations: [{ aggregation_id: "S_BLN", score: value }],
 })
 
-const scoreInputs = { a_lat: 51.6, a_lon: 5.2 } as Awaited<
+const scoreInputs = { a_lat: 51.6, a_lon: 5.2, b_year: 2026 } as Awaited<
   ReturnType<typeof collectInputForBln3Score>
 >
-const excludedScoreInputs = { ...scoreInputs, isExcluded: true } as Awaited<
-  ReturnType<typeof collectInputForBln3Score>
->
+const excludedScoreInputs = {
+  ...scoreInputs,
+  isExcluded: true,
+  exclusionReason: "nature",
+} as Awaited<ReturnType<typeof collectInputForBln3Score>>
 
 describe("getYearTimeframe", () => {
   it("should start at 1 January 00:00 in Europe/Amsterdam", () => {
@@ -100,7 +102,13 @@ describe("getFieldIndicators", () => {
 
     const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey)
 
-    expect(result).toEqual({ b_id: "field-1", year, is_excluded: false, score: score(0.5) })
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: false,
+      exclusion_reason: null,
+      score: score(0.5),
+    })
     expect(mockedCollectScore).toHaveBeenCalledWith(
       mockFdm,
       principal_id,
@@ -115,7 +123,32 @@ describe("getFieldIndicators", () => {
 
     const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, undefined)
 
-    expect(result).toEqual({ b_id: "field-1", year, is_excluded: true, score: null })
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "nature",
+      score: null,
+    })
+    expect(mockedGetBln3Score).not.toHaveBeenCalled()
+  })
+
+  it("should not score a year without a main cultivation", async () => {
+    mockedCollectScore.mockResolvedValueOnce({
+      ...scoreInputs,
+      isExcluded: true,
+      exclusionReason: "no_main_cultivation",
+    })
+
+    const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey)
+
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "no_main_cultivation",
+      score: null,
+    })
     expect(mockedGetBln3Score).not.toHaveBeenCalled()
   })
 
@@ -293,6 +326,7 @@ describe("getFieldMeasureOptions", () => {
     expect(result.b_id).toBe("field-1")
     expect(result.year).toBe(year)
     expect(result.is_excluded).toBe(false)
+    expect(result.exclusion_reason).toBeNull()
     expect(mockedGetEnabledMeasureCatalogues).toHaveBeenCalledWith(mockFdm, principal_id, "farm-1")
     expect(mockedGetMeasures).toHaveBeenCalledWith(
       mockFdm,
@@ -320,11 +354,42 @@ describe("getFieldMeasureOptions", () => {
     mockedCollectApplicability.mockResolvedValueOnce({
       ...applicabilityInputs,
       isExcluded: true,
+      exclusionReason: "bufferstrip",
     })
 
     const result = await getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, undefined)
 
-    expect(result).toEqual({ b_id: "field-1", year, is_excluded: true, data: [] })
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "bufferstrip",
+      data: [],
+    })
+    expect(mockedGetBln3MeasureApplicability).not.toHaveBeenCalled()
+    expect(mockedGetBln3MeasureAdvice).not.toHaveBeenCalled()
+  })
+
+  it("should return no options for a year without a main cultivation", async () => {
+    mockedGetField.mockResolvedValueOnce({ b_id: "field-1", b_id_farm: "farm-1" } as Awaited<
+      ReturnType<typeof getField>
+    >)
+    mockedCollectApplicability.mockResolvedValueOnce({
+      ...applicabilityInputs,
+      isExcluded: true,
+      exclusionReason: "no_main_cultivation",
+    })
+
+    const result = await getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, nmiApiKey)
+
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "no_main_cultivation",
+      data: [],
+    })
+    expect(mockedGetBln3Score).not.toHaveBeenCalled()
     expect(mockedGetBln3MeasureApplicability).not.toHaveBeenCalled()
     expect(mockedGetBln3MeasureAdvice).not.toHaveBeenCalled()
   })

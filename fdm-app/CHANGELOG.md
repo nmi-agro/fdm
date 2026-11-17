@@ -1,5 +1,14 @@
 # Changelog fdm-app
 
+## 0.39.9
+
+### Patch Changes
+
+- [#958](https://github.com/nmi-agro/fdm/pull/958) [`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae) Thanks [@SvenVw](https://github.com/SvenVw)! - Bodemkwaliteit (BLN) and bodemmaatregelen are no longer calculated for a field without a main cultivation in the selected year. The indicator and measure pages explain that the field has no main cultivation in that year, and the indicator maps no longer show such a field as a nature field.
+- Updated dependencies [[`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae)]:
+  - @nmi-agro/fdm-calculator@0.20.1
+  - @nmi-agro/fdm-agents@0.6.1
+
 ## 0.39.8
 
 ### Patch Changes

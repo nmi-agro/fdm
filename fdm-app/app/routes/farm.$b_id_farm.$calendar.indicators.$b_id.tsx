@@ -322,7 +322,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fs = farmScores.find((s) => s.b_id === f.b_id)
         const scores = computeFieldScores(fs)
         const isBufferstrip = f.b_bufferstrip === true || fs?.isBufferstrip === true
-        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
+        const hasNoMainCultivation = !isBufferstrip && fs?.exclusionReason === "no_main_cultivation"
+        const isNature =
+          !hasNoMainCultivation &&
+          (fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true))
         return {
           type: "Feature" as const,
           properties: {
@@ -332,7 +335,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_bufferstrip: isBufferstrip,
             isBufferstrip,
             isNature,
-            isExcluded: isBufferstrip || isNature,
+            hasNoMainCultivation,
+            isExcluded: isBufferstrip || isNature || hasNoMainCultivation,
             avgScore: scores.avg, // kept for backward compat
             ...scores,
           },
@@ -475,6 +479,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       indicatorAdvice,
       adviceUnavailable,
       isExcluded: bln3Result.inputs.isExcluded ?? false,
+      exclusionReason: bln3Result.inputs.exclusionReason ?? null,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -653,6 +658,7 @@ export default function IndicatorsFieldDetail() {
     indicatorAdvice,
     adviceUnavailable,
     isExcluded,
+    exclusionReason,
     soilData,
   } = loaderData
 
@@ -707,6 +713,7 @@ export default function IndicatorsFieldDetail() {
                     b_bufferstrip: field.b_bufferstrip,
                     cultivationName: currentCultivationName,
                     calendarYear: calendar,
+                    exclusionReason,
                   })}
                 </p>
               </div>

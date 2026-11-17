@@ -2,7 +2,8 @@
  * Pure indicator post-processing helpers (no database or network access), shared by the
  * REST API and the web application.
  */
-export { EXCLUDED_BLN3_BRP_CODES, isExcludedFromBln3 } from "./exclusion"
+export type { Bln3ExclusionReason } from "./exclusion"
+export { EXCLUDED_BLN3_BRP_CODES, getBln3ExclusionReason, isExcludedFromBln3 } from "./exclusion"
 export type {
   ActiveMeasure,
   FieldVariantImpact,

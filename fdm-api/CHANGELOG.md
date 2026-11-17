@@ -1,5 +1,13 @@
 # @nmi-agro/fdm-api
 
+## 0.3.3
+
+### Patch Changes
+
+- [#958](https://github.com/nmi-agro/fdm/pull/958) [`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae) Thanks [@SvenVw](https://github.com/SvenVw)! - Fields without a main cultivation in the requested year get no indicator scores and no measure options. `GET /fields/{b_id}/indicators` and `GET /fields/{b_id}/measures/catalogue` return them with `is_excluded: true`, and both responses have a new `exclusion_reason` (`bufferstrip`, `nature`, `no_main_cultivation` or `null`).
+- Updated dependencies [[`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae)]:
+  - @nmi-agro/fdm-calculator@0.20.1
+
 ## 0.3.2
 
 ### Patch Changes

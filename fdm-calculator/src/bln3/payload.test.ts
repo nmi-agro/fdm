@@ -2,7 +2,13 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { requestBln3MeasureAdvice, requestBln3MeasureApplicability, requestBln3Score } from "./api"
 import { BLN3_MEASURE_FIELDS, BLN3_SCORE_FIELDS, pickBln3Payload } from "./payload"
 
-const INTERNAL_FIELDS = ["b_bufferstrip", "b_lu_croprotation", "b_lu_catalogue", "isExcluded"]
+const INTERNAL_FIELDS = [
+  "b_bufferstrip",
+  "b_lu_croprotation",
+  "b_lu_catalogue",
+  "isExcluded",
+  "exclusionReason",
+]
 
 const internalInputs = {
   b_bufferstrip: false,
@@ -15,6 +21,7 @@ const scoreInputs = {
   nmiApiKey: "mock-api-key",
   a_lat: 51.613,
   a_lon: 5.2,
+  b_year: 2025,
   b_soiltype_agr: "dekzand" as const,
   a_som_loi: 4.2,
   cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
@@ -41,6 +48,7 @@ describe("pickBln3Payload", () => {
     expect(Object.keys(payload)).toEqual([
       "a_lat",
       "a_lon",
+      "b_year",
       "cultivations",
       "b_soiltype_agr",
       "a_som_loi",
@@ -101,9 +109,11 @@ describe("BLN3 request bodies", () => {
       json: async () => ({ success: true, status: 200, data: { indicator: [] } }),
     } as Response)
     await requestBln3Score(scoreInputs)
+    expect(sentBody().b_year).toBe(2025)
     expect(Object.keys(sentBody())).toEqual([
       "a_lat",
       "a_lon",
+      "b_year",
       "cultivations",
       "b_soiltype_agr",
       "a_som_loi",

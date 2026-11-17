@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.20.1
+
+### Patch Changes
+
+- [#958](https://github.com/nmi-agro/fdm/pull/958) [`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae) Thanks [@SvenVw](https://github.com/SvenVw)! - BLN3 now always sends `b_year` to the NMI API, also for the score, and skips years without a main cultivation. `Bln3ScoreCollectedInputs` has a required `b_year`, which `collectInputForBln3Score` fills with the year of a single-year timeframe; for a multi-year timeframe or none, it uses the latest year with a main cultivation. When the field has no main cultivation in that year, both input collectors mark it as excluded, so no score, measure applicability or measure advice is requested. The new `getBln3ExclusionReason` and the `exclusionReason` of the collected inputs tell why a field is excluded (`bufferstrip`, `nature` or `no_main_cultivation`); `getFieldIndicators` and `getFieldMeasureOptions` return it as `exclusion_reason`.
+
 ## 0.20.0
 
 ### Minor Changes

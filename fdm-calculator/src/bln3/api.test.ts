@@ -54,6 +54,7 @@ describe("BLN3 score", () => {
     nmiApiKey: "mock-api-key",
     a_lat: 51.613,
     a_lon: 5.2,
+    b_year: 2025,
   }
 
   describe("requestBln3Score", () => {
@@ -145,6 +146,7 @@ describe("BLN3 score", () => {
           body: JSON.stringify({
             a_lat: 51.613,
             a_lon: 5.2,
+            b_year: 2025,
             cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
             measures: [{ measure_id: "BM3", year: 2025 }],
           }),
