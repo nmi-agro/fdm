@@ -99,7 +99,7 @@ Je komt hier ook snel vanaf de bedrijfspagina: onder _Acties_ staat **Beweiding 
 
 Met de **Graslandgebruiksysteem planner** maak je in één keer een plan voor het hele seizoen:
 
-1. Kies een systeem, zoals omweiden, standweiden, stripgrazen of rantsoenbeweiding. {{appName}} vult per systeem het aantal dagen per perceel en de uren per dag in. Bij zomerstalvoedering of summerfeeding is er geen weidegang; dan maakt de planner geen plan.
+1. Kies een systeem, zoals omweiden, standweiden, Nieuw Nederlands Weiden, stripgrazen of rantsoenbeweiding. {{appName}} vult per systeem het aantal dagen per perceel en de uren per dag in. Bij zomerstalvoedering of summerfeeding is er geen weidegang; dan maakt de planner geen plan.
 2. Kies wat je meeneemt: de koppel, de periode, de percelen die je wilt beweiden, de uren per dag en hoe vaak je van perceel wisselt.
 3. Controleer het plan en klik op de knop om het vast te leggen.
 
