@@ -1,4 +1,4 @@
-import { getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
+import { getMeasuresForFarm, getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { ChevronRight, Search, SearchX, SlidersHorizontal, X } from "lucide-react"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
@@ -94,7 +94,9 @@ type CatalogueStatus = MeasureStatusAvailability & {
  * applied, recommended or applicable in the selected year.
  *
  * The status needs NMI requests per field and can take seconds, so it is returned as a
- * promise: the catalogue renders first and the status fills in when it arrives.
+ * promise: the catalogue renders first and the status fills in when it arrives. Which measures
+ * the farm applies is a database query and is returned right away, so measures that are no
+ * longer in the catalogue but still applied show also while the status loads or when it fails.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -106,13 +108,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
-    const catalogue = await getMeasuresFromCatalogue(fdm)
+    const [catalogue, measuresMap] = await Promise.all([
+      getMeasuresFromCatalogue(fdm),
+      getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+    const appliedMeasureIds = [
+      ...new Set([...measuresMap.values()].flat().map((measure) => measure.m_id)),
+    ]
     const status: Promise<CatalogueStatus> = getFarmMeasureStatus({
       principal_id: session.principal_id,
       b_id_farm,
       calendar,
       timeframe,
       catalogue,
+      measuresMap,
     }).then((result) => {
       const countsByMeasure = countStatusesByMeasure(result.fieldsByMeasure)
       return {
@@ -124,7 +133,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     })
 
-    return { catalogue, status }
+    return { catalogue, appliedMeasureIds, status }
   } catch (error) {
     throw handleLoaderError(error)
   }
@@ -183,7 +192,12 @@ function getFilterSearchValues(filters: CatalogueFilters): Record<string, string
  * with on how many fields each measure is applied, recommended or applicable.
  */
 export default function MeasuresCatalogueIndex() {
-  const { catalogue, status: statusPromise } = useLoaderData<typeof loader>()
+  const {
+    catalogue,
+    appliedMeasureIds: appliedMeasureIdList,
+    status: statusPromise,
+  } = useLoaderData<typeof loader>()
+  const appliedMeasureIds = useMemo(() => new Set(appliedMeasureIdList), [appliedMeasureIdList])
   const { calendar } = useParams()
   // The search and filters start from the URL, so Back and shared links keep them
   const [searchParams] = useSearchParams()
@@ -401,6 +415,7 @@ export default function MeasuresCatalogueIndex() {
                 rows={rows}
                 filters={filters}
                 onReset={resetFilters}
+                appliedMeasureIds={appliedMeasureIds}
                 loaded={null}
               />
             }
@@ -412,6 +427,7 @@ export default function MeasuresCatalogueIndex() {
                   rows={rows}
                   filters={filters}
                   onReset={resetFilters}
+                  appliedMeasureIds={appliedMeasureIds}
                   loaded="failed"
                 />
               }
@@ -421,6 +437,7 @@ export default function MeasuresCatalogueIndex() {
                   rows={rows}
                   filters={filters}
                   onReset={resetFilters}
+                  appliedMeasureIds={appliedMeasureIds}
                   loaded={loaded}
                 />
               )}
@@ -440,11 +457,14 @@ function CatalogueResults({
   rows,
   filters,
   onReset,
+  appliedMeasureIds,
   loaded,
 }: {
   rows: CatalogueRow[]
   filters: CatalogueFilters
   onReset: () => void
+  /** IDs of the measures the farm applies, known before the status loads */
+  appliedMeasureIds: ReadonlySet<string>
   loaded: CatalogueStatus | "failed" | null
 }) {
   const { b_id_farm = "", calendar = "" } = useParams()
@@ -465,8 +485,19 @@ function CatalogueResults({
         rows,
         { query, sortMode, status, effectType, costLevel, theme },
         countsByMeasure,
+        appliedMeasureIds,
       ),
-    [rows, countsByMeasure, query, sortMode, status, effectType, costLevel, theme],
+    [
+      rows,
+      countsByMeasure,
+      appliedMeasureIds,
+      query,
+      sortMode,
+      status,
+      effectType,
+      costLevel,
+      theme,
+    ],
   )
 
   const hasFilters =

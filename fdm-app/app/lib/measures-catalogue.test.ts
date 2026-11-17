@@ -193,12 +193,13 @@ describe("filterCatalogueRows", () => {
     ])
   })
 
-  it("shows an inactive measure that the farm still applies", () => {
-    const result = filterCatalogueRows(rows, NO_FILTERS, {
-      ...countsByMeasure,
-      bln_BM3: counts({ applied: 1 }),
-    })
-    expect(ids(result)).toContain("bln_BM3")
+  it("shows an inactive measure that the farm still applies, also without counts", () => {
+    const applied = new Set(["bln_BM3"])
+    expect(ids(filterCatalogueRows(rows, NO_FILTERS, countsByMeasure, applied))).toContain(
+      "bln_BM3",
+    )
+    // While the counts load or after they failed
+    expect(ids(filterCatalogueRows(rows, NO_FILTERS, undefined, applied))).toContain("bln_BM3")
   })
 
   it("sorts by code numerically", () => {

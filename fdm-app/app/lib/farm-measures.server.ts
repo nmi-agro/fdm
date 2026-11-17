@@ -229,6 +229,9 @@ export type FarmMeasureStatus = {
  * page, and skip fields that BLN3 does not score (buffer strips, nature). A failure of either
  * call is reported and leaves that status empty, with the matching flag set to `false`.
  *
+ * Pass `measuresMap` when the caller already loaded the measures of the farm, to avoid loading
+ * them a second time.
+ *
  * @returns The fields per measure and whether recommendations and applicability were available.
  */
 export async function getFarmMeasureStatus({
@@ -237,16 +240,18 @@ export async function getFarmMeasureStatus({
   calendar,
   timeframe,
   catalogue,
+  measuresMap: preloadedMeasuresMap,
 }: {
   principal_id: PrincipalId
   b_id_farm: string
   calendar: string
   timeframe: Timeframe
   catalogue: MeasureCatalogue[]
+  measuresMap?: Awaited<ReturnType<typeof getMeasuresForFarm>>
 }): Promise<FarmMeasureStatus> {
   const [fields, measuresMap] = await Promise.all([
     getFields(fdm, principal_id, b_id_farm, timeframe),
-    getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe),
+    preloadedMeasuresMap ?? getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe),
   ])
   const fieldNames = new Map(fields.map((field) => [field.b_id, field.b_name ?? null]))
   const calendarYear = Number(calendar)

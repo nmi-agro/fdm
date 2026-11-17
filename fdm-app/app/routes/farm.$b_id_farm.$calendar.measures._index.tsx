@@ -32,6 +32,7 @@ import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import { getColumns, type MeasureTableRow } from "~/components/blocks/measures/columns"
 import { getFieldSummaryColumns } from "~/components/blocks/measures/field-summary-columns"
@@ -867,20 +868,23 @@ export default function MeasuresFarmIndex() {
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
         rightNode={
-          b_id_farm && calendar ? (
-            <Link
-              to={getMeasuresCataloguePath(b_id_farm, calendar)}
-              className={buttonVariants({
-                variant: "ghost",
-                size: "sm",
-                className: "text-muted-foreground hover:text-foreground gap-1.5",
-              })}
-              data-slot="button"
-            >
-              <BookOpen className="h-4 w-4" aria-hidden="true" />
-              <span>Maatregelencatalogus</span>
-            </Link>
-          ) : undefined
+          <div className="flex flex-col items-start gap-1 xl:items-end">
+            <Bln3HelpDialog />
+            {b_id_farm && calendar ? (
+              <Link
+                to={getMeasuresCataloguePath(b_id_farm, calendar)}
+                className={buttonVariants({
+                  variant: "ghost",
+                  size: "sm",
+                  className: "text-muted-foreground hover:text-foreground gap-1.5",
+                })}
+                data-slot="button"
+              >
+                <BookOpen className="h-4 w-4" aria-hidden="true" />
+                <span>Maatregelencatalogus</span>
+              </Link>
+            ) : null}
+          </div>
         }
       />
 

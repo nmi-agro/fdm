@@ -212,19 +212,23 @@ export function buildCatalogueRows(catalogue: MeasureCatalogue[]): CatalogueRow[
 /**
  * Sorts, filters and searches the catalogue list.
  *
- * Measures that are no longer in the catalogue only show when the farm still applies them. The
- * status filter and the "recommended" sort order only apply once the counts are loaded. The
- * search is fuzzy over name, code, summary and description, and keeps the chosen sort order.
+ * Measures that are no longer in the catalogue only show when the farm still applies them. That
+ * comes from `appliedMeasureIds`, not from the counts, so these measures also show while the
+ * counts load or when they fail. The status filter and the "recommended" sort order only apply
+ * once the counts are loaded. The search is fuzzy over name, code, summary and description, and
+ * keeps the chosen sort order.
  *
  * @param rows - Rows from {@link buildCatalogueRows}.
  * @param filters - The search and filters.
  * @param countsByMeasure - Number of fields per status per measure, or `undefined` while loading.
+ * @param appliedMeasureIds - IDs of the measures the farm applies in the selected year.
  * @returns The rows to show, in display order.
  */
 export function filterCatalogueRows(
   rows: CatalogueRow[],
   filters: CatalogueFilters,
   countsByMeasure: Record<string, StatusCounts> | undefined,
+  appliedMeasureIds: ReadonlySet<string> = new Set(),
 ): CatalogueRow[] {
   const { query, sortMode, status, effectType, costLevel, theme } = filters
   const countsOf = (m_id: string) => countsByMeasure?.[m_id] ?? NO_COUNTS
@@ -243,7 +247,7 @@ export function filterCatalogueRows(
   }
   const passesFilters = sorted.filter(
     (row) =>
-      (row.m_status !== "inactive" || countsOf(row.m_id).applied > 0) &&
+      (row.m_status !== "inactive" || appliedMeasureIds.has(row.m_id)) &&
       (status === "all" || !countsByMeasure || countsOf(row.m_id)[status] > 0) &&
       (effectType === "all" || row.m_effect_type === effectType) &&
       (costLevel === "all" || String(row.m_effect_costs) === costLevel) &&
