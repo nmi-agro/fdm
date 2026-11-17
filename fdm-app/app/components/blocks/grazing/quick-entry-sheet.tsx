@@ -1,5 +1,5 @@
 import { format } from "date-fns"
-import { LogIn, LogOut, MapPin } from "lucide-react"
+import { LogIn, LogOut } from "lucide-react"
 import { useState } from "react"
 import { useFetcher } from "react-router"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -233,13 +233,7 @@ export function QuickEntrySheet({
               /* Koeien naar buiten form */
               <form id="quick-out-form" onSubmit={handleOutSubmit} className="space-y-4">
                 <Field>
-                  <div className="flex items-center justify-between">
-                    <FieldLabel htmlFor="quick-field">Perceel *</FieldLabel>
-                    <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
-                      <MapPin className="h-3 w-3" />
-                      Dichtstbijzijnd
-                    </span>
-                  </div>
+                  <FieldLabel htmlFor="quick-field">Perceel *</FieldLabel>
                   <Select
                     value={selectedFieldId}
                     items={fields.map((f) => ({

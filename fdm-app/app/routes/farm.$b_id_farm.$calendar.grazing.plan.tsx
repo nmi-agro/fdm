@@ -6,6 +6,7 @@ import {
   GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   type GrazingSystemKey,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_HUISKAVEL_EXAMPLES,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "@nmi-agro/fdm-calculator/browser"
 import {
@@ -339,6 +340,20 @@ export default function GrazingPlanAssistent() {
         .reduce((acc, f) => acc + f.b_area, 0),
     [grasslandFields, huiskavelIds],
   )
+  // Cows per hectare of huiskavel, and the Nieuw Nederlands Weiden example closest to it
+  const huiskavelCowsPerHa =
+    huiskavelArea > 0 && selectedHerdCount > 0
+      ? Math.round((selectedHerdCount / huiskavelArea) * 10) / 10
+      : null
+  const nnwExample =
+    huiskavelCowsPerHa === null
+      ? null
+      : NNW_HUISKAVEL_EXAMPLES.reduce((closest, example) =>
+          Math.abs(example.cowsPerHa - huiskavelCowsPerHa) <
+          Math.abs(closest.cowsPerHa - huiskavelCowsPerHa)
+            ? example
+            : closest,
+        )
 
   // Step 4: Generation and Collision Detection
   const { generatedRows, collisions } = useMemo(() => {
@@ -562,7 +577,9 @@ export default function GrazingPlanAssistent() {
                       2 · Welke percelen horen bij de huiskavel?
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      {`${clientConfig.name} weet nog niet welke percelen huiskavel zijn. Je keuze wordt gebruikt voor het advies en de kalenderindeling.`}
+                      De huiskavel zijn de percelen bij de stal, waar de koeien vanuit de stal
+                      naartoe lopen. Met de oppervlakte en het aantal koeien zie je welk voorbeeld
+                      van Nieuw Nederlands Weiden bij je bedrijf past. Je keuze wordt niet bewaard.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -600,11 +617,23 @@ export default function GrazingPlanAssistent() {
 
                     <div className="bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-lg p-3 text-xs">
                       <Info className="text-primary h-4 w-4 shrink-0" />
-                      <span>
-                        Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong>. Bij Nieuw
-                        Nederlands Weiden (Handboek §3.10) bepaalt de grootte van de huiskavel en de
-                        veebezetting welk schema optimaal is.
-                      </span>
+                      {huiskavelCowsPerHa !== null && nnwExample ? (
+                        <span key="example">
+                          Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong> voor{" "}
+                          {selectedHerdCount} koeien, dus{" "}
+                          <strong>
+                            {huiskavelCowsPerHa.toLocaleString("nl-NL")} koeien per ha
+                          </strong>
+                          . Dat ligt het dichtst bij voorbeeld {nnwExample.name} van Nieuw
+                          Nederlands Weiden ({nnwExample.cowsPerHa} koeien per ha huiskavel).
+                        </span>
+                      ) : (
+                        <span key="area">
+                          Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong>. Kies in de
+                          volgende stap een koppel met dieren om de veebezetting op de huiskavel te
+                          zien.
+                        </span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
