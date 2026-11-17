@@ -122,8 +122,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_id_eartag: a.l_id_eartag,
         l_id_worknumber: a.l_id_worknumber,
         l_specie: a.l_specie,
-        l_breed: a.l_breed,
-        l_coatcolor: a.l_coatcolor,
         l_birth_date: a.l_birth_date ? new Date(a.l_birth_date).toISOString() : null,
         l_sex: a.l_sex,
         l_arriving_date: a.l_arriving_date ? new Date(a.l_arriving_date).toISOString() : null,
@@ -167,16 +165,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const l_id_herd = String(formData.get("l_id_herd") ?? "")
       const l_id_eartag = String(formData.get("l_id_eartag") ?? "") || undefined
       const l_id_worknumber = String(formData.get("l_id_worknumber") ?? "") || undefined
-      const l_breed = String(formData.get("l_breed") ?? "") || undefined
-      const l_coatcolor = String(formData.get("l_coatcolor") ?? "") || undefined
       const birthDateVal = String(formData.get("l_birth_date") ?? "")
       const l_sex = (formData.get("l_sex") as "female" | "male" | null) ?? "female"
 
       const newId = await addAnimal(fdm, session.principal_id, b_id_farm, l_id_herd, {
         l_id_eartag,
         l_id_worknumber,
-        l_breed,
-        l_coatcolor,
         l_birth_date: birthDateVal ? new Date(birthDateVal) : undefined,
         l_sex,
         l_arriving_method: "born",
@@ -207,8 +201,6 @@ export default function AnimalsOverviewPage() {
   const [newHerdId, setNewHerdId] = useState(herds[0]?.l_id_herd ?? "")
   const [newEartag, setNewEartag] = useState("")
   const [newWorknumber, setNewWorknumber] = useState("")
-  const [newBreed, setNewBreed] = useState("")
-  const [newCoatcolor, setNewCoatcolor] = useState("")
   const [newBirthdate, setNewBirthdate] = useState("")
   const [newSex, setNewSex] = useState<"female" | "male">("female")
 
@@ -226,8 +218,7 @@ export default function AnimalsOverviewPage() {
         const q = search.toLowerCase().trim()
         const matchesWorknumber = a.l_id_worknumber?.toLowerCase().includes(q)
         const matchesEartag = a.l_id_eartag?.toLowerCase().includes(q)
-        const matchesBreed = a.l_breed?.toLowerCase().includes(q)
-        if (!matchesWorknumber && !matchesEartag && !matchesBreed) {
+        if (!matchesWorknumber && !matchesEartag) {
           return false
         }
       }
@@ -258,8 +249,6 @@ export default function AnimalsOverviewPage() {
     formData.set("l_id_herd", newHerdId)
     formData.set("l_id_eartag", newEartag.trim())
     formData.set("l_id_worknumber", newWorknumber.trim())
-    formData.set("l_breed", newBreed.trim())
-    formData.set("l_coatcolor", newCoatcolor.trim())
     if (newBirthdate) formData.set("l_birth_date", newBirthdate)
     formData.set("l_sex", newSex)
 
@@ -267,8 +256,6 @@ export default function AnimalsOverviewPage() {
     setIsAddOpen(false)
     setNewEartag("")
     setNewWorknumber("")
-    setNewBreed("")
-    setNewCoatcolor("")
     setNewBirthdate("")
   }
 
@@ -363,7 +350,6 @@ export default function AnimalsOverviewPage() {
                     <TableHead>Koppel</TableHead>
                     <TableHead>Geboortedatum</TableHead>
                     <TableHead>Geslacht</TableHead>
-                    <TableHead>Ras</TableHead>
                     <TableHead>Sinds</TableHead>
                     <TableHead className="w-12 text-right"></TableHead>
                   </TableRow>
@@ -371,7 +357,7 @@ export default function AnimalsOverviewPage() {
                 <TableBody>
                   {filteredAnimals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-muted-foreground py-12 text-center">
+                      <TableCell colSpan={7} className="text-muted-foreground py-12 text-center">
                         {search || selectedHerdFilter !== "all"
                           ? "Geen dieren gevonden voor deze selectie."
                           : "Nog geen dieren geregistreerd op dit bedrijf."}
@@ -417,9 +403,6 @@ export default function AnimalsOverviewPage() {
                               : animal.l_sex === "male"
                                 ? "Mannelijk"
                                 : "—"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
-                            {animal.l_breed ?? "—"}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">
                             {animal.l_arriving_date
@@ -537,27 +520,6 @@ export default function AnimalsOverviewPage() {
                         <SelectItem value="male">Mannelijk</SelectItem>
                       </SelectContent>
                     </Select>
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field>
-                    <FieldLabel htmlFor="add-breed">Ras</FieldLabel>
-                    <Input
-                      id="add-breed"
-                      value={newBreed}
-                      onChange={(e) => setNewBreed(e.target.value)}
-                      placeholder="Bijv. HF"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="add-coatcolor">Haarkleur</FieldLabel>
-                    <Input
-                      id="add-coatcolor"
-                      value={newCoatcolor}
-                      onChange={(e) => setNewCoatcolor(e.target.value)}
-                      placeholder="Bijv. Zwartbont"
-                    />
                   </Field>
                 </div>
               </FieldGroup>
