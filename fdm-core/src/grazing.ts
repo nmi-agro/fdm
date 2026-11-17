@@ -1,7 +1,14 @@
-import { and, desc, eq, inArray, lt, gte, sql, type SQL } from "drizzle-orm"
+import type * as GeoJSON from "geojson"
+import { and, desc, eq, inArray, isNotNull, lt, gte, sql, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
-import type { Grazing, GrazingCalendarEntry } from "./grazing.types"
+import type {
+  GrazedFieldArea,
+  Grazing,
+  GrazingCalendarEntry,
+  GrazingZone,
+  GrazingZoneInput,
+} from "./grazing.types"
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
@@ -10,19 +17,78 @@ import { setGrazingIntention } from "./grazing_intention"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
 import { withTimeframe } from "./timeframe"
+import { clippedZone, normalizeZone } from "./zone"
+
+/** SQL expression for the area (ha) of a geometry, rounded to 2 decimals. */
+function areaHa(geometry: SQL | typeof schema.fields.b_geometry): SQL {
+  return sql`ROUND((ST_Area((${geometry})::geography)/10000)::NUMERIC, 2)`
+}
+
+/**
+ * Columns returned for a grazing record. The queries using them must left-join `fields` on
+ * `grazing.b_id`, because the grazed area is derived from the field geometry.
+ */
+function grazingColumns() {
+  const fieldArea = areaHa(schema.fields.b_geometry)
+  const zoneArea = areaHa(
+    clippedZone(schema.grazing.l_grazing_geometry_zone, schema.fields.b_geometry),
+  )
+  return {
+    l_id_grazing: schema.grazing.l_id_grazing,
+    b_id: schema.grazing.b_id,
+    l_id_herd: schema.grazing.l_id_herd,
+    l_grazing_start: schema.grazing.l_grazing_start,
+    l_grazing_end: schema.grazing.l_grazing_end,
+    l_grazing_hours: schema.grazing.l_grazing_hours,
+    l_grazing_area: schema.grazing.l_grazing_area,
+    l_grazing_geometry_zone: schema.grazing.l_grazing_geometry_zone,
+    l_grazing_area_grazed: sql<number | null>`(CASE
+      WHEN ${schema.grazing.l_grazing_geometry_zone} IS NOT NULL THEN ${zoneArea}
+      WHEN ${schema.fields.b_geometry} IS NULL THEN ${schema.grazing.l_grazing_area}
+      WHEN ${schema.grazing.l_grazing_area} IS NOT NULL THEN LEAST(${schema.grazing.l_grazing_area}, ${fieldArea})
+      ELSE ${fieldArea} END)::FLOAT`,
+    created: schema.grazing.created,
+    updated: schema.grazing.updated,
+  }
+}
+
+/**
+ * Validates the grazed part of the field: either a zone or an area without a location, not both.
+ * A zone needs a field, and an area must be positive.
+ *
+ * @throws {Error} If the combination is not allowed.
+ */
+function assertGrazingExtent(
+  zone: GeoJSON.MultiPolygon | null | undefined,
+  area: number | null | undefined,
+  b_id: string | null | undefined,
+): void {
+  if (zone && area != null) {
+    throw new Error("l_grazing_geometry_zone and l_grazing_area cannot both be set")
+  }
+  if (zone && !b_id) {
+    throw new Error("l_grazing_geometry_zone requires a field")
+  }
+  if (area != null && !(area > 0)) {
+    throw new Error("l_grazing_area must be greater than 0")
+  }
+}
 
 /**
  * Records an outdoor pasture grazing action for a herd on a farm field parcel.
- * Allows logging grazing start/end dates, daily grazing hours, grazed area in hectares,
- * and spatial extent (full vs partial field). Total grazing days are derived from the
- * start/end dates in the calculator layer rather than stored here.
+ * Allows logging grazing start/end dates, daily grazing hours and the grazed part of the field.
+ * The grazed part is the whole field by default; pass `l_grazing_geometry_zone` for a zone within
+ * the field, or `l_grazing_area` when only its size is known. A zone is clipped to the field when
+ * it is read. Total grazing days are derived from the start/end dates in the calculator layer
+ * rather than stored here.
  * Grazing intervals for the same herd on the same field (or herd-level) may not overlap.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the grazing action.
  * @param l_id_herd - Herd ID.
  * @param l_grazing_start - Start timestamp.
- * @param properties - Optional field ID, end timestamp, hours, area, and grazing type.
+ * @param properties - Optional field ID, end timestamp, hours, and the grazed zone (WGS84) or area (ha).
+ * @throws {Error} If both a zone and an area are given, a zone is given without a field, or the zone is invalid.
  */
 export async function addGrazing(
   fdm: FdmType,
@@ -34,7 +100,7 @@ export async function addGrazing(
     l_grazing_end?: schema.grazingTypeInsert["l_grazing_end"]
     l_grazing_hours?: schema.grazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.grazingTypeInsert["l_grazing_area"]
-    l_grazing_type?: schema.grazingTypeInsert["l_grazing_type"]
+    l_grazing_geometry_zone?: GrazingZoneInput
   },
 ): Promise<void> {
   try {
@@ -42,6 +108,8 @@ export async function addGrazing(
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazing")
       const grazingEnd = properties?.l_grazing_end ?? null
       assertIntervalEndNotBeforeStart(l_grazing_start, grazingEnd, "l_grazing")
+      const zone = normalizeZone(properties?.l_grazing_geometry_zone, "l_grazing_geometry_zone")
+      assertGrazingExtent(zone, properties?.l_grazing_area, properties?.b_id)
 
       const herdFarm = await tx
         .select({ b_id_farm: schema.herdStarting.b_id_farm })
@@ -62,10 +130,7 @@ export async function addGrazing(
           .where(eq(schema.fieldAcquiring.b_id, properties.b_id))
           .limit(1)
 
-        if (
-          fieldFarm.length === 0 ||
-          herdFarm[0].b_id_farm !== fieldFarm[0].b_id_farm
-        ) {
+        if (fieldFarm.length === 0 || herdFarm[0].b_id_farm !== fieldFarm[0].b_id_farm) {
           throw new Error(`Field ${properties.b_id} does not belong to the herd's farm`)
         }
       }
@@ -85,10 +150,7 @@ export async function addGrazing(
       const firstGrazingInYear = await tx
         .select({ l_id_grazing: schema.grazing.l_id_grazing })
         .from(schema.grazing)
-        .innerJoin(
-          schema.herdStarting,
-          eq(schema.grazing.l_id_herd, schema.herdStarting.l_id_herd),
-        )
+        .innerJoin(schema.herdStarting, eq(schema.grazing.l_id_herd, schema.herdStarting.l_id_herd))
         .where(
           and(
             eq(schema.herdStarting.b_id_farm, b_id_farm),
@@ -110,11 +172,19 @@ export async function addGrazing(
         l_grazing_end: properties?.l_grazing_end ?? null,
         l_grazing_hours: properties?.l_grazing_hours ?? null,
         l_grazing_area: properties?.l_grazing_area ?? null,
-        l_grazing_type: properties?.l_grazing_type ?? null,
+        l_grazing_geometry_zone: zone ?? null,
       })
     })
   } catch (err) {
-    throw handleError(err, "Exception for addGrazing", { l_id_herd, l_grazing_start, properties })
+    throw handleError(err, "Exception for addGrazing", {
+      l_id_herd,
+      l_grazing_start,
+      b_id: properties?.b_id,
+      l_grazing_end: properties?.l_grazing_end,
+      l_grazing_hours: properties?.l_grazing_hours,
+      l_grazing_area: properties?.l_grazing_area,
+      l_grazing_geometry_zone_type: properties?.l_grazing_geometry_zone?.type,
+    })
   }
 }
 
@@ -138,7 +208,7 @@ export async function addGrazings(
     l_grazing_end?: schema.grazingTypeInsert["l_grazing_end"]
     l_grazing_hours?: schema.grazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.grazingTypeInsert["l_grazing_area"]
-    l_grazing_type?: schema.grazingTypeInsert["l_grazing_type"]
+    l_grazing_geometry_zone?: GrazingZoneInput
   }[],
 ): Promise<void> {
   if (rows.length === 0) {
@@ -146,6 +216,12 @@ export async function addGrazings(
   }
 
   try {
+    const zones = rows.map((row) => {
+      const zone = normalizeZone(row.l_grazing_geometry_zone, "l_grazing_geometry_zone")
+      assertGrazingExtent(zone, row.l_grazing_area, row.b_id)
+      return zone ?? null
+    })
+
     return await fdm.transaction(async (tx) => {
       const distinctHerds = Array.from(new Set(rows.map((r) => r.l_id_herd)))
       for (const l_id_herd of distinctHerds) {
@@ -259,7 +335,7 @@ export async function addGrazings(
       }
 
       await tx.insert(schema.grazing).values(
-        rows.map((r) => ({
+        rows.map((r, i) => ({
           l_id_grazing: createId(),
           l_id_herd: r.l_id_herd,
           l_grazing_start: r.l_grazing_start,
@@ -267,7 +343,7 @@ export async function addGrazings(
           l_grazing_end: r.l_grazing_end ?? null,
           l_grazing_hours: r.l_grazing_hours ?? null,
           l_grazing_area: r.l_grazing_area ?? null,
-          l_grazing_type: r.l_grazing_type ?? null,
+          l_grazing_geometry_zone: zones[i],
         })),
       )
     })
@@ -298,19 +374,9 @@ export async function getGrazingForHerd(
     dateWhere = withTimeframe(dateWhere, schema.grazing.l_grazing_start, timeframe)
 
     const rows = await fdm
-      .select({
-        l_id_grazing: schema.grazing.l_id_grazing,
-        b_id: schema.grazing.b_id,
-        l_id_herd: schema.grazing.l_id_herd,
-        l_grazing_start: schema.grazing.l_grazing_start,
-        l_grazing_end: schema.grazing.l_grazing_end,
-        l_grazing_hours: schema.grazing.l_grazing_hours,
-        l_grazing_area: schema.grazing.l_grazing_area,
-        l_grazing_type: schema.grazing.l_grazing_type,
-        created: schema.grazing.created,
-        updated: schema.grazing.updated,
-      })
+      .select(grazingColumns())
       .from(schema.grazing)
+      .leftJoin(schema.fields, eq(schema.grazing.b_id, schema.fields.b_id))
       .where(dateWhere)
       .orderBy(desc(schema.grazing.l_grazing_start))
 
@@ -353,19 +419,9 @@ export async function getGrazingForFarm(
     dateWhere = withTimeframe(dateWhere, schema.grazing.l_grazing_start, timeframe)
 
     const rows = await fdm
-      .select({
-        l_id_grazing: schema.grazing.l_id_grazing,
-        b_id: schema.grazing.b_id,
-        l_id_herd: schema.grazing.l_id_herd,
-        l_grazing_start: schema.grazing.l_grazing_start,
-        l_grazing_end: schema.grazing.l_grazing_end,
-        l_grazing_hours: schema.grazing.l_grazing_hours,
-        l_grazing_area: schema.grazing.l_grazing_area,
-        l_grazing_type: schema.grazing.l_grazing_type,
-        created: schema.grazing.created,
-        updated: schema.grazing.updated,
-      })
+      .select(grazingColumns())
       .from(schema.grazing)
+      .leftJoin(schema.fields, eq(schema.grazing.b_id, schema.fields.b_id))
       .where(dateWhere)
       .orderBy(desc(schema.grazing.l_grazing_start))
 
@@ -409,22 +465,15 @@ export async function getGrazingCalendarForFarm(
 
     const rows = await fdm
       .select({
-        l_id_grazing: schema.grazing.l_id_grazing,
-        b_id: schema.grazing.b_id,
-        l_id_herd: schema.grazing.l_id_herd,
-        l_grazing_start: schema.grazing.l_grazing_start,
-        l_grazing_end: schema.grazing.l_grazing_end,
-        l_grazing_hours: schema.grazing.l_grazing_hours,
-        l_grazing_area: schema.grazing.l_grazing_area,
-        l_grazing_type: schema.grazing.l_grazing_type,
-        created: schema.grazing.created,
-        updated: schema.grazing.updated,
+        ...grazingColumns(),
         l_herd_name: schema.herds.l_herd_name,
         l_id_category: schema.herds.l_id_category,
         l_category: schema.animalCategoriesCatalogue.l_category,
         l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         b_name: schema.fields.b_name,
-        b_area: sql<number | null>`ROUND((ST_Area(${schema.fields.b_geometry}::geography)/10000)::NUMERIC, 2)::FLOAT`,
+        b_area: sql<
+          number | null
+        >`ROUND((ST_Area(${schema.fields.b_geometry}::geography)/10000)::NUMERIC, 2)::FLOAT`,
       })
       .from(schema.grazing)
       .innerJoin(schema.herds, eq(schema.grazing.l_id_herd, schema.herds.l_id_herd))
@@ -464,19 +513,9 @@ export async function getGrazingForField(
     dateWhere = withTimeframe(dateWhere, schema.grazing.l_grazing_start, timeframe)
 
     const rows = await fdm
-      .select({
-        l_id_grazing: schema.grazing.l_id_grazing,
-        b_id: schema.grazing.b_id,
-        l_id_herd: schema.grazing.l_id_herd,
-        l_grazing_start: schema.grazing.l_grazing_start,
-        l_grazing_end: schema.grazing.l_grazing_end,
-        l_grazing_hours: schema.grazing.l_grazing_hours,
-        l_grazing_area: schema.grazing.l_grazing_area,
-        l_grazing_type: schema.grazing.l_grazing_type,
-        created: schema.grazing.created,
-        updated: schema.grazing.updated,
-      })
+      .select(grazingColumns())
       .from(schema.grazing)
+      .leftJoin(schema.fields, eq(schema.grazing.b_id, schema.fields.b_id))
       .where(dateWhere)
       .orderBy(desc(schema.grazing.l_grazing_start))
 
@@ -501,19 +540,9 @@ export async function getGrazing(
 ): Promise<Grazing> {
   try {
     const rows = await fdm
-      .select({
-        l_id_grazing: schema.grazing.l_id_grazing,
-        b_id: schema.grazing.b_id,
-        l_id_herd: schema.grazing.l_id_herd,
-        l_grazing_start: schema.grazing.l_grazing_start,
-        l_grazing_end: schema.grazing.l_grazing_end,
-        l_grazing_hours: schema.grazing.l_grazing_hours,
-        l_grazing_area: schema.grazing.l_grazing_area,
-        l_grazing_type: schema.grazing.l_grazing_type,
-        created: schema.grazing.created,
-        updated: schema.grazing.updated,
-      })
+      .select(grazingColumns())
       .from(schema.grazing)
+      .leftJoin(schema.fields, eq(schema.grazing.b_id, schema.fields.b_id))
       .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
       .limit(1)
 
@@ -532,11 +561,13 @@ export async function getGrazing(
 /**
  * Corrects an existing grazing record identified by its ID.
  * The updated interval may not overlap another grazing interval for the same herd on the same field.
+ * To switch between a zone and an area, pass `null` for the one that no longer applies.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal correcting the grazing record.
  * @param l_id_grazing - Grazing record ID.
- * @param properties - Fields to correct.
+ * @param properties - Fields to correct. Omitted fields stay unchanged; `null` clears a field.
+ * @throws {Error} If the result would have both a zone and an area, or the zone is invalid.
  */
 export async function updateGrazing(
   fdm: FdmType,
@@ -547,7 +578,7 @@ export async function updateGrazing(
     l_grazing_end?: schema.grazingTypeInsert["l_grazing_end"]
     l_grazing_hours?: schema.grazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.grazingTypeInsert["l_grazing_area"]
-    l_grazing_type?: schema.grazingTypeInsert["l_grazing_type"]
+    l_grazing_geometry_zone?: GrazingZoneInput
   },
 ): Promise<void> {
   try {
@@ -558,6 +589,8 @@ export async function updateGrazing(
           b_id: schema.grazing.b_id,
           l_grazing_start: schema.grazing.l_grazing_start,
           l_grazing_end: schema.grazing.l_grazing_end,
+          l_grazing_area: schema.grazing.l_grazing_area,
+          l_grazing_geometry_zone: schema.grazing.l_grazing_geometry_zone,
         })
         .from(schema.grazing)
         .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
@@ -578,8 +611,19 @@ export async function updateGrazing(
 
       const nextStart = properties.l_grazing_start ?? existing[0].l_grazing_start
       const nextEnd =
-        properties.l_grazing_end === undefined ? existing[0].l_grazing_end : properties.l_grazing_end
+        properties.l_grazing_end === undefined
+          ? existing[0].l_grazing_end
+          : properties.l_grazing_end
       assertIntervalEndNotBeforeStart(nextStart, nextEnd, "l_grazing")
+
+      const { l_grazing_geometry_zone, ...rest } = properties
+      const zone = normalizeZone(l_grazing_geometry_zone, "l_grazing_geometry_zone")
+      assertGrazingExtent(
+        zone === undefined ? existing[0].l_grazing_geometry_zone : zone,
+        rest.l_grazing_area === undefined ? existing[0].l_grazing_area : rest.l_grazing_area,
+        existing[0].b_id,
+      )
+
       await assertNoOverlappingGrazingForHerd(
         tx,
         existing[0].l_id_herd,
@@ -591,11 +635,22 @@ export async function updateGrazing(
 
       await tx
         .update(schema.grazing)
-        .set({ ...properties, updated: new Date() })
+        .set({
+          ...rest,
+          ...(zone !== undefined ? { l_grazing_geometry_zone: zone } : {}),
+          updated: new Date(),
+        })
         .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
     })
   } catch (err) {
-    throw handleError(err, "Exception for updateGrazing", { l_id_grazing, properties })
+    throw handleError(err, "Exception for updateGrazing", {
+      l_id_grazing,
+      l_grazing_start: properties.l_grazing_start,
+      l_grazing_end: properties.l_grazing_end,
+      l_grazing_hours: properties.l_grazing_hours,
+      l_grazing_area: properties.l_grazing_area,
+      l_grazing_geometry_zone_type: properties.l_grazing_geometry_zone?.type,
+    })
   }
 }
 
@@ -671,3 +726,122 @@ export async function removeGrazing(
   }
 }
 
+/**
+ * Lists the zones used earlier for grazing on a field, so they can be reused. Identical zones are
+ * listed once; the most recently used zone comes first.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal requesting the zones.
+ * @param b_id - Field ID.
+ * @param limit - Maximum number of zones to return. Defaults to 20.
+ * @returns The zones as recorded, with their area within the field (ha), last use and herds.
+ */
+export async function getGrazingZonesForField(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: schema.fieldsTypeSelect["b_id"],
+  limit = 20,
+): Promise<GrazingZone[]> {
+  try {
+    await checkPermission(fdm, "field", "read", b_id, principal_id, "getGrazingZonesForField")
+
+    const zone = schema.grazing.l_grazing_geometry_zone
+    const firstZone = sql`(ARRAY_AGG(${zone}))[1]`
+    const lastUsed = sql`MAX(${schema.grazing.l_grazing_start})`
+
+    const rows = await fdm
+      .select({
+        zone: sql<string>`ST_AsGeoJSON(${firstZone})`,
+        area: sql<number>`${areaHa(clippedZone(firstZone, schema.fields.b_geometry))}::FLOAT`,
+        last_used: lastUsed.mapWith(schema.grazing.l_grazing_start),
+        usage_count: sql<number>`COUNT(*)::INT`,
+        herd_names: sql<(string | null)[]>`ARRAY_AGG(DISTINCT ${schema.herds.l_herd_name})`,
+      })
+      .from(schema.grazing)
+      .innerJoin(schema.fields, eq(schema.grazing.b_id, schema.fields.b_id))
+      .innerJoin(schema.herds, eq(schema.grazing.l_id_herd, schema.herds.l_id_herd))
+      .where(and(eq(schema.grazing.b_id, b_id), isNotNull(zone)))
+      // Group by the exact geometry, so a reused zone is listed once
+      .groupBy(sql`ST_AsBinary(${zone})`, schema.fields.b_id)
+      .orderBy(sql`${lastUsed} DESC`)
+      .limit(limit)
+
+    return rows.map((row) => ({
+      l_grazing_geometry_zone: JSON.parse(row.zone) as GeoJSON.MultiPolygon,
+      l_grazing_area_grazed: row.area,
+      last_used: row.last_used,
+      usage_count: row.usage_count,
+      l_herd_names: row.herd_names.filter((name): name is string => name !== null),
+    }))
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazingZonesForField", { b_id })
+  }
+}
+
+/**
+ * Retrieves per field the area grazed by the farm's herds in a period, for example to calculate
+ * the stocking density on the grazing platform.
+ *
+ * A grazing without a zone and without an area covers the whole field. Otherwise the grazed area is
+ * the union of all zones on the field (clipped to the field), so successive strips add up instead of
+ * counting once. An area without a location counts as at least that area. The result never exceeds
+ * the field area. Grazings without a field are ignored.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal requesting the areas.
+ * @param b_id_farm - Farm ID.
+ * @param timeframe - Optional timeframe filter on the start of the grazing.
+ * @returns One item per grazed field with its area and grazed area (ha).
+ */
+export async function getGrazedAreaForFarm(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  timeframe?: Timeframe,
+): Promise<GrazedFieldArea[]> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getGrazedAreaForFarm")
+
+    const herdRows = await fdm
+      .select({ l_id_herd: schema.herdStarting.l_id_herd })
+      .from(schema.herdStarting)
+      .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
+    const herdIds = herdRows.map((h) => h.l_id_herd)
+    if (herdIds.length === 0) {
+      return []
+    }
+
+    const zone = schema.grazing.l_grazing_geometry_zone
+    const area = schema.grazing.l_grazing_area
+    const where = withTimeframe(
+      and(inArray(schema.grazing.l_id_herd, herdIds), isNotNull(schema.grazing.b_id)),
+      schema.grazing.l_grazing_start,
+      timeframe,
+    )
+
+    const rows = await fdm
+      .select({
+        b_id: schema.fields.b_id,
+        b_area: sql<number | null>`${areaHa(schema.fields.b_geometry)}::FLOAT`,
+        has_whole_field: sql<boolean>`BOOL_OR(${zone} IS NULL AND ${area} IS NULL)`,
+        zone_area: sql<
+          number | null
+        >`${areaHa(sql`ST_Union(${clippedZone(zone, schema.fields.b_geometry)})`)}::FLOAT`,
+        max_area: sql<number | null>`MAX(${area})::FLOAT`,
+      })
+      .from(schema.grazing)
+      .innerJoin(schema.fields, eq(schema.grazing.b_id, schema.fields.b_id))
+      .where(where)
+      .groupBy(schema.fields.b_id)
+
+    return rows.map((row) => {
+      const b_area = row.b_area ?? 0
+      const b_area_grazed = row.has_whole_field
+        ? b_area
+        : Math.min(b_area, Math.max(row.zone_area ?? 0, row.max_area ?? 0))
+      return { b_id: row.b_id, b_area, b_area_grazed }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazedAreaForFarm", { b_id_farm, timeframe })
+  }
+}
