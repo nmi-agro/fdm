@@ -774,7 +774,7 @@ export async function syncMeasuresCatalogueArray(
     try {
       for (const catalogueItem of measures) {
         const hash = await hashMeasure(catalogueItem)
-        const item = { ...catalogueItem, hash, m_status: "active" }
+        const item = { ...catalogueItem, hash, m_status: "active" as const }
         const existing = await tx
           .select({
             hash: schema.measuresCatalogue.hash,

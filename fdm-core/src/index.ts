@@ -71,6 +71,7 @@ export {
   annotationTypeOptions,
   bcsIndicatorOptions,
   gwlClassesOptions,
+  measureStatusOptions,
   soilTypesOptions,
   visualImageTypeOptions,
 } from "./db/schema"

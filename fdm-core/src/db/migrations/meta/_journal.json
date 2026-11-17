@@ -302,6 +302,13 @@
       "when": 1793870312919,
       "tag": "0042_measures_catalogue_details",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794913062211,
+      "tag": "0043_brown_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }

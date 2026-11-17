@@ -24,7 +24,7 @@ export type MeasureCatalogue = {
   /** IDs of the measure in related schemes, e.g. `{ bbwp: "B121" }` */
   m_external_ids?: Record<string, string> | null
   /** `active`, or `inactive` when the measure is no longer in its source catalogue */
-  m_status?: string
+  m_status?: "active" | "inactive"
 }
 
 /**
