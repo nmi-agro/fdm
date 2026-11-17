@@ -31,6 +31,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD, parseGrazingExtent } from "~/lib/grazing-zone"
 
 export const meta: MetaFunction = () => {
   return [
@@ -122,16 +123,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const l_grazing_end = endVal ? new Date(String(endVal)) : undefined
       const hoursVal = formData.get("l_grazing_hours")
       const l_grazing_hours = hoursVal ? parseFloat(String(hoursVal)) : undefined
-      const areaTypeVal = formData.get("l_grazing_type") as "full" | "partial" | null
-      const areaVal = formData.get("l_grazing_area")
-      const l_grazing_area = areaVal ? parseFloat(String(areaVal)) : undefined
 
       await addGrazing(fdm, session.principal_id, l_id_herd, l_grazing_start, {
         b_id: b_id || undefined,
         l_grazing_end,
         l_grazing_hours,
-        l_grazing_type: areaTypeVal ?? "full",
-        l_grazing_area,
+        ...parseGrazingExtent(formData),
       })
 
       return dataWithSuccess(
@@ -147,15 +144,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const startVal = formData.get("l_grazing_start")
       const endVal = formData.get("l_grazing_end")
       const hoursVal = formData.get("l_grazing_hours")
-      const areaTypeVal = formData.get("l_grazing_type") as "full" | "partial" | null
-      const areaVal = formData.get("l_grazing_area")
+      const extent = parseGrazingExtent(formData)
 
       await updateGrazing(fdm, session.principal_id, l_id_grazing, {
         l_grazing_start: startVal ? new Date(String(startVal)) : undefined,
         l_grazing_end: endVal ? new Date(String(endVal)) : undefined,
         l_grazing_hours: hoursVal ? parseFloat(String(hoursVal)) : undefined,
-        l_grazing_type: areaTypeVal ?? undefined,
-        l_grazing_area: areaVal ? parseFloat(String(areaVal)) : undefined,
+        // Only change the grazed part when the form sends it, so closing a grazing keeps its zone
+        ...(formData.has(GRAZING_ZONE_FIELD)
+          ? { l_grazing_geometry_zone: extent.l_grazing_geometry_zone }
+          : {}),
+        ...(formData.has(GRAZING_AREA_FIELD) ? { l_grazing_area: extent.l_grazing_area } : {}),
       })
 
       return dataWithSuccess({}, { message: "Beweidingsregistratie bijgewerkt." })

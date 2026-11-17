@@ -171,7 +171,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       l_grazing_start: toIsoDate(new Date(g.l_grazing_start)),
       l_grazing_end: g.l_grazing_end ? toIsoDate(new Date(g.l_grazing_end)) : null,
       l_grazing_hours: g.l_grazing_hours,
-      l_grazing_type: g.l_grazing_type,
+      l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
     }))
 
     return {
@@ -229,7 +229,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
         b_id: b_id || undefined,
         l_grazing_end,
         l_grazing_hours,
-        l_grazing_type: "full",
       })
 
       return dataWithSuccess({}, { message: "Beweiding vastgelegd." })
@@ -295,6 +294,18 @@ export default function TodayMapPage() {
     setQuickEntryFieldId(b_id)
     setIsQuickEntryOpen(true)
   }
+
+  // Zones grazed on the selected day, drawn on top of the field colour
+  const todayZones = useMemo(
+    () =>
+      grazings.flatMap((g) => {
+        const end = g.l_grazing_end ?? g.l_grazing_start
+        return g.l_grazing_geometry_zone && dateStr >= g.l_grazing_start && dateStr <= end
+          ? [g.l_grazing_geometry_zone]
+          : []
+      }),
+    [grazings, dateStr],
+  )
 
   // Derive dynamic map GeoJSON with exact daily status, colors, and badge labels
   const dynamicGeoJSON: FeatureCollection = useMemo(() => {
@@ -451,6 +462,7 @@ export default function TodayMapPage() {
         {/* Full Section Interactive Map */}
         <TodayGrazingMap
           fieldsGeoJSON={dynamicGeoJSON}
+          zones={todayZones}
           height="100%"
           onFieldClick={handleFieldCardClick}
         />

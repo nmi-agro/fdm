@@ -1,4 +1,6 @@
+import type { GrazingMetricsResult } from "@nmi-agro/fdm-calculator"
 import type { Timeframe } from "@nmi-agro/fdm-core"
+import { calculateGrazingMetrics } from "@nmi-agro/fdm-calculator"
 import {
   getCensusForFarm,
   getCultivationsForFarm,
@@ -7,9 +9,8 @@ import {
   getHarvestsForFarm,
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
-import type { GrazingMetricsResult } from "@nmi-agro/fdm-calculator"
-import { calculateGrazingMetrics } from "@nmi-agro/fdm-calculator"
 import { fdm } from "~/lib/fdm.server"
+import { getGrazedAreaByField } from "~/lib/grazing-calendar.server"
 
 export interface GrazingInsightsData {
   year: number
@@ -39,15 +40,24 @@ export async function fetchGrazingInsightsData(
     end: new Date(`${calendarYear}-12-31T23:59:59.999Z`),
   }
 
-  const [allFields, cultivationsByField, harvestsByCultivation, grazings, herds, census] =
-    await Promise.all([
-      getFields(fdm, principal_id, b_id_farm, timeframe),
-      getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getHerdsForFarm(fdm, principal_id, b_id_farm),
-      getCensusForFarm(fdm, principal_id, b_id_farm),
-    ])
+  const today = new Date()
+  const [
+    allFields,
+    cultivationsByField,
+    harvestsByCultivation,
+    grazings,
+    herds,
+    census,
+    grazedArea,
+  ] = await Promise.all([
+    getFields(fdm, principal_id, b_id_farm, timeframe),
+    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getHerdsForFarm(fdm, principal_id, b_id_farm),
+    getCensusForFarm(fdm, principal_id, b_id_farm),
+    getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
+  ])
 
   const censusMap = new Map<string, number>()
   for (const c of census) {
@@ -93,12 +103,13 @@ export async function fetchGrazingInsightsData(
 
   const metrics = calculateGrazingMetrics({
     year: calendarYear,
-    today: new Date(),
+    today,
     herds: herdList,
     fields: grasslandFields.map((f) => ({
       b_id: f.b_id,
       b_name: f.b_name,
       b_area: f.b_area,
+      b_area_grazed: grazedArea.get(f.b_id) ?? null,
       isGrassland: true,
     })),
     grazings: grazings.map((g) => ({
@@ -108,8 +119,7 @@ export async function fetchGrazingInsightsData(
       l_grazing_start: new Date(g.l_grazing_start),
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours,
-      l_grazing_area: g.l_grazing_area,
-      l_grazing_type: (g.l_grazing_type === "partial" ? "partial" : "full") as "full" | "partial",
+      l_grazing_area_grazed: g.l_grazing_area_grazed,
     })),
     harvests,
   })

@@ -54,11 +54,7 @@ export async function fetchTimelineFields(
       l_grazing_start: new Date(g.l_grazing_start),
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours ?? null,
-      l_grazing_area: g.l_grazing_area ?? null,
-      l_grazing_type: (g.l_grazing_type === "partial" ? "partial" : "full") as
-        | "full"
-        | "partial"
-        | null,
+      l_grazing_area_grazed: g.l_grazing_area_grazed ?? null,
     }
 
     if (g.b_id) {

@@ -136,7 +136,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               l_grazing_start: gStart.toISOString(),
               l_grazing_end: gEnd.toISOString(),
               l_grazing_hours: g.l_grazing_hours ?? 8,
-              l_grazing_type: g.l_grazing_type ?? "full",
               days,
             }
           })

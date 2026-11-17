@@ -1,7 +1,9 @@
+import type { MultiPolygon } from "geojson"
 import { format } from "date-fns"
 import { Info, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useFetcher } from "react-router"
+import { ZoneEditor } from "~/components/blocks/grazing/zone-editor"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import {
@@ -23,6 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { type Area, areaHa } from "~/lib/grazing-strip"
+import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD } from "~/lib/grazing-zone"
+
+/** Which part of the field was grazed. */
+type AreaMode = "full" | "partial" | "zone"
 
 export interface GrazingPopoverProps {
   open: boolean
@@ -39,14 +46,18 @@ export interface GrazingPopoverProps {
     l_grazing_start: string
     l_grazing_end?: string | null
     l_grazing_hours?: number | null
+    /** Grazed part of the field without a known location (ha). */
     l_grazing_area?: number | null
-    l_grazing_type?: "full" | "partial" | null
+    /** Grazed zone within the field. */
+    l_grazing_geometry_zone?: MultiPolygon | null
   } | null
   herds: Array<{
     l_id_herd: string
     l_herd_name: string
     l_id_category: string
     l_lsu: number
+    /** Number of animals, used to size a strip. */
+    count?: number
   }>
   canWrite?: boolean
 }
@@ -54,6 +65,8 @@ export interface GrazingPopoverProps {
 export function GrazingPopover({
   open,
   onOpenChange,
+  b_id_farm,
+  calendar,
   field,
   initialHerdId,
   initialStartDate,
@@ -89,12 +102,18 @@ export function GrazingPopover({
   )
   const [hours, setHours] = useState<number>(existingGrazing?.l_grazing_hours ?? 8)
 
-  const [areaMode, setAreaMode] = useState<"full" | "partial">(
-    existingGrazing?.l_grazing_type === "partial" ? "partial" : "full",
+  const fieldArea = field?.b_area ?? 0
+  const storedZone = existingGrazing?.l_grazing_geometry_zone ?? null
+  const [areaMode, setAreaMode] = useState<AreaMode>(
+    storedZone ? "zone" : existingGrazing?.l_grazing_area ? "partial" : "full",
   )
-  const [partialArea, setPartialArea] = useState<number>(
-    existingGrazing?.l_grazing_area ?? Number(((field?.b_area ?? 1) / 2).toFixed(1)),
+  // The part of the field without a location, as a percentage of the field area
+  const [partialPercentage, setPartialPercentage] = useState<number>(
+    existingGrazing?.l_grazing_area && fieldArea > 0
+      ? Math.min(100, Math.round((existingGrazing.l_grazing_area / fieldArea) * 100))
+      : 50,
   )
+  const [zone, setZone] = useState<Area | null>(storedZone)
 
   const handleHourPresetChange = (preset: "8" | "24" | "custom") => {
     setHourPreset(preset)
@@ -102,8 +121,16 @@ export function GrazingPopover({
     if (preset === "24") setHours(24)
   }
 
-  const fieldArea = field?.b_area ?? 0
-  const effectiveArea = areaMode === "full" ? fieldArea : Math.min(partialArea, fieldArea)
+  const partialArea = Number(((fieldArea * partialPercentage) / 100).toFixed(2))
+  const effectiveArea =
+    areaMode === "full"
+      ? fieldArea
+      : areaMode === "partial"
+        ? partialArea
+        : zone
+          ? Number(Math.min(areaHa(zone), fieldArea).toFixed(2))
+          : 0
+  const herdCount = herds.find((h) => h.l_id_herd === herdId)?.count
 
   // Calculations for live preview
   const sDate = new Date(startDate)
@@ -133,10 +160,9 @@ export function GrazingPopover({
     formData.set("l_grazing_start", startDate)
     formData.set("l_grazing_end", endDate)
     formData.set("l_grazing_hours", String(hours))
-    formData.set("l_grazing_type", areaMode)
-    if (areaMode === "partial") {
-      formData.set("l_grazing_area", String(partialArea))
-    }
+    // Always send both, so an update can switch between whole field, area and zone
+    formData.set(GRAZING_AREA_FIELD, areaMode === "partial" ? String(partialArea) : "")
+    formData.set(GRAZING_ZONE_FIELD, areaMode === "zone" && zone ? JSON.stringify(zone) : "")
 
     void fetcher.submit(formData, { method: "post" })
     onOpenChange(false)
@@ -153,7 +179,13 @@ export function GrazingPopover({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-lg">
+      <DialogContent
+        className={
+          areaMode === "zone"
+            ? "max-h-[90vh] max-w-md overflow-y-auto sm:max-w-2xl"
+            : "max-h-[90vh] max-w-md overflow-y-auto sm:max-w-lg"
+        }
+      >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -289,7 +321,7 @@ export function GrazingPopover({
                 <FieldLabel>Oppervlak</FieldLabel>
                 <RadioGroup
                   value={areaMode}
-                  onValueChange={(val) => setAreaMode(val as "full" | "partial")}
+                  onValueChange={(val) => setAreaMode(val as AreaMode)}
                   className="space-y-1"
                 >
                   <div className="flex items-center space-x-2">
@@ -299,55 +331,70 @@ export function GrazingPopover({
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="zone" id="area-zone" />
+                    <Label htmlFor="area-zone" className="cursor-pointer text-xs font-normal">
+                      Zone op de kaart
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <RadioGroupItem value="partial" id="area-partial" />
                     <Label htmlFor="area-partial" className="cursor-pointer text-xs font-normal">
-                      Deel van perceel
+                      Deel van perceel, zonder kaart
                     </Label>
                   </div>
                 </RadioGroup>
 
+                {areaMode === "zone" && field && b_id_farm && calendar && (
+                  <div className="mt-2">
+                    <ZoneEditor
+                      b_id_farm={b_id_farm}
+                      calendar={calendar}
+                      b_id={field.b_id}
+                      zone={zone}
+                      onZoneChange={setZone}
+                      storedZone={storedZone}
+                      animals={herdCount}
+                      hoursPerDay={hours}
+                      days={diffDays}
+                      startDate={startDate}
+                    />
+                  </div>
+                )}
+
                 {areaMode === "partial" && (
                   <div className="mt-2 space-y-2 pl-6">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPartialArea(Number((fieldArea * 0.5).toFixed(1)))}
-                        className="h-7 px-2 text-[11px]"
-                      >
-                        1/2 ({(fieldArea * 0.5).toFixed(1)} ha)
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPartialArea(Number((fieldArea / 3).toFixed(1)))}
-                        className="h-7 px-2 text-[11px]"
-                      >
-                        1/3 ({(fieldArea / 3).toFixed(1)} ha)
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPartialArea(Number((fieldArea * 0.25).toFixed(1)))}
-                        className="h-7 px-2 text-[11px]"
-                      >
-                        1/4 ({(fieldArea * 0.25).toFixed(1)} ha)
-                      </Button>
+                      {[50, 33, 25].map((percentage) => (
+                        <Button
+                          key={percentage}
+                          type="button"
+                          variant={partialPercentage === percentage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setPartialPercentage(percentage)}
+                          className="h-7 px-2 text-[11px]"
+                        >
+                          {percentage}%
+                        </Button>
+                      ))}
                     </div>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
-                        min="0.1"
-                        max={fieldArea}
-                        step="0.1"
-                        value={partialArea}
-                        onChange={(e) => setPartialArea(parseFloat(e.target.value || "0"))}
-                        className="h-8 w-24 text-xs"
+                        min="1"
+                        max="100"
+                        step="1"
+                        value={partialPercentage}
+                        onChange={(e) =>
+                          setPartialPercentage(
+                            Math.min(100, Math.max(0, parseFloat(e.target.value || "0"))),
+                          )
+                        }
+                        className="h-8 w-20 text-xs"
+                        aria-label="Deel van het perceel in procent"
                       />
-                      <span className="text-muted-foreground text-xs">ha van {fieldArea} ha</span>
+                      <span className="text-muted-foreground text-xs">
+                        % van {fieldArea} ha = {partialArea} ha
+                      </span>
                     </div>
                   </div>
                 )}
@@ -388,7 +435,14 @@ export function GrazingPopover({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Annuleren
               </Button>
-              <Button type="submit" disabled={!canWrite}>
+              <Button
+                type="submit"
+                disabled={
+                  !canWrite ||
+                  (areaMode === "zone" && !zone) ||
+                  (areaMode === "partial" && !(partialArea > 0))
+                }
+              >
                 {existingGrazing ? "Opslaan" : "Vastleggen"}
               </Button>
             </div>

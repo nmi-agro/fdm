@@ -1,9 +1,9 @@
-import type { FeatureCollection } from "geojson"
+import type { FeatureCollection, MultiPolygon, Polygon } from "geojson"
 import type { LayerProps } from "react-map-gl/maplibre"
 import centroid from "@turf/centroid"
 import { cn } from "cn"
 import { useCallback, useMemo, useRef, useState } from "react"
-import { Layer, Marker, type MapMouseEvent, type MapRef } from "react-map-gl/maplibre"
+import { Layer, Marker, type MapMouseEvent, type MapRef, Source } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
@@ -14,22 +14,47 @@ const GRAZING_MAP_FIELDS_LAYER = "grazingMapFields"
 const GRAZING_MAP_OUTLINE_LAYER = "grazingMapFieldsOutline"
 const GRAZING_MAP_SOURCE = "grazingMapSource"
 
+const GRAZING_MAP_ZONES_SOURCE = "grazingMapZones"
+
+const zoneFillStyle: LayerProps = {
+  id: "grazingMapZonesFill",
+  type: "fill",
+  paint: { "fill-color": "#10b981", "fill-opacity": 0.55 },
+}
+
+const zoneOutlineStyle: LayerProps = {
+  id: "grazingMapZonesOutline",
+  type: "line",
+  paint: { "line-color": "#047857", "line-width": 2.5 },
+}
+
 export interface TodayGrazingMapProps {
   fieldsGeoJSON: FeatureCollection
+  /** Zones grazed on the selected day, drawn on top of the field colour. */
+  zones?: Array<Polygon | MultiPolygon>
   height?: string
   onFieldClick?: (b_id: string) => void
 }
 
 /**
  * Atlas map of the farm's fields coloured by today's grazing or mowing status, with a label per
- * field and a hover card. Clicking a field that can be grazed calls `onFieldClick`.
+ * field and a hover card. Zones grazed today are drawn on top of their field. Clicking a field that
+ * can be grazed calls `onFieldClick`.
  */
 export function TodayGrazingMap({
   fieldsGeoJSON,
+  zones = [],
   height = "calc(100vh - var(--app-header-height))",
   onFieldClick,
 }: TodayGrazingMapProps) {
   const mapRef = useRef<MapRef>(null)
+  const zonesData: FeatureCollection = useMemo(
+    () => ({
+      type: "FeatureCollection",
+      features: zones.map((geometry) => ({ type: "Feature", geometry, properties: {} })),
+    }),
+    [zones],
+  )
   const initialViewState = useMemo(() => getViewState(fieldsGeoJSON), [fieldsGeoJSON])
   const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null)
 
@@ -197,6 +222,13 @@ export function TodayGrazingMap({
           <Layer {...fillStyle} id={GRAZING_MAP_FIELDS_LAYER} source={GRAZING_MAP_SOURCE} />
           <Layer {...outlineStyle} id={GRAZING_MAP_OUTLINE_LAYER} source={GRAZING_MAP_SOURCE} />
         </FieldsSourceNotClickable>
+
+        {zonesData.features.length > 0 && (
+          <Source id={GRAZING_MAP_ZONES_SOURCE} type="geojson" data={zonesData}>
+            <Layer {...zoneFillStyle} />
+            <Layer {...zoneOutlineStyle} />
+          </Source>
+        )}
 
         {/* Centroid Badges on Parcels */}
         {fieldCentroids.map((c) => {

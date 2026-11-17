@@ -1,6 +1,14 @@
+import type { MultiPolygon, Polygon } from "geojson"
+import {
+  calculateGrazingAllocationArea,
+  GRAZING_HOURS_PER_KG_DM_MIN,
+  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
+} from "@nmi-agro/fdm-calculator/browser"
 import {
   addGrazings,
   checkPermission,
+  getCensusForFarm,
   getCultivationsForFarm,
   getFarm,
   getFarms,
@@ -63,6 +71,18 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { type Area, areaHa, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
+import { grazingZoneSchema } from "~/lib/grazing-zone"
+
+/** How the generator sizes the grazed part of a field for a strip system. */
+type PartialMode = "percentage" | "strips"
+
+const STRIP_DIRECTIONS = [
+  { value: "0", label: "Naar het noorden" },
+  { value: "90", label: "Naar het oosten" },
+  { value: "180", label: "Naar het zuiden" },
+  { value: "270", label: "Naar het westen" },
+]
 
 export const meta: MetaFunction = () => {
   return [
@@ -87,7 +107,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    const [farm, farms, herds, allFields, cultivationsByField, existingGrazings] =
+    const [farm, farms, herds, allFields, cultivationsByField, existingGrazings, census] =
       await Promise.all([
         getFarm(fdm, session.principal_id, b_id_farm),
         getFarms(fdm, session.principal_id),
@@ -95,7 +115,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getCensusForFarm(fdm, session.principal_id, b_id_farm),
       ])
+    const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -126,6 +148,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id: f.b_id,
         b_name: f.b_name,
         b_area: f.b_area != null ? Math.round(f.b_area * 10) / 10 : 0,
+        // Needed to cut grazing strips from the field
+        b_geometry: f.b_geometry ?? null,
       }))
 
     return {
@@ -139,6 +163,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_herd_name: h.l_herd_name ?? "Koppel",
         l_id_category: h.l_id_category ?? "rvo_100",
         l_lsu: h.l_lsu ?? 1.0,
+        count: censusMap.get(h.l_id_herd) ?? 0,
       })),
       grasslandFields,
       existingGrazings: existingGrazings.map((g) => ({
@@ -183,8 +208,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
       l_grazing_start: string
       l_grazing_end: string
       l_grazing_hours: number
-      l_grazing_type: "full" | "partial"
       l_grazing_area?: number
+      l_grazing_geometry_zone?: unknown
     }>
 
     if (rows.length === 0) {
@@ -200,8 +225,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
         l_grazing_start: new Date(r.l_grazing_start),
         l_grazing_end: new Date(r.l_grazing_end),
         l_grazing_hours: r.l_grazing_hours,
-        l_grazing_type: r.l_grazing_type,
         l_grazing_area: r.l_grazing_area,
+        l_grazing_geometry_zone: r.l_grazing_geometry_zone
+          ? (grazingZoneSchema.parse(r.l_grazing_geometry_zone) as Polygon | MultiPolygon)
+          : null,
       })),
     )
 
@@ -251,8 +278,29 @@ export default function GrazingPlanAssistent() {
   const [hoursPerDay, setHoursPerDay] = useState(8)
   const [periodDays, setPeriodDays] = useState(4)
   const [partialPercentage, setPartialPercentage] = useState<number>(50)
+  const [partialMode, setPartialMode] = useState<PartialMode>("percentage")
+  const [stripDirection, setStripDirection] = useState("90")
+  // Nieuw Nederlands Weiden: at least 1 grazing hour per kg DM, so the hours cap the grass intake.
+  // The intake follows the grazing hours until the user enters one.
+  const [grassIntakeOverride, setGrassIntakeOverride] = useState<number | null>(null)
+  const grassIntake =
+    grassIntakeOverride ??
+    Math.min(NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM, hoursPerDay / GRAZING_HOURS_PER_KG_DM_MIN)
+  const [grassOffer, setGrassOffer] = useState<number>(INSCHAREN_DRY_MATTER_TARGET_KG_HA)
 
   const selectedSystem = GRAZING_SYSTEMS[systemKey]
+  const selectedHerdCount = herds.find((h) => h.l_id_herd === selectedHerdId)?.count ?? 0
+  // Strip size from the herd's grass demand over one period
+  const stripAllocation =
+    selectedHerdCount > 0 && grassIntake > 0 && grassOffer > 0 && periodDays > 0
+      ? calculateGrazingAllocationArea({
+          animals: selectedHerdCount,
+          grassIntakeKgDmPerAnimalPerDay: grassIntake,
+          availableGrassKgDmPerHa: grassOffer,
+          days: periodDays,
+        })
+      : null
+  const useStrips = selectedSystem.grazingType === "partial" && partialMode === "strips"
 
   const handleSystemSelect = (key: GrazingSystemKey) => {
     setSystemKey(key)
@@ -301,9 +349,13 @@ export default function GrazingPlanAssistent() {
       l_grazing_start: string
       l_grazing_end: string
       l_grazing_hours: number
-      l_grazing_type: "full" | "partial"
       l_grazing_area?: number
+      l_grazing_geometry_zone?: MultiPolygon
+      /** Area of the strip (ha), for the preview. */
+      zoneArea?: number
     }> = []
+    // Strips already cut per field; a new strip connects to them until the field is used up
+    const occupiedByField = new Map<string, Area[]>()
 
     const skippedCollisions: Array<{
       fieldName: string
@@ -345,8 +397,29 @@ export default function GrazingPlanAssistent() {
           reason: "Overlapt met bestaande registratie",
         })
       } else {
+        let strip: Area | null = null
+        if (useStrips && stripAllocation && activeField.b_geometry) {
+          const field = activeField.b_geometry as Area
+          const cut = (occupied: Area[]) =>
+            cutStrip({
+              field,
+              occupied,
+              targetAreaHa: stripAllocation.areaHa,
+              bearing: Number(stripDirection),
+            })
+          const occupied = occupiedByField.get(activeField.b_id) ?? []
+          strip = cut(occupied)
+          if (strip) {
+            occupiedByField.set(activeField.b_id, [...occupied, strip])
+          } else {
+            // The field is used up: start again at the back of the field
+            strip = cut([])
+            occupiedByField.set(activeField.b_id, strip ? [strip] : [])
+          }
+        }
+
         const partialArea =
-          selectedSystem.grazingType === "partial"
+          selectedSystem.grazingType === "partial" && !strip
             ? Number(((activeField.b_area * partialPercentage) / 100).toFixed(1))
             : undefined
 
@@ -358,8 +431,9 @@ export default function GrazingPlanAssistent() {
           l_grazing_start: sStr,
           l_grazing_end: eStr,
           l_grazing_hours: hoursPerDay,
-          l_grazing_type: selectedSystem.grazingType ?? "full",
           l_grazing_area: partialArea,
+          l_grazing_geometry_zone: strip ? toMultiPolygon(strip) : undefined,
+          zoneArea: strip ? Number(areaHa(strip).toFixed(2)) : undefined,
         })
       }
 
@@ -381,6 +455,9 @@ export default function GrazingPlanAssistent() {
     hoursPerDay,
     partialPercentage,
     existingGrazings,
+    useStrips,
+    stripAllocation,
+    stripDirection,
   ])
 
   const totalWeidedagen = generatedRows.length * periodDays
@@ -474,8 +551,7 @@ export default function GrazingPlanAssistent() {
                       2 · Welke percelen horen bij de huiskavel?
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      FDM weet nog niet welke percelen huiskavel zijn. Je keuze wordt gebruikt voor
-                      het advies en de kalenderindeling.
+                      {`${clientConfig.name} weet nog niet welke percelen huiskavel zijn. Je keuze wordt gebruikt voor het advies en de kalenderindeling.`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -656,10 +732,121 @@ export default function GrazingPlanAssistent() {
                       </div>
 
                       {selectedSystem.grazingType === "partial" && (
-                        <Field className="bg-muted/20 space-y-2 rounded-lg border p-3.5">
+                        <Field className="bg-muted/20 space-y-3 rounded-lg border p-3.5">
                           <FieldLabel>
-                            Schatting oppervlakte per deelblok ({selectedSystem.name})
+                            Oppervlakte per weidebeurt ({selectedSystem.name})
                           </FieldLabel>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={partialMode === "strips" ? "default" : "outline"}
+                              onClick={() => setPartialMode("strips")}
+                              className="h-8 text-xs"
+                            >
+                              Stroken op de kaart
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={partialMode === "percentage" ? "default" : "outline"}
+                              onClick={() => setPartialMode("percentage")}
+                              className="h-8 text-xs"
+                            >
+                              Percentage, zonder kaart
+                            </Button>
+                          </div>
+
+                          {partialMode === "strips" && (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <Field>
+                                  <FieldLabel htmlFor="plan-strip-direction" className="text-xs">
+                                    Richting
+                                  </FieldLabel>
+                                  <Select
+                                    value={stripDirection}
+                                    items={STRIP_DIRECTIONS}
+                                    onValueChange={(v) => {
+                                      if (v !== null) setStripDirection(v)
+                                    }}
+                                  >
+                                    <SelectTrigger
+                                      id="plan-strip-direction"
+                                      className="h-8 text-xs"
+                                    >
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {STRIP_DIRECTIONS.map((d) => (
+                                        <SelectItem key={d.value} value={d.value}>
+                                          {d.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </Field>
+                                <Field>
+                                  <FieldLabel htmlFor="plan-grass-intake" className="text-xs">
+                                    Grasopname (kg ds/dier/dag)
+                                  </FieldLabel>
+                                  <Input
+                                    id="plan-grass-intake"
+                                    type="number"
+                                    min="0.5"
+                                    step="0.5"
+                                    value={grassIntake}
+                                    onChange={(e) =>
+                                      setGrassIntakeOverride(parseFloat(e.target.value || "0"))
+                                    }
+                                    className="h-8 text-xs"
+                                  />
+                                </Field>
+                                <Field>
+                                  <FieldLabel htmlFor="plan-grass-offer" className="text-xs">
+                                    Grasaanbod (kg ds/ha)
+                                  </FieldLabel>
+                                  <Input
+                                    id="plan-grass-offer"
+                                    type="number"
+                                    min="100"
+                                    step="100"
+                                    value={grassOffer}
+                                    onChange={(e) =>
+                                      setGrassOffer(parseFloat(e.target.value || "0"))
+                                    }
+                                    className="h-8 text-xs"
+                                  />
+                                </Field>
+                              </div>
+                              <p className="text-muted-foreground text-[11px]">
+                                {stripAllocation ? (
+                                  <span key="allocation">
+                                    Strook van{" "}
+                                    <strong className="text-foreground">
+                                      {stripAllocation.areaHa.toLocaleString("nl-NL")} ha
+                                    </strong>{" "}
+                                    per weidebeurt: {selectedHerdCount} dieren × {grassIntake} kg ds
+                                    × {periodDays} {periodDays === 1 ? "dag" : "dagen"} ÷{" "}
+                                    {grassOffer} kg ds/ha. Elke strook sluit aan op de vorige; is
+                                    het perceel rond, dan begint de koppel weer vooraan.
+                                  </span>
+                                ) : (
+                                  <span key="no-animals">
+                                    Deze koppel heeft geen dieren, dus de strookgrootte is niet te
+                                    berekenen. Het percentage hieronder wordt gebruikt.
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-muted-foreground text-[11px]">
+                                Grasopname: minimaal 1 weide-uur per kg ds (Nieuw Nederlands
+                                Weiden). Grasaanbod: 1.700 kg ds/ha bij inscharen (Handboek
+                                Melkveehouderij). Percelen zonder perceelsgrens krijgen het
+                                percentage.
+                              </p>
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap items-center gap-2">
                             {[50, 33, 25].map((pct) => (
                               <Button
@@ -695,8 +882,10 @@ export default function GrazingPlanAssistent() {
                           </div>
                           <p className="text-muted-foreground text-[11px]">
                             Bij {selectedSystem.name} weidt de koppel steeds op een deel van het
-                            perceel. FDM schat de oppervlakte per weidebeurt automatisch op{" "}
-                            {partialPercentage}% van de totale perceelsgrootte.
+                            perceel.{" "}
+                            {partialMode === "percentage"
+                              ? `${clientConfig.name} schat de oppervlakte per weidebeurt op ${partialPercentage}% van de perceelsgrootte, zonder plek op de kaart.`
+                              : `Zonder strook (geen perceelsgrens of geen dieren) gebruikt ${clientConfig.name} ${partialPercentage}% van de perceelsgrootte.`}
                           </p>
                         </Field>
                       )}
@@ -773,19 +962,23 @@ export default function GrazingPlanAssistent() {
                                   {row.fieldName}{" "}
                                   <span className="text-muted-foreground font-normal">
                                     (
-                                    {row.l_grazing_area
-                                      ? `${row.l_grazing_area} ha van ${row.fieldArea} ha`
-                                      : `${row.fieldArea} ha`}
+                                    {row.zoneArea !== undefined
+                                      ? `${row.zoneArea} ha van ${row.fieldArea} ha`
+                                      : row.l_grazing_area
+                                        ? `${row.l_grazing_area} ha van ${row.fieldArea} ha`
+                                        : `${row.fieldArea} ha`}
                                     )
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
                                   {row.l_grazing_hours} u
                                 </TableCell>
-                                <TableCell className="text-xs capitalize">
-                                  {row.l_grazing_type === "partial"
-                                    ? `Deelperceel (${partialPercentage}%)`
-                                    : "Volledig"}
+                                <TableCell className="text-xs">
+                                  {row.l_grazing_geometry_zone
+                                    ? "Strook op de kaart"
+                                    : row.l_grazing_area
+                                      ? `Deelperceel (${partialPercentage}%, zonder kaart)`
+                                      : "Volledig"}
                                 </TableCell>
                               </TableRow>
                             ))

@@ -1,13 +1,35 @@
 import type { Timeframe } from "@nmi-agro/fdm-core"
+import type { MultiPolygon } from "geojson"
+import { calculateGrazingMetrics } from "@nmi-agro/fdm-calculator"
 import {
+  getCensusForFarm,
   getCultivationsForFarm,
   getFields,
+  getGrazedAreaForFarm,
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
-import { calculateGrazingMetrics } from "@nmi-agro/fdm-calculator"
 import { fdm } from "~/lib/fdm.server"
+
+/**
+ * Grazed area per field (ha) of the grazings that started in the calendar year up to today, with
+ * all zones on a field combined. This is the `b_area_grazed` input of `calculateGrazingMetrics`,
+ * which only counts started grazings for the grazing platform.
+ */
+export async function getGrazedAreaByField(
+  principal_id: string,
+  b_id_farm: string,
+  calendarYear: number,
+  today: Date,
+): Promise<Map<string, number>> {
+  const yearStart = new Date(`${calendarYear}-01-01T00:00:00.000Z`)
+  const yearEnd = new Date(`${calendarYear}-12-31T23:59:59.999Z`)
+  const end = today < yearEnd ? today : yearEnd
+  if (end < yearStart) return new Map()
+  const areas = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, { start: yearStart, end })
+  return new Map(areas.map((a) => [a.b_id, a.b_area_grazed]))
+}
 
 export interface GrazingCalendarCell {
   key: string // e.g. "w-18" or "d-2026-05-12"
@@ -21,8 +43,12 @@ export interface GrazingCalendarCell {
     l_id_herd: string
     l_herd_name: string
     l_grazing_hours?: number | null
+    /** Grazed part of the field without a known location (ha). */
     l_grazing_area?: number | null
-    l_grazing_type?: "full" | "partial" | null
+    /** Grazed zone within the field; `null` for the whole field or an area without location. */
+    l_grazing_geometry_zone?: MultiPolygon | null
+    /** Grazed area (ha): the zone within the field, the recorded area, or the whole field. */
+    l_grazing_area_grazed?: number | null
     isPlanned?: boolean
     colorIndex: number
   }>
@@ -54,6 +80,8 @@ export interface GrazingCalendarMatrix {
     l_herd_name: string
     l_id_category: string
     l_lsu: number
+    /** Current number of animals in the herd. */
+    count: number
     colorIndex: number
   }>
   openGrazings: Array<{
@@ -96,14 +124,24 @@ export async function fetchGrazingCalendarMatrix(
   const today = new Date()
   const todayKey = toIsoDate(today)
 
-  const [allFields, cultivationsByField, harvestsByCultivation, grazings, herds] =
-    await Promise.all([
-      getFields(fdm, principal_id, b_id_farm, timeframe),
-      getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getHerdsForFarm(fdm, principal_id, b_id_farm),
-    ])
+  const [
+    allFields,
+    cultivationsByField,
+    harvestsByCultivation,
+    grazings,
+    herds,
+    grazedArea,
+    census,
+  ] = await Promise.all([
+    getFields(fdm, principal_id, b_id_farm, timeframe),
+    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getHerdsForFarm(fdm, principal_id, b_id_farm),
+    getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
+    getCensusForFarm(fdm, principal_id, b_id_farm),
+  ])
+  const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
   // Filter grassland fields (crop rotation === "grass" and not a buffer strip)
   const grasslandFields = allFields.filter((field) => {
@@ -121,6 +159,7 @@ export async function fetchGrazingCalendarMatrix(
       l_herd_name: h.l_herd_name ?? "Koppel",
       l_id_category: h.l_id_category ?? "rvo_100",
       l_lsu: h.l_lsu ?? 1.0,
+      count: censusMap.get(h.l_id_herd) ?? 0,
       colorIndex: idx % 6,
     }
   })
@@ -194,7 +233,9 @@ export async function fetchGrazingCalendarMatrix(
     for (const g of fieldGrazings) {
       const gStart = new Date(g.l_grazing_start)
       const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-      const cur = new Date(Date.UTC(gStart.getUTCFullYear(), gStart.getUTCMonth(), gStart.getUTCDate()))
+      const cur = new Date(
+        Date.UTC(gStart.getUTCFullYear(), gStart.getUTCMonth(), gStart.getUTCDate()),
+      )
       const last = new Date(Date.UTC(gEnd.getUTCFullYear(), gEnd.getUTCMonth(), gEnd.getUTCDate()))
       while (cur <= last) {
         if (cur.getUTCFullYear() === calendarYear) {
@@ -213,7 +254,9 @@ export async function fetchGrazingCalendarMatrix(
         return gStart <= wInfo.end && gEnd >= wInfo.start
       })
 
-      const cellHarvests = fieldHarvests.filter((h) => h.harvestDate <= wInfo.end && h.harvestDate >= wInfo.start)
+      const cellHarvests = fieldHarvests.filter(
+        (h) => h.harvestDate <= wInfo.end && h.harvestDate >= wInfo.start,
+      )
 
       let type: GrazingCalendarCell["type"] = "empty"
       let isPlanned = false
@@ -238,7 +281,8 @@ export async function fetchGrazingCalendarMatrix(
           l_herd_name: g.l_herd_name ?? "Koppel",
           l_grazing_hours: g.l_grazing_hours,
           l_grazing_area: g.l_grazing_area,
-          l_grazing_type: (g.l_grazing_type === "partial" ? "partial" : "full") as "full" | "partial",
+          l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
+          l_grazing_area_grazed: g.l_grazing_area_grazed,
           isPlanned: isFuture,
           colorIndex: herdColorMap.get(g.l_id_herd) ?? 0,
         }
@@ -314,6 +358,7 @@ export async function fetchGrazingCalendarMatrix(
       b_id: f.b_id,
       b_name: f.b_name,
       b_area: f.b_area ?? 0,
+      b_area_grazed: grazedArea.get(f.b_id) ?? null,
       isGrassland: true,
     })),
     grazings: grazings.map((g) => ({
@@ -323,8 +368,7 @@ export async function fetchGrazingCalendarMatrix(
       l_grazing_start: new Date(g.l_grazing_start),
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours,
-      l_grazing_area: g.l_grazing_area,
-      l_grazing_type: (g.l_grazing_type === "partial" ? "partial" : "full") as "full" | "partial",
+      l_grazing_area_grazed: g.l_grazing_area_grazed,
     })),
     harvests: grasslandFields.flatMap((f) =>
       (harvestsByField.get(f.b_id) ?? []).map((h) => ({

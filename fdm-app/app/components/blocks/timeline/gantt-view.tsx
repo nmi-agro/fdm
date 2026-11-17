@@ -267,8 +267,8 @@ export type TimelineGrazing = {
   l_grazing_start: Date
   l_grazing_end: Date | null
   l_grazing_hours: number | null
-  l_grazing_area: number | null
-  l_grazing_type: "full" | "partial" | null
+  /** Grazed area (ha): the zone within the field, the recorded area, or the whole field. */
+  l_grazing_area_grazed: number | null
 }
 
 export type TimelineCultivation = {

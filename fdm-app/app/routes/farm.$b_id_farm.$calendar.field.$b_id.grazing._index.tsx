@@ -3,6 +3,7 @@ import {
   checkPermission,
   getCultivationsForFarm,
   getFarm,
+  getCensusForFarm,
   getField,
   getGrazingForField,
   getHarvestsForFarm,
@@ -11,7 +12,7 @@ import {
 import { cn } from "cn"
 import { format } from "date-fns"
 import { AlertTriangle, Plus, Tractor } from "lucide-react"
-import { useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -23,6 +24,7 @@ import { dataWithSuccess } from "remix-toast"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { Skeleton } from "~/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -36,6 +38,10 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { parseGrazingExtent } from "~/lib/grazing-zone"
+
+// Lazy-loaded to avoid SSR issues with maplibre-gl and to keep it out of the initial bundle
+const GrazingZonesMap = lazy(() => import("~/components/blocks/grazing/grazing-zones-map"))
 
 export const meta: MetaFunction = () => {
   return [
@@ -60,7 +66,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    const [farm, field, herds, grazings, cultivationsByField, harvestsByCultivation] =
+    const [farm, field, herds, grazings, cultivationsByField, harvestsByCultivation, census] =
       await Promise.all([
         getFarm(fdm, session.principal_id, b_id_farm),
         getField(fdm, session.principal_id, b_id),
@@ -68,7 +74,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         getGrazingForField(fdm, session.principal_id, b_id, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getCensusForFarm(fdm, session.principal_id, b_id_farm),
       ])
+    const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
     const farmWritePermission = await checkPermission(
       fdm,
@@ -119,8 +127,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         end: new Date(g.l_grazing_end ?? g.l_grazing_start),
         herdName: herdMap.get(g.l_id_herd)?.l_herd_name ?? "Koppel",
         hours: g.l_grazing_hours,
-        area: g.l_grazing_area ?? field.b_area,
-        areaType: g.l_grazing_type,
+        area: g.l_grazing_area_grazed ?? field.b_area,
+        areaType: g.l_grazing_geometry_zone
+          ? ("zone" as const)
+          : g.l_grazing_area
+            ? ("partial" as const)
+            : ("full" as const),
       })),
       ...fieldHarvests.map((h) => ({
         type: "maaien" as const,
@@ -167,7 +179,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_herd_name: h.l_herd_name ?? "Koppel",
         l_id_category: h.l_id_category ?? "rvo_100",
         l_lsu: h.l_lsu ?? 1.0,
+        count: censusMap.get(h.l_id_herd) ?? 0,
       })),
+      b_geometry: field.b_geometry,
+      zones: grazings.flatMap((g) =>
+        g.l_grazing_geometry_zone ? [g.l_grazing_geometry_zone] : [],
+      ),
       summary: {
         totalDays: totalGrazingDays,
         totalHours: totalGrazingHours,
@@ -215,16 +232,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const l_grazing_end = endVal ? new Date(String(endVal)) : undefined
       const hoursVal = formData.get("l_grazing_hours")
       const l_grazing_hours = hoursVal ? parseFloat(String(hoursVal)) : undefined
-      const areaTypeVal = formData.get("l_grazing_type") as "full" | "partial" | null
-      const areaVal = formData.get("l_grazing_area")
-      const l_grazing_area = areaVal ? parseFloat(String(areaVal)) : undefined
 
       await addGrazing(fdm, session.principal_id, l_id_herd, l_grazing_start, {
         b_id,
         l_grazing_end,
         l_grazing_hours,
-        l_grazing_type: areaTypeVal ?? "full",
-        l_grazing_area,
+        ...parseGrazingExtent(formData),
       })
 
       return dataWithSuccess({}, { message: "Beweiding op perceel vastgelegd." })
@@ -248,6 +261,8 @@ export default function FieldGrazingPage() {
     events,
     fieldHarvests,
     farmWritePermission,
+    b_geometry,
+    zones,
   } = useLoaderData<typeof loader>()
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -313,6 +328,25 @@ export default function FieldGrazingPage() {
         </CardContent>
       </Card>
 
+      {/* Zones grazed this year */}
+      {b_geometry && zones.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Beweide zones {calendar}</CardTitle>
+            <CardDescription className="text-xs">
+              De delen van het perceel die als zone zijn beweid.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-hidden rounded-lg border">
+              <Suspense fallback={<Skeleton className="h-[280px] w-full" />}>
+                <GrazingZonesMap fieldGeometry={b_geometry} zones={zones} height="280px" />
+              </Suspense>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Events Table */}
       <Card>
         <CardHeader>
@@ -363,7 +397,11 @@ export default function FieldGrazingPage() {
                         {ev.hours !== null ? `${ev.hours} u` : "—"}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {ev.areaType === "partial" ? `${ev.area} ha (deel)` : "Volledig"}
+                        {ev.areaType === "zone"
+                          ? `${ev.area} ha (zone)`
+                          : ev.areaType === "partial"
+                            ? `${ev.area} ha (deel)`
+                            : "Volledig"}
                       </TableCell>
                       <TableCell className="text-right text-xs">
                         {ev.restDays !== null ? (

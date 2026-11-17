@@ -9,3 +9,4 @@ Add dairy grazing and livestock interfaces:
 - **Quick Entry**: Add "Koeien naar buiten / naar binnen" stateful action.
 - **Planner & Insights**: Add 7-system Graslandgebruiksysteem planner (including Standweiden and Modern standweiden with partial blocks), full-section "Vandaag op de kaart" map view, Weidegang KPI dashboard, field grazing subpage, and Tijdlijn grazing lanes.
 - **Sidebar & Gating**: Add dynamic "Melkvee" collapsible and onboarding CTA.
+- **Grazing zones**: Record which part of a field was grazed: the whole field, a zone drawn on the map, or a percentage without a location. Reuse zones from earlier grazings on the field, or let the strip builder cut a strip of the right size for the herd (grass intake × days ÷ grass on offer) next to the previous strips. The planner can generate successive strips on the map, the field grazing page and today's map show the zones, and the grazing platform counts all strips on a field together.

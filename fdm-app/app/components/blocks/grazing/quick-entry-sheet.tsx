@@ -93,7 +93,6 @@ export function QuickEntrySheet({
     formData.set("l_id_herd", selectedHerdId)
     formData.set("l_grazing_start", startDate)
     formData.set("l_grazing_hours", String(hours))
-    formData.set("l_grazing_type", "full")
 
     void fetcher.submit(formData, { method: "post" })
     onOpenChange(false)

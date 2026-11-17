@@ -7,7 +7,7 @@ import type {
   GrazingCalendarMatrix,
 } from "~/lib/grazing-calendar.server"
 import { TooltipProvider } from "~/components/ui/tooltip"
-import { GrazingPopover } from "./grazing-popover"
+import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
 
 const HERD_COLORS = [
   "bg-emerald-600 text-white dark:bg-emerald-500",
@@ -43,15 +43,8 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
   } | null>(null)
   const [popoverStartDate, setPopoverStartDate] = useState<string | undefined>(undefined)
   const [popoverEndDate, setPopoverEndDate] = useState<string | undefined>(undefined)
-  const [popoverExistingGrazing, setPopoverExistingGrazing] = useState<{
-    l_id_grazing: string
-    l_id_herd: string
-    l_grazing_start: string
-    l_grazing_end?: string | null
-    l_grazing_hours?: number | null
-    l_grazing_area?: number | null
-    l_grazing_type?: "full" | "partial" | null
-  } | null>(null)
+  const [popoverExistingGrazing, setPopoverExistingGrazing] =
+    useState<GrazingPopoverProps["existingGrazing"]>(null)
 
   // Bumped on every open so the popover remounts and starts from the clicked cell's values.
   const [popoverSession, setPopoverSession] = useState(0)
@@ -69,7 +62,7 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
         l_grazing_end: cell.dateEnd,
         l_grazing_hours: g.l_grazing_hours,
         l_grazing_area: g.l_grazing_area,
-        l_grazing_type: g.l_grazing_type,
+        l_grazing_geometry_zone: g.l_grazing_geometry_zone,
       })
       setPopoverStartDate(cell.dateStart)
       setPopoverEndDate(cell.dateEnd)
