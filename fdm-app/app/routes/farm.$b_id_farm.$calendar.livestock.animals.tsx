@@ -1,5 +1,4 @@
 import {
-  addAnimal,
   checkPermission,
   getAnimalsForFarm,
   getFarm,
@@ -15,29 +14,18 @@ import {
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
-  useFetcher,
   useLoaderData,
   useNavigate,
   useSearchParams,
 } from "react-router"
-import { dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { DatePicker } from "~/components/custom/date-picker-v2"
+import { AddAnimalDialog } from "~/components/blocks/livestock/add-animal-dialog"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
   Select,
@@ -59,6 +47,7 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { handleLivestockEvent } from "~/lib/livestock-events.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -156,24 +145,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const formData = await request.formData()
-    const intent = String(formData.get("intent") ?? "")
-
-    if (intent === "add_animal") {
-      const l_id_herd = String(formData.get("l_id_herd") ?? "")
-      const l_id_eartag = String(formData.get("l_id_eartag") ?? "") || undefined
-      const l_id_worknumber = String(formData.get("l_id_worknumber") ?? "") || undefined
-      const birthDateVal = String(formData.get("l_birth_date") ?? "")
-      const l_sex = (formData.get("l_sex") as "female" | "male" | null) ?? "female"
-
-      const newId = await addAnimal(fdm, session.principal_id, b_id_farm, l_id_herd, {
-        l_id_eartag,
-        l_id_worknumber,
-        l_birth_date: birthDateVal ? new Date(birthDateVal) : undefined,
-        l_sex,
-        l_arriving_method: "born",
+    if (formData.get("intent") === "add_animal") {
+      return await handleLivestockEvent(formData, {
+        principal_id: session.principal_id,
+        b_id_farm,
       })
-
-      return dataWithSuccess({ newId }, { message: "Dier succesvol toegevoegd." })
     }
 
     throw data("Ongeldige actie", { status: 400 })
@@ -187,19 +163,12 @@ export default function AnimalsOverviewPage() {
     useLoaderData<typeof loader>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const fetcher = useFetcher()
 
   const initialHerdFilter = searchParams.get("herd") ?? "all"
   const [selectedHerdFilter, setSelectedHerdFilter] = useState(initialHerdFilter)
   const [search, setSearch] = useState("")
 
-  // Add animal modal state
   const [isAddOpen, setIsAddOpen] = useState(false)
-  const [newHerdId, setNewHerdId] = useState(herds[0]?.l_id_herd ?? "")
-  const [newEartag, setNewEartag] = useState("")
-  const [newWorknumber, setNewWorknumber] = useState("")
-  const [newBirthdate, setNewBirthdate] = useState("")
-  const [newSex, setNewSex] = useState<"female" | "male">("female")
 
   const herdNameMap = useMemo(
     () => new Map(herds.map((h) => [h.l_id_herd, h.l_herd_name])),
@@ -237,38 +206,19 @@ export default function AnimalsOverviewPage() {
     void navigate(`/farm/${b_id_farm}/${calendar}/livestock/animal/${l_id_animal}`)
   }
 
-  const handleAddSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newHerdId) return
-
-    const formData = new FormData()
-    formData.set("intent", "add_animal")
-    formData.set("l_id_herd", newHerdId)
-    formData.set("l_id_eartag", newEartag.trim())
-    formData.set("l_id_worknumber", newWorknumber.trim())
-    if (newBirthdate) formData.set("l_birth_date", newBirthdate)
-    formData.set("l_sex", newSex)
-
-    void fetcher.submit(formData, { method: "post" })
-    setIsAddOpen(false)
-    setNewEartag("")
-    setNewWorknumber("")
-    setNewBirthdate("")
-  }
-
   return (
     <SidebarInset>
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
-          label: "Terug naar Veestapel",
+          label: "Terug naar Melkvee",
           disabled: false,
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
         <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Veestapel
+          Melkvee
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Dieren</BreadcrumbItem>
@@ -420,117 +370,7 @@ export default function AnimalsOverviewPage() {
         </FarmContent>
       </main>
 
-      {/* Add Animal Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-md">
-          <form onSubmit={handleAddSubmit}>
-            <DialogHeader>
-              <DialogTitle>Dier toevoegen</DialogTitle>
-              <DialogDescription>
-                Voeg een nieuw dier toe en wijs het direct toe aan een koppel.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="add-herd-select">Koppel *</FieldLabel>
-                  <Select
-                    value={newHerdId}
-                    items={herds.map((h) => ({
-                      value: h.l_id_herd,
-                      label: `${h.l_herd_name} (${h.l_category})`,
-                    }))}
-                    onValueChange={(v) => {
-                      if (v !== null) setNewHerdId(v)
-                    }}
-                  >
-                    <SelectTrigger id="add-herd-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {herds.map((h) => (
-                        <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
-                          {h.l_herd_name} ({h.l_category})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field>
-                    <FieldLabel htmlFor="add-worknumber">Werknummer</FieldLabel>
-                    <Input
-                      id="add-worknumber"
-                      value={newWorknumber}
-                      onChange={(e) => setNewWorknumber(e.target.value)}
-                      placeholder="Auto indien leeg"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="add-eartag">Levensnummer</FieldLabel>
-                    <Input
-                      id="add-eartag"
-                      value={newEartag}
-                      onChange={(e) => setNewEartag(e.target.value)}
-                      placeholder="NL 999 9999 9999"
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <DatePicker
-                    label="Geboortedatum"
-                    field={{
-                      name: "add_birthdate",
-                      value: newBirthdate,
-                      onChange: (val) =>
-                        setNewBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
-                      onBlur: () => {},
-                      ref: () => {},
-                    }}
-                    fieldState={{
-                      invalid: false,
-                      isTouched: false,
-                      isDirty: false,
-                      isValidating: false,
-                    }}
-                  />
-                  <Field>
-                    <FieldLabel htmlFor="add-sex">Geslacht</FieldLabel>
-                    <Select
-                      value={newSex}
-                      items={[
-                        { value: "female", label: "Vrouwelijk" },
-                        { value: "male", label: "Mannelijk" },
-                      ]}
-                      onValueChange={(v) => {
-                        if (v !== null) setNewSex(v)
-                      }}
-                    >
-                      <SelectTrigger id="add-sex">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="female">Vrouwelijk</SelectItem>
-                        <SelectItem value="male">Mannelijk</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-              </FieldGroup>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
-                Annuleren
-              </Button>
-              <Button type="submit">Dier toevoegen</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddAnimalDialog open={isAddOpen} onOpenChange={setIsAddOpen} herds={herds} />
     </SidebarInset>
   )
 }

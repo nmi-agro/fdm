@@ -57,7 +57,7 @@ export const GRAZING_MAP_COPY = {
   notGrassland: "Geen grasland in het bouwplan",
   noHerdTitle: "Nog geen koppel",
   noHerd: "De kaartlaag Beweiding wordt actief zodra je bedrijf een koppel heeft.",
-  addHerd: "Naar veestapel",
+  addHerd: "Naar Melkvee",
   showLegend: "Toon legenda",
   hideLegend: "Verberg legenda",
 } as const

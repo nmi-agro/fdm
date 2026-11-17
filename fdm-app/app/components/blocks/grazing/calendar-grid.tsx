@@ -326,7 +326,7 @@ export function CalendarGrid({
                           role="gridcell"
                           aria-label={`${field.b_name}, ${formatLongDay(cell.dateStart)}, ${cell.type}`}
                         >
-                          <DayCell cell={cell} />
+                          <GrazingDayCell cell={cell} />
                         </td>
                       )
                     })}
@@ -474,7 +474,7 @@ function FertilizerDot({ kind, className }: { kind: FertilizerKind; className?: 
  * mowing (dark green), with a dot in the badge colour of a fertilizer application. The title lists
  * what happened that day.
  */
-function DayCell({ cell }: { cell: GrazingCalendarCell }) {
+export function GrazingDayCell({ cell }: { cell: GrazingCalendarCell }) {
   const title = [
     ...(cell.grazingEntries ?? []).map(
       (g) =>

@@ -357,7 +357,7 @@ export default function AnimalDetailPage() {
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
         <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Veestapel
+          Melkvee
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbLink

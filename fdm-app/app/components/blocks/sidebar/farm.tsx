@@ -4,6 +4,8 @@ import {
   Bot,
   Bubbles,
   Calendar,
+  CalendarDays,
+  ChartColumn,
   Check,
   ChevronRight,
   ClipboardList,
@@ -15,7 +17,6 @@ import {
   LayoutGrid,
   Shapes,
   Sprout,
-  SquareArrowRightExit,
   Warehouse,
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
@@ -113,11 +114,12 @@ export function SidebarFarm({
   // Defaults to open whenever a field is active; re-derives per field, so the user's own
   // collapse/expand still sticks until they navigate to a different field.
   const [isPerceelOpen, setIsPerceelOpen] = useKeyedState(activeFieldId, (id) => !!id)
-  // Opens Melkvee on livestock and grazing pages; the user's own toggle sticks until they move
-  // between a Melkvee page and another page.
-  const isMelkveeRoute =
-    location.pathname.includes("/livestock") || location.pathname.includes("/grazing")
-  const [isMelkveeOpen, setIsMelkveeOpen] = useKeyedState(isMelkveeRoute, (open) => open)
+  // The Melkvee pages all live under /livestock; their subitems show while one of them is open
+  const isMelkveeRoute = location.pathname.includes("/livestock")
+  const isMelkveeOverview = /\/livestock\/?$/.test(location.pathname)
+  const isGrazingInsights = location.pathname.includes("/livestock/grazing/insights")
+  const isGrazingCalendar = location.pathname.includes("/livestock/grazing") && !isGrazingInsights
+  const isAnimals = location.pathname.includes("/livestock/animal")
   const [targetSegment, setTargetSegment] = useState("")
 
   // Which farm-scoped feature the user tried to reach without a farm selected.
@@ -555,54 +557,59 @@ export function SidebarFarm({
             {/* Melkvee group or onboarding CTA */}
             {isFarmSelected &&
               (hasHerds ? (
-                <Collapsible
-                  open={isMelkveeOpen}
-                  className="group/collapsible"
-                  onOpenChange={setIsMelkveeOpen}
-                  render={
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger
-                        render={
-                          <SidebarMenuButton
-                            tooltip={"Melkvee"}
-                            isActive={isMelkveeRoute}
-                            className="flex items-center"
-                          >
-                            <Icon iconNode={cowHead} className="size-4" />
-                            <span>Melkvee</span>
-                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
-                          </SidebarMenuButton>
-                        }
-                      />
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              isActive={location.pathname.includes("/livestock")}
-                              render={
-                                <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`}>
-                                  <Warehouse className="size-4" />
-                                  <span>Veestapel</span>
-                                </NavLink>
-                              }
-                            />
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              isActive={location.pathname.includes("/grazing")}
-                              render={
-                                <NavLink to={`/farm/${farmId}/${selectedCalendar}/grazing`}>
-                                  <SquareArrowRightExit className="size-4" />
-                                  <span>Beweiding</span>
-                                </NavLink>
-                              }
-                            />
-                          </SidebarMenuSubItem>
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  }
-                />
+                // "Melkvee" opens the overview; on a Melkvee page its subpages are listed below it,
+                // and only the page that is open is highlighted
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Melkvee"
+                    isActive={isMelkveeOverview}
+                    render={
+                      <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`}>
+                        <Icon iconNode={cowHead} className="size-4" />
+                        <span>Melkvee</span>
+                      </NavLink>
+                    }
+                  />
+                  {isMelkveeRoute && (
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={isGrazingCalendar}
+                          render={
+                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing`}>
+                              <CalendarDays className="size-4" />
+                              <span>Beweidingskalender</span>
+                            </NavLink>
+                          }
+                        />
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={isGrazingInsights}
+                          render={
+                            <NavLink
+                              to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing/insights`}
+                            >
+                              <ChartColumn className="size-4" />
+                              <span>Weidegang</span>
+                            </NavLink>
+                          }
+                        />
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          isActive={isAnimals}
+                          render={
+                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock/animals`}>
+                              <Warehouse className="size-4" />
+                              <span>Dieren</span>
+                            </NavLink>
+                          }
+                        />
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
               ) : (
                 <SidebarMenuItem>
                   <SidebarMenuButton

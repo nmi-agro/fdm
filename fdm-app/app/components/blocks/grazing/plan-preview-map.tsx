@@ -13,7 +13,6 @@ import { useMemo } from "react"
 import { Layer, type LayerProps, Source } from "react-map-gl/maplibre"
 import type { Area } from "~/lib/grazing-strip"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
-import { COOPERATIVE_GESTURES_PROPS } from "~/components/blocks/atlas/atlas-cooperative-gestures"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
@@ -88,8 +87,8 @@ export default function PlanPreviewMap({
   return (
     <Atlas
       initialViewState={initialViewState}
+      // A preview next to the plan: scrolling zooms the map directly, without Ctrl
       interactive={true}
-      {...COOPERATIVE_GESTURES_PROPS}
       useStoredViewState={false}
       updateFromInitialViewState={true}
       interactiveLayerIds={[ZONES_FILL_LAYER]}

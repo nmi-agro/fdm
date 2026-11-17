@@ -246,7 +246,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const lastEnd = format(new Date(rows[rows.length - 1].l_grazing_end), "dd-MM")
 
     return redirectWithSuccess(
-      `/farm/${b_id_farm}/${calendar}/grazing`,
+      `/farm/${b_id_farm}/${calendar}/livestock/grazing`,
       `Beweidingsplan vastgelegd: ${rows.length} perioden van ${firstStart} t/m ${lastEnd}.`,
     )
   } catch (error) {
@@ -569,14 +569,16 @@ export default function GrazingPlanAssistent() {
     <SidebarInset>
       <Header
         action={{
-          to: `/farm/${b_id_farm}/${calendar}/grazing`,
+          to: `/farm/${b_id_farm}/${calendar}/livestock/grazing`,
           label: "Terug naar Beweidingskalender",
           disabled: false,
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}>
+        <BreadcrumbLink
+          render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
+        >
           Beweiding
         </BreadcrumbLink>
         <BreadcrumbSeparator />
@@ -1049,86 +1051,96 @@ export default function GrazingPlanAssistent() {
                       </div>
                     )}
 
-                    {previewZones.length > 0 && (
-                      <div className="overflow-hidden rounded-lg border">
-                        <Suspense fallback={<Skeleton className="h-[320px] w-full" />}>
-                          <PlanPreviewMap
-                            fields={previewFields}
-                            zones={previewZones}
-                            highlightedZoneId={hoveredZoneId}
-                            onZoneHover={setHoveredZoneId}
-                          />
-                        </Suspense>
-                      </div>
-                    )}
+                    {/* On a large screen the map sits next to the plan, so a row and its strip
+                        are visible together */}
+                    <div
+                      className={cn(
+                        "grid gap-4",
+                        previewZones.length > 0 && "lg:grid-cols-2 lg:items-start",
+                      )}
+                    >
+                      {previewZones.length > 0 && (
+                        <div className="overflow-hidden rounded-lg border lg:order-2">
+                          <Suspense fallback={<Skeleton className="h-[380px] w-full" />}>
+                            <PlanPreviewMap
+                              fields={previewFields}
+                              zones={previewZones}
+                              highlightedZoneId={hoveredZoneId}
+                              onZoneHover={setHoveredZoneId}
+                              height="380px"
+                            />
+                          </Suspense>
+                        </div>
+                      )}
 
-                    <div className="max-h-64 overflow-y-auto rounded-lg border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-32">Periode</TableHead>
-                            <TableHead>Perceel & Oppervlak</TableHead>
-                            <TableHead className="text-right">Uren/dag</TableHead>
-                            <TableHead>Gebruik</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {generatedRows.length === 0 ? (
+                      <div className="max-h-64 overflow-y-auto rounded-lg border lg:max-h-[380px]">
+                        <Table>
+                          <TableHeader>
                             <TableRow>
-                              <TableCell
-                                colSpan={4}
-                                className="text-muted-foreground py-6 text-center"
-                              >
-                                Geen perioden gegenereerd. Selecteer minimaal 1 perceel.
-                              </TableCell>
+                              <TableHead className="w-32">Periode</TableHead>
+                              <TableHead>Perceel & Oppervlak</TableHead>
+                              <TableHead className="text-right">Uren/dag</TableHead>
+                              <TableHead>Gebruik</TableHead>
                             </TableRow>
-                          ) : (
-                            generatedRows.map((row, idx) => (
-                              <TableRow
-                                key={idx}
-                                // Highlights the strip of this row on the map, and the rows of the
-                                // strip under the pointer on the map
-                                onMouseEnter={() => setHoveredZoneId(rowZoneIds[idx])}
-                                onMouseLeave={() => setHoveredZoneId(null)}
-                                className={cn(
-                                  rowZoneIds[idx] !== null &&
-                                    rowZoneIds[idx] === hoveredZoneId &&
-                                    "bg-green-100",
-                                )}
-                              >
-                                <TableCell className="font-mono text-xs">
-                                  {format(new Date(row.l_grazing_start), "dd-MM")} →{" "}
-                                  {format(new Date(row.l_grazing_end), "dd-MM")}
-                                </TableCell>
-                                <TableCell className="text-xs font-medium">
-                                  {row.fieldName}{" "}
-                                  <span className="text-muted-foreground font-normal">
-                                    (
-                                    {row.zoneArea !== undefined
-                                      ? `${row.zoneArea} ha van ${row.fieldArea} ha`
-                                      : row.l_grazing_area
-                                        ? `${row.l_grazing_area} ha van ${row.fieldArea} ha`
-                                        : `${row.fieldArea} ha`}
-                                    )
-                                  </span>
-                                </TableCell>
-                                <TableCell className="text-right text-xs">
-                                  {row.l_grazing_hours} u
-                                </TableCell>
-                                <TableCell className="text-xs">
-                                  {row.l_grazing_geometry_zone
-                                    ? isNnw
-                                      ? "Perceel op de kaart"
-                                      : "Strook op de kaart"
-                                    : row.l_grazing_area
-                                      ? `Deelperceel (${partialPercentage}%, zonder kaart)`
-                                      : "Volledig"}
+                          </TableHeader>
+                          <TableBody>
+                            {generatedRows.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={4}
+                                  className="text-muted-foreground py-6 text-center"
+                                >
+                                  Geen perioden gegenereerd. Selecteer minimaal 1 perceel.
                                 </TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
+                            ) : (
+                              generatedRows.map((row, idx) => (
+                                <TableRow
+                                  key={idx}
+                                  // Highlights the strip of this row on the map, and the rows of the
+                                  // strip under the pointer on the map
+                                  onMouseEnter={() => setHoveredZoneId(rowZoneIds[idx])}
+                                  onMouseLeave={() => setHoveredZoneId(null)}
+                                  className={cn(
+                                    rowZoneIds[idx] !== null &&
+                                      rowZoneIds[idx] === hoveredZoneId &&
+                                      "bg-green-100",
+                                  )}
+                                >
+                                  <TableCell className="font-mono text-xs">
+                                    {format(new Date(row.l_grazing_start), "dd-MM")} →{" "}
+                                    {format(new Date(row.l_grazing_end), "dd-MM")}
+                                  </TableCell>
+                                  <TableCell className="text-xs font-medium">
+                                    {row.fieldName}{" "}
+                                    <span className="text-muted-foreground font-normal">
+                                      (
+                                      {row.zoneArea !== undefined
+                                        ? `${row.zoneArea} ha van ${row.fieldArea} ha`
+                                        : row.l_grazing_area
+                                          ? `${row.l_grazing_area} ha van ${row.fieldArea} ha`
+                                          : `${row.fieldArea} ha`}
+                                      )
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right text-xs">
+                                    {row.l_grazing_hours} u
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    {row.l_grazing_geometry_zone
+                                      ? isNnw
+                                        ? "Perceel op de kaart"
+                                        : "Strook op de kaart"
+                                      : row.l_grazing_area
+                                        ? `Deelperceel (${partialPercentage}%, zonder kaart)`
+                                        : "Volledig"}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
 
                     <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
@@ -1141,7 +1153,7 @@ export default function GrazingPlanAssistent() {
                     <Button
                       variant="outline"
                       nativeButton={false}
-                      render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}
+                      render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
                     >
                       Annuleren
                     </Button>

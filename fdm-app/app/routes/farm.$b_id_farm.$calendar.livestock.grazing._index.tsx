@@ -30,7 +30,7 @@ import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
-import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
+import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useToday } from "~/hooks/use-today"
@@ -208,14 +208,18 @@ export default function BeweidingskalenderPage() {
     <SidebarInset>
       <Header
         action={{
-          to: `/farm/${b_id_farm}`,
-          label: "Terug naar bedrijf",
+          to: `/farm/${b_id_farm}/${calendar}/livestock`,
+          label: "Terug naar Melkvee",
           disabled: false,
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbItem>Beweiding</BreadcrumbItem>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+          Melkvee
+        </BreadcrumbLink>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>Beweidingskalender</BreadcrumbItem>
       </Header>
 
       <main>
@@ -229,7 +233,7 @@ export default function BeweidingskalenderPage() {
                 size="sm"
                 className="gap-1.5 text-xs"
                 nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/plan`} />}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing/plan`} />}
               >
                 <Sparkles className="text-primary h-3.5 w-3.5" />
                 Graslandgebruiksysteem planner
@@ -249,7 +253,9 @@ export default function BeweidingskalenderPage() {
                 size="sm"
                 className="gap-1.5 text-xs"
                 nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/insights`} />}
+                render={
+                  <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`} />
+                }
               >
                 <ChartColumn className="text-primary h-3.5 w-3.5" />
                 Weidegang
