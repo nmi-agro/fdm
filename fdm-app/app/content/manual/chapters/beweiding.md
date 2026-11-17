@@ -85,6 +85,8 @@ Weiden je koeien zonder vaste einddatum, leg dan alleen vast wanneer ze naar bui
 1. Klik op **Koeien naar buiten**, kies de koppel, het perceel, de datum en het aantal uren per dag, en klik op **Koeien naar buiten vastleggen**.
 2. Gaan ze weer naar binnen, open hetzelfde venster. Voor een koppel die buiten loopt, zie je nu **Koeien naar binnen**. Vul de einddatum in en klik op **Koeien naar binnen vastleggen**.
 
+Zolang de koeien buiten lopen, staat de beweiding in de kalender tot en met vandaag. Open je hem daar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft de beweiding lopen.
+
 ## Vandaag op de kaart {#vandaag}
 
 **Vandaag op de kaart** toont al je percelen met hun status van vandaag: beweid, gemaaid, de dagen rust sinds het laatste gebruik of nog niet gebruikt. Zones die vandaag worden beweid, staan op het perceel getekend. Met de pijlen ga je een dag terug of vooruit; klik op de datum om terug te gaan naar vandaag.
