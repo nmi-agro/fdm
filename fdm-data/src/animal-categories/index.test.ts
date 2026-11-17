@@ -55,11 +55,11 @@ describe("getCatalogueRvo", () => {
     })
     expect(byId.get("rvo_101")).toMatchObject({
       l_specie: "cattle",
-      l_lsu: 0.23,
+      l_lsu: 0.4,
     })
     expect(byId.get("rvo_102")).toMatchObject({
       l_specie: "cattle",
-      l_lsu: 0.52,
+      l_lsu: 0.8,
     })
     expect(byId.get("rvo_407")).toMatchObject({
       l_specie: "pig",
