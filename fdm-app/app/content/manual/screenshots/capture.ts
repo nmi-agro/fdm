@@ -273,7 +273,7 @@ export const captures = {
     clock: "{year}-06-15T12:00:00+02:00",
     steps: [
       { click: { selector: 'a[href$="/livestock"]' } },
-      { waitFor: { text: "Alle dieren bekijken" } },
+      { waitFor: { text: "Al het vee bekijken" } },
     ],
   },
   "beweiding-kalender": {

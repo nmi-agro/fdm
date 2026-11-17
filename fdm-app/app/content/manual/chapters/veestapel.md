@@ -37,7 +37,7 @@ Heeft je bedrijf nog geen dieren, dan zie je in het menu **Melkvee toevoegen**. 
 
 ## Het Melkvee-overzicht {#overzicht}
 
-Vanaf dat moment staat **Melkvee** in het menu. Het opent het Melkvee-overzicht. Sta je op een Melkvee-pagina, dan staan daaronder ook **Beweidingskalender**, **Weidegang** en **Dieren**.
+Vanaf dat moment staat **Melkvee** in het menu. Het opent het Melkvee-overzicht. Met het pijltje ernaast klap je de onderdelen **Beweidingskalender**, **Weidegang** en **Vee** uit; op een Melkvee-pagina staan ze al open.
 
 Het overzicht heeft drie delen:
 
@@ -57,9 +57,9 @@ Bovenaan voeg je direct iets toe: **Beweiding toevoegen** (kies een perceel), **
 
 Het aantal dieren in een koppel wordt niet apart opgeslagen: {{appName}} telt de dieren die op dat moment in de koppel zitten.
 
-## Dieren {#dieren}
+## Vee {#dieren}
 
-Met **Alle dieren bekijken** of **Dieren** in het menu open je de lijst van alle dieren op het bedrijf. Je zoekt op werknummer of levensnummer en filtert op koppel. Een dier zonder oormerk heeft het label _Geen oormerk_. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
+Met **Al het vee bekijken** of **Vee** in het menu open je de lijst van alle dieren op het bedrijf. Je zoekt op werknummer of levensnummer en filtert op koppel. Een dier zonder oormerk heeft het label _Geen oormerk_. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
 
 Klik op een dier om de details te openen. Daar:
 

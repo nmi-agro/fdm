@@ -60,13 +60,13 @@ Handig om te weten: het jaar staat ook in het webadres. Stuur je een link naar e
 
 ### De zijbalk {#zijbalk}
 
-| Groep       | Wat je er vindt                                                                                                                                                                                                              |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bedrijf     | **Mijn bedrijven**, **Kalender**, **Percelen**, **Bouwplan**, **Tijdlijn**, **Maatregelen**, **Meststoffen**, **Melkvee** (met **Beweidingskalender**, **Weidegang** en **Dieren**) en de perceelkiezer **Kies een perceel** |
-| Apps        | **Atlas**, **Balans** (Stikstof en Organische stof), **Bemestingsadvies**, **Gebruiksruimte** en **Indicatoren**                                                                                                             |
-| Labs        | **Mineralisatie** en **Gerrit**: nieuwe, experimentele functies                                                                                                                                                              |
-| Organisatie | **Mijn organisaties** en, als je een organisatie kiest, de overzichten over meerdere bedrijven                                                                                                                               |
-| Onderaan    | **Handleiding**, **Ondersteuning**, de melding **Wat is er nieuw?** en het menu onder je naam (Account, Cookies, Organisaties, Uitloggen)                                                                                    |
+| Groep       | Wat je er vindt                                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bedrijf     | **Mijn bedrijven**, **Kalender**, **Percelen**, **Bouwplan**, **Tijdlijn**, **Maatregelen**, **Meststoffen**, **Melkvee** (met **Beweidingskalender**, **Weidegang** en **Vee**) en de perceelkiezer **Kies een perceel** |
+| Apps        | **Atlas**, **Balans** (Stikstof en Organische stof), **Bemestingsadvies**, **Gebruiksruimte** en **Indicatoren**                                                                                                          |
+| Labs        | **Mineralisatie** en **Gerrit**: nieuwe, experimentele functies                                                                                                                                                           |
+| Organisatie | **Mijn organisaties** en, als je een organisatie kiest, de overzichten over meerdere bedrijven                                                                                                                            |
+| Onderaan    | **Handleiding**, **Ondersteuning**, de melding **Wat is er nieuw?** en het menu onder je naam (Account, Cookies, Organisaties, Uitloggen)                                                                                 |
 
 **Melkvee** verschijnt zodra je een bedrijf hebt gekozen. Heeft het bedrijf nog geen dieren, dan staat er **Melkvee toevoegen**.
 
