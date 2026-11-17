@@ -244,11 +244,14 @@ describe("getFarmIndicators", () => {
       "farm-1",
       getYearTimeframe(year),
     )
+    // The fields are read once and passed to the collector
+    expect(mockedGetFields).toHaveBeenCalledTimes(1)
     expect(mockedCollectScoreForFarm).toHaveBeenCalledWith(
       mockFdm,
       principal_id,
       "farm-1",
       getYearTimeframe(year),
+      fields,
     )
     expect(mockedCollectScore).not.toHaveBeenCalled()
     expect(mockedGetBln3Scores).toHaveBeenCalledTimes(1)
@@ -309,23 +312,6 @@ describe("getFarmIndicators", () => {
 
     expect(result.fields).toEqual([])
     expect(mockedGetBln3Scores).not.toHaveBeenCalled()
-  })
-
-  it("should collect the inputs of a field that the farm collector did not return", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
-    mockFarmInputs([["field-1", scoreInputs]])
-    mockedCollectScore.mockResolvedValueOnce(scoreInputs)
-    mockScores([score(0.5), score(0.5)])
-
-    const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
-
-    expect(mockedCollectScore).toHaveBeenCalledWith(
-      mockFdm,
-      principal_id,
-      "field-2",
-      getYearTimeframe(year),
-    )
-    expect(result.fields.map((f) => f.b_id)).toEqual(["field-1", "field-2"])
   })
 
   it("should fail as a whole when one eligible field cannot be scored", async () => {

@@ -3,8 +3,8 @@ import {
   aggregateNutrientAdviceToFarmLevel,
   aggregateNormsToFarmLevel,
   calculateDose,
-  createFunctionsForFertilizerApplicationFilling,
-  createFunctionsForNorms,
+  calculateNormFillingsForFields,
+  calculateNormsForFields,
   fdmCalculator,
   type GebruiksnormResult,
   getMainCultivation,
@@ -99,90 +99,6 @@ async function settleForFields<T_Input extends object, T_Output>(
     results[index] = settled[i]
   }
   return results
-}
-
-/** The values of a field, or the first error of its calculations. */
-type FieldResult<T> = { values: T } | { error: unknown }
-
-/**
- * Calculates the nitrogen, manure, phosphate and (when available) renure norm or filling of
- * each field with one cache lookup per norm.
- *
- * @returns The values or the first error per field, in the order of `inputs`; `undefined` for
- *   a field without input.
- */
-async function calculateGroupForFields<T>(
-  fdm: FdmType,
-  functions: {
-    nitrogen: CachedCalculation<any, T>
-    manure: CachedCalculation<any, T>
-    phosphate: CachedCalculation<any, T>
-    renure?: CachedCalculation<any, T>
-  },
-  inputs: (object | undefined)[],
-): Promise<(FieldResult<{ nitrogen: T; manure: T; phosphate: T; renure?: T }> | undefined)[]> {
-  const noRenure = inputs.map(() => undefined)
-  const [nitrogen, manure, phosphate, renure] = await Promise.all([
-    settleForFields(fdm, functions.nitrogen, inputs),
-    settleForFields(fdm, functions.manure, inputs),
-    settleForFields(fdm, functions.phosphate, inputs),
-    functions.renure ? settleForFields(fdm, functions.renure, inputs) : noRenure,
-  ])
-  return inputs.map((input, index) => {
-    if (!input) return undefined
-    const group = [nitrogen[index], manure[index], phosphate[index], renure[index]]
-    const rejected = group.find((result) => result?.status === "rejected")
-    if (rejected?.status === "rejected") return { error: rejected.reason }
-    const [n, m, p, r] = group.map((result) =>
-      result?.status === "fulfilled" ? result.value : undefined,
-    )
-    return { values: { nitrogen: n as T, manure: m as T, phosphate: p as T, renure: r } }
-  })
-}
-
-/**
- * Calculates the usage norms of each field with an input, with one cache lookup per norm.
- * A field without input gets an error.
- */
-async function calculateNormsForFields(
-  fdm: FdmType,
-  year: "2025" | "2026",
-  inputs: (object | undefined)[],
-): Promise<FieldResult<FieldNormValues>[]> {
-  const functions = createFunctionsForNorms("NL", year)
-  const results = await calculateGroupForFields<GebruiksnormResult>(
-    fdm,
-    {
-      nitrogen: functions.calculateNormForNitrogen,
-      manure: functions.calculateNormForManure,
-      phosphate: functions.calculateNormForPhosphate,
-      renure: "calculateNormForRenure" in functions ? functions.calculateNormForRenure : undefined,
-    },
-    inputs,
-  )
-  return results.map((result) => result ?? { error: new Error("Norms were not calculated") })
-}
-
-/** Calculates the norm fillings of each field with an input, with one cache lookup per norm. */
-async function calculateFillingsForFields(
-  fdm: FdmType,
-  year: "2025" | "2026",
-  inputs: (object | undefined)[],
-): Promise<(FieldResult<FieldNormFillings> | undefined)[]> {
-  const functions = createFunctionsForFertilizerApplicationFilling("NL", year)
-  return calculateGroupForFields<NormFilling>(
-    fdm,
-    {
-      nitrogen: functions.calculateFertilizerApplicationFillingForNitrogen,
-      manure: functions.calculateFertilizerApplicationFillingForManure,
-      phosphate: functions.calculateFertilizerApplicationFillingForPhosphate,
-      renure:
-        "calculateFertilizerApplicationFillingForRenure" in functions
-          ? functions.calculateFertilizerApplicationFillingForRenure
-          : undefined,
-    },
-    inputs,
-  )
 }
 
 /**
@@ -386,16 +302,21 @@ export async function computeFertilizerPlanData(
   const norms = normYear
     ? await calculateNormsForFields(
         fdm,
+        "NL",
         normYear,
         prepared.map((p) => p.normInput),
       )
     : undefined
-  const isCalculated = (index: number) =>
-    !prepared[index].inputsError && (!norms || "values" in norms[index])
+  const isCalculated = (index: number) => {
+    if (prepared[index].inputsError) return false
+    const normResult = norms?.[index]
+    return !norms || (normResult !== undefined && "values" in normResult)
+  }
   const [fillings, advices, omBalances] = await Promise.all([
     normYear
-      ? calculateFillingsForFields(
+      ? calculateNormFillingsForFields(
           fdm,
+          "NL",
           normYear,
           prepared.map((p, index) => {
             const normResult = norms?.[index]
@@ -456,6 +377,7 @@ export async function computeFertilizerPlanData(
       let normsResult: { value: FieldNormValues; filling: FieldNormFillings } | undefined
       if (norms) {
         const normResult = norms[index]
+        if (!normResult) throw new Error("Norms were not calculated")
         if ("error" in normResult) throw normResult.error
         const fillingResult = fillings?.[index]
         if (!fillingResult) throw new Error("Norm filling was not calculated")

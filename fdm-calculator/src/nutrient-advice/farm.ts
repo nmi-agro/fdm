@@ -167,9 +167,9 @@ function errorRow(
  * ready.
  *
  * Farm-wide data is read once, and the cached nutrient advice of all fields is looked up with
- * one query. Only the fields without a cached advice are requested from the NMI API, with at
- * most `concurrency` requests at the same time (the same limit applies separately to the
- * cultivation suggestions for fields without a main cultivation). The promises never reject: a
+ * one query. Only the fields without a cached advice are requested from the NMI API. Together
+ * with the cultivation suggestions for fields without a main cultivation, at most
+ * `concurrency` NMI requests run at the same time. The promises never reject: a
  * failure becomes a row with `error` set, so one field does not break the whole overview.
  *
  * @param input - Farm, year, fields and NMI API key.
@@ -260,7 +260,16 @@ export function startFarmNutrientAdviceRows(
 
   /** Starts the rows of all fields once the farm data is available. */
   function startRows(data: FarmData): Promise<FarmNutrientAdviceRow>[] {
+    // One limit for all NMI requests of the farm: cultivation suggestions and advice
     const semaphore = new Semaphore(concurrency)
+    const limit = async <T>(task: () => Promise<T>): Promise<T> => {
+      await semaphore.acquire()
+      try {
+        return await task()
+      } finally {
+        semaphore.release()
+      }
+    }
     const adviceFields: {
       index: number
       mainCultivation: MainCultivation
@@ -277,16 +286,9 @@ export function startFarmNutrientAdviceRows(
 
       const main = findMainCultivation(cultivations, year)
       if (!main) {
-        return (async () => {
-          await semaphore.acquire()
-          try {
-            return await getSuggestionRow(field)
-          } catch (error) {
-            return errorRow(field, "advice_failed", errorMessage(error))
-          } finally {
-            semaphore.release()
-          }
-        })()
+        return limit(() => getSuggestionRow(field)).catch((error: unknown) =>
+          errorRow(field, "advice_failed", errorMessage(error)),
+        )
       }
 
       const mainCultivation = {
@@ -323,7 +325,7 @@ export function startFarmNutrientAdviceRows(
     const advices = getNutrientAdvice.many(
       fdm,
       adviceFields.map(({ input }) => input),
-      { concurrency },
+      { limit },
     )
     for (const [i, { index, mainCultivation, doses }] of adviceFields.entries()) {
       const field = fields[index]

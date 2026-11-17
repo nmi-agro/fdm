@@ -162,17 +162,19 @@ export async function getFarmIndicators(
   nmiApiKey: string | undefined,
 ): Promise<FarmIndicators> {
   const timeframe = getYearTimeframe(year)
-  const [fields, inputsByField] = await Promise.all([
-    getFields(fdm, principal_id, b_id_farm, timeframe),
-    collectInputForBln3ScoreForFarm(fdm, principal_id, b_id_farm, timeframe),
-  ])
+  const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+  const inputsByField = await collectInputForBln3ScoreForFarm(
+    fdm,
+    principal_id,
+    b_id_farm,
+    timeframe,
+    fields,
+  )
 
   const eligible: { field: (typeof fields)[number]; inputs: Bln3ScoreCollectedInputs }[] = []
   for (const field of fields) {
-    const inputs =
-      inputsByField.get(field.b_id) ??
-      (await collectInputForBln3Score(fdm, principal_id, field.b_id, timeframe))
-    if (!inputs.isExcluded) eligible.push({ field, inputs })
+    const inputs = inputsByField.get(field.b_id)
+    if (inputs && !inputs.isExcluded) eligible.push({ field, inputs })
   }
 
   const scored: FarmIndicators["fields"] = []

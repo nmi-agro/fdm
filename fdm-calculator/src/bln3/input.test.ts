@@ -1118,6 +1118,24 @@ describe("farm collectors give the same inputs as the field collectors", () => {
     expect(inputs.get(b_id)?.p_app_method).toBeUndefined()
   })
 
+  it("should use the given fields instead of reading them", async () => {
+    mockFarmGetters(scenarios[0])
+    mockFieldGetters(scenarios[0])
+    const expected = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    const inputs = await collectInputForBln3ScoreForFarm(
+      farmFdm,
+      principal_id,
+      b_id_farm,
+      timeframe,
+      [mockField],
+    )
+
+    expect(mockedGetFields).not.toHaveBeenCalled()
+    expect([...inputs.keys()]).toEqual([b_id])
+    expect(inputs.get(b_id)).toEqual(expected)
+  })
+
   it("should wrap errors with the farm ID", async () => {
     mockFarmGetters(scenarios[0])
     mockedGetFields.mockRejectedValue(new Error("Permission denied"))

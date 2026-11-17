@@ -192,6 +192,8 @@ export type {
   InputAggregateNormsToFarmLevel,
 } from "./norms/farm"
 export { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./norms/farm"
+export type { NormGroup, NormGroupResult } from "./norms/fields"
+export { calculateNormFillingsForFields, calculateNormsForFields } from "./norms/fields"
 export type {
   FertilizerApplicationFillingInputByYear,
   FertilizerApplicationFillings,

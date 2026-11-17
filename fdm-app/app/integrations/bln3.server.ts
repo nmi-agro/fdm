@@ -173,24 +173,23 @@ export async function getIndicatorsForFarm({
   timeframe?: Timeframe
   preloadedFields?: Field[]
 }): Promise<FieldBln3Score[]> {
-  const [fields, farmInputs] = await Promise.all([
-    preloadedFields ?? getFields(fdm, principal_id, b_id_farm, timeframe),
-    collectInputForBln3ScoreForFarm(fdm, principal_id, b_id_farm, timeframe).catch(
-      (error: unknown) => ({ error }),
-    ),
-  ])
+  const fields = preloadedFields ?? (await getFields(fdm, principal_id, b_id_farm, timeframe))
+  // The collector reuses the fields, so they are read only once
+  const farmInputs = await collectInputForBln3ScoreForFarm(
+    fdm,
+    principal_id,
+    b_id_farm,
+    timeframe,
+    fields,
+  ).catch((error: unknown) => ({ error }))
 
-  // A field missing from the farm inputs (for example a preloaded field outside the
-  // timeframe) is collected on its own, as before
-  const inputResults = await Promise.allSettled(
-    fields.map(async (field) => {
-      if (!(farmInputs instanceof Map)) throw farmInputs.error
-      return (
-        farmInputs.get(field.b_id) ??
-        (await collectInputForBln3Score(fdm, principal_id, field.b_id, timeframe))
-      )
-    }),
-  )
+  const inputResults = fields.map((field): PromiseSettledResult<Bln3ScoreCollectedInputs> => {
+    if (!(farmInputs instanceof Map)) return { status: "rejected", reason: farmInputs.error }
+    const inputs = farmInputs.get(field.b_id)
+    return inputs
+      ? { status: "fulfilled", value: inputs }
+      : { status: "rejected", reason: new Error(`No BLN3 inputs for field ${field.b_id}`) }
+  })
 
   const scoreByField = await getScoresForFields(
     fields.flatMap((field, index) => {

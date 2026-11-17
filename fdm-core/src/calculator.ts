@@ -15,6 +15,12 @@ const CACHE_READ_CHUNK_SIZE = 500
 /** Maximum number of rows written in a single cache insert. Inputs can be large JSON documents. */
 const CACHE_WRITE_CHUNK_SIZE = 100
 
+/**
+ * How long `many` collects new results before writing them. Results that are ready within this
+ * time of each other share one insert, and a slow calculation does not hold back the others.
+ */
+const CACHE_WRITE_DELAY_MS = 1000
+
 /** Options for the `many` method of a {@link CachedCalculation}. */
 export interface CachedCalculationManyOptions {
   /**
@@ -22,6 +28,12 @@ export interface CachedCalculationManyOptions {
    * Defaults to no limit. Set it when the calculation calls an external service.
    */
   concurrency?: number
+  /**
+   * Runs the calculation of each cache miss, for example through a semaphore that other work
+   * shares, so that one limit covers all requests to an external service. Applies in addition
+   * to `concurrency`.
+   */
+  limit?: <T>(task: () => Promise<T>) => Promise<T>
 }
 
 /**
@@ -39,7 +51,10 @@ export type CachedCalculation<T_Input extends object, T_Output> = ((
 ) => Promise<T_Output>) & {
   /**
    * Returns the results for several inputs, reading the cache with one query (per 500 inputs)
-   * and writing all new results with one insert (per 100 results).
+   * and writing the new results in batches: results that are ready within a second of each
+   * other share one insert (per 100 results), so calculations that finish together (such as
+   * local calculations) are written with one insert, and a slow calculation does not hold back
+   * the results of the others.
    *
    * Only the inputs without a cached result are calculated, and identical inputs only once.
    * Each input gets its own promise, in the order of `inputs`: a hit resolves as soon as the
@@ -402,8 +417,21 @@ export function withCalculationCache<T_Input extends object, T_Output>(
 
       const resultByHash = new Map<string, Promise<T_Output>>()
       const misses: (() => Promise<void>)[] = []
-      const rowsToCache: CachedCalculationRow[] = []
-      const failures: { inputForCache: T_Input; error: unknown }[] = []
+      const writer = createDelayedWriter<CachedCalculationRow, T_Input>({
+        writeRows: (rows) => {
+          if (!cacheResults) return
+          setCachedCalculations(fdm, rows).catch((e: unknown) => {
+            console.error(
+              `Failed to write to calculation cache for ${calculationFunctionName} (${rows.length} results): ${errorToMessage(e)}`,
+            )
+          })
+        },
+        writeFailures: (failures) => recordErrors(fdm, failures),
+      })
+      const calculate = (input: T_Input) =>
+        options.limit
+          ? options.limit(async () => calculationFunction(input))
+          : calculationFunction(input)
       for (const { input, inputForCache, calculationHash } of entries) {
         if (resultByHash.has(calculationHash)) continue
         const cachedResult = cached.get(calculationHash)
@@ -422,9 +450,9 @@ export function withCalculationCache<T_Input extends object, T_Output>(
         resultByHash.set(calculationHash, promise)
         misses.push(async () => {
           try {
-            const result = await calculationFunction(input)
+            const result = await calculate(input)
             if (isUsableResult(result)) {
-              rowsToCache.push({
+              writer.addRow({
                 calculation_hash: calculationHash,
                 calculation_function: calculationFunctionName,
                 calculator_version: calculatorVersion,
@@ -434,25 +462,14 @@ export function withCalculationCache<T_Input extends object, T_Output>(
             }
             resolve(result)
           } catch (e: unknown) {
-            failures.push({ inputForCache, error: e })
+            writer.addFailure({ inputForCache, error: e })
             reject(e)
           }
         })
       }
 
-      // Calculate the misses in the background, then write their results and their errors with
-      // one insert each
-      void runWithConcurrency(misses, options.concurrency).then(() => {
-        if (failures.length > 0) {
-          recordErrors(fdm, failures)
-        }
-        if (!cacheResults || rowsToCache.length === 0) return
-        setCachedCalculations(fdm, rowsToCache).catch((e: unknown) => {
-          console.error(
-            `Failed to write to calculation cache for ${calculationFunctionName} (${rowsToCache.length} results): ${errorToMessage(e)}`,
-          )
-        })
-      })
+      // Calculate the misses in the background; write what is left once all have finished
+      void runWithConcurrency(misses, options.concurrency).then(() => writer.flush())
 
       return { entries, resultByHash }
     })()
@@ -553,6 +570,49 @@ function redactSensitiveKeys(value: unknown, sensitiveKeys: readonly string[]): 
       : redactSensitiveKeys(newObj[key], sensitiveKeys)
   }
   return newObj
+}
+
+/**
+ * Collects new cache rows and failed calculations and writes them in batches: a batch is written
+ * {@link CACHE_WRITE_DELAY_MS} after its first entry, or earlier when `flush` is called.
+ */
+function createDelayedWriter<T_Row, T_Input>({
+  writeRows,
+  writeFailures,
+}: {
+  writeRows: (rows: T_Row[]) => void
+  writeFailures: (failures: { inputForCache: T_Input; error: unknown }[]) => void
+}) {
+  let rows: T_Row[] = []
+  let failures: { inputForCache: T_Input; error: unknown }[] = []
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const flush = () => {
+    if (timer) clearTimeout(timer)
+    timer = undefined
+    if (rows.length > 0) writeRows(rows)
+    if (failures.length > 0) writeFailures(failures)
+    rows = []
+    failures = []
+  }
+  const schedule = () => {
+    if (timer) return
+    timer = setTimeout(flush, CACHE_WRITE_DELAY_MS)
+    // A pending write must not keep the process alive
+    timer.unref?.()
+  }
+
+  return {
+    addRow: (row: T_Row) => {
+      rows.push(row)
+      schedule()
+    },
+    addFailure: (failure: { inputForCache: T_Input; error: unknown }) => {
+      failures.push(failure)
+      schedule()
+    },
+    flush,
+  }
 }
 
 /**

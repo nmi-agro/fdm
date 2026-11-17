@@ -1,19 +1,13 @@
-import type {
-  BaseFertilizerApplication,
-  CachedCalculation,
-  FdmType,
-  Field,
-  PrincipalId,
-} from "@nmi-agro/fdm-core"
+import type { BaseFertilizerApplication, FdmType, Field, PrincipalId } from "@nmi-agro/fdm-core"
 import {
   type AggregatedNormFillingsToFarmLevel,
   type AggregatedNormsToFarmLevel,
   aggregateNormFillingsToFarmLevel,
   aggregateNormsToFarmLevel,
+  calculateNormFillingsForFields,
+  calculateNormsForFields,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
-  type GebruiksnormResult,
-  type NormFilling,
   NormNotApplicableError,
 } from "@nmi-agro/fdm-calculator"
 import type { FieldNormFillings, FieldNormValues } from "~/integrations/calculator"
@@ -74,108 +68,6 @@ export interface FarmNormsContext {
   fillingInputs: Map<string, FillingInput>
 }
 
-/** The manure, phosphate, nitrogen and (from 2026) renure norm or filling of one field. */
-type NormGroup<T> = { manure: T; phosphate: T; nitrogen: T; renure: T | undefined }
-
-/** The cached calculator functions for each norm, or for each filling. */
-type NormGroupFunctions<T> = NormGroup<CachedCalculation<object, T>>
-
-/**
- * Calculates the norms (or fillings) of the given fields. Each norm function looks up all
- * fields in the calculation cache with one query and calculates only the misses.
- *
- * @param inputs - The calculator input per field ID.
- * @returns Per field ID, the values, or the first error in the order manure, phosphate,
- *   nitrogen, renure.
- */
-async function calculateNormGroups<T>(
-  fdm: FdmType,
-  functions: NormGroupFunctions<T>,
-  inputs: Map<string, object>,
-): Promise<Map<string, { values: NormGroup<T> } | { error: unknown }>> {
-  const values = [...inputs.values()]
-  const settle = (fn: CachedCalculation<object, T> | undefined) =>
-    fn ? Promise.allSettled(fn.many(fdm, values)) : Promise.resolve(undefined)
-  const [manure, phosphate, nitrogen, renure] = await Promise.all([
-    settle(functions.manure),
-    settle(functions.phosphate),
-    settle(functions.nitrogen),
-    settle(functions.renure),
-  ])
-
-  const results = new Map<string, { values: NormGroup<T> } | { error: unknown }>()
-  for (const [index, b_id] of [...inputs.keys()].entries()) {
-    const group = [manure, phosphate, nitrogen, renure].map((settled) => settled?.[index])
-    const rejected = group.find((result) => result?.status === "rejected")
-    if (rejected?.status === "rejected") {
-      results.set(b_id, { error: rejected.reason })
-      continue
-    }
-    const [m, p, n, r] = group.map((result) =>
-      result?.status === "fulfilled" ? result.value : undefined,
-    )
-    results.set(b_id, {
-      values: { manure: m as T, phosphate: p as T, nitrogen: n as T, renure: r },
-    })
-  }
-  return results
-}
-
-/** Returns the cached norm functions of the calendar year. */
-function getNormFunctions(calendar: NormsCalendar): NormGroupFunctions<GebruiksnormResult> {
-  const functions = createFunctionsForNorms("NL", calendar)
-  return {
-    manure: functions.calculateNormForManure as CachedCalculation<object, GebruiksnormResult>,
-    phosphate: functions.calculateNormForPhosphate as CachedCalculation<object, GebruiksnormResult>,
-    nitrogen: functions.calculateNormForNitrogen as CachedCalculation<object, GebruiksnormResult>,
-    renure:
-      "calculateNormForRenure" in functions
-        ? (functions.calculateNormForRenure as CachedCalculation<object, GebruiksnormResult>)
-        : undefined,
-  }
-}
-
-/** Returns the cached filling functions of the calendar year. */
-function getFillingFunctions(calendar: NormsCalendar): NormGroupFunctions<NormFilling> {
-  const functions = createFunctionsForFertilizerApplicationFilling("NL", calendar)
-  return {
-    manure: functions.calculateFertilizerApplicationFillingForManure as CachedCalculation<
-      object,
-      NormFilling
-    >,
-    phosphate: functions.calculateFertilizerApplicationFillingForPhosphate as CachedCalculation<
-      object,
-      NormFilling
-    >,
-    nitrogen: functions.calculateFertilizerApplicationFillingForNitrogen as CachedCalculation<
-      object,
-      NormFilling
-    >,
-    renure:
-      "calculateFertilizerApplicationFillingForRenure" in functions
-        ? (functions.calculateFertilizerApplicationFillingForRenure as CachedCalculation<
-            object,
-            NormFilling
-          >)
-        : undefined,
-  }
-}
-
-/** The input of the given fields; a field without input gets an error. */
-function selectInputs<T extends object>(
-  fields: Pick<Field, "b_id">[],
-  inputs: Map<string, T>,
-): { found: Map<string, T>; missing: string[] } {
-  const found = new Map<string, T>()
-  const missing: string[] = []
-  for (const field of fields) {
-    const input = inputs.get(field.b_id)
-    if (input) found.set(field.b_id, input)
-    else missing.push(field.b_id)
-  }
-  return { found, missing }
-}
-
 const FIELD_NOT_FOUND_MESSAGE = "Perceel niet gevonden voor dit jaar."
 
 /**
@@ -206,16 +98,20 @@ export async function collectFarmNormsContext({
     b_id_farm,
   )) as Map<string, object>
 
+  // Each norm looks up all fields in the calculation cache with one query
+  const results = await calculateNormsForFields(
+    fdm,
+    "NL",
+    calendar,
+    fields.map((field) => normInputs.get(field.b_id)),
+  )
   const normValues = new Map<string, FieldNormValues>()
   const normErrors = new Map<string, unknown>()
-  const { found, missing } = selectInputs(fields, normInputs)
-  for (const b_id of missing) {
-    normErrors.set(b_id, new Error(FIELD_NOT_FOUND_MESSAGE))
-  }
-  const results = await calculateNormGroups(fdm, getNormFunctions(calendar), found)
-  for (const [b_id, result] of results) {
-    if ("error" in result) normErrors.set(b_id, result.error)
-    else normValues.set(b_id, result.values)
+  for (const [index, field] of fields.entries()) {
+    const result = results[index]
+    if (!result) normErrors.set(field.b_id, new Error(FIELD_NOT_FOUND_MESSAGE))
+    else if ("error" in result) normErrors.set(field.b_id, result.error)
+    else normValues.set(field.b_id, result.values)
   }
 
   const phosphateNormByField = new Map<string, number>()
@@ -271,20 +167,21 @@ export async function calculateFarmNorms(
   }
 
   // Fillings are only calculated for fields whose norms could be calculated
-  const fieldsWithNorms = context.fields.filter((field) => context.normValues.has(field.b_id))
-  const { found } = selectInputs(fieldsWithNorms, context.fillingInputs)
-  const fillings = await calculateNormGroups<NormFilling>(
+  const fillings = await calculateNormFillingsForFields(
     fdm,
-    getFillingFunctions(context.calendar),
-    found,
+    "NL",
+    context.calendar,
+    context.fields.map((field) =>
+      context.normValues.has(field.b_id) ? context.fillingInputs.get(field.b_id) : undefined,
+    ),
   )
 
-  const fieldNorms: FieldNormsResult[] = context.fields.map((field): FieldNormsResult => {
+  const fieldNorms: FieldNormsResult[] = context.fields.map((field, index): FieldNormsResult => {
     const norms = context.normValues.get(field.b_id)
     if (!norms) {
       return toErrorResult(field, context.normErrors.get(field.b_id) ?? "Onbekende fout.")
     }
-    const filling = fillings.get(field.b_id)
+    const filling = fillings[index]
     if (!filling) {
       return { ...toErrorResult(field, new Error(FIELD_NOT_FOUND_MESSAGE)), norms }
     }

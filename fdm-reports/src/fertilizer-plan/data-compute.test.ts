@@ -20,14 +20,74 @@ const { cached } = vi.hoisted(() => ({
       many: (fdm: unknown, inputs: unknown[]) => inputs.map((input) => fn(fdm, input)),
     }),
 }))
-const calculator = vi.hoisted(() => ({
-  calculateDose: vi.fn(),
-  createFunctionsForFertilizerApplicationFilling: vi.fn(),
-  createFunctionsForNorms: vi.fn(),
-  getMainCultivation: vi.fn(),
-  getNutrientAdvice: cached(vi.fn()),
-  getOrganicMatterBalanceField: cached(vi.fn()),
+// Test double of the batched norm helpers of fdm-calculator, on top of the mocked factories:
+// one `many` call per norm, and per input the values or the first error
+const { settleNormGroup } = vi.hoisted(() => ({
+  settleNormGroup: async (
+    fdm: unknown,
+    functions: Record<string, { many: (fdm: unknown, inputs: unknown[]) => Promise<unknown>[] }>,
+    names: [string, string, string, string],
+    inputs: unknown[],
+  ) => {
+    const requested = inputs.filter((input) => input !== undefined)
+    const settled = await Promise.all(
+      names.map((name) =>
+        functions[name] ? Promise.allSettled(functions[name].many(fdm, requested)) : undefined,
+      ),
+    )
+    let i = -1
+    return inputs.map((input) => {
+      if (input === undefined) return undefined
+      i++
+      const group = settled.map((results) => results?.[i])
+      const rejected = group.find((result) => result?.status === "rejected")
+      if (rejected?.status === "rejected") return { error: rejected.reason }
+      const [manure, phosphate, nitrogen, renure] = group.map((result) =>
+        result?.status === "fulfilled" ? result.value : undefined,
+      )
+      return { values: { manure, phosphate, nitrogen, renure } }
+    })
+  },
 }))
+const calculator = vi.hoisted(() => {
+  const mocks = {
+    calculateDose: vi.fn(),
+    createFunctionsForFertilizerApplicationFilling: vi.fn(),
+    createFunctionsForNorms: vi.fn(),
+    getMainCultivation: vi.fn(),
+    getNutrientAdvice: cached(vi.fn()),
+    getOrganicMatterBalanceField: cached(vi.fn()),
+    calculateNormsForFields: vi.fn(
+      (fdm: unknown, region: string, year: string, inputs: unknown[]) =>
+        settleNormGroup(
+          fdm,
+          mocks.createFunctionsForNorms(region, year),
+          [
+            "calculateNormForManure",
+            "calculateNormForPhosphate",
+            "calculateNormForNitrogen",
+            "calculateNormForRenure",
+          ],
+          inputs,
+        ),
+    ),
+    calculateNormFillingsForFields: vi.fn(
+      (fdm: unknown, region: string, year: string, inputs: unknown[]) =>
+        settleNormGroup(
+          fdm,
+          mocks.createFunctionsForFertilizerApplicationFilling(region, year),
+          [
+            "calculateFertilizerApplicationFillingForManure",
+            "calculateFertilizerApplicationFillingForPhosphate",
+            "calculateFertilizerApplicationFillingForNitrogen",
+            "calculateFertilizerApplicationFillingForRenure",
+          ],
+          inputs,
+        ),
+    ),
+  }
+  return mocks
+})
 
 vi.mock("@nmi-agro/fdm-core", async (importOriginal) => ({
   ...(await importOriginal<object>()),

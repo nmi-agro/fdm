@@ -499,6 +499,59 @@ describe("withCalculationCache many", () => {
     ])
   })
 
+  it("should write the results of fast misses without waiting for a slow miss", async () => {
+    let releaseSlow: (value: number) => void = () => undefined
+    const calculate = vi.fn((input: { value: number }) =>
+      input.value === 2
+        ? new Promise<number>((resolve) => (releaseSlow = resolve))
+        : Promise.resolve(input.value),
+    )
+    const getCalculation = withCalculationCache(calculate, "manySlow", calculatorVersion)
+    const [fastHash, slowHash] = [1, 2].map((value) =>
+      generateCalculationHash("manySlow", calculatorVersion, { value }),
+    )
+
+    const [fast, slow] = getCalculation.many(fdm, [{ value: 1 }, { value: 2 }])
+    await expect(fast).resolves.toBe(1)
+
+    // The fast result is written shortly after it is ready, while the slow one is still running
+    await vi.waitFor(
+      async () => expect((await getCachedCalculations(fdm, [fastHash])).size).toBe(1),
+      { timeout: 3000 },
+    )
+    expect((await getCachedCalculations(fdm, [slowHash])).size).toBe(0)
+
+    releaseSlow(2)
+    await expect(slow).resolves.toBe(2)
+    await waitForCachedHashes([slowHash])
+  })
+
+  it("should run each miss, and only the misses, through the given limit", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => input.value)
+    const getCalculation = withCalculationCache(calculate, "manyLimit", calculatorVersion)
+    await setCachedCalculation(
+      fdm,
+      generateCalculationHash("manyLimit", calculatorVersion, { value: 1 }),
+      "manyLimit",
+      calculatorVersion,
+      { value: 1 },
+      100,
+    )
+    let limitCalls = 0
+    const limit = <T>(task: () => Promise<T>) => {
+      limitCalls++
+      return task()
+    }
+
+    const results = await Promise.all(
+      getCalculation.many(fdm, [{ value: 1 }, { value: 2 }, { value: 3 }], { limit }),
+    )
+
+    expect(results).toEqual([100, 2, 3])
+    expect(limitCalls).toBe(2)
+    expect(calculate).toHaveBeenCalledTimes(2)
+  })
+
   it("should record the errors of several inputs with one insert", async () => {
     const calculate = vi.fn(async (input: { value: number }) => {
       throw new Error(`value ${input.value} is not allowed`)

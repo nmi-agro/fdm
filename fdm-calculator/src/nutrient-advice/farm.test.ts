@@ -7,11 +7,21 @@ const core = vi.hoisted(() => ({
   getCurrentSoilDataForFarm: vi.fn(),
   getFertilizers: vi.fn(),
 }))
-// The cached function has a `many` method; here it requests each input with the single mock
+// The cached function has a `many` method; here it requests each input with the single mock,
+// through the `limit` option like the real one
 const advice = vi.hoisted(() => {
   const getNutrientAdvice = Object.assign(vi.fn(), {
-    many: vi.fn((fdm: unknown, inputs: unknown[]) =>
-      inputs.map((input) => getNutrientAdvice(fdm, input)),
+    many: vi.fn(
+      (
+        fdm: unknown,
+        inputs: unknown[],
+        options?: { limit?: <T>(task: () => Promise<T>) => Promise<T> },
+      ) =>
+        inputs.map((input) =>
+          options?.limit
+            ? options.limit(() => getNutrientAdvice(fdm, input))
+            : getNutrientAdvice(fdm, input),
+        ),
     ),
   })
   return { getNutrientAdvice }
@@ -177,7 +187,7 @@ describe("farm nutrient advice edge cases", () => {
         expect.objectContaining({ b_lu_catalogue: "nl_2014" }),
         expect.objectContaining({ b_lu_catalogue: "nl_2014" }),
       ],
-      { concurrency: 1 },
+      { limit: expect.any(Function) },
     )
   })
 
@@ -211,6 +221,50 @@ describe("farm nutrient advice edge cases", () => {
       "no_main_cultivation",
     ])
     expect(maxRunning).toBe(1)
+  })
+
+  it("shares one limit between cultivation suggestions and advice requests", async () => {
+    const lateCultivation = {
+      ...mainCultivation,
+      b_lu_start: new Date("2026-08-01"),
+      b_lu_end: new Date("2026-10-01"),
+    }
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map([
+        ["f1", [mainCultivation]],
+        ["f2", [lateCultivation]],
+        ["f3", [mainCultivation]],
+        ["f4", [lateCultivation]],
+      ]),
+    )
+    let running = 0
+    let maxRunning = 0
+    const track = async <T>(value: T) => {
+      running++
+      maxRunning = Math.max(maxRunning, running)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      running--
+      return value
+    }
+    advice.getNutrientAdvice.mockImplementation(() => track({ d_n_req: 1 }))
+    suggestion.getCultivationSuggestion.mockImplementation(() =>
+      track({ b_lu_catalogue: "nl_265" }),
+    )
+
+    const rows = await Promise.all(
+      startFarmNutrientAdviceRows({
+        ...input(["f1", "f2", "f3", "f4"].map(field)),
+        concurrency: 2,
+      }),
+    )
+
+    expect(rows.map((row) => row.error?.code)).toEqual([
+      undefined,
+      "no_main_cultivation",
+      undefined,
+      "no_main_cultivation",
+    ])
+    expect(maxRunning).toBe(2)
   })
 
   it("shows a cached advice without waiting for the advice of another field", async () => {
