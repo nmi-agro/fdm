@@ -60,7 +60,9 @@ Kies je **Zone op de kaart**, dan zie je het perceel op de kaart.
 2. Met **Aanpassen** versleep je hoeken of voeg je hoeken toe; met **Wissen** begin je opnieuw.
 3. Onder de kaart staan de **Eerder gebruikte zones** van dit perceel. Klik op een zone om hem opnieuw te gebruiken, bijvoorbeeld een vast blok dat je elke ronde weer beweidt.
 
-Boven de kaart zie je hoeveel hectare van de zone binnen het perceel ligt. Een zone die buiten de perceelsgrens loopt, telt alleen mee voor het deel binnen het perceel.
+Een hoek die je dicht bij de perceelsgrens of bij een eerdere strook zet, springt vanzelf op die grens; dicht bij een hoek van het perceel springt hij op die hoek. Zo sluit een zone precies aan zonder dat je heel nauwkeurig hoeft te klikken. Teken je toch over de perceelsgrens heen, dan knipt {{appName}} de zone af op de grens zodra je klaar bent met tekenen of aanpassen.
+
+Boven de kaart zie je hoeveel hectare van de zone binnen het perceel ligt.
 
 ![Een zone tekenen op het perceel, met eerder gebruikte zones eronder](screenshot:beweiding-zone-tekenen)
 
@@ -88,6 +90,8 @@ Weiden je koeien zonder vaste einddatum, leg dan alleen vast wanneer ze naar bui
 **Vandaag op de kaart** toont al je percelen met hun status van vandaag: beweid, gemaaid, de dagen rust sinds het laatste gebruik of nog niet gebruikt. Zones die vandaag worden beweid, staan op het perceel getekend. Met de pijlen ga je een dag terug of vooruit; klik op de datum om terug te gaan naar vandaag.
 
 Klik op een graslandperceel om er direct koeien naartoe te sturen; dat werkt hetzelfde als **Koeien naar buiten / binnen**.
+
+Je komt hier ook snel vanaf de bedrijfspagina: onder _Acties_ staat **Beweiding vandaag**, zodra je bedrijf een koppel heeft.
 
 ![Vandaag op de kaart: de status per perceel en de zone die vandaag wordt beweid](screenshot:beweiding-vandaag)
 
