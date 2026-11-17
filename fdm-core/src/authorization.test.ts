@@ -1,3 +1,4 @@
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
@@ -14,8 +15,10 @@ import {
   revokePrincipal,
   roles,
   updateRole,
+  withAuditContext,
 } from "./authorization"
 import { addBarn } from "./barn"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -131,6 +134,11 @@ describe("Authorization Functions", () => {
   })
 
   describe("checkPermission", () => {
+    beforeAll(async () => {
+      // addAnimal derives its category from the herd, so the catalogue must exist
+      await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+    })
+
     it("should allow access if principal has the required role", async () => {
       await grantRole(fdm, "farm", "owner", farm_id, principal_id)
       await checkPermission(fdm, "farm", "read", farm_id, principal_id, "test")
@@ -188,7 +196,9 @@ describe("Authorization Functions", () => {
       const b_id_barn = await addBarn(fdm, principal_id, real_farm_id)
       await checkPermission(fdm, "barn", "read", b_id_barn, principal_id, "test")
 
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "test")
 
       const l_id_animal = await addAnimal(fdm, principal_id, real_farm_id, l_id_herd)
@@ -222,7 +232,9 @@ describe("Authorization Functions", () => {
       await checkPermission(fdm, "milk", "read", l_id_milktank, principal_id, "test")
 
       // Branch 2: resource_id matches a herd-level milking record (l_id_herd)
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, new Date())
       await checkPermission(fdm, "milk", "read", l_id_herd, principal_id, "test")
 
@@ -267,7 +279,9 @@ describe("Authorization Functions", () => {
       await checkPermission(fdm, "feed", "read", f_id_batch, principal_id, "test")
 
       // Branch 2: resource_id matches a herd feeding record (l_id_herd)
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, new Date())
       await checkPermission(fdm, "feed", "read", l_id_herd, principal_id, "test")
 
@@ -297,7 +311,9 @@ describe("Authorization Functions", () => {
       await checkPermission(fdm, "manure", "read", b_id_manurepit, principal_id, "test")
 
       // Branch 2: resource_id matches an excreting record (l_id_excreting)
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit)
       await checkPermission(fdm, "manure", "read", l_id_excreting, principal_id, "test")
 
@@ -356,6 +372,44 @@ describe("Authorization Functions", () => {
       expect(auditLogs[0].target_resource_id).toBe(farm_id)
       expect(auditLogs[0].action).toBe("read")
       expect(auditLogs[0].allowed).toBe(false)
+    })
+
+    it.each(["app", "api", "mcp"] as const)(
+      "should store the audit channel and credential when the channel is %s",
+      async (channel) => {
+        const principal_id_new = createId()
+        const credential_id = createId()
+
+        await withAuditContext({ channel, credential_id }, () =>
+          expect(
+            checkPermission(fdm, "farm", "read", farm_id, principal_id_new, "test"),
+          ).rejects.toThrowError("Principal does not have permission to perform this action"),
+        )
+
+        const auditLogs = await fdm
+          .select()
+          .from(authZSchema.audit)
+          .where(eq(authZSchema.audit.principal_id, principal_id_new))
+        expect(auditLogs).toHaveLength(1)
+        expect(auditLogs[0].audit_channel).toBe(channel)
+        expect(auditLogs[0].credential_id).toBe(credential_id)
+      },
+    )
+
+    it("should store channel app without a credential outside an audit context", async () => {
+      const principal_id_new = createId()
+
+      await expect(
+        checkPermission(fdm, "farm", "read", farm_id, principal_id_new, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+      const auditLogs = await fdm
+        .select()
+        .from(authZSchema.audit)
+        .where(eq(authZSchema.audit.principal_id, principal_id_new))
+      expect(auditLogs).toHaveLength(1)
+      expect(auditLogs[0].audit_channel).toBe("app")
+      expect(auditLogs[0].credential_id).toBeNull()
     })
 
     it("should not store the audit log if non-strict", async () => {
@@ -957,6 +1011,7 @@ describe("Authorization Functions", () => {
         "soil_analysis",
         "soil_image",
         "harvesting",
+        "farm_group",
         "barn",
         "herd",
         "animal",

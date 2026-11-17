@@ -1,9 +1,36 @@
-import type { ExpressionSpecification } from "maplibre-gl"
+import type { ExpressionSpecification, LineLayerSpecification } from "maplibre-gl"
 import type { LayerProps } from "react-map-gl/maplibre"
 import {
   getCultivationColor,
   getCultivationTypesHavingColors,
 } from "~/components/custom/cultivation-colors"
+
+/**
+ * Outline of the fields in the thematic atlas layers (such as Bemestingsadvies and Bodemanalyses):
+ * a white dotted line, so the field boundaries are easy to spot on the satellite map regardless of
+ * the fill colour.
+ *
+ * `line-cap: round` with a short dash turns the dashes into dots. Routes merge their own
+ * `visibility` into this `layout`.
+ *
+ * @returns Layer `type`, `layout` and `paint` props.
+ */
+export function getDottedFieldOutlineStyle(): {
+  type: "line"
+  layout: LineLayerSpecification["layout"]
+  paint: LineLayerSpecification["paint"]
+} {
+  return {
+    type: "line",
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": "#ffffff",
+      "line-width": 2.5,
+      // Dash lengths are in line widths: a near-zero dash + round cap = a dot, then a 2-width gap.
+      "line-dasharray": [0.1, 2],
+    },
+  }
+}
 
 export function getFieldsStyle(layerId: string): LayerProps {
   const style = getFieldsStyleInner(layerId)

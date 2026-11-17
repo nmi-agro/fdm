@@ -2,9 +2,9 @@ import {
   cancelInvitationForFarm,
   getFarm,
   grantRoleToFarm,
+  identifyPrincipal,
   isAllowedToShareFarm,
   listPrincipalsForFarm,
-  lookupPrincipal,
   revokePrincipalFromFarm,
   updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
@@ -18,9 +18,13 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
-import { AccessInfoCard } from "~/components/blocks/access/access-info-card"
+import type { HelpHandle } from "~/lib/manual/help-targets"
+import {
+  AccessInfoCard,
+  type AccessVerificationProvider,
+} from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -32,7 +36,8 @@ import {
   sendEmail,
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
@@ -41,6 +46,9 @@ import { HeaderFarmCreate } from "../components/blocks/header/create-farm"
 import { SidebarInset } from "../components/ui/sidebar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "toegang" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -75,14 +83,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const principals = await listPrincipalsForFarm(fdm, session.principal_id, b_id_farm)
 
     const hasSharePermission = await isAllowedToShareFarm(fdm, session.principal_id, b_id_farm)
-    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+    // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+    // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     return {
       b_id_farm: b_id_farm,
       b_name_farm: farm.b_name_farm,
       principals: principals,
       hasSharePermission: hasSharePermission,
-      verificationProviders: farmVerification.providers,
+      // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+      // verificationProviders: farmVerification.providers,
+      verificationProviders: [] as AccessVerificationProvider[],
       calendar: calendar,
     }
   } catch (error) {
@@ -99,7 +110,7 @@ export default function CreateFarmAccessStep() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="toegang">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
       <main>
@@ -115,13 +126,10 @@ export default function CreateFarmAccessStep() {
             </div>
 
             <div className="ml-auto">
-              <Button asChild>
-                <NavLink to={`/farm/${b_id_farm}`}>
-                  {" "}
-                  {/* Navigate to the main farm page */}
-                  Voltooien
-                </NavLink>
-              </Button>
+              <NavLink to={`/farm/${b_id_farm}`} className={buttonVariants({})} data-slot="button">
+                {" "}
+                {/* Navigate to the main farm page */}Voltooien
+              </NavLink>
             </div>
           </div>
           <Separator className="my-6" />
@@ -175,12 +183,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const normalizedTarget = formValues.username.toLowerCase().trim()
         const isEmailTarget = isEmail(normalizedTarget)
 
-        const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-        targetPrincipal = matchedPrincipals.find(
-          (p) =>
-            p.username.toLowerCase() === normalizedTarget ||
-            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-        )
+        targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
 
         const targetEmail = isEmailTarget
           ? normalizedTarget
@@ -248,12 +251,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           const farm = await getFarm(fdm, principalId, b_id_farm)
           const normalizedTarget = formValues.username.toLowerCase().trim()
           const isEmailTarget = isEmail(normalizedTarget)
-          const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-          const targetPrincipal = matchedPrincipals.find(
-            (p) =>
-              p.username.toLowerCase() === normalizedTarget ||
-              (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-          )
+          const targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
           const targetEmail = isEmailTarget
             ? normalizedTarget
             : targetPrincipal?.type === "user"

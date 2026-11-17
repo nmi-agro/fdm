@@ -30,7 +30,7 @@ Three changes matter most when moving from the 2025 to the 2026 norms.
 Derogation was phased out after 2025. For 2026 the animal manure norm is a flat **170 kg N/ha** for every farm, and derogation status is no longer an input to any norm. As a consequence:
 
 - The farm no longer supplies a derogation status; only the **grazing intention** (`has_grazing_intention`) is used, and only to pick the grassland norm variant.
-- The grassland renewal periods on clay and peat no longer vary by derogation status.
+- The grassland renewal and destruction reductions apply only on sand and loess.
 
 ### 2. Renure Is Recognised
 

@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react-router"
-import { LifeBuoy, Send } from "lucide-react"
-import { useEffect, useState } from "react"
+import { BookOpen, LifeBuoy, Send } from "lucide-react"
+import { useEffect, useSyncExternalStore } from "react"
 import { NavLink, useParams } from "react-router"
 import { toast } from "sonner"
 import { clientConfig } from "@/app/lib/config"
@@ -14,6 +14,25 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useAnalytics } from "~/hooks/use-analytics"
+import { useHelpTarget } from "~/hooks/use-help-target"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
+import { getHelpHref } from "~/lib/manual/help-targets"
+
+const noop = () => () => {}
+
+function getFeedbackSnapshot() {
+  try {
+    return Sentry.getFeedback() ?? null
+  } catch (error) {
+    console.error("Failed to initialize Sentry feedback:", error)
+    return null
+  }
+}
+
+function getFeedbackServerSnapshot() {
+  return null
+}
 
 export function SidebarSupport({
   name,
@@ -25,6 +44,8 @@ export function SidebarSupport({
   hasNotification?: boolean
 }) {
   const params = useParams()
+  const helpTarget = useHelpTarget()
+  const { capture } = useAnalytics()
 
   useEffect(() => {
     if (clientConfig.analytics.sentry) {
@@ -39,27 +60,7 @@ export function SidebarSupport({
     }
   }, [name, email])
 
-  const [feedback, setFeedback] = useState<ReturnType<typeof Sentry.getFeedback> | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    try {
-      const feedbackInstance = Sentry.getFeedback()
-      if (feedbackInstance) {
-        setFeedback(feedbackInstance)
-      } else {
-        console.warn("Sentry.getFeedback() returned null or undefined.")
-      }
-    } catch (error) {
-      console.error("Failed to initialize Sentry feedback:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  if (isLoading) {
-    return null
-  }
+  const feedback = useSyncExternalStore(noop, getFeedbackSnapshot, getFeedbackServerSnapshot)
 
   const openFeedbackForm = async () => {
     if (!feedback || typeof feedback.createForm !== "function") {
@@ -84,32 +85,55 @@ export function SidebarSupport({
       <SidebarGroupContent>
         <SidebarMenu>
           <ChangelogNotification />
-          <SidebarMenuItem key="support">
-            <SidebarMenuButton size="sm" asChild>
-              <NavLink
-                to={modifySearchParams("/support/new", (searchParams) => {
-                  if (params.b_id_farm) {
-                    searchParams.set("context_farm_id", params.b_id_farm)
+          <SidebarMenuItem key="manual">
+            <SidebarMenuButton
+              size="sm"
+              render={
+                <a
+                  href={helpTarget ? getHelpHref(helpTarget) : "/manual"}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() =>
+                    capture(MANUAL_EVENTS.helpLinkClicked, {
+                      help_target: helpTarget ?? "manual",
+                      source: "sidebar",
+                      from_path: window.location.pathname,
+                    })
                   }
-                })}
-              >
-                <LifeBuoy />
-                {hasNotification ? (
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <span className="relative">
+                />
+              }
+            >
+              <BookOpen />
+              <span>Handleiding</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem key="support">
+            <SidebarMenuButton
+              size="sm"
+              render={
+                <NavLink
+                  to={modifySearchParams("/support/new", (searchParams) => {
+                    if (params.b_id_farm) {
+                      searchParams.set("context_farm_id", params.b_id_farm)
+                    }
+                  })}
+                >
+                  <LifeBuoy />
+                  {hasNotification ? (
+                    <Tooltip>
+                      <TooltipTrigger render={<span className="relative" />}>
                         Ondersteuning
                         <span className="sr-only">, Er zijn nieuwe berichten te bekijken.</span>
-                        <div className="bg-destructive absolute -top-1 -right-2 size-2 rounded-full" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Er zijn nieuwe berichten te bekijken.</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <span>Ondersteuning</span>
-                )}
-              </NavLink>
-            </SidebarMenuButton>
+                        <span className="bg-destructive absolute -top-1 -right-2 size-2 rounded-full" />
+                      </TooltipTrigger>
+                      <TooltipContent>Er zijn nieuwe berichten te bekijken.</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span>Ondersteuning</span>
+                  )}
+                </NavLink>
+              }
+            />
           </SidebarMenuItem>
           {clientConfig.analytics.sentry ? (
             <SidebarMenuItem key="feedback">

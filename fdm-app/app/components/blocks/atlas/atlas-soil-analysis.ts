@@ -2,10 +2,39 @@ import type { ExpressionSpecification, FillLayerSpecification } from "maplibre-g
 
 const FILL_LAYER_TYPE = "fill" as const
 
+/**
+ * Fill colour of fields without a value for the selected parameter (dark grey, like fields without
+ * advice in the Bemestingsadvies layer).
+ */
+export const SOIL_ANALYSIS_NO_DATA_COLOR = "#4b5563"
+
+/** Fill opacity of fields with a value; the satellite map stays faintly visible underneath. */
+const FILL_OPACITY = 0.75
+/** Fill opacity of fields without a value, so they recede. */
+const NO_DATA_FILL_OPACITY = 0.55
+
 type FillLayerStyle = {
   type: typeof FILL_LAYER_TYPE
   paint: FillLayerSpecification["paint"]
 }
+
+/**
+ * Dutch UI copy of the sampling zones and points in the layer, in one place so that it can move to
+ * an i18n catalogue later.
+ */
+export const SOIL_SAMPLING_COPY = {
+  analysis: "Bodemanalyse",
+  unknownDate: "(onbekende datum)",
+  zone: "Bemonsterde zone",
+  point: "Monsterpunt",
+  source: "Bron",
+  share: (percentage: number) => `Telt voor ${percentage}% mee in de waarde van het perceel`,
+  aggregated: (count: number) => `Gemiddelde van ${count} zones`,
+  openAnalysis: "Bekijk analyse",
+  clickHint: "Klik voor de analyse",
+  legendZone: "Bemonsterde zone (eigen waarde)",
+  legendPoint: "Monsterpunt",
+} as const
 
 /* ================ SHADING DEFINITIONS ================ */
 
@@ -142,7 +171,9 @@ export const GRADIENT_DEFINITIONS: {
 
 /** MapLibreGL match arm definitions for each soil type that should be shaded according to enum values */
 const ENUM_SHADED_SOIL_PARAMETERS = {
-  b_soiltype_agr: SHADED_SOIL_TYPES.flatMap(({ value, fill }) => [value, fill]).concat(["#777777"]),
+  b_soiltype_agr: SHADED_SOIL_TYPES.flatMap(({ value, fill }) => [value, fill]).concat([
+    SOIL_ANALYSIS_NO_DATA_COLOR,
+  ]),
 } as const
 type EnumShadedSoilParameters = keyof typeof ENUM_SHADED_SOIL_PARAMETERS
 
@@ -260,13 +291,19 @@ export function getSoilAnalysisLayerStyle(
 ): FillLayerStyle {
   // MapLibreGL expression to get the data path out of the input object (which is the feature properties)
   const dataGetter = getShadingParameterMapper(parameter).paint(["get", parameter])
+  const fillOpacity: ExpressionSpecification = [
+    "case",
+    ["has", parameter],
+    FILL_OPACITY,
+    NO_DATA_FILL_OPACITY,
+  ]
 
   if (parameter in ENUM_SHADED_SOIL_PARAMETERS) {
     const fillColor = ENUM_SHADED_SOIL_PARAMETERS[parameter as EnumShadedSoilParameters]
     return {
       type: FILL_LAYER_TYPE,
       paint: {
-        "fill-opacity": 0.8,
+        "fill-opacity": fillOpacity,
         "fill-color": ["match", dataGetter, ...fillColor] as ExpressionSpecification,
       },
     }
@@ -276,12 +313,21 @@ export function getSoilAnalysisLayerStyle(
     const gradientName = GRADIENT_SHADED_SOIL_PARAMETERS[parameter as GradientShadedSoilParameters]
     const fillColor = GRADIENT_DEFINITIONS[gradientName]
     function greyIfUndefined(expr: ExpressionSpecification): ExpressionSpecification {
-      return ["match", ["typeof", dataGetter], "number", expr, "string", expr, "#777777"]
+      return [
+        "match",
+        ["typeof", dataGetter],
+        "number",
+        expr,
+        "string",
+        expr,
+        SOIL_ANALYSIS_NO_DATA_COLOR,
+      ]
     }
 
     return {
       type: FILL_LAYER_TYPE,
       paint: {
+        "fill-opacity": fillOpacity,
         "fill-color": greyIfUndefined([
           "interpolate",
           ["linear"],

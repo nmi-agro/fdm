@@ -1,4 +1,10 @@
 import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
+
+/**
+ * Names of the standard fertilizer catalogues. A fertilizer whose `p_source` is not one of these
+ * is a custom fertilizer, whose source is the ID of the farm it belongs to.
+ */
+export const fertilizerCatalogueNames: readonly CatalogueFertilizerName[] = ["srm", "baat"]
 /* eslint-disable typescript/restrict-template-expressions -- catalogueName is a union of string literals which safely interpolates in template strings. */
 import { getCatalogueBaat } from "./catalogues/baat"
 import { getCatalogueSrm } from "./catalogues/srm"

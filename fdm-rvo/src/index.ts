@@ -26,11 +26,13 @@
  * @packageDocumentation
  */
 
+export * from "./apply"
 export * from "./auth"
 export * from "./compare"
 export * from "./data"
 export * from "./errors"
 export * from "./process"
+export * from "./review"
 export * from "./shapefile"
 export * from "./types"
 export * from "./utils"

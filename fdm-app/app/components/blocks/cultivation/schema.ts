@@ -48,6 +48,9 @@ export type CultivationDetailsFormSchemaType = z.infer<typeof CultivationDetails
 
 export const CultivationAddFormSchema = z
   .object({
+    intent: z.string().optional(),
+    b_id: z.string().optional(),
+    b_lu: z.string().optional(),
     b_lu_catalogue: z.string().trim().min(1, "Gewas is verplicht."),
     b_lu_start: z.preprocess(
       (val) => (typeof val === "string" ? new Date(val) : val),

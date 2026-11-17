@@ -4,13 +4,14 @@ import type {
   NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { nl } from "@daypicker/react/locale"
+import { cn } from "cn"
 import { format } from "date-fns/format"
-import { useId, useMemo, useState } from "react"
+import { useId, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
-import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { ChartContainer, ChartLegend, ChartTooltip } from "~/components/ui/chart"
+import { formatBalanceValue } from "~/lib/format"
 
 type FieldInput = FdmFieldInput
 type FarmBalanceData = NitrogenBalanceNumeric
@@ -22,6 +23,8 @@ type ApplicationChartConfigItem = {
   styleId?: string
   unit?: string
   detail?: string[]
+  /** Minimum width of the bar in pixels, so that a small value stays visible. */
+  minPointSize?: number
 }
 
 function buildChartDataAndLegend({
@@ -58,6 +61,7 @@ function buildChartDataAndLegend({
         ? undefined
         : Math.abs(balanceData.emission.ammonia.total),
     emissionNitrate: nitrateEmission === undefined ? undefined : Math.abs(nitrateEmission),
+    emissionNitrousOxide: Math.abs(balanceData.emission.nitrous_oxide.total),
   }
 
   const farmFixationLegend = {
@@ -105,6 +109,14 @@ function buildChartDataAndLegend({
       color: "var(--color-gray-600)",
     },
     ...(type === "farm" ? farmRemovalLegend : {}),
+    emissionNitrousOxide: {
+      label: "Lachgasemissie",
+      color: "var(--color-violet-600)",
+    },
+    emissionNitrate: {
+      label: "Nitraatuitspoeling",
+      color: "var(--color-red-400)",
+    },
   }
 
   const chartConfig: Record<string, ApplicationChartConfigItem> = {
@@ -121,9 +133,11 @@ function buildChartDataAndLegend({
       label: "Afvoer via gewasresten",
       color: "var(--color-emerald-600)",
     },
-    emissionNitrate: {
-      label: "Nitraatuitspoeling",
-      color: "var(--color-red-400)",
+    emissionNitrousOxide: {
+      ...legend.emissionNitrousOxide,
+      // The N₂O emission is small compared with the other items, so keep its bar visible, but
+      // draw no bar when there is no emission
+      minPointSize: chartData.emissionNitrousOxide ? 3 : 0,
     },
   }
 
@@ -370,6 +384,8 @@ function buildChartDataAndLegend({
     ...removalBar,
     ...fertilizerAmmoniaBar,
     ...residueAmmoniaBar,
+    // N₂O is part of the balance, so it comes before the nitrate leaching, which is not
+    "emissionNitrousOxide",
     "emissionNitrate",
   ]
 
@@ -391,13 +407,11 @@ export function NitrogenBalanceChart(
         fieldInput: FieldInput
       },
 ) {
-  const { type, balanceData, fieldInput } = props
   const [barOutlineFocus, setBarOutlineFocus] = useState<string | number | undefined>()
 
-  const { legend, chartData, chartConfig, supplyBar, removalBar } = useMemo(
-    () => buildChartDataAndLegend(props),
-    [type, balanceData, fieldInput],
-  )
+  // Not memoized: the dependency array would otherwise need `props` itself, which is a fresh
+  // object every render, defeating memoization anyway.
+  const { legend, chartData, chartConfig, supplyBar, removalBar } = buildChartDataAndLegend(props)
   const svgId = useId()
 
   const barRadius = 5
@@ -455,6 +469,7 @@ export function NitrogenBalanceChart(
           radius={barRadius}
           stackId={stackId}
           fill={barStyle.color}
+          minPointSize={barStyle.minPointSize}
           onMouseEnter={() => setBarOutlineFocus(dataKey)}
           onMouseLeave={() => {
             if (dataKey === barOutlineFocus) {
@@ -469,6 +484,8 @@ export function NitrogenBalanceChart(
   return (
     <ChartContainer
       config={chartConfig}
+      // On narrow screens the wrapped legend takes most of the 16:9 height; keep room for the bars
+      className="min-h-80"
       onMouseLeave={() => {
         setBarOutlineFocus(undefined)
       }}
@@ -500,8 +517,8 @@ export function NitrogenBalanceChart(
             const itemConfig = chartConfig[name]
             if (!itemConfig) return null
             return (
-              <Card>
-                <CardHeader className="p-4 pb-0">
+              <Card size="sm">
+                <CardHeader>
                   <div>
                     <div
                       className="me-2 inline-block h-2 w-2 rounded-[2px]"
@@ -520,10 +537,13 @@ export function NitrogenBalanceChart(
                     </div>
                   ))}
                 </CardHeader>
-                <CardContent className="p-4">
+                <CardContent>
                   <div className="font-bold">
                     <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
-                    {chartData[name]} {itemConfig.unit ?? "kg N / ha"}
+                    {typeof chartData[name] === "number"
+                      ? formatBalanceValue(chartData[name])
+                      : chartData[name]}{" "}
+                    {itemConfig.unit ?? "kg N / ha"}
                   </div>
                 </CardContent>
               </Card>
@@ -531,7 +551,7 @@ export function NitrogenBalanceChart(
           }}
         />
         <ChartLegend
-          content={
+          content={() => (
             <div className={"flex flex-wrap items-center justify-center gap-4"}>
               {Object.entries(legend).map(([dataKey, itemConfig]) => {
                 return (
@@ -552,7 +572,7 @@ export function NitrogenBalanceChart(
                 )
               })}
             </div>
-          }
+          )}
         />
         {renderBar("a", supplyBar)}
         {renderBar("b", removalBar)}

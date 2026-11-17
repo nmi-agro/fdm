@@ -2,6 +2,18 @@ import { RvoClient } from "@nmi-agro/rvo-connector"
 import fs from "node:fs"
 
 /**
+ * Controls which SOAP XML messages exchanged with RVO are logged.
+ *
+ * - `"none"`: no XML is logged (default).
+ * - `"request"`: log the XML sent to RVO.
+ * - `"response"`: log the XML received from RVO.
+ * - `"both"`: log both requests and responses.
+ *
+ * The XML can contain farm data and identifiers, so only enable it temporarily for debugging.
+ */
+export type RvoLogXml = "none" | "request" | "response" | "both"
+
+/**
  * Creates and configures an instance of the RVO Client.
  *
  * This client is the main entry point for interacting with RVO services.
@@ -12,6 +24,7 @@ import fs from "node:fs"
  * @param redirectUri - The callback URL where RVO will redirect the user after login. Must match the registered URI.
  * @param pkioPrivateKey - The private key (PKIO) used for signing client assertions in the OAuth flow.
  * @param environment - The RVO environment to connect to. Defaults to "production". Use "acceptance" for testing.
+ * @param logXml - Which SOAP XML messages to log. Defaults to "none". The XML can contain farm data, so only enable it temporarily for debugging.
  * @returns An initialized `RvoClient` instance ready for authentication.
  */
 export const createRvoClient = (
@@ -20,6 +33,7 @@ export const createRvoClient = (
   redirectUri: string,
   pkioPrivateKey: string,
   environment: "acceptance" | "production" = "production",
+  logXml: RvoLogXml = "none",
 ) => {
   let privateKey = pkioPrivateKey
   if (
@@ -39,6 +53,7 @@ export const createRvoClient = (
     clientId,
     clientName,
     environment,
+    logXml,
     tvs: {
       clientId,
       redirectUri,

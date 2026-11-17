@@ -12,8 +12,11 @@ import { isbot } from "isbot"
 import { PassThrough } from "node:stream"
 import { renderToPipeableStream } from "react-dom/server"
 import { ServerRouter } from "react-router"
-import { reportError } from "~/lib/error"
+import { maskSentrySecrets } from "~/lib/analytics-privacy"
+import { isInternalRouterNoise, reportError } from "~/lib/error"
 import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"
+
+maskSentrySecrets()
 
 export const streamTimeout = 180000
 
@@ -163,8 +166,16 @@ function handleBrowserRequest(
 export default wrapSentryHandleRequest(handleRequest)
 
 export const handleError: HandleErrorFunction = (error, { request }) => {
-  // React Router may abort some interrupted requests, report those
-  if (!request.signal.aborted) {
-    reportError(error, { scope: "unhandled" })
+  // React Router may abort some interrupted requests, do not report those
+  if (request.signal.aborted) return
+
+  // Unmatched routes or unsupported methods from bots/scanners: expected
+  // behaviour, so log one line and do not send to Sentry
+  if (isInternalRouterNoise(error)) {
+    const { pathname } = new URL(request.url)
+    console.debug(`${error.status} ${error.statusText}: ${request.method} ${pathname}`)
+    return
   }
+
+  reportError(error, { scope: "unhandled" })
 }

@@ -7,6 +7,7 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderIndicators } from "~/components/blocks/header/indicators"
@@ -15,6 +16,8 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+
+export const handle: HelpHandle = { help: "bodemkwaliteit" }
 
 export const meta: MetaFunction = () => {
   return [

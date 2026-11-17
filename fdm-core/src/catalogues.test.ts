@@ -2,7 +2,6 @@ import {
   getAnimalCategoriesCatalogue,
   getCultivationCatalogue,
   getFertilizersCatalogue,
-  getMeasuresCatalogue,
 } from "@nmi-agro/fdm-data"
 import { and, eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
@@ -32,14 +31,6 @@ import {
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-
-vi.mock("@nmi-agro/fdm-data", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@nmi-agro/fdm-data")>()
-  return {
-    ...original,
-    getMeasuresCatalogue: vi.fn().mockResolvedValue([]),
-  }
-})
 
 describe("Catalogues", () => {
   let fdm: FdmType
@@ -702,6 +693,48 @@ describe("Catalogues syncing", () => {
     expect(options?.length).toBeGreaterThan(0)
     expect(options?.every((s: string) => typeof s === "string" && s.trim().length > 0)).toBe(true)
   })
+
+  it("should sync cultivation catalogue with availability years", async () => {
+    await syncCatalogues(fdm)
+
+    const catalogueWithVarietyOptions = await fdm
+      .select()
+      .from(schema.cultivationsCatalogue)
+      .where(isNotNull(schema.cultivationsCatalogue.b_lu_ya))
+      .limit(1)
+
+    expect(catalogueWithVarietyOptions.length).toBeGreaterThan(0)
+    const options = catalogueWithVarietyOptions[0].b_lu_ya
+    expect(Array.isArray(options)).toBe(true)
+    expect(options?.length).toBeGreaterThan(0)
+    expect(options?.every((s: number) => typeof s === "number")).toBe(true)
+  })
+
+  it("should sync availability years when they change", async () => {
+    await syncCatalogues(fdm)
+
+    const B_LU_CATALOGUE = "nl_2014" // aardappelen, consumptie
+    await fdm
+      .update(schema.cultivationsCatalogue)
+      .set({
+        hash: "123456",
+        b_lu_ya: [1999],
+      })
+      .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, B_LU_CATALOGUE))
+
+    await syncCatalogues(fdm)
+
+    const catalogueWithVarietyOptions = await fdm
+      .select()
+      .from(schema.cultivationsCatalogue)
+      .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, B_LU_CATALOGUE))
+      .limit(1)
+
+    expect(catalogueWithVarietyOptions.length).toBeGreaterThan(0)
+    const options = catalogueWithVarietyOptions[0].b_lu_ya
+    expect(options).not.toBeNull()
+    expect(options).not.toContain(1999)
+  })
 })
 
 describe("Measures Catalogue Sync", () => {
@@ -800,30 +833,53 @@ describe("Measures Catalogue Sync", () => {
     expect(rowsAfter[0].updated).toEqual(rowsBefore[0].updated)
   })
 
-  it("syncCatalogues without nmiApiKey should not call getMeasuresCatalogue", async () => {
-    vi.mocked(getMeasuresCatalogue).mockClear()
-
-    await syncCatalogues(fdm) // no nmiApiKey
-
-    expect(vi.mocked(getMeasuresCatalogue)).not.toHaveBeenCalled()
+  // Stub `fetch` instead of mocking `@nmi-agro/fdm-data`: with `isolate: false`,
+  // `./catalogues` may already be loaded by another test file with the real module.
+  it("syncCatalogues without nmiApiKey should not fetch the measures catalogue", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      await syncCatalogues(fdm) // no nmiApiKey
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it("syncCatalogues with nmiApiKey should sync measures catalogue", async () => {
-    vi.mocked(getMeasuresCatalogue).mockResolvedValue([
-      {
-        m_id: "bln_SYNC1",
-        m_source: "bln",
-        m_name: "Test Sync Measure",
-        m_description: null,
-        m_summary: null,
-        m_source_url: null,
-        m_conflicts: null,
-      },
-    ])
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            measures: [
+              {
+                m_id: "SYNC1",
+                m_name: "Test Sync Measure",
+                m_summary: null,
+                m_description: null,
+                m_source_url: null,
+                m_conflicts: null,
+                m_applicability: [],
+              },
+            ],
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+    } finally {
+      vi.unstubAllGlobals()
+    }
 
-    await syncCatalogues(fdm, { nmiApiKey: "test-key" })
-
-    expect(vi.mocked(getMeasuresCatalogue)).toHaveBeenCalledWith("bln", "test-key")
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.nmi-agro.nl/maatwerk/bln3/measures",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: expect.stringContaining("test-key") }),
+      }),
+    )
     const rows = await fdm
       .select({ m_id: schema.measuresCatalogue.m_id })
       .from(schema.measuresCatalogue)

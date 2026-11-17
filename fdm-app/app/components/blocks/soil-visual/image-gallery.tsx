@@ -1,4 +1,5 @@
-import { MapPin, Pencil, Trash2 } from "lucide-react"
+import { cn } from "cn"
+import { Eye, MapPin, Pencil, Trash2 } from "lucide-react"
 import { type MouseEvent, type PointerEvent, useCallback, useMemo, useRef, useState } from "react"
 import {
   AlertDialog,
@@ -33,7 +34,6 @@ import {
   type FreehandCoords,
   type PinCoords,
 } from "~/lib/bcs"
-import { cn } from "~/lib/utils"
 
 interface GalleryAnnotation {
   type: AnnotationType
@@ -59,6 +59,7 @@ interface ImageGalleryProps {
     bcsIndicator?: string,
   ) => void
   onRemoveAnnotation?: (imageId: string, annotationIndex: number) => void
+  onRemoveImage?: (imageId: string) => void
   editMode?: boolean
   defaultIndicator?: BcsVisualKey
 }
@@ -160,20 +161,18 @@ function AnnotationOverlay({
             onClick={(e) => e.stopPropagation()}
           >
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-full border-2 border-white text-xs font-semibold shadow transition-colors",
-                    isHovered
-                      ? "bg-yellow-400 text-yellow-900"
-                      : "bg-primary text-primary-foreground",
-                  )}
-                  onMouseEnter={() => onHoverAnnotation(index)}
-                  onMouseLeave={() => onHoverAnnotation(null)}
-                >
-                  {index + 1}
-                </button>
+              <TooltipTrigger
+                type="button"
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-full border-2 border-white text-xs font-semibold shadow transition-colors",
+                  isHovered
+                    ? "bg-yellow-400 text-yellow-900"
+                    : "bg-primary text-primary-foreground",
+                )}
+                onMouseEnter={() => onHoverAnnotation(index)}
+                onMouseLeave={() => onHoverAnnotation(null)}
+              >
+                {index + 1}
               </TooltipTrigger>
               <TooltipContent className="max-w-xs text-left">
                 <div className="space-y-1">
@@ -193,10 +192,13 @@ export function ImageGallery({
   images,
   onAddAnnotation,
   onRemoveAnnotation,
+  onRemoveImage,
   editMode = false,
   defaultIndicator,
 }: ImageGalleryProps) {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
+  const [portraitImageIds, setPortraitImageIds] = useState<Set<string>>(() => new Set())
+  const [removeImageId, setRemoveImageId] = useState<string | null>(null)
   const [activeTool, setActiveTool] = useState<AnnotationType>("pin")
   const [pendingAnnotation, setPendingAnnotation] = useState<PendingAnnotation | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -399,8 +401,10 @@ export function ImageGallery({
     setHoveredAnnotationIndex(null)
   }
 
-  // Compute live drawing preview element
-  const drawingPreview = useMemo(() => {
+  // Compute live drawing preview element. Not memoized: `drawingState.current` is a plain object
+  // field (the pointer's live position), not a ref, but its name makes the compiler's dependency
+  // inference treat it like one and mismatch the manual dependency array below.
+  function getDrawingPreview() {
     if (!drawingState) return null
     if (drawingState.tool === "circle" && drawingState.current) {
       const dx = drawingState.current.x - drawingState.start.x
@@ -452,7 +456,7 @@ export function ImageGallery({
       )
     }
     return null
-  }, [drawingState, imgSize])
+  }
 
   const getCursorClass = () => {
     if (!editMode || !onAddAnnotation) return "cursor-default"
@@ -469,34 +473,99 @@ export function ImageGallery({
 
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-        {images.map((image) => (
-          <button
-            key={image.id}
-            type="button"
-            className="group bg-card overflow-hidden rounded-xl border text-left"
-            onClick={() => setSelectedImageId(image.id)}
-          >
-            <div className="bg-muted relative aspect-video overflow-hidden">
-              <img
-                src={image.url}
-                alt={image.caption ?? "BCS foto"}
-                className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
-              />
+      <div className="grid grid-flow-dense auto-rows-[9rem] grid-cols-2 gap-3 sm:auto-rows-[10rem] md:grid-cols-3 xl:grid-cols-4">
+        {images.map((image) => {
+          const isPortrait = portraitImageIds.has(image.id)
+          return (
+            <div
+              key={image.id}
+              className={cn(
+                "group bg-muted relative overflow-hidden rounded-xl border",
+                isPortrait ? "row-span-2" : "row-span-1",
+              )}
+            >
+              <button
+                type="button"
+                className="absolute inset-0 text-left"
+                onClick={() => setSelectedImageId(image.id)}
+              >
+                <img
+                  src={image.url}
+                  alt={image.caption ?? "BCS foto"}
+                  className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
+                  onLoad={(event) => {
+                    const { naturalWidth, naturalHeight } = event.currentTarget
+                    if (naturalHeight > naturalWidth * 1.05) {
+                      setPortraitImageIds((previous) => new Set(previous).add(image.id))
+                    }
+                  }}
+                />
+                <div
+                  className="pointer-events-none invisible absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100"
+                  aria-hidden="true"
+                >
+                  {editMode ? (
+                    <Pencil className="size-6 text-white drop-shadow" />
+                  ) : (
+                    <Eye className="size-6 text-white drop-shadow" />
+                  )}
+                </div>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6 text-sm text-white">
+                  <div className="line-clamp-1 font-medium">
+                    {image.caption || "Foto zonder bijschrift"}
+                  </div>
+                </div>
+              </button>
               {image.annotations.length > 0 ? (
-                <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
                   {image.annotations.length}
                 </div>
               ) : null}
+              {editMode && onRemoveImage ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 left-2 size-7"
+                  aria-label="Foto verwijderen"
+                  onClick={() => setRemoveImageId(image.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              ) : null}
             </div>
-            <div className="p-3 text-sm">
-              <div className="line-clamp-2 font-medium">
-                {image.caption || "Foto zonder bijschrift"}
-              </div>
-            </div>
-          </button>
-        ))}
+          )
+        })}
       </div>
+
+      <AlertDialog
+        open={removeImageId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveImageId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Foto verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              De foto en alle bijbehorende notities worden verwijderd zodra je de wijzigingen
+              opslaat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (removeImageId && onRemoveImage) onRemoveImage(removeImageId)
+                setRemoveImageId(null)
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Lightbox */}
       <Dialog
@@ -540,20 +609,22 @@ export function ImageGallery({
                         ] as const
                       ).map(({ type, Icon, label }) => (
                         <Tooltip key={type}>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant={activeTool === type ? "default" : "outline"}
-                              size="icon"
-                              className="size-8"
-                              onClick={() => {
-                                setActiveTool(type)
-                                setDrawingState(null)
-                              }}
-                            >
-                              <Icon className="size-3.5" />
-                            </Button>
-                          </TooltipTrigger>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant={activeTool === type ? "default" : "outline"}
+                                size="icon"
+                                className="size-8"
+                                onClick={() => {
+                                  setActiveTool(type)
+                                  setDrawingState(null)
+                                }}
+                              >
+                                <Icon className="size-3.5" />
+                              </Button>
+                            }
+                          />
                           <TooltipContent>{label}</TooltipContent>
                         </Tooltip>
                       ))}
@@ -687,7 +758,7 @@ export function ImageGallery({
                           }
                           return null
                         })}
-                        {drawingPreview}
+                        {getDrawingPreview()}
                       </svg>
                       {/* Annotation number badges */}
                       <AnnotationOverlay
@@ -799,7 +870,21 @@ export function ImageGallery({
               <label className="text-sm font-medium" htmlFor="annotation-indicator">
                 Indicator
               </label>
-              <Select value={annotationIndicator} onValueChange={setAnnotationIndicator}>
+              <Select
+                value={annotationIndicator}
+                items={[
+                  { value: "none", label: "Geen koppeling" },
+                  ...BCS_FIELD_INDICATORS.map((indicator) => ({
+                    value: indicator.key,
+                    label: indicator.name,
+                  })),
+                ]}
+                onValueChange={(value) => {
+                  if (typeof value === "string") {
+                    setAnnotationIndicator(value)
+                  }
+                }}
+              >
                 <SelectTrigger id="annotation-indicator">
                   <SelectValue placeholder="Kies een indicator" />
                 </SelectTrigger>

@@ -1,4 +1,4 @@
-import { ArrowRight, Building, House } from "lucide-react"
+import { ArrowRight, Building, House, UserGroup } from "lucide-react"
 import { NavLink } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
@@ -12,7 +12,10 @@ export interface FarmWithRoles {
   b_businessid_farm: string | null
   userRoles: Role[]
   organizationRoles?: Role[]
+  /** Farm groups the farm is part of, shown as badges when present. */
+  groups?: { b_id_group: string; b_name_group: string }[]
   organization?: {
+    id?: string
     slug: string
     name: string
   }
@@ -20,9 +23,9 @@ export interface FarmWithRoles {
 
 export function FarmCard({ farm }: { farm: FarmWithRoles }) {
   return (
-    <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
+    <Card className="group hover:border-primary/50 relative flex flex-col py-0 transition-all hover:shadow-md">
       <NavLink to={`/farm/${farm.b_id_farm}`} className="flex h-full flex-col">
-        <CardHeader>
+        <CardHeader className="pt-6 pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
@@ -57,6 +60,15 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
                     ),
                   )}
                 </div>
+                {farm.groups && farm.groups.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {farm.groups.map((group) => (
+                      <Badge key={group.b_id_group} variant="outline" className="gap-1 text-xs">
+                        <UserGroup className="h-3 w-3" /> {group.b_name_group}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -77,7 +89,7 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
             </div>
           </dl>
         </CardContent>
-        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
+        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 flex h-10 items-center border-t py-0!">
           <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
             Selecteer bedrijf <ArrowRight className="ml-2 h-4 w-4" />
           </span>

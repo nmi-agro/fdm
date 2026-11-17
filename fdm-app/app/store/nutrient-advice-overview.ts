@@ -1,4 +1,4 @@
-import type { VisibilityState } from "@tanstack/react-table"
+import type { ColumnVisibilityState } from "@tanstack/react-table"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import type { UnitMode } from "~/components/blocks/nutrient-advice/overview-types"
@@ -6,16 +6,18 @@ import { ssrSafeSessionJSONStorage } from "./storage"
 
 interface NutrientAdviceOverviewState {
   unitMode: UnitMode
-  columnVisibility: VisibilityState
+  columnVisibility: ColumnVisibilityState
   // Tracks whether the user has ever made an explicit column visibility choice, so the
   // mobile/desktop default (hide secondary/trace nutrients on mobile) only applies until then
   // and never clobbers a persisted, explicit selection on a later mount.
   hasCustomColumnVisibility: boolean
   setUnitMode: (unitMode: UnitMode) => void
   setColumnVisibility: (
-    columnVisibility: VisibilityState | ((prev: VisibilityState) => VisibilityState),
+    columnVisibility:
+      | ColumnVisibilityState
+      | ((prev: ColumnVisibilityState) => ColumnVisibilityState),
   ) => void
-  applyDefaultColumnVisibility: (columnVisibility: VisibilityState) => void
+  applyDefaultColumnVisibility: (columnVisibility: ColumnVisibilityState) => void
   resetColumnVisibility: () => void
 }
 

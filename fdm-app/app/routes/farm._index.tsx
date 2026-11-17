@@ -2,9 +2,19 @@ import {
   acceptInvitation,
   declineInvitation,
   getFarms,
+  listFarmGroups,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
-import { ArrowRight, Check, Layers, LifeBuoy, MapIcon, Mountain, Plus } from "lucide-react"
+import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  Layers,
+  LifeBuoy,
+  MapIcon,
+  Mountain,
+  Plus,
+} from "lucide-react"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -14,6 +24,8 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
+import { GroupedFarmCards } from "~/components/blocks/farm-groups/grouped-farm-cards"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
@@ -21,7 +33,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
-import { Button, buttonVariants } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -32,17 +44,23 @@ import {
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
+import { getHelpHref } from "~/lib/manual/help-targets"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "aan-de-slag" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bedrijven | ${clientConfig.name}` },
@@ -118,6 +136,26 @@ export async function loader({ request }: LoaderFunctionArgs) {
       headers: request.headers,
     })
 
+    // Get the farm groups of the organizations. A failure should not block the farm overview.
+    const farmGroups = (
+      await Promise.all(
+        organizations.map(async (organization) => {
+          try {
+            const groups = await listFarmGroups(fdm, session.principal_id, organization.id)
+            return groups.map((group) => ({
+              b_id_group: group.b_id_group,
+              b_name_group: group.b_name_group,
+              b_id_organization: organization.id,
+              b_id_farms: group.b_id_farms,
+            }))
+          } catch (error) {
+            reportError(error)
+            return []
+          }
+        }),
+      )
+    ).flat()
+
     // Return user information from loader
     return {
       farms: farms.map((farm) => {
@@ -165,7 +203,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }),
       farmOptions: farmOptions,
       organizations: organizations,
+      farmGroups: farmGroups,
       username: session.userName,
+      greeting: getTimeBasedGreeting(),
       pendingInvitations: pendingInvitations,
       pendingOrganizationInvitations: pendingOrganizationInvitations,
     }
@@ -232,6 +272,41 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 }
 
+/** Points new users to the manual chapters that walk them through their first farm. */
+function ManualStartNote() {
+  const { capture } = useAnalytics()
+  const links = [
+    { target: "aan-de-slag", label: "Aan de slag" },
+    { target: "bedrijf-aanmaken", label: "Een bedrijf aanmaken" },
+  ] as const
+  return (
+    <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-2 gap-y-1 pt-8 text-sm">
+      <BookOpen className="h-4 w-4" aria-hidden="true" />
+      <span>Nieuw hier? Lees in de handleiding</span>
+      {links.map((link, index) => (
+        <span key={link.target}>
+          <a
+            href={getHelpHref(link.target)}
+            target="_blank"
+            rel="noopener"
+            className="text-primary font-medium hover:underline"
+            onClick={() =>
+              capture(MANUAL_EVENTS.helpLinkClicked, {
+                help_target: link.target,
+                source: "empty_state",
+                from_path: window.location.pathname,
+              })
+            }
+          >
+            {link.label}
+          </a>
+          {index === 0 ? <span> of</span> : null}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function SupportNote() {
   return (
     <div className="text-muted-foreground flex items-center justify-center gap-2 py-8 text-sm">
@@ -255,7 +330,6 @@ function SupportNote() {
  */
 export default function AppIndex() {
   const loaderData = useLoaderData<typeof loader>()
-  const greeting = getTimeBasedGreeting()
   const calendar = useCalendarStore((state) => state.calendar)
 
   const [userFarms, organizationFarms] = useMemo(() => {
@@ -314,8 +388,8 @@ export default function AppIndex() {
 
               <div className="grid w-full gap-6 sm:grid-cols-2">
                 <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
-                  <NavLink to="/farm/create" className="flex h-full flex-col">
-                    <CardHeader className="pb-4">
+                  <NavLink to="/farm/create" className="flex h-full flex-col gap-6">
+                    <CardHeader>
                       <div
                         aria-hidden="true"
                         className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
@@ -362,7 +436,7 @@ export default function AppIndex() {
                         </li>
                       </ul>
                     </CardContent>
-                    <CardFooter className="pt-2">
+                    <CardFooter>
                       <span
                         className={buttonVariants({
                           size: "lg",
@@ -380,9 +454,9 @@ export default function AppIndex() {
                 <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
                   <NavLink
                     to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/fields`}
-                    className="flex h-full flex-col"
+                    className="flex h-full flex-col gap-6"
                   >
-                    <CardHeader className="pb-4">
+                    <CardHeader>
                       <div
                         aria-hidden="true"
                         className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
@@ -428,7 +502,7 @@ export default function AppIndex() {
                         </li>
                       </ul>
                     </CardContent>
-                    <CardFooter className="pt-2">
+                    <CardFooter>
                       <span
                         className={buttonVariants({
                           variant: "outline",
@@ -445,12 +519,13 @@ export default function AppIndex() {
               </div>
             </div>
 
+            <ManualStartNote />
             <SupportNote />
           </div>
         ) : (
           <>
             <FarmTitle
-              title={`${greeting}, ${loaderData.username}`}
+              title={`${loaderData.greeting}, ${loaderData.username}`}
               description={
                 "Selecteer een bedrijf voor beheer en analyses, waaronder stikstof- en organische stofbalansen voor effectieve doelsturing."
               }
@@ -491,11 +566,16 @@ export default function AppIndex() {
                   description={"Selecteer een bedrijf van uw organisaties voor beheer en analyses."}
                 />
 
-                <div className="grid gap-6 px-4 pb-6 md:px-8 md:pb-8 lg:grid-cols-2 xl:grid-cols-3">
-                  {organizationFarms.map((farm) => (
-                    <FarmCard key={farm.b_id_farm} farm={farm} />
-                  ))}
-                </div>
+                <GroupedFarmCards
+                  farms={organizationFarms}
+                  groups={loaderData.farmGroups}
+                  organizationNames={Object.fromEntries(
+                    loaderData.organizations.map((organization) => [
+                      organization.id,
+                      organization.name,
+                    ]),
+                  )}
+                />
               </>
             )}
 
@@ -588,16 +668,17 @@ export default function AppIndex() {
                     ))}
 
                     <Card className="hover:border-primary/50 hover:bg-muted/50 flex flex-col border-dashed transition-all">
-                      <NavLink to="/organization/new" className="flex h-full flex-col">
-                        <CardHeader className="grow items-center justify-center text-center">
-                          <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-                            <Plus className="h-6 w-6" />
-                          </div>
-                          <CardTitle>Nieuwe organisatie</CardTitle>
-                          <CardDescription>
-                            Voeg een extra organisatie toe aan uw account.
-                          </CardDescription>
-                        </CardHeader>
+                      <NavLink
+                        to="/organization/new"
+                        className="flex h-full flex-col items-center justify-center"
+                      >
+                        <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+                          <Plus className="h-6 w-6" />
+                        </div>
+                        <CardTitle>Nieuwe organisatie</CardTitle>
+                        <CardDescription>
+                          Voeg een extra organisatie toe aan uw account.
+                        </CardDescription>
                       </NavLink>
                     </Card>
                   </div>
@@ -636,9 +717,13 @@ export default function AppIndex() {
                     U hebt nog geen organisatie.
                   </h2>
                   <div className="relative flex flex-col items-center">
-                    <Button asChild>
-                      <NavLink to="/organization/new">Maak een organisatie</NavLink>
-                    </Button>
+                    <NavLink
+                      to="/organization/new"
+                      className={buttonVariants({})}
+                      data-slot="button"
+                    >
+                      Maak een organisatie
+                    </NavLink>
                   </div>
                   <p className="text-muted-foreground text-center text-sm">
                     Of vraag een organisatie om u uit te nodigen.

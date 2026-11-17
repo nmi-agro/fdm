@@ -3,8 +3,50 @@ import { describe, expect, it } from "vitest"
 import {
   type AppAmountUnit,
   fromKgPerHa,
+  getAppAmountDisplayRange,
+  isAppAmountInRange,
+  P_APP_AMOUNT_MAX,
   toKgPerHa,
 } from "./fertilizer-application-unit-conversion"
+
+describe("isAppAmountInRange", () => {
+  it.each([
+    [0, false],
+    [-1, false],
+    [0.001, true],
+    [P_APP_AMOUNT_MAX, true],
+    [P_APP_AMOUNT_MAX + 0.001, false],
+    [Number.NaN, false],
+    [Number.POSITIVE_INFINITY, false],
+  ])("returns the right result for %s kg/ha", (amount, expected) => {
+    expect(isAppAmountInRange(amount)).toBe(expected)
+  })
+})
+
+describe("getAppAmountDisplayRange", () => {
+  it.each<[AppAmountUnit, number | null, number]>([
+    ["kg/ha", null, 100_000],
+    ["ton/ha", null, 100],
+    ["l/ha", 1.25, 80_000],
+    ["m3/ha", 1.25, 80],
+  ])("returns the maximum in %s (density %s)", (unit, density, max) => {
+    expect(getAppAmountDisplayRange(unit, density)).toEqual({ max })
+  })
+
+  it("returns a maximum that converts back to exactly 100,000 kg/ha", () => {
+    const range = getAppAmountDisplayRange("l/ha", 1.3)
+    expect(range).not.toBeNull()
+    expect(toKgPerHa(range?.max ?? 0, "l/ha", 1.3)).toBeCloseTo(P_APP_AMOUNT_MAX, 6)
+  })
+
+  it.each<AppAmountUnit>(["l/ha", "m3/ha"])(
+    "returns null for %s when the density is missing",
+    (unit) => {
+      expect(getAppAmountDisplayRange(unit, null)).toBeNull()
+      expect(getAppAmountDisplayRange(unit, 0)).toBeNull()
+    },
+  )
+})
 
 interface ConversionUnitTestCase {
   input: number

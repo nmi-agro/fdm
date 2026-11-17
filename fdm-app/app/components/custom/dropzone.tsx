@@ -1,11 +1,11 @@
 "use client"
 
 import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react"
+import { cn } from "cn"
 import { X } from "lucide-react"
-import { createContext, useContext, useEffect, useId, useRef } from "react"
+import { createContext, useContext, useEffect, useId, useRef, useState } from "react"
 import { toast as notify } from "sonner"
 import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 
 type DropzoneContextType = {
   files?: File[]
@@ -24,6 +24,9 @@ const getFileExtension = (filename: string): string => {
 
 export type DropzoneProps = {
   ref?: React.Ref<HTMLInputElement>
+  /** Id of the underlying file input. Lets a caller point its own `<label htmlFor>` at it without
+   * reading it off the ref. Defaults to an internally generated id. */
+  id?: string
   value?: File[]
   accept?: string | string[]
   name: string
@@ -33,6 +36,7 @@ export type DropzoneProps = {
   minSize?: number
   maxSize?: number
   multiple?: boolean
+  maxFiles?: number
   required?: boolean
   disabled?: boolean
   readonly?: boolean
@@ -41,14 +45,18 @@ export type DropzoneProps = {
   onFilesChange?: (files: File[]) => void
   mergeFiles?: (oldFiles: File[], newFiles: File[]) => Promise<File[] | null> | File[] | null
   children?: ReactNode
+  /** Accessible name of the file input, read by screen readers. */
+  label?: string
 }
 
 export const Dropzone = ({
   name,
+  id,
   accept,
   maxSize,
   minSize,
   multiple,
+  maxFiles,
   required,
   disabled,
   style,
@@ -60,10 +68,15 @@ export const Dropzone = ({
   onBlur,
   onFilesChange,
   mergeFiles,
+  label = "Kies bestanden of sleep ze hierheen",
 }: DropzoneProps) => {
   const inputRef = useRef<HTMLInputElement>(null)
-  const files = value ?? (inputRef.current?.files ? Array.from(inputRef.current.files) : [])
-  const labelId = useId()
+  // Uncontrolled mode (no `value`/`onFilesChange` from the parent) tracks its own files in state,
+  // since the native input's FileList is a DOM detail that must not be read during render.
+  const [internalFiles, setInternalFiles] = useState<File[]>([])
+  const files = value ?? internalFiles
+  const generatedId = useId()
+  const labelId = id ?? generatedId
   const normalizeAcceptToken = (token: string) => token.trim().toLowerCase()
   const acceptedFileExtensions =
     typeof accept === "string"
@@ -90,15 +103,26 @@ export const Dropzone = ({
 
   const handleFilesSet = async (oldFiles: File[], newFiles: File[]) => {
     const finalFiles = await myMergeFiles(oldFiles, newFiles)
-    if (finalFiles && onFilesChange) {
-      onFilesChange(finalFiles)
+    if (finalFiles && typeof maxFiles === "number" && finalFiles.length > maxFiles) {
+      notify.warning(`Er kunnen maximaal ${maxFiles} bestanden worden bijgevoegd.`, {
+        id: "too-many-files",
+      })
+      return files
+    }
+    if (finalFiles) {
+      if (onFilesChange) onFilesChange(finalFiles)
+      else setInternalFiles(finalFiles)
     }
     return finalFiles ?? files
   }
 
   const handleFilesClear = async () => {
-    if (onFilesChange) onFilesChange([])
-    else if (inputRef.current) inputRef.current.value = ""
+    if (onFilesChange) {
+      onFilesChange([])
+    } else {
+      setInternalFiles([])
+      if (inputRef.current) inputRef.current.value = ""
+    }
   }
 
   const syncFilesToInput = (filesToSync: File[]) => {
@@ -211,7 +235,10 @@ export const Dropzone = ({
             }
           }}
           placeholder=""
-          className="hidden"
+          aria-label={label}
+          // Visually hidden but focusable, so the dropzone works with the keyboard; the label below
+          // shows its focus ring
+          className="peer sr-only"
           accept={typeof accept === "string" ? accept : accept?.join(",")}
           multiple={multiple}
           required={required}
@@ -220,18 +247,12 @@ export const Dropzone = ({
         <label
           style={style}
           className={cn(
-            "border-muted-foreground/25 hover:bg-muted/25 w-full flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors",
-            disabled ? "hidden" : "flex",
+            "border-muted-foreground/25 hover:bg-muted/25 peer-focus-visible:ring-ring/50 peer-focus-visible:border-ring flex w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors peer-focus-visible:ring-[3px]",
+            disabled && "pointer-events-none opacity-60",
             className,
           )}
           htmlFor={labelId}
-          aria-label="Upload shapefile files by clicking or dragging and dropping"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault()
-              inputRef.current?.click()
-            }
-          }}
+          aria-disabled={disabled || undefined}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >

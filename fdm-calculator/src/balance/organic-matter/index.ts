@@ -12,7 +12,7 @@ import type {
 } from "./types"
 import pkg from "../../package"
 import { convertDecimalToNumberRecursive } from "../shared/conversion"
-import { combineSoilAnalyses } from "../shared/soil"
+import { resolveSoilParameters } from "../shared/soil"
 import { calculateOrganicMatterDegradation } from "./degradation"
 import { calculateOrganicMatterSupply } from "./supply"
 
@@ -153,7 +153,7 @@ export function calculateOrganicMatterBalanceField(
   const { fieldInput, fertilizerDetails, cultivationDetails, timeFrame } =
     organicMatterBalanceFieldInput
 
-  const { field, cultivations, fertilizerApplications, soilAnalyses } = fieldInput
+  const { field, cultivations, fertilizerApplications, currentSoilData } = fieldInput
 
   if (field.b_bufferstrip) {
     return {
@@ -182,10 +182,10 @@ export function calculateOrganicMatterBalanceField(
   )
   const fieldDetails = field
 
-  // 1. Combine multiple soil analyses into a single representative record for the field.
+  // 1. Read the soil parameters from the current soil data of the field.
   // We need 'a_som_loi' and 'a_density_sa' for the degradation calculation.
-  const soilAnalysis = combineSoilAnalyses<SoilAnalysisPicked>(
-    soilAnalyses,
+  const soilAnalysis = resolveSoilParameters<SoilAnalysisPicked>(
+    currentSoilData,
     ["a_som_loi", "a_density_sa", "b_soiltype_agr"],
     true, // Enable estimation of missing values if possible
   )

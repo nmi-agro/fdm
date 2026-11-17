@@ -1,6 +1,7 @@
 /* eslint-disable typescript/restrict-template-expressions -- Mapbox viewstates, coordinates, and layer IDs are formatted inside template literals safely. */
 import type { FeatureCollection } from "geojson"
 import type { MapGeoJSONFeature } from "maplibre-gl"
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -8,7 +9,7 @@ import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -54,28 +55,11 @@ export function FieldTooltip({
   clickRedirectsToDetailsPage?: boolean
   touchDisplaysPopupInstead?: boolean
 }) {
-  const { current: map } = useMap()
-  const [zoom, setZoom] = useState<number | null>(map ? map.getZoom() : null)
-
-  useEffect(() => {
-    if (!map) return
-    const onZoom = () => setZoom(map.getZoom())
-    onZoom()
-    map.on("zoom", onZoom)
-    return () => {
-      map.off("zoom", onZoom)
-    }
-  }, [map])
-
   const layers = useMemo(() => (Array.isArray(layer) ? layer : [layer]), [layer])
   const layersExclude = useMemo(
     () => (!layerExclude ? [] : Array.isArray(layerExclude) ? layerExclude : [layerExclude]),
     [layerExclude],
   )
-
-  if (!map || zoom === null || zoom < zoomLevelFields) {
-    return null
-  }
 
   return (
     <AtlasTooltip
@@ -83,6 +67,7 @@ export function FieldTooltip({
       layersExclude={layersExclude}
       onFeatureClicked={onFeatureClicked}
       touchDisplaysPopupInstead={touchDisplaysPopupInstead}
+      zoomLevelFields={zoomLevelFields}
       render={(props) => {
         const { features, mode } = props
 
@@ -287,8 +272,8 @@ export function FieldsPanelSelection({
           )
 
           setPanel(
-            <Card className="flex min-h-0 w-full flex-initial flex-col gap-4">
-              <CardHeader className="pb-0">
+            <Card className="flex min-h-0 w-full flex-initial flex-col">
+              <CardHeader>
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>{fieldCountText}</CardDescription>
               </CardHeader>
@@ -361,23 +346,30 @@ export function FieldsPanelSelection({
               <CardHeader>
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>
-                  {numFieldsSaved > 0
-                    ? "Je hebt geen nieuwe percelen geselecteerd"
-                    : "Je hebt geen percelen geselecteerd"}
+                  <span key={numFieldsSaved > 0 ? "saved" : "empty"}>
+                    {numFieldsSaved > 0
+                      ? "Je hebt geen nieuwe percelen geselecteerd"
+                      : "Je hebt geen percelen geselecteerd"}
+                  </span>
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4" />
               <CardFooter>
                 {numFieldsSaved > 0 ? (
-                  <Button asChild className="w-full">
-                    <NavLink to={continueTo} className="flex items-center gap-2">
-                      <Check />
-                      <span>Doorgaan</span>
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to={continueTo}
+                    className={buttonVariants({
+                      className: cn("w-full", "flex items-center gap-2"),
+                    })}
+                    data-slot="button"
+                  >
+                    <Check />
+                    <span>Doorgaan</span>
+                  </NavLink>
                 ) : (
                   <Button className="w-full" disabled>
-                    <Check /> Sla geselecteerde percelen op
+                    <Check />
+                    <span>Sla geselecteerde percelen op</span>
                   </Button>
                 )}
               </CardFooter>

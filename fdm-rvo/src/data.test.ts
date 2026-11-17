@@ -184,6 +184,28 @@ describe("fetchRvoFields", () => {
     expect(result[0].properties.mestData).toBeUndefined()
   })
 
+  it("should not send farmId when no KvK number is given (own farm)", async () => {
+    const mockClient = {
+      opvragenBedrijfspercelen: vi.fn().mockResolvedValue({ features: [] }),
+      opvragenRegelingspercelenMest: vi.fn().mockResolvedValue({ features: [] }),
+    } as unknown as RvoClient
+
+    await fetchRvoFields(mockClient, "2024")
+
+    expect(mockClient.opvragenBedrijfspercelen).toHaveBeenCalledWith({
+      periodBeginDate: "2024-01-01",
+      periodEndDate: "2024-12-31",
+      outputFormat: "geojson",
+    })
+    expect(mockClient.opvragenRegelingspercelenMest).toHaveBeenCalledWith({
+      periodBeginDate: "2024-01-01",
+      periodEndDate: "2024-12-31",
+      outputFormat: "geojson",
+    })
+    const bedrijfspercelenArgs = vi.mocked(mockClient.opvragenBedrijfspercelen).mock.calls[0][0]
+    expect(bedrijfspercelenArgs).not.toHaveProperty("farmId")
+  })
+
   it("should return empty array if no features found", async () => {
     const mockClient = {
       opvragenBedrijfspercelen: vi.fn().mockResolvedValue({

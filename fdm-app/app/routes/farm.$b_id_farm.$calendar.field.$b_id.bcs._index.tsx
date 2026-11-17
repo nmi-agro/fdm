@@ -7,6 +7,7 @@ import {
   removeSoilAnalysis,
   removeSoilImage,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { Plus, Trash2 } from "lucide-react"
@@ -21,6 +22,7 @@ import {
   useParams,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { BCS_COLOR_CLASSES, type BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 import {
   AlertDialog,
@@ -34,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { deleteObject } from "~/integrations/gcs.server"
@@ -44,7 +46,6 @@ import { deriveBcsContextFromRawInputs, fetchBcsRawInputs } from "~/lib/bcs-deri
 import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 function getRouteParams(params: ActionFunctionArgs["params"]) {
   const { b_id, b_id_farm, calendar } = params
@@ -74,7 +75,9 @@ function getBcsPath(params: ActionFunctionArgs["params"]) {
   return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export const handle: HelpHandle = { help: "bodemconditiescore" }
+
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const { b_id } = getRouteParams(params)
     const session = await getSession(request)
@@ -88,7 +91,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const soilAnalyses = await getSoilAnalyses(fdm, session.principal_id, b_id)
     const bcsAnalyses = soilAnalyses.filter((analysis) => isBcsAnalysis(analysis))
-    const pathname = new URL(request.url).pathname
+    const pathname = url.pathname
     const fieldWritePermission = await checkPermission(
       fdm,
       "field",
@@ -132,7 +135,7 @@ export default function FieldBcsOverviewRoute() {
 
   useEffect(() => {
     capture("bcs_viewed", { b_id_farm: params.b_id_farm, b_id: params.b_id })
-  }, [])
+  }, [capture, params.b_id_farm, params.b_id])
 
   return (
     <div className="space-y-6">
@@ -144,12 +147,10 @@ export default function FieldBcsOverviewRoute() {
           </p>
         </div>
         {loaderData.fieldWritePermission ? (
-          <Button asChild size="lg">
-            <Link to="./new">
-              <Plus className="size-4" />
-              Nieuwe meting toevoegen
-            </Link>
-          </Button>
+          <Link to="./new" className={buttonVariants({ size: "lg" })}>
+            <Plus className="size-4" />
+            Nieuwe meting toevoegen
+          </Link>
         ) : null}
       </div>
 
@@ -163,9 +164,9 @@ export default function FieldBcsOverviewRoute() {
           </CardHeader>
           {loaderData.fieldWritePermission ? (
             <CardContent>
-              <Button asChild size="lg">
-                <Link to="./new">Eerste beoordeling toevoegen</Link>
-              </Button>
+              <Link to="./new" className={buttonVariants({ size: "lg" })}>
+                Eerste beoordeling toevoegen
+              </Link>
             </CardContent>
           ) : null}
         </Card>
@@ -178,7 +179,7 @@ export default function FieldBcsOverviewRoute() {
 
             return (
               <Card key={analysis.a_id}>
-                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <Link to={`./${analysis.a_id}`} className="block flex-1 rounded-lg p-1">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -206,12 +207,16 @@ export default function FieldBcsOverviewRoute() {
                   </Link>
                   {loaderData.fieldWritePermission ? (
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button type="button" variant="destructive" disabled={isDeleting}>
-                          <Trash2 className="size-4" />
-                          {isDeleting ? "Verwijderen..." : "Verwijderen"}
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger
+                        render={
+                          <Button type="button" variant="destructive" disabled={isDeleting}>
+                            <Trash2 className="size-4" />
+                            <span key={isDeleting ? "deleting" : "idle"}>
+                              {isDeleting ? "Verwijderen..." : "Verwijderen"}
+                            </span>
+                          </Button>
+                        }
+                      />
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>BodemConditieScore verwijderen?</AlertDialogTitle>

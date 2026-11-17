@@ -30,14 +30,18 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
    - **Exclusion after Maize**: Per footnotes 2 and 6, no additional norm is granted for green manures, catch crops, or temporary grassland following maize.
 4. **Apply Specific Rules**: The standard norm is refined with additional rules for certain crops:
    - **Grassland (`Grasland`)**: The norm depends on whether the grassland is grazed (`beweiden`) or fully mown (`volledig maaien`).
-   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation period.
+   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm depends on the cultivation period, following the period rows of Tabel 2. Dates are evaluated within 2026: a start before 1 January counts as 1 January and an end after 31 December counts as 31 December.
+     - Grass present before 15 April (including grass sown in a previous year) uses the "van 1 januari tot minstens …" rows. The row with the latest date that the grass reaches is selected, e.g. destroyed on 1 June gives "tot minstens 15 mei". Grass destroyed before 15 April receives no norm. Temporary grassland sown in a previous year is also counted when it is followed by another main crop (e.g. grass destroyed on 1 May before maize gives "tot minstens 15 april" in addition to the maize norm). When such grass is renewed and the new grass is sown before 15 October and remains until at least 15 October, the re-sown grass carries the norm instead and is marked as heringezaaid. Otherwise the old grass keeps its norm and the re-sown grass receives 0 kg N/ha (heringezaaid).
+     - Grass sown on or after 15 April uses the latest "vanaf …" sowing window that has started, e.g. sown on 20 September gives "vanaf 15 september tot minstens 15 oktober". The grass must remain until at least 15 October, otherwise it receives no norm. Grass sown on or after 15 October receives 0 kg N/ha.
+   - **Grass for industrial processing (`Gras voor industriële verwerking`)**: Grass sown in a previous year or before 15 May receives the "inzaai voor 15 mei en volgende jaren" norm. Other sowing dates in the first year receive the "inzaai in september en eerste jaar" norm. A missing start date is treated as 1 January.
    - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety.
    - **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
+   - **Other leafy crops and herbs (`Bladgewassen overig`, `Kruiden`)**: The norm depends on the number of harvests of the cultivation in the norm year. With 0 or 1 harvest the _eenmalige oogst_ norm applies; with more than 1 harvest the _meermalige oogst_ norm applies. The generic herb codes (`nl_2743`, `nl_2744`) do not tell leaf, root and seed herbs apart, so the _bladgewas_ sub-types are always used for them.
 5. **Sum Cultivation Norms**: The total field nitrogen allowance is the sum of norms across all cultivations in the year.
 6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: Reductions are subtracted from the total:
    - **Catch crop reduction (art. 28d Urm)**: Assessed on the previous calendar year (2025) on sand and loess.
-   - **Grassland renewal (gras-na-gras, footnote 14)**: 50 kg N/ha reduction when grassland is renewed between **1 June and 31 August** across all soil types.
-   - **Grassland destruction (gras-naar-bouwland, footnotes 15/16)**: 65 kg N/ha reduction when destroyed for maize or eligible consumption/factory potatoes within allowed spring windows (excluding previous catch-crop grass).
+   - **Grassland renewal (gras-na-gras, footnote 14)**: 50 kg N/ha reduction when grassland is renewed between **1 June and 31 August** on sand and loess.
+   - **Grassland destruction (gras-naar-bouwland, footnotes 15/16)**: 65 kg N/ha reduction on sand and loess when destroyed for maize or eligible consumption/factory potatoes between **1 February and 10 May** (excluding previous catch-crop grass).
    - Reductions are **cumulative**. If the total norm would become negative, it is floored at 0.
 
 A field marked as a buffer strip (`b_bufferstrip`) receives a norm of 0.
@@ -61,6 +65,8 @@ The following statutory options and specialized exceptions from the _Uitvoerings
 5. **Mixed crops / Undersowing (`Mengteelt / Onderzaai`)**: Differentiated calculation for intercropped arable plants.
 6. **Fixed farm-level nitrogen norm (`Vaste norm op bedrijfsniveau`, footnote 9)**: The 110 kg N/ha fixed allowance when the farm's weighted average is between 100 and 110 kg N/ha.
 7. **Two-year winter crop budget split (`Winterteelt "waarvan ten hoogste na 31/12"`, footnote 5/18)**: Multi-year budget cap attribution between sowing year and harvest year.
+8. **Seed potato grow-out (`Pootaardappelen, uitgroeiteelt (loofvernietiging na 15 augustus)`)**: The date of haulm destruction (`loofvernietiging`) is not recorded, so the condition that it takes place after 15 August is not verified.
+9. **Root and seed herbs (`Kruiden, wortelgewassen` / `Kruiden, zaadgewassen`)**: The generic herb BRP codes always use the leaf-crop (`bladgewas`) norms; the separate norms for root and seed herbs are not applied.
 
 ---
 
@@ -69,7 +75,7 @@ The following statutory options and specialized exceptions from the _Uitvoerings
 The `fdm-calculator` uses the `calculateNL2026StikstofGebruiksNorm` function in `fdm-calculator/src/norms/nl/2026/value/stikstofgebruiksnorm.ts`, which relies on:
 
 - **`stikstofgebruiksnorm-data.ts`**: Contains the norm data per crop, soil region and `NV-gebied` status.
-- **`input.ts`**: Defines the required inputs. Cultivations are collected from **1 January 2025**, because the catch crop rules depend on what was grown in the previous year.
+- **`input.ts`**: Defines the required inputs. Cultivations are collected from **1 January 2025**, because the catch crop rules depend on what was grown in the previous year. Harvests are collected per cultivation for the norm year (1 January to 31 December 2026), to tell a single from multiple harvests.
 - **`../../vanggewas-winterteelt.ts`**: Determines whether a crop is a catch crop and/or a winter crop, and evaluates the statutory conditions attached to specific crops.
 
 ---
@@ -145,7 +151,7 @@ Specific nitrogen usage norm reductions (`kortingen`) apply when grassland is re
 
 ### 1. Grassland Renewal (Gras-na-Gras)
 
-When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. Per footnote 14, this applies across all soil types when renewal occurs between **June 1st and August 31st**.
+When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. Per footnote 14, this applies on sand and loess soils when renewal occurs between **June 1st and August 31st**. On clay and peat soils no reduction applies.
 
 ### 2. Grassland Destruction (Gras-naar-Bouwland)
 
@@ -155,9 +161,7 @@ When grassland is replaced by maize or specific potato types, a reduction of **6
 - **Excluded Crops**: **Seed potatoes (`Pootaardappelen`)** do not trigger this reduction.
 - **Allowed Periods**:
   - **Sand and Loess Soils**: February 1st – May 10th.
-  - **Clay and Peat Soils**:
-    - **NV-Area**: February 1st – March 15th.
-    - **Non-NV-Area**: February 1st – May 31st.
+  - **Clay and Peat Soils**: No reduction applies (footnotes 15 and 16 apply to sand and loess only).
 
 The reduction is not applied when the preceding crop was itself a catch crop, since incorporating a catch crop is not grassland destruction.
 

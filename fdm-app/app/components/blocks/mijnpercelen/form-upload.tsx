@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { AlertCircle, Calendar as CalendarIcon, CheckCircle, Circle, FileUp } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { useWatch } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useActionData, useLocation, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
-import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
 import {
   Accordion,
@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { FormDescription, FormField, FormItem, FormMessage } from "~/components/ui/form"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
 import { MijnPercelenUploadAnimation } from "./upload-animation"
 
@@ -64,14 +64,6 @@ export function MijnPercelenUploadForm({
   const location = useLocation()
   const isSubmitting = navigation.state !== "idle" && navigation.formMethod != null
 
-  // Effect to start the animation
-  useEffect(() => {
-    if (isSubmitting) {
-      setUploadState("animating")
-      uploadStartTime.current = Date.now()
-    }
-  }, [isSubmitting])
-
   // Effect to handle the end of the animation
   useEffect(() => {
     if (actionData && uploadState === "animating") {
@@ -92,15 +84,16 @@ export function MijnPercelenUploadForm({
   }, [actionData, uploadState])
 
   // Effect to reset the form after success message (errors stay visible until the user tries again)
+  const formReset = form.reset
   useEffect(() => {
     if (uploadState === "success") {
       const timer = setTimeout(() => {
         setUploadState("idle")
-        form.reset()
+        formReset()
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [uploadState, form.reset])
+  }, [formReset, uploadState])
 
   const selectedFiles = useWatch({
     control: form.control,
@@ -115,9 +108,9 @@ export function MijnPercelenUploadForm({
 
   useEffect(() => {
     return () => {
-      form.reset()
+      formReset()
     }
-  }, [form.reset])
+  }, [formReset])
 
   const handleFilesSet = async (validFiles: File[]) => {
     form.setValue("shapefile", validFiles)
@@ -141,7 +134,7 @@ export function MijnPercelenUploadForm({
           Selecteer de bestanden van uw RVO Mijn Percelen export. Zorg ervoor dat u alle
           bijbehorende bestanden selecteert (.shp, .shx, .dbf, .prj).
         </CardDescription>
-        <Accordion type="single" collapsible>
+        <Accordion>
           <AccordionItem value="item-1">
             <AccordionTrigger>Hoe download ik een shapefile van mijn.rvo.nl?</AccordionTrigger>
             <AccordionContent>
@@ -217,17 +210,25 @@ export function MijnPercelenUploadForm({
           </CardHeader>
           <CardContent className="space-y-6">
             <RemixFormProvider {...form}>
-              <Form id="MijnPercelenUploadForm" method="post" encType="multipart/form-data">
+              <Form
+                id="MijnPercelenUploadForm"
+                method="post"
+                encType="multipart/form-data"
+                onSubmit={() => {
+                  setUploadState("animating")
+                  uploadStartTime.current = Date.now()
+                }}
+              >
                 <fieldset disabled={isSubmitting}>
                   <input name="intent" type="hidden" value="upload" />
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4">
-                      <FormField
+                      <Controller
                         control={form.control}
                         name="shapefile"
-                        render={({ field: { name, value, onBlur, ref } }) => (
-                          <FormItem>
-                            <div>Shapefile</div>
+                        render={({ field: { name, value, onBlur, ref }, fieldState }) => (
+                          <Field>
+                            <FieldLabel>Shapefile</FieldLabel>
                             <Dropzone
                               ref={ref}
                               name={name}
@@ -278,9 +279,8 @@ export function MijnPercelenUploadForm({
                                 </>
                               )}
                             </Dropzone>
-                            <FormDescription />
-                            <FormMessage />
-                          </FormItem>
+                            <FieldError errors={[fieldState.error]} />
+                          </Field>
                         )}
                       />
                       <Button
@@ -294,7 +294,7 @@ export function MijnPercelenUploadForm({
                             <span>Uploaden...</span>
                           </div>
                         ) : (
-                          "Uploaden"
+                          <span>Uploaden</span>
                         )}
                       </Button>
                       <NavLink to={backUrl} className="w-full">
@@ -344,15 +344,22 @@ function YearSwitcher({ calendar, pathname }: { calendar: string; pathname: stri
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="mt-2 w-full">
-          Kies een ander jaar
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="outline" size="sm" className="mt-2 w-full">
+            Kies een ander jaar
+          </Button>
+        }
+      />
+
       <DropdownMenuContent align="start">
         {years.map((year) => (
-          <DropdownMenuItem key={year} asChild>
-            <NavLink to={pathname.replace(`/${calendar}/`, `/${year}/`)}>{year}</NavLink>
+          <DropdownMenuItem
+            key={year}
+            render={<NavLink to={pathname.replace(`/${calendar}/`, `/${year}/`)} />}
+            nativeButton={false}
+          >
+            {year}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

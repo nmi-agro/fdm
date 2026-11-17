@@ -5,7 +5,10 @@ import type {
   NitrogenBalanceInput,
   SoilAnalysisPicked,
 } from "../types"
-import { calculateNitrogenSupplyBySoilMineralization } from "./mineralization"
+import {
+  calculateNitrogenSupplyBySoilMineralization,
+  calculateNitrogenSupplyBySoilMineralizationUsingMinip,
+} from "./mineralization"
 
 describe("calculateNitrogenSupplyBySoilMineralization", () => {
   const mockCultivationDetails = new Map<string, CultivationDetail>([
@@ -82,6 +85,78 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
     )
 
     expect(result.total.toNumber()).toBe(0)
+  })
+
+  it("should use MINIP instead of the default values when useMinip is true", () => {
+    const cultivations: FieldInput["cultivations"] = [
+      {
+        b_lu: "c1",
+        b_lu_start: new Date("2023-01-01"),
+        b_lu_end: new Date("2023-12-31"),
+        b_lu_catalogue: "3",
+        m_cropresidue: false,
+        b_lu_name: "Cultivation 1",
+        b_lu_croprotation: "maize",
+      },
+    ]
+    const timeFrame: NitrogenBalanceInput["timeFrame"] = {
+      start: new Date("2023-01-01"),
+      end: new Date("2023-07-02"), // 182 days
+    }
+    const soilAnalysis: SoilAnalysisPicked = {
+      ...mockSoilAnalysis,
+      b_soiltype_agr: "dekzand",
+      a_c_of: 20,
+      a_cn_fr: 10,
+      a_density_sa: 1.2,
+    }
+
+    const defaults = calculateNitrogenSupplyBySoilMineralization(
+      cultivations,
+      soilAnalysis,
+      mockCultivationDetails,
+      timeFrame,
+    )
+    expect(defaults.total.toNumber()).toBe(0)
+
+    const minip = calculateNitrogenSupplyBySoilMineralization(
+      cultivations,
+      soilAnalysis,
+      mockCultivationDetails,
+      timeFrame,
+      true,
+    )
+    const yearly = calculateNitrogenSupplyBySoilMineralizationUsingMinip(20, 10, 1.2)
+    expect(yearly.toNumber()).toBeCloseTo(97, 0)
+    expect(minip.total.toNumber()).toBeCloseTo(yearly.times(182).dividedBy(365).toNumber(), 6)
+  })
+
+  it("should throw when useMinip is true and soil parameters are missing", () => {
+    expect(() =>
+      calculateNitrogenSupplyBySoilMineralization(
+        [],
+        mockSoilAnalysis,
+        mockCultivationDetails,
+        { start: new Date("2023-01-01"), end: new Date("2023-12-31") },
+        true,
+      ),
+    ).toThrow("No a_c_of value found")
+  })
+
+  it("should not require MINIP soil parameters when the timeframe is empty", () => {
+    const emptyTimeFrame: NitrogenBalanceInput["timeFrame"] = {
+      start: new Date("2023-06-01"),
+      end: new Date("2023-06-01"),
+    }
+    const result = calculateNitrogenSupplyBySoilMineralization(
+      [],
+      mockSoilAnalysis, // No a_c_of, a_cn_fr or a_density_sa
+      mockCultivationDetails,
+      emptyTimeFrame,
+      true,
+    )
+    expect(result.total.toNumber()).toBe(0)
+    expect(result.years).toEqual([])
   })
 
   it("should calculate mineralization for grassland on veen soil", () => {
@@ -268,5 +343,19 @@ describe("calculateNitrogenSupplyBySoilMineralization", () => {
     )
 
     expect(result.total.toNumber()).toBeCloseTo(320, 0)
+  })
+})
+
+describe("calculateNitrogenSupplyBySoilMineralizationUsingMinip", () => {
+  it("should return the yearly MINIP mineralization for known soil parameters", () => {
+    expect(
+      calculateNitrogenSupplyBySoilMineralizationUsingMinip(20, 10, 1.2).toNumber(),
+    ).toBeCloseTo(97.239835025751, 8)
+    expect(
+      calculateNitrogenSupplyBySoilMineralizationUsingMinip(35, 12, 1.1).toNumber(),
+    ).toBeCloseTo(116.991676515357, 8)
+    expect(
+      calculateNitrogenSupplyBySoilMineralizationUsingMinip(8, 9, 1.45).toNumber(),
+    ).toBeCloseTo(54.83246252841, 8)
   })
 })

@@ -1,5 +1,17 @@
 # fdm-docs
 
+## 0.14.1
+
+### Patch Changes
+
+- [#836](https://github.com/nmi-agro/fdm/pull/836) [`722b9c8`](https://github.com/nmi-agro/fdm/commit/722b9c8fc44a744bfafb7605f22fca69b5e81969) Thanks [@SvenVw](https://github.com/SvenVw)! - Add docs about connecting to KvK
+
+- [#887](https://github.com/nmi-agro/fdm/pull/887) [`4bbebb3`](https://github.com/nmi-agro/fdm/commit/4bbebb3ccf1f6269a562165f901e69b277584887) Thanks [@SvenVw](https://github.com/SvenVw)! - Restore the full API reference. After TypeDoc switched to `NodeNext` module resolution, the package entry points could not resolve their re-exports, so most functions and types were missing from the Reference section. The API reference build now fails on type errors instead of silently leaving out symbols it cannot resolve.
+
+- [#868](https://github.com/nmi-agro/fdm/pull/868) [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Corrected the displayed units and names of several soil parameters to match the NMI parameter definitions: `a_c_of` is now shown in g C/kg and `a_n_rt` in mg N/kg, `a_mg_co` uses the same "mmol+/kg" notation as `a_ca_co` and `a_k_co`, and these three exchangeable cations are now labelled "uitwisselbaar" instead of "totale bodemvoorraad". The input range for `a_ca_co_po` is limited to 1–100 %. Bulk density is documented in g/cm³ throughout the calculator.
+
+- [#864](https://github.com/nmi-agro/fdm/pull/864) [`658e02e`](https://github.com/nmi-agro/fdm/commit/658e02ebb07ed7b99857afb308e19ca81a96d733) Thanks [@SvenVw](https://github.com/SvenVw)! - Describe how the period-based nitrogen usage norm for temporary grassland (`Tijdelijk grasland`) and the sowing-date rule for grass for industrial processing (`Gras voor industriële verwerking`) are applied in the 2025 and 2026 nitrogen usage norm documentation. State that the 2026 grassland renewal and destruction reductions apply only on sand and loess. List consumption and seed potato grow-out with haulm destruction after 15 August (`loofvernietiging na 15 augustus`) as not implemented.
+
 ## 0.14.0
 
 ### Minor Changes

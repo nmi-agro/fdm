@@ -34,7 +34,7 @@ export function NutrientKPICardForTotalApplications({
   const numberOfNutrientsApplied = Object.values(doses.dose).filter((value) => value > 0).length
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export function NutrientKPICardForNutrientDeficit({
 
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -188,7 +188,7 @@ export function NutrientKPICardForNutrientExcess({
 
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent>
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">

@@ -144,6 +144,6 @@
     "**/*.test.tsx",
     "**/*.d.ts",
     "**/d.ts",
-    ".github/skills/**"
+    ".claude/skills/**"
   ]
 }

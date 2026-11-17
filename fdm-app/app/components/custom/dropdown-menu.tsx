@@ -1,7 +1,6 @@
-import { Check } from "lucide-react"
-import { DropdownMenu as DropdownMenuPrimitive, Slot } from "radix-ui"
-import { ComponentProps } from "react"
-import { cn } from "@/app/lib/utils"
+import { Menu as MenuPrimitive } from "@base-ui/react"
+import { cn } from "cn"
+import { CheckIcon } from "lucide-react"
 
 /**
  * Dropdown menu radio item but displays a checkmark when selected instead of a dot.
@@ -9,23 +8,30 @@ import { cn } from "@/app/lib/utils"
 export function DropdownMenuCheckedRadioItem({
   className,
   children,
+  inset,
   ...props
-}: ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+}: MenuPrimitive.RadioItem.Props & {
+  inset?: boolean
+}) {
   return (
-    <DropdownMenuPrimitive.RadioItem
+    <MenuPrimitive.RadioItem
+      data-slot="dropdown-menu-radio-item"
+      data-inset={inset}
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center rounded-sm py-1.5 pr-2 pl-8 text-sm transition-colors outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "focus:bg-accent focus:text-accent-foreground focus:**:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-inset:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
     >
-      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-        <DropdownMenuPrimitive.ItemIndicator>
-          <Check className="h-4 w-4" />
-        </DropdownMenuPrimitive.ItemIndicator>
+      <span
+        className="pointer-events-none absolute right-2 flex items-center justify-center"
+        data-slot="dropdown-menu-radio-item-indicator"
+      >
+        <MenuPrimitive.RadioItemIndicator>
+          <CheckIcon />
+        </MenuPrimitive.RadioItemIndicator>
       </span>
-      <Slot.Slottable>{children}</Slot.Slottable>
-    </DropdownMenuPrimitive.RadioItem>
+      {children}
+    </MenuPrimitive.RadioItem>
   )
 }
-DropdownMenuCheckedRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName

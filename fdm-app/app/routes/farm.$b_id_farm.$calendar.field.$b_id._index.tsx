@@ -1,5 +1,5 @@
 import type { Geometry } from "geojson"
-import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
+import { enrichCurrentSoilDataWithNlv, NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
   calculateDose,
   calculateNitrogenBalance,
@@ -14,6 +14,7 @@ import {
   type Cultivation,
   getCultivations,
   getCultivationsForFarm,
+  getCultivationsFromCatalogue,
   getCurrentSoilData,
   getField,
   getFields,
@@ -26,8 +27,9 @@ import {
   getSoilParametersDescription,
   listAvailableAcquiringMethods,
 } from "@nmi-agro/fdm-core"
-import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
+import { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
+import { cn } from "cn"
 import { useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type {
@@ -70,13 +72,12 @@ import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getIndicatorInfo, getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
-import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   const fieldName = loaderData?.field?.b_name ?? "Perceel"
@@ -257,7 +258,7 @@ function getFdmCultivationHistoryEntries(
   return history
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     const b_id = params.b_id
@@ -275,7 +276,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
-    const pathname = new URL(request.url).pathname
+    const pathname = url.pathname
 
     const [
       field,
@@ -445,8 +446,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           "d_n_supply_base",
         ].includes(card.parameter),
       )
-      .map((card) => ({
+      .map(({ zones, coverage, has_coverage_warning, ...card }) => ({
         ...card,
+        zoneCount: zones.length,
+        coverage,
+        hasCoverageWarning: has_coverage_warning,
         date: toIsoString(card.date),
         sourceLabel:
           sourceParam?.options?.find((option) => option.value === card.source)?.label ??
@@ -507,6 +511,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           }
         })()
       : null
+
+    const showAvailabilityYearWarningPromise = (async function getShowAvailabilityYearWarning() {
+      // The catalogue holds the years in which each RVO crop code is available.
+      const cultivationCatalogue = activeCultivation
+        ? await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm)
+        : []
+      const activeCatalogueItem = activeCultivation
+        ? cultivationCatalogue.find(
+            (item) => item.b_lu_catalogue === activeCultivation.b_lu_catalogue,
+          )
+        : undefined
+      return activeCultivation
+        ? isCultivationUnavailableInPeriod(
+            activeCultivation,
+            activeCatalogueItem?.b_lu_ya,
+            await getLastCultivationAvailabilityYear(),
+          )
+        : null
+    })()
 
     const cultivationHistoryPromise = (async (): Promise<
       AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>
@@ -728,6 +751,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })
 
         if (!result.score) {
+          if (result.inputs.exclusionReason === "no_main_cultivation") {
+            return buildEmptyResult(
+              "Dit perceel heeft dit jaar geen hoofdteelt en is uitgesloten van BLN3.",
+            )
+          }
           if (result.inputs.isExcluded) {
             return buildEmptyResult(
               "Dit perceel is een bufferstrook of natuurperceel en is uitgesloten van BLN3.",
@@ -763,10 +791,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const attentionCount = attentionItems.length
 
         const aggregations = [
-          { id: "S_WAT_BLN", label: "Water" },
-          { id: "S_NUT_BLN", label: "Nutriëntenkringloop" },
-          { id: "S_CLIM_BLN", label: "Klimaat" },
-          { id: "S_PROD_BLN", label: "Productie" },
+          { id: "S_WAT", label: "Water" },
+          { id: "S_NUT", label: "Nutriëntenkringloop" },
+          { id: "S_CLIM", label: "Klimaat" },
+          { id: "S_PROD", label: "Productie" },
         ].map(({ id, label }) => {
           const score01 = getFieldAggregationScore(
             result.score,
@@ -937,6 +965,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         endedCount: measures.filter((measure) => !!measure.m_end).length,
       },
       asyncInsights: {
+        showAvailabilityYearWarning: showAvailabilityYearWarningPromise,
         fertilizer: fertilizerAsyncPromise,
         bln: blnPromise,
         cultivationHistory: cultivationHistoryPromise,

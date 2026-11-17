@@ -26,6 +26,20 @@ describe("calculateNlv", () => {
     })
     expect(nlvHigh).toBeGreaterThan(nlvLow)
   })
+  it("should return the NLV for known soil parameters", () => {
+    expect(calculateNlv({ a_clay_mi: 20, a_cn_fr: 12, a_som_loi: 3 })).toBeCloseTo(
+      57.615541967049,
+      8,
+    )
+    expect(calculateNlv({ a_clay_mi: 5, a_cn_fr: 15, a_som_loi: 6 })).toBeCloseTo(
+      75.962180089636,
+      8,
+    )
+    expect(calculateNlv({ a_clay_mi: 40, a_cn_fr: 10, a_som_loi: 4 })).toBeCloseTo(
+      95.864025518166,
+      8,
+    )
+  })
 })
 
 describe("calculateNlvSupplyIncreaseBySomPotential", () => {

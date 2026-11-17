@@ -1,4 +1,5 @@
 import { getCurrentSoilData, getFarm, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import {
   data,
   type LoaderFunctionArgs,
@@ -7,6 +8,7 @@ import {
   Outlet,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { NewFieldsSidebar } from "~/components/blocks/fields-new/sidebar"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
@@ -18,9 +20,11 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen-controleren" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -83,7 +87,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         if (currentSoilData.length === 0) {
           soilStatus[field.b_id] = "missing"
         } else {
-          const sources = new Set(currentSoilData.map((i) => i.a_source))
+          const sources = new Set(currentSoilData.flatMap((i) => i.sources.map((s) => s.a_source)))
           const hasMeasured = Array.from(sources).some((s) => s !== "nl-other-nmi")
 
           if (hasMeasured) {
@@ -116,7 +120,7 @@ export default function Index() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="percelen-controleren">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
       <main>

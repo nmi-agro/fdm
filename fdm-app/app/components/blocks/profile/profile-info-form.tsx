@@ -32,13 +32,14 @@ export function ProfileInfoForm({
     },
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       intent: "update_profile_info" as const,
       firstname: user.firstname ?? "",
       surname: user.surname ?? "",
     })
-  }, [user, form.reset])
+  }, [user, formReset])
 
   return (
     <RemixFormProvider {...form}>
@@ -68,7 +69,8 @@ export function ProfileInfoForm({
         </fieldset>
         <div className="flex flex-row items-center justify-end gap-2">
           <Button type="submit" disabled={isSubmitting}>
-            Opslaan{isSubmitting && <Spinner />}
+            <span>Opslaan</span>
+            {isSubmitting && <Spinner />}
           </Button>
         </div>
       </Form>

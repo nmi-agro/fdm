@@ -114,21 +114,23 @@ export function TagCreator({
   })
 
   // Close the dialog when tag creation succeeds
+  const isSubmitSuccessful = form.formState.isSubmitSuccessful
   useEffect(() => {
-    if (form.formState.isSubmitSuccessful) {
+    if (isSubmitSuccessful) {
       setDialogOpen(false)
     }
-  }, [form.formState.isSubmitSuccessful, setDialogOpen])
+  }, [isSubmitSuccessful, setDialogOpen])
 
   // Rrset the form if the list of available tags changes (so usually when a new tag is created)
+  const formReset = form.reset
   useEffect(() => {
     const currentColors = new Set(availableTags.map((tag) => tag.color))
     const unusedColor = SWATCH.find((color) => !currentColors.has(color.value))
-    form.reset({
+    formReset({
       intent: intent,
       color: unusedColor?.value,
     })
-  }, [intent, availableTags, form.reset])
+  }, [formReset, intent, availableTags])
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -220,19 +222,21 @@ export function TagCreator({
               }}
             />
             <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Terug
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Terug
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={fetcher.state !== "idle"}>
                 {fetcher.state !== "idle" ? (
                   <>
-                    Opslaan...
+                    <span>Opslaan...</span>
                     <Spinner />
                   </>
                 ) : (
-                  "Opslaan"
+                  <span>Opslaan</span>
                 )}
               </Button>
             </DialogFooter>

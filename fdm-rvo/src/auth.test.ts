@@ -13,8 +13,15 @@ vi.mock("@nmi-agro/rvo-connector", () => {
 describe("auth", () => {
   it("createRvoClient should instantiate RvoClient", () => {
     const client = createRvoClient("id", "name", "uri", "key")
-    expect(RvoClient).toHaveBeenCalled()
+    expect(RvoClient).toHaveBeenCalledWith(expect.objectContaining({ logXml: "none" }))
     expect(client).toBeDefined()
+  })
+
+  it("createRvoClient should pass logXml to RvoClient", () => {
+    createRvoClient("id", "name", "uri", "key", "acceptance", "both")
+    expect(RvoClient).toHaveBeenLastCalledWith(
+      expect.objectContaining({ environment: "acceptance", logXml: "both" }),
+    )
   })
 
   it("generateAuthUrl should call getAuthorizationUrl", () => {

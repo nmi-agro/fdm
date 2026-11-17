@@ -12,14 +12,51 @@ import type {
   Bln3MeasureApplicabilityCollectedInputs,
   Bln3ScoreCollectedInputs,
 } from "./types"
-import { findHoofdteelt } from "../shared/hoofdteelt"
+import { type CultivationForHoofdteelt, findHoofdteelt } from "../shared/hoofdteelt"
+import { getBln3ExclusionReason } from "./exclusion"
 
-const EXCLUDED_BRP_CODES = ["nl_343", "nl_6801"]
+/** A timeframe shorter than this covers a single calendar year. */
+const MAX_SINGLE_YEAR_MS = 366 * 24 * 60 * 60 * 1000
 
-function isExcludedCultivation(croprotation?: string | null, catalogue?: string | null): boolean {
-  if (croprotation === "nature") return true
-  if (catalogue && EXCLUDED_BRP_CODES.includes(catalogue)) return true
-  return false
+/**
+ * Resolves the calendar year a BLN3 score is calculated for.
+ *
+ * A timeframe of one calendar year (or with only an end date) gives the year of its end.
+ * A longer timeframe, or none, gives the latest year with a main cultivation, up to the end
+ * of the timeframe (without a timeframe: up to the current year or the latest cultivation).
+ * When no year has a main cultivation, the end year of the timeframe or the current year is
+ * returned, so the field is excluded for lack of a main cultivation.
+ *
+ * @param cultivations - All cultivations of the field.
+ * @param timeframe - Optional timeframe of the request.
+ * @returns The calendar year of the score.
+ */
+function resolveBln3ScoreYear(
+  cultivations: CultivationForHoofdteelt[],
+  timeframe?: Timeframe,
+): number {
+  const endYear = timeframe?.end?.getFullYear()
+  if (
+    timeframe?.end &&
+    (!timeframe.start || timeframe.end.getTime() - timeframe.start.getTime() < MAX_SINGLE_YEAR_MS)
+  ) {
+    return timeframe.end.getFullYear()
+  }
+
+  const startYears = cultivations
+    .map((c) => c.b_lu_start?.getFullYear())
+    .filter((y): y is number => y !== undefined)
+  const coveredYears = cultivations
+    .map((c) => c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear())
+    .filter((y): y is number => y !== undefined)
+  const currentYear = new Date().getFullYear()
+  const upperYear = endYear ?? Math.max(currentYear, ...coveredYears)
+  const lowerYear = startYears.length > 0 ? Math.min(...startYears) : upperYear
+
+  for (let year = upperYear; year >= lowerYear; year--) {
+    if (findHoofdteelt(cultivations, year, true)) return year
+  }
+  return endYear ?? currentYear
 }
 
 /**
@@ -30,13 +67,21 @@ function isExcludedCultivation(croprotation?: string | null, catalogue?: string 
  * NMI BLN3 API. The caller is responsible for adding `nmiApiKey` before calling
  * `getBln3Score`.
  *
+ * For soil analyses, the latest lab data for each relevant parameter is collected. Only if no lab
+ * data  is found for a parameter, the latest available NMI BodemSchat estimate is used.
+ *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
  * @param timeframe - Optional timeframe applied to soil analyses and measures only.
+ *   Start date is ignored when retrieving soil analyses.
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 calculation.
+ *   `b_year` is the year of a single-year timeframe. For a multi-year timeframe or none, it
+ *   is the latest year with a main cultivation (up to the end of the timeframe).
  * @returns A promise resolving to the collected BLN3 score inputs (without `nmiApiKey`).
+ *   `isExcluded` and `exclusionReason` are set for buffer strips, nature fields and fields
+ *   without a main cultivation in `b_year`.
  * @throws {Error} If data collection fails.
  */
 export async function collectInputForBln3Score(
@@ -49,7 +94,7 @@ export async function collectInputForBln3Score(
     // Fetch all cultivations without timeframe to cover multi-year history
     const [field, soilAnalyses, cultivations, measures] = await Promise.all([
       getField(fdm, principal_id, b_id),
-      getSoilAnalyses(fdm, principal_id, b_id, timeframe),
+      getSoilAnalyses(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
       getCultivations(fdm, principal_id, b_id),
       getMeasures(fdm, principal_id, b_id, timeframe),
     ])
@@ -93,6 +138,9 @@ export async function collectInputForBln3Score(
     ] as const
     const allNumericFields = [...labNumericFields, ...bcsNumericFields] as const
 
+    // fdm-core uses `ORDER BY b_sampling_date DESC NULLS LAST` for getSoilAnalyses.
+    // Since NMI BodemSchat analyses have their b_sampling_date and a_date set to NULL,
+    // they always appear last so the estimates get considered last here.
     const soilData: Record<string, number> = {}
     for (const f of allNumericFields) {
       const analysis = soilAnalyses.find((a) => typeof a[f] === "number")
@@ -136,23 +184,16 @@ export async function collectInputForBln3Score(
       }
     }
 
-    // Determine if the field is excluded (buffer strip, nature crop rotation, or excluded BRP codes)
-    const isBufferstrip = field.b_bufferstrip === true
-    const evaluationYear =
-      timeframe?.end?.getFullYear() ??
-      timeframe?.start?.getFullYear() ??
-      (cultivationsWithStart.length > 0
-        ? cultivationsWithStart.reduce((max, c) => {
-            const y = c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear()
-            return y !== undefined && y > max ? y : max
-          }, 0)
-        : new Date().getFullYear())
+    const b_year = resolveBln3ScoreYear(cultivations, timeframe)
 
-    const targetMainCultivation = findHoofdteelt(cultivations, evaluationYear, true)
+    const targetMainCultivation = findHoofdteelt(cultivations, b_year, true)
     const catalogueCode = targetMainCultivation?.b_lu_catalogue
-    const isExcluded =
-      isBufferstrip ||
-      isExcludedCultivation(targetMainCultivation?.b_lu_croprotation, catalogueCode)
+    const exclusionReason = getBln3ExclusionReason({
+      b_bufferstrip: field.b_bufferstrip,
+      hasMainCultivation: targetMainCultivation !== null,
+      b_lu_croprotation: targetMainCultivation?.b_lu_croprotation,
+      b_lu_catalogue: catalogueCode,
+    })
 
     // Map measures: "bln_BM3" → { measure_id: "BM3", year: 2025 }
     const fallbackYear = timeframe?.end?.getFullYear()
@@ -171,6 +212,7 @@ export async function collectInputForBln3Score(
     return {
       a_lat,
       a_lon,
+      b_year,
       b_soiltype_agr: (latestWithSoiltype?.b_soiltype_agr ??
         undefined) as Bln3ScoreCollectedInputs["b_soiltype_agr"],
       b_gwl_class: (latestWithGwlClass?.b_gwl_class ??
@@ -180,7 +222,7 @@ export async function collectInputForBln3Score(
         b_lu_croprotation: targetMainCultivation.b_lu_croprotation,
       }),
       ...(catalogueCode && { b_lu_catalogue: catalogueCode }),
-      ...(isExcluded && { isExcluded: true }),
+      ...(exclusionReason && { isExcluded: true, exclusionReason }),
       ...(bln3Cultivations.length > 0 && {
         cultivations: bln3Cultivations,
       }),
@@ -198,17 +240,24 @@ export async function collectInputForBln3Score(
 /**
  * Collects all field data needed for a BLN3 measure applicability check from the FDM database.
  *
- * Fetches field geometry (lat/lon), soil analysis, and cultivation history, and optionally calls
- * `getSoilParameterEstimates` (if `nmiApiKey` is provided) to populate GxG and SOM potential fields.
- * Note that `measures` is intentionally excluded per NMI applicability endpoint requirements.
+ * Fetches field geometry (lat/lon), soil analysis, and cultivation history to populate GxG and
+ * SOM potential fields. Note that `measures` is intentionally excluded per NMI applicability
+ * endpoint requirements.
+ *
+ * For soil analyses, the latest lab data for each relevant parameter is collected. Only if no lab
+ * data  is found for a parameter, the latest available NMI BodemSchat estimate is used.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
  * @param b_year - The calendar year for the applicability check.
- * @param timeframe - Optional timeframe applied to soil analyses.
- * @param nmiApiKey - Optional NMI API key to fetch soil parameter estimates (b_gwl_ghg, b_gwl_glg, b_som_potential).
+ * @param timeframe - Optional timeframe applied to soil analyses and fertilizer applications.
+ *   Start date is ignored when retrieving soil analyses.
+ *   Cultivations are always fetched without a timeframe to cover the full multi-year
+ *   history needed for the BLN3 measure applicability estimation.
  * @returns A promise resolving to collected BLN3 measure applicability inputs.
+ *   `isExcluded` and `exclusionReason` are set for buffer strips, nature fields and fields
+ *   without a main cultivation in `b_year`.
  */
 export async function collectInputForBln3MeasureApplicability(
   fdm: FdmType,
@@ -220,7 +269,7 @@ export async function collectInputForBln3MeasureApplicability(
   try {
     const [field, soilAnalyses, cultivations, fertilizerApplications] = await Promise.all([
       getField(fdm, principal_id, b_id),
-      getSoilAnalyses(fdm, principal_id, b_id, timeframe),
+      getSoilAnalyses(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
       getCultivations(fdm, principal_id, b_id),
       getFertilizerApplications(fdm, principal_id, b_id, timeframe).catch(() => []),
     ])
@@ -248,6 +297,9 @@ export async function collectInputForBln3MeasureApplicability(
       "a_som_loi",
     ] as const
 
+    // fdm-core uses `ORDER BY b_sampling_date DESC NULLS LAST` for getSoilAnalyses.
+    // Since NMI BodemSchat analyses have their b_sampling_date and a_date set to NULL,
+    // they always appear last so the estimates get considered last here.
     const soilData: Record<string, number> = {}
     for (const f of labNumericFields) {
       const analysis = soilAnalyses.find((a) => typeof a[f] === "number")
@@ -292,13 +344,14 @@ export async function collectInputForBln3MeasureApplicability(
       ),
     ) as string[]
 
-    // Determine if the field is excluded (buffer strip, nature crop rotation, or excluded BRP codes)
-    const isBufferstrip = field.b_bufferstrip === true
     const targetMainCultivation = findHoofdteelt(cultivations, b_year, true)
     const catalogueCode = targetMainCultivation?.b_lu_catalogue
-    const isExcluded =
-      isBufferstrip ||
-      isExcludedCultivation(targetMainCultivation?.b_lu_croprotation, catalogueCode)
+    const exclusionReason = getBln3ExclusionReason({
+      b_bufferstrip: field.b_bufferstrip,
+      hasMainCultivation: targetMainCultivation !== null,
+      b_lu_croprotation: targetMainCultivation?.b_lu_croprotation,
+      b_lu_catalogue: catalogueCode,
+    })
 
     return {
       a_lat,
@@ -311,7 +364,7 @@ export async function collectInputForBln3MeasureApplicability(
         b_lu_croprotation: targetMainCultivation.b_lu_croprotation,
       }),
       ...(catalogueCode && { b_lu_catalogue: catalogueCode }),
-      ...(isExcluded && { isExcluded: true }),
+      ...(exclusionReason && { isExcluded: true, exclusionReason }),
       ...(appMethods.length > 0 && { p_app_method: appMethods }),
       ...(bln3Cultivations.length > 0 && { cultivations: bln3Cultivations }),
       ...soilData,

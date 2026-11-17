@@ -33,7 +33,11 @@ RVO_CLIENT_ID=<Your RVO Client ID>
 RVO_CLIENT_NAME=<Your RVO Client Name>
 RVO_REDIRECT_URI=<Your registered redirect URI with RVO>
 RVO_PKIO_PRIVATE_KEY=<Your PKIO Private Key for RVO Client Assertion>
+# Optional: log the SOAP XML exchanged with RVO (none | request | response | both). Defaults to none.
+RVO_LOG_XML=none
 ```
+
+`RVO_LOG_XML` is passed as the optional `logXml` argument of `createRvoClient` and is meant for debugging RVO issues. The logged XML can contain farm data and identifiers, so keep it `none` by default, only enable it temporarily, and never commit or share logs containing real data.
 
 #### 2. Authentication Flow
 
@@ -44,9 +48,9 @@ To ensure security, sensitive credentials like `RVO_PKIO_PRIVATE_KEY` and the `e
 Create a server route (e.g., `app/routes/auth.rvo.tsx`) that initiates the redirect to RVO.
 
 ```typescript
+import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo"
 // app/routes/auth.rvo.tsx (Server-side)
 import { redirect, type LoaderFunctionArgs } from "react-router"
-import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo"
 import { getEnv } from "~/lib/env.server" // Your server-side env helper
 import { getSession, commitSession } from "~/lib/session.server"
 
@@ -80,9 +84,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 Create a callback route (matching your `RVO_REDIRECT_URI`) to exchange the code for an access token.
 
 ```typescript
+import { createRvoClient, exchangeToken } from "@nmi-agro/fdm-rvo"
 // app/routes/auth.rvo.callback.tsx (Server-side)
 import { redirect, type LoaderFunctionArgs } from "react-router"
-import { createRvoClient, exchangeToken } from "@nmi-agro/fdm-rvo"
 import { commitSession, getSession } from "~/lib/session.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -139,10 +143,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const rvoClient = getRvoClient()
   const year = "2024"
-  const kvkNumber = "12345678"
 
-  // Fetch RVO fields (server-side)
-  const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber)
+  // Fetch RVO fields (server-side).
+  // A farmer who logs in with the eHerkenning of their own company omits the KvK number:
+  // RVO derives the farm from the authenticated identity.
+  const rvoFields = await fetchRvoFields(rvoClient, year)
+
+  // An advisor with a machtiging at RVO for another farm passes that farm's KvK number,
+  // which is sent as `ThirdPartyFarmID`:
+  // const rvoFields = await fetchRvoFields(rvoClient, year, "12345678")
 
   // Fetch local fields (server-side)
   const localFields = await db.query.fields.findMany({/* ... */})

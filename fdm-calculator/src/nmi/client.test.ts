@@ -98,7 +98,7 @@ describe("NmiApiClient.constructor", () => {
       const client = new NmiApiClient()
 
       expect(client.maxRetries).toBe(3)
-      expect(client.timeout).toBe(30000)
+      expect(client.timeout).toBe(60000)
     })
   })
 })

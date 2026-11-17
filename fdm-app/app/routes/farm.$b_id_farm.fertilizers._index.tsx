@@ -6,6 +6,7 @@ import {
   getFertilizers,
 } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type Fertilizer } from "~/components/blocks/fertilizer/columns"
@@ -20,6 +21,8 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/farm.$b_id_farm.fertilizers._index"
 
+export const handle: HelpHandle = { help: "meststoffen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Meststoffen | ${clientConfig.name}` },
@@ -30,7 +33,7 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -102,7 +105,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

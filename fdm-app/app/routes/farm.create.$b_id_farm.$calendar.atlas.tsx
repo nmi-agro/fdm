@@ -20,6 +20,7 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { ClientOnly } from "remix-utils/client-only"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { generateFeatureClass } from "~/components/blocks/atlas/atlas-functions"
@@ -52,6 +53,9 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "kaart" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Kaart - Bedrijf toevoegen | ${clientConfig.name}` },
@@ -201,7 +205,7 @@ export default function Index() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="kaart">
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>
       <main>

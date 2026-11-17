@@ -1,24 +1,48 @@
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { OpenAPIHono } from "@hono/zod-openapi"
-import { apiReference } from "@scalar/hono-api-reference"
+import { Scalar } from "@scalar/hono-api-reference"
 import { cors } from "hono/cors"
+import { readFileSync } from "node:fs"
 import type { FdmApiConfig, FdmApiServices } from "./index"
 import type { ApiEnv } from "./types"
 import { createApiKeyAuth } from "./auth"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { createPathExistenceGuard, requestGuard } from "./guards"
+import { registerAggregationRoutes } from "./routes/aggregations"
 import { registerCalculationRoutes } from "./routes/calculations"
+import { registerCatalogueRoutes } from "./routes/catalogues"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
+import { registerFarmGroupRoutes } from "./routes/farm-groups"
 import { registerFarmRoutes } from "./routes/farms"
 import { registerFertilizerApplicationRoutes } from "./routes/fertilizer-applications"
+import { registerFertilizerPlanRoutes } from "./routes/fertilizer-plans"
 import { registerFertilizerRoutes } from "./routes/fertilizers"
+import { registerFieldImportRoutes } from "./routes/field-import"
 import { registerFieldRoutes } from "./routes/fields"
 import { registerGrazingIntentionRoutes } from "./routes/grazing-intentions"
 import { registerHarvestRoutes } from "./routes/harvests"
+import { registerIndicatorRoutes } from "./routes/indicators"
+import { registerInvitationRoutes } from "./routes/invitations"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
+import { registerSoilAnalysisImportRoutes } from "./routes/soil-analysis-import"
+import { registerSoilImageRoutes } from "./routes/soil-images"
+
+/**
+ * Reads the API changelog (markdown) that is shown as a separate page in the API reference.
+ *
+ * The file sits next to this module in `src` and is copied to `dist` during the build.
+ * A missing file must never break the documentation, so it falls back to an empty text.
+ */
+function readChangelog(): string {
+  try {
+    return readFileSync(new URL("./changelog.md", import.meta.url), "utf8")
+  } catch {
+    return ""
+  }
+}
 
 /**
  * Builds the OpenAPI-enabled Hono application that serves the FDM API.
@@ -70,7 +94,7 @@ export function buildApp(
       origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : "*",
       allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
-      exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining"],
+      exposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "Content-Disposition"],
       maxAge: 86400,
     }),
   )
@@ -85,17 +109,26 @@ export function buildApp(
   app.get("/", (c) => c.redirect(`${pathPrefix}/docs`, 302))
 
   registerFarmRoutes(app, fdm, services)
+  registerFarmGroupRoutes(app, fdm, services)
   registerFieldRoutes(app, fdm, services)
   registerCalculationRoutes(app, fdm, services)
+  registerCatalogueRoutes(app, fdm, services)
   registerCultivationRoutes(app, fdm, services)
   registerHarvestRoutes(app, fdm, services)
   registerFertilizerRoutes(app, fdm, services)
   registerFertilizerApplicationRoutes(app, fdm, services)
   registerMeasureRoutes(app, fdm, services)
+  registerIndicatorRoutes(app, fdm, services)
   registerOrganicCertificationRoutes(app, fdm, services)
   registerDerogationRoutes(app, fdm, services)
   registerGrazingIntentionRoutes(app, fdm, services)
   registerSoilAnalysisRoutes(app, fdm, services)
+  registerSoilAnalysisImportRoutes(app, fdm, services)
+  registerInvitationRoutes(app, fdm, services)
+  registerSoilImageRoutes(app, fdm, services)
+  registerFieldImportRoutes(app, fdm, services)
+  registerFertilizerPlanRoutes(app, fdm, services)
+  registerAggregationRoutes(app, fdm, services)
 
   // Security schemes
   app.openAPIRegistry.registerComponent("securitySchemes", "ApiKeyHeader", {
@@ -129,11 +162,17 @@ export function buildApp(
 | **Fertilizers** | Custom fertilizers and catalogue look-ups |
 | **Fertilizer applications** | Record, update, and delete applications per field |
 | **Soil analyses** | Upload and query lab results |
-| **Measures** | Record agronomic measures (e.g. tillage, cover crops) |
+| **Measures** | Record agronomic measures and list the measure options of a field with applicability, predicted impacts and recommendations |
+| **Indicators** | Indicator and aggregation scores per field and area-weighted per farm |
 | **Organic certifications** | Register and verify certification periods |
 | **Derogations** | Manage regulatory derogations |
 | **Grazing intentions** | Set and query yearly grazing plans |
+| **Farm groups** | Organize the farms of an organization into groups |
 | **Calculations** | Nitrogen balance, organic-matter balance, fertilization norms, NPK dose |
+
+## Changelog
+
+Recent additions are listed under **Changelog** in the navigation.
 
 ## Authentication
 
@@ -161,8 +200,24 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
     },
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
     tags: [
+      // First in the list, so the sidebar shows it directly below the introduction.
+      { name: "Changelog", description: readChangelog() },
       { name: "Farms", description: "Manage farms" },
+      {
+        name: "Farm Access",
+        description:
+          "Share a farm with users and organizations, change their roles and revoke access",
+      },
+      {
+        name: "Invitations",
+        description: "Accept or decline farm invitations for the authenticated user",
+      },
       { name: "Fields", description: "Manage fields within farms" },
+      {
+        name: "Field Import",
+        description:
+          "Import fields from an RVO Mijn Percelen shapefile export in two steps: compare, then apply",
+      },
       {
         name: "Cultivations",
         description: "Manage cultivations on fields",
@@ -179,7 +234,16 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         name: "Fertilizer Applications",
         description: "Manage fertilizer applications on fields",
       },
-      { name: "Measures", description: "Manage measures on fields" },
+      {
+        name: "Measures",
+        description:
+          "Manage measures on fields. `GET /fields/{b_id}/measures/catalogue` lists the measure options of a field with applicability, predicted impacts and recommendations.",
+      },
+      {
+        name: "Indicators",
+        description:
+          "Indicator and aggregation scores for fields and farms. These endpoints are new and require the `year` query parameter.",
+      },
       {
         name: "Organic Certifications",
         description: "Manage farm organic certifications",
@@ -193,14 +257,35 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         name: "Soil Analyses",
         description: "Manage soil analyses on fields",
       },
+      {
+        name: "Soil Images",
+        description: "Photos and annotations of a soil condition score (BCS) assessment",
+      },
+      {
+        name: "Catalogues",
+        description: "Access the cultivation, fertilizer, and field measure catalogues",
+      },
+      {
+        name: "Organizations",
+        description:
+          "Balances, indicators and measures of all farms of an organization, in total and per farm",
+      },
+      {
+        name: "Farm Groups",
+        description: "Manage groups of farms within an organization",
+      },
       { name: "Calculations", description: "Run agronomic calculations" },
+      {
+        name: "Fertilizer Plans",
+        description: "Generate and download yearly fertilizer plans (bemestingsplan) as PDF",
+      },
     ],
   })
 
   // Scalar UI
   app.get(
     "/docs",
-    apiReference({
+    Scalar({
       pageTitle: `${appName} REST API`,
       url: `${pathPrefix}/openapi.json`,
       theme: "saturn",

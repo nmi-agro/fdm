@@ -11,9 +11,7 @@ import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
 import { detectExistingProfilePictureObjectKey } from "~/components/blocks/profile/detect-existing.server"
 import {
   ProfilePictureManager,
-  ALLOWED_MIME_TYPES,
   MAX_SIZE_BYTES,
-  MIME_TO_EXT,
   MAX_DIMENSIONS,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
@@ -24,6 +22,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
+import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/organization.$slug.settings"
 
@@ -126,6 +125,7 @@ export default function OrganizationSettingsBlock() {
           </CardContent>
         </Card>
         <OrganizationSettingsForm
+          key={loaderData.organization?.id}
           className="grow"
           organization={loaderData.organization}
           canModify={loaderData.organizationEditPermission}
@@ -154,7 +154,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
     const uploadHandler = async (fileUpload: FileUpload) => {
       if (fileUpload.fieldName !== "file") return undefined
-      const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+      const result = await readAndValidateFileUpload(fileUpload, new Set(ALLOWED_IMAGE_MIME_TYPES))
       fileBuffer = result.buffer
       detectedMime = result.mime
 
@@ -204,14 +204,14 @@ export async function action({ params, request }: Route.ActionArgs) {
         return dataWithError(null, "Er is geen geldige afbeelding toegevoegd.")
       }
 
-      const detectedExt = MIME_TO_EXT[detectedMime]
+      const detectedExt = getFileExtensionFromMime(detectedMime)
 
       const hash = crypto.createHash("md5", { outputLength: 16 }).update(fileBuffer).digest("hex")
 
       const objectKey = buildObjectKey(
         "profile_picture_organization",
         currentOrganization.id,
-        detectedExt,
+        detectedExt as string,
       )
 
       await uploadObject(objectKey, fileBuffer, detectedMime)
@@ -287,7 +287,6 @@ export async function action({ params, request }: Route.ActionArgs) {
       const formValues = actionSchemaResult.data
 
       const name = formValues.name
-      const slug = formValues.slug
       const description = formValues.description || ""
 
       // Update the organization
@@ -297,7 +296,6 @@ export async function action({ params, request }: Route.ActionArgs) {
           organizationId: currentOrganization.id,
           data: {
             name,
-            slug,
             metadata: {
               description,
             },
@@ -305,7 +303,8 @@ export async function action({ params, request }: Route.ActionArgs) {
         },
       })
 
-      return redirectWithSuccess(`/organization/${slug}/settings`, {
+      // Slug is NOT changed, so this redirect should succeed.
+      return redirectWithSuccess(`/organization/${params.slug}/settings`, {
         message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
       })
     }

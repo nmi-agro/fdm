@@ -1,26 +1,21 @@
-import type { Column, ColumnDef, RowData } from "@tanstack/react-table"
+import { aggregateNutrientAdviceToFarmLevel } from "@nmi-agro/fdm-calculator/browser"
+import { createColumnHelper, type Column, type ColumnDef } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ArrowDown, ArrowUp } from "lucide-react"
 import { NavLink } from "react-router"
 import { CultivationSuggestionBadge } from "~/components/blocks/cultivation/suggestion"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
+import { Skeleton } from "~/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 import type { FieldNutrientRow, UnitMode } from "./overview-types"
 import type { NutrientDescription } from "./types"
-
-// Lets each nutrient column carry its group ("Primair" etc.) for the divider styling and the
-// "Bekijk" column-visibility dropdown, without needing a nested (and fragile) grouped header row.
-declare module "@tanstack/react-table" {
-  interface ColumnMeta<TData extends RowData, TValue> {
-    groupStart?: boolean
-    groupLabel?: string
-  }
-}
-
-// A field is considered under-fertilized below this % of advice, and over-fertilized at or above it.
-const DEFICIT_THRESHOLD = 90
-const EXCESS_THRESHOLD = 105
+import { overviewTableFeatures } from "./overview-table-features"
+import {
+  ADVICE_STATUS_TEXT_CLASSES,
+  type AdviceProgressStatus,
+  computeAdviceProgress,
+} from "./progress-bar"
 
 export const GROUP_LABELS: Record<NutrientDescription["type"], string> = {
   primary: "Primair",
@@ -42,14 +37,13 @@ interface NutrientStatus {
   /** Fill percentage relative to advice. Also used as the sortable value: real over-fertilization
    * (zero advice, positive filling) is reported as Infinity so it sorts above any finite percentage. */
   percentage: number
-  hasData: boolean
-  isExcess: boolean
-  isDeficit: boolean
-  isCorrect: boolean
+  /** Applied-vs-advice class from `computeAdviceProgress`; `null` when there is no meaningful data. */
+  status: AdviceProgressStatus | null
 }
 
 /**
- * Classifies a nutrient's filling against its advice. advice === 0 with filling === 0 means no
+ * Classifies a nutrient's filling against its advice, with the same thresholds as the progress
+ * bars and the Atlas map (`computeAdviceProgress`). advice === 0 with filling === 0 means no
  * meaningful data was available; advice === 0 with filling > 0 is real over-fertilization (there
  * was no room for any filling at all), not missing data.
  */
@@ -59,26 +53,14 @@ function getNutrientStatus(
   advice: number,
 ): NutrientStatus {
   if (advice === 0 && filling === 0) {
-    return { percentage: 0, hasData: false, isExcess: false, isDeficit: false, isCorrect: false }
+    return { percentage: 0, status: null }
   }
 
-  if (advice === 0) {
-    // Positive filling with zero advice: no room was available, so this is an excess by definition.
-    return {
-      percentage: Infinity,
-      hasData: true,
-      isExcess: true,
-      isDeficit: false,
-      isCorrect: false,
-    }
-  }
-
-  const percentage = (filling / advice) * 100
   // EOC (organic carbon) is excluded from excess flagging: a surplus is agronomically beneficial, not a risk.
-  const isExcess = nutrientSymbol !== "EOC" && percentage >= EXCESS_THRESHOLD
-  const isDeficit = percentage < DEFICIT_THRESHOLD
-  const isCorrect = !isExcess && !isDeficit
-  return { percentage, hasData: true, isExcess, isDeficit, isCorrect }
+  const { status } = computeAdviceProgress(filling, advice, nutrientSymbol === "EOC")
+  // Positive filling with zero advice sorts above any finite percentage.
+  const percentage = advice === 0 ? Infinity : (filling / advice) * 100
+  return { percentage, status }
 }
 
 function NutrientColumnHeader({
@@ -86,31 +68,29 @@ function NutrientColumnHeader({
   nutrient,
   unitMode,
 }: {
-  column: Column<FieldNutrientRow, unknown>
+  column: Column<typeof overviewTableFeatures, FieldNutrientRow, unknown>
   nutrient: NutrientDescription
   unitMode: UnitMode
 }) {
   const sorted = column.getIsSorted()
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={() => column.toggleSorting(sorted === "asc")}
-          className="text-muted-foreground hover:text-foreground flex w-full flex-col items-end gap-0.5 text-right whitespace-nowrap transition-colors"
-        >
-          <span className="flex items-center gap-1 font-medium">
-            {nutrient.symbol}
-            {sorted === "asc" ? (
-              <ArrowUp className="h-3 w-3" />
-            ) : sorted === "desc" ? (
-              <ArrowDown className="h-3 w-3" />
-            ) : null}
-          </span>
-          <span className="text-xs leading-none font-normal">
-            {formatUnit(nutrient.unit, unitMode)}
-          </span>
-        </button>
+      <TooltipTrigger
+        type="button"
+        onClick={() => column.toggleSorting(sorted === "asc")}
+        className="text-muted-foreground hover:text-foreground flex w-full flex-col items-end gap-0.5 text-right whitespace-nowrap transition-colors"
+      >
+        <span className="flex items-center gap-1 font-medium">
+          {nutrient.symbol}
+          {sorted === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : sorted === "desc" ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : null}
+        </span>
+        <span className="text-xs leading-none font-normal">
+          {formatUnit(nutrient.unit, unitMode)}
+        </span>
       </TooltipTrigger>
       <TooltipContent>
         <p className="font-medium">{nutrient.name}</p>
@@ -133,12 +113,20 @@ function NutrientCell({
 }) {
   const value = row.values[nutrient.symbol]
 
+  if (row.pending) {
+    return (
+      <span className="flex justify-end">
+        <Skeleton className="h-4 w-14" />
+      </span>
+    )
+  }
+
   if (row.errorMessage || !value) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="text-muted-foreground block text-right">–</span>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={<span className="text-muted-foreground block text-right">–</span>}
+        />
         <TooltipContent>
           <p className="font-medium">Advies niet beschikbaar</p>
           <p className="text-xs">
@@ -152,17 +140,11 @@ function NutrientCell({
   const area = row.b_area || 0
   const filling = unitMode === "total" ? value.filling * area : value.filling
   const advice = unitMode === "total" ? value.advice * area : value.advice
-  const { isExcess, isDeficit, isCorrect } = getNutrientStatus(nutrient.symbol, filling, advice)
+  const { status } = getNutrientStatus(nutrient.symbol, filling, advice)
 
   return (
     <span className="flex items-center justify-end gap-1 whitespace-nowrap tabular-nums">
-      <span
-        className={cn(
-          isExcess && "text-amber-600 dark:text-amber-500",
-          isDeficit && "text-red-600 dark:text-red-500",
-          isCorrect && "text-green-600 dark:text-green-500",
-        )}
-      >
+      <span className={cn(status && ADVICE_STATUS_TEXT_CLASSES[status])}>
         {formatValue(filling)}
       </span>
       <span className="text-foreground">/ {formatValue(advice)}</span>
@@ -173,51 +155,65 @@ function NutrientCell({
 function buildNutrientColumn(
   nutrient: NutrientDescription,
   unitMode: UnitMode,
-  isGroupStart: boolean,
-): ColumnDef<FieldNutrientRow> {
+  complete: boolean,
+): ColumnDef<typeof overviewTableFeatures, FieldNutrientRow> {
   return {
     id: nutrient.symbol,
     accessorFn: (row) => {
       const value = row.values[nutrient.symbol]
       if (row.errorMessage || !value) return -1
       const status = getNutrientStatus(nutrient.symbol, value.filling, value.advice)
-      return status.hasData ? status.percentage : -1
+      return status.status ? status.percentage : -1
     },
     enableHiding: true,
-    meta: { groupStart: isGroupStart, groupLabel: GROUP_LABELS[nutrient.type] },
     header: ({ column }) => (
       <NutrientColumnHeader column={column} nutrient={nutrient} unitMode={unitMode} />
     ),
     cell: ({ row }) => <NutrientCell row={row.original} nutrient={nutrient} unitMode={unitMode} />,
     footer: ({ table }) => {
-      const rows = table
-        .getFilteredRowModel()
-        .rows.map((r) => r.original)
-        .filter((r) => !r.errorMessage && r.values[nutrient.symbol])
-
-      const totalArea = rows.reduce((sum, r) => sum + (r.b_area || 0), 0)
-      let fillingSum = 0
-      let adviceSum = 0
-      for (const r of rows) {
-        const value = r.values[nutrient.symbol]
-        if (!value) continue
-        fillingSum += value.filling * (r.b_area || 0)
-        adviceSum += value.advice * (r.b_area || 0)
+      // The farm average or total is only meaningful once every field's advice has arrived.
+      if (!complete) {
+        return (
+          <span className="flex justify-end">
+            <Skeleton className="h-4 w-14" />
+          </span>
+        )
       }
 
-      const filling = unitMode === "total" ? fillingSum : totalArea > 0 ? fillingSum / totalArea : 0
-      const advice = unitMode === "total" ? adviceSum : totalArea > 0 ? adviceSum / totalArea : 0
+      const fields = table
+        .getFilteredRowModel()
+        .rows.map((r) => r.original)
+        .filter((r) => !r.errorMessage)
+        .map((r) => {
+          const value = r.values[nutrient.symbol]
+          return {
+            b_area: r.b_area || 0,
+            values: value
+              ? { [nutrient.symbol]: { dose: value.filling, advice: value.advice } }
+              : {},
+          }
+        })
+
+      const { dose, advice } = aggregateNutrientAdviceToFarmLevel(
+        fields,
+        [nutrient.symbol],
+        unitMode,
+      )[nutrient.symbol]
 
       return (
         <span className="flex justify-end whitespace-nowrap tabular-nums">
-          {formatValue(filling)} / {formatValue(advice)}
+          {formatValue(dose)} / {formatValue(advice)}
         </span>
       )
     },
   }
 }
 
-function FieldColumnHeader({ column }: { column: Column<FieldNutrientRow, unknown> }) {
+function FieldColumnHeader({
+  column,
+}: {
+  column: Column<typeof overviewTableFeatures, FieldNutrientRow, unknown>
+}) {
   const sorted = column.getIsSorted()
   return (
     <button
@@ -245,7 +241,44 @@ function FieldColumnHeader({ column }: { column: Column<FieldNutrientRow, unknow
   )
 }
 
-export function buildFieldColumn(b_id_farm: string, calendar: string): ColumnDef<FieldNutrientRow> {
+/**
+ * Label of the farm summary row. In "per ha" mode the row is an area-weighted average, not a
+ * total, so the label says so; the tooltip explains how the numbers are calculated.
+ */
+function FarmSummaryLabel({ unitMode }: { unitMode: UnitMode }) {
+  const isTotal = unitMode === "total"
+  return (
+    <Tooltip>
+      <TooltipTrigger type="button" className="flex flex-col items-start gap-0.5 text-left">
+        <span className="font-medium">{isTotal ? "Bedrijfstotaal" : "Bedrijfsgemiddelde"}</span>
+        <span className="text-muted-foreground text-xs leading-none font-normal">
+          {isTotal ? "alle percelen samen" : "gewogen per ha"}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <p className="text-xs">
+          {isTotal
+            ? "Totale hoeveelheid in kg voor alle percelen samen (advies per ha × oppervlakte)."
+            : "Gemiddelde per hectare, gewogen naar de oppervlakte van de percelen. Kies 'Totaal' voor de totale hoeveelheid in kg voor het bedrijf."}{" "}
+          Percelen zonder advies tellen niet mee.
+        </p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+/**
+ * Builds the "Perceel" column, with the farm summary label in its footer.
+ *
+ * @param b_id_farm ID of the farm to be used for links.
+ * @param calendar Current calendar to be used for links.
+ * @param unitMode Whether the farm row shows the area-weighted average per ha or the farm total.
+ */
+export function buildFieldColumn(
+  b_id_farm: string,
+  calendar: string,
+  unitMode: UnitMode,
+): ColumnDef<typeof overviewTableFeatures, FieldNutrientRow> {
   return {
     id: "field",
     accessorKey: "b_name",
@@ -296,39 +329,59 @@ export function buildFieldColumn(b_id_farm: string, calendar: string): ColumnDef
                 calendar={calendar}
                 b_id={field.b_id}
                 suggestion={field.cultivationSuggestion}
+                canWrite={field.has_write_permission ?? true}
               />
             </div>
           )}
         </div>
       )
     },
-    footer: () => <span className="font-medium">Bedrijfstotaal</span>,
+    footer: () => <FarmSummaryLabel unitMode={unitMode} />,
   }
 }
 
+const columnHelper = createColumnHelper<typeof overviewTableFeatures, FieldNutrientRow>()
+
+const typeOrder = ["primary", "secondary", "trace"] as const
 /**
- * Flat (non-nested) column list: field name + one column per nutrient, ordered
- * Primair / Secundair / Sporenelementen. A nested header-group row was tried first but
- * broke sticky-column alignment; grouping is instead conveyed via a left divider on each
- * group's first column, the header tooltip, and the "Bekijk" dropdown's group labels.
+ * Builds column groups for each nutrient type. Also include a standalone column for field.
+ *
+ * The field column's header will spawn 2 rows this way. We just ignore the row span value for
+ * the footer, but that also spans 2 rows.
+ *
+ * @param nutrients Nutrient descriptions for the nutrients displayed on the table.
+ * @param unitMode Whether to display per-ha or total nutrient advice on the table.
+ * @param b_id_farm ID of the farm to be used for links.
+ * @param calendar Current calendar to be used for links.
+ * @param complete Whether every field's advice has arrived; until then the farm row shows a
+ * placeholder.
  */
 export function buildOverviewColumns(
   nutrients: NutrientDescription[],
   unitMode: UnitMode,
   b_id_farm: string,
   calendar: string,
-): ColumnDef<FieldNutrientRow>[] {
-  const order: NutrientDescription["type"][] = ["primary", "secondary", "trace"]
-  const orderedNutrients = order.flatMap((type) =>
-    nutrients.filter((nutrient) => nutrient.type === type),
+  complete: boolean,
+) {
+  type ColGroup = ReturnType<typeof columnHelper.group>
+  const fieldColumns = columnHelper.columns([buildFieldColumn(b_id_farm, calendar, unitMode)])
+
+  const nutrientColumns = columnHelper.columns(
+    typeOrder.map((type) =>
+      columnHelper.group({ id: `type_${type}`, header: GROUP_LABELS[type], columns: [] }),
+    ),
   )
+  const nutrientColumnsMap = Object.fromEntries(
+    nutrientColumns.map((col, i) => [typeOrder[i] as string, col]),
+  ) as Record<string, ColGroup>
 
-  let previousType: NutrientDescription["type"] | null = null
-  const nutrientColumns = orderedNutrients.map((nutrient) => {
-    const isGroupStart = nutrient.type !== previousType
-    previousType = nutrient.type
-    return buildNutrientColumn(nutrient, unitMode, isGroupStart)
-  })
+  for (const nutrient of nutrients) {
+    let group = nutrientColumnsMap[nutrient.type]
+    if (typeof group === "undefined") {
+      continue
+    }
+    ;(group.columns as any[]).push(buildNutrientColumn(nutrient, unitMode, complete))
+  }
 
-  return [buildFieldColumn(b_id_farm, calendar), ...nutrientColumns]
+  return [...fieldColumns, ...nutrientColumns]
 }

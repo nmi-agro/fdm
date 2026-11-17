@@ -65,9 +65,10 @@ export function useAgentForm({
     fetcher: fetcher,
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset(getFormDefaults(agent))
-  }, [form.reset, agent])
+    formReset(getFormDefaults(agent))
+  }, [formReset, agent])
 
   return form
 }
@@ -120,6 +121,10 @@ export function AgentFormFields({
             </FieldDescription>
             <Select
               value={field.value?.toString() ?? "1"}
+              items={AssignmentTierOptions.map((option) => ({
+                value: option.value.toString(),
+                label: option.label,
+              }))}
               onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
               disabled={!isAdmin}
             >
@@ -200,7 +205,8 @@ export function AgentForm({
           </fieldset>
           <div className="text-end">
             <Button type="submit" disabled={isSubmitting}>
-              Opslaan{isSubmitting && <Spinner />}
+              <span>Opslaan</span>
+              {isSubmitting && <Spinner />}
             </Button>
           </div>
         </fetcher.Form>
@@ -247,13 +253,16 @@ export function AgentFormDialog({
               <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
             </fieldset>
             <DialogFooter className="flex flex-row justify-end gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Sluiten
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Sluiten
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={isSubmitting}>
-                Opslaan{isSubmitting && <Spinner />}
+                <span>Opslaan</span>
+                {isSubmitting && <Spinner />}
               </Button>
             </DialogFooter>
           </fetcher.Form>

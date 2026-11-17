@@ -5,11 +5,15 @@ import {
   type MetaFunction,
   Outlet,
   useLoaderData,
+  useLocation,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
+import { EffectiveNitrogenToggle } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { HelpLink } from "~/components/custom/help-link"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -18,6 +22,9 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "stikstofbalans" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Stikstof | Nutriëntenbalans| ${clientConfig.name}` },
@@ -124,10 +131,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmBalanceNitrogenBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const { b_id, calendar } = useParams()
+  const { search } = useLocation()
 
   const action = b_id
     ? {
-        to: `/farm/${loaderData.b_id_farm}/${calendar}/balance/nitrogen`,
+        to: `/farm/${loaderData.b_id_farm}/${calendar}/balance/nitrogen${search}`,
         label: "Terug naar stikstofbalans",
         disabled: false,
       }
@@ -149,10 +157,12 @@ export default function FarmBalanceNitrogenBlock() {
       </Header>
       <main>
         <div className="space-y-6 px-10 py-5 pb-0">
-          <div className="flex items-center gap-4">
-            <div className="space-y-0.5 ">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
+              <HelpLink target="stikstofbalans" />
             </div>
+            <EffectiveNitrogenToggle />
           </div>
           <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
             <div className="flex-1">{<Outlet />}</div>

@@ -237,18 +237,20 @@ export function SearchFields<T extends BaseFilter>({
             <Field key={field.name as string} className="space-y-0">
               <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-between font-medium"
-                  >
-                    <span className={activeOption ? undefined : "text-muted-foreground"}>
-                      {activeOption?.label ?? "Alle prioriteiten"}
-                    </span>
-                    <ChevronDown className="ms-1 size-3 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-between font-medium"
+                    >
+                      <span className={activeOption ? undefined : "text-muted-foreground"}>
+                        {activeOption?.label ?? "Alle prioriteiten"}
+                      </span>
+                      <ChevronDown className="ms-1 size-3 opacity-50" />
+                    </Button>
+                  }
+                />
                 <DropdownMenuContent>
                   {activeOption && (
                     <DropdownMenuItem

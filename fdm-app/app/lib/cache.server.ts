@@ -1,5 +1,6 @@
 import type { EntryContext } from "react-router"
 import { clientConfig } from "~/lib/config"
+import { MANUAL_CACHE_CONTROL } from "~/lib/manual/seo"
 
 type CacheControl = {
   maxAge: number
@@ -47,7 +48,7 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
   const headers = new Headers()
 
   // Static assets (JS, CSS, images)
-  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$/)) {
+  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff2?)$/)) {
     headers.set(
       "Cache-Control",
       generateCacheControl({
@@ -79,6 +80,12 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
         noStore: true,
       }),
     )
+    return headers
+  }
+
+  // Public user manual: static content that changes only with a release
+  if (url.pathname === "/manual" || url.pathname.startsWith("/manual/")) {
+    headers.set("Cache-Control", MANUAL_CACHE_CONTROL)
     return headers
   }
 
@@ -134,7 +141,7 @@ export function addSecurityHeaders(headers: Headers): Headers {
         font-src 'self' https://fonts.gstatic.com https://*.posthog.com data:;
         img-src 'self' data: blob: https://service.pdok.nl https://*.maptiler.com https://*.openstreetmap.org https://*.public.blob.vercel-storage.com https://images.unsplash.com https://lh3.googleusercontent.com https://graph.microsoft.com https://storage.googleapis.com/minas2/ https://storage.googleapis.com/minas2-dev/ https://*.posthog.com;
         connect-src 'self' https://service.pdok.nl https://server.arcgisonline.com https://api.maptiler.com https://nominatim.openstreetmap.org https://sentry.io https://*.sentry.io https://*.ingest.de.sentry.io https://*.nmi-agro.nl https://storage.googleapis.com/fdm-public-data/ https://*.posthog.com ws://localhost:* http://localhost:*;
-        frame-src 'self';
+        frame-src 'self' blob:;
         media-src 'self' https://*.posthog.com;
         object-src 'none';
         base-uri 'self';

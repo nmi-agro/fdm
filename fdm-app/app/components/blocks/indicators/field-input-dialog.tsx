@@ -62,12 +62,14 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-muted-foreground gap-1.5">
-          <Database className="h-3.5 w-3.5" />
-          Invoergegevens
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm" className="text-muted-foreground gap-1.5">
+            <Database className="h-3.5 w-3.5" />
+            Invoergegevens
+          </Button>
+        }
+      />
       <DialogContent className="max-h-[80vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Invoergegevens BLN3</DialogTitle>

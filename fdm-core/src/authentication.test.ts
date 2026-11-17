@@ -62,16 +62,31 @@ describe("createFdmAuth", () => {
 
     // Verify auth providers are correctly configured
     expect(fdmAuth.options.socialProviders?.google).toBeDefined()
-    const genericOAuthPlugin = fdmAuth.options.plugins?.find(
-      (p: any) => p.id === "generic-oauth",
-    ) as any
-    expect(genericOAuthPlugin).toBeDefined()
-    expect(
-      genericOAuthPlugin?.options?.config?.some((c: any) => c.providerId === "microsoft"),
-    ).toBe(true)
+    expect(fdmAuth.options.socialProviders?.microsoft).toBeDefined()
 
     // Verify database adapter is properly connected
     expect(fdmAuth.options.database).toBeDefined()
+  })
+
+  it("should only mark a Google email as verified when Google reports it as verified", async () => {
+    fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth)
+    const mapProfileToUser = fdmAuth.options.socialProviders?.google?.mapProfileToUser
+    expect(mapProfileToUser).toBeDefined()
+
+    const baseProfile = {
+      sub: createId(),
+      name: "Jan Jansen",
+      given_name: "Jan",
+      family_name: "Jansen",
+      picture: "",
+      email: `google-${createId()}@example.com`,
+    }
+
+    const verified = await mapProfileToUser?.({ ...baseProfile, email_verified: true } as any)
+    expect(verified?.emailVerified).toBe(true)
+
+    const unverified = await mapProfileToUser?.({ ...baseProfile, email_verified: false } as any)
+    expect(unverified?.emailVerified).toBe(false)
   })
 })
 

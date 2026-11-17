@@ -1,5 +1,6 @@
 "use client"
 
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { Loader, MapPin, X } from "lucide-react"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
@@ -14,9 +15,8 @@ import {
   CommandGroup,
   CommandItem,
 } from "~/components/ui/command"
-import { Popover, PopoverAnchor, PopoverContent } from "~/components/ui/popover"
+import { Popover, PopoverContent } from "~/components/ui/popover"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
 import { AtlasControls } from "./atlas-controls"
 
 type NominatimResult = {
@@ -49,14 +49,15 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
   const { current: map } = useMap()
   const [displayValue, setDisplayValue] = useState("")
-  const [results, setResults] = useState<MaptilerResult[]>([])
+  const [searchResults, setSearchResults] = useState<MaptilerResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(isMobile)
 
   const [debouncedQuery, setDebouncedQuery] = useState("")
 
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const anchorRef = useRef<HTMLDivElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const throttledSetDebouncedQuery = useMemo(
@@ -70,6 +71,8 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
   // Search for locations
   useEffect(() => {
+    if (!debouncedQuery?.trim()) return
+
     const abortController = new AbortController()
     abortControllerRef.current = abortController
     async function forwardGeocode(config: {
@@ -138,15 +141,9 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
       return []
     }
 
-    if (!debouncedQuery?.trim()) {
-      setResults([])
-      setError(null)
-      return
-    }
-
     const performSearch = async () => {
       setIsSearching(true)
-      setError(null)
+      setSearchError(null)
 
       try {
         const suggestions = await forwardGeocode({
@@ -158,15 +155,15 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
         if (abortController.signal.aborted) return
 
-        setResults(suggestions)
+        setSearchResults(suggestions)
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return
         }
 
         console.error("Search error:", err)
-        setError(err instanceof Error ? err.message : "Er is iets misgegaan.")
-        setResults([])
+        setSearchError(err instanceof Error ? err.message : "Er is iets misgegaan.")
+        setSearchResults([])
       } finally {
         if (!abortController.signal.aborted) {
           setIsSearching(false)
@@ -197,7 +194,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
       if (!map) return
 
       setIsSearching(true)
-      setError(null)
+      setSearchError(null)
 
       if (suggestion.bbox) {
         map.fitBounds(suggestion.bbox)
@@ -221,22 +218,27 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
     throttledSetDebouncedQuery.cancel()
     setDisplayValue("")
     setDebouncedQuery("")
-    setResults([])
-    setError(null)
+    setSearchResults([])
+    setSearchError(null)
     if (isMobile) {
       setCollapsed(true)
     }
   }, [isMobile, throttledSetDebouncedQuery])
 
+  // Collapsing only applies on mobile; switching to desktop re-expands without an effect.
+  const effectiveCollapsed = isMobile && collapsed
+
+  // Handles switching to mobile while already unfocused and empty (e.g. a viewport resize) — the
+  // common case (blurring the input while on mobile) is handled by the input's own onBlur below.
   useEffect(() => {
     if (isMobile && !displayValue && !collapsed && inputRef.current !== document.activeElement) {
       setCollapsed(true)
     }
-    if (!isMobile && collapsed) {
-      setCollapsed(false)
-    }
   }, [displayValue, isMobile, collapsed])
 
+  // Cleared without an effect once the query is empty, rather than mirrored via setState.
+  const results = debouncedQuery.trim() ? searchResults : []
+  const error = debouncedQuery.trim() ? searchError : null
   const hasResults = results.length > 0
   const isOpen = hasResults || error != null || (!isSearching && displayValue.trim().length > 0)
   const showEmptyState =
@@ -246,27 +248,30 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
     <AtlasControls position={position}>
       <Popover open={isOpen}>
         <Command className="maplibregl-ctrl w-auto rounded-lg" shouldFilter={false}>
-          <PopoverAnchor
-            className={cn(
-              "transition-pe pointer-events-auto flex items-center justify-between gap-1 duration-300",
-              !collapsed && "pe-3",
-              isOpen && "border-b",
-            )}
+          {/* Plain wrapper used as the popover anchor: a PopoverTrigger here would turn the input
+              and its clear button into one big `role="button"`. */}
+          <div
+            ref={anchorRef}
             onClick={(e) => {
               e.stopPropagation()
-              if (collapsed) {
+              if (effectiveCollapsed) {
                 setCollapsed(false)
                 if (inputRef.current) {
                   inputRef.current.focus()
                 }
               }
             }}
+            className={cn(
+              "transition-pe pointer-events-auto flex items-center justify-between gap-1 duration-300",
+              !effectiveCollapsed && "pe-3",
+              isOpen && "border-b",
+            )}
           >
             <CommandInput
               ref={inputRef}
               className={cn(
                 "flex-1 transition-[width,margin-left] duration-300",
-                collapsed ? "-ml-2 w-0" : "",
+                effectiveCollapsed ? "-ml-2 w-0" : "",
               )}
               placeholder="Zoek naar een locatie..."
               value={displayValue}
@@ -299,53 +304,54 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
                 <Loader className="text-primary size-4 animate-spin" aria-hidden="true" />
               </span>
             )}
-          </PopoverAnchor>
-
+          </div>
           <PopoverContent
-            asChild
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onCloseAutoFocus={(e) => e.preventDefault()}
-          >
-            <CommandList className="max-h-60 overflow-y-auto p-1.5">
-              {error ? (
-                <CommandEmpty className="py-6 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-1">
-                    <p className="text-destructive text-sm font-medium">Er is iets misgegaan.</p>
-                    <p className="text-muted-foreground text-xs">{error}</p>
-                  </div>
-                </CommandEmpty>
-              ) : showEmptyState ? (
-                <CommandEmpty className="py-6 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-1">
-                    <p className="text-sm font-medium">Geen locaties gevonden</p>
-                    <p className="text-muted-foreground text-xs">Probeer een andere zoekterm</p>
-                  </div>
-                </CommandEmpty>
-              ) : hasResults ? (
-                <CommandGroup>
-                  {results.map((location) => (
-                    <CommandItem
-                      key={location.id}
-                      value={location.id}
-                      onSelect={() => handleSelect(location)}
-                      className="hover:bg-accent flex cursor-pointer items-center rounded-md px-1 py-1"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <div className="bg-primary/10 shrink-0 rounded-full p-1">
-                          <MapPin className="text-primary h-3 w-3" />
+            anchor={anchorRef}
+            render={(props) => (
+              <CommandList
+                {...props}
+                className={cn(props.className, "max-h-60 overflow-y-auto p-1.5")}
+              >
+                {error ? (
+                  <CommandEmpty className="py-6 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-1">
+                      <p className="text-destructive text-sm font-medium">Er is iets misgegaan.</p>
+                      <p className="text-muted-foreground text-xs">{error}</p>
+                    </div>
+                  </CommandEmpty>
+                ) : showEmptyState ? (
+                  <CommandEmpty className="py-6 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-1">
+                      <p className="text-sm font-medium">Geen locaties gevonden</p>
+                      <p className="text-muted-foreground text-xs">Probeer een andere zoekterm</p>
+                    </div>
+                  </CommandEmpty>
+                ) : hasResults ? (
+                  <CommandGroup>
+                    {results.map((location) => (
+                      <CommandItem
+                        key={location.id}
+                        value={location.id}
+                        onSelect={() => handleSelect(location)}
+                        className="hover:bg-accent flex cursor-pointer items-center rounded-md px-1 py-1"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <div className="bg-primary/10 shrink-0 rounded-full p-1">
+                            <MapPin className="text-primary h-3 w-3" />
+                          </div>
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate text-sm font-medium">
+                              {location.place_name ?? location.text}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-sm font-medium">
-                            {location.place_name ?? location.text}
-                          </span>
-                        </div>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ) : null}
-            </CommandList>
-          </PopoverContent>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : null}
+              </CommandList>
+            )}
+          />
         </Command>
       </Popover>
     </AtlasControls>

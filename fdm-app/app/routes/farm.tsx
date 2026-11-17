@@ -65,11 +65,11 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
-export async function loader({ params, request }: LoaderFunctionArgs) {
+export async function loader({ params, request, url }: LoaderFunctionArgs) {
   try {
     // Get the session
     const session = await getSession(request)
-    const sessionCheckResponse = await checkSession(session, request)
+    const sessionCheckResponse = await checkSession(session, url)
     // If checkSession returns a Response, it means a redirect is needed
     if (sessionCheckResponse instanceof Response) {
       return sessionCheckResponse
@@ -110,7 +110,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
             "write",
             params.b_id_farm,
             session.principal_id,
-            new URL(request.url).pathname,
+            url.pathname,
             false,
           )
         : false
@@ -171,9 +171,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     // If getSession throws (e.g., invalid token), it might result in a 401
     // We need to handle that case here as well, similar to the ErrorBoundary
     if (error instanceof Response && error.status === 401) {
-      const currentPath = new URL(request.url).pathname
-        .replace(/\/_\.data$/, "/")
-        .replace(/\.data$/, "")
+      const currentPath = url.pathname
       const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
       return redirect(signInUrl)
     }
@@ -213,7 +211,7 @@ function FarmShell({
             hasHerds={loaderData.hasHerds}
           />
           <SidebarApps farms={loaderData.farmOptions} />
-          <SidebarLabs />
+          <SidebarLabs farms={loaderData.farmOptions} />
         </SidebarContent>
         <SidebarSupport
           name={loaderData.userName}

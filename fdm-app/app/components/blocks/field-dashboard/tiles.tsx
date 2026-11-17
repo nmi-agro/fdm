@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import {
@@ -5,14 +6,17 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
+  Layers,
   Microscope,
   MoveRight,
   Sparkles,
   Sprout,
+  TriangleAlert,
   User,
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
@@ -22,11 +26,10 @@ import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { Dialog, DialogTrigger } from "../../ui/dialog"
 import {
   FieldDashboardTile,
@@ -211,6 +214,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
             calendar={dashboard.calendar}
             b_id={dashboard.b_id}
             result={result}
+            canWrite={dashboard.fieldWritePermission}
           />
         )}
       </Await>
@@ -255,6 +259,11 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
             Gestart op {formatDateLabel(activeCultivation.startDate)}.
           </p>
         </div>
+        <Suspense fallback={null}>
+          <Await resolve={dashboard.asyncInsights.showAvailabilityYearWarning} errorElement={<></>}>
+            {(availabilityResult) => <CultivationAvailabilityWarning result={availabilityResult} />}
+          </Await>
+        </Suspense>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border p-3">
             <p className="text-muted-foreground text-xs uppercase">Teeltperiode</p>
@@ -283,12 +292,14 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
                 <p className="text-muted-foreground text-xs uppercase">{harvestDateTerm}</p>
                 <p className="mt-1 text-sm font-medium">{formatDateLabel(latestHarvest.date)}</p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link to={latestHarvest.detailHref}>
-                  Bekijken
-                  <MoveRight className="size-4" />
-                </Link>
-              </Button>
+              <Link
+                to={latestHarvest.detailHref}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                data-slot="button"
+              >
+                Bekijken
+                <MoveRight className="size-4" />
+              </Link>
             </div>
             {latestHarvest.metrics.length > 0 ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -581,10 +592,10 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                   {data.balance <= data.target ? (
                     <>
                       <CheckCircle2 className="size-3.5" />
-                      Onder streefwaarde
+                      <span>Onder streefwaarde</span>
                     </>
                   ) : (
-                    "Boven streefwaarde"
+                    <span>Boven streefwaarde</span>
                   )}
                 </span>
               }
@@ -662,10 +673,10 @@ export function FieldDashboardOrganicMatterBalanceTile({
                   {data.balance > 0 ? (
                     <>
                       <CheckCircle2 className="size-3.5" />
-                      Positief
+                      <span>Positief</span>
                     </>
                   ) : (
-                    "Negatief"
+                    <span>Negatief</span>
                   )}
                 </span>
               }
@@ -726,18 +737,20 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
               ? "Onbekend"
               : card.type === "enum"
                 ? (card.label ?? String(card.value))
-                : `${card.value}${card.unit ? ` ${card.unit}` : ""}`
+                : `${typeof card.value === "number" ? Math.round(card.value * 10) / 10 : card.value}${card.unit ? ` ${card.unit}` : ""}`
 
           return (
             <div key={card.parameter} className="rounded-lg border p-4">
               <div className="space-y-1">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
-                        {card.title}
-                      </p>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
+                          {card.title}
+                        </p>
+                      }
+                    />
                     <TooltipContent className="max-w-xs">{card.description}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -755,6 +768,22 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
                         : "Onbekende bron"}
                 </span>
               </div>
+              {card.zoneCount > 1 && (
+                <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                  <Layers className="size-3.5" />
+                  <span>Gemiddelde van {card.zoneCount} zones</span>
+                </div>
+              )}
+              {card.hasCoverageWarning && card.coverage !== null && (
+                <Link
+                  to={`${tile.detailHref}/analysis/${card.a_id}`}
+                  className="mt-1 flex items-center gap-2 text-xs text-amber-700 hover:underline"
+                  title="Bekijk de bemonstering op de kaart"
+                >
+                  <TriangleAlert className="size-3.5" />
+                  <span>Dekt {Math.round(card.coverage * 100)}% van perceel</span>
+                </Link>
+              )}
             </div>
           )
         })}
@@ -791,9 +820,9 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
           </div>
           {latestAnalysisPdf && (
             <Dialog>
-              <DialogTrigger asChild>
-                <ViewPdfButton variant="outline" size="sm" className="shrink-0" />
-              </DialogTrigger>
+              <DialogTrigger
+                render={<ViewPdfButton variant="outline" size="sm" className="shrink-0" />}
+              />
               <PdfViewerDialogContent
                 downloadUrl={`/api/soil-analysis/download/${latestAnalysisPdf.a_id}.pdf`}
                 filename={latestAnalysisPdf.filename}
@@ -878,6 +907,7 @@ export function FieldDashboardBcsTile({ dashboard, tile }: FieldDashboardTilePro
           scoreColor={bcs.scoreColor}
           scoreLabel={bcs.scoreLabel}
           measuredAt={bcs.measuredAt ? formatDateLabel(bcs.measuredAt) : undefined}
+          showTopRightBadge={false}
           collapsibleIndicators
         />
       </div>
@@ -913,7 +943,7 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                       <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
-                          "Onbekend"
+                          <span>Onbekend</span>
                         ) : (
                           <>
                             <span
@@ -922,7 +952,7 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                                 getScoreDotClass(aggregation.score),
                               )}
                             />
-                            {aggregation.score}/100
+                            <span>{aggregation.score}/100</span>
                           </>
                         )}
                       </p>

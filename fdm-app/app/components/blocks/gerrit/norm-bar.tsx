@@ -1,3 +1,4 @@
+import { CSSProperties } from "react"
 import { Progress } from "~/components/ui/progress"
 
 export function NormBar({
@@ -25,7 +26,11 @@ export function NormBar({
       </div>
       <Progress
         value={Math.max(0, Math.min(pct, 100))}
-        colorBar={over ? "red-500" : "green-500"}
+        style={
+          {
+            "--color-primary": over ? "var(--color-red-500)" : "var(--color-green-500)",
+          } as CSSProperties
+        }
         className="h-2"
       />
     </div>

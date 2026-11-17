@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FdmApiServices } from "../index"
 import { createFdmApi } from "../index"
+import { updateHarvest } from "../operations/harvests"
 
 const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
 const mockFdm = {
@@ -20,7 +21,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 const baseHarvest = {
@@ -104,6 +108,34 @@ describe("POST /cultivations/:b_lu/harvests", () => {
     const body = await res.json()
     expect(body.b_id_harvesting).toBe("harvest-new")
     expect(res.headers.get("location")).toContain("/harvests/harvest-new")
+  })
+
+  it("returns 409 when a crop that is harvested once already has its harvest", async () => {
+    const app = makeApp({
+      addHarvest: vi.fn().mockRejectedValue(
+        new Error("Exception for addHarvest", {
+          cause: new Error("Cultivation can only be harvested once"),
+        }),
+      ),
+    })
+    const res = await app.request("/cultivations/cult-1/harvests", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
+    })
+    expect(res.status).toBe(409)
+    expect((await res.json()).type).toContain("conflict")
+  })
+
+  it("passes other errors of addHarvest on", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const app = makeApp({ addHarvest: vi.fn().mockRejectedValue(new Error("database down")) })
+    const res = await app.request("/cultivations/cult-1/harvests", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
+    })
+    expect(res.status).toBe(500)
   })
 
   it("returns 415 without Content-Type: application/json", async () => {
@@ -250,5 +282,157 @@ describe("DELETE /harvests/:b_id_harvesting", () => {
       headers: { "x-api-key": "valid" },
     })
     expect(res.status).toBe(403)
+  })
+})
+
+describe("GET /cultivations/:b_lu/harvest-parameters", () => {
+  const headers = { "x-api-key": "valid" }
+  const cultivation = {
+    b_lu: "lu-1",
+    b_id: "f1",
+    b_lu_catalogue: "nl_2014",
+    b_lu_harvestcat: "HC040",
+    b_lu_harvestable: "once",
+    b_lu_croprotation: "potato",
+  }
+  const catalogue = [
+    { b_lu_catalogue: "nl_2014", b_lu_harvestcat: "HC040", b_lu_yield: 12000, b_lu_dm: 220 },
+  ]
+
+  function services(overrides: Record<string, unknown> = {}) {
+    return {
+      getCultivation: vi.fn().mockResolvedValue(cultivation),
+      getField: vi.fn().mockResolvedValue({ b_id: "f1", b_id_farm: "farm-1" }),
+      getCultivationsFromCatalogue: vi.fn().mockResolvedValue(catalogue),
+      ...overrides,
+    }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    validKey()
+  })
+
+  it("returns the required parameters and their defaults", async () => {
+    const s = services()
+    const app = makeApp(s as any)
+    const res = await app.request("/cultivations/lu-1/harvest-parameters", { headers })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.parameters).toEqual([
+      "b_lu_yield_bruto",
+      "b_lu_tarra",
+      "b_lu_dm",
+      "b_lu_n_harvestable",
+    ])
+    expect(body.defaults.b_lu_tarra).toBe(5)
+    // Only required parameters get a default; a value the catalogue lacks is omitted.
+    for (const key of Object.keys(body.defaults)) expect(body.parameters).toContain(key)
+    expect(body.defaults.b_lu_dm).toBe(220)
+    expect(s.getCultivationsFromCatalogue).toHaveBeenCalledWith(mockFdm, "user-1", "farm-1")
+  })
+
+  it("allows multiple harvests only for grassland", async () => {
+    const app = makeApp(
+      services({
+        getCultivation: vi.fn().mockResolvedValue({
+          ...cultivation,
+          b_lu_harvestable: "multiple",
+          b_lu_croprotation: "maize",
+        }),
+      }) as any,
+    )
+    const res = await app.request("/cultivations/lu-1/harvest-parameters", { headers })
+    expect((await res.json()).b_lu_harvestable).toBe("once")
+  })
+
+  it("returns no parameters for a crop that is not harvested", async () => {
+    const app = makeApp(
+      services({
+        getCultivation: vi.fn().mockResolvedValue({ ...cultivation, b_lu_harvestable: "none" }),
+      }) as any,
+    )
+    const res = await app.request("/cultivations/lu-1/harvest-parameters", { headers })
+    const body = await res.json()
+    expect(body.parameters).toEqual([])
+    expect(body.defaults).toEqual({})
+  })
+
+  it("returns 404 for a missing cultivation", async () => {
+    const app = makeApp(services({ getCultivation: vi.fn().mockResolvedValue(undefined) }) as any)
+    const res = await app.request("/cultivations/missing/harvest-parameters", { headers })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 404 when the field of the cultivation is not found", async () => {
+    const app = makeApp(services({ getField: vi.fn().mockResolvedValue(undefined) }) as any)
+    const res = await app.request("/cultivations/lu-1/harvest-parameters", { headers })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 403 without read access", async () => {
+    const app = makeApp(
+      services({
+        getCultivation: vi.fn().mockRejectedValue(new Error("Permission denied")),
+      }) as any,
+    )
+    const res = await app.request("/cultivations/lu-1/harvest-parameters", { headers })
+    expect(res.status).toBe(403)
+  })
+
+  it("returns 401 without an API key", async () => {
+    const app = makeApp(services() as any)
+    const res = await app.request("/cultivations/lu-1/harvest-parameters")
+    expect(res.status).toBe(401)
+  })
+})
+
+describe("Harvest mutations — edge cases", () => {
+  beforeEach(validKey)
+
+  it("POST returns 500 when the created harvest cannot be retrieved", async () => {
+    const app = makeApp({
+      addHarvest: vi.fn().mockResolvedValue("harvest-new"),
+      getHarvest: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/cultivations/cult-1/harvests", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-15", b_lu_yield: 12000 }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH returns 404 when the harvest cannot be retrieved after the update", async () => {
+    const app = makeApp({
+      updateHarvest: vi.fn().mockResolvedValue(undefined),
+      getHarvest: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/harvests/harvest-x", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_harvest_date: "2024-08-20" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+  })
+
+  it("the updateHarvest operation rejects an input without any field to change", async () => {
+    const services = { updateHarvest: vi.fn(), getHarvest: vi.fn() }
+    const principal = {
+      userId: "user-1",
+      apiKeyId: "key-1",
+      keyName: null,
+      channel: "mcp" as const,
+      effectivePrincipalId: "user-1",
+    }
+    // Callers that skip input validation can still send an empty change set.
+    await expect(
+      updateHarvest.run({ fdm: mockFdm, services: services as any, principal }, {
+        b_id_harvesting: "harvest-1",
+      } as any),
+    ).rejects.toMatchObject({ status: 400, slug: "validation-failed" })
+    expect(services.updateHarvest).not.toHaveBeenCalled()
   })
 })

@@ -16,7 +16,31 @@ export type IndicatorInfo = {
   unit?: string | null
 }
 
-export type ScoreTier = "green" | "yellow" | "red"
+import {
+  type Bln3ExclusionReason,
+  EXCLUDED_BLN3_BRP_CODES,
+  getBestVariantIds,
+  getBln3ExclusionReason,
+  getFarmBestVariantIds,
+  getMeasureFamilyId,
+  getScoreTier,
+  isExcludedFromBln3,
+  type ScoreTier,
+  scoreToDisplay,
+} from "@nmi-agro/fdm-calculator/browser"
+
+// Score, exclusion and measure-family rules are shared with the REST API through fdm-calculator.
+export {
+  EXCLUDED_BLN3_BRP_CODES,
+  getBestVariantIds,
+  getBln3ExclusionReason,
+  getFarmBestVariantIds,
+  getMeasureFamilyId,
+  getScoreTier,
+  isExcludedFromBln3,
+  scoreToDisplay,
+}
+export type { Bln3ExclusionReason, ScoreTier }
 
 /**
  * A measure as returned by the React Router loader after JSON serialization.
@@ -281,21 +305,6 @@ export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
   "Nutriëntenkringloop",
 ]
 
-/** Convert 0–1 API score to 0–100 display value. */
-export function scoreToDisplay(score01: number | null | undefined): number {
-  if (typeof score01 !== "number" || !Number.isFinite(score01)) {
-    return 0
-  }
-  return Math.round(score01 * 100)
-}
-
-/** Returns a colour tier for a 0–100 display score. */
-export function getScoreTier(score100: number): ScoreTier {
-  if (score100 >= 70) return "green"
-  if (score100 >= 40) return "yellow"
-  return "red"
-}
-
 /** Returns a hex fill colour for a 0–100 display score (used by MapLibre). */
 export function getScoreColor(score100: number): string {
   const tier = getScoreTier(score100)
@@ -361,27 +370,6 @@ export function getIndicatorsByEcosysteemdienst(
 
 // ── BLN3 Exclusions ────────────────────────────────────────────────────────
 
-/** BRP catalogue codes for non-agricultural plots (ditches, inspection paths) excluded from BLN3 */
-export const EXCLUDED_BLN3_BRP_CODES = ["nl_343", "nl_6801"]
-
-/**
- * Determines whether a field / cultivation is excluded from BLN3 calculations and soil measures.
- */
-export function isExcludedFromBln3({
-  b_bufferstrip,
-  b_lu_croprotation,
-  b_lu_catalogue,
-}: {
-  b_bufferstrip?: boolean | null
-  b_lu_croprotation?: string | null
-  b_lu_catalogue?: string | null
-}): boolean {
-  if (b_bufferstrip === true) return true
-  if (b_lu_croprotation === "nature") return true
-  if (b_lu_catalogue && EXCLUDED_BLN3_BRP_CODES.includes(b_lu_catalogue)) return true
-  return false
-}
-
 /**
  * Returns a user-facing explanation in Dutch of why BLN and measures are unavailable for a field.
  */
@@ -389,15 +377,20 @@ export function getBln3ExclusionMessage({
   b_bufferstrip,
   cultivationName,
   calendarYear,
+  exclusionReason,
 }: {
   b_bufferstrip?: boolean | null
   cultivationName?: string | null
   calendarYear?: number | string | null
+  exclusionReason?: Bln3ExclusionReason | null
 }): string {
-  if (b_bufferstrip) {
+  if (b_bufferstrip || exclusionReason === "bufferstrip") {
     return "Dit perceel is geregistreerd als bufferstrook. Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn niet beschikbaar voor bufferstroken."
   }
   const yearStr = calendarYear ? String(calendarYear) : "dit jaar"
+  if (exclusionReason === "no_main_cultivation") {
+    return `Voor ${yearStr} is op dit perceel geen hoofdteelt geregistreerd. Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn pas beschikbaar als er een hoofdteelt is.`
+  }
   if (cultivationName) {
     return `Voor ${yearStr} is op dit perceel '${cultivationName}' geregistreerd (natuur/geen gewasperceel). Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn voor dit type perceel in ${yearStr} niet beschikbaar.`
   }

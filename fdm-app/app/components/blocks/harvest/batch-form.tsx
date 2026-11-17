@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus, Trash2 } from "lucide-react"
-import { type MouseEventHandler, useCallback, useEffect, useRef, useState } from "react"
+import { type MouseEventHandler, useCallback, useMemo, useRef } from "react"
 import { Controller, type Resolver, useFieldArray, useWatch } from "react-hook-form"
 import { useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -413,7 +413,7 @@ function BatchHarvestFormItemCard({
   harvestable?: HarvestableType | null
 }) {
   return (
-    <Card className="space-y-2 p-2">
+    <Card className="gap-0 space-y-2 p-2">
       <CardHeader className="flex flex-row items-center p-0">
         <CardTitle className="grow">
           {index + 1}e {getHarvestTerm(croprotation, false, harvestable)}
@@ -477,10 +477,7 @@ function BatchHarvestFormFields({
   const harvests = useWatch({ control: form.control, name: "harvests" })
 
   // Map the initial list of row unique IDs to the example harvests
-  const [harvestExamplesMap, setHarvestExamplesMap] = useState(
-    new Map<string, Partial<HarvestRow>>(),
-  )
-  useEffect(() => {
+  const harvestExamplesMap = useMemo(() => {
     const result = new Map<string, Partial<HarvestRow>>()
     if (harvestPairs) {
       fieldArray.fields.forEach((field, i) => {
@@ -489,8 +486,8 @@ function BatchHarvestFormFields({
         }
       })
     }
-    setHarvestExamplesMap(result)
-  }, [harvestPairs])
+    return result
+  }, [harvestPairs, fieldArray.fields])
 
   const harvestParameterColumns = (Object.keys(columnInfos) as HarvestParameters).filter(
     (columnName) => harvestParameters.includes(columnName),
@@ -681,7 +678,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
                       <span>Opslaan...</span>
                     </>
                   ) : (
-                    "Toevoegen"
+                    <span>Toevoegen</span>
                   )}
                 </Button>
               </DialogFooter>
@@ -737,7 +734,7 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
                     <span>Opslaan...</span>
                   </>
                 ) : (
-                  "Toevoegen"
+                  <span>Toevoegen</span>
                 )}
               </Button>
             </div>

@@ -1,4 +1,5 @@
 import type { GwlClasses, SoilTypes } from "@nmi-agro/fdm-core"
+import type { Bln3ExclusionReason } from "./exclusion"
 
 /**
  * A single cultivation entry for the BLN3 score request.
@@ -24,15 +25,19 @@ export type Bln3Measure = {
 
 /**
  * Input parameters for the BLN3 score calculation, assembled from the FDM
- * database. Only `a_lat` and `a_lon` are required by the NMI API; all other
- * fields are optional and improve calculation quality when provided.
+ * database. `a_lat`, `a_lon` and `b_year` are required; all other fields are
+ * optional and improve calculation quality when provided.
+ * Only the fields in `BLN3_SCORE_FIELDS` (`payload.ts`) are sent to the API;
+ * fields marked `@internal` are used locally only.
  */
 export type Bln3ScoreCollectedInputs = {
-  // ── Location (required) ──────────────────────────────────────────────────
+  // ── Required ─────────────────────────────────────────────────────────────
   /** Latitude of the field centroid (WGS84; EPSG:4326) */
   a_lat: number
   /** Longitude of the field centroid (WGS84; EPSG:4326) */
   a_lon: number
+  /** Calendar year the score is calculated for */
+  b_year: number
 
   // ── Cultivation history ──────────────────────────────────────────────────
   /** Crop cultivations on the field (most recent first) */
@@ -43,14 +48,16 @@ export type Bln3ScoreCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
-  /** Buffer strip flag */
+  /** Buffer strip flag. @internal Exclusion check only; not sent to the NMI API. */
   b_bufferstrip?: boolean
-  /** Crop rotation category of the target year's main cultivation */
+  /** Crop rotation category of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API (FDM vocabulary differs). */
   b_lu_croprotation?: string
-  /** Catalogue code of the target year's main cultivation */
+  /** Catalogue code of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API. */
   b_lu_catalogue?: string
-  /** Flag indicating field is excluded from BLN3 calculations */
+  /** Flag indicating field is excluded from BLN3 calculations. @internal Not sent to the NMI API. */
   isExcluded?: boolean
+  /** Why the field is excluded; set together with `isExcluded`. @internal Not sent to the NMI API. */
+  exclusionReason?: Bln3ExclusionReason
 
   // ── Soil analysis ────────────────────────────────────────────────────────
   /** Calcium occupation of the CEC (%) */
@@ -147,7 +154,7 @@ export type Bln3IndicatorResult = {
  * Returned by the NMI API in the response data.
  */
 export type Bln3AggregationResult = {
-  /** Aggregation identifier (e.g. "S_BLN", "S_PROD_BIOL_BLN") */
+  /** Aggregation identifier (e.g. "S_BLN", "S_PROD_B") */
   aggregation_id: string
   /** Aggregated score */
   score: number
@@ -200,6 +207,8 @@ export type Bln3MeasureApplicabilityItem = {
 /**
  * Input parameters collected for `requestBln3MeasureApplicability`.
  * `a_lat`, `a_lon`, and `b_year` are required; all other fields are optional.
+ * Only the fields in `BLN3_MEASURE_FIELDS` (`payload.ts`) are sent to the API;
+ * fields marked `@internal` are used locally only.
  * Note: `measures` is intentionally NOT sent.
  */
 export type Bln3MeasureApplicabilityCollectedInputs = {
@@ -220,14 +229,16 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
-  /** Buffer strip flag */
+  /** Buffer strip flag. @internal Exclusion check only; not sent to the NMI API. */
   b_bufferstrip?: boolean
-  /** Crop rotation category of the target year's main cultivation */
+  /** Crop rotation category of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API (FDM vocabulary differs). */
   b_lu_croprotation?: string
-  /** Catalogue code of the target year's main cultivation */
+  /** Catalogue code of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API. */
   b_lu_catalogue?: string
-  /** Flag indicating field is excluded from BLN3 calculations */
+  /** Flag indicating field is excluded from BLN3 calculations. @internal Not sent to the NMI API. */
   isExcluded?: boolean
+  /** Why the field is excluded; set together with `isExcluded`. @internal Not sent to the NMI API. */
+  exclusionReason?: Bln3ExclusionReason
 
   // Groundwater / soil potential estimates (optional)
   b_gwl_glg?: number

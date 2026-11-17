@@ -1,7 +1,16 @@
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 import * as Sentry from "@sentry/react-router"
 import { customAlphabet } from "nanoid"
-import { data, redirect } from "react-router"
+import {
+  data,
+  type ErrorResponse,
+  isRouteErrorResponse,
+  redirect,
+  type UNSAFE_DataWithResponseInit,
+} from "react-router"
 import { dataWithError, dataWithWarning } from "remix-toast"
+import { formatAppAmountMax } from "~/components/blocks/fertilizer-applications/formschema"
+import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
 
 const customErrorAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // No lookalikes (0, 1, I, O, S, Z)
 const errorIdSize = 8 // Number of characters in ID
@@ -13,6 +22,51 @@ export const createErrorId = customAlphabet(customErrorAlphabet, errorIdSize)
 // (e.g. to keep the app shell up and show a friendly in-app message instead of throwing) don't
 // duplicate the string.
 export const PERMISSION_DENIED_MESSAGE = "Principal does not have permission to perform this action"
+
+/**
+ * Checks whether an error is a 404 or 405 created by React Router itself, i.e. the request did
+ * not match any route or used an unsupported method (e.g. `OPTIONS`, or `POST` to a route without
+ * an `action`). The app's own UI never makes these requests, so in practice they come from bots
+ * and scanners and should not be reported as errors.
+ *
+ * 404/405 responses thrown on purpose by loaders/actions are not internal and return `false`.
+ *
+ * @param error - The value passed to React Router's `handleError`.
+ * @returns `true` if the error is an internal React Router 404/405 response.
+ */
+export function isInternalRouterNoise(error: unknown): error is ErrorResponse {
+  return (
+    isRouteErrorResponse(error) &&
+    (error.status === 404 || error.status === 405) &&
+    // `internal` is private in the `ErrorResponseImpl` type but set at runtime
+    "internal" in error &&
+    error.internal === true
+  )
+}
+
+/** A single form field that failed schema validation. */
+export interface FormValidationIssue {
+  /** Dot-separated path of the field, e.g. `"b_lu_start"`. */
+  path: string
+  /** Validation message for the field. */
+  message: string
+}
+
+/**
+ * Thrown by `extractFormValuesFromRequest` when the submitted form does not match its schema.
+ *
+ * `handleActionError` returns the `issues` as `validationErrors` in the action data so a route can
+ * show them next to the fields. Other errors never expose their message to the browser.
+ */
+export class FormValidationError extends Error {
+  readonly issues: FormValidationIssue[]
+
+  constructor(issues: FormValidationIssue[]) {
+    super(JSON.stringify(issues))
+    this.name = "FormValidationError"
+    this.issues = issues
+  }
+}
 
 /**
  * Extracts `{ status, statusText }` from a thrown/returned route error, if it has one.
@@ -149,6 +203,7 @@ export function handleLoaderError(error: unknown) {
 
     // Customize the user-facing message based on the status code
     let userMessage: string
+    let errorId: string | undefined
     switch (status) {
       case 400:
         userMessage = statusText ?? "Ongeldige waarde"
@@ -163,14 +218,15 @@ export function handleLoaderError(error: unknown) {
         break
       // case 500:
       default: {
-        const errorId = reportError(error, { scope: "loader" })
+        errorId = reportError(error, { scope: "loader" })
         userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
         break
       }
     }
     return data(
       {
-        warning: error,
+        warning: userMessage,
+        errorId,
       },
       { status, statusText: userMessage },
     )
@@ -179,15 +235,8 @@ export function handleLoaderError(error: unknown) {
   // Permission denied error
   if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
-    return data(
-      {
-        warning: error instanceof Error ? error.message : error,
-      },
-      {
-        status: 403,
-        statusText: "U heeft helaas geen rechten om dit te doen.",
-      },
-    )
+    const userMessage = "U heeft helaas geen rechten om dit te doen."
+    return data({ warning: userMessage }, { status: 403, statusText: userMessage })
   }
 
   // Missing or invalid parameters errors
@@ -196,28 +245,14 @@ export function handleLoaderError(error: unknown) {
     (error.message.startsWith("missing: ") || error.message.startsWith("invalid: "))
   ) {
     console.warn(error.message, error)
-    return data(
-      {
-        warning: error,
-      },
-      {
-        status: 400,
-        statusText: "Ongeldige waarde",
-      },
-    )
+    const userMessage = "Ongeldige waarde"
+    return data({ warning: userMessage }, { status: 400, statusText: userMessage })
   }
   // Not found errors
   if (error instanceof Error && error.message.startsWith("not found")) {
     console.warn(error.message, error)
-    return data(
-      {
-        warning: error,
-      },
-      {
-        status: 404,
-        statusText: "Pagina is niet gevonden",
-      },
-    )
+    const userMessage = "Pagina is niet gevonden"
+    return data({ warning: userMessage }, { status: 404, statusText: userMessage })
   }
 
   // All other errors — reportError handles logging and Sentry capture
@@ -225,13 +260,15 @@ export function handleLoaderError(error: unknown) {
     scope: "loader",
   })
 
+  const userMessage = `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
   return data(
     {
-      warning: error instanceof Error ? error.message : "Unknown error",
+      warning: userMessage,
+      errorId,
     },
     {
       status: 500,
-      statusText: `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
+      statusText: userMessage,
     },
   )
 }
@@ -244,6 +281,78 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
   if (!(error instanceof Error)) return false
   if (error.message.includes(message)) return true
   return containsErrorMessage(error.cause, message)
+}
+
+/**
+ * Returns the first error in the cause chain (the error itself included) with the given `name`.
+ *
+ * @param error - The caught value.
+ * @param name - The error name to look for, e.g. `"AppAmountOutOfRangeError"`.
+ * @returns The matching error, or `undefined` when there is none.
+ */
+export function findErrorByName(error: unknown, name: string): Error | undefined {
+  if (!(error instanceof Error)) return undefined
+  if (error.name === name) return error
+  return findErrorByName(error.cause, name)
+}
+
+/**
+ * Builds the Dutch message for an applied amount that fdm-core rejected. Shows the maximum in
+ * the unit of the fertilizer when the error carries it, otherwise in kg/ha.
+ *
+ * @param error - The `AppAmountOutOfRangeError` from fdm-core.
+ * @returns The message for the user.
+ */
+export function getAppAmountOutOfRangeMessage(error: Error): string {
+  const details = error as Error & {
+    p_app_amount_unit?: AppAmountUnit
+    p_app_amount_display_max?: number | null
+    p_name_nl?: string | null
+  }
+  const unit = details.p_app_amount_unit
+  const max = details.p_app_amount_display_max
+  const limit =
+    unit && typeof max === "number"
+      ? `${formatAppAmountMax(max)} ${getApplicationAmountUnitLabel(unit)}`
+      : "100.000 kg/ha"
+  const subject = details.p_name_nl ? `De hoeveelheid van ${details.p_name_nl}` : "De hoeveelheid"
+  return `${subject} moet groter zijn dan 0 en mag niet groter zijn dan ${limit}. Controleer de ingevoerde hoeveelheid.`
+}
+
+/**
+ * Checks whether a caught value is a `remix-toast` response that already carries a toast, rather
+ * than an error.
+ *
+ * `extractFormValuesFromRequest` throws the already-resolved result of `handleActionError` when
+ * form validation fails. An action's outer `catch` should return such a response as-is instead of
+ * passing it to `handleActionError` again, which would report it a second time and replace its
+ * toast with a generic one.
+ *
+ * Plain `data(message, { status })` responses thrown on purpose have no toast cookie and return
+ * `false`, so they still go through `handleActionError` and get a user-facing toast.
+ *
+ * @param error - The value caught in a route action.
+ * @returns `true` if the value is a `DataWithResponseInit` that sets the toast session cookie.
+ */
+export function isToastResponse(error: unknown): error is UNSAFE_DataWithResponseInit<unknown> {
+  if (
+    typeof error !== "object" ||
+    error === null ||
+    !("type" in error) ||
+    error.type !== "DataWithResponseInit" ||
+    !("init" in error) ||
+    typeof error.init !== "object" ||
+    error.init === null ||
+    !("headers" in error.init)
+  ) {
+    return false
+  }
+  try {
+    const headers = new Headers(error.init.headers as HeadersInit)
+    return headers.getSetCookie().some((cookie) => cookie.startsWith("toast-session="))
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -301,10 +410,15 @@ export async function handleActionError(error: unknown) {
 
   if (containsErrorMessage(error, "does not match category")) {
     console.warn("Animal species incompatible with category:", error)
-    return dataWithWarning(
-      null,
-      "De diersoort komt niet overeen met de categorie van de koppel.",
-    )
+    return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
+  }
+
+  // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)
+  const amountError = findErrorByName(error, "AppAmountOutOfRangeError")
+  if (amountError) {
+    console.warn("Fertilizer application amount out of range:", error)
+    const userMessage = getAppAmountOutOfRangeMessage(amountError)
+    return dataWithWarning({ warning: userMessage }, userMessage, { status: 400 })
   }
 
   // Handle 'data' thrown errors (and real thrown `Response` objects)
@@ -345,32 +459,20 @@ export async function handleActionError(error: unknown) {
       }
     }
     if (dataStatus === "warning") {
-      return dataWithWarning(
-        {
-          warning: error,
-        },
-        userMessage,
-        { status },
-      )
+      return dataWithWarning({ warning: userMessage }, userMessage, { status })
     }
-    return dataWithError(
-      {
-        warning: error,
-        errorId,
-      },
-      userMessage,
-      { status },
-    )
+    return dataWithError({ warning: userMessage, errorId }, userMessage, { status })
   }
 
   // Permission denied error
   if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
+    const userMessage = "U heeft helaas geen rechten om dit te doen."
+    // The status goes both in the toast (read by the root for analytics) and on the response.
     return dataWithWarning(
-      {
-        warning: error,
-      },
-      { message: "U heeft helaas geen rechten om dit te doen.", status: 403 },
+      { warning: userMessage },
+      { message: userMessage, status: 403 },
+      { status: 403 },
     )
   }
 
@@ -380,25 +482,28 @@ export async function handleActionError(error: unknown) {
   ) {
     console.warn(error.message, error)
     const errorId = reportError(error, { scope: "action" })
+    const userMessage = `Er is helaas iets misgegaan. Vernieuw de pagina en probeer het opnieuw. Blijft dit gebeuren, neem dan contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`
     return dataWithError(
-      {
-        warning: error,
-      },
-      {
-        message: `Er is helaas iets misgegaan. Vernieuw de pagina en probeer het opnieuw. Blijft dit gebeuren, neem dan contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`,
-        status: 400,
-        errorId,
-      },
+      { warning: userMessage, errorId },
+      { message: userMessage, status: 400, errorId },
+      { status: 400 },
     )
   }
 
-  // All other errors — reportError handles logging and Sentry capture
+  // All other errors — reportError handles logging and Sentry capture. The error message stays
+  // server-side (logs and Sentry, findable by the error code); only form validation issues are
+  // returned to the browser so the route can show them next to the fields.
   const errorId = reportError(error, {
     scope: "action",
   })
+  const userMessage = `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
   return dataWithError(
-    { warning: error instanceof Error ? error.message : "Unknown error", errorId },
-    `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
+    {
+      warning: userMessage,
+      errorId,
+      validationErrors: error instanceof FormValidationError ? error.issues : undefined,
+    },
+    userMessage,
     { status: 500 },
   )
 }

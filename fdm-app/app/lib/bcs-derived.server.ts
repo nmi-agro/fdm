@@ -41,8 +41,10 @@ export async function fetchBcsRawInputs(
   const b_soiltype_agr = (get("b_soiltype_agr") as string | null | undefined) ?? null
   const a_clay_mi = (get("a_clay_mi") as number | null | undefined) ?? null
 
-  // Only show an analysis date when both pH and SOM come from the same record
-  const sharedAnalysis = phItem && somItem && phItem.a_id === somItem.a_id ? phItem : null
+  // Only show an analysis date when both pH and SOM come from the same single record
+  const phSource = phItem?.sources.length === 1 ? phItem.sources[0] : null
+  const somSource = somItem?.sources.length === 1 ? somItem.sources[0] : null
+  const sharedAnalysis = phSource && somSource && phSource.a_id === somSource.a_id ? phSource : null
   const labAnalysisDate = sharedAnalysis?.b_sampling_date
     ? new Date(sharedAnalysis.b_sampling_date)
     : null

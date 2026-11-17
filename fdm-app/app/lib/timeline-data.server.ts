@@ -1,4 +1,3 @@
-import type { Timeframe } from "@nmi-agro/fdm-core"
 import {
   getCultivationsForFarm,
   getFertilizerApplicationsForFarm,
@@ -7,10 +6,14 @@ import {
   getHarvestsForFarm,
   getParametersForHarvestCat,
   getSoilAnalysesForFarm,
+  getSoilParametersDescription,
+  Timeframe,
 } from "@nmi-agro/fdm-core"
 import type { TimelineField, TimelineGrazing } from "~/components/blocks/timeline/gantt-view"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { fdm } from "~/lib/fdm.server"
+import { isBcsAnalysis } from "./bcs"
 
 /**
  * Fetches and shapes one timeframe's worth of timeline data for a farm. Shared by the timeline
@@ -52,7 +55,10 @@ export async function fetchTimelineFields(
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours ?? null,
       l_grazing_area: g.l_grazing_area ?? null,
-      l_grazing_type: (g.l_grazing_type === "partial" ? "partial" : "full") as "full" | "partial" | null,
+      l_grazing_type: (g.l_grazing_type === "partial" ? "partial" : "full") as
+        | "full"
+        | "partial"
+        | null,
     }
 
     if (g.b_id) {
@@ -67,6 +73,11 @@ export async function fetchTimelineFields(
 
   const hasAnyGrazing = grazings.length > 0
 
+  const soilParametersDescription = getSoilParametersDescription()
+  const soilAnalysisSourceParamDesc = soilParametersDescription.find(
+    (p) => p.parameter === "a_source",
+  )
+
   const fieldList: TimelineField[] = fields.map((field) => {
     if (!field?.b_id || !field?.b_name) {
       throw new Error("Invalid field data structure")
@@ -76,10 +87,15 @@ export async function fetchTimelineFields(
     const harvests = cultivations.flatMap((cultivation) =>
       (harvestsByCultivation.get(cultivation.b_lu) ?? []).map((harvest) => {
         const analysis = harvest.harvestable.harvestable_analyses[0]
+        // Only include parameters that are actually fillable for this crop's harvest
+        // category, computed here (server-side) so the client component doesn't need to
+        // import fdm-core at all — importing it client-side would pull server-only code
+        // (e.g. authentication using node:crypto) into the browser bundle.
         const fillableParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
         const parameters = fillableParameters
           .filter((param) => analysis?.[param] != null)
           .map((param) => ({
+            id: param,
             label: getHarvestParameterLabel(param),
             value: analysis?.[param] as number,
           }))
@@ -89,11 +105,19 @@ export async function fetchTimelineFields(
           b_lu_name: cultivation.b_lu_name,
           b_lu_harvest_date: harvest.b_lu_harvest_date,
           parameters,
+          term: getHarvestTerm(
+            cultivation.b_lu_croprotation,
+            false,
+            cultivation.b_lu_harvestable,
+            true,
+          ),
+          harvestableAnalysis:
+            harvest.harvestable.harvestable_analyses.length > 0
+              ? harvest.harvestable.harvestable_analyses[0]
+              : null,
         }
       }),
     )
-
-    const fieldGrazings = grazingsByField.get(field.b_id) ?? []
 
     return {
       b_id: field.b_id,
@@ -102,16 +126,24 @@ export async function fetchTimelineFields(
       b_bufferstrip: field.b_bufferstrip ?? false,
       cultivations: cultivations.map((cultivation) => ({
         b_lu: cultivation.b_lu,
+        b_lu_catalogue: cultivation.b_lu_catalogue,
         b_lu_name: cultivation.b_lu_name,
         b_lu_croprotation: cultivation.b_lu_croprotation,
         b_lu_start: cultivation.b_lu_start,
         b_lu_end: cultivation.b_lu_end,
         b_lu_harvestable: cultivation.b_lu_harvestable,
+        b_lu_harvestcat: cultivation.b_lu_harvestcat,
       })),
       fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
       harvests,
-      soilAnalyses: soilAnalysesByField.get(field.b_id) ?? [],
-      grazings: fieldGrazings,
+      soilAnalyses: (soilAnalysesByField.get(field.b_id) ?? []).map((a) => ({
+        ...a,
+        type: isBcsAnalysis(a) ? ("soil_sampling_bcs" as const) : ("soil_sampling" as const),
+        a_source_name:
+          soilAnalysisSourceParamDesc?.options?.find((opt) => opt.value === a.a_source)?.label ??
+          "Overig",
+      })),
+      grazings: grazingsByField.get(field.b_id) ?? [],
     }
   })
 

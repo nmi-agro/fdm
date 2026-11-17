@@ -1,0 +1,22 @@
+[
+  {
+    "text": "Oogst toevoegen",
+    "reason": "Composed at runtime from getHarvestTerm() plus \" toevoegen\" (cultivation/card-harvests.tsx, rotation/table.tsx)."
+  },
+  {
+    "text": "Snede toevoegen",
+    "reason": "Composed at runtime from getHarvestTerm() plus \" toevoegen\" for grassland (cultivation/card-harvests.tsx, rotation/table.tsx)."
+  },
+  {
+    "text": "Extra snede toevoegen",
+    "reason": "JSX text around getHarvestTerm(): \"Extra {term} toevoegen\" (harvest/batch-form.tsx)."
+  },
+  {
+    "text": "Toedieningsmethode",
+    "reason": "JSX text directly followed by {requiredMarker}, which the extractor cannot split (fertilizer-applications/form.tsx)."
+  },
+  {
+    "text": "Meer jaren tonen",
+    "reason": "JSX text followed by the number of hidden years: \"Meer jaren tonen ({count})\" (atlas-fields/cultivation-history.tsx)."
+  }
+]

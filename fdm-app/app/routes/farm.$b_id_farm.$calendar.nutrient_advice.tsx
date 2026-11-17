@@ -1,16 +1,20 @@
 import { getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { Map as MapIcon } from "lucide-react"
 import {
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
+  NavLink,
   Outlet,
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNutrientAdvice } from "~/components/blocks/header/nutrient-advice"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -20,6 +24,9 @@ import { fdm } from "~/lib/fdm.server"
 import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bemestingsadvies" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bemestingsadvies | ${clientConfig.name}` },
@@ -149,9 +156,20 @@ export default function FarmBalanceNitrogenBlock() {
       <main>
         {!loaderData.b_id && (
           <FarmTitle
+            help="bemestingsadvies"
             title={"Bemestingsadvies"}
             description={
               "Advies volgens Handboek Bodem en Bemesting (CBAV) en Adviesbasis Bemesting (CBGV)."
+            }
+            rightNode={
+              <NavLink
+                to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}
+                className={buttonVariants({ variant: "outline" })}
+                data-slot="button"
+              >
+                <MapIcon />
+                Kaartweergave
+              </NavLink>
             }
           />
         )}

@@ -1,39 +1,23 @@
-import type { RvoImportReviewItem, UserChoiceMap } from "@nmi-agro/fdm-rvo/types"
+import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import type { MetaFunction } from "react-router"
-import {
-  addSoilAnalysis,
-  determineIfFieldIsBuffer,
-  type Field,
-  type FieldGeometry,
-  getCultivationsForFarm,
-  getCultivationsFromCatalogue,
-  getFarm,
-  getFields,
-  updateField,
-} from "@nmi-agro/fdm-core"
+import { type Field, getCultivationsFromCatalogue, getFarm } from "@nmi-agro/fdm-core"
+import { reviewShapefileImport } from "@nmi-agro/fdm-rvo"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
-import area from "@turf/area"
-import { lineString } from "@turf/helpers"
-import { length } from "@turf/length"
 import fs from "node:fs/promises"
 import { data } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
-import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
+import {
+  getImportValidationMessage,
+  ImportReviewChoicesSchema,
+} from "~/components/blocks/rvo/schema"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import {
-  compareFields,
-  getItemId,
-  getRvoFieldsFromShapefile,
-  processRvoImport,
-  RvoImportReviewStatus,
-  validateShapefileYear,
-} from "~/lib/rvo.server"
+import { saveRvoImport } from "~/lib/rvo-import.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -49,8 +33,6 @@ export const meta: MetaFunction = () => {
     },
   ]
 }
-
-type ReviewItem = RvoImportReviewItem<Field>
 
 interface MijnPercelenUploadServerContext {
   request: Request
@@ -82,7 +64,17 @@ export async function loader({ request, params }: MijnPercelenUploadServerContex
 
   const calendar = getCalendar(params)
 
-  return { b_id_farm, b_name_farm: farm.b_name_farm, calendar }
+  const cultivationsCatalogue = await getCultivationsFromCatalogue(
+    fdm,
+    session.principal_id,
+    params.b_id_farm,
+  )
+
+  const cultivationOptions = cultivationsCatalogue.map((c) => ({
+    value: c.b_lu_catalogue,
+    label: c.b_lu_name,
+  }))
+  return { b_id_farm, b_name_farm: farm.b_name_farm, calendar, cultivationOptions }
 }
 
 export async function genericAction(
@@ -135,19 +127,6 @@ export async function genericAction(
     const intent = formData.get("intent")
 
     if (intent === "upload") {
-      // Prepare existing fields for comparison
-      const fields = await getFields(fdm, session.principal_id, b_id_farm)
-      const allCultivations = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm)
-      const fieldsExtended = fields.map((field) => ({
-        ...field,
-        cultivations: allCultivations.get(field.b_id) ?? [],
-      }))
-      const cultivationsCatalogue = await getCultivationsFromCatalogue(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-      )
-
       const files = formData
         .getAll("shapefile")
         .filter((entry): entry is File => entry instanceof File)
@@ -166,184 +145,76 @@ export async function genericAction(
         }
       }
 
-      const rvoFields = await getRvoFieldsFromShapefile(shp_file, shx_file, dbf_file, prj_file)
-
-      // Validate that no field has a BeginDate year greater than the selected calendar year
-      const yearValidation = validateShapefileYear(rvoFields, year)
-      if (!yearValidation.valid) {
+      // Same comparison as the REST API, including the buffer strip estimate.
+      const review = await reviewShapefileImport(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        { shp: shp_file, shx: shx_file, dbf: dbf_file, prj: prj_file },
+        year,
+      )
+      if (!review.valid) {
         return {
           success: false,
-          message: `Het shapefile bevat percelen met een ingangsdatum in ${yearValidation.maxYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar heeft gekozen.`,
-          suggestedYear: yearValidation.maxYear,
+          message: `Het shapefile bevat percelen met een ingangsdatum in ${review.suggestedYear}, maar u uploadt voor kalenderjaar ${year}. Controleer of u het juiste shapefile heeft geselecteerd en het juiste jaar heeft gekozen.`,
+          suggestedYear: review.suggestedYear,
           RvoImportReviewData: undefined,
         }
       }
 
-      /** Calculates the perimeter of the given polygon geometry in meters */
-      function perimeter(geometry: FieldGeometry) {
-        if (geometry.type === "Polygon") {
-          return length(lineString(geometry.coordinates[0]), {
-            units: "meters",
-          })
-        }
-        if (geometry.type === "MultiPolygon") {
-          return geometry.coordinates
-            .map((polygon) => length(lineString(polygon[0]), { units: "meters" }))
-            .reduce((a, b) => a + b, 0)
-        }
-        return 0
-      }
-
-      const RvoImportReviewData = compareFields(
-        fieldsExtended,
-        rvoFields,
-        year,
-        cultivationsCatalogue,
-      )
-
-      // Determine if any imported field might be a buffer strip and add it since shapefiles don't have this information
-      for (const item of rvoFields) {
-        item.properties.mestData = {
-          IndBufferstrook: determineIfFieldIsBuffer(
-            area(item.geometry) / 10000, // m2 to ha
-            perimeter(item.geometry), // already in meters
-            item.properties.CropFieldDesignator,
-          )
-            ? "J"
-            : "N",
-        }
-      }
-
-      // Override each local field's corresponding RVO field buffer strip status
-      for (const item of RvoImportReviewData) {
-        item.diffs = item.diffs.filter((diff) => diff !== "b_bufferstrip")
-        // b_bufferstrip should no longer be considered a difference
-        if (item.diffs.length === 0 && item.status === RvoImportReviewStatus.CONFLICT) {
-          item.status = RvoImportReviewStatus.MATCH
-        }
-        if (item.localField && item.rvoField?.properties.mestData) {
-          item.rvoField.properties.mestData.IndBufferstrook = item.localField.b_bufferstrip
-            ? "J"
-            : "N"
-        }
-      }
-
       return {
-        RvoImportReviewData: RvoImportReviewData,
+        RvoImportReviewData: review.items,
         message: "Percelen zijn klaar voor beoordeling! 🎉",
         success: true,
       }
     }
 
     if (intent === "save_fields") {
-      const RvoImportReviewDataJson = formData.get("RvoImportReviewDataJson")
-      const userChoicesJson = formData.get("userChoices")
+      try {
+        const fieldsToAddJson = formData.get("fieldsToAdd")
+        const fieldsToRemoveJson = formData.get("fieldsToRemove")
+        const fieldsToUpdateJson = formData.get("fieldsToUpdate")
 
-      let rvoImportReviewData: ReviewItem[] = []
-      let userChoices: UserChoiceMap = {}
-
-      if (typeof RvoImportReviewDataJson !== "string" || typeof userChoicesJson !== "string") {
-        return {
-          success: false,
-          message: "Geen data gevonden om te verwerken. Start de shapefile import opnieuw.",
-          RvoImportReviewData: undefined,
+        if (
+          typeof fieldsToAddJson !== "string" ||
+          typeof fieldsToRemoveJson !== "string" ||
+          typeof fieldsToUpdateJson !== "string"
+        ) {
+          return {
+            success: false,
+            message: "Geen data gevonden om te verwerken. Upload het shapefile opnieuw.",
+          }
         }
-      }
 
-      rvoImportReviewData = JSON.parse(RvoImportReviewDataJson)
-      userChoices = JSON.parse(userChoicesJson)
+        const formValues = ImportReviewChoicesSchema.parse({
+          fieldsToAdd: JSON.parse(fieldsToAddJson),
+          fieldsToRemove: JSON.parse(fieldsToRemoveJson),
+          fieldsToUpdate: JSON.parse(fieldsToUpdateJson),
+        })
 
-      if (!Array.isArray(rvoImportReviewData)) {
-        throw new Error("Invalid review data format")
-      }
-
-      if (!(userChoices instanceof Object)) {
-        throw new Error("Invalid user choices format")
-      }
-
-      const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
-      await fdm.transaction(async (tx) => {
-        await processRvoImport(
-          tx,
+        const { created: addedFields } = await saveRvoImport(
           session.principal_id,
           b_id_farm,
-          rvoImportReviewData,
-          userChoices,
           year,
-          (_tx, b_id, geometry) => {
-            // Do this synchronously
-            addedFields.push({ b_id, geometry })
-            return Promise.resolve()
-          },
+          formValues,
         )
 
-        // Override field properties for columns that are always "updated from RVO"
-        for (const item of rvoImportReviewData) {
-          // Get the user choice to determine if there is a field to update
-          const choice = userChoices[getItemId(item)]
-          if (
-            choice !== "REMOVE_LOCAL" &&
-            item.localField &&
-            item.rvoField?.properties.mestData &&
-            (item.rvoField.properties.mestData.IndBufferstrook === "J") !==
-              item.localField.b_bufferstrip
-          ) {
-            await updateField(
-              tx,
-              session.principal_id,
-              item.localField.b_id,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              item.rvoField.properties.mestData.IndBufferstrook === "J", // b_bufferstrip
-            )
-          }
-        }
-      })
+        captureEvent(session.principal_id, "fields_imported_rvo", {
+          b_id_farm,
+          field_count: addedFields.length,
+          calendar: yearString,
+        })
 
-      const nmiApiKey = getNmiApiKey()
-      if (nmiApiKey) {
-        const chunkSize = 10
-        const chunkedFeatures: { b_id: string; geometry: FieldGeometry }[][] = []
-        for (let i = 0; i < addedFields.length; i += chunkSize) {
-          chunkedFeatures.push(addedFields.slice(i, i + chunkSize))
-        }
-        for (const chunk of chunkedFeatures) {
-          for (const { b_id, geometry } of chunk) {
-            try {
-              const soilEstimates = await getSoilParameterEstimatesForGeometry(
-                fdm,
-                geometry,
-                nmiApiKey,
-              )
-              await addSoilAnalysis(
-                fdm,
-                session.principal_id,
-                undefined,
-                "nl-other-nmi",
-                b_id,
-                soilEstimates.a_depth_lower ?? 30,
-                undefined,
-                soilEstimates,
-                soilEstimates.a_depth_upper,
-              )
-            } catch (e) {
-              console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
-            }
-          }
+        return redirectWithSuccess(returnUrl, "Percelen zijn succesvol geïmporteerd! 🎉")
+      } catch (e: any) {
+        console.error("Error at saving RVO fields: ", e)
+        return {
+          success: false,
+          message:
+            getImportValidationMessage(e) ??
+            `Het opslaan van de percelen is mislukt. Uw keuzes zijn bewaard, probeer het opnieuw. (${await extractErrorMessage(e)})`,
         }
       }
-
-      captureEvent(session.principal_id, "fields_imported_shapefile", {
-        b_id_farm,
-        field_count: addedFields.length,
-        calendar: String(year),
-      })
-
-      return redirectWithSuccess(returnUrl, "Percelen zijn succesvol geïmporteerd! 🎉")
     }
 
     return {}

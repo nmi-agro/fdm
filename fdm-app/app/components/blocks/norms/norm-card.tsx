@@ -14,9 +14,9 @@ export function NormCard({ title, norm, filling, unit, description }: NormCardPr
   const { percentage } = computeNormProgress(fillingpercentage, norm)
 
   return (
-    <Card className="flex flex-col justify-between">
-      <div>
-        <CardHeader className="pb-4">
+    <Card className="flex flex-col justify-between gap-0 pb-0">
+      <div className="flex flex-col gap-6 pb-6">
+        <CardHeader>
           <CardTitle className="text-base font-medium">{title}</CardTitle>
         </CardHeader>
         <CardContent>

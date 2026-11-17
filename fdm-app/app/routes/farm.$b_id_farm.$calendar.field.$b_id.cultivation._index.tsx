@@ -5,7 +5,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -36,7 +36,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Redirect to overview page if we have cultivations
     if (cultivations.length > 0) {
-      return redirect(`./${cultivations[0].b_lu}`)
+      return redirect(`./${cultivations[0].b_lu}${url.search}`)
     }
 
     return null

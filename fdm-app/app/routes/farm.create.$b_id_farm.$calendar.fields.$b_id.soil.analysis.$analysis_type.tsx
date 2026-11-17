@@ -11,7 +11,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
 import { getSoilParametersForSoilAnalysisType } from "~/components/blocks/soil/parameters.server"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -114,12 +114,14 @@ export default function FarmFieldSoilOverviewBlock() {
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
         </div>
-        <Button asChild>
-          <NavLink to={`../${loaderData.field.b_id}`}>
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <NavLink
+          to={`../${loaderData.field.b_id}`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          data-slot="button"
+        >
+          <ArrowLeft />
+          Terug
+        </NavLink>
       </div>
       <Separator />
       <SoilAnalysisForm
@@ -144,7 +146,7 @@ export default function FarmFieldSoilOverviewBlock() {
  * @throws {Response} If any ID is missing (HTTP 400).
  * @throws {Response} If there is an error during the creation (HTTP 500).
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   // Get the farm id
   const b_id_farm = params.b_id_farm
   if (!b_id_farm) {
@@ -182,11 +184,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
       formValues,
     )
 
-    const url = new URL(request.url)
-
     // Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route
     return redirectWithSuccess(`../${url.search}`, {
-      message: "Bodemanalyse is toegevoegd! 🎉",
+      message: "Bodemanalyse toegevoegd",
     })
   } catch (error) {
     return handleActionError(error)

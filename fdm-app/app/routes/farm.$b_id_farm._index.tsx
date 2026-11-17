@@ -8,12 +8,14 @@ import {
   getFields,
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
-  BadgeAlert,
-  BadgeCheck,
+  // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+  // BadgeAlert,
+  // BadgeCheck,
   BookOpenText,
   ChevronDown,
   ChevronUp,
@@ -48,14 +50,16 @@ import {
   useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
@@ -82,11 +86,11 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
-import { handleActionError, handleLoaderError } from "~/lib/error"
-import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
@@ -104,6 +108,9 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 // Meta
+
+export const handle: HelpHandle = { help: "dashboard" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bedrijf | ${clientConfig.name}` },
@@ -226,23 +233,13 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
-    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
-    const [herds, farmWritePermission] = await Promise.all([
-      getHerdsForFarm(fdm, session.principal_id, b_id_farm),
-      checkPermission(
-        fdm,
-        "farm",
-        "write",
-        b_id_farm,
-        session.principal_id,
-        new URL(request.url).pathname,
-        false,
-      ),
-    ])
+    // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+    // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
+    const herds = await getHerdsForFarm(fdm, session.principal_id, b_id_farm)
     const hasHerds = herds.length > 0
 
     const rvoCredentials = getRvoCredentials()
@@ -261,7 +258,8 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
-      farmVerification,
+      // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+      // farmVerification,
       isRvoConfigured,
       hasHerds,
     }
@@ -273,7 +271,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 /**
  * Handles action requests for the farm dashboard, such as batch-accepting BRP cultivation suggestions in a single step.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -288,7 +286,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     if (!farmWritePermission) {
@@ -404,7 +402,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     throw data("Ongeldige actie", { status: 400 })
   } catch (error) {
-    throw handleActionError(error)
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(error)) return error
+    return handleActionError(error)
   }
 }
 
@@ -467,14 +467,22 @@ export default function FarmDashboardIndex() {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
   const lastRedirectedCalendarVal = useRef(loaderData.activeYear)
+  const pendingCalendarVal = useRef<string | null>(null)
   // Set the selected calendar year to what is sent from the server
   useEffect(() => {
     if (searchParams.get("calendar") === loaderData.activeYear) {
+      pendingCalendarVal.current = loaderData.activeYear
       setCalendar(loaderData.activeYear)
     }
   }, [loaderData.activeYear, searchParams, setCalendar])
 
   useEffect(() => {
+    if (pendingCalendarVal.current !== null) {
+      if (calendar !== pendingCalendarVal.current) {
+        return
+      }
+      pendingCalendarVal.current = null
+    }
     if (
       calendar &&
       calendar !== lastRedirectedCalendarVal.current &&
@@ -495,13 +503,12 @@ export default function FarmDashboardIndex() {
   )
   const suggestedFieldsCount = suggestedFields.length
 
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-    suggestedFields.map((f) => f.b_id),
+  // Pruned against the current suggestedFields during render, instead of via an effect, so a
+  // field that drops out of the list (e.g. after a revalidation) can't linger as "selected".
+  const [rawSelectedFieldIds, setSelectedFieldIds] = useState<string[]>([])
+  const selectedFieldIds = rawSelectedFieldIds.filter((id) =>
+    suggestedFields.some((f) => f.b_id === id),
   )
-
-  useEffect(() => {
-    setSelectedFieldIds((prev) => prev.filter((id) => suggestedFields.some((f) => f.b_id === id)))
-  }, [suggestedFields])
 
   const toggleFieldSelection = (b_id: string) => {
     setSelectedFieldIds((prev) =>
@@ -688,26 +695,16 @@ export default function FarmDashboardIndex() {
                             </div>
                             <div>
                               <CardTitle>Weidegang</CardTitle>
-                              <CardDescription>
-                                Weidedagen, uren en veebezetting.
-                              </CardDescription>
+                              <CardDescription>Weidedagen, uren en veebezetting.</CardDescription>
                             </div>
                           </div>
                         </CardHeader>
                       </Card>
                     </NavLink>
                   )}
-                  <Card
-                    className={cn(
-                      "h-full transition-all",
-                      isGeneratingPdf ? "opacity-60" : "hover:shadow-md",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={handleDownloadPdf}
-                      disabled={isGeneratingPdf}
-                      aria-busy={isGeneratingPdf}
+                  <Card>
+                    <NavLink
+                      to="bemestingsplan"
                       className="focus-visible:ring-ring w-full cursor-pointer rounded-xl text-left outline-hidden focus-visible:ring-[3px] disabled:cursor-not-allowed"
                     >
                       <CardHeader>
@@ -732,7 +729,7 @@ export default function FarmDashboardIndex() {
               {/* Acties - secondary/occasional tasks, demoted to a compact list */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Acties</h2>
-                <Card>
+                <Card className="py-0">
                   <CardContent className="divide-border divide-y p-0">
                     <NavLink
                       to={"soil-analysis/bulk"}
@@ -753,7 +750,9 @@ export default function FarmDashboardIndex() {
                         to={`${calendar}/rvo`}
                         icon={<CloudDownload className="text-primary h-5 w-5" />}
                         title="Ophalen bij RVO"
-                        description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
+                        // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+                        // description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
+                        description="Importeer percelen vanuit RVO."
                         disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
                         disabled={!loaderData.farmWritePermission}
                       />
@@ -791,7 +790,7 @@ export default function FarmDashboardIndex() {
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
                 <Card>
-                  <CardContent className="space-y-4 pt-6">
+                  <CardContent className="space-y-4">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/50 space-y-1 rounded-lg p-3">
@@ -806,6 +805,7 @@ export default function FarmDashboardIndex() {
                         </p>
                       </div>
                     </div>
+                    {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
                     <div
                       className={cn(
                         "rounded-xl border p-3.5",
@@ -835,6 +835,7 @@ export default function FarmDashboardIndex() {
                         </div>
                       </div>
                     </div>
+                    */}
                     {loaderData.fieldsMissingCultivation > 0 && (
                       <div className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3.5 transition-all dark:border-amber-500/20 dark:bg-amber-500/10">
                         <div className="flex items-start gap-2.5">
@@ -878,12 +879,12 @@ export default function FarmDashboardIndex() {
                             {showMissingCultivationDetails ? (
                               <>
                                 <ChevronUp className="h-3.5 w-3.5" />
-                                Verberg details
+                                <span key="hide">Verberg details</span>
                               </>
                             ) : (
                               <>
                                 <ChevronDown className="h-3.5 w-3.5" />
-                                Details per perceel
+                                <span key="show">Details per perceel</span>
                               </>
                             )}
                           </button>
@@ -899,7 +900,12 @@ export default function FarmDashboardIndex() {
                                   b_id={field.b_id}
                                   b_name={field.b_name}
                                   result={field.result}
-                                  onAccept={() => handleOpenReviewForSingleField(field.b_id)}
+                                  onAccept={
+                                    loaderData.farmWritePermission
+                                      ? () => handleOpenReviewForSingleField(field.b_id)
+                                      : undefined
+                                  }
+                                  canWrite={loaderData.farmWritePermission}
                                 />
                                 {field.result.status !== "suggested" && (
                                   <NavLink
@@ -931,7 +937,14 @@ export default function FarmDashboardIndex() {
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-sm">Jaar</p>
-                      <Select value={calendar} onValueChange={(value) => setCalendar(value)}>
+                      <Select
+                        value={calendar}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setCalendar(value)
+                          }
+                        }}
+                      >
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Selecteer een jaar" />
                         </SelectTrigger>
@@ -952,56 +965,62 @@ export default function FarmDashboardIndex() {
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Gegevens</h2>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     <div className="space-y-1">
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings">
-                          <Home className="mr-2 h-4 w-4" />
-                          Bedrijf
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="fertilizers">
-                          <Shapes className="mr-2 h-4 w-4" />
-                          Meststoffen
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/derogation">
-                          <ChevronUp className="mr-2 h-4 w-4" />
-                          Derogatie
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/organic-certification">
-                          <ScrollText className="mr-2 h-4 w-4" />
-                          Bio-certificaat
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/grazing-intention">
-                          <Icon iconNode={cowHead} className="mr-2 h-4 w-4" />
-                          Beweiding
-                        </NavLink>
-                      </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/access">
-                          <UserRoundCheck className="mr-2 h-4 w-4" />
-                          Toegang
-                        </NavLink>
-                      </Button>
+                      <NavLink
+                        to="settings"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <Home className="mr-2 h-4 w-4" />
+                        Bedrijf
+                      </NavLink>
+                      <NavLink
+                        to="fertilizers"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <Shapes className="mr-2 h-4 w-4" />
+                        Meststoffen
+                      </NavLink>
+                      <NavLink
+                        to="settings/derogation"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <ChevronUp className="mr-2 h-4 w-4" />
+                        Derogatie
+                      </NavLink>
+                      <NavLink
+                        to="settings/organic-certification"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <ScrollText className="mr-2 h-4 w-4" />
+                        Bio-certificaat
+                      </NavLink>
+                      <NavLink
+                        to="settings/grazing-intention"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <Icon iconNode={cowHead} className="mr-2 h-4 w-4" />
+                        Beweiding
+                      </NavLink>
+                      <NavLink
+                        to="settings/access"
+                        className={cn(buttonVariants({ variant: "ghost" }), "w-full justify-start")}
+                      >
+                        <UserRoundCheck className="mr-2 h-4 w-4" />
+                        Toegang
+                      </NavLink>
                     </div>
                     <Separator className="my-3" />
-                    <Button
-                      variant="ghost"
-                      className="hover:text-destructive hover:bg-destructive/10 w-full justify-start"
-                      asChild
+                    <NavLink
+                      to="settings/delete"
+                      className={cn(
+                        buttonVariants({ variant: "ghost" }),
+                        "hover:text-destructive hover:bg-destructive/10 w-full justify-start",
+                      )}
                     >
-                      <NavLink to="settings/delete">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Verwijderen
-                      </NavLink>
-                    </Button>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Verwijderen
+                    </NavLink>
                   </CardContent>
                 </Card>
               </div>
@@ -1037,9 +1056,11 @@ export default function FarmDashboardIndex() {
                 onClick={toggleAllFields}
                 className="text-primary cursor-pointer text-xs font-medium hover:underline"
               >
-                {selectedFieldIds.length === suggestedFields.length
-                  ? "Alles deselecteren"
-                  : "Alles selecteren"}
+                <span key={selectedFieldIds.length === suggestedFields.length ? "none" : "all"}>
+                  {selectedFieldIds.length === suggestedFields.length
+                    ? "Alles deselecteren"
+                    : "Alles selecteren"}
+                </span>
               </button>
             </div>
 
@@ -1140,10 +1161,12 @@ export default function FarmDashboardIndex() {
                 {isAcceptingAll ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Toevoegen...
+                    <span>Toevoegen...</span>
                   </>
                 ) : (
-                  `Bevestigen en toevoegen (${selectedFieldIds.length})`
+                  <span key={selectedFieldIds.length}>
+                    {`Bevestigen en toevoegen (${selectedFieldIds.length})`}
+                  </span>
                 )}
               </Button>
             </fetcher.Form>

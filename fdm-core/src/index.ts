@@ -19,7 +19,12 @@ import * as fdmSchema from "./db/schema"
 export type { FdmAuth } from "./authentication"
 // export { createFdmLocal } from './fdm-local'
 export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authentication"
-export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
+export {
+  checkPermission,
+  getAuditContext,
+  withAuditContext,
+  writeAuditEntry,
+} from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
   getAnimalCategoriesForFarm,
@@ -71,6 +76,7 @@ export {
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getDefaultDatesOfCultivation,
+  isCultivationUnavailableInPeriod,
   removeCultivation,
   updateCultivation,
 } from "./cultivation"
@@ -104,6 +110,21 @@ export {
   removeDerogation,
 } from "./derogation"
 export {
+  addFarmToGroup,
+  createFarmGroup,
+  getFarmGroup,
+  getFarmIdsOfFarmGroupInYear,
+  getFarmIdsOfOrganization,
+  isFarmGroupMembershipInYear,
+  listFarmGroups,
+  removeFarmFromGroup,
+  removeFarmGroup,
+  removeFarmGroupMembership,
+  renameFarmGroup,
+  updateFarmGroupMembership,
+} from "./farm-group"
+export type { FarmGroup, FarmGroupMembership } from "./farm-group.types"
+export {
   addFarm,
   cancelInvitationForFarm,
   getFarm,
@@ -135,6 +156,7 @@ export {
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
+  getFertilizerTypesByRvoCode,
   removeFertilizer,
   removeFertilizerApplication,
   updateFertilizerApplication,
@@ -158,8 +180,21 @@ export type {
   FertilizerParameters,
   FertilizerType,
 } from "./fertilizer.types"
+export {
+  adjustEndDateAtYearStart,
+  FDM_TIME_ZONE,
+  startOfDayInFdmTimeZone,
+  toFdmDateString,
+} from "./date"
 export type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
-export { fromKgPerHa, toKgPerHa } from "./fertilizer-application-unit-conversion"
+export {
+  AppAmountOutOfRangeError,
+  fromKgPerHa,
+  getAppAmountDisplayRange,
+  isAppAmountInRange,
+  P_APP_AMOUNT_MAX,
+  toKgPerHa,
+} from "./fertilizer-application-unit-conversion"
 export {
   addField,
   determineIfFieldIsBuffer,
@@ -180,6 +215,7 @@ export {
 export {
   addHarvest,
   getDefaultsForHarvestParameters,
+  getEffectiveHarvestable,
   getHarvest,
   getHarvestableTypeOfCultivation,
   getHarvests,
@@ -188,6 +224,8 @@ export {
   removeHarvest,
   updateHarvest,
 } from "./harvest"
+export { convertHarvestParameters } from "./harvest-conversion"
+export type { StandardHarvestParameters } from "./harvest-conversion.types"
 export type {
   Harvest,
   Harvestable,
@@ -225,11 +263,18 @@ export {
   removeOrganicCertification,
 } from "./organic"
 export type { OrganicCertification } from "./organic.types"
-export { getPrincipal, getPrincipals, lookupPrincipal } from "./principal"
+export {
+  getPrincipal,
+  getPrincipals,
+  identifyPrincipal,
+  lookupPrincipal,
+  type LookupPrincipalOptions,
+} from "./principal"
 export {
   addSoilAnalysis,
   getCurrentSoilData,
   getCurrentSoilDataForFarm,
+  getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
@@ -239,10 +284,21 @@ export {
 } from "./soil"
 export type {
   CurrentSoilData,
+  CurrentSoilDataItem,
+  CurrentSoilDataSource,
   SoilAnalysis,
   SoilParameterDescription,
   SoilParameters,
+  SoilSamplingGeometries,
+  SoilZone,
 } from "./soil.types"
+export {
+  CATEGORICAL_SOIL_PARAMETERS,
+  SOIL_ZONE_COVERED_FRACTION,
+  SOIL_ZONE_MAX_DATE_SPAN_MONTHS,
+  SOIL_ZONE_MIN_COVERAGE,
+  SOIL_ZONE_SAME_IOU,
+} from "./soil-aggregation"
 export {
   addFarmVerification,
   getActiveFarmVerifications,
@@ -261,6 +317,8 @@ export type {
 export {
   addSoilImage,
   addSoilImageAnnotation,
+  getSoilImage,
+  getSoilImageAnnotation,
   getSoilImages,
   removeSoilImage,
   removeSoilImageAnnotation,

@@ -33,7 +33,7 @@ export function SummaryCards({
       {/* Farm-level norm compliance — first so users see compliance status immediately */}
       {farmTotals && (
         <Card className="shadow-sm">
-          <CardHeader className="pb-3">
+          <CardHeader>
             <CardTitle className="text-sm font-semibold">Bedrijfsnormen</CardTitle>
             <CardDescription className="text-xs">
               Totale invulling op bedrijfsniveau (kg)
@@ -120,7 +120,7 @@ export function SummaryCards({
       {/* Gerrit's narrative summary */}
       {planSummary && (
         <Card className="bg-primary/5 border-primary/20 flex flex-col">
-          <CardHeader className="pb-2">
+          <CardHeader>
             <CardTitle className="text-primary flex items-center gap-2 text-sm font-semibold">
               <Info className="h-4 w-4" />
               Toelichting van Gerrit
@@ -141,7 +141,7 @@ export function SummaryCards({
 
       {/* Compact strategy summary */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <Bot className="text-primary h-5 w-5" />
             Gehanteerde strategie
@@ -160,7 +160,7 @@ export function SummaryCards({
             <p className="text-muted-foreground text-sm">Geen specifieke strategie geselecteerd.</p>
           )}
         </CardContent>
-        <CardFooter className="border-t pt-4">
+        <CardFooter className="border-t">
           <Button variant="outline" size="sm" className="w-full gap-2" onClick={onEditStrategy}>
             <Pencil className="h-3.5 w-3.5" />
             Wijzig & herbereken

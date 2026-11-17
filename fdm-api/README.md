@@ -21,6 +21,7 @@ The API is built with [Hono](https://hono.dev), documented with OpenAPI 3.1, and
 - [Date format](#date-format)
 - [Pagination](#pagination)
 - [Rate limiting](#rate-limiting)
+- [MCP server for AI assistants](#mcp-server-for-ai-assistants)
 - [Error format](#error-format)
 - [Local development](#local-development)
 - [Deployment](#deployment)
@@ -179,6 +180,16 @@ The API covers 12 domains. See the [interactive docs](/docs) for full request/re
 | `PUT`    | `/grazing-intentions`                    | Set a grazing intention            |
 | `DELETE` | `/grazing-intentions/{b_id_farm}/{year}` | Remove a grazing intention         |
 
+### Indicators
+
+All require `?year=YYYY`, use the `nmi` rate limit and need `NMI_API_KEY` on the server (otherwise `503`).
+
+| Method | Path                                | Description                                                |
+| ------ | ----------------------------------- | ---------------------------------------------------------- |
+| `GET`  | `/fields/{b_id}/indicators`         | Indicator and aggregation scores of a field                |
+| `GET`  | `/farms/{b_id_farm}/indicators`     | Per-field scores and area-weighted farm scores             |
+| `GET`  | `/fields/{b_id}/measures/catalogue` | Field measure options with applicability, impacts, ranking |
+
 ### Calculations
 
 | Method | Path                                                     | Description                     |
@@ -232,10 +243,24 @@ Requests are rate-limited **per API key** within a 60-second sliding window.
 | Bucket    | Limit         | Applied to                       |
 | --------- | ------------- | -------------------------------- |
 | `general` | 120 req / min | Read endpoints                   |
-| `write`   | 30 req / min  | Create, update, delete endpoints |
+| `write`   | 120 req / min | Create, update, delete endpoints |
 | `calc`    | 10 req / min  | Calculation endpoints            |
+| `nmi`     | 10 req / min  | Endpoints that call the NMI API  |
 
 When the limit is exceeded the API returns `429 Too Many Requests` with a `Retry-After` header indicating how many seconds to wait.
+
+To prevent misuse, the API also has usage limits:
+
+- A farm can have at most **500 fields**. Adding fields beyond that fails with `422`, and farm-level lists, calculations and field imports of a larger farm fail with `422`.
+- A user can create at most **10 farms per 24 hours**, across all their API keys. More fails with `429` and `Retry-After`.
+
+See [Limits & Pagination](https://nmi-agro.github.io/fdm/docs/rest-api/limits-and-pagination) for details.
+
+---
+
+## MCP server for AI assistants
+
+Most of these operations are also available to AI assistants through the separate `fdm-mcp` service, which serves the [Model Context Protocol](https://modelcontextprotocol.io) with the same API keys, permissions and rate limits. Operations that have no use as a tool, such as file uploads and downloads, are left out; the [list of operations without a tool](https://nmi-agro.github.io/fdm/docs/mcp-server/tools#not-available-as-a-tool) gives the reason for each. See the [MCP server docs](https://nmi-agro.github.io/fdm/docs/mcp-server/overview) and [`fdm-mcp/README.md`](../fdm-mcp/README.md).
 
 ---
 
@@ -335,7 +360,7 @@ See [`.env.example`](.env.example) for the full list. Key variables:
 | `PUBLIC_FDM_URL`          | Yes      | Public URL of this API service (used in error `type` links)     |
 | `FDM_API_ALLOWED_ORIGINS` | No       | Comma-separated CORS origins — defaults to `*` (open)           |
 | `PORT`                    | No       | HTTP port — Cloud Run sets this automatically (default: `8080`) |
-| `NMI_API_KEY`             | No       | Required for NMI-powered calculation endpoints                  |
+| `NMI_API_KEY`             | No       | Required for NMI-powered endpoints                              |
 
 ### Docker Compose (self-hosted)
 

@@ -113,7 +113,7 @@ export const RvoFieldSchema = z.object({
     /** Start date of the crop field registration (ISO 8601 string) */
     BeginDate: z.string(),
     /** End date of the crop field registration (ISO 8601 string), optional */
-    EndDate: z.string().optional(),
+    EndDate: z.string().nullable().optional(),
     /** Country code (e.g., "NL") */
     Country: z.string(),
     /** Code representing the type of crop grown */
@@ -218,10 +218,10 @@ export interface RvoImportReviewItem<TLocal> {
 export type ImportReviewAction =
   | "ADD_REMOTE" // Add the remote field to the local database
   | "UPDATE_FROM_REMOTE" // Update the local field with remote data
-  | "KEEP_LOCAL" // Keep the local version, ignoring the remote conflict
+  | "KEEP_LOCAL" // Keep the local field; with values in the choice, only those values change
   | "REMOVE_LOCAL" // Remove the local field
   | "CLOSE_LOCAL" // Close the local field (set end date)
-  | "IGNORE" // Do nothing for this item
+  | "IGNORE" // Do not add a new remote field
   | "NO_ACTION" // No specific action selected
 
 /**

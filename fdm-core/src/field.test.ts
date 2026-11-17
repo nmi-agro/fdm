@@ -8,6 +8,7 @@ import {
   syncAnimalCategoryCatalogueArray,
 } from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
+import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -439,6 +440,129 @@ describe("Farm Data Model", () => {
           expect(field.b_bufferstrip).toBe(false)
         }
       })
+
+      describe("fields ending at the turn of the year", () => {
+        const geometry: Polygon = {
+          type: "Polygon" as const,
+          coordinates: [
+            [
+              [0, 0],
+              [0, 1],
+              [1, 1],
+              [1, 0],
+              [0, 0],
+            ],
+          ],
+        }
+        const endDates = [
+          ["31 December, UTC midnight", "2025-12-31T00:00:00.000Z"],
+          ["31 December, Amsterdam midnight", "2025-12-30T23:00:00.000Z"],
+          ["1 January, UTC midnight", "2026-01-01T00:00:00.000Z"],
+          ["1 January, Amsterdam midnight", "2025-12-31T23:00:00.000Z"],
+        ] as const
+        const timeframes = {
+          "2025 (UTC)": {
+            start: new Date("2025-01-01T00:00:00.000Z"),
+            end: new Date("2025-12-31T23:59:59.999Z"),
+          },
+          "2025 (Europe/Amsterdam)": {
+            start: new Date("2024-12-31T23:00:00.000Z"),
+            end: new Date("2025-12-31T22:59:59.999Z"),
+          },
+          "2026 (UTC)": {
+            start: new Date("2026-01-01T00:00:00.000Z"),
+            end: new Date("2026-12-31T23:59:59.999Z"),
+          },
+          "2026 (Europe/Amsterdam)": {
+            start: new Date("2025-12-31T23:00:00.000Z"),
+            end: new Date("2026-12-31T22:59:59.999Z"),
+          },
+        }
+
+        it.each(endDates)(
+          "should include a field ending on %s in 2025 but not in 2026",
+          async (_label, b_end) => {
+            const b_id = await addField(
+              fdm,
+              principal_id,
+              b_id_farm,
+              "Field ending at year boundary",
+              "source-year-boundary",
+              geometry,
+              new Date("2025-01-01T00:00:00.000Z"),
+              "nl_01",
+              new Date(b_end),
+            )
+
+            const field = await getField(fdm, principal_id, b_id)
+            expect(field.b_end).toEqual(adjustEndDateAtYearStart(new Date(b_end)))
+            expect(field.b_end?.getTime()).toBeLessThanOrEqual(
+              new Date("2025-12-31T22:59:59.999Z").getTime(),
+            )
+
+            for (const [name, timeframe] of Object.entries(timeframes)) {
+              const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+              const ids = fields.map((f) => f.b_id)
+              if (name.startsWith("2025")) {
+                expect(ids, name).toContain(b_id)
+              } else {
+                expect(ids, name).not.toContain(b_id)
+              }
+            }
+          },
+        )
+
+        it("should store b_end as entered and adjust it when read", async () => {
+          const b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field updated to end at year boundary",
+            "source-year-boundary-update",
+            geometry,
+            new Date("2025-01-01T00:00:00.000Z"),
+            "nl_01",
+          )
+
+          const updated = await updateField(
+            fdm,
+            principal_id,
+            b_id,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            new Date("2026-01-01T00:00:00.000Z"),
+          )
+          expect(updated.b_end?.toISOString()).toBe("2025-12-31T22:59:59.999Z")
+
+          const stored = await fdm
+            .select({ b_end: schema.fieldDiscarding.b_end })
+            .from(schema.fieldDiscarding)
+            .where(eq(schema.fieldDiscarding.b_id, b_id))
+          expect(stored[0].b_end?.toISOString()).toBe("2026-01-01T00:00:00.000Z")
+
+          const fields2026 = await getFields(fdm, principal_id, b_id_farm, timeframes["2026 (UTC)"])
+          expect(fields2026.map((f) => f.b_id)).not.toContain(b_id)
+        })
+
+        it("should throw when a field starts and ends on 1 January", async () => {
+          await expect(
+            addField(
+              fdm,
+              principal_id,
+              b_id_farm,
+              "Field starting and ending on 1 January",
+              "source-year-boundary-invalid",
+              geometry,
+              new Date("2026-01-01T00:00:00.000Z"),
+              "nl_01",
+              new Date("2026-01-01T00:00:00.000Z"),
+            ),
+          ).rejects.toThrowError("Exception for addField")
+        })
+      })
     })
     it("should update a field", async () => {
       const farmName = "Test Farm"
@@ -739,6 +863,7 @@ describe("Farm Data Model", () => {
         b_lu_variety_options: [], // Added missing property
         b_lu_start_default: "03-15",
         b_date_harvest_default: "10-15",
+        b_lu_ya: null,
       })
     })
 

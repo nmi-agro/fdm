@@ -1,4 +1,3 @@
-import type { Control, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   checkPermission,
@@ -6,7 +5,9 @@ import {
   revokeFarmVerificationStatus,
   updateFarm,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { useEffect } from "react"
+import { Controller, type Resolver } from "react-hook-form"
 import {
   type ActionFunctionArgs,
   data,
@@ -20,6 +21,7 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
+import { KvkLookupButton, KvkLookupStatus, useKvkLookup } from "~/components/blocks/farm/kvk-lookup"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,27 +35,25 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
+import { isKvkConfigured } from "~/integrations/kvk.server"
 import { getSession } from "~/lib/auth.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 
 const { isPostalCode } = validator
-
-import { clientConfig } from "~/lib/config"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -78,7 +78,7 @@ export const meta: MetaFunction = () => {
  * @returns An object containing the farm details under the `farm` property.
  * @throws {Response} If the farm ID is missing or if the farm could not be found.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -106,7 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
@@ -116,6 +116,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farm: farm,
       farmWritePermission: farmWritePermission,
       farmVerification,
+      isKvkConfigured: isKvkConfigured(),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -144,14 +145,28 @@ export default function FarmSettingsPropertiesBlock() {
     },
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       b_name_farm: loaderData.farm.b_name_farm ?? "",
       b_businessid_farm: loaderData.farm.b_businessid_farm ?? "",
       b_address_farm: loaderData.farm.b_address_farm ?? "",
       b_postalcode_farm: loaderData.farm.b_postalcode_farm ?? "",
     })
-  }, [loaderData, form.reset])
+  }, [loaderData, formReset])
+
+  // Prefill name and address from the KvK Handelsregister; the user still saves the form
+  const kvkLookup = useKvkLookup(form.watch("b_businessid_farm"), (result) => {
+    if (result.status !== "found") return
+    const options = { shouldDirty: true, shouldValidate: true }
+    form.setValue("b_name_farm", result.name, options)
+    if (result.address) {
+      form.setValue("b_address_farm", result.address, options)
+    }
+    if (result.postalcode) {
+      form.setValue("b_postalcode_farm", result.postalcode, options)
+    }
+  })
 
   return (
     <div className="space-y-6">
@@ -165,51 +180,73 @@ export default function FarmSettingsPropertiesBlock() {
           <fieldset disabled={!loaderData.farmWritePermission || form.formState.isSubmitting}>
             <div className="grid w-full grid-cols-2 items-center gap-4">
               <div className="col-span-2 flex flex-col space-y-1.5">
-                <FormField
-                  control={form.control as unknown as Control<any, any, any>}
+                <Controller
                   name="b_name_farm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bedrijfsnaam</FormLabel>
-                      <FormControl>
-                        <Input placeholder="bv. De Vries V.O.F." {...field} required />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="b_name_farm">Bedrijfsnaam</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          id="b_name_farm"
+                          aria-invalid={fieldState.invalid}
+                          placeholder="bv. De Vries V.O.F."
+                          {...field}
+                          required
+                        />
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
               </div>
               <div className="col-span-1 flex flex-col space-y-1.5">
-                <FormField
-                  control={form.control as unknown as Control<any, any, any>}
+                <Controller
                   name="b_businessid_farm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Kvk nummer</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="bv. 91021934"
-                          {...field}
-                          disabled={loaderData.farmVerification.isVerified}
-                        />
-                      </FormControl>
-                      <FormDescription>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="b_businessid_farm">Kvk nummer</FieldLabel>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <FieldContent>
+                          <Input
+                            id="b_businessid_farm"
+                            aria-invalid={fieldState.invalid}
+                            placeholder="bv. 91021934"
+                            inputMode="numeric"
+                            maxLength={8}
+                            {...field}
+                            disabled={loaderData.farmVerification.isVerified}
+                          />
+                        </FieldContent>
+                        {loaderData.isKvkConfigured && loaderData.farmWritePermission && (
+                          <KvkLookupButton
+                            variant="outline"
+                            kvkNumber={field.value}
+                            isLoading={kvkLookup.isLoading}
+                            onLookup={() => kvkLookup.lookup(field.value)}
+                          />
+                        )}
+                      </div>
+                      <FieldDescription>
                         {loaderData.farmVerification.isVerified ? (
-                          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                          <span
+                            key="kvk-verified"
+                            className="flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                          >
                             Het KvK-nummer is vergrendeld omdat dit bedrijf hierop is geverifieerd.
                             Wijzig het nummer alleen als het onjuist is.
                             <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  className="h-auto p-0 text-xs"
-                                  disabled={!loaderData.farmWritePermission}
-                                >
-                                  KvK-nummer corrigeren?
-                                </Button>
-                              </AlertDialogTrigger>
+                              <AlertDialogTrigger
+                                render={
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto p-0 text-xs"
+                                    disabled={!loaderData.farmWritePermission}
+                                  >
+                                    KvK-nummer corrigeren?
+                                  </Button>
+                                }
+                              />
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>KvK-nummer wijzigen?</AlertDialogTitle>
@@ -237,23 +274,29 @@ export default function FarmSettingsPropertiesBlock() {
                             </AlertDialog>
                           </span>
                         ) : (
-                          "Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven"
+                          <span key="kvk-unlocked">
+                            Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven
+                          </span>
                         )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                      </FieldDescription>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
               </div>
+              {kvkLookup.result && (
+                <KvkLookupStatus result={kvkLookup.result} className="col-span-2" />
+              )}
               <div className="col-span-2 flex flex-col space-y-1.5">
-                <FormField
-                  control={form.control as unknown as Control<any, any, any>}
+                <Controller
                   name="b_address_farm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Adres</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="b_address_farm">Adres</FieldLabel>
+                      <FieldContent>
                         <Textarea
+                          id="b_address_farm"
+                          aria-invalid={fieldState.invalid}
                           placeholder="bv. Nieuwe Kanaal 7 
 Wageningen"
                           className="resize-none"
@@ -262,31 +305,30 @@ Wageningen"
                           maxLength={300}
                           {...field}
                         />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
               </div>
               <div className="col-span-1 flex flex-col space-y-1.5">
-                <FormField
-                  control={form.control as unknown as Control<any, any, any>}
+                <Controller
                   name="b_postalcode_farm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Postcode</FormLabel>
-                      <FormControl>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="b_postalcode_farm">Postcode</FieldLabel>
+                      <FieldContent>
                         <Input
+                          id="b_postalcode_farm"
+                          aria-invalid={fieldState.invalid}
                           placeholder="bv. 1234 AB"
                           {...field}
                           autoComplete="postal-code"
                           maxLength={7}
                         />
-                      </FormControl>
-                      <FormDescription />
-                      <FormMessage />
-                    </FormItem>
+                      </FieldContent>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
               </div>
@@ -300,7 +342,7 @@ Wageningen"
               className={cn("m-auto", cn(!loaderData.farmWritePermission ? "invisible" : ""))}
             >
               {form.formState.isSubmitting && <Spinner />}
-              Bijwerken
+              <span>Bijwerken</span>
             </Button>
           </div>
         </Form>

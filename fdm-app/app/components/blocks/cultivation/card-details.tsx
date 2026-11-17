@@ -1,14 +1,21 @@
-import type { Cultivation } from "@nmi-agro/fdm-core"
-import type { FieldValues, Resolver, UseFormReturn } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { type Cultivation } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
+import { useEffect, useState } from "react"
+import {
+  Controller,
+  useWatch,
+  type FieldValues,
+  type Resolver,
+  type UseFormReturn,
+} from "react-hook-form"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
+import { Field, FieldLabel, FieldError, FieldContent } from "~/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -17,7 +24,11 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
+import {
+  CultivationAvailabilityWarning,
+  getCultivationAvailabilityMessage,
+} from "./availability-warning"
 import { CultivationDetailsFormSchema, type CultivationDetailsFormSchemaType } from "./schema"
 
 function toDate(value: Date | string | null | undefined) {
@@ -30,20 +41,26 @@ function toDate(value: Date | string | null | undefined) {
 export function CultivationDetailsCard({
   cultivation,
   b_lu_variety_options,
+  b_lu_ya,
+  lastCultivationAvailabilityYear,
   editable = true,
 }: {
   cultivation: Cultivation
   b_lu_variety_options: { value: string; label: string }[]
+  b_lu_ya: number[] | null
+  lastCultivationAvailabilityYear?: number
   editable?: boolean
 }) {
   const fetcher = useFetcher()
+  // Computed once, not on every render: used only as the default when there's no start date yet.
+  const [today] = useState(() => new Date())
   const form = useRemixForm<CultivationDetailsFormSchemaType>({
     resolver: zodResolver(
       CultivationDetailsFormSchema,
     ) as Resolver<CultivationDetailsFormSchemaType>,
     mode: "onTouched",
     defaultValues: {
-      b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+      b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
         cultivation.b_lu_croprotation === "cereal"
@@ -56,9 +73,10 @@ export function CultivationDetailsCard({
   const { pathname } = useLocation()
   const isCreateWizard = pathname.includes("/farm/create/")
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
-      b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+    formReset({
+      b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
         cultivation.b_lu_croprotation === "cereal"
@@ -66,11 +84,23 @@ export function CultivationDetailsCard({
           : undefined,
       b_lu_variety: cultivation.b_lu_variety ?? undefined,
     })
-  }, [cultivation, form.reset])
+  }, [formReset, cultivation, today])
 
   const handleDeleteCultivation = () => {
     return fetcher.submit(null, { method: "delete" })
   }
+
+  const current_b_lu_start = useWatch({ control: form.control, name: "b_lu_start" })
+  const current_b_lu_end = useWatch({ control: form.control, name: "b_lu_end" })
+  const isCultivationUnavailable = isCultivationUnavailableInPeriod(
+    { b_lu_start: current_b_lu_start, b_lu_end: current_b_lu_end },
+    b_lu_ya,
+    lastCultivationAvailabilityYear,
+  )
+  const formCultivationAvailabilityWarning =
+    isCultivationUnavailable && form.formState.isDirty
+      ? getCultivationAvailabilityMessage(isCultivationUnavailable)
+      : null
 
   return (
     <Card>
@@ -90,19 +120,25 @@ export function CultivationDetailsCard({
                   <Spinner />
                 </div>
               ) : null}
-              Verwijderen
+              <span>Verwijderen</span>
             </Button>
           </div>
         ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Cultivation warning is show according to the last saved values because the user could think that the values are already saved whenever the warning changes. */}
+        <CultivationAvailabilityWarning
+          period={{ b_lu_start: cultivation.b_lu_start, b_lu_end: cultivation.b_lu_end }}
+          b_lu_ya={b_lu_ya}
+          lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+        />
         <RemixFormProvider {...form}>
           <Form onSubmit={form.handleSubmit} method="post">
             <fieldset
               disabled={!editable || form.formState.isSubmitting || fetcher.state !== "idle"}
               className="space-y-4"
             >
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-x-4 gap-y-2 lg:grid-cols-2">
                 <DatePicker
                   form={form as unknown as UseFormReturn<FieldValues>}
                   name="b_lu_start"
@@ -117,48 +153,51 @@ export function CultivationDetailsCard({
                   description=""
                   disabled={!editable}
                 />
+                {formCultivationAvailabilityWarning && (
+                  <span className="text-destructive text-sm lg:col-span-2">
+                    {formCultivationAvailabilityWarning}
+                  </span>
+                )}
               </div>
               <div className="grid items-end gap-4 lg:grid-cols-2">
-                <FormField
-                  control={form.control}
+                <Controller
                   name="m_cropresidue"
-                  render={({ field }) => (
-                    <FormItem
+                  render={({ field, fieldState }) => (
+                    <Field
                       className={cn(
                         "flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4",
                         /* Hide for non-cereals */ cultivation.b_lu_croprotation !== "cereal" &&
                           "invisible",
                       )}
                     >
-                      <FormControl>
-                        <Checkbox
-                          checked={Boolean(field.value)}
-                          onCheckedChange={field.onChange}
-                          disabled={
-                            !editable || form.formState.isSubmitting || fetcher.state !== "idle"
-                          }
-                        />
-                      </FormControl>
+                      <Checkbox
+                        id={field.name}
+                        checked={Boolean(field.value)}
+                        onCheckedChange={field.onChange}
+                        disabled={
+                          !editable || form.formState.isSubmitting || fetcher.state !== "idle"
+                        }
+                      />
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Gewasresten achterlaten</FormLabel>
-                        <FormMessage />
+                        <FieldLabel htmlFor={field.name}>Gewasresten achterlaten</FieldLabel>
+                        <FieldError errors={[fieldState.error]} />
                       </div>
-                    </FormItem>
+                    </Field>
                   )}
                 />
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_lu_variety"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Variëteit</FormLabel>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Variëteit</FieldLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value ?? undefined}
+                        value={field.value ?? null}
+                        items={b_lu_variety_options}
                         disabled={!editable || b_lu_variety_options.length === 0}
                       >
-                        <FormControl>
-                          <SelectTrigger>
+                        <FieldContent>
+                          <SelectTrigger id={field.name}>
                             <SelectValue
                               placeholder={
                                 b_lu_variety_options.length === 0
@@ -167,7 +206,7 @@ export function CultivationDetailsCard({
                               }
                             />
                           </SelectTrigger>
-                        </FormControl>
+                        </FieldContent>
                         <SelectContent>
                           {b_lu_variety_options.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
@@ -176,8 +215,8 @@ export function CultivationDetailsCard({
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
               </div>
@@ -191,7 +230,7 @@ export function CultivationDetailsCard({
                       <Spinner /> <p>Bijwerken...</p>
                     </div>
                   ) : (
-                    "Bijwerken"
+                    <span>Bijwerken</span>
                   )}
                 </Button>
               </div>

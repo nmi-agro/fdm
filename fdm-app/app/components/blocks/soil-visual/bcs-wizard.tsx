@@ -1,7 +1,8 @@
+import { cn } from "cn"
 import { format, formatISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
-import { Camera, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Upload } from "lucide-react"
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
+import { Camera, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import { useFetcher } from "react-router"
 import { toast } from "sonner"
 import {
@@ -9,6 +10,7 @@ import {
   formatIndicatorScore,
   indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
+import { createTempId, PhotoUploadButton } from "~/components/blocks/soil-visual/bcs-photo-upload"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { BCS_GUIDES } from "~/components/blocks/soil-visual/bcs-scoring-guide"
 import { ImageGallery } from "~/components/blocks/soil-visual/image-gallery"
@@ -22,12 +24,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
 import { Progress } from "~/components/ui/progress"
 import { Separator } from "~/components/ui/separator"
 import { useAnalytics } from "~/hooks/use-analytics"
@@ -43,98 +39,6 @@ import {
   type WizardImage,
 } from "~/lib/bcs"
 import { uploadBcsImage } from "~/lib/bcs-image-upload.client"
-import { cn } from "~/lib/utils"
-
-interface PhotoUploadButtonProps {
-  onFiles: (files: FileList) => void
-  disabled?: boolean
-  size?: "sm" | "lg"
-  label?: string
-}
-
-/** On mobile shows a single button with a dropdown (Camera / Galerij).
- *  On desktop shows a regular file-picker button. */
-function PhotoUploadButton({
-  onFiles,
-  disabled,
-  size = "lg",
-  label = "Foto's kiezen",
-}: PhotoUploadButtonProps) {
-  const cameraRef = useRef<HTMLInputElement>(null)
-  const galleryRef = useRef<HTMLInputElement>(null)
-
-  function handleChange(e: ChangeEvent<HTMLInputElement>) {
-    if (e.target.files?.length) {
-      onFiles(e.target.files)
-      e.target.value = ""
-    }
-  }
-
-  return (
-    <>
-      {/* Hidden inputs — shared by both mobile and desktop */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        disabled={disabled}
-        onChange={handleChange}
-      />
-      <input
-        ref={galleryRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        disabled={disabled}
-        onChange={handleChange}
-      />
-
-      {/* Mobile: single button → dropdown */}
-      <div className="sm:hidden">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" size={size} disabled={disabled}>
-              <Camera className="size-4" />
-              {label}
-              <ChevronDown className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => cameraRef.current?.click()}>
-              <Camera className="size-4" />
-              Camera
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => galleryRef.current?.click()}>
-              <Upload className="size-4" />
-              Galerij kiezen
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Desktop: regular file-picker */}
-      <div className="hidden sm:block">
-        <Button type="button" size={size} disabled={disabled} asChild>
-          <label className="cursor-pointer">
-            <Upload className="size-4" />
-            {disabled ? "Uploaden..." : label}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              disabled={disabled}
-              onChange={handleChange}
-            />
-          </label>
-        </Button>
-      </div>
-    </>
-  )
-}
 
 interface BcsWizardProps {
   b_id: string
@@ -144,13 +48,6 @@ interface BcsWizardProps {
   somLoi: number | null
   phCc: number | null
   soilSource: string | null
-}
-
-function createTempId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID()
-  }
-  return `tmp-${Math.random().toString(36).slice(2, 10)}`
 }
 
 export function BcsWizard({
@@ -167,7 +64,7 @@ export function BcsWizard({
   const { capture } = useAnalytics()
   const totalSteps = BCS_FIELD_INDICATORS.length + 2
   const [currentStep, setCurrentStep] = useState(0)
-  const [samplingDate, setSamplingDate] = useState<Date>(new Date())
+  const [samplingDate, setSamplingDate] = useState<Date>(() => new Date())
   const [scores, setScores] = useState<Partial<Record<BcsVisualKey, 0 | 1 | 2>>>({})
   const [images, setImages] = useState<WizardImage[]>([])
   const [annotations, setAnnotations] = useState<WizardAnnotation[]>([])
@@ -184,9 +81,10 @@ export function BcsWizard({
   const hasAnyVisualScore = BCS_VISUAL_KEYS.some((key) => scores[key] != null)
 
   // Fetch server-side BCS preview whenever the review step is entered
+  const { submit: submitPreview } = previewFetcher
   useEffect(() => {
     if (!isReviewStep) return
-    void previewFetcher.submit(
+    void submitPreview(
       {
         scores,
         b_id,
@@ -198,8 +96,7 @@ export function BcsWizard({
         encType: "application/json",
       },
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReviewStep, scores, b_id, samplingDate, previewFetcher.submit])
+  }, [isReviewStep, scores, b_id, samplingDate, submitPreview])
 
   const galleryImages = useMemo(
     () =>
@@ -311,7 +208,7 @@ export function BcsWizard({
 
   return (
     <Card>
-      <CardHeader className="space-y-3 pb-2">
+      <CardHeader className="gap-3">
         {/* Step title */}
         <div>
           {currentStep === 0 ? (
@@ -417,7 +314,7 @@ export function BcsWizard({
                 </div>
                 <PhotoUploadButton
                   onFiles={uploadFiles}
-                  disabled={isUploading}
+                  isUploading={isUploading}
                   size="lg"
                   label={isUploading ? "Uploaden..." : "Foto's kiezen"}
                 />
@@ -496,7 +393,7 @@ export function BcsWizard({
                 <div className="text-sm font-medium">Foto&apos;s en notities</div>
                 <PhotoUploadButton
                   onFiles={uploadFiles}
-                  disabled={isUploading}
+                  isUploading={isUploading}
                   size="sm"
                   label={isUploading ? "Uploaden..." : "Foto toevoegen"}
                 />
@@ -582,7 +479,7 @@ export function BcsWizard({
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
+      <CardFooter className="flex flex-col gap-3 border-t sm:flex-row sm:justify-between">
         <Button
           type="button"
           variant="outline"

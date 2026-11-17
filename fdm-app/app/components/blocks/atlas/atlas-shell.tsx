@@ -117,6 +117,12 @@ export function Atlas(
     [setViewState],
   )
 
+  // `data-map-idle` tells automated tooling (such as the manual's screenshot run) that the map has
+  // finished loading tiles and rendering. It is set directly on the element to avoid re-renders.
+  const setMapIdle = useCallback((idle: boolean) => {
+    containerRef.current?.setAttribute("data-map-idle", String(idle))
+  }, [])
+
   return (
     <div
       className="relative overflow-hidden"
@@ -126,6 +132,7 @@ export function Atlas(
         ...style,
       }}
       ref={containerRef}
+      data-map-idle="false"
     >
       <MapContainerContext.Provider value={containerRef}>
         <MapGL
@@ -157,6 +164,18 @@ export function Atlas(
           onMouseLeave={(e) => {
             onMouseLeave()
             mapGlProps.onMouseLeave?.(e)
+          }}
+          onMoveStart={(e) => {
+            setMapIdle(false)
+            mapGlProps.onMoveStart?.(e)
+          }}
+          onData={(e) => {
+            setMapIdle(false)
+            mapGlProps.onData?.(e)
+          }}
+          onIdle={(e) => {
+            setMapIdle(true)
+            mapGlProps.onIdle?.(e)
           }}
         >
           {children}

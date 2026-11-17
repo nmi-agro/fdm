@@ -13,7 +13,7 @@ export function MijnPercelenUploadAnimation({ children }: { children: React.Reac
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="space-y-4 p-6 text-center">
+          <Card className="gap-0 space-y-4 p-6 text-center">
             <Spinner className="text-muted-foreground mx-auto h-8 w-8" />
             <h3 className="text-muted-foreground font-semibold">Percelen verwerken...</h3>
           </Card>
