@@ -58,3 +58,21 @@ export { aggregateNutrientAdviceToFarmLevel } from "./nutrient-advice/aggregate"
 export type { NutrientAdvice } from "./nutrient-advice/types"
 export type { BcsAnalysisLike, BcsVisualKey } from "./bcs/visual"
 export { BCS_VISUAL_KEYS, isBcsAnalysis } from "./bcs/visual"
+export {
+  calculateGrazingAllocationArea,
+  calculatePlatformArea,
+  estimateGrassIntake,
+} from "./grazing/allocation"
+export type {
+  GrassIntakeInput,
+  GrassIntakeResult,
+  GrazingAllocationInput,
+  GrazingAllocationResult,
+  PlatformAreaInput,
+} from "./grazing/allocation"
+export {
+  GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY,
+  GRAZING_HOURS_PER_KG_DM_MIN,
+  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
+} from "./grazing/constants"
