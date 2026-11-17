@@ -79,6 +79,7 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useToday } from "~/hooks/use-today"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -460,6 +461,8 @@ export default function FarmDashboardIndex() {
   const fetcher = useFetcher()
 
   const calendar = useCalendarStore((state) => state.calendar)
+  // "Today" is only known on the client
+  const today = useToday()
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const [searchParams, setSearchParams] = useSearchParams()
   const years = getCalendarSelection()
@@ -733,7 +736,8 @@ export default function FarmDashboardIndex() {
                   <CardContent className="divide-border divide-y p-0">
                     {loaderData.hasHerds && (
                       <ActionLink
-                        to={`${calendar}/grazing/today`}
+                        // Today's grazing is always in the current year, whatever year is selected
+                        to={`${today ? today.getFullYear() : calendar}/atlas/grazing`}
                         icon={<Icon iconNode={cowHead} className="text-primary h-5 w-5" />}
                         title="Beweiding vandaag"
                         description="Leg vast op welk perceel de koppels vandaag weiden."

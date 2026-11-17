@@ -5,13 +5,16 @@ import { ChevronUp, TriangleAlert } from "lucide-react"
 import { type ReactNode, useId, useMemo, useState } from "react"
 import { Bar, BarChart, type BarShapeProps, Rectangle, XAxis, YAxis } from "recharts"
 import type { AdviceProgressStatus } from "~/components/blocks/nutrient-advice/progress-bar"
+import type { GrazingMapStatus } from "~/lib/grazing-map"
 import { SAMPLING_POINT_COLOR } from "~/components/blocks/soil/soil-sampling-colors"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
 import { Spinner } from "~/components/ui/spinner"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { GRAZING_MAP_STATUSES } from "~/lib/grazing-map"
 import { ELEVATION_LEGEND_GRADIENT } from "./atlas-elevation-colors"
+import { GRAZING_MAP_COPY, GRAZING_STATUS_COLORS } from "./atlas-grazing"
 import {
   formatKgPerHa,
   NUTRIENT_ADVICE_COPY,
@@ -438,7 +441,7 @@ interface NutrientAdviceLegendProps {
 }
 
 /** One legend row: swatch, label and the number of fields in that class. */
-function NutrientAdviceLegendRow({
+export function AtlasLegendCountRow({
   swatch,
   label,
   count,
@@ -658,7 +661,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
 
   const percentageMax = excessExempt ? 100 : NUTRIENT_ADVICE_PERCENTAGE_MAX
   const overRow = excessExempt ? null : (
-    <NutrientAdviceLegendRow
+    <AtlasLegendCountRow
       swatch={swatch("over")}
       label={NUTRIENT_ADVICE_COPY.legendOver}
       count={counts.over}
@@ -695,12 +698,12 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
         <ul className="space-y-1">
           {mode === "percentage" && (
             <>
-              <NutrientAdviceLegendRow
+              <AtlasLegendCountRow
                 swatch={swatch("under")}
                 label={NUTRIENT_ADVICE_COPY.legendUnder}
                 count={counts.under}
               />
-              <NutrientAdviceLegendRow
+              <AtlasLegendCountRow
                 swatch={swatch("on-target")}
                 label={NUTRIENT_ADVICE_COPY.legendMet}
                 count={counts["on-target"]}
@@ -709,7 +712,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
             </>
           )}
           {counts.zero > 0 && (
-            <NutrientAdviceLegendRow
+            <AtlasLegendCountRow
               swatch={
                 <NutrientAdviceSwatch color={NUTRIENT_ADVICE_ZERO_COLOR} className="border" />
               }
@@ -718,7 +721,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
             />
           )}
           {counts.none > 0 && (
-            <NutrientAdviceLegendRow
+            <AtlasLegendCountRow
               swatch={<NutrientAdviceSwatch color={NUTRIENT_ADVICE_NONE_COLOR} />}
               label={NUTRIENT_ADVICE_COPY.noAdvice}
               count={counts.none}
@@ -727,6 +730,85 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
         </ul>
         {progressLine}
       </CardContent>
+    </Card>
+  )
+}
+
+/** Colour swatch of a status of the Beweiding layer, shared by the legend and the popup. */
+export function GrazingStatusSwatch({ status }: { status: GrazingMapStatus }) {
+  return (
+    <NutrientAdviceSwatch
+      color={GRAZING_STATUS_COLORS[status]}
+      className={status === "unused" ? "border" : undefined}
+    />
+  )
+}
+
+/**
+ * Legend of the Atlas "Beweiding" layer: the status of every field on the shown day, with the
+ * number of fields per status. On a phone it starts collapsed to its title, like the other legends.
+ */
+export function GrazingLegend({
+  dayLabel,
+  counts,
+}: {
+  /** The day shown, e.g. "maandag 15 juni 2026". */
+  dayLabel: string
+  /** Number of fields per status. */
+  counts: Record<GrazingMapStatus, number>
+}) {
+  const isMobile = useIsMobile()
+  const [expanded, setExpanded] = useState(false)
+  const collapsed = isMobile && !expanded
+
+  const title = (
+    <>
+      <span className="block text-sm leading-tight font-medium">{GRAZING_MAP_COPY.layerName}</span>
+      <span className="text-muted-foreground block text-xs">{dayLabel}</span>
+    </>
+  )
+
+  return (
+    <Card className="min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial gap-0 space-y-3 overflow-y-auto p-3 shadow-xs md:p-4">
+      <CardHeader className="space-y-0.5 p-0" aria-live="polite">
+        {isMobile ? (
+          <button
+            type="button"
+            // The legend wrapper ignores pointer events so it never blocks the map.
+            className="pointer-events-auto -m-1 flex min-h-11 items-center justify-between gap-2 rounded-sm p-1 text-left"
+            aria-expanded={!collapsed}
+            onClick={() => setExpanded(!expanded)}
+          >
+            <span className="space-y-0.5">{title}</span>
+            <span className="sr-only">
+              {collapsed ? GRAZING_MAP_COPY.showLegend : GRAZING_MAP_COPY.hideLegend}
+            </span>
+            <ChevronUp
+              aria-hidden="true"
+              className={cn(
+                "text-muted-foreground size-4 shrink-0 transition-transform motion-reduce:transition-none",
+                collapsed && "rotate-180",
+              )}
+            />
+          </button>
+        ) : (
+          title
+        )}
+      </CardHeader>
+      {!collapsed && (
+        <CardContent className="p-0">
+          <ul className="space-y-1">
+            {GRAZING_MAP_STATUSES.map((status) => (
+              <AtlasLegendCountRow
+                key={status}
+                swatch={<GrazingStatusSwatch status={status} />}
+                label={GRAZING_MAP_COPY.status[status]}
+                count={counts[status]}
+              />
+            ))}
+          </ul>
+        </CardContent>
+      )}
     </Card>
   )
 }
