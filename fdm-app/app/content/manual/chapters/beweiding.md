@@ -37,8 +37,10 @@ De kalender toont per graslandperceel de weken van het jaar. Een cel laat zien o
 
 Kies bovenaan de koppel waarvoor je wilt registreren. Daarna:
 
-- klik op een cel om voor die week een beweiding vast te leggen, of om een bestaande beweiding te bekijken en aan te passen;
-- sleep over meerdere weken van één perceel om een langere periode in één keer vast te leggen.
+- klik op een lege cel om een beweiding van één dag vast te leggen: vandaag als die in de week valt, anders de eerste dag van de week. Klik op een cel met een beweiding om die te bekijken en aan te passen;
+- sleep over meerdere cellen van één perceel om een langere periode in één keer vast te leggen.
+
+Met **Week** en **Dag** boven de kalender wissel je tussen de weken van het jaar en de dagen van één maand. In de dagweergave blader je met de pijlen naar een andere maand. De huidige week of dag is gemarkeerd.
 
 ### Maaien en bemesten in de kalender {#maaien-bemesten}
 
@@ -89,12 +91,9 @@ De nieuwe strook sluit aan op de stroken die je de afgelopen 28 dagen op dit per
 
 ## Koeien naar buiten en naar binnen {#naar-buiten}
 
-Weiden je koeien zonder vaste einddatum, leg dan alleen vast wanneer ze naar buiten gaan en wanneer ze weer naar binnen gaan:
+Met **Koeien naar buiten** leg je snel vast waar een koppel weidt. Kies de koppel, het perceel en het aantal uren per dag. Bij _Wanneer_ staat vandaag; bij _Tot en met_ dezelfde dag. Kies je bij _Tot en met_ een latere datum, dan plan je de beweiding alvast vooruit. Klik op **Koeien naar buiten vastleggen**.
 
-1. Klik op **Koeien naar buiten**, kies de koppel, het perceel, de datum en het aantal uren per dag, en klik op **Koeien naar buiten vastleggen**.
-2. Gaan ze weer naar binnen, open hetzelfde venster. Voor een koppel die buiten loopt, zie je nu **Koeien naar binnen**. Vul de einddatum in en klik op **Koeien naar binnen vastleggen**.
-
-Zolang de koeien buiten lopen, staat de beweiding in de kalender tot en met vandaag. Open je hem daar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft de beweiding lopen.
+Loopt een koppel nog buiten zonder einddatum, bijvoorbeeld uit een eerdere registratie, dan toont hetzelfde venster **Koeien naar binnen**. Vul de einddatum in en klik op **Koeien naar binnen vastleggen**. Zolang zo'n beweiding loopt, staat ze in de kalender tot en met vandaag. Open je haar daar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft de beweiding lopen.
 
 ## Beweiding op de kaart {#vandaag}
 
