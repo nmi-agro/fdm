@@ -4,6 +4,7 @@
  */
 import { getFarm } from "@nmi-agro/fdm-core"
 import { beforeAll, describe, expect, it } from "vitest"
+import { isKvkConfigured } from "~/integrations/kvk.server"
 import { fdm } from "~/lib/fdm.server"
 import { action, loader } from "~/routes/farm.$b_id_farm.settings.properties"
 import { actionArgs, loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
@@ -29,7 +30,8 @@ describe("loader", () => {
     expect(data).toMatchObject({
       farm: { b_id_farm: owner.ids.farm, b_name_farm: expect.any(String) },
       farmWritePermission: true,
-      isKvkConfigured: false,
+      // Depends on whether KVK_API_KEY is set where the tests run
+      isKvkConfigured: isKvkConfigured(),
     })
   })
 
