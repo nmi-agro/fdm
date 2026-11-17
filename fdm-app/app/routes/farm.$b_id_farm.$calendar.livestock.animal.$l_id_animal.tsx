@@ -7,6 +7,7 @@ import {
   getFarms,
   getGrazingCalendarForFarm,
   getHerdsForFarm,
+  leavingMethodOptions,
   updateAnimal,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
@@ -199,6 +200,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_id_category: h.l_id_category ?? "rvo_100",
         l_category: h.l_category,
       })),
+      // Dutch labels of the leaving methods, for the departure form and the status
+      leavingMethods: leavingMethodOptions.map((o) => ({ value: o.value, label: o.label })),
       farmWritePermission,
     }
   } catch (error) {
@@ -291,9 +294,12 @@ export default function AnimalDetailPage() {
     grazingHistory,
     grazingSummary,
     herds,
+    leavingMethods,
     farmWritePermission,
   } = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
+  const leavingMethodLabel = (method: string | null | undefined) =>
+    leavingMethods.find((m) => m.value === method)?.label
 
   const [editWorknumber, setEditWorknumber] = useState(animal.l_id_worknumber ?? "")
   const [editEartag, setEditEartag] = useState(animal.l_id_eartag ?? "")
@@ -401,7 +407,8 @@ export default function AnimalDetailPage() {
               <span>Dier #{animal.l_id_worknumber ?? "—"}</span>
               {isLeft ? (
                 <Badge variant="outline" className="text-muted-foreground border-slate-300">
-                  Afgevoerd ({animal.l_leaving_method ?? "vertrokken"})
+                  Afgevoerd (
+                  {leavingMethodLabel(animal.l_leaving_method)?.toLowerCase() ?? "vertrokken"})
                 </Badge>
               ) : (
                 <Badge className="bg-emerald-600 text-white">Actief op bedrijf</Badge>
@@ -660,8 +667,8 @@ export default function AnimalDetailPage() {
                     </p>
                     <p>
                       <strong>Reden / Methode: </strong>
-                      <span className="capitalize">
-                        {animal.l_leaving_method ?? "Niet gespecificeerd"}
+                      <span>
+                        {leavingMethodLabel(animal.l_leaving_method) ?? "Niet gespecificeerd"}
                       </span>
                     </p>
                   </div>
@@ -691,12 +698,7 @@ export default function AnimalDetailPage() {
                           <FieldLabel htmlFor="dep-method">Reden</FieldLabel>
                           <Select
                             value={leavingMethod}
-                            items={[
-                              { value: "sold", label: "Verkocht (sold)" },
-                              { value: "slaughtered", label: "Geslacht (slaughtered)" },
-                              { value: "died", label: "Overleden (died)" },
-                              { value: "exported", label: "Geëxporteerd (exported)" },
-                            ]}
+                            items={leavingMethods}
                             onValueChange={(v) => {
                               if (v !== null) setLeavingMethod(v)
                             }}
@@ -705,10 +707,11 @@ export default function AnimalDetailPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="sold">Verkocht (sold)</SelectItem>
-                              <SelectItem value="slaughtered">Geslacht (slaughtered)</SelectItem>
-                              <SelectItem value="died">Overleden (died)</SelectItem>
-                              <SelectItem value="exported">Geëxporteerd (exported)</SelectItem>
+                              {leavingMethods.map((method) => (
+                                <SelectItem key={method.value} value={method.value}>
+                                  {method.label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </Field>
