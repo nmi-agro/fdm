@@ -1,7 +1,7 @@
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, ChevronLeft, ChevronRight, Shovel, Wheat } from "lucide-react"
+import { AlertTriangle, Shovel, Wheat } from "lucide-react"
 import { type MouseEvent, useState } from "react"
 import { useSearchParams } from "react-router"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
@@ -11,7 +11,6 @@ import type {
   GrazingCalendarMatrix,
   GrazingCalendarView,
 } from "~/lib/grazing-calendar.server"
-import { Button } from "~/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
 import { TooltipProvider } from "~/components/ui/tooltip"
 import { useToday } from "~/hooks/use-today"
@@ -53,6 +52,8 @@ export function CalendarGrid({
   // "Today" is only known on the client; empty until then
   const todayDate = useToday()
   const todayKey = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
+  // The day view shows every day of the season in narrow columns
+  const isDayView = matrix.view.kind === "day"
 
   // Popover state
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -189,7 +190,7 @@ export function CalendarGrid({
           </div>
         </div>
 
-        <CalendarViewSwitch view={matrix.view} year={matrix.year} />
+        <CalendarViewSwitch view={matrix.view} />
 
         {/* Matrix Table */}
         <div className="bg-card relative overflow-x-auto rounded-xl border shadow-xs">
@@ -200,24 +201,34 @@ export function CalendarGrid({
                   Perceel
                 </th>
                 <th className="w-16 p-3 text-right">ha</th>
-                {/* Week numbers, or the days of the shown month */}
+                {/* Week numbers, or the days of the season with the month name on the 1st */}
                 {matrix.columns.map((column) => (
                   <th
                     key={column.key}
                     className={cn(
-                      "border-border/40 min-w-8 border-l p-1.5 text-center text-[11px] font-normal",
-                      column.groupStart && "border-l-border text-foreground font-semibold",
-                      column.dateStart <= todayKey && todayKey <= column.dateEnd && "bg-primary/10",
+                      "font-normal",
+                      isDayView
+                        ? "relative h-9 w-1.5 min-w-1.5 p-0 text-[10px]"
+                        : "border-border/40 min-w-8 border-l p-1.5 text-center text-[11px]",
+                      column.groupStart && "border-l-border text-foreground border-l font-semibold",
+                      column.dateStart <= todayKey && todayKey <= column.dateEnd && "bg-primary/30",
                     )}
                   >
-                    {column.label}
+                    {isDayView ? (
+                      // The month name overflows into the next days, which have no label
+                      <span className="absolute top-1/2 left-1 -translate-y-1/2 whitespace-nowrap">
+                        {column.label}
+                      </span>
+                    ) : (
+                      column.label
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
 
             <tbody className="divide-border/60 divide-y">
-              {/* Fields sorted by number of grazing days, then by name */}
+              {/* Grazed fields first, then the largest fields first (sorted by the loader) */}
               {matrix.fields.map((field) => (
                 <tr key={field.b_id} className="hover:bg-muted/20">
                   <td className="bg-card/95 sticky left-0 z-10 border-r px-3 py-2 font-medium backdrop-blur-xs">
@@ -245,13 +256,42 @@ export function CalendarGrid({
                       <td
                         key={cell.key}
                         className={cn(
-                          "border-border/40 relative cursor-pointer border-l p-0.5 text-center transition-colors select-none",
+                          "relative cursor-pointer text-center transition-colors select-none",
+                          isDayView
+                            ? "w-1.5 min-w-1.5 p-0 py-0.5"
+                            : "border-border/40 border-l p-0.5",
                           isSelected && "bg-primary/30",
-                          matrix.columns[wIdx]?.groupStart && "border-l-border",
+                          matrix.columns[wIdx]?.groupStart && "border-l-border border-l",
                         )}
                         onMouseDown={() => handleMouseDown(field, wIdx)}
                         onMouseEnter={() => handleMouseEnter(wIdx)}
-                        onClick={() => handleCellClick(field, cell)}
+                        onClick={() => {
+                          // A day is too narrow for markers to click: a day with mowing or
+                          // fertilizing but no grazing opens that item instead
+                          const harvest = cell.harvestEntries?.[0]
+                          const fertilizer = cell.fertilizerEntries?.[0]
+                          if (isDayView && !cell.grazingEntries && onSheetRequest && canWrite) {
+                            if (harvest) {
+                              onSheetRequest({
+                                type: "harvest-edit",
+                                context: {
+                                  b_id: field.b_id,
+                                  b_lu: harvest.b_lu,
+                                  b_id_harvesting: harvest.b_id_harvesting,
+                                },
+                              })
+                              return
+                            }
+                            if (fertilizer) {
+                              onSheetRequest({
+                                type: "fertilizer-edit",
+                                context: { b_id: field.b_id, p_app_id: fertilizer.p_app_id },
+                              })
+                              return
+                            }
+                          }
+                          handleCellClick(field, cell)
+                        }}
                         role="gridcell"
                         aria-label={`${field.b_name}, ${
                           matrix.view.kind === "day"
@@ -261,31 +301,35 @@ export function CalendarGrid({
                             : `week ${cell.label}`
                         }, ${cell.type}`}
                       >
-                        <div
-                          className={cn(
-                            "flex h-7 w-full items-center justify-center gap-0.5 rounded-xs text-[10px] transition-all",
-                            cell.type === "empty" && "hover:bg-muted/60",
-                            cell.type === "weiden" &&
-                              !cell.isPlanned &&
-                              "border border-emerald-500/40 bg-emerald-500/25 font-medium text-emerald-950 dark:text-emerald-200",
-                            cell.type === "weiden" &&
-                              cell.isPlanned &&
-                              "border border-dashed border-emerald-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.2)_2px,rgba(16,185,129,0.2)_4px)] font-normal text-emerald-800 opacity-75 dark:text-emerald-300",
-                            cell.type === "maaien" &&
-                              "border border-amber-500/40 bg-amber-500/25 font-medium text-amber-950 dark:text-amber-200",
-                            cell.type === "mixed" &&
-                              "border border-emerald-500/40 bg-gradient-to-r from-emerald-500/30 to-amber-500/30 font-semibold",
-                          )}
-                        >
-                          {(cell.type === "weiden" || cell.type === "mixed") && (
-                            <span>{cell.isPlanned ? "▨ gepl." : "▨"}</span>
-                          )}
-                          <CellEventMarkers
-                            cell={cell}
-                            b_id={field.b_id}
-                            onSheetRequest={canWrite ? onSheetRequest : undefined}
-                          />
-                        </div>
+                        {isDayView ? (
+                          <DayCell cell={cell} />
+                        ) : (
+                          <div
+                            className={cn(
+                              "flex h-7 w-full items-center justify-center gap-0.5 rounded-xs text-[10px] transition-all",
+                              cell.type === "empty" && "hover:bg-muted/60",
+                              cell.type === "weiden" &&
+                                !cell.isPlanned &&
+                                "border border-emerald-500/40 bg-emerald-500/25 font-medium text-emerald-950 dark:text-emerald-200",
+                              cell.type === "weiden" &&
+                                cell.isPlanned &&
+                                "border border-dashed border-emerald-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.2)_2px,rgba(16,185,129,0.2)_4px)] font-normal text-emerald-800 opacity-75 dark:text-emerald-300",
+                              cell.type === "maaien" &&
+                                "border border-amber-500/40 bg-amber-500/25 font-medium text-amber-950 dark:text-amber-200",
+                              cell.type === "mixed" &&
+                                "border border-emerald-500/40 bg-gradient-to-r from-emerald-500/30 to-amber-500/30 font-semibold",
+                            )}
+                          >
+                            {(cell.type === "weiden" || cell.type === "mixed") && (
+                              <span>{cell.isPlanned ? "▨ gepl." : "▨"}</span>
+                            )}
+                            <CellEventMarkers
+                              cell={cell}
+                              b_id={field.b_id}
+                              onSheetRequest={canWrite ? onSheetRequest : undefined}
+                            />
+                          </div>
+                        )}
                       </td>
                     )
                   })}
@@ -363,37 +407,27 @@ export function CalendarGrid({
 const formatDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
 
 /**
- * Switches the calendar between the weeks of the year and the days of one month, with the
- * previous and next month in the day view. The view lives in the URL (`weergave`, `maand`), so the
- * loader builds the matching columns and a link keeps the view.
+ * Switches the calendar between the weeks of the year and every day of the grazing season. The
+ * view lives in the URL (`weergave=dag`), so the loader builds the matching columns and a link
+ * keeps the view.
  */
-function CalendarViewSwitch({ view, year }: { view: GrazingCalendarView; year: number }) {
+function CalendarViewSwitch({ view }: { view: GrazingCalendarView }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const setView = (next: GrazingCalendarView) => {
+  const setView = (kind: GrazingCalendarView["kind"]) => {
     const params = new URLSearchParams(searchParams)
-    if (next.kind === "day") {
-      params.set("weergave", "dag")
-      params.set("maand", String(next.month))
-    } else {
-      params.delete("weergave")
-      params.delete("maand")
-    }
+    if (kind === "day") params.set("weergave", "dag")
+    else params.delete("weergave")
     setSearchParams(params, { preventScrollReset: true })
   }
-  const monthLabel = (month: number) =>
-    format(new Date(year, month - 1, 1), "MMMM yyyy", { locale: nl })
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       <ToggleGroup
         size="sm"
         variant="outline"
         value={[view.kind]}
         // Base UI sends an empty array when the active item is clicked again; keep the view then
         onValueChange={([value]) => {
-          if (value === "week") setView({ kind: "week" })
-          // The day view opens on the current month
-          if (value === "day" && view.kind !== "day")
-            setView({ kind: "day", month: new Date().getMonth() + 1 })
+          if (value === "week" || value === "day") setView(value)
         }}
         aria-label="Weergave van de kalender"
       >
@@ -404,34 +438,56 @@ function CalendarViewSwitch({ view, year }: { view: GrazingCalendarView; year: n
           Dag
         </ToggleGroupItem>
       </ToggleGroup>
-      {view.kind === "day" && (
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => setView({ kind: "day", month: view.month - 1 })}
-            disabled={view.month <= 1}
-            aria-label="Vorige maand"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span key={view.month} className="min-w-32 text-center text-sm font-medium capitalize">
-            {monthLabel(view.month)}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => setView({ kind: "day", month: view.month + 1 })}
-            disabled={view.month >= 12}
-            aria-label="Volgende maand"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
+      <p key={view.kind} className="text-muted-foreground text-xs">
+        {view.kind === "day"
+          ? "Elke dag van 1 maart tot en met 31 oktober"
+          : "Alle weken van het jaar"}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * A day of the season: a narrow coloured bar for grazing (striped when planned) or mowing, with a
+ * dot for a fertilizer application. The title lists what happened that day.
+ */
+function DayCell({ cell }: { cell: GrazingCalendarCell }) {
+  const grazing = cell.grazingEntries?.[0]
+  const title = [
+    ...(cell.grazingEntries ?? []).map(
+      (g) =>
+        `${g.isPlanned ? "Gepland: " : ""}${g.l_herd_name}${g.l_grazing_hours ? `, ${g.l_grazing_hours} uur` : ""}`,
+    ),
+    ...(cell.harvestEntries ?? []).map(() => "Maaien"),
+    ...(cell.fertilizerEntries ?? []).map(
+      (f) =>
+        `${f.p_name_nl ?? "Bemesting"}${
+          f.p_app_amount_display != null
+            ? ` ${f.p_app_amount_display.toLocaleString("nl-NL")} ${f.p_app_amount_unit}`
+            : ""
+        }`,
+    ),
+  ].join(", ")
+
+  return (
+    <div
+      title={title || undefined}
+      className={cn(
+        "relative h-7 w-full",
+        cell.type === "empty" && "hover:bg-muted/60",
+        grazing &&
+          (cell.isPlanned
+            ? "bg-[repeating-linear-gradient(45deg,rgba(16,185,129,0.15),rgba(16,185,129,0.15)_2px,rgba(16,185,129,0.45)_2px,rgba(16,185,129,0.45)_4px)]"
+            : "bg-emerald-500/60"),
+        cell.type === "maaien" && "bg-amber-500/70",
+        cell.type === "mixed" && "bg-gradient-to-b from-emerald-500/60 to-amber-500/70",
+      )}
+    >
+      {cell.fertilizerEntries && (
+        <span
+          aria-hidden="true"
+          className="absolute top-0.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-sky-600"
+        />
       )}
     </div>
   )

@@ -1,16 +1,8 @@
-import {
-  addGrazing,
-  checkPermission,
-  getFarm,
-  getFarms,
-  removeGrazing,
-  updateGrazing,
-} from "@nmi-agro/fdm-core"
+import { checkPermission, getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import {
   ChartColumn,
-  ChevronDown,
   Compass,
   Plus,
   Shovel,
@@ -19,7 +11,7 @@ import {
   Warehouse,
   Wheat,
 } from "lucide-react"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -29,25 +21,17 @@ import {
   useActionData,
   useLoaderData,
 } from "react-router"
-import { dataWithSuccess } from "remix-toast"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { CalendarGrid } from "~/components/blocks/grazing/calendar-grid"
-import { QuickEntrySheet } from "~/components/blocks/grazing/quick-entry-sheet"
+import { FieldPickerButton } from "~/components/blocks/grazing/field-picker-button"
+import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
@@ -63,8 +47,8 @@ import {
 } from "~/lib/field-events.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchGrazingCalendarMatrix, type GrazingCalendarView } from "~/lib/grazing-calendar.server"
+import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { defaultMapDay } from "~/lib/grazing-map"
-import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD, parseGrazingExtent } from "~/lib/grazing-zone"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 
 export const meta: MetaFunction = () => {
@@ -78,16 +62,11 @@ export const meta: MetaFunction = () => {
 }
 
 /**
- * The view of the calendar from the URL: `?weergave=dag&maand=6` shows the days of June, anything
- * else the weeks of the year. Without a month, the day view shows the current month.
+ * The view of the calendar from the URL: `?weergave=dag` shows every day of the grazing season,
+ * anything else the weeks of the year.
  */
 function getCalendarView(searchParams: URLSearchParams): GrazingCalendarView {
-  if (searchParams.get("weergave") !== "dag") return { kind: "week" }
-  const month = Number(searchParams.get("maand"))
-  return {
-    kind: "day",
-    month: Number.isInteger(month) && month >= 1 && month <= 12 ? month : new Date().getMonth() + 1,
-  }
+  return searchParams.get("weergave") === "dag" ? { kind: "day" } : { kind: "week" }
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -140,7 +119,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions,
       calendarYear,
       matrix,
-      openGrazings: matrix.openGrazings,
       grasslandFields: timelineFields.filter((field) => grasslandIds.has(field.b_id)),
       fertilizerOptions,
       lastCultivationAvailabilityYear: await getLastCultivationAvailabilityYear(),
@@ -188,58 +166,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
       })
     }
 
-    if (intent === "add_grazing") {
-      const b_id = String(formData.get("b_id") ?? "")
-      const l_id_herd = String(formData.get("l_id_herd") ?? "")
-      const l_grazing_start = new Date(String(formData.get("l_grazing_start")))
-      const endVal = formData.get("l_grazing_end")
-      const l_grazing_end = endVal ? new Date(String(endVal)) : undefined
-      const hoursVal = formData.get("l_grazing_hours")
-      const l_grazing_hours = hoursVal ? parseFloat(String(hoursVal)) : undefined
-
-      await addGrazing(fdm, session.principal_id, l_id_herd, l_grazing_start, {
-        b_id: b_id || undefined,
-        l_grazing_end,
-        l_grazing_hours,
-        ...parseGrazingExtent(formData),
-      })
-
-      return dataWithSuccess(
-        {},
-        {
-          message: `Beweiding vastgelegd. Beweiding ${calendar} staat aan en telt mee voor de stikstofgebruiksnorm.`,
-        },
-      )
-    }
-
-    if (intent === "update_grazing") {
-      const l_id_grazing = String(formData.get("l_id_grazing") ?? "")
-      const startVal = formData.get("l_grazing_start")
-      const endVal = formData.get("l_grazing_end")
-      const hoursVal = formData.get("l_grazing_hours")
-      const extent = parseGrazingExtent(formData)
-
-      await updateGrazing(fdm, session.principal_id, l_id_grazing, {
-        l_grazing_start: startVal ? new Date(String(startVal)) : undefined,
-        l_grazing_end: endVal ? new Date(String(endVal)) : undefined,
-        l_grazing_hours: hoursVal ? parseFloat(String(hoursVal)) : undefined,
-        // Only change the grazed part when the form sends it, so closing a grazing keeps its zone
-        ...(formData.has(GRAZING_ZONE_FIELD)
-          ? { l_grazing_geometry_zone: extent.l_grazing_geometry_zone }
-          : {}),
-        ...(formData.has(GRAZING_AREA_FIELD) ? { l_grazing_area: extent.l_grazing_area } : {}),
-      })
-
-      return dataWithSuccess({}, { message: "Beweidingsregistratie bijgewerkt." })
-    }
-
-    if (intent === "remove_grazing") {
-      const l_id_grazing = String(formData.get("l_id_grazing") ?? "")
-      await removeGrazing(fdm, session.principal_id, l_id_grazing)
-      return dataWithSuccess({}, { message: "Beweiding verwijderd." })
-    }
-
-    throw data("Ongeldige actie", { status: 400 })
+    // The grazing dialog, shared with the Atlas layer and the field's grazing page
+    return await handleGrazingEvent(formData, { principal_id: session.principal_id, calendar })
   } catch (error) {
     // extractFormValuesFromRequest already turned validation errors into a toast response
     if (isToastResponse(error)) return error
@@ -254,7 +182,6 @@ export default function BeweidingskalenderPage() {
     calendarYear,
     farmOptions,
     matrix,
-    openGrazings,
     grasslandFields,
     fertilizerOptions,
     lastCultivationAvailabilityYear,
@@ -262,7 +189,13 @@ export default function BeweidingskalenderPage() {
   } = useLoaderData<typeof loader>()
   const actionData = useActionData<{ closeSheet?: boolean }>()
 
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false)
+  // The grazing dialog for a field picked in the toolbar; bumped on every open so it starts fresh
+  const [grazingField, setGrazingField] = useState<{
+    b_id: string
+    b_name: string
+    b_area: number
+  } | null>(null)
+  const [grazingSession, setGrazingSession] = useState(0)
 
   // The mowing or fertilizing form, tagged with the action data it was opened under. It closes
   // when a newer save reports `closeSheet`, derived here instead of set in an effect.
@@ -276,11 +209,10 @@ export default function BeweidingskalenderPage() {
   const openSheet = (request: AddEventSheetRequest | undefined) =>
     setSheetState(request ? { request, openedWithActionData: actionData } : undefined)
 
-  // New mowing and fertilizing default to today, or the same day in another year
+  // New grazing, mowing and fertilizing default to today, or the same day in another year
   const today = useToday()
-  const defaultDate = today
-    ? new Date(`${defaultMapDay(format(today, "yyyy-MM-dd"), calendarYear)}T12:00:00`)
-    : undefined
+  const defaultDay = today ? defaultMapDay(format(today, "yyyy-MM-dd"), calendarYear) : undefined
+  const defaultDate = defaultDay ? new Date(`${defaultDay}T12:00:00`) : undefined
 
   const hasKoppels = matrix.herds.length > 0
   const hasGrassland = matrix.fields.length > 0
@@ -338,6 +270,19 @@ export default function BeweidingskalenderPage() {
               {farmWritePermission && hasGrassland && (
                 <>
                   <FieldPickerButton
+                    label="Beweiding toevoegen"
+                    icon={<Plus className="h-3.5 w-3.5" />}
+                    variant="default"
+                    fields={matrix.fields}
+                    disabled={!hasKoppels}
+                    onPick={(b_id) => {
+                      const field = matrix.fields.find((f) => f.b_id === b_id)
+                      if (!field) return
+                      setGrazingSession((s) => s + 1)
+                      setGrazingField({ b_id, b_name: field.b_name, b_area: field.b_area })
+                    }}
+                  />
+                  <FieldPickerButton
                     label="Maaisnede toevoegen"
                     icon={<Wheat className="text-primary h-3.5 w-3.5" />}
                     fields={matrix.fields}
@@ -354,17 +299,6 @@ export default function BeweidingskalenderPage() {
                     }
                   />
                 </>
-              )}
-              {farmWritePermission && (
-                <Button
-                  size="sm"
-                  onClick={() => setIsQuickEntryOpen(true)}
-                  disabled={!hasKoppels || !hasGrassland}
-                  className="gap-1.5 text-xs font-medium"
-                >
-                  <Plus className="h-4 w-4" />
-                  Koeien naar buiten
-                </Button>
               )}
             </div>
           }
@@ -417,15 +351,19 @@ export default function BeweidingskalenderPage() {
         </FarmContent>
       </main>
 
-      {/* Quick Entry Sheet */}
-      <QuickEntrySheet
-        open={isQuickEntryOpen}
-        onOpenChange={setIsQuickEntryOpen}
+      {/* The grazing dialog, the same as from a calendar cell */}
+      <GrazingPopover
+        key={grazingSession}
+        open={grazingField !== null}
+        onOpenChange={(open) => {
+          if (!open) setGrazingField(null)
+        }}
         b_id_farm={b_id_farm}
         calendar={calendar}
+        field={grazingField}
+        initialStartDate={defaultDay}
+        initialEndDate={defaultDay}
         herds={matrix.herds}
-        fields={matrix.fields}
-        openGrazings={openGrazings}
         canWrite={farmWritePermission}
       />
 
@@ -446,40 +384,5 @@ export default function BeweidingskalenderPage() {
         formAction="?index"
       />
     </SidebarInset>
-  )
-}
-
-/** A toolbar button that asks for the grassland field to record something on. */
-function FieldPickerButton({
-  label,
-  icon,
-  fields,
-  onPick,
-}: {
-  label: string
-  icon: ReactNode
-  fields: Array<{ b_id: string; b_name: string }>
-  onPick: (b_id: string) => void
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="outline" size="sm" className="gap-1.5 text-xs" />}
-      >
-        {icon}
-        <span>{label}</span>
-        <ChevronDown className="h-3.5 w-3.5" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Kies een perceel</DropdownMenuLabel>
-          {fields.map((field) => (
-            <DropdownMenuItem key={field.b_id} onClick={() => onPick(field.b_id)}>
-              {field.b_name}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }

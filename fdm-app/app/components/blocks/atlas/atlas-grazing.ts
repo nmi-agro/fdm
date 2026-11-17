@@ -40,7 +40,7 @@ export const GRAZING_MAP_COPY = {
   backToToday: "Vandaag",
   backToDay: (label: string) => `Terug naar ${label}`,
   dayLabel: "Dag",
-  cowsOutIn: "Koeien naar buiten / binnen",
+  addGrazing: "Beweiding toevoegen",
   openCalendar: "Beweidingskalender",
   clickHint: "Klik voor de beweiding van dit perceel",
   openField: "Bekijk beweiding",
