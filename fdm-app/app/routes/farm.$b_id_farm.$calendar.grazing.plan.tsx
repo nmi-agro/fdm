@@ -487,7 +487,8 @@ export default function GrazingPlanAssistent() {
               <CardHeader>
                 <CardTitle className="text-lg">1 · Welk systeem wil je toepassen?</CardTitle>
                 <CardDescription className="text-xs">
-                  Gebaseerd op de richtlijnen van het Handboek Melkveehouderij (§3.10).
+                  Gebaseerd op de richtlijnen van het Handboek Melkveehouderij (§3.10) en Nieuw
+                  Nederlands Weiden.
                 </CardDescription>
               </CardHeader>
               <CardContent>

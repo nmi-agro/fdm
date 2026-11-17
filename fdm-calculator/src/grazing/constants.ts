@@ -68,8 +68,10 @@ export const STOCKING_DENSITY_BENCHMARKS = {
 /**
  * Grazing systems with default period and grazing hours, used to plan grazing.
  * Source: Handboek Melkveehouderij §3.10.2 (Handleiding Weiden of Opstallen) for the systems and
- * their periods. Assumption: 8 grazing hours per day as the default for all systems (limited
- * grazing); adjust it per farm.
+ * their periods; Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden" and
+ * Groen Kennisnet, "4.1.1 Graslandbeheer en beweidingssystemen" for Nieuw Nederlands Weiden.
+ * Assumption: 8 grazing hours per day as the default for all systems (limited grazing); adjust it
+ * per farm.
  */
 export const GRAZING_SYSTEMS = {
   omweiden: {
@@ -93,6 +95,16 @@ export const GRAZING_SYSTEMS = {
     description: "Standweiden in blokken; na drie tot zes weken naar het volgende blok",
     // Handboek §3.10.2: "De dieren worden na drie tot zes weken verplaatst naar het volgende blok"
     defaultPeriodDays: 21,
+    defaultHoursPerDay: 8,
+    grazingType: "full" as const,
+    requiresGrazingRecords: true,
+  },
+  nieuw_nederlands_weiden: {
+    name: "Nieuw Nederlands Weiden",
+    description: "Elke dag een nieuw perceel van gelijke grootte op het weideplatform",
+    // NNW brochure: the platform is divided into fields of equal size and the cows get a new field
+    // every day. The rotation over blocks of fields (Groen Kennisnet) is not part of the plan.
+    defaultPeriodDays: 1,
     defaultHoursPerDay: 8,
     grazingType: "full" as const,
     requiresGrazingRecords: true,
