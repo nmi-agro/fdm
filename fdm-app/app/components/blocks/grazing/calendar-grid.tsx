@@ -1,6 +1,9 @@
 import { cn } from "cn"
-import { AlertTriangle } from "lucide-react"
-import { useState } from "react"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
+import { AlertTriangle, Shovel, Wheat } from "lucide-react"
+import { type MouseEvent, useState } from "react"
+import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import type {
   GrazingCalendarCell,
   GrazingCalendarFieldRow,
@@ -23,9 +26,17 @@ export interface CalendarGridProps {
   b_id_farm: string
   calendar: string
   canWrite?: boolean
+  /** Opens the form of a mowing or fertilizer application in the week, to change or remove it. */
+  onSheetRequest?: (request: AddEventSheetRequest) => void
 }
 
-export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: CalendarGridProps) {
+export function CalendarGrid({
+  matrix,
+  b_id_farm,
+  calendar,
+  canWrite = true,
+  onSheetRequest,
+}: CalendarGridProps) {
   const [selectedKoppelId, setSelectedKoppelId] = useState(matrix.herds[0]?.l_id_herd ?? "")
 
   // Drag-to-paint state
@@ -150,12 +161,14 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
               <span>Weiden</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-4 rounded-xs border border-amber-600/40 bg-amber-500/30" />
+              <span className="inline-flex h-3.5 w-4 items-center justify-center rounded-xs border border-amber-600/40 bg-amber-500/30">
+                <Wheat className="size-2.5 text-amber-800" aria-hidden="true" />
+              </span>
               <span>Maaien</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="bg-muted/40 inline-block h-3.5 w-4 rounded-xs border border-slate-300 dark:border-slate-700" />
-              <span>Rust</span>
+              <Shovel className="size-3.5 text-sky-700" aria-hidden="true" />
+              <span>Bemesten</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="inline-block h-3.5 w-4 rounded-xs border border-dashed border-emerald-500/50 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.2)_2px,rgba(16,185,129,0.2)_4px)] opacity-70" />
@@ -229,7 +242,7 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
                       >
                         <div
                           className={cn(
-                            "flex h-7 w-full items-center justify-center rounded-xs text-[10px] transition-all",
+                            "flex h-7 w-full items-center justify-center gap-0.5 rounded-xs text-[10px] transition-all",
                             cell.type === "empty" && "hover:bg-muted/60",
                             cell.type === "weiden" &&
                               !cell.isPlanned &&
@@ -243,9 +256,14 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
                               "border border-emerald-500/40 bg-gradient-to-r from-emerald-500/30 to-amber-500/30 font-semibold",
                           )}
                         >
-                          {cell.type === "weiden" && (cell.isPlanned ? "▨ gepl." : "▨")}
-                          {cell.type === "maaien" && "▤"}
-                          {cell.type === "mixed" && "▨▤"}
+                          {(cell.type === "weiden" || cell.type === "mixed") && (
+                            <span>{cell.isPlanned ? "▨ gepl." : "▨"}</span>
+                          )}
+                          <CellEventMarkers
+                            cell={cell}
+                            b_id={field.b_id}
+                            onSheetRequest={canWrite ? onSheetRequest : undefined}
+                          />
                         </div>
                       </td>
                     )
@@ -318,5 +336,97 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
         canWrite={canWrite}
       />
     </TooltipProvider>
+  )
+}
+
+const formatDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
+
+/**
+ * Markers for the mowing and fertilizer applications in a week. With write permission they are
+ * buttons that open the first item of the week to change or remove it; the label lists them all.
+ * They stop the click and the drag of the cell, which records a grazing.
+ */
+function CellEventMarkers({
+  cell,
+  b_id,
+  onSheetRequest,
+}: {
+  cell: GrazingCalendarCell
+  b_id: string
+  onSheetRequest?: (request: AddEventSheetRequest) => void
+}) {
+  const harvests = cell.harvestEntries ?? []
+  const fertilizers = cell.fertilizerEntries ?? []
+  if (harvests.length === 0 && fertilizers.length === 0) return null
+
+  const harvestLabel = harvests.map((h) => `Maaien ${formatDay(h.harvestDate)}`).join(", ")
+  const fertilizerLabel = fertilizers
+    .map(
+      (f) =>
+        `${f.p_name_nl ?? "Bemesting"}${
+          f.p_app_amount_display != null
+            ? ` ${f.p_app_amount_display.toLocaleString("nl-NL")} ${f.p_app_amount_unit}`
+            : ""
+        } (${formatDay(f.p_app_date)})`,
+    )
+    .join(", ")
+
+  const stop = (e: MouseEvent) => e.stopPropagation()
+  const markerClassName =
+    "inline-flex size-4 items-center justify-center rounded-xs pointer-coarse:size-6"
+
+  return (
+    <span className="flex items-center gap-px">
+      {harvests.length > 0 &&
+        (onSheetRequest ? (
+          <button
+            type="button"
+            className={cn(markerClassName, "hover:bg-amber-500/30")}
+            title={harvestLabel}
+            aria-label={`${harvestLabel}: bewerken`}
+            onMouseDown={stop}
+            onClick={(e) => {
+              stop(e)
+              onSheetRequest({
+                type: "harvest-edit",
+                context: {
+                  b_id,
+                  b_lu: harvests[0].b_lu,
+                  b_id_harvesting: harvests[0].b_id_harvesting,
+                },
+              })
+            }}
+          >
+            <Wheat className="size-3 text-amber-800" aria-hidden="true" />
+          </button>
+        ) : (
+          <span className={markerClassName} title={harvestLabel}>
+            <Wheat className="size-3 text-amber-800" aria-label={harvestLabel} />
+          </span>
+        ))}
+      {fertilizers.length > 0 &&
+        (onSheetRequest ? (
+          <button
+            type="button"
+            className={cn(markerClassName, "hover:bg-sky-500/20")}
+            title={fertilizerLabel}
+            aria-label={`${fertilizerLabel}: bewerken`}
+            onMouseDown={stop}
+            onClick={(e) => {
+              stop(e)
+              onSheetRequest({
+                type: "fertilizer-edit",
+                context: { b_id, p_app_id: fertilizers[0].p_app_id },
+              })
+            }}
+          >
+            <Shovel className="size-3 text-sky-700" aria-hidden="true" />
+          </button>
+        ) : (
+          <span className={markerClassName} title={fertilizerLabel}>
+            <Shovel className="size-3 text-sky-700" aria-label={fertilizerLabel} />
+          </span>
+        ))}
+    </span>
   )
 }

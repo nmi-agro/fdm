@@ -5,9 +5,9 @@
 Add dairy grazing and livestock interfaces:
 
 - **Veestapel & Animals**: Add first-koppel onboarding wizard, herd cards with optimistic debounced steppers (⊕/⊖), live GVE calculations, all-animals overview page (`/livestock/animals`), and individual animal detail & history page (`/livestock/animal/:l_id_animal`) with herd reassignment and departure logging.
-- **Beweidingskalender**: Add full-season accessible Graslandkalender grid with week/day granularity, texture cues (▨/▤/░/gepland), and drag-to-paint popover with live stats.
+- **Beweidingskalender**: Add a full-season calendar of the grassland fields per week, with grazing, mowing and fertilizer applications, planned grazing and a drag-to-paint popover with live stats. Add, change and remove mowing and fertilizer applications from the calendar with the same forms as the Tijdlijn ("Maaisnede toevoegen", "Bemesting toevoegen", and the markers in a week).
 - **Quick Entry**: Add "Koeien naar buiten / naar binnen" stateful action.
-- **Planner & Insights**: Add 7-system Graslandgebruiksysteem planner (including Standweiden and Modern standweiden with partial blocks), Weidegang KPI dashboard, field grazing subpage, and Tijdlijn grazing lanes.
+- **Planner & Insights**: Add a Graslandgebruiksysteem planner for the grazing systems (including Standweiden, Modern standweiden and Nieuw Nederlands Weiden); a plan for an earlier year records grazing that already happened. Add a Weidegang KPI dashboard, field grazing subpage, and Tijdlijn grazing lanes.
 - **Sidebar & Gating**: Add dynamic "Melkvee" collapsible and onboarding CTA.
 - **Atlas layer "Beweiding"**: Show per day which fields are grazed, mown, resting or not yet used in the selected year, with the grazed zones, a legend with the number of fields per status and a popup per field. Pick the day with the arrows or a date picker; the layer opens on today's day and month in the selected year. Record cows going out or coming in from the panel. The layer is greyed out until the farm has a herd.
 - **Farm page**: Add a "Beweiding vandaag" action that opens the Beweiding layer for the current year, for farms with a herd.

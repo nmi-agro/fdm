@@ -30,9 +30,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet"
+import { findActiveCultivationForDate } from "~/lib/cultivation-for-date"
 import type { AddEventSheetRequest } from "./add-event-types"
+import type { TimelineField } from "./gantt-view"
 import { getHarvestTerm } from "../harvest/utils"
-import { findActiveCultivationForDate, type TimelineField } from "./gantt-view"
 
 const SHEET_TITLES: Record<AddEventSheetRequest["type"], string> = {
   "cultivation-edit": "Gewas bewerken",
@@ -62,6 +63,7 @@ export function AddEventSheet({
   fields,
   fertilizerOptions,
   cultivationOptions,
+  formAction = "#",
 }: {
   request: AddEventSheetRequest | undefined
   onOpenChange: (open: boolean) => void
@@ -78,6 +80,11 @@ export function AddEventSheet({
     applicationMethodOptions: { value: ApplicationMethods; label: string }[]
   }[]
   cultivationOptions: { value: string; label: string; b_lu_ya: number[] | null }[]
+  /**
+   * Where the fertilizer forms post. Defaults to the current route; an index route passes
+   * `"?index"`, because React Router only adds that itself when no action is given.
+   */
+  formAction?: string
 }) {
   const open = !!request
   const field = request ? fields.find((f) => f.b_id === request.context.b_id) : undefined
@@ -232,7 +239,7 @@ export function AddEventSheet({
             <FertilizerApplicationForm
               intent="add_fertilizer"
               b_id={field.b_id}
-              action="#"
+              action={formAction}
               b_id_farm={b_id_farm}
               b_id_or_b_lu_catalogue={field.b_id}
               fertilizerApplication={{ p_app_date: request.context.date }}
@@ -339,7 +346,7 @@ export function AddEventSheet({
           {request && field && request.type === "fertilizer-edit" && fertilizerApplication ? (
             <FertilizerApplicationForm
               intent="update_fertilizer"
-              action="#"
+              action={formAction}
               b_id={field.b_id}
               b_id_farm={b_id_farm}
               b_id_or_b_lu_catalogue={field.b_id}

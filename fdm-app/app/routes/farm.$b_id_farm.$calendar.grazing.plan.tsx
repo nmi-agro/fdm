@@ -271,6 +271,10 @@ export default function GrazingPlanAssistent() {
   const seasonStart = `${calendarYear}-05-01`
   const seasonEnd = `${calendarYear}-10-15`
   const todayInYear = todayStr.startsWith(`${calendarYear}-`) ? todayStr : ""
+  // Whether the plan records past grazing, planned grazing or both (the current year)
+  const todayYear = todayStr ? Number(todayStr.slice(0, 4)) : calendarYear
+  const planTiming =
+    calendarYear < todayYear ? "past" : calendarYear > todayYear ? "future" : "current"
   const defaultSeasonStart = todayInYear > seasonStart ? todayInYear : seasonStart
   const defaultSeasonEnd = defaultSeasonStart < seasonEnd ? seasonEnd : `${calendarYear}-12-31`
 
@@ -843,9 +847,13 @@ export default function GrazingPlanAssistent() {
 
                     <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
                       <Info className="text-primary h-3.5 w-3.5 shrink-0" />
-                      <span>
-                        Plannen kan alleen vooruit. De periode start op zijn vroegst vandaag
-                        {todayStr ? ` (${todayStr})` : ""}.
+                      {/* Keyed, so a translated text is replaced instead of patched */}
+                      <span key={planTiming}>
+                        {planTiming === "past"
+                          ? `${calendarYear} ligt achter je: de perioden worden vastgelegd als beweiding die al heeft plaatsgevonden.`
+                          : planTiming === "future"
+                            ? "Alle perioden worden vastgelegd als geplande beweiding."
+                            : "Perioden die na vandaag beginnen, worden vastgelegd als geplande beweiding; eerdere perioden als beweiding die al heeft plaatsgevonden."}
                       </span>
                     </p>
                   </CardContent>

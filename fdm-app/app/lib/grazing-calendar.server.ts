@@ -4,6 +4,7 @@ import { calculateGrazingMetrics } from "@nmi-agro/fdm-calculator"
 import {
   getCensusForFarm,
   getCultivationsForFarm,
+  getFertilizerApplicationsForFarm,
   getFields,
   getGrazedAreaForFarm,
   getGrazingCalendarForFarm,
@@ -36,7 +37,7 @@ export interface GrazingCalendarCell {
   label: string
   dateStart: string
   dateEnd: string
-  type: "empty" | "weiden" | "maaien" | "rust" | "mixed"
+  type: "empty" | "weiden" | "maaien" | "mixed"
   isPlanned?: boolean
   grazingEntries?: Array<{
     l_id_grazing: string
@@ -62,7 +63,14 @@ export interface GrazingCalendarCell {
     b_lu_name: string
     harvestDate: string
   }>
-  restDays?: number
+  /** Fertilizer applications in the week. They do not count as use for the rest of a field. */
+  fertilizerEntries?: Array<{
+    p_app_id: string
+    p_name_nl: string | null
+    p_app_amount_display: number | null
+    p_app_amount_unit: string
+    p_app_date: string
+  }>
 }
 
 export interface GrazingCalendarFieldRow {
@@ -145,6 +153,7 @@ export async function fetchGrazingCalendarMatrix(
     herds,
     grazedArea,
     census,
+    fertilizerApplicationsByField,
   ] = await Promise.all([
     getFields(fdm, principal_id, b_id_farm, timeframe),
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
@@ -153,6 +162,7 @@ export async function fetchGrazingCalendarMatrix(
     getHerdsForFarm(fdm, principal_id, b_id_farm),
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
     getCensusForFarm(fdm, principal_id, b_id_farm),
+    getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
   ])
   const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
@@ -310,6 +320,19 @@ export async function fetchGrazingCalendarMatrix(
         harvestDate: toIsoDate(h.harvestDate),
       }))
 
+      const fertilizerEntries = (fertilizerApplicationsByField.get(field.b_id) ?? [])
+        .filter((a) => {
+          const date = new Date(a.p_app_date)
+          return date >= wInfo.start && date <= wInfo.end
+        })
+        .map((a) => ({
+          p_app_id: a.p_app_id,
+          p_name_nl: a.p_name_nl,
+          p_app_amount_display: a.p_app_amount_display,
+          p_app_amount_unit: a.p_app_amount_unit,
+          p_app_date: toIsoDate(new Date(a.p_app_date)),
+        }))
+
       return {
         key: `w-${wInfo.weekNum}`,
         label: wInfo.label,
@@ -319,6 +342,7 @@ export async function fetchGrazingCalendarMatrix(
         isPlanned,
         grazingEntries: grazingEntries.length > 0 ? grazingEntries : undefined,
         harvestEntries: harvestEntries.length > 0 ? harvestEntries : undefined,
+        fertilizerEntries: fertilizerEntries.length > 0 ? fertilizerEntries : undefined,
       }
     })
 

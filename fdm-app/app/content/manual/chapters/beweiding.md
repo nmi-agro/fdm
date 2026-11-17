@@ -40,6 +40,15 @@ Kies bovenaan de koppel waarvoor je wilt registreren. Daarna:
 - klik op een cel om voor die week een beweiding vast te leggen, of om een bestaande beweiding te bekijken en aan te passen;
 - sleep over meerdere weken van één perceel om een langere periode in één keer vast te leggen.
 
+### Maaien en bemesten in de kalender {#maaien-bemesten}
+
+De kalender toont ook de maaisneden en bemestingen van je graslandpercelen, met een aar voor maaien en een schep voor bemesten. Ga met de muis over het symbool voor de datum en de meststof.
+
+- Met **Maaisnede toevoegen** of **Bemesting toevoegen** boven de kalender kies je een perceel. Daarna vul je hetzelfde formulier in als op de [Tijdlijn](/manual/tijdlijn). De datum staat op vandaag, of op dezelfde dag in het gekozen jaar.
+- Klik op het symbool in een week om die maaisnede of bemesting aan te passen of te verwijderen.
+
+Een bemesting telt niet mee als gebruik voor de dagen rust; een maaisnede wel.
+
 ## Een beweiding vastleggen {#vastleggen}
 
 In het venster dat opent kies je de koppel en de periode, en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan.
@@ -108,6 +117,8 @@ Met de **Graslandgebruiksysteem planner** maak je in één keer een plan voor he
 1. Kies een systeem, zoals omweiden, standweiden, Nieuw Nederlands Weiden, stripgrazen of rantsoenbeweiding. {{appName}} vult per systeem het aantal dagen per perceel en de uren per dag in. Bij zomerstalvoedering of summerfeeding is er geen weidegang; dan maakt de planner geen plan.
 2. Kies wat je meeneemt: de koppel, de periode, de percelen die je wilt beweiden, de uren per dag en hoe vaak je van perceel wisselt.
 3. Controleer het plan en klik op de knop om het vast te leggen.
+
+Wat er wordt vastgelegd, hangt af van het jaar. In het huidige jaar worden perioden die na vandaag beginnen geplande beweiding, en eerdere perioden beweiding die al heeft plaatsgevonden. In een eerder jaar leg je zo een afgelopen seizoen achteraf vast, en in een later jaar is alles gepland.
 
 Bij stripgrazen en rantsoenbeweiding kies je ook hoe groot het beweide deel per keer is:
 
