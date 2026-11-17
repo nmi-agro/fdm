@@ -161,8 +161,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_id_eartag: animal.l_id_eartag,
         l_id_worknumber: animal.l_id_worknumber,
         l_specie: animal.l_specie,
-        l_breed: animal.l_breed,
-        l_coatcolor: animal.l_coatcolor,
         l_birth_date: animal.l_birth_date ? new Date(animal.l_birth_date).toISOString() : null,
         l_sex: animal.l_sex,
         l_arriving_date: animal.l_arriving_date
@@ -234,16 +232,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (intent === "update_details") {
       const l_id_eartag = String(formData.get("l_id_eartag") ?? "").trim() || undefined
       const l_id_worknumber = String(formData.get("l_id_worknumber") ?? "").trim() || undefined
-      const l_breed = String(formData.get("l_breed") ?? "").trim() || undefined
-      const l_coatcolor = String(formData.get("l_coatcolor") ?? "").trim() || undefined
       const birthDateVal = String(formData.get("l_birth_date") ?? "")
       const l_sex = (formData.get("l_sex") as "female" | "male" | null) ?? undefined
 
       await updateAnimal(fdm, session.principal_id, l_id_animal, {
         l_id_eartag,
         l_id_worknumber,
-        l_breed,
-        l_coatcolor,
         l_birth_date: birthDateVal ? new Date(birthDateVal) : undefined,
         l_sex,
       })
@@ -300,8 +294,6 @@ export default function AnimalDetailPage() {
 
   const [editWorknumber, setEditWorknumber] = useState(animal.l_id_worknumber ?? "")
   const [editEartag, setEditEartag] = useState(animal.l_id_eartag ?? "")
-  const [editBreed, setEditBreed] = useState(animal.l_breed ?? "")
-  const [editCoatcolor, setEditCoatcolor] = useState(animal.l_coatcolor ?? "")
   const [editBirthdate, setEditBirthdate] = useState(
     animal.l_birth_date ? format(new Date(animal.l_birth_date), "yyyy-MM-dd") : "",
   )
@@ -329,8 +321,6 @@ export default function AnimalDetailPage() {
     formData.set("intent", "update_details")
     formData.set("l_id_worknumber", editWorknumber)
     formData.set("l_id_eartag", editEartag)
-    formData.set("l_breed", editBreed)
-    formData.set("l_coatcolor", editCoatcolor)
     if (editBirthdate) formData.set("l_birth_date", editBirthdate)
     formData.set("l_sex", editSex)
     void fetcher.submit(formData, { method: "post" })
@@ -474,7 +464,7 @@ export default function AnimalDetailPage() {
               <CardHeader>
                 <CardTitle className="text-base">Kenmerken & Gegevens</CardTitle>
                 <CardDescription className="text-xs">
-                  Pas werknummer, oormerk, ras, geslacht of geboortedatum aan.
+                  Pas werknummer, oormerk, geslacht of geboortedatum aan.
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleDetailsSubmit}>
@@ -547,29 +537,6 @@ export default function AnimalDetailPage() {
                             Categorie ({animal.l_category}) bepaalt de toegestane geslachten.
                           </p>
                         )}
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="detail-breed">Ras</FieldLabel>
-                        <Input
-                          id="detail-breed"
-                          value={editBreed}
-                          onChange={(e) => setEditBreed(e.target.value)}
-                          placeholder="Bijv. Holstein Friesian"
-                          disabled={!farmWritePermission}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="detail-coatcolor">Haarkleur</FieldLabel>
-                        <Input
-                          id="detail-coatcolor"
-                          value={editCoatcolor}
-                          onChange={(e) => setEditCoatcolor(e.target.value)}
-                          placeholder="Bijv. Zwartbont"
-                          disabled={!farmWritePermission}
-                        />
                       </Field>
                     </div>
                   </FieldGroup>
