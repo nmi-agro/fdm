@@ -1,5 +1,5 @@
 import type { Cultivation } from "@nmi-agro/fdm-core"
-import { findHoofdteelt } from "@nmi-agro/fdm-calculator"
+import { findMainCultivation } from "@nmi-agro/fdm-calculator"
 
 /**
  * Determines the main cultivation ('hoofdteelt') for a field/year using the legal
@@ -27,11 +27,7 @@ export function getMainCultivation(
   cultivations: Cultivation[],
   calendarYear: string,
 ): Cultivation | undefined {
-  if (cultivations.length === 0) {
-    return undefined
-  }
-
-  return findHoofdteelt(cultivations, Number(calendarYear), true) ?? undefined
+  return findMainCultivation(cultivations, Number(calendarYear))
 }
 
 export type FieldOption = {

@@ -11,6 +11,7 @@ import type {
 import { DndContext, MouseSensor, useDraggable, useSensor } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { useMouse, useThrottle, useWindowScroll } from "@uidotdev/usehooks"
+import { cn } from "cn"
 import {
   addDays,
   addMonths,
@@ -21,6 +22,7 @@ import {
   endOfMonth,
   format,
   formatDate,
+  formatDistance,
   getDate,
   getDaysInMonth,
   isSameDay,
@@ -42,6 +44,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import { Card } from "~/components/ui/card"
 import {
   ContextMenu,
@@ -49,7 +52,6 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu"
-import { cn } from "~/lib/utils"
 
 const draggingAtom = atom(false)
 const scrollXAtom = atom(0)
@@ -72,6 +74,8 @@ export type GanttFeature = {
   lane?: string // Optional: features with the same lane will share a row
   /** Optional background color (e.g. an rgba string) applied to the feature's card. */
   color?: string
+  resizable?: boolean
+  draggable?: boolean
 }
 
 export type GanttSubRowPositioned<T> = T & { subRow: number }
@@ -392,19 +396,13 @@ const DailyHeader: FC = () => {
             columns={month.days}
             renderHeaderItem={(item: number) => (
               <div className="flex items-center justify-center gap-1">
-                <p>
-                  {format(addDays(new Date(year.year, index, 1), item), "d", {
-                    locale: nl,
-                  })}
-                </p>
+                <p>{format(addDays(new Date(year.year, index, 1), item), "d", { locale: nl })}</p>
                 <p className="text-muted-foreground">
                   {format(addDays(new Date(year.year, index, 1), item), "EEEEE", { locale: nl })}
                 </p>
               </div>
             )}
-            title={format(new Date(year.year, index, 1), "MMMM yyyy", {
-              locale: nl,
-            })}
+            title={format(new Date(year.year, index, 1), "MMMM yyyy", { locale: nl })}
           />
           <GanttColumns
             columns={month.days}
@@ -443,11 +441,7 @@ const QuarterlyHeader: FC = () => {
         <GanttContentHeader
           columns={quarter.months.length}
           renderHeaderItem={(item: number) => (
-            <p>
-              {format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM", {
-                locale: nl,
-              })}
-            </p>
+            <p>{format(new Date(year.year, quarterIndex * 3 + item, 1), "MMM", { locale: nl })}</p>
           )}
           title={`K${quarterIndex + 1} ${year.year}`}
         />
@@ -490,6 +484,13 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
   className,
 }) => {
   const gantt = useContext(GanttContext)
+  const tempEndAt =
+    feature.endAt && isSameDay(feature.startAt, feature.endAt)
+      ? addDays(feature.endAt, 1)
+      : feature.endAt
+  const duration = tempEndAt
+    ? formatDistance(feature.startAt, tempEndAt, { locale: nl })
+    : `${formatDistance(feature.startAt, new Date(), { locale: nl })} tot nu toe`
 
   const handleClick: MouseEventHandler<HTMLDivElement> = (event) => {
     if (event.target === event.currentTarget) {
@@ -515,7 +516,6 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
       key={feature.id}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      // biome-ignore lint/a11y/useSemanticElements: "This is a clickable item"
       role="button"
       style={{
         height: "var(--gantt-row-height)",
@@ -530,6 +530,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
         }}
       />
       <p className="pointer-events-none flex-1 truncate text-left font-medium">{feature.name}</p>
+      <p className="text-muted-foreground pointer-events-none">{duration}</p>
     </div>
   )
 }
@@ -638,8 +639,6 @@ export const GanttColumn: FC<GanttColumnProps> = ({ index, isColumnSecondary }) 
   )
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: "This is a clickable column"
-    // biome-ignore lint/nursery/noNoninteractiveElementInteractions: "This is a clickable column"
     <div
       className={cn(
         "group relative h-full overflow-hidden",
@@ -849,8 +848,24 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
       distance: 10,
     },
   })
+  // dnd-kit numbers its contexts with a module-wide counter, which differs between the server
+  // and the browser; stable ids keep the accessibility attributes equal after hydration.
+  const dndId = useId()
+
+  const [isItemDragging, setIsItemDragging] = useState(false)
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
+
+  // Follow the pointer while the whole item is dragged, so the new date can be shown next to it.
+  useEffect(() => {
+    if (!isItemDragging) return
+    const onPointerMove = (event: PointerEvent) =>
+      setPointer({ x: event.clientX, y: event.clientY })
+    window.addEventListener("pointermove", onPointerMove)
+    return () => window.removeEventListener("pointermove", onPointerMove)
+  }, [isItemDragging])
 
   const handleItemDragStart = useCallback(() => {
+    setIsItemDragging(true)
     setPreviousMouseX(mousePosition.x)
     setPreviousStartAt(startAt)
     setPreviousEndAt(endAt)
@@ -870,10 +885,16 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     setEndAt(newEndDate)
   }, [gantt, mousePosition.x, previousMouseX, previousStartAt, previousEndAt])
 
-  const onDragEnd = useCallback(
-    () => onMove?.(feature.id, startAt, endAt),
-    [onMove, feature.id, startAt, endAt],
-  )
+  const onDragEnd = useCallback(() => {
+    setIsItemDragging(false)
+    setPointer(null)
+    onMove?.(feature.id, startAt, endAt)
+  }, [onMove, feature.id, startAt, endAt])
+
+  const dragLabel =
+    endAt && !isSameDay(startAt, endAt)
+      ? `${format(startAt, "d MMM yyyy", { locale: nl })} – ${format(endAt, "d MMM yyyy", { locale: nl })}`
+      : format(startAt, "d MMM yyyy", { locale: nl })
 
   const handleLeftDragMove = useCallback(() => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -904,8 +925,9 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           left: Math.round(offset),
         }}
       >
-        {onMove && (
+        {onMove && feature.resizable !== false && (
           <DndContext
+            id={`${dndId}-left`}
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
             onDragMove={handleLeftDragMove}
@@ -915,18 +937,35 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           </DndContext>
         )}
         <DndContext
+          id={`${dndId}-item`}
           modifiers={[restrictToHorizontalAxis]}
+          onDragCancel={() => {
+            setIsItemDragging(false)
+            setPointer(null)
+          }}
           onDragEnd={onDragEnd}
           onDragMove={handleItemDragMove}
           onDragStart={handleItemDragStart}
-          sensors={[mouseSensor]}
+          sensors={feature.draggable === false ? [] : [mouseSensor]}
         >
           <GanttFeatureItemCard color={feature.color} id={feature.id}>
             {children ?? <p className="flex-1 truncate text-xs">{feature.name}</p>}
           </GanttFeatureItemCard>
         </DndContext>
-        {onMove && (
+        {isItemDragging &&
+          pointer &&
+          createPortal(
+            <div
+              className="bg-popover text-popover-foreground pointer-events-none fixed z-50 -translate-x-1/2 rounded-md border px-2 py-1 text-xs shadow-md"
+              style={{ left: pointer.x, top: pointer.y - 36 }}
+            >
+              {dragLabel}
+            </div>,
+            document.body,
+          )}
+        {onMove && feature.resizable !== false && (
           <DndContext
+            id={`${dndId}-right`}
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
             onDragMove={handleRightDragMove}
@@ -1055,18 +1094,20 @@ export const GanttMarker: FC<
       }}
     >
       <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div
-            className={cn(
-              "group bg-card text-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs whitespace-nowrap select-auto",
-              className,
-            )}
-          >
-            {label}
-            <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
-              {formatDate(date, "d MMM yyyy", { locale: nl })}
-            </span>
-          </div>
+        <ContextMenuTrigger
+          render={
+            <div
+              className={cn(
+                "group bg-card text-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs whitespace-nowrap select-auto",
+                className,
+              )}
+            />
+          }
+        >
+          {label}
+          <span className="max-h-[0] overflow-hidden opacity-80 transition-all group-hover:max-h-[2rem]">
+            {formatDate(date, "d MMM yyyy", { locale: nl })}
+          </span>
         </ContextMenuTrigger>
         <ContextMenuContent>
           {onRemove ? (

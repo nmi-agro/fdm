@@ -4,6 +4,7 @@ import type { FdmType } from "./fdm.types"
 import type { Measure, MeasureCatalogue } from "./measure.types"
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
+import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
@@ -47,16 +48,18 @@ async function assertNoMeasureOverlap(
       ),
     )
 
+  // Compare with end dates on 1 January adjusted to 31 December of the previous year
+  const newEnd = m_end ? adjustEndDateAtYearStart(m_end) : m_end
   for (const row of existing) {
     const existStart = row.m_start
-    const existEnd = row.m_end // null = doorlopend (∞)
+    const existEnd = row.m_end ? adjustEndDateAtYearStart(row.m_end) : null // null = doorlopend (∞)
 
     if (!existStart) continue
 
     // A_start ≤ B_end  (null B_end = ∞, so condition is always true)
     const newStartBeforeExistEnd = existEnd === null || m_start.getTime() <= existEnd.getTime()
     // A_end ≥ B_start  (null A_end = ∞, so condition is always true)
-    const newEndAfterExistStart = m_end == null || m_end.getTime() >= existStart.getTime()
+    const newEndAfterExistStart = newEnd == null || newEnd.getTime() >= existStart.getTime()
 
     if (newStartBeforeExistEnd && newEndAfterExistStart) {
       throw new Error(
@@ -69,12 +72,17 @@ async function assertNoMeasureOverlap(
 /**
  * Creates a measure instance and applies it to a field in a single transaction.
  *
+ * `m_end` is the last day the measure is applied (inclusive), interpreted as a calendar date in
+ * Europe/Amsterdam. It is stored as entered. When the measure is read, a date on 1 January is
+ * returned as the end of 31 December of the previous year, so that a measure ended "on 1 January"
+ * is not part of that new calendar year. See `adjustEndDateAtYearStart`.
+ *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
  * @param b_id The ID of the field to apply the measure to.
  * @param m_id The catalogue ID of the measure (e.g. "bln_BM1").
  * @param m_start The start date of the measure.
- * @param m_end The optional end date. Omit or pass undefined for doorlopend (ongoing).
+ * @param m_end The optional last day the measure is applied (inclusive, Europe/Amsterdam). A date on 1 January is treated as 31 December of the previous year. Omit or pass undefined for doorlopend (ongoing).
  * @returns A Promise resolving to the new `b_id_measure`.
  */
 export async function addMeasure(
@@ -85,7 +93,7 @@ export async function addMeasure(
   m_start: Date,
   m_end?: Date,
 ): Promise<string> {
-  if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
+  if (m_end !== undefined && adjustEndDateAtYearStart(m_end).getTime() < m_start.getTime()) {
     throw new Error("m_end cannot be earlier than m_start")
   }
   try {
@@ -197,7 +205,7 @@ export async function getMeasure(
       throw new Error("Measure does not exist")
     }
 
-    return rows[0] as Measure
+    return adjustMeasureEnd(rows[0]) as Measure
   } catch (err) {
     throw handleError(err, "Exception for getMeasure", { b_id_measure })
   }
@@ -248,7 +256,7 @@ export async function getMeasures(
       )
       .orderBy(desc(schema.measureAdopting.m_start), asc(schema.measuresCatalogue.m_name))
 
-    return rows as Measure[]
+    return filterMeasuresEndedBefore(rows.map(adjustMeasureEnd), timeframe) as Measure[]
   } catch (err) {
     throw handleError(err, "Exception for getMeasures", { b_id })
   }
@@ -301,7 +309,7 @@ export async function getMeasuresForFarm(
       .orderBy(desc(schema.measureAdopting.m_start), asc(schema.measuresCatalogue.m_name))
 
     const result = new Map<string, Measure[]>()
-    for (const row of rows) {
+    for (const row of filterMeasuresEndedBefore(rows.map(adjustMeasureEnd), timeframe)) {
       if (!row.b_id) continue
       const existing = result.get(row.b_id)
       if (existing) {
@@ -352,11 +360,14 @@ export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCat
  * Updates the start and/or end date of an existing measure.
  * Pass `m_end = null` to clear the end date (doorlopend).
  *
+ * `m_end` is stored as entered. When the measure is read, a date on 1 January is returned as the
+ * end of 31 December of the previous year. See `adjustEndDateAtYearStart`.
+ *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
  * @param b_id_measure The instance ID of the measure.
  * @param m_start Optional new start date.
- * @param m_end Optional new end date. Pass `null` to clear it (doorlopend).
+ * @param m_end Optional new last day the measure is applied (inclusive, Europe/Amsterdam). Pass `null` to clear it (doorlopend).
  */
 export async function updateMeasure(
   fdm: FdmType,
@@ -387,7 +398,7 @@ export async function updateMeasure(
     if (
       effectiveStart &&
       effectiveEnd instanceof Date &&
-      effectiveEnd.getTime() < effectiveStart.getTime()
+      adjustEndDateAtYearStart(effectiveEnd).getTime() < effectiveStart.getTime()
     ) {
       throw new Error("m_end cannot be earlier than m_start")
     }
@@ -467,6 +478,9 @@ export async function removeMeasure(
 /**
  * Builds a SQL condition for filtering measures based on a timeframe overlap.
  *
+ * A measure ended on 1 January may still match the next calendar year here. Such measures are
+ * removed after their end date is adjusted, see {@link filterMeasuresEndedBefore}.
+ *
  * A measure overlaps a timeframe if:
  * 1. It has an end date AND (starts within, ends within, or spans the timeframe)
  * 2. It has no end date (doorlopend) AND its start is on or before the timeframe's end
@@ -506,4 +520,33 @@ export const buildMeasureTimeframeCondition = (
     // Case 2: Measure has no end date and its start is on or before the timeframe's end
     and(isNull(schema.measureAdopting.m_end), lte(schema.measureAdopting.m_start, timeframe.end)),
   )
+}
+
+/**
+ * Returns a copy of a measure row with an end date on 1 January adjusted to the end of 31 December
+ * of the previous year. See `adjustEndDateAtYearStart`.
+ *
+ * @param row A measure row with an `m_end`.
+ * @returns The measure row with the adjusted `m_end`.
+ */
+function adjustMeasureEnd<T extends { m_end: Date | null }>(row: T): T {
+  return { ...row, m_end: row.m_end ? adjustEndDateAtYearStart(row.m_end) : row.m_end }
+}
+
+/**
+ * Removes measures that, after adjusting their end date, ended before the start of the timeframe.
+ *
+ * @param rows Measure rows with an adjusted `m_end`.
+ * @param timeframe The timeframe used to select the measures.
+ * @returns The measures that overlap the timeframe.
+ */
+function filterMeasuresEndedBefore<T extends { m_end: Date | null }>(
+  rows: T[],
+  timeframe: Timeframe | undefined,
+): T[] {
+  if (!timeframe?.start || !timeframe?.end) {
+    return rows
+  }
+  const start = timeframe.start
+  return rows.filter((row) => !(row.m_end && row.m_end < start))
 }

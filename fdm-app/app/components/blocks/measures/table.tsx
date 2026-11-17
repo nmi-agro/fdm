@@ -1,14 +1,4 @@
-import type { ImportReviewAction, UserChoiceMap } from "@nmi-agro/fdm-rvo/types"
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type RowData,
-  type SortingState,
-  useReactTable,
-} from "@tanstack/react-table"
+import { FlexRender, type SortingState, useTable } from "@tanstack/react-table"
 import { Plus, Search } from "lucide-react"
 import { useState } from "react"
 import { Button } from "~/components/ui/button"
@@ -21,15 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import type { MeasureTableRow } from "./columns"
+import type { getColumns, MeasureTableRow } from "./columns"
+import { measuresTableFeatures } from "./table-features"
 
-declare module "@tanstack/react-table" {
-  interface TableMeta<TData extends RowData> {
-    canModify: boolean
-  }
-}
 interface MeasuresDataTableProps {
-  columns: ColumnDef<MeasureTableRow>[]
+  columns: ReturnType<typeof getColumns>
   data: MeasureTableRow[]
   onAddClick?: () => void
   canModify?: boolean
@@ -44,8 +30,9 @@ export function MeasuresDataTable({
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
 
-  const table = useReactTable({
+  const table = useTable({
     data,
+    features: measuresTableFeatures,
     columns,
     state: {
       sorting,
@@ -54,15 +41,9 @@ export function MeasuresDataTable({
     },
     meta: {
       canModify,
-      calendar: "",
-      userChoices: {} as UserChoiceMap,
-      onChoiceChange: (() => {}) as (id: string, action: ImportReviewAction) => void,
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
   })
 
   return (
@@ -94,9 +75,7 @@ export function MeasuresDataTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    <FlexRender header={header} />
                   </TableHead>
                 ))}
               </TableRow>
@@ -108,7 +87,7 @@ export function MeasuresDataTable({
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </TableCell>
                   ))}
                 </TableRow>

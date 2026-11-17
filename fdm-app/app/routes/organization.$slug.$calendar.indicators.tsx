@@ -1,7 +1,10 @@
+import { computeMinimumScores } from "@nmi-agro/fdm-calculator/browser"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Map as MapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { data, type MetaFunction, NavLink, useLoaderData, useParams } from "react-router"
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationPainpoints } from "~/components/blocks/indicators/aggregation-painpoints"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
@@ -10,28 +13,28 @@ import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { HeatmapTable } from "~/components/blocks/indicators/table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import {
   type Bln3Score,
   type FieldBln3Score,
   getIndicatorsForFarm,
 } from "~/integrations/bln3.server"
-import {
-  AGG_IDS,
-  type AggregationId,
-  computeAreaWeightedAggregation,
-  getFieldAggregationScore,
-} from "~/lib/aggregations"
-import { auth } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
+import { auth, getSession } from "~/lib/auth.server"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
+import {
+  getOrganizationFarmGroups,
+  parseFarmIdsParam,
+  selectFarms,
+} from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.$calendar.indicators"
 
 export const meta: MetaFunction = () => {
@@ -59,54 +62,10 @@ export type FarmScoreUpdate = { b_id_farm: string; farmScore: FieldBln3Score }
  * in a farm, keeping both `score01` and `index01` for table display.
  */
 export function computeFarmMinScores(fieldScores: FieldBln3Score[]): Bln3Score {
-  const aggregations: Record<string, number> = {}
-  const indicators: Record<string, FarmMinIndicatorScore> = {}
-
-  for (const fs of fieldScores) {
-    if (fs.error || !fs.score) continue
-
-    // Aggregation scores (0–1 scale)
-    for (const aggId of AGG_IDS) {
-      const scoreVal = getFieldAggregationScore(fs.score, aggId)
-      if (scoreVal !== null) {
-        aggregations[aggId] =
-          aggregations[aggId] === undefined
-            ? scoreVal
-            : Math.min(aggregations[aggId] as number, scoreVal)
-      }
-    }
-
-    // Individual indicator scores — keep score01 + index01 for the pair
-    // with the minimum score
-    for (const ind of fs.score.indicators) {
-      if (ind.score == null || Number.isNaN(ind.score)) continue
-      const existing = indicators[ind.indicator_id]
-      if (existing === undefined || ind.score < existing.minScore) {
-        indicators[ind.indicator_id] = {
-          minScore: ind.score,
-          minIndex: ind.index ?? ind.score,
-        }
-      }
-    }
-  }
-
-  return {
-    aggregations: Object.entries(aggregations).map(([aggregation_id, score]) => ({
-      aggregation_id,
-      score,
-    })),
-    indicators: Object.entries(indicators).map(([indicator_id, { minScore, minIndex }]) => ({
-      indicator_id,
-      score: minScore,
-      index: minIndex,
-      status: 0,
-      target: 0,
-      impact: 0,
-    })),
-  }
+  return computeMinimumScores(fieldScores.map((fs) => (fs.error ? null : fs.score)))
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request, params, url }: Route.LoaderArgs) {
   try {
     const timeframe = getTimeframe(params)
 
@@ -122,7 +81,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       })
     }
 
-    const farms = await getFarms(fdm, organization.id)
+    const allFarms = await getFarms(fdm, organization.id)
+    const farms = selectFarms(allFarms, parseFarmIdsParam(url))
+    const session = await getSession(request)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      allFarms.map((farm) => farm.b_id_farm),
+      getCalendar(params),
+    )
 
     // Sequential score promises: farm i+1 starts only after farm i finishes
     const farmScoreStreams: Array<Promise<FieldBln3Score>> = []
@@ -174,6 +141,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     return {
       organization,
+      farmGroups,
       farms: farmsExtended,
       farmScoreStreams,
     }
@@ -184,18 +152,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function IndicatorsFarmIndex() {
-  const { farms, farmScoreStreams } = useLoaderData<typeof loader>()
+  const { farms, farmScoreStreams, farmGroups } = useLoaderData<typeof loader>()
   const { slug, calendar } = useParams()
 
   const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
   const [withMeasures, setWithMeasures] = useState(true)
   const [fieldSearch, setFieldSearch] = useState("")
   const [isPending, startTransition] = useTransition()
-  const [fieldScores, setFieldScores] = useState<FieldBln3Score[]>([])
+  // Reset for each new batch of streams (keyed), instead of resetting synchronously below.
+  const [fieldScores, setFieldScores] = useKeyedState(
+    farmScoreStreams,
+    () => [] as FieldBln3Score[],
+  )
 
   useEffect(() => {
     let active = true
-    setFieldScores([])
     for (const stream of farmScoreStreams) {
       stream.then(
         (scores) => {
@@ -214,18 +185,17 @@ export default function IndicatorsFarmIndex() {
     return () => {
       active = false
     }
-  }, [farmScoreStreams])
+  }, [farmScoreStreams, setFieldScores])
 
-  // Debounce the pending indicator to avoid flickering on fast transitions
-  const [showPending, setShowPending] = useState(false)
+  // Debounce the pending indicator to avoid flickering on fast transitions. Keyed on isPending so
+  // it resets for each new pending episode without a synchronous setState in the effect.
+  const [pendingDelayElapsed, setPendingDelayElapsed] = useKeyedState(isPending, () => false)
   useEffect(() => {
-    if (!isPending) {
-      setShowPending(false)
-      return
-    }
-    const id = setTimeout(() => setShowPending(true), 150)
+    if (!isPending) return
+    const id = setTimeout(() => setPendingDelayElapsed(true), 150)
     return () => clearTimeout(id)
-  }, [isPending])
+  }, [isPending, setPendingDelayElapsed])
+  const showPending = isPending && pendingDelayElapsed
 
   const showIndex = !withMeasures
 
@@ -296,6 +266,7 @@ export default function IndicatorsFarmIndex() {
         description="BLN3 bodemkwaliteitsindicatoren voor alle bedrijven met toegang door deze organisatie."
         rightNode={
           <div className="flex items-center gap-2">
+            <GroupPicker groups={farmGroups} />
             <Bln3BetaBanner />
             <Bln3HelpDialog />
           </div>
@@ -307,17 +278,21 @@ export default function IndicatorsFarmIndex() {
         <section className="space-y-3">
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
             <Card className="border-border shadow-sm">
-              <CardHeader className="pb-3">
+              <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-bold">
                     Gemiddelde score van de organisatie
                   </CardTitle>
-                  <Button asChild variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
-                    <NavLink to={`/organization/${slug}/${calendar}/atlas/indicators`}>
-                      <MapIcon className="h-3.5 w-3.5" />
-                      Kaartweergave
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to={`/organization/${slug}/${calendar}/atlas/indicators`}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "h-7 gap-1.5 text-xs",
+                    )}
+                  >
+                    <MapIcon className="h-3.5 w-3.5" />
+                    Kaartweergave
+                  </NavLink>
                 </div>
                 {/* <CardDescription className="text-xs">
                                     Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie. De scores zijn berekend als 
@@ -355,14 +330,14 @@ export default function IndicatorsFarmIndex() {
             showPending && "pointer-events-none opacity-50",
           )}
         >
-          <CardHeader className="border-b pb-3">
+          <CardHeader className="border-b">
             <CardTitle className="text-base font-bold">Detailweergave per bedrijf</CardTitle>
             <CardDescription className="text-xs">
               Alle {INDICATORS.length} indicatoren voor alle bedrijven, met filters en
               zoekmogelijkheden.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 p-4">
+          <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <CategoryFilter
                 activeCategories={activeCategories}

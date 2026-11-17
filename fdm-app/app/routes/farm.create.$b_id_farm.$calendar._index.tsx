@@ -1,7 +1,9 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { getFarm } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import {
@@ -16,10 +18,12 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 import { getSession } from "../lib/auth.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen-importeren" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -62,7 +66,7 @@ export default function ChooseFieldImportMethod() {
 
   return (
     <SidebarInset>
-      <Header action={undefined}>
+      <Header action={undefined} help="percelen-importeren">
         <HeaderFarmCreate b_name_farm={farm.b_name_farm} />
       </Header>
       <main className="flex flex-1 flex-col items-center justify-center p-4">
@@ -82,7 +86,7 @@ export default function ChooseFieldImportMethod() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex grow flex-col justify-between">
-                  <Accordion type="single" collapsible className="w-full">
+                  <Accordion className="w-full">
                     <AccordionItem value="item-1">
                       <AccordionTrigger>
                         Wat heb ik nodig om percelen te importeren vanuit RVO?
@@ -91,7 +95,8 @@ export default function ChooseFieldImportMethod() {
                         <ol className="list-inside list-decimal space-y-2">
                           <li>U heeft een geldig KvK-nummer gekoppeld aan uw account.</li>
                           <li>
-                            U heeft een eHerkenning account met machtiging voor dit KvK-nummer.
+                            U logt in met de eHerkenning van dit bedrijf, of met die van uw eigen
+                            organisatie als u bij RVO een machtiging voor dit bedrijf heeft.
                           </li>
                           <li>U geeft ons toestemming om perceelsgegevens op te halen.</li>
                         </ol>
@@ -113,7 +118,7 @@ export default function ChooseFieldImportMethod() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex grow flex-col justify-between">
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion className="w-full">
                   <AccordionItem value="item-1">
                     <AccordionTrigger>
                       Hoe download ik een shapefile van mijn.rvo.nl?

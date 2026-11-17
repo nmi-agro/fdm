@@ -1,8 +1,5 @@
 import {
-  calculateOrganicMatterBalanceForFarms,
-  calculateOrganicMatterBalancesFieldToFarm,
-  collectInputForOrganicMatterBalanceForFarms,
-  type OrganicMatterBalanceFieldResultNumeric,
+  getOrganicMatterBalanceForFarms,
   type OrganicMatterBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
@@ -24,17 +21,21 @@ import {
   useLocation,
   useParams,
 } from "react-router"
+import type { OrganizationFarmGroup } from "~/lib/farm-groups"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons" // Can be reused
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { auth, getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
+import { getOrganizationFarmGroups, parseFarmIdsParam } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
+import { formatBalanceDifference, formatBalanceValue } from "~/lib/format"
 import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
 type Farm = Awaited<ReturnType<typeof getFarms>>[number]
@@ -61,6 +62,7 @@ type LoaderData =
   | {
       organization: Organization
       noFarms: false
+      farmGroups: OrganizationFarmGroup[]
       asyncData: Promise<AsyncData>
     }
 
@@ -77,7 +79,7 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs): Promise<LoaderData> {
+export async function loader({ request, params, url }: LoaderFunctionArgs): Promise<LoaderData> {
   try {
     // Get the organization
     const slug = params.slug
@@ -88,18 +90,7 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
       })
     }
 
-    const url = new URL(request.url)
-
-    let searchParamFarmIds: string[] | undefined
-    if (url.searchParams.has("farmIds")) {
-      searchParamFarmIds = url.searchParams.get("farmIds")?.split(",").filter(Boolean)
-      if (!searchParamFarmIds || searchParamFarmIds.length === 0) {
-        throw data("invalid: farmIds", {
-          status: 400,
-          statusText: "invalid: farmIds",
-        })
-      }
-    }
+    const searchParamFarmIds = parseFarmIdsParam(url)
 
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
@@ -183,95 +174,40 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
         .filter((farm) => farmIdsSet.has(farm.b_id_farm))
         .map((farm) => farm.b_id_farm)
 
-      const inputs = await collectInputForOrganicMatterBalanceForFarms(
-        fdm,
-        principal_id,
-        farmIds,
-        timeframe,
-      )
-      const fieldToFarmMap: Record<string, string> = {}
-      for (const farmInput of inputs) {
-        for (const fieldInput of farmInput.fields) {
-          fieldToFarmMap[fieldInput.field.b_id] = farmInput.b_id_farm
-        }
-      }
+      // The balance of all selected farms together, and per farm.
+      const { total: combinedResult, farms: perFarmResults } =
+        await getOrganicMatterBalanceForFarms(fdm, principal_id, farmIds, timeframe)
+      const resultsByFarm = new Map(perFarmResults.map((result) => [result.b_id_farm, result]))
 
-      const combinedResult = await calculateOrganicMatterBalanceForFarms(fdm, inputs)
-      const rawFarmResultsMap: Record<string, OrganicMatterBalanceFieldResultNumeric[]> = {}
-      for (const result of combinedResult.fields) {
-        const b_id_farm = fieldToFarmMap[result.b_id]
-        if (!b_id_farm) {
-          console.warn(`Field ${result.b_id} not found in fieldToFarmMap, skipping`)
-          continue
-        }
-        rawFarmResultsMap[b_id_farm] ??= []
-        rawFarmResultsMap[b_id_farm].push(result)
-      }
-
-      const selectedFarmIds = new Set(farmIds)
-      const farmResults = await Promise.all(
-        farmsExtended
-          .filter((farm) => selectedFarmIds.has(farm.b_id_farm))
-          .map(async (farm) => {
-            const fieldResults = rawFarmResultsMap[farm.b_id_farm]
-            if (!fieldResults || fieldResults.length === 0) {
-              return {
-                farm: farm,
-                totalArea: farm.b_area_farm,
-                organicMatterBalanceResult: {
-                  hasErrors: true,
-                  errorMessage: "No fields in input",
-                } as OrganicMatterBalanceNumeric & {
-                  errorMessage?: string
-                },
-              }
-            }
-            try {
-              const organicMatterBalanceResult = calculateOrganicMatterBalancesFieldToFarm(
-                fieldResults,
-                fieldResults.some((result) => result.errorMessage),
-                fieldResults
-                  .filter((result) => result.errorMessage)
-                  .map((result) => result.errorMessage) as string[],
-              )
-
-              if (organicMatterBalanceResult.hasErrors) {
-                reportError(
-                  organicMatterBalanceResult.fieldErrorMessages.join(",\n"),
-                  {
-                    page: "organization/{slug}/{calendar}/balance/organic-matter/_index",
-                    scope: "loader",
-                  },
-                  {
-                    b_id_farm: farm.b_id_farm,
-                    timeframe,
-                    userId: session.principal_id,
-                  },
-                )
-              }
-
-              return {
-                farm: farm,
-                totalArea: farm.b_area_farm,
-                organicMatterBalanceResult:
-                  organicMatterBalanceResult as OrganicMatterBalanceNumeric & {
-                    errorMessage?: string
-                  },
-              }
-            } catch (error) {
-              return {
-                farm: farm,
-                totalArea: farm.b_area_farm,
-                organicMatterBalanceResult: {
-                  hasErrors: true,
-                  errorMessage: error instanceof Error ? error.message : String(error),
-                } as OrganicMatterBalanceNumeric & {
-                  errorMessage?: string
-                },
-              }
-            }
-          }),
-      )
+      const farmResults = farmsExtended
+        .filter((farm) => resultsByFarm.has(farm.b_id_farm))
+        .map((farm) => {
+          const result = resultsByFarm.get(farm.b_id_farm)
+          if (result?.balance?.hasErrors) {
+            reportError(
+              result.balance.fieldErrorMessages.join(",\n"),
+              {
+                page: "organization/{slug}/{calendar}/balance/organic-matter/_index",
+                scope: "loader",
+              },
+              {
+                b_id_farm: farm.b_id_farm,
+                timeframe,
+                userId: session.principal_id,
+              },
+            )
+          }
+          return {
+            farm: farm,
+            totalArea: farm.b_area_farm,
+            organicMatterBalanceResult: (result?.balance ?? {
+              hasErrors: true,
+              errorMessage: result?.errorMessage,
+            }) as OrganicMatterBalanceNumeric & {
+              errorMessage?: string
+            },
+          }
+        })
 
       return {
         farmIds: farmIds,
@@ -281,11 +217,19 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
       }
     }
 
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      farms.map((farm) => farm.b_id_farm),
+      getCalendar(params),
+    )
+
     const asyncData = getAsyncData(organization.id)
 
     return {
       organization: organization,
       noFarms: false,
+      farmGroups: farmGroups,
       asyncData: asyncData,
     }
   } catch (error) {
@@ -356,10 +300,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
       : undefined
     const delta =
       farmBalance !== undefined && orgAverage !== undefined ? farmBalance - orgAverage : undefined
-    const deltaFormatted =
-      delta !== undefined
-        ? `${delta >= 0 ? "+" : ""}${(Math.round(delta * 10) / 10).toFixed(1)}`
-        : undefined
+    const deltaFormatted = delta !== undefined ? formatBalanceDifference(delta) : undefined
     const deltaClass =
       delta === undefined ? "text-orange-500" : delta < 0 ? "text-red-600" : "text-green-600"
     return (
@@ -389,16 +330,21 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
         <div className="ml-auto text-right font-medium">
           {!balanceResult.hasErrors ? (
             <>
-              <span>{balanceResult.balance}</span>
+              <span>{formatBalanceValue(balanceResult.balance)}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className={`block cursor-default text-xs ${deltaClass}`}>
-                      {deltaFormatted}
-                    </span>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        className={`block w-full cursor-default text-right text-xs ${deltaClass}`}
+                      >
+                        {deltaFormatted}
+                      </button>
+                    }
+                  />
                   <TooltipContent>
-                    {`Verschil t.o.v. het organisatiegemiddelde (${(Math.round((orgAverage ?? 0) * 10) / 10).toFixed(1)} kg OS / ha)`}
+                    {`Verschil t.o.v. het organisatiegemiddelde (${formatBalanceValue(orgAverage ?? 0)} kg OS / ha)`}
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -422,14 +368,14 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Balans (Bedrijven)</CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{resolvedOrganicMatterBalanceResult.balance}</p>
+                <p>{formatBalanceValue(resolvedOrganicMatterBalanceResult.balance)}</p>
                 {hasErrors ? (
                   <Tooltip>
                     <TooltipTrigger>
@@ -448,23 +394,25 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{resolvedOrganicMatterBalanceResult.supply}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(resolvedOrganicMatterBalanceResult.supply)}
+            </div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {resolvedOrganicMatterBalanceResult.degradation}
+              {formatBalanceValue(resolvedOrganicMatterBalanceResult.degradation)}
             </div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
@@ -489,8 +437,9 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
+            <CardTitle className="flex flex-row items-center gap-2">
               <p className="grow">Bedrijven</p>
+              <GroupPicker groups={loaderData.farmGroups} />
               <FarmSelectDialog
                 farms={asyncData.farms}
                 defaultSelectedFarmIds={asyncData.farmIds}

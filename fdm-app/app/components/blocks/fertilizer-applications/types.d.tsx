@@ -16,6 +16,11 @@ export interface FertilizerOption {
     label: string
   }[]
   p_app_amount_unit: AppAmountUnit
+  /**
+   * Maximum applied amount in `p_app_amount_unit` (100,000 kg/ha converted to that unit).
+   * `null` or absent when it cannot be computed, for example without a density.
+   */
+  p_app_amount_display_max?: number | null
 }
 
 export interface FertilizerApplicationsFormProps {

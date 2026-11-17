@@ -11,7 +11,7 @@ type AutocompletePrincipal = {
   icon: "user" | "organization" // Icon identifier string
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   try {
     // Get the session
     const session = await getSession(request)
@@ -22,7 +22,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     // Get identifier from URL query parameters
-    const url = new URL(request.url)
     const identifier = url.searchParams.get("identifier") // Read 'identifier' param
     const usePrincipalId = url.searchParams.has("principal_id")
 

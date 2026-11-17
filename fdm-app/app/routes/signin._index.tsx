@@ -1,4 +1,3 @@
-import type { Resolver } from "react-hook-form"
 import type {
   ActionFunctionArgs,
   LinksFunction,
@@ -7,6 +6,7 @@ import type {
 } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { SiGithub } from "@icons-pack/react-simple-icons"
+import { cn } from "cn"
 import { AnimatePresence, motion, MotionConfig } from "framer-motion"
 import {
   AlertTriangle,
@@ -40,6 +40,7 @@ import {
   Users,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { Controller, useWatch, type Resolver } from "react-hook-form"
 import { Form, Link, redirect, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
@@ -62,7 +63,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
+import { Field, FieldContent, FieldLabel, FieldError } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
@@ -73,8 +74,9 @@ import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
 import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
-import { cn } from "~/lib/utils"
+import { useCookieConsentStore } from "~/store/cookie-consent"
 import { extractFormValuesFromRequest } from "../lib/form"
 
 export const meta: MetaFunction = () => {
@@ -178,11 +180,32 @@ export async function loader({ request }: LoaderFunctionArgs) {
  *
  * @returns A React element representing the sign-in page.
  */
+/** Link from a feature section to the background page that explains its calculation. */
+function HowCalculatedLink({ to }: { to: string }) {
+  const { capture } = useAnalytics()
+  return (
+    <Link
+      to={to}
+      onClick={() =>
+        capture(MANUAL_EVENTS.helpLinkClicked, {
+          help_target: to,
+          source: "signin",
+          from_path: "/signin",
+        })
+      }
+      className="text-foreground mt-4 inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:no-underline"
+    >
+      <span>Hoe wordt dit berekend?</span>
+      <ArrowRight className="size-4" aria-hidden="true" />
+    </Link>
+  )
+}
+
 export default function SignIn() {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams() // Get search params
   const moreInfoRef = useRef<HTMLDivElement>(null)
-  const [socialSignInError, setSocialSignInError] = useState<string | null>(null)
+  const [handlerError, setHandlerError] = useState<string | null>(null)
   const { capture } = useAnalytics()
 
   const rawRedirectTo = searchParams.get("redirectTo")
@@ -197,34 +220,33 @@ export default function SignIn() {
     }
   }, [rawRedirectTo, redirectTo, setSearchParams])
 
-  useEffect(() => {
-    const error = searchParams.get("error")
-    if (error === "microsoft_no_email") {
-      setSocialSignInError(
-        "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen.",
-      )
-    }
-  }, [searchParams])
+  // Error from the redirect back from the provider is derived from the URL, not copied into state
+  const errorParam = searchParams.get("error")
+  const redirectError =
+    errorParam === "microsoft_no_email"
+      ? "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen."
+      : errorParam === "account_not_linked"
+        ? "Er bestaat al een account met dit e-mailadres, maar Microsoft of Google heeft niet bevestigd dat dit e-mailadres van u is. Meld u hieronder aan met een aanmeldlink via uw e-mailadres."
+        : null
+  // A failed sign-in attempt in this session takes precedence over the redirect error
+  const socialSignInError = handlerError ?? redirectError
 
   const socialProviderNewUserCallbackUrl = modifySearchParams("/welcome", (searchParams) =>
+    searchParams.set("redirectTo", redirectTo),
+  )
+  // Send OAuth errors (e.g. `account_not_linked`) back to this page so they can be explained
+  const socialProviderErrorCallbackUrl = modifySearchParams("/signin", (searchParams) =>
     searchParams.set("redirectTo", redirectTo),
   )
 
   const handleSignInError = (provider: string, error: unknown) => {
     setLoadingProvider(null)
-    setSocialSignInError(
+    setHandlerError(
       `Er is helaas iets misgegaan bij het aanmelden met ${provider}. Probeer het opnieuw.`,
     )
     console.error("Social sign-in failed:", error)
   }
-  const openCookieSettings = () => {
-    if (window?.openCookieSettings) {
-      window.openCookieSettings()
-    }
-  }
-  const onOpenCookieSettings = () => {
-    openCookieSettings()
-  }
+  const onOpenCookieSettings = useCookieConsentStore((state) => state.openCookieSettings)
 
   const scrollToMoreInfo = () => {
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
@@ -242,12 +264,13 @@ export default function SignIn() {
     },
   })
 
+  const formSetValue = form.setValue
   useEffect(() => {
     const timeZone = Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone
-    form.setValue("timeZone", timeZone)
-  }, [form.setValue])
+    formSetValue("timeZone", timeZone)
+  }, [formSetValue])
 
-  const emailValue = form.watch("email") ?? ""
+  const emailValue = useWatch({ control: form.control, name: "email" }) ?? ""
   const emailHasError = !!form.formState.errors.email
   const emailIsTouched = form.getFieldState("email").isTouched
   const emailIsValid = emailValue.length > 0 && emailIsTouched && !emailHasError
@@ -256,7 +279,7 @@ export default function SignIn() {
     <MotionConfig reducedMotion="user">
       <div className="relative">
         <StickyHeader />
-        <div className="relative w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
+        <div className="relative w-full lg:grid lg:min-h-150 lg:grid-cols-2 xl:min-h-200">
           {/* Mobile Background Image */}
           <div className="absolute inset-0 z-0 bg-[#122023] lg:hidden">
             <img
@@ -307,10 +330,11 @@ export default function SignIn() {
                             setLoadingProvider("microsoft")
                             capture("signin_oauth_clicked", { provider: "microsoft" })
                             try {
-                              await signIn.oauth2({
-                                providerId: "microsoft",
+                              await signIn.social({
+                                provider: "microsoft",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
+                                errorCallbackURL: socialProviderErrorCallbackUrl,
                               })
                             } catch (error) {
                               handleSignInError("Microsoft", error)
@@ -351,7 +375,7 @@ export default function SignIn() {
                                   fill="#FFBA08"
                                 />
                               </svg>
-                              Aanmelden met Microsoft
+                              <span>Aanmelden met Microsoft</span>
                             </>
                           )}
                         </Button>
@@ -371,6 +395,7 @@ export default function SignIn() {
                                 provider: "google",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
+                                errorCallbackURL: socialProviderErrorCallbackUrl,
                                 // prompt: "select_account",
                               })
                             } catch (error) {
@@ -414,7 +439,7 @@ export default function SignIn() {
                                   d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0C79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
                                 />
                               </svg>
-                              Aanmelden met Google
+                              <span>Aanmelden met Google</span>
                             </>
                           )}
                         </Button>
@@ -445,26 +470,26 @@ export default function SignIn() {
                         <fieldset disabled={form.formState.isSubmitting}>
                           <div className="grid w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5">
-                              <FormField
-                                control={form.control}
+                              <Controller
                                 name="timeZone"
                                 render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
+                                  <Field>
+                                    <FieldContent>
                                       <Input type="hidden" {...field} />
-                                    </FormControl>
-                                  </FormItem>
+                                    </FieldContent>
+                                  </Field>
                                 )}
                               />
-                              <FormField
-                                control={form.control}
+                              <Controller
                                 name="email"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>E-mailadres</FormLabel>
-                                    <FormControl>
+                                render={({ field, fieldState }) => (
+                                  <Field>
+                                    <FieldLabel htmlFor="email">E-mailadres</FieldLabel>
+                                    <FieldContent>
                                       <div className="relative">
                                         <Input
+                                          id="email"
+                                          aria-invalid={fieldState.invalid}
                                           type="email"
                                           autoComplete="email"
                                           placeholder="naam@bedrijf.nl"
@@ -488,9 +513,9 @@ export default function SignIn() {
                                           )}
                                         </AnimatePresence>
                                       </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
+                                    </FieldContent>
+                                    <FieldError errors={[fieldState.error]} />
+                                  </Field>
                                 )}
                               />
                             </div>
@@ -504,7 +529,7 @@ export default function SignIn() {
                                   <span>Aanmelden...</span>
                                 </div>
                               ) : (
-                                "Aanmelden met e-mail"
+                                <span>Aanmelden met e-mail</span>
                               )}
                             </Button>
                           </div>
@@ -703,6 +728,7 @@ export default function SignIn() {
                   {clientConfig.name} streeft ernaar om deze complexe berekening zo eenvoudig
                   mogelijk te maken, zonder in te leveren op nauwkeurigheid.
                 </p>
+                <HowCalculatedLink to="/manual/background/stikstofbalans" />
               </div>
 
               <div className="relative">
@@ -811,7 +837,7 @@ export default function SignIn() {
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* 1. Rotatie (Wide Top-Left) */}
-                <Card className="bg-background flex flex-col overflow-hidden border-none shadow-sm transition-all hover:shadow-md lg:col-span-2">
+                <Card className="bg-background flex flex-col gap-0 overflow-hidden border-none py-0 shadow-sm transition-all hover:shadow-md lg:col-span-2">
                   <div className="p-6">
                     <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
                       <Sprout className="h-6 w-6" />
@@ -838,7 +864,7 @@ export default function SignIn() {
                                                         Explicit grid placement handles Desktop. */}
 
                 {/* 2. Elevation (Wide Middle-Left) */}
-                <Card className="bg-background flex flex-col border-none shadow-sm transition-all hover:shadow-md lg:col-span-2">
+                <Card className="bg-background flex flex-col border-none pb-0 shadow-sm transition-all hover:shadow-md lg:col-span-2">
                   <CardHeader>
                     <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
                       <Mountain className="h-6 w-6" />
@@ -858,7 +884,7 @@ export default function SignIn() {
                 </Card>
 
                 {/* 3. History (Tall Right) */}
-                <Card className="bg-background flex flex-col overflow-hidden border-none shadow-sm transition-all hover:shadow-md lg:col-start-3 lg:row-span-2 lg:row-start-1">
+                <Card className="bg-background flex flex-col overflow-hidden border-none pb-0 shadow-sm transition-all hover:shadow-md lg:col-start-3 lg:row-span-2 lg:row-start-1">
                   <CardHeader>
                     <div className="bg-primary/10 text-primary mb-4 flex h-12 w-12 items-center justify-center rounded-lg">
                       <History className="h-6 w-6" />
@@ -869,7 +895,7 @@ export default function SignIn() {
                       tot 2009.
                     </p>
                   </CardHeader>
-                  <div className="bg-muted/10 relative flex min-h-[400px] w-full flex-1 items-start justify-center border-t p-4">
+                  <div className="bg-muted/10 relative flex min-h-100 w-full flex-1 items-start justify-center border-t p-4">
                     <img
                       src="/fdm-screenshot-atlas-cultivation-history.png"
                       alt="Gewashistorie screenshot"
@@ -933,6 +959,7 @@ export default function SignIn() {
                   doelgerichte acties aan specifieke percelen. Zo weet u exact waar de bodem om
                   aandacht vraagt én welke ingreep het meeste effect oplevert.
                 </p>
+                <HowCalculatedLink to="/manual/background/bln3-bodemkwaliteit" />
               </div>
 
               <div className="mb-16 grid items-start gap-12 lg:grid-cols-2">
@@ -992,8 +1019,8 @@ export default function SignIn() {
                 </div>
 
                 {/* Right: Emphasize Importance */}
-                <Card className="border-primary/20 bg-primary/[0.03] dark:bg-muted/20 h-full shadow-sm">
-                  <CardHeader className="pb-3">
+                <Card className="border-primary/20 bg-primary/3 dark:bg-muted/20 h-full shadow-sm">
+                  <CardHeader>
                     <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                       Meerwaarde
                     </p>
@@ -1113,6 +1140,7 @@ export default function SignIn() {
                   Bij NMI hebben we jarenlange kennis van bemesting en bodemvruchtbaarheid omgezet
                   in digitale adviezen, direct beschikbaar in {clientConfig.name}.
                 </p>
+                <HowCalculatedLink to="/manual/background/bemestingsadvies" />
               </div>
 
               <div className="mb-16 grid items-start gap-12 lg:grid-cols-2">
@@ -1229,6 +1257,7 @@ export default function SignIn() {
                   bemestingsplan ook ziet of u deze niet overschrijdt op perceels- en
                   bedrijfsniveau.
                 </p>
+                <HowCalculatedLink to="/manual/background/gebruiksruimte" />
               </div>
 
               <div className="grid items-start gap-12 lg:grid-cols-2">
@@ -1460,7 +1489,7 @@ export default function SignIn() {
                 </p>
               </div>
 
-              <Accordion type="single" collapsible className="w-full space-y-4">
+              <Accordion className="w-full space-y-4">
                 <AccordionItem
                   value="item-1"
                   className="bg-background rounded-lg border-none px-6 shadow-sm"
@@ -1483,9 +1512,15 @@ export default function SignIn() {
                     Wat heb ik nodig om te starten?
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    Om optimaal gebruik te maken van {clientConfig.name} heeft u uw perceelsdata
-                    (RVO shapefile) en recente bodemanalyses (PDF) nodig. U kunt deze eenvoudig
-                    importeren.
+                    Alleen een account. Hoe u zich aanmeldt, uw eerste bedrijf aanmaakt en uw
+                    percelen importeert, leest u in{" "}
+                    <Link
+                      to="/manual/aan-de-slag"
+                      className="text-foreground font-medium underline underline-offset-4"
+                    >
+                      Aan de slag
+                    </Link>{" "}
+                    in de handleiding.
                   </AccordionContent>
                 </AccordionItem>
 
@@ -1587,6 +1622,11 @@ export default function SignIn() {
                       </a>
                     </li>
                     <li>
+                      <Link to="/manual" className="hover:text-primary">
+                        Handleiding
+                      </Link>
+                    </li>
+                    <li>
                       <a
                         href="/privacy"
                         target="_blank"
@@ -1628,9 +1668,8 @@ export default function SignIn() {
   )
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, url }: ActionFunctionArgs) {
   // Get the URL object to extract search params
-  const url = new URL(request.url)
   const redirectTo = url.searchParams.get("redirectTo") || "/farm"
   // Validate redirectTo to prevent open redirect
   let safeRedirectTo = getSafeRedirect(redirectTo)

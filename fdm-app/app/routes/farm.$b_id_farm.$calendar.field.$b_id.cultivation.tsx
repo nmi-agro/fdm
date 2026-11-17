@@ -7,6 +7,8 @@ import {
   getHarvests,
   removeCultivation,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { AlertTriangle } from "lucide-react"
 import {
   type ActionFunctionArgs,
   data,
@@ -17,11 +19,14 @@ import {
   useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
+import { CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION } from "~/components/blocks/cultivation/suggestion"
+import { Alert } from "~/components/ui/alert"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -35,6 +40,9 @@ function parseValidDate(value: string | null): Date | undefined {
 }
 
 // Meta
+
+export const handle: HelpHandle = { help: "gewassen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Gewas - Perceel | ${clientConfig.name}` },
@@ -62,7 +70,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} When the "b_id_farm" or "b_id" parameters are missing or if the field is not found.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -86,6 +94,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
 
     // Get timeframe from calendar store
+    const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
     const fieldWritePermission = await checkPermission(
@@ -94,7 +103,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 
@@ -108,18 +117,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     // Get available cultivations for the farm
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
+    const availabilityYearRaw = Number.parseInt(calendar)
+    const availabilityYear = Number.isNaN(availabilityYearRaw)
+      ? undefined
+      : Math.min(lastCultivationAvailabilityYear, availabilityYearRaw)
     const cultivationsCatalogue = await getCultivationsFromCatalogue(
       fdm,
       session.principal_id,
       b_id_farm,
+      availabilityYear,
     )
+
     // Map cultivations to options for the combobox
-    const cultivationsCatalogueOptions = cultivationsCatalogue.map((cultivation) => {
-      return {
-        value: cultivation.b_lu_catalogue,
-        label: cultivation.b_lu_name,
-      }
-    })
+    const cultivationsCatalogueOptions = cultivationsCatalogue
+      .filter(
+        (item) =>
+          typeof availabilityYear === "undefined" ||
+          item.b_lu_ya === null ||
+          item.b_lu_ya.includes(availabilityYear),
+      )
+      .map((cultivation) => {
+        return {
+          value: cultivation.b_lu_catalogue,
+          label: cultivation.b_lu_name,
+          b_lu_ya: cultivation.b_lu_ya,
+        }
+      })
 
     // Get cultivations for the field
     const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
@@ -137,6 +161,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       field: field,
       cultivationsCatalogueOptions: cultivationsCatalogueOptions,
+      lastCultivationAvailabilityYear: lastCultivationAvailabilityYear,
       cultivations: cultivations,
       harvests: harvests,
       fieldWritePermission: fieldWritePermission,
@@ -160,11 +185,7 @@ export default function FarmFieldsOverviewBlock() {
   if ("warning" in loaderData) {
     return (
       <div className="space-y-6">
-        <p className="text-muted-foreground text-sm">
-          {loaderData.warning instanceof Error
-            ? loaderData.warning.message
-            : String(loaderData.warning)}
-        </p>
+        <p className="text-muted-foreground text-sm">{loaderData.warning}</p>
       </div>
     )
   }
@@ -176,8 +197,9 @@ export default function FarmFieldsOverviewBlock() {
   const suggestedCatalogue = searchParams.get("suggest_b_lu_catalogue")
   const suggestedStart = parseValidDate(searchParams.get("suggest_start"))
   const suggestedEnd = parseValidDate(searchParams.get("suggest_end"))
+  const hasSuggestionParams = Boolean(suggestedCatalogue && suggestedStart)
   const defaultValues =
-    suggestedCatalogue && suggestedStart
+    loaderData.fieldWritePermission && suggestedCatalogue && suggestedStart
       ? {
           b_lu_catalogue: suggestedCatalogue,
           b_lu_start: suggestedStart,
@@ -203,9 +225,19 @@ export default function FarmFieldsOverviewBlock() {
 
   return (
     <div className="space-y-6">
+      {hasSuggestionParams && !loaderData.fieldWritePermission && (
+        <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <AlertTriangle
+            className="size-4 text-amber-700! dark:text-amber-400!"
+            aria-hidden="true"
+          />
+          <p>{CULTIVATION_SUGGESTION_READ_ONLY_EXPLANATION}</p>
+        </Alert>
+      )}
       <div className="grid gap-4 2xl:grid-cols-2">
         <CultivationListCard
           cultivationsCatalogueOptions={loaderData.cultivationsCatalogueOptions}
+          lastCultivationAvailabilityYear={loaderData.lastCultivationAvailabilityYear}
           cultivations={loaderData.cultivations}
           harvests={loaderData.harvests}
           editable={loaderData.fieldWritePermission}

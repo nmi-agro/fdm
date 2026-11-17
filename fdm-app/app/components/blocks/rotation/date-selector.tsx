@@ -1,15 +1,16 @@
 import type { Row } from "@tanstack/react-table"
+import { cn } from "cn"
 import { Controller, useForm } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
+import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, MemoizedRotationExtended } from "./columns"
 import type { RotationTableFormSchemaType } from "./schema"
-import { DatePicker } from "../../custom/date-picker-v2"
 import { DateRangeDisplay } from "./date-range-display"
+import { rotationTableFeatures } from "./table-features"
 
 type AllowedFormSchemaType = Pick<RotationTableFormSchemaType, "b_lu_start" | "b_lu_end">
 function TableDateSelectorForm({
@@ -23,7 +24,7 @@ function TableDateSelectorForm({
   fetcher: ReturnType<typeof useFetcher>
   name: keyof AllowedFormSchemaType
   value: Date[]
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   required?: boolean
   onHide?: () => unknown
 }) {
@@ -33,7 +34,7 @@ function TableDateSelectorForm({
     },
   })
   return (
-    <div className="absolute flex w-50 flex-row items-center">
+    <div className="absolute top-1/2 left-1/2 flex w-50 -translate-1/2 flex-row items-center">
       <RemixFormProvider {...form}>
         <Controller
           name={name as string}
@@ -88,7 +89,7 @@ export function TableDateSelector({
   required,
 }: {
   name: keyof AllowedFormSchemaType
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   cellId: string
   required: boolean
 }) {
@@ -102,16 +103,23 @@ export function TableDateSelector({
           .sort((d1, d2) => d1.getTime() - d2.getTime())
 
   const showForm = fetcher.state !== "idle" || activeTableFormStore.activeForm === cellId
+
   return (
-    <Button
-      variant="link"
-      className="relative px-0"
-      onClick={(e) => {
-        e.stopPropagation()
-        activeTableFormStore.setActiveForm(cellId)
-      }}
-    >
-      <DateRangeDisplay range={value} emptyContent="Geen" className={cn(showForm && "invisible")} />
+    <div className="relative">
+      <Button
+        variant="link"
+        className={cn("relative px-0", showForm && "invisible")}
+        onClick={(e) => {
+          e.stopPropagation()
+          activeTableFormStore.setActiveForm(cellId)
+        }}
+      >
+        <DateRangeDisplay
+          range={value}
+          emptyContent="Geen"
+          className={cn(showForm && "invisible")}
+        />
+      </Button>
       {showForm && (
         <TableDateSelectorForm
           fetcher={fetcher}
@@ -125,6 +133,6 @@ export function TableDateSelector({
           }}
         />
       )}
-    </Button>
+    </div>
   )
 }

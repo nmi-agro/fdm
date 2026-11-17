@@ -80,11 +80,15 @@ describe("withCalculationCache", () => {
     expect(calculate).toHaveBeenCalledTimes(1)
 
     const expectedHash = generateCalculationHash("calculate", calculatorVersion, input)
-    const cached = await fdm
-      .select()
-      .from(calculationCache)
-      .where(eq(calculationCache.calculation_hash, expectedHash))
-    expect(cached).toHaveLength(1)
+    // The cache write is fire-and-forget, so wait until it is visible
+    const cached = await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationCache)
+        .where(eq(calculationCache.calculation_hash, expectedHash))
+      expect(rows).toHaveLength(1)
+      return rows
+    })
     expect(cached[0].result).toBe("correct result for my value")
   })
 
@@ -130,16 +134,20 @@ describe("withCalculationCache", () => {
       .where(eq(calculationCache.calculation_hash, expectedHash))
     expect(cached).toHaveLength(0) // Should not cache errors
 
-    const errors = await fdm
-      .select()
-      .from(calculationErrors)
-      .where(
-        and(
-          eq(calculationErrors.calculation_function, "calculate"),
-          eq(calculationErrors.error_message, "calculation error occurred"),
-        ),
-      )
-    expect(errors).toHaveLength(1)
+    // The error record is written fire-and-forget, so wait until it is visible
+    const errors = await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationErrors)
+        .where(
+          and(
+            eq(calculationErrors.calculation_function, "calculate"),
+            eq(calculationErrors.error_message, "calculation error occurred"),
+          ),
+        )
+      expect(rows).toHaveLength(1)
+      return rows
+    })
     expect(errors[0].stack_trace).toBeDefined()
   })
 
@@ -161,16 +169,19 @@ describe("withCalculationCache", () => {
       .where(eq(calculationCache.calculation_hash, expectedHash))
     expect(cached).toHaveLength(0) // Should not cache errors
 
-    const errors = await fdm
-      .select()
-      .from(calculationErrors)
-      .where(
-        and(
-          eq(calculationErrors.calculation_function, "calculate"),
-          eq(calculationErrors.error_message, "a simple string error"),
-        ),
-      )
-    expect(errors).toHaveLength(1)
+    const errors = await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationErrors)
+        .where(
+          and(
+            eq(calculationErrors.calculation_function, "calculate"),
+            eq(calculationErrors.error_message, "a simple string error"),
+          ),
+        )
+      expect(rows).toHaveLength(1)
+      return rows
+    })
     expect(errors[0].stack_trace).toBeNull() // Stack trace should be null for non-Error objects
   })
 
@@ -226,11 +237,14 @@ describe("withCalculationCache", () => {
     )
 
     // Verify cache entry exists with the redacted hash
-    const cached = await fdm
-      .select()
-      .from(calculationCache)
-      .where(eq(calculationCache.calculation_hash, expectedHash))
-    expect(cached).toHaveLength(1)
+    const cached = await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationCache)
+        .where(eq(calculationCache.calculation_hash, expectedHash))
+      expect(rows).toHaveLength(1)
+      return rows
+    })
     expect(cached[0].result).toBe("result for public data")
 
     // Verify stored input in DB is redacted
@@ -268,11 +282,14 @@ describe("withCalculationCache", () => {
       expectedCacheInput,
     )
 
-    const cached = await fdm
-      .select()
-      .from(calculationCache)
-      .where(eq(calculationCache.calculation_hash, expectedHash))
-    expect(cached).toHaveLength(1)
+    const cached = await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationCache)
+        .where(eq(calculationCache.calculation_hash, expectedHash))
+      expect(rows).toHaveLength(1)
+      return rows
+    })
 
     const storedInput = cached[0].input as any
     expect(storedInput.data.apiKey).toBe("REDACTED")

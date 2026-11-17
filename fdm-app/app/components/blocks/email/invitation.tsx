@@ -22,6 +22,7 @@ export const InvitationEmail = ({
   senderName,
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
 }: InvitationEmailProps) => {
+  "use no memo"
   const previewText = `Accepteer de uitnodiging om samen te werken in ${organizationName}.`
   const baseUrl = appBaseUrl.startsWith("http") ? appBaseUrl : `https://${appBaseUrl}`
 

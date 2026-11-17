@@ -13,10 +13,11 @@ import {
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Plus, Trash2 } from "lucide-react"
-import { lazy, Suspense, useEffect, useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
@@ -32,6 +33,7 @@ import {
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import {
@@ -69,9 +71,9 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
+import { getBln3ExclusionMessage, getBln3ExclusionReason } from "~/lib/indicators"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 
@@ -113,10 +115,36 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
 
-    const [field, fields, measures, catalogue, farmMeasures, cultivations, fieldWritePermission] =
+    const [field, fields] = await Promise.all([
+      getField(fdm, session.principal_id, b_id),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+
+    if (!field) {
+      throw data("not found: b_id", {
+        status: 404,
+        statusText: "not found: b_id",
+      })
+    }
+
+    const fieldList = fields.map((f) => ({
+      b_id: f.b_id,
+      b_name: f.b_name ?? null,
+    }))
+
+    // Skip the calculations when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        field,
+        fieldList,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
+
+    const [measures, catalogue, farmMeasures, cultivations, fieldWritePermission] =
       await Promise.all([
-        getField(fdm, session.principal_id, b_id),
-        getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getMeasures(fdm, session.principal_id, b_id, timeframe),
         getMeasuresFromCatalogue(fdm),
         getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
@@ -132,13 +160,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         ),
       ])
 
-    if (!field) {
-      throw data("not found: b_id", {
-        status: 404,
-        statusText: "not found: b_id",
-      })
-    }
-
     // Derive harvest date from the active cultivation's b_lu_end
     const cal = getCalendar(params)
     const activeCultivation = getMainCultivation(cultivations, cal)
@@ -146,11 +167,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       ? activeCultivation.b_lu_end.toISOString().split("T")[0]
       : null
 
-    const isExcluded = isExcludedFromBln3({
+    // Same rule as the BLN3 input collectors: the main cultivation of b_year decides
+    const bln3MainCultivation = getMainCultivation(cultivations, String(b_year))
+    const exclusionReason = getBln3ExclusionReason({
       b_bufferstrip: field.b_bufferstrip,
-      b_lu_croprotation: activeCultivation?.b_lu_croprotation,
-      b_lu_catalogue: activeCultivation?.b_lu_catalogue,
+      hasMainCultivation: bln3MainCultivation !== undefined,
+      b_lu_croprotation: bln3MainCultivation?.b_lu_croprotation,
+      b_lu_catalogue: bln3MainCultivation?.b_lu_catalogue,
     })
+    const isExcluded = exclusionReason !== null
 
     const [bln3Result, applicabilityMap, advice] = isExcluded
       ? [null, null, null]
@@ -259,6 +284,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       field,
       isExcluded,
+      exclusionReason,
       activeCultivationName: activeCultivation?.b_lu_name ?? null,
       fieldWritePermission,
       measures,
@@ -268,14 +294,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       mapStyle: getMapStyle("satellite"),
       harvestDate,
       calendarYearStart,
-      fieldList: fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name ?? null,
-      })),
+      fieldList,
       fieldScore: bln3Result?.score ?? null,
       applicabilityMap,
       topOpportunities,
       measureImpacts,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -297,17 +322,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (intent === "add") {
       const field = await getField(fdm, session.principal_id, b_id)
       const fieldCultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
-      const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
+      const calendarYear = Number(calendar)
+      const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
+      const defaultCultivation = getMainCultivation(fieldCultivations, String(b_year))
       if (
-        isExcludedFromBln3({
+        getBln3ExclusionReason({
           b_bufferstrip: field.b_bufferstrip,
+          hasMainCultivation: defaultCultivation !== undefined,
           b_lu_croprotation: defaultCultivation?.b_lu_croprotation,
           b_lu_catalogue: defaultCultivation?.b_lu_catalogue,
-        })
+        }) !== null
       ) {
         return dataWithError(
           "forbidden: excluded field",
-          "Maatregelen kunnen niet worden toegevoegd aan bufferstroken of natuurpercelen.",
+          "Maatregelen kunnen niet worden toegevoegd aan bufferstroken, natuurpercelen of percelen zonder hoofdteelt.",
         )
       }
 
@@ -434,18 +462,53 @@ function MeasureEditDialog({
   onClose: () => void
   action?: string
 }) {
+  return (
+    <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
+        </DialogHeader>
+        {measure && (
+          // Remount on measure/mode change instead of resetting in an effect.
+          <MeasureEditForm
+            key={`${measure.b_id_measure}-${closeMode}`}
+            measure={measure}
+            closeMode={closeMode}
+            onClose={onClose}
+            action={action}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function MeasureEditForm({
+  measure,
+  closeMode,
+  onClose,
+  action,
+}: {
+  measure: EditingMeasure
+  closeMode: boolean
+  onClose: () => void
+  action: string
+}) {
   const fetcher = useFetcher()
-  const [doorlopend, setDoorlopend] = useState(true)
+  const [doorlopend, setDoorlopend] = useState(closeMode ? false : !measure.m_end)
 
   const form = useRemixForm<MeasureDateFormValues>({
     fetcher,
     resolver: zodResolver(MeasureDateSchema),
-    defaultValues: { m_start: "", m_end: null },
+    defaultValues: {
+      m_start: toIso(measure.m_start),
+      m_end: measure.m_end ? toIso(measure.m_end) : null,
+    },
     submitHandlers: {
       onValid: (data) => {
         const fd = new FormData()
         fd.append("intent", "update")
-        fd.append("b_id_measure", measure?.b_id_measure ?? "")
+        fd.append("b_id_measure", measure.b_id_measure)
         fd.append("m_start", data.m_start)
         if (data.m_end) fd.append("m_end", data.m_end)
         else fd.append("m_end", "")
@@ -458,141 +521,105 @@ function MeasureEditDialog({
     },
   })
 
-  // Reset form when measure or mode changes
-  const { reset } = form
-  useEffect(() => {
-    if (!measure) return
-    reset({
-      m_start: toIso(measure.m_start),
-      m_end: measure.m_end ? toIso(measure.m_end) : null,
-    })
-    setDoorlopend(closeMode ? false : !measure.m_end)
-  }, [measure, closeMode, reset])
-
   return (
-    <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
-        </DialogHeader>
-        {measure && (
-          <form onSubmit={form.handleSubmit}>
-            <FieldGroup className="py-2">
-              <p className="text-sm font-medium">{measure.m_name}</p>
+    <form onSubmit={form.handleSubmit}>
+      <FieldGroup className="py-2">
+        <p className="text-sm font-medium">{measure.m_name}</p>
 
-              {!closeMode && (
-                <Controller
-                  control={form.control}
-                  name="m_start"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Startdatum"
-                      field={{
-                        ...field,
-                        value: field.value,
-                      }}
-                      fieldState={fieldState}
-                      required
-                    />
-                  )}
-                />
-              )}
-
-              {closeMode ? (
-                <Controller
-                  control={form.control}
-                  name="m_end"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Einddatum"
-                      field={{
-                        ...field,
-                        value: field.value,
-                      }}
-                      fieldState={fieldState}
-                      required
-                    />
-                  )}
-                />
-              ) : (
-                <Field>
-                  <FieldLabel>Einddatum</FieldLabel>
-                  <RadioGroup
-                    value={doorlopend ? "doorlopend" : "einddatum"}
-                    onValueChange={(v) => {
-                      const isDoorlopend = v === "doorlopend"
-                      setDoorlopend(isDoorlopend)
-                      if (isDoorlopend) form.setValue("m_end", null)
-                      else form.setValue("m_end", "")
-                    }}
-                    className="space-y-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="doorlopend" id="field-edit-doorlopend" />
-                      <Label htmlFor="field-edit-doorlopend" className="cursor-pointer font-normal">
-                        Doorlopend
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="einddatum" id="field-edit-einddatum" />
-                      <Label htmlFor="field-edit-einddatum" className="cursor-pointer font-normal">
-                        Vaste einddatum
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  {!doorlopend && (
-                    <Controller
-                      control={form.control}
-                      name="m_end"
-                      render={({ field, fieldState }) => (
-                        <DatePicker
-                          label=""
-                          field={{
-                            ...field,
-                            value: field.value,
-                          }}
-                          fieldState={fieldState}
-                        />
-                      )}
-                    />
-                  )}
-                </Field>
-              )}
-
-              <div className="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Annuleren
-                </Button>
-                <Button type="submit" disabled={fetcher.state !== "idle"}>
-                  {fetcher.state !== "idle" ? "Opslaan…" : closeMode ? "Afsluiten" : "Opslaan"}
-                </Button>
-              </div>
-            </FieldGroup>
-          </form>
+        {!closeMode && (
+          <Controller
+            control={form.control}
+            name="m_start"
+            render={({ field, fieldState }) => (
+              <DatePicker
+                label="Startdatum"
+                field={{
+                  ...field,
+                  value: field.value,
+                }}
+                fieldState={fieldState}
+                required
+              />
+            )}
+          />
         )}
-      </DialogContent>
-    </Dialog>
+
+        {closeMode ? (
+          <Controller
+            control={form.control}
+            name="m_end"
+            render={({ field, fieldState }) => (
+              <DatePicker
+                label="Einddatum"
+                field={{
+                  ...field,
+                  value: field.value,
+                }}
+                fieldState={fieldState}
+                required
+              />
+            )}
+          />
+        ) : (
+          <Field>
+            <FieldLabel>Einddatum</FieldLabel>
+            <RadioGroup
+              value={doorlopend ? "doorlopend" : "einddatum"}
+              onValueChange={(v) => {
+                const isDoorlopend = v === "doorlopend"
+                setDoorlopend(isDoorlopend)
+                if (isDoorlopend) form.setValue("m_end", null)
+                else form.setValue("m_end", "")
+              }}
+              className="space-y-1"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="doorlopend" id="field-edit-doorlopend" />
+                <Label htmlFor="field-edit-doorlopend" className="cursor-pointer font-normal">
+                  Doorlopend
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="einddatum" id="field-edit-einddatum" />
+                <Label htmlFor="field-edit-einddatum" className="cursor-pointer font-normal">
+                  Vaste einddatum
+                </Label>
+              </div>
+            </RadioGroup>
+            {!doorlopend && (
+              <Controller
+                control={form.control}
+                name="m_end"
+                render={({ field, fieldState }) => (
+                  <DatePicker
+                    label=""
+                    field={{
+                      ...field,
+                      value: field.value,
+                    }}
+                    fieldState={fieldState}
+                  />
+                )}
+              />
+            )}
+          </Field>
+        )}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Annuleren
+          </Button>
+          <Button type="submit" disabled={fetcher.state !== "idle"}>
+            {fetcher.state !== "idle" ? "Opslaan…" : closeMode ? "Afsluiten" : "Opslaan"}
+          </Button>
+        </div>
+      </FieldGroup>
+    </form>
   )
 }
 
 export default function MeasuresFieldDetail() {
-  const {
-    field,
-    isExcluded,
-    activeCultivationName,
-    measures,
-    catalogue,
-    fieldsGeoJSON,
-    selectedFieldGeoJSON,
-    mapStyle,
-    harvestDate,
-    calendarYearStart,
-    fieldScore,
-    applicabilityMap,
-    topOpportunities,
-    measureImpacts,
-    fieldWritePermission,
-  } = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
   const navigation = useNavigation()
   const navigate = useNavigate()
@@ -618,14 +645,42 @@ export default function MeasuresFieldDetail() {
   // refresh — and removed when the dialog closes.
   const openMeasure = searchParams.get("openMeasure")
   const indicator = searchParams.get("indicator") ?? undefined
+  // The URL is the source of truth for a deep-linked measure: no effect needed to open it.
+  const measureDialogOpen = dialogOpen || !!openMeasure
+  const measureDialogMeasureId = openMeasure ?? initialMeasureId
+  const measureDialogIndicatorId = openMeasure ? indicator : focusIndicatorId
 
-  useEffect(() => {
-    if (!openMeasure) return
-    setInitialMeasureId(openMeasure)
-    setFocusIndicatorId(indicator)
-    setDialogOpen(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openMeasure, indicator])
+  if (loaderData.fieldAvailability) {
+    return (
+      <FieldNotAvailableForYear
+        availability={loaderData.fieldAvailability}
+        calendar={loaderData.calendar}
+        b_name={loaderData.field.b_name}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${b_id_farm}/${loaderData.calendar}/field/${b_id}/settings`}
+      />
+    )
+  }
+
+  const {
+    field,
+    isExcluded,
+    exclusionReason,
+    activeCultivationName,
+    measures,
+    catalogue,
+    fieldsGeoJSON,
+    selectedFieldGeoJSON,
+    mapStyle,
+    harvestDate,
+    calendarYearStart,
+    fieldScore,
+    applicabilityMap,
+    topOpportunities,
+    measureImpacts,
+    fieldWritePermission,
+  } = loaderData
 
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
@@ -661,6 +716,7 @@ export default function MeasuresFieldDetail() {
               b_bufferstrip: field.b_bufferstrip,
               cultivationName: activeCultivationName,
               calendarYear: calendar,
+              exclusionReason,
             })}
           </p>
         </div>
@@ -779,18 +835,20 @@ export default function MeasuresFieldDetail() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive h-8 w-8"
-                            title="Verwijderen"
-                            aria-label={`${m.m_name} verwijderen`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialogTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-destructive h-8 w-8"
+                              title="Verwijderen"
+                              aria-label={`${m.m_name} verwijderen`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>
@@ -849,7 +907,7 @@ export default function MeasuresFieldDetail() {
 
       {/* Add Measure dialog */}
       <AddMeasureDialog
-        open={dialogOpen}
+        open={measureDialogOpen}
         onOpenChange={(next) => {
           setDialogOpen(next)
           if (!next) {
@@ -875,8 +933,8 @@ export default function MeasuresFieldDetail() {
         applicabilityMap={applicabilityMap ?? undefined}
         topOpportunities={topOpportunities}
         measureImpacts={measureImpacts}
-        focusIndicatorId={focusIndicatorId}
-        initialMeasureId={initialMeasureId}
+        focusIndicatorId={measureDialogIndicatorId}
+        initialMeasureId={measureDialogMeasureId}
       />
 
       {/* Edit Measure dialog */}

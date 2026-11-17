@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ComponentProps } from "react"
+import { useId, useRef, useState, type ComponentProps } from "react"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -43,19 +43,13 @@ export function SubmitButtonWithReassignmentConfirmation({
    */
   onConfirmation?: () => void
 }) {
-  // So that the form can be submitted when JS is disabled
-  const [iNeedConfirmation, setINeedConfirmation] = useState(false)
-  useEffect(() => {
-    setINeedConfirmation(needsConfirmation)
-  }, [needsConfirmation])
-
   // Alert dialog should close when submission succeeds
   const [open, setOpen] = useState(false)
 
   const submitButtonId = useId()
   const hiddenSubmitRef = useRef<HTMLInputElement>(null)
 
-  if (!iNeedConfirmation) {
+  if (!needsConfirmation) {
     return (
       <div>
         <Button
@@ -73,9 +67,7 @@ export function SubmitButtonWithReassignmentConfirmation({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <div>
-        <AlertDialogTrigger asChild>
-          <Button {...buttonProps} type="button" />
-        </AlertDialogTrigger>
+        <AlertDialogTrigger render={<Button {...buttonProps} type="button" />} />
         <input
           ref={hiddenSubmitRef}
           type={type === "submit" ? "submit" : "button"}

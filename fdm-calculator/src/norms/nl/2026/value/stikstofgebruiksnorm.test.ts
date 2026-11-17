@@ -2,7 +2,7 @@ import type { Field } from "@nmi-agro/fdm-core"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { NitrogenStandard, NL2026NormsInput, NL2026NormsInputForCultivation } from "./types"
 import * as GeoTiff from "../../../../shared/geotiff"
-import { calculateNL2026StikstofGebruiksNorm } from "./stikstofgebruiksnorm"
+import { calculateNL2026StikstofGebruiksNorm, getNormsForCultivation } from "./stikstofgebruiksnorm"
 import * as StikstofData from "./stikstofgebruiksnorm-data"
 
 describe("calculateNL2026StikstofGebruiksNorm", () => {
@@ -142,7 +142,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     // Tijdelijk grasland "van 1 jan tot minstens 15 mei" -> 90 (zand_nwc standard), 72 (zand_nwc nv_area)
     // Should have no korting applied
     expect(result.normValue).toBe(72)
-    expect(result.normSource).toContain("Tijdelijk grasland.")
+    expect(result.normSource).toContain("Tijdelijk grasland (van 1 januari tot minstens 15 mei).")
   })
 
   it("should apply 0 korting if vanggewas is present (sown <= Oct 1st)", async () => {
@@ -333,8 +333,8 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
       cultivations: [
         {
           b_lu_catalogue: "nl_3805", // Gras voor industriële verwerking
-          b_lu_start: new Date(2026, 0, 1), // Current year cultivation
-          b_lu_end: new Date(2026, 5, 1),
+          b_lu_start: new Date(2026, 8, 5), // Sown in September, first year
+          b_lu_end: new Date(2026, 11, 31),
         } as Partial<NL2026NormsInputForCultivation>,
       ] as NL2026NormsInputForCultivation[],
       soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
@@ -346,6 +346,52 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
       "Akkerbouwgewassen, Gras voor industriële verwerking (inzaai in september en eerste jaar).",
     )
   })
+
+  it.each([
+    [
+      "sown before 15 May in the first year",
+      new Date(2026, 3, 1),
+      310,
+      "inzaai voor 15 mei en volgende jaren",
+    ],
+    [
+      "sown on 15 May in the first year",
+      new Date(2026, 4, 15),
+      30,
+      "inzaai in september en eerste jaar",
+    ],
+    [
+      "sown in June in the first year",
+      new Date(2026, 5, 20),
+      30,
+      "inzaai in september en eerste jaar",
+    ],
+  ])(
+    "should select the Gras voor industriële verwerking norm by sowing date (%s)",
+    async (_label, b_lu_start, expectedNorm, expectedSubType) => {
+      const mockInput: NL2026NormsInput = {
+        farm: { has_grazing_intention: false },
+        field: {
+          b_id: "1",
+          b_centroid: [5.6279889, 51.975571], // Klei region
+        } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_3805", // Gras voor industriële verwerking
+            b_lu_start,
+            b_lu_end: new Date(2026, 11, 31),
+          } as Partial<NL2026NormsInputForCultivation>,
+        ] as NL2026NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+      expect(result.normValue).toBe(expectedNorm)
+      expect(result.normSource).toEqual(
+        `Akkerbouwgewassen, Gras voor industriële verwerking (${expectedSubType}).`,
+      )
+    },
+  )
 
   it("should return the correct norm for Gras voor industriële verwerking (volgende jaren)", async () => {
     const mockInput: NL2026NormsInput = {
@@ -777,7 +823,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
       expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
     })
 
-    it("should apply 50 discount on Clay (June 1 - Aug 31)", async () => {
+    it("should not apply renewal korting on Clay (footnote 14 applies to sand and loess only)", async () => {
       const mockInput: NL2026NormsInput = {
         farm: {
           has_grazing_intention: false,
@@ -802,7 +848,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
       }
 
       const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
-      expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+      expect(result.normSource).not.toContain("graslandvernieuwing")
     })
 
     it("should not apply renewal korting for invalid renewal date on Sand", async () => {
@@ -1395,7 +1441,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
     dataSpy.mockRestore()
   })
 
-  it("handles multiple matching standards and chooses the earliest matching period", async () => {
+  it("handles multiple matching standards and chooses the latest sowing window that has started", async () => {
     setupGeoMock(1, 0)
     const dataSpy = spyNitrogenStandards([
       {
@@ -1435,7 +1481,8 @@ describe("NL2026 stikstof additional branch coverage", () => {
       ]),
     )
 
-    expect(result.normValue).toBe(195)
+    // Start on 1 May: the "from 1 April" window (215) has started and is later than "from 1 March" (195)
+    expect(result.normValue).toBe(215)
     expect(result.normSource).toBe("Akkerbouwgewassen, Luzerne (eerste jaar).")
     dataSpy.mockRestore()
   })
@@ -1527,7 +1574,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
     dataSpy.mockRestore()
   })
 
-  it("applies clay renewal korting for grass transitions", async () => {
+  it("does not apply renewal korting on clay for grass transitions", async () => {
     setupGeoMock(1, 0) // klei, non-NV
     const dataSpy = spyNitrogenStandards([
       {
@@ -1561,12 +1608,13 @@ describe("NL2026 stikstof additional branch coverage", () => {
       ]),
     )
 
-    expect(result.normValue).toBe(210)
-    expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+    // 260 for the first grass + 0 for the re-sown grass, without korting
+    expect(result.normValue).toBe(260)
+    expect(result.normSource).not.toContain("graslandvernieuwing")
     dataSpy.mockRestore()
   })
 
-  it("applies clay destruction korting for maize in both NV and non-NV", async () => {
+  it("does not apply destruction korting on clay (NV and non-NV)", async () => {
     const dataSpy = spyNitrogenStandards([
       {
         b_lu_catalogue_match: ["nl_265"],
@@ -1597,7 +1645,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
         } as NL2026NormsInputForCultivation,
       ]),
     )
-    expect(nvResult.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
+    expect(nvResult.normSource).not.toContain("graslandvernietiging")
 
     setupGeoMock(1, 0)
     const nonNvResult = await calculateNL2026StikstofGebruiksNorm(
@@ -1614,7 +1662,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
         } as NL2026NormsInputForCultivation,
       ]),
     )
-    expect(nonNvResult.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
+    expect(nonNvResult.normSource).not.toContain("graslandvernietiging")
     dataSpy.mockRestore()
   })
 
@@ -1770,7 +1818,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
     dataSpy.mockRestore()
   })
 
-  it("applies clay renewal korting for a pure grass-to-grass transition", async () => {
+  it("does not apply renewal korting on clay for a pure grass-to-grass transition", async () => {
     setupGeoMock(1, 0) // klei, non-NV
     const dataSpy = spyNitrogenStandards([
       {
@@ -1797,7 +1845,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
       ]),
     )
 
-    expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+    expect(result.normSource).not.toContain("graslandvernieuwing")
     dataSpy.mockRestore()
   })
 })
@@ -2249,6 +2297,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
             omschrijving: "specifiek",
             period_start_month: 1,
             period_end_month: 12,
+            period_end_day: 31,
             norms: regionNorms(95),
           },
         ],
@@ -2277,5 +2326,464 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
 
     expect(result.normValue).toBe(195)
     dataSpy.mockRestore()
+  })
+})
+
+describe("getNormsForCultivation - tijdelijk grasland periods (RVO Tabel 2)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const getTijdelijkGrasland = () => {
+    const standard = StikstofData.nitrogenStandardsData.find(
+      (ns) => ns.cultivation_rvo_table2 === "Tijdelijk grasland",
+    ) as NitrogenStandard | undefined
+    if (!standard) throw new Error("Tijdelijk grasland standard not found")
+    return standard
+  }
+
+  const select = (start: Date | null, end: Date) => {
+    const standard = getTijdelijkGrasland()
+    const result = getNormsForCultivation(standard, end, start)
+    const subType = standard.sub_types?.find((sub) => sub.norms === result?.norms)
+    return {
+      klei: result?.norms.klei.standard,
+      period: subType?.period_description,
+      minimumPeriodNotMet: result?.minimumPeriodNotMet ?? false,
+    }
+  }
+
+  it.each([
+    // [label, start, end, expected klei norm, expected period]
+    [
+      "overwintered, whole year",
+      new Date(2025, 8, 1),
+      new Date(2026, 11, 31),
+      310,
+      "van 1 januari tot minstens 15 oktober",
+    ],
+    [
+      "overwintered, destroyed 15 Apr",
+      new Date(2025, 8, 1),
+      new Date(2026, 3, 15),
+      60,
+      "van 1 januari tot minstens 15 april",
+    ],
+    [
+      "overwintered, destroyed 1 May",
+      new Date(2025, 8, 1),
+      new Date(2026, 4, 1),
+      60,
+      "van 1 januari tot minstens 15 april",
+    ],
+    [
+      "overwintered, destroyed 15 May",
+      new Date(2025, 8, 1),
+      new Date(2026, 4, 15),
+      110,
+      "van 1 januari tot minstens 15 mei",
+    ],
+    [
+      "overwintered, destroyed 1 Jul",
+      new Date(2025, 8, 1),
+      new Date(2026, 6, 1),
+      110,
+      "van 1 januari tot minstens 15 mei",
+    ],
+    [
+      "overwintered, destroyed 15 Aug",
+      new Date(2025, 8, 1),
+      new Date(2026, 7, 15),
+      250,
+      "van 1 januari tot minstens 15 augustus",
+    ],
+    [
+      "overwintered, destroyed 20 Sep",
+      new Date(2025, 8, 1),
+      new Date(2026, 8, 20),
+      280,
+      "van 1 januari tot minstens 15 september",
+    ],
+    [
+      "overwintered, destroyed 15 Oct",
+      new Date(2025, 8, 1),
+      new Date(2026, 9, 15),
+      310,
+      "van 1 januari tot minstens 15 oktober",
+    ],
+    [
+      "overwintered, kept into next year",
+      new Date(2025, 8, 1),
+      new Date(2027, 2, 1),
+      310,
+      "van 1 januari tot minstens 15 oktober",
+    ],
+    [
+      "no start date, destroyed 1 Jun",
+      null,
+      new Date(2026, 5, 1),
+      110,
+      "van 1 januari tot minstens 15 mei",
+    ],
+    [
+      "sown 1 Mar, kept",
+      new Date(2026, 2, 1),
+      new Date(2026, 11, 31),
+      310,
+      "van 1 januari tot minstens 15 oktober",
+    ],
+    [
+      "sown 1 Mar, destroyed 1 Jun",
+      new Date(2026, 2, 1),
+      new Date(2026, 5, 1),
+      110,
+      "van 1 januari tot minstens 15 mei",
+    ],
+    [
+      "sown 14 Apr, kept",
+      new Date(2026, 3, 14),
+      new Date(2026, 11, 31),
+      310,
+      "van 1 januari tot minstens 15 oktober",
+    ],
+    [
+      "sown 15 Apr, kept",
+      new Date(2026, 3, 15),
+      new Date(2026, 11, 31),
+      310,
+      "vanaf 15 april tot minstens 15 oktober",
+    ],
+    [
+      "sown 20 Apr, kept into next year",
+      new Date(2026, 3, 20),
+      new Date(2027, 2, 1),
+      310,
+      "vanaf 15 april tot minstens 15 oktober",
+    ],
+    [
+      "sown 15 May, kept",
+      new Date(2026, 4, 15),
+      new Date(2026, 11, 31),
+      280,
+      "vanaf 15 mei tot minstens 15 oktober",
+    ],
+    [
+      "sown 20 May, kept",
+      new Date(2026, 4, 20),
+      new Date(2026, 11, 31),
+      280,
+      "vanaf 15 mei tot minstens 15 oktober",
+    ],
+    [
+      "sown 20 Aug, kept",
+      new Date(2026, 7, 20),
+      new Date(2026, 11, 31),
+      95,
+      "vanaf 15 augustus tot minstens 15 oktober",
+    ],
+    [
+      "sown 15 Sep, kept",
+      new Date(2026, 8, 15),
+      new Date(2026, 11, 31),
+      30,
+      "vanaf 15 september tot minstens 15 oktober",
+    ],
+    [
+      "sown 20 Sep, destroyed 15 Oct",
+      new Date(2026, 8, 20),
+      new Date(2026, 9, 15),
+      30,
+      "vanaf 15 september tot minstens 15 oktober",
+    ],
+    [
+      "sown 14 Oct, kept",
+      new Date(2026, 9, 14),
+      new Date(2026, 11, 31),
+      30,
+      "vanaf 15 september tot minstens 15 oktober",
+    ],
+    ["sown 15 Oct, kept", new Date(2026, 9, 15), new Date(2026, 11, 31), 0, "vanaf 15 oktober"],
+    [
+      "sown 15 Oct, kept into next year",
+      new Date(2026, 9, 15),
+      new Date(2027, 3, 1),
+      0,
+      "vanaf 15 oktober",
+    ],
+  ])("%s -> %i (%s)", (_label, start, end, expectedNorm, expectedPeriod) => {
+    const result = select(start, end)
+    expect(result.klei).toBe(expectedNorm)
+    expect(result.period).toBe(expectedPeriod)
+    expect(result.minimumPeriodNotMet).toBe(false)
+  })
+
+  it.each([
+    ["overwintered, destroyed 1 Mar", new Date(2025, 8, 1), new Date(2026, 2, 1)],
+    ["overwintered, destroyed 14 Apr", new Date(2025, 8, 1), new Date(2026, 3, 14)],
+    ["sown 20 Apr, destroyed 1 Sep", new Date(2026, 3, 20), new Date(2026, 8, 1)],
+    ["sown 20 Sep, destroyed 14 Oct", new Date(2026, 8, 20), new Date(2026, 9, 14)],
+  ])("%s -> 0 (minimum period not met)", (_label, start, end) => {
+    const result = select(start, end)
+    expect(result.klei).toBe(0)
+    expect(result.minimumPeriodNotMet).toBe(true)
+  })
+
+  it("returns 0 for temporary grassland sown on 15 October after a main crop", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "potato",
+          b_lu_catalogue: "nl_2014",
+          b_lu_start: new Date(2026, 3, 15),
+          b_lu_end: new Date(2026, 8, 14),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu: "grass",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 9, 15),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    expect(result.normValue).toBe(250)
+    expect(result.normSource).toContain("Tijdelijk grasland (vanaf 15 oktober) (0 kg N/ha)")
+  })
+
+  it("gives the full-year norm to temporary grassland that continues into the next year", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2027, 2, 1),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    expect(result.normValue).toBe(310)
+  })
+
+  it("gives 0 with a note when temporary grassland does not meet the minimum period", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 3, 20),
+          b_lu_end: new Date(2026, 8, 1),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    expect(result.normValue).toBe(0)
+    expect(result.normSource).toContain("geen ruimte: minimale periode niet gehaald")
+  })
+})
+
+describe("calculateNL2026StikstofGebruiksNorm - overwintered temporary grassland as preceding crop", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("includes overwintered temporary grassland before maize", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 4, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu: "maize",
+          b_lu_catalogue: "nl_259",
+          b_lu_start: new Date(2026, 4, 5),
+          b_lu_end: new Date(2026, 9, 15),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    expect(result.normSource).toContain(
+      "Tijdelijk grasland (van 1 januari tot minstens 15 april) (60 kg N/ha)",
+    )
+    // Maïs (klei) 185 + tijdelijk grasland "van 1 januari tot minstens 15 april" 60
+    expect(result.normValue).toBe(245)
+  })
+
+  it("leaves out overwintered temporary grassland that ends before 15 April", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass-old",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 0, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu: "grass-new",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 0, 1),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    // The grass ending on 1 January does not block the new grass ("heringezaaid")
+    expect(result.normValue).toBe(310)
+    expect(result.normSource).not.toContain("heringezaaid")
+  })
+
+  it("lets re-sown grass carry the norm when it meets its minimum period", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass-old",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 4, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu: "grass-new",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 4, 5),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    // The re-sown grass carries the norm and is marked as heringezaaid
+    expect(result.normValue).toBe(310)
+    expect(result.normSource).toBe(
+      "Tijdelijk grasland (vanaf 15 april tot minstens 15 oktober) (heringezaaid).",
+    )
+  })
+
+  it("keeps overwintered temporary grassland when renewed grass does not meet its minimum period", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass-old",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 4, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu: "grass-new",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 4, 5),
+          b_lu_end: new Date(2026, 8, 1),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    expect(result.normValue).toBe(60)
+    expect(result.normSource).toContain("van 1 januari tot minstens 15 april")
+    expect(result.normSource).toContain("heringezaaid")
+  })
+
+  it("leaves out a replaced overwintered stand even when it is the hoofdteelt", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass-old",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 7, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu: "grass-new",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 7, 2),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    // The re-sown grass carries the norm; no renewal korting on clay
+    expect(result.normValue).toBe(280)
+    expect(result.normSource).toBe(
+      "Tijdelijk grasland (vanaf 15 mei tot minstens 15 oktober) (heringezaaid).",
+    )
+  })
+})
+
+describe("NL2026 stikstof eenmalige vs. meermalige oogst", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const cultivation = (
+    b_lu_catalogue: string,
+    harvestDates?: Date[],
+  ): NL2026NormsInputForCultivation =>
+    ({
+      b_lu: "lu-1",
+      b_lu_catalogue,
+      b_lu_start: new Date(2026, 3, 1),
+      b_lu_end: new Date(2026, 8, 30),
+      ...(harvestDates
+        ? { harvests: harvestDates.map((b_lu_harvest_date) => ({ b_lu_harvest_date })) }
+        : {}),
+    }) as NL2026NormsInputForCultivation
+
+  it("uses the eenmalige oogst norm for Bladgewassen overig without harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(baseInput([cultivation("nl_2791")]))
+    expect(result.normValue).toBe(150)
+    expect(result.normSource).toEqual("Bladgewassen, Bladgewassen overig (eenmalige oogst).")
+  })
+
+  it("uses the eenmalige oogst norm for Bladgewassen overig with one harvest", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2792", [new Date(2026, 5, 21)])]),
+    )
+    expect(result.normValue).toBe(150)
+    expect(result.normSource).toEqual("Bladgewassen, Bladgewassen overig (eenmalige oogst).")
+  })
+
+  it("uses the meermalige oogst norm for Bladgewassen overig with two harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2791", [new Date(2026, 5, 21), new Date(2026, 7, 15)])]),
+    )
+    expect(result.normValue).toBe(275)
+    expect(result.normSource).toEqual("Bladgewassen, Bladgewassen overig (meermalige oogst).")
+  })
+
+  it("uses the nv_area value for Bladgewassen overig in an NV-gebied", async () => {
+    setupGeoMock(1, 1)
+    const eenmalig = await calculateNL2026StikstofGebruiksNorm(baseInput([cultivation("nl_2791")]))
+    expect(eenmalig.normValue).toBe(120)
+    const meermalig = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2791", [new Date(2026, 5, 21), new Date(2026, 7, 15)])]),
+    )
+    expect(meermalig.normValue).toBe(220)
+  })
+
+  it("uses the bladgewas, eenmalige oogst norm for Kruiden without harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(baseInput([cultivation("nl_2743")]))
+    expect(result.normValue).toBe(150)
+    expect(result.normSource).toEqual("Kruiden (bladgewas, eenmalige oogst).")
+  })
+
+  it("uses the bladgewas, meermalig oogsten norm for Kruiden with two harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2744", [new Date(2026, 5, 21), new Date(2026, 7, 15)])]),
+    )
+    expect(result.normValue).toBe(275)
+    expect(result.normSource).toEqual("Kruiden (bladgewas, meermalig oogsten).")
   })
 })

@@ -1,4 +1,4 @@
-import type { SoilAnalysis } from "@nmi-agro/fdm-core"
+import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 import type { SoilAnalysisPicked as NitrogenSoilAnalysisPicked } from "../nitrogen/types"
 import type { SoilAnalysisPicked as OrganicMatterSoilAnalysisPicked } from "../organic-matter/types"
 import {
@@ -21,25 +21,41 @@ const allEstimationProperties = [
   "b_gwl_class",
 ] as const
 
-export function combineSoilAnalyses<T extends SoilAnalysisPicked>(
-  soilAnalyses: Partial<SoilAnalysis>[],
+const numericProperties = new Set<string>([
+  "a_c_of",
+  "a_som_loi",
+  "a_cn_fr",
+  "a_n_rt",
+  "a_density_sa",
+])
+
+/**
+ * Reads the soil parameters that a balance needs from the current soil data of a field.
+ *
+ * The current soil data (from `getCurrentSoilData` or `getCurrentSoilDataForFarm` in fdm-core) already
+ * holds the current value per soil parameter, so the value of each parameter is taken as is. When
+ * `estimateMissing` is `true`, missing values are estimated from the other parameters where possible
+ * (organic carbon and organic matter from each other, the C/N ratio from organic carbon and total
+ * nitrogen, and the bulk density from organic matter and soil type).
+ *
+ * @param currentSoilData - The current soil data of the field.
+ * @param propertiesToExtract - The soil parameters to return.
+ * @param estimateMissing - Whether to estimate missing values from other parameters.
+ * @returns An object with a value for each requested soil parameter.
+ * @throws {Error} When a requested soil parameter has no value and cannot be estimated.
+ */
+export function resolveSoilParameters<T extends SoilAnalysisPicked>(
+  currentSoilData: CurrentSoilData,
   propertiesToExtract: (keyof T)[],
   estimateMissing = false,
 ): T {
-  // Sort the soil analyses by date (most recent first)
-  soilAnalyses.sort((a, b) => {
-    if (a.b_sampling_date && b.b_sampling_date) {
-      return new Date(b.b_sampling_date).getTime() - new Date(a.b_sampling_date).getTime()
-    }
-    return 0
-  })
-
   const fullSoilAnalysis: Partial<NitrogenSoilAnalysisPicked> = {}
 
-  // Extract all possible estimation properties (preserve 0 values)
+  // Take the current value of each parameter (preserve 0 values)
   for (const prop of allEstimationProperties) {
-    const value = soilAnalyses.find((x: any) => x[prop] !== null && x[prop] !== undefined)?.[prop]
-    ;(fullSoilAnalysis as any)[prop] = value ?? null
+    const value = currentSoilData.find((x) => x.parameter === prop)?.value
+    const expectedType = numericProperties.has(prop) ? "number" : "string"
+    ;(fullSoilAnalysis as any)[prop] = typeof value === expectedType ? value : null
   }
 
   if (estimateMissing) {

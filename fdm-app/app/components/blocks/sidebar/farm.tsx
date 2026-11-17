@@ -15,7 +15,7 @@ import {
   Sprout,
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { NavLink, useLocation, useSearchParams, useNavigate, useFetcher } from "react-router"
 import type { FieldOption } from "~/lib/hoofdteelt.server"
 import { getCalendarSelection } from "@/app/lib/calendar"
@@ -47,6 +47,8 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useHydrated } from "~/hooks/use-hydrated"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
 
 export type { FieldOption }
@@ -102,7 +104,9 @@ export function SidebarFarm({
     ? (fields.find((f) => f.b_id === activeFieldId)?.b_name ?? null)
     : null
   const [isPickerOpen, setIsPickerOpen] = useState(false)
-  const [isPerceelOpen, setIsPerceelOpen] = useState(false)
+  // Defaults to open whenever a field is active; re-derives per field, so the user's own
+  // collapse/expand still sticks until they navigate to a different field.
+  const [isPerceelOpen, setIsPerceelOpen] = useKeyedState(activeFieldId, (id) => !!id)
   const [targetSegment, setTargetSegment] = useState("")
 
   // Which farm-scoped feature the user tried to reach without a farm selected.
@@ -139,13 +143,6 @@ export function SidebarFarm({
     }
     setFieldPickerFarmId(null)
   }
-
-  // Auto-expand whenever a field is active
-  useEffect(() => {
-    if (activeFieldId) {
-      setIsPerceelOpen(true)
-    }
-  }, [activeFieldId])
 
   const getActiveSegment = () => {
     if (location.pathname.includes("/cultivation")) return "cultivation"
@@ -235,118 +232,126 @@ export function SidebarFarm({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
                 isActive={isFarmOverview || isCreateFarmWizard}
                 tooltip="Mijn bedrijven"
-              >
-                <NavLink to="/farm">
-                  <LayoutGrid />
-                  <span>{isCreateFarmWizard ? "Terug naar bedrijven" : "Mijn bedrijven"}</span>
-                </NavLink>
-              </SidebarMenuButton>
+                render={
+                  <NavLink to="/farm">
+                    <LayoutGrid />
+                    <span>{isCreateFarmWizard ? "Terug naar bedrijven" : "Mijn bedrijven"}</span>
+                  </NavLink>
+                }
+              />
             </SidebarMenuItem>
 
             {isFarmSelected && (
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  asChild
                   isActive={
                     location.pathname === `/farm/${farmId}` ||
                     location.pathname.includes(`/farm/${farmId}/settings`)
                   }
                   tooltip={farm?.b_name_farm ?? "Bedrijfsoverzicht"}
-                >
-                  <NavLink to={`/farm/${farmId}`}>
-                    <House />
-                    <span className="truncate font-medium">{farm?.b_name_farm ?? "Overzicht"}</span>
-                    {farmRole && (
-                      <Badge key={farmRole} variant="outline" className="ml-auto text-[10px]">
-                        {farmRole === "owner"
-                          ? "Eigenaar"
-                          : farmRole === "advisor"
-                            ? "Adviseur"
-                            : farmRole === "researcher"
-                              ? "Onderzoeker"
-                              : "Lid"}
-                      </Badge>
-                    )}
-                  </NavLink>
-                </SidebarMenuButton>
+                  render={
+                    <NavLink to={`/farm/${farmId}`}>
+                      <House />
+                      <span className="truncate font-medium">
+                        {farm?.b_name_farm ?? "Overzicht"}
+                      </span>
+                      {farmRole && (
+                        <Badge key={farmRole} variant="outline" className="ml-auto text-[10px]">
+                          {farmRole === "owner"
+                            ? "Eigenaar"
+                            : farmRole === "advisor"
+                              ? "Adviseur"
+                              : farmRole === "researcher"
+                                ? "Onderzoeker"
+                                : "Lid"}
+                        </Badge>
+                      )}
+                    </NavLink>
+                  }
+                />
               </SidebarMenuItem>
             )}
 
             {/* Conditionally render the Kalender item */}
             {isFarmSelected ? (
               <Collapsible
-                asChild
                 open={isCalendarOpen}
                 className="group/collapsible"
                 onOpenChange={setIsCalendarOpen}
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton tooltip={"Kalender"} className="flex items-center">
-                      <Calendar />
-                      <span>Kalender </span>
-                      {!isCalendarOpen && (
-                        <Badge className="ml-1">
-                          {selectedCalendar === "all" ? "Alle jaren" : selectedCalendar}
-                        </Badge>
-                      )}
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {calendarSelection?.map((item) => {
-                        // Construct the new URL with the selected calendar
-                        const newUrl = `${location.pathname.replace(/\/(\d{4}|all)(\/|$)/, `/${item}/`)}${location.search}`
-                        return (
-                          <SidebarMenuSubItem
-                            key={item}
-                            className={
-                              selectedCalendar === item ? "bg-accent text-accent-foreground" : ""
-                            }
-                          >
-                            <SidebarMenuSubButton
-                              asChild
-                              onClick={(event) => {
-                                // On the timeline page, "jump" by scrolling the already-loaded
-                                // Gantt to that year instead of a full page navigation — every
-                                // other route has no handler registered, so this is a no-op there
-                                // and the NavLink below navigates normally.
-                                if (jumpToYear?.(item)) {
-                                  event.preventDefault()
-                                }
-                                setCalendar(item)
-                              }}
+                render={
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger
+                      render={
+                        <SidebarMenuButton tooltip={"Kalender"} className="flex items-center">
+                          <Calendar />
+                          <span>Kalender </span>
+                          {!isCalendarOpen && (
+                            <Badge className="ml-1">
+                              {selectedCalendar === "all" ? "Alle jaren" : selectedCalendar}
+                            </Badge>
+                          )}
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      }
+                    />
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {calendarSelection?.map((item) => {
+                          // Construct the new URL with the selected calendar
+                          const newUrl = `${location.pathname.replace(/\/(\d{4}|all)(\/|$)/, `/${item}/`)}${location.search}`
+                          return (
+                            <SidebarMenuSubItem
+                              key={item}
+                              className={
+                                selectedCalendar === item ? "bg-accent text-accent-foreground" : ""
+                              }
                             >
-                              <NavLink to={newUrl} className="flex items-center">
-                                <span>{item === "all" ? "Alle jaren" : item}</span>
-                                {selectedCalendar === item && <Check className="ml-auto h-4 w-4" />}
-                              </NavLink>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      })}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+                              <SidebarMenuSubButton
+                                onClick={(event) => {
+                                  // On the timeline page, "jump" by scrolling the already-loaded
+                                  // Gantt to that year instead of a full page navigation — every
+                                  // other route has no handler registered, so this is a no-op there
+                                  // and the NavLink below navigates normally.
+                                  if (jumpToYear?.(item)) {
+                                    event.preventDefault()
+                                  }
+                                  setCalendar(item)
+                                }}
+                                render={
+                                  <NavLink to={newUrl} className="flex items-center">
+                                    <span>{item === "all" ? "Alle jaren" : item}</span>
+                                    {selectedCalendar === item && (
+                                      <Check className="ml-auto h-4 w-4" />
+                                    )}
+                                  </NavLink>
+                                }
+                              />
+                            </SidebarMenuSubItem>
+                          )
+                        })}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                }
+              />
             ) : (
               <SidebarMenuItem>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker("de kalender", (b_id_farm) => `/farm/${b_id_farm}`)
-                      }
-                    >
-                      <Calendar />
-                      <span>Kalender</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker("de kalender", (b_id_farm) => `/farm/${b_id_farm}`)
+                        }
+                      >
+                        <Calendar />
+                        <span>Kalender</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de kalender te gebruiken
                   </TooltipContent>
@@ -356,35 +361,37 @@ export function SidebarFarm({
             {isFarmSelected ? (
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  asChild
                   isActive={
                     location.pathname === `/farm/${farmId}/${selectedCalendar}/field` ||
                     location.pathname === `/farm/${farmId}/${selectedCalendar}/field/`
                   }
-                >
-                  <NavLink to={`/farm/${farmId}/${selectedCalendar}/field`}>
-                    <Grid2x2 />
-                    <span>Percelen</span>
-                  </NavLink>
-                </SidebarMenuButton>
+                  render={
+                    <NavLink to={`/farm/${farmId}/${selectedCalendar}/field`}>
+                      <Grid2x2 />
+                      <span>Percelen</span>
+                    </NavLink>
+                  }
+                />
               </SidebarMenuItem>
             ) : (
               <SidebarMenuItem>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "uw percelen",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/field`,
-                        )
-                      }
-                    >
-                      <Grid2x2 />
-                      <span>Percelen</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "uw percelen",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/field`,
+                          )
+                        }
+                      >
+                        <Grid2x2 />
+                        <span>Percelen</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om uw percelen te bekijken
                   </TooltipContent>
@@ -394,33 +401,35 @@ export function SidebarFarm({
             <SidebarMenuItem>
               {rotationLink ? (
                 <SidebarMenuButton
-                  asChild
                   isActive={
                     location.pathname.includes(`/farm/${farmId}/`) &&
                     location.pathname.includes("/rotation")
                   }
-                >
-                  <NavLink to={rotationLink}>
-                    <Sprout />
-                    <span>Bouwplan</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "het bouwplan",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/rotation`,
-                        )
-                      }
-                    >
+                  render={
+                    <NavLink to={rotationLink}>
                       <Sprout />
                       <span>Bouwplan</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "het bouwplan",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/rotation`,
+                          )
+                        }
+                      >
+                        <Sprout />
+                        <span>Bouwplan</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om het bouwplan te beheren
                   </TooltipContent>
@@ -429,28 +438,33 @@ export function SidebarFarm({
             </SidebarMenuItem>
             <SidebarMenuItem>
               {timelineLink ? (
-                <SidebarMenuButton asChild isActive={location.pathname.includes("/timeline")}>
-                  <NavLink to={timelineLink}>
-                    <GanttChart />
-                    <span>Tijdlijn</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "de tijdlijn",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/timeline`,
-                        )
-                      }
-                    >
+                <SidebarMenuButton
+                  isActive={location.pathname.includes("/timeline")}
+                  render={
+                    <NavLink to={timelineLink}>
                       <GanttChart />
                       <span>Tijdlijn</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "de tijdlijn",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/timeline`,
+                          )
+                        }
+                      >
+                        <GanttChart />
+                        <span>Tijdlijn</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de tijdlijn te bekijken
                   </TooltipContent>
@@ -459,28 +473,33 @@ export function SidebarFarm({
             </SidebarMenuItem>
             <SidebarMenuItem>
               {measuresLink ? (
-                <SidebarMenuButton asChild isActive={location.pathname.includes("/measures")}>
-                  <NavLink to={measuresLink}>
-                    <ClipboardList />
-                    <span>Maatregelen</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "de maatregelen",
-                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/measures`,
-                        )
-                      }
-                    >
+                <SidebarMenuButton
+                  isActive={location.pathname.includes("/measures")}
+                  render={
+                    <NavLink to={measuresLink}>
                       <ClipboardList />
                       <span>Maatregelen</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "de maatregelen",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/measures`,
+                          )
+                        }
+                      >
+                        <ClipboardList />
+                        <span>Maatregelen</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de maatregelen te beheren
                   </TooltipContent>
@@ -489,28 +508,33 @@ export function SidebarFarm({
             </SidebarMenuItem>
             <SidebarMenuItem>
               {fertilizersLink ? (
-                <SidebarMenuButton asChild isActive={location.pathname.includes(fertilizersLink)}>
-                  <NavLink to={fertilizersLink}>
-                    <Shapes />
-                    <span>Meststoffen</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() =>
-                        openFarmPicker(
-                          "meststoffen",
-                          (b_id_farm) => `/farm/${b_id_farm}/fertilizers`,
-                        )
-                      }
-                    >
+                <SidebarMenuButton
+                  isActive={location.pathname.includes(fertilizersLink)}
+                  render={
+                    <NavLink to={fertilizersLink}>
                       <Shapes />
                       <span>Meststoffen</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                    </NavLink>
+                  }
+                />
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "meststoffen",
+                            (b_id_farm) => `/farm/${b_id_farm}/fertilizers`,
+                          )
+                        }
+                      >
+                        <Shapes />
+                        <span>Meststoffen</span>
+                      </SidebarMenuButton>
+                    }
+                  ></TooltipTrigger>
                   <TooltipContent side="right">
                     Selecteer een bedrijf om meststoffen te beheren
                   </TooltipContent>
@@ -520,109 +544,111 @@ export function SidebarFarm({
             {/* Context-aware Perceel group */}
             {isFarmSelected ? (
               <Collapsible
-                asChild
                 open={isPerceelOpen}
                 className="group/collapsible"
                 onOpenChange={setIsPerceelOpen}
-              >
-                <SidebarMenuItem>
-                  <div className="flex w-full items-center">
-                    <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <SidebarMenuButton
-                          tooltip={"Perceel"}
-                          className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
-                        >
-                          <LandPlot className="size-4 shrink-0" />
-                          <span className="truncate font-medium">
-                            {activeFieldName ?? "Kies een perceel"}
-                          </span>
-                        </SidebarMenuButton>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[280px] p-0" align="start" side="right">
-                        <Command>
-                          <CommandInput
-                            placeholder="Zoek perceel..."
-                            className="border-none focus:ring-0 focus-visible:ring-0"
-                          />
-                          <CommandList className="max-h-[300px] overflow-y-auto">
-                            <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
-                            {recentFields.length > 0 && (
-                              <CommandGroup heading="Onlangs bezocht">
-                                {recentFields.map((field) => (
-                                  <FieldPickerItem
-                                    key={`recent-${field.b_id}`}
-                                    keyPrefix="recent"
-                                    option={field}
-                                    onSelect={handleSelectField}
-                                  />
-                                ))}
-                              </CommandGroup>
-                            )}
-                            {regularFields.length > 0 && (
-                              <CommandGroup heading="Alle percelen">
-                                {regularFields.map((field) => (
-                                  <FieldPickerItem
-                                    key={field.b_id}
-                                    option={field}
-                                    onSelect={handleSelectField}
-                                  />
-                                ))}
-                              </CommandGroup>
-                            )}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <CollapsibleTrigger asChild>
-                      <button
+                render={
+                  <SidebarMenuItem>
+                    <div className="flex w-full items-center">
+                      <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+                        <PopoverTrigger
+                          render={
+                            <SidebarMenuButton
+                              tooltip={"Perceel"}
+                              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+                            >
+                              <LandPlot className="size-4 shrink-0" />
+                              <span className="truncate font-medium">
+                                {activeFieldName ?? "Kies een perceel"}
+                              </span>
+                            </SidebarMenuButton>
+                          }
+                        />
+                        <PopoverContent className="w-70 p-0" align="start" side="right">
+                          <Command>
+                            <CommandInput
+                              placeholder="Zoek perceel..."
+                              className="border-none focus:ring-0 focus-visible:ring-0"
+                            />
+                            <CommandList className="max-h-75 overflow-y-auto">
+                              <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
+                              {recentFields.length > 0 && (
+                                <CommandGroup heading="Onlangs bezocht">
+                                  {recentFields.map((field) => (
+                                    <FieldPickerItem
+                                      key={`recent-${field.b_id}`}
+                                      keyPrefix="recent"
+                                      option={field}
+                                      onSelect={handleSelectField}
+                                    />
+                                  ))}
+                                </CommandGroup>
+                              )}
+                              {regularFields.length > 0 && (
+                                <CommandGroup heading="Alle percelen">
+                                  {regularFields.map((field) => (
+                                    <FieldPickerItem
+                                      key={field.b_id}
+                                      option={field}
+                                      onSelect={handleSelectField}
+                                    />
+                                  ))}
+                                </CommandGroup>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <CollapsibleTrigger
                         type="button"
                         aria-label="Perceel sectie in- of uitklappen"
-                        className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                        className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-open/collapsible:rotate-90"
                       >
                         <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
-                      </button>
-                    </CollapsibleTrigger>
-                  </div>
+                      </CollapsibleTrigger>
+                    </div>
 
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {navigationItems.map((item) => (
-                        <SidebarMenuSubItem key={item.segment}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={
-                              item.segment === ""
-                                ? location.pathname === item.to ||
-                                  location.pathname === `${item.to}/`
-                                : location.pathname.startsWith(item.to)
-                            }
-                          >
-                            <NavLink
-                              to={activeFieldId ? item.to : "#"}
-                              onClick={(e) => handleSubSectionClick(e, item.segment)}
-                            >
-                              <span>{item.title}</span>
-                            </NavLink>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {navigationItems.map((item) => (
+                          <SidebarMenuSubItem key={item.segment}>
+                            <SidebarMenuSubButton
+                              isActive={
+                                item.segment === ""
+                                  ? location.pathname === item.to ||
+                                    location.pathname === `${item.to}/`
+                                  : location.pathname.startsWith(item.to)
+                              }
+                              render={
+                                <NavLink
+                                  to={activeFieldId ? item.to : "#"}
+                                  onClick={(e) => handleSubSectionClick(e, item.segment)}
+                                >
+                                  <span>{item.title}</span>
+                                </NavLink>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                }
+              />
             ) : (
               <SidebarMenuItem>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      className="text-muted-foreground"
-                      onClick={() => openFieldFarmPicker("een perceel")}
-                    >
-                      <LandPlot />
-                      <span>Kies een perceel</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() => openFieldFarmPicker("een perceel")}
+                      >
+                        <LandPlot />
+                        <span>Kies een perceel</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om uw percelen te beheren
                   </TooltipContent>
@@ -660,16 +686,31 @@ export function SidebarFarm({
   )
 }
 
-export function SidebarLabs() {
+export function SidebarLabs({
+  farms = [],
+}: {
+  farms?: { b_id_farm: string; b_name_farm: string | null }[]
+}) {
   const farmId = useFarmStore((state) => state.farmId)
   const selectedCalendar = useCalendarStore((state) => state.calendar)
   const location = useLocation()
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
-  const isMineralizationEnabled = useFeatureFlagEnabled("mineralization") ?? true
+  const navigate = useNavigate()
+  const [isFarmPickerOpen, setIsFarmPickerOpen] = useState(false)
+  // Feature flags only exist in the browser: the server never has a PostHog client, so it cannot
+  // know them. Until hydration has finished, keep the Labs items hidden on both sides, otherwise
+  // they differ between both renders and React reports a hydration mismatch. The fallback is a
+  // constant on purpose: deriving it from configuration could resolve differently on the server
+  // and in the browser. After hydration the flags decide; without PostHog there are no flags and
+  // the items are shown.
+  const isHydrated = useHydrated()
+  const gerritFlag = useFeatureFlagEnabled("gerrit")
+  const mineralizationFlag = useFeatureFlagEnabled("mineralization")
+  const isGerritEnabled = isHydrated && (gerritFlag ?? true)
+  const isMineralizationEnabled = isHydrated && (mineralizationFlag ?? true)
 
   const isFarmSelected = farmId && farmId !== "undefined"
   const isCreateFarmWizard = location.pathname.includes("farm/create")
-  if (!isFarmSelected) return null
+  if (!isFarmSelected && !isGerritEnabled) return null
 
   return (
     <TooltipProvider>
@@ -677,34 +718,33 @@ export function SidebarLabs() {
         <SidebarGroupLabel>Labs</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {isMineralizationEnabled && (
+            {isFarmSelected && isMineralizationEnabled && (
               <SidebarMenuItem>
                 {!isCreateFarmWizard ? (
                   <SidebarMenuButton
-                    asChild
                     isActive={location.pathname.includes(
                       `/farm/${farmId}/${selectedCalendar}/mineralization`,
                     )}
                     tooltip="Stikstofmineralisatie per perceel"
-                  >
-                    <NavLink to={`/farm/${farmId}/${selectedCalendar}/mineralization`}>
-                      <Bubbles />
-                      <span>Mineralisatie</span>
-                    </NavLink>
-                  </SidebarMenuButton>
+                    render={
+                      <NavLink to={`/farm/${farmId}/${selectedCalendar}/mineralization`}>
+                        <Bubbles />
+                        <span>Mineralisatie</span>
+                      </NavLink>
+                    }
+                  />
                 ) : (
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        asChild
-                        className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Bubbles />
-                          <span>Mineralisatie</span>
-                        </span>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <SidebarMenuButton className="cursor-not-allowed opacity-50 hover:bg-transparent">
+                          <span className="flex items-center gap-2">
+                            <Bubbles />
+                            <span>Mineralisatie</span>
+                          </span>
+                        </SidebarMenuButton>
+                      }
+                    />
                     <TooltipContent side="right">
                       Voltooi het aanmaken van uw bedrijf om Mineralisatie te gebruiken
                     </TooltipContent>
@@ -714,32 +754,63 @@ export function SidebarLabs() {
             )}
             {isGerritEnabled && (
               <SidebarMenuItem>
-                {!isCreateFarmWizard ? (
+                {!isFarmSelected && !isCreateFarmWizard ? (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <SidebarMenuButton
+                          className="text-muted-foreground"
+                          onClick={() => setIsFarmPickerOpen(true)}
+                        >
+                          <Bot />
+                          <span>Gerrit</span>
+                          <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                            AI
+                          </Badge>
+                        </SidebarMenuButton>
+                      }
+                    />
+                    <TooltipContent side="right">
+                      Selecteer een bedrijf om Gerrit te gebruiken
+                    </TooltipContent>
+                  </Tooltip>
+                ) : !isCreateFarmWizard ? (
                   <SidebarMenuButton
-                    asChild
                     isActive={location.pathname.includes(
                       `/farm/${farmId}/${selectedCalendar}/gerrit`,
                     )}
-                    tooltip="Gerrit's Bemestingsplan"
-                  >
-                    <NavLink to={`/farm/${farmId}/${selectedCalendar}/gerrit`}>
-                      <Bot />
-                      <span>Gerrit</span>
-                    </NavLink>
-                  </SidebarMenuButton>
+                    tooltip="Gerrit (AI-bemestingsplanner)"
+                    render={
+                      <NavLink to={`/farm/${farmId}/${selectedCalendar}/gerrit`}>
+                        <Bot />
+                        <span>Gerrit</span>
+                        <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                          AI
+                        </Badge>
+                      </NavLink>
+                    }
+                  />
                 ) : (
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuButton
-                        asChild
-                        className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Bot />
-                          <span>Gerrit</span>
-                        </span>
-                      </SidebarMenuButton>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <SidebarMenuButton
+                          className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                          render={
+                            <span className="flex items-center gap-2">
+                              <Bot />
+                              <span>Gerrit</span>
+                              <Badge
+                                variant="secondary"
+                                className="ml-auto h-4 px-1 py-0 text-[10px]"
+                              >
+                                AI
+                              </Badge>
+                            </span>
+                          }
+                        />
+                      }
+                    />
                     <TooltipContent side="right">
                       Voltooi het aanmaken van uw bedrijf om Gerrit te gebruiken
                     </TooltipContent>
@@ -750,6 +821,16 @@ export function SidebarLabs() {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+      <FarmPickerDialog
+        open={isFarmPickerOpen}
+        onOpenChange={setIsFarmPickerOpen}
+        farms={farms}
+        featureLabel="Gerrit"
+        onSelectFarm={(b_id_farm) => {
+          setIsFarmPickerOpen(false)
+          void navigate(`/farm/${b_id_farm}/${selectedCalendar}/gerrit`)
+        }}
+      />
     </TooltipProvider>
   )
 }

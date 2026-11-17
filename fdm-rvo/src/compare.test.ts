@@ -1,30 +1,36 @@
 import { describe, expect, it } from "vitest"
-import { compareFields } from "./compare"
+import { compareFields, FieldWithCultivations } from "./compare"
 import { type RvoField, RvoImportReviewStatus } from "./types"
 
 // Shared helpers used across all describe blocks
-const createLocalField = (overrides: Partial<any> = {}): any => ({
-  b_id: "local-1",
-  b_id_source: "rvo-1",
-  b_name: "Field 1",
-  b_geometry: {
-    type: "Polygon",
-    coordinates: [
-      [
-        [0, 0],
-        [0, 10],
-        [10, 10],
-        [10, 0],
-        [0, 0],
+const createLocalField = (overrides: Partial<any> = {}) =>
+  ({
+    b_id: "local-1",
+    b_id_farm: "local",
+    b_id_source: "rvo-1",
+    b_name: "Field 1",
+    b_geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [0, 0],
+          [0, 10],
+          [10, 10],
+          [10, 0],
+          [0, 0],
+        ],
       ],
-    ],
-  },
-  b_start: new Date("2024-01-01"),
-  b_end: undefined,
-  b_acquiring_method: "nl_01",
-  cultivations: [],
-  ...overrides,
-})
+    },
+    b_centroid: [5, 5],
+    b_area: 1110 * 1110,
+    b_perimeter: 4 * 111000,
+    b_bufferstrip: false,
+    b_start: new Date("2024-01-01"),
+    b_end: null,
+    b_acquiring_method: "nl_01",
+    cultivations: [],
+    ...overrides,
+  }) as FieldWithCultivations
 
 const createRvoField = (overrides: any = {}): RvoField => {
   const { geometry, ...props } = overrides
@@ -53,7 +59,7 @@ const createRvoField = (overrides: any = {}): RvoField => {
       UseTitleCode: "01",
       ...props,
     },
-  }
+  } satisfies RvoField
 }
 
 describe("compareFields", () => {
@@ -96,7 +102,7 @@ describe("compareFields", () => {
     })
 
     it("should detect CONFLICT when end date differs", () => {
-      const local = createLocalField({ b_end: undefined })
+      const local = createLocalField({ b_end: null })
       const rvo = createRvoField({ EndDate: "2025-12-31" })
 
       const result = compareFields([local], [rvo], calendar)
@@ -104,6 +110,58 @@ describe("compareFields", () => {
       expect(result).toHaveLength(1)
       expect(result[0].status).toBe(RvoImportReviewStatus.CONFLICT)
       expect(result[0].diffs).toContain("b_end")
+    })
+
+    it("should detect CONFLICT when end date is null on remote", () => {
+      const local = createLocalField({ b_end: "2025-12-31" })
+      const rvo = createRvoField({ EndDate: null })
+
+      const result = compareFields([local], [rvo], calendar)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].status).toBe(RvoImportReviewStatus.CONFLICT)
+      expect(result[0].diffs).toContain("b_end")
+    })
+
+    it("should detect MATCH when end date is the same on both remote and local", () => {
+      const local = createLocalField({ b_end: "2025-12-31" })
+      const rvo = createRvoField({ EndDate: "2025-12-31" })
+
+      const result = compareFields([local], [rvo], calendar)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].status).toBe(RvoImportReviewStatus.MATCH)
+      expect(result[0].diffs).not.toContain("b_end")
+    })
+
+    it("should detect MATCH when remote ends on 1 January and local on the end of 31 December", () => {
+      const local = createLocalField({ b_end: new Date("2025-12-31T22:59:59.999Z") })
+      const rvo = createRvoField({ EndDate: "2026-01-01" })
+
+      const result = compareFields([local], [rvo], calendar)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].diffs).not.toContain("b_end")
+    })
+
+    it("should detect MATCH when local ends on 31 December at Amsterdam midnight", () => {
+      const local = createLocalField({ b_end: new Date("2025-12-30T23:00:00.000Z") })
+      const rvo = createRvoField({ EndDate: "2025-12-31" })
+
+      const result = compareFields([local], [rvo], calendar)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].diffs).not.toContain("b_end")
+    })
+
+    it("should detect MATCH when local starts at Amsterdam midnight on the same day", () => {
+      const local = createLocalField({ b_start: new Date("2023-12-31T23:00:00.000Z") })
+      const rvo = createRvoField({ BeginDate: "2024-01-01" })
+
+      const result = compareFields([local], [rvo], calendar)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].diffs).not.toContain("b_start")
     })
 
     it("should detect CONFLICT when geometry differs significantly", () => {

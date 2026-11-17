@@ -1,11 +1,12 @@
 import { type MetaFunction, NavLink, Outlet, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { columns } from "~/components/blocks/rotation/columns"
 import { DataTable } from "~/components/blocks/rotation/table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import type { Route as UpstreamRoute } from "./+types/farm.$b_id_farm.$calendar.rotation"
 import {
@@ -14,6 +15,9 @@ import {
 } from "./farm.$b_id_farm.$calendar.rotation"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bouwplan" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bouwplan - Bedrijf toevoegen | ${clientConfig.name}` },
@@ -55,7 +59,7 @@ export default function FarmCreateRotationIndex() {
         <HeaderFarmCreate b_name_farm={currentFarmName} />
       </Header>
       <main>
-        {loaderData.fieldOptions.length === 0 ? (
+        {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
               title={`Bouwplan van ${currentFarmName}`}
@@ -72,13 +76,13 @@ export default function FarmCreateRotationIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button asChild>
-                  <NavLink
-                    to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
-                  >
-                    Maak een perceel
-                  </NavLink>
-                </Button>
+                <NavLink
+                  to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
+                  className={buttonVariants({})}
+                  data-slot="button"
+                >
+                  Maak een perceel
+                </NavLink>
               </div>
             </div>
           </>

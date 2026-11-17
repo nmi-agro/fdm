@@ -2,6 +2,7 @@ import type { FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, it, vi } from "vitest"
 import type { CultivationDetail, FertilizerDetail, FieldInput, NitrogenBalanceInput } from "./types"
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import { calculateNitrogenBalance } from "./index"
 
 // Mock FdmType
@@ -126,10 +127,8 @@ function generateMockData(numberOfFields: number): NitrogenBalanceInput {
       },
     ]
 
-    const soilAnalyses: FieldInput["soilAnalyses"] = [
+    const currentSoilData = currentSoilDataFixture(
       {
-        a_id: `sa-${fieldId}-1`,
-        b_sampling_date: new Date(2023, 2, 1),
         a_c_of: Math.random() * 10 + 15, // 15-25
         a_cn_fr: Math.random() * 5 + 8, // 8-13
         a_density_sa: Math.random() * 0.5 + 1.2, // 1.2-1.7
@@ -138,7 +137,8 @@ function generateMockData(numberOfFields: number): NitrogenBalanceInput {
         b_soiltype_agr: "dekzand",
         b_gwl_class: "II",
       },
-    ]
+      { a_id: `sa-${fieldId}-1`, b_sampling_date: new Date(2023, 2, 1) },
+    )
 
     const fertilizerApplications: FieldInput["fertilizerApplications"] = [
       {
@@ -157,7 +157,7 @@ function generateMockData(numberOfFields: number): NitrogenBalanceInput {
       field,
       cultivations,
       harvests,
-      soilAnalyses,
+      currentSoilData,
       fertilizerApplications,
       depositionSupply: {
         total: new Decimal(0),

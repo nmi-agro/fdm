@@ -7,8 +7,9 @@ import {
   listAvailableAcquiringMethods,
   updateField,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import * as maplibregl from "maplibre-gl"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Controller,
   type ControllerRenderProps,
@@ -52,7 +53,6 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -75,7 +75,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} When the field ID is missing or the field is not found.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the field id
     const b_id = params.b_id
@@ -104,7 +104,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 
@@ -150,6 +150,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFieldSettingsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  // Computed once, not on every render: used only as the default when there's no start date yet.
+  const [today] = useState(() => new Date())
 
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onTouched",
@@ -157,21 +159,22 @@ export default function FarmFieldSettingsBlock() {
     defaultValues: {
       b_name: loaderData.field.b_name,
       b_acquiring_method: loaderData.field.b_acquiring_method,
-      b_start: loaderData.field.b_start ?? new Date(),
+      b_start: loaderData.field.b_start ?? today,
       b_end: loaderData.field.b_end,
       b_bufferstrip: loaderData.field.b_bufferstrip ?? false,
     },
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       b_name: loaderData.field.b_name,
       b_acquiring_method: loaderData.field.b_acquiring_method,
-      b_start: loaderData.field.b_start ?? new Date(),
+      b_start: loaderData.field.b_start ?? today,
       b_end: loaderData.field.b_end,
       b_bufferstrip: loaderData.field.b_bufferstrip ?? false,
     })
-  }, [loaderData, form.reset])
+  }, [loaderData, formReset, today])
 
   const fieldGeo = loaderData.fieldGeo
   const mapId = "fieldsSaved"
@@ -217,7 +220,11 @@ export default function FarmFieldSettingsBlock() {
                     render={({ field, fieldState }) => (
                       <Field data-invalid={fieldState.invalid} className="col-span-1">
                         <FieldLabel>Eigendom of pacht?</FieldLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          items={loaderData.acquiringMethodOptions}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Maak een keuze..." />
                           </SelectTrigger>
@@ -291,7 +298,7 @@ export default function FarmFieldSettingsBlock() {
                   className={cn(!loaderData.fieldWritePermission && "invisible")}
                 >
                   {form.formState.isSubmitting && <Spinner />}
-                  Bijwerken
+                  <span>Bijwerken</span>
                 </Button>
               </div>
             </Form>

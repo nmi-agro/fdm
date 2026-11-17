@@ -1,5 +1,5 @@
 import type { ControlPosition, IControl, Map as MapLibreMap } from "maplibre-gl"
-import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
+import { Layers, MapPinned, Mountain, PanelsRightBottom, Scan } from "lucide-react"
 import { type ReactNode, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
@@ -21,6 +21,8 @@ type ControlsProps = {
   onToggleElevation?: () => void
   showSoil?: boolean
   onToggleSoil?: () => void
+  showSampling?: boolean
+  onToggleSampling?: () => void
 }
 
 /**
@@ -59,6 +61,9 @@ export function Controls(props: ControlsProps) {
         )}
         {props.showSoil !== undefined && props.onToggleSoil && (
           <SoilControl showSoil={props.showSoil} onToggle={props.onToggleSoil} />
+        )}
+        {props.showSampling !== undefined && props.onToggleSampling && (
+          <SamplingControl showSampling={props.showSampling} onToggle={props.onToggleSampling} />
         )}
         {props.showFlyToFields && (
           <FlyToFieldsControl
@@ -303,6 +308,24 @@ function ElevationControl({
 /**
  * Specialized toggle button to show or hide the soil type map layer.
  */
+function SamplingControl({
+  showSampling,
+  onToggle,
+}: {
+  showSampling: boolean
+  onToggle: () => void
+}) {
+  return (
+    <SingleAtlasToggle
+      active={showSampling}
+      onToggle={onToggle}
+      labelActive="Verberg bemonstering"
+      labelInactive="Toon bemonstering"
+      Icon={MapPinned}
+    />
+  )
+}
+
 function SoilControl({ showSoil, onToggle }: { showSoil: boolean; onToggle: () => void }) {
   return (
     <SingleAtlasToggle

@@ -14,7 +14,7 @@ export function CustomFertilizerButton() {
       className="block"
     >
       <Card>
-        <CardContent className="p-4">
+        <CardContent>
           <h2 className="text-xl font-semibold">Maak een nieuwe meststof aan</h2>
           <p className="text-muted-foreground">Begin met een leeg formulier</p>
         </CardContent>
@@ -35,7 +35,7 @@ export function BasedOffFertilizerButton({ fertilizer }: { fertilizer: Fertilize
       className="block"
     >
       <Card>
-        <CardContent className="p-4">
+        <CardContent>
           <h3 className="text-lg font-semibold break-all">{fertilizer.p_name_nl || "Onbekend"}</h3>
           {/* <p className="text-muted-foreground">
                                     {fertilizer.p_description ||

@@ -2,6 +2,11 @@ export interface ServerConfig {
   name: string
   url: string
   privacy_url: string | undefined
+  /**
+   * Whether search engines may index the public pages (`FDM_SEO_INDEXING=true`). Off by default,
+   * so forks and staging environments are not indexed.
+   */
+  seo_indexing: boolean
   datasets_url: string
   auth: {
     fdm_session_secret: string
@@ -49,10 +54,16 @@ export interface ServerConfig {
       redirectUri: string
       clientName: string
       pkioPrivateKey: string
+      logXml: "none" | "request" | "response" | "both"
     }
     gemini?: {
       api_key: string
       model?: string
+    }
+    /** KvK Handelsregister (Zoeken API). Absent when `KVK_API_KEY` is not set. */
+    kvk?: {
+      api_key: string
+      base_url: string
     }
   }
   analytics: {
@@ -91,6 +102,8 @@ export interface ClientConfig {
   url: string
   /** Base URL of the fdm-api service. When set, a link to the API docs is shown in the UI. */
   apiUrl?: string
+  /** Base URL of the fdm-mcp service for AI assistants. Used in the manual. */
+  mcpUrl?: string
   datasets_url: string
   analytics: {
     sentry?: {

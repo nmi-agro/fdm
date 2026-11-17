@@ -3,6 +3,7 @@ import type { FeatureCollection, Geometry } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import type { ComponentType } from "react"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { CultivationAvailabilityResult } from "~/components/blocks/cultivation/availability-warning"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 import type { BcsPreviewResult } from "~/lib/bcs"
 import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
@@ -60,6 +61,14 @@ export interface FieldDashboardSoilParameterCard {
   source: string | null
   sourceLabel: string
   link: string
+  /** The newest soil analysis that contributes to the value. */
+  a_id: string
+  /** Number of sampling zones the value combines; 1 when it comes from a single analysis. */
+  zoneCount: number
+  /** Share of the field area that the value represents (0–1), or `null` when unknown. */
+  coverage: number | null
+  /** `true` when the sampling zones cover too little of the field. */
+  hasCoverageWarning: boolean
 }
 
 export interface FieldDashboardLatestAnalysisPdf {
@@ -184,6 +193,7 @@ export interface FieldDashboardData {
     endedCount: number
   }
   asyncInsights: {
+    showAvailabilityYearWarning: Promise<CultivationAvailabilityResult>
     fertilizer: Promise<FieldDashboardFertilizerAsyncSummary>
     bln: Promise<AsyncTileResult<FieldDashboardBlnSummary>>
     cultivationHistory: Promise<AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>>

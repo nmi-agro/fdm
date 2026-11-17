@@ -1,6 +1,7 @@
+import { cn } from "cn"
 import { Bot, ChevronDown } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Controller, type UseFormReturn } from "react-hook-form"
+import { Controller, useWatch, type UseFormReturn } from "react-hook-form"
 import { RemixFormProvider } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -10,7 +11,7 @@ import { Label } from "~/components/ui/label"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
-import { cn } from "~/lib/utils"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { type GerritFormValues, STRATEGY_LABELS } from "./schema"
 
 const TYPE_LABELS: Record<string, string> = {
@@ -46,12 +47,20 @@ export function StrategyForm({
   const additionalContextLength = additionalContextValue?.length ?? 0
   const showDerogation = Number.parseInt(calendar, 10) < 2026
   const showRenure = Number.parseInt(calendar, 10) >= 2026
-  const [fertOpen, setFertOpen] = useState(false)
+  const fertError = (form.formState.errors as any)?.selectedFertilizerIds?.message as
+    | string
+    | undefined
+  // Auto-open the picker when a (new) validation error appears; the user can still close it.
+  const [fertOpen, setFertOpen] = useKeyedState(fertError, (error) => !!error)
   const [fertSearch, setFertSearch] = useState("")
 
   // All available IDs; default = all selected
   const allIds = fertilizerOptions.map((f) => f.p_id_catalogue)
-  const currentSelected = (form.watch("selectedFertilizerIds") as string[] | undefined) ?? allIds
+  const watchedSelectedFertilizerIds = useWatch({
+    control: form.control,
+    name: "selectedFertilizerIds" as any,
+  }) as string[] | undefined
+  const currentSelected = watchedSelectedFertilizerIds ?? allIds
   const selectedSet = new Set(currentSelected)
 
   const groupedByType = fertilizerOptions.reduce<Record<string, FertilizerOption[]>>((acc, f) => {
@@ -85,16 +94,8 @@ export function StrategyForm({
   const selectedCount = selectedSet.size
   const totalCount = allIds.length
   const isRestricted = selectedCount < totalCount
-  const fertError = (form.formState.errors as any)?.selectedFertilizerIds?.message as
-    | string
-    | undefined
 
-  // Auto-open picker when there's a validation error on fertilizers
-  useEffect(() => {
-    if (fertError) setFertOpen(true)
-  }, [fertError])
-
-  const includeRenure = form.watch("includeRenure")
+  const includeRenure = useWatch({ control: form.control, name: "includeRenure" as any })
 
   useEffect(() => {
     if (!showRenure) return
@@ -122,7 +123,7 @@ export function StrategyForm({
           </CardTitle>
         </div>
         <CardDescription>
-          Stel de kaders in waarbinnen Gerrit het optimale bemestingsplan berekent.
+          Stel de kaders in waarbinnen AI-assistent Gerrit het optimale bemestingsplan berekent.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -352,12 +353,12 @@ export function StrategyForm({
               {isGenerating ? (
                 <>
                   <Spinner className="mr-3 h-5 w-5" />
-                  Gerrit berekent het plan...
+                  <span>Gerrit (AI) berekent het plan...</span>
                 </>
               ) : isRateLimited ? (
-                "Dagelijks limiet bereikt"
+                <span key="rate-limited">Dagelijks limiet bereikt</span>
               ) : (
-                "Bemestingsplan genereren"
+                <span key="generate">Bemestingsplan genereren</span>
               )}
             </Button>
           </form>

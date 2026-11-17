@@ -8,6 +8,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { redirectWithError } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
@@ -16,8 +17,10 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { isOfOrigin } from "~/lib/url-utils"
+import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
 import type { Route } from "./+types/farm.$b_id_farm.fertilizers.new"
+
+export const handle: HelpHandle = { help: "meststoffen" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -29,7 +32,7 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -40,10 +43,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
-    const requestUrl = new URL(request.url)
-    const returnUrl = requestUrl.searchParams.get("returnUrl") ?? `/farm/${b_id_farm}/fertilizers`
+    const returnUrl = stripDataSuffixFromAddress(
+      url.searchParams.get("returnUrl") ?? `/farm/${b_id_farm}/fertilizers`,
+    )
 
-    if (!isOfOrigin(returnUrl, requestUrl.origin)) {
+    if (!isOfOrigin(returnUrl, url.origin)) {
       return redirectWithError(
         `/farm/${b_id_farm}/fertilizers`,
         `Return URL ${returnUrl} is niet ondersteund.`,
@@ -99,7 +103,8 @@ export default function FarmFertilizerBlock({ params: _params }: Route.Component
   const [searchParams] = useSearchParams()
   const loaderData = useLoaderData<typeof loader>()
 
-  const returnUrl = searchParams.get("returnUrl")
+  const returnUrlParam = searchParams.get("returnUrl")
+  const returnUrl = returnUrlParam ? stripDataSuffixFromAddress(returnUrlParam) : null
 
   return (
     <SidebarInset>

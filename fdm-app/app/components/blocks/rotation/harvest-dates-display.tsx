@@ -1,16 +1,18 @@
 /* eslint-disable typescript/unbound-method -- Table and React row properties are standardly passed without manual binding. */
 import type { Row } from "@tanstack/react-table"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import React from "react"
 import { Link } from "react-router"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
-import { Button } from "~/components/ui/button"
-import type { FieldRow, RotationExtended } from "./columns"
+import { buttonVariants } from "~/components/ui/button"
+import type { FieldRow, MemoizedRotationExtended } from "./columns"
+import { rotationTableFeatures } from "./table-features"
 
 type HarvestDatesDisplayProps = {
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
 }
 
 type HarvestRecordItem = {
@@ -86,18 +88,13 @@ function HarvestDatesDisplayButton({
   const setActiveForm = useActiveTableFormStore((store) => store.setActiveForm)
   const formId = `harvest_${record.id}`
   return (
-    <Button
-      asChild
-      variant="link"
-      className="text-muted-foreground whitespace-nowrap"
+    <Link
+      className={cn(buttonVariants({ variant: "link" }), "text-muted-foreground whitespace-nowrap")}
       onClick={() => setActiveForm(formId)}
+      to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
     >
-      <Link
-        to={`./modify_harvest?harvestingIds=${encodeURIComponent(record.harvests.map((harvest) => harvest.b_id_harvesting).join(","))}`}
-      >
-        {children}
-      </Link>
-    </Button>
+      {children}
+    </Link>
   )
 }
 

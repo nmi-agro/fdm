@@ -12,9 +12,8 @@ import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import PostHogClient from "~/posthog.server"
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   const session = await getSession(request)
-  const url = new URL(request.url)
 
   const b_id_farm = url.searchParams.get("b_id_farm")
   const calendar = url.searchParams.get("calendar")
@@ -25,14 +24,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const posthog = PostHogClient()
   const flags = posthog ? await posthog.evaluateFlags(session.principal_id) : null
-  const isGerritEnabled = flags ? flags.isEnabled("gerrit") : true
+  const isGerritEnabled = flags ? flags.isEnabled("gerrit", { defaultValue: true }) : true
   if (!isGerritEnabled) {
     return new Response("Functie niet ingeschakeld voor deze gebruiker", {
       status: 403,
     })
   }
 
-  const modelName = url.searchParams.get("geminiModel") || "gemini-3.6-flash"
+  const modelName = url.searchParams.get("geminiModel") || "gemini-3.7-flash"
 
   // Parse selectedFertilizerIds (allow only safe catalogue ID chars)
   const SAFE_ID = /^[A-Za-z0-9_-]+$/

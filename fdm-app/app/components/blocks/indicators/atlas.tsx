@@ -9,7 +9,7 @@
 import type { FeatureCollection, GeoJsonProperties } from "geojson"
 import type { MapGeoJSONFeature, StyleSpecification } from "maplibre-gl"
 import { LayoutList } from "lucide-react"
-import { type Dispatch, type SetStateAction, useMemo, useRef } from "react"
+import { type Dispatch, type ReactNode, type SetStateAction, useMemo, useRef } from "react"
 import { Layer, type MapRef } from "react-map-gl/maplibre"
 import { Link, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
@@ -23,7 +23,7 @@ import {
 } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import {
   Select,
@@ -170,12 +170,15 @@ export default function IndicatorsMap({
                 </AtlasTooltipHeader>
                 {feature.properties?.b_bufferstrip ||
                 feature.properties?.isBufferstrip ||
-                feature.properties?.isNature ? (
+                feature.properties?.isNature ||
+                feature.properties?.hasNoMainCultivation ? (
                   <div className="mt-1.5 border-t pt-1.5">
                     <p className="text-muted-foreground italic">
                       {feature.properties.b_bufferstrip || feature.properties.isBufferstrip
                         ? "Geen indicatoren beschikbaar (bufferstrook)"
-                        : "Geen indicatoren beschikbaar (natuurperceel)"}
+                        : feature.properties.hasNoMainCultivation
+                          ? "Geen indicatoren beschikbaar (geen hoofdteelt)"
+                          : "Geen indicatoren beschikbaar (natuurperceel)"}
                     </p>
                   </div>
                 ) : (
@@ -222,19 +225,30 @@ export function ScoreSelect({
   selectedProperty,
   setSelectedProperty,
   detailPath,
+  children,
 }: {
   selectedProperty: string
   setSelectedProperty: Dispatch<SetStateAction<string>>
   detailPath: string
+  /** Optional extra controls, shown below the indicator selector (e.g. a group picker). */
+  children?: ReactNode
 }) {
   {
     /* Floating indicator selector + info banner */
   }
   return (
-    <Card className="absolute top-3 left-3 z-10 w-64 shadow-md">
+    <Card className="absolute top-3 left-3 z-10 w-64 py-0 shadow-md">
       <CardContent className="space-y-2 p-2">
         <div className="flex items-center gap-2">
-          <Select value={selectedProperty} onValueChange={setSelectedProperty}>
+          <Select
+            value={selectedProperty}
+            items={INDICATORS.map((item) => ({ value: item.id, label: item.name }))}
+            onValueChange={(value) => {
+              if (typeof value === "string") {
+                setSelectedProperty(value)
+              }
+            }}
+          >
             <SelectTrigger className="h-8 flex-1 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -245,26 +259,26 @@ export function ScoreSelect({
                 <SelectLabel className="text-muted-foreground text-xs">Hoofdthema's</SelectLabel>
                 <SelectItem value="S_BLN">BLN</SelectItem>
                 <SelectItem value="S_BBWP">BedrijfsBodemWaterPlan (BBWP)</SelectItem>
-                <SelectItem value="S_WAT_BLN">Water</SelectItem>
-                <SelectItem value="S_NUT_BLN">Nutriëntenkringloop</SelectItem>
-                <SelectItem value="S_CLIM_BLN">Klimaat</SelectItem>
-                <SelectItem value="S_PROD_BLN">Productie (OBI)</SelectItem>
+                <SelectItem value="S_WAT">Water</SelectItem>
+                <SelectItem value="S_NUT">Nutriëntenkringloop</SelectItem>
+                <SelectItem value="S_CLIM">Klimaat</SelectItem>
+                <SelectItem value="S_PROD">Productie (OBI)</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
                 <SelectLabel className="text-muted-foreground text-xs">Waterthema's</SelectLabel>
-                <SelectItem value="S_GW_QUANT_BLN">Grondwaterkwantiteit</SelectItem>
-                <SelectItem value="S_GW_QUAL_BLN">Grondwaterkwaliteit</SelectItem>
-                <SelectItem value="S_SW_QUAL_BLN">Oppervlaktewaterkwaliteit</SelectItem>
+                <SelectItem value="S_WAT_GWQUAN">Grondwaterkwantiteit</SelectItem>
+                <SelectItem value="S_WAT_GWQUAL">Grondwaterkwaliteit</SelectItem>
+                <SelectItem value="S_WAT_SWQUAL">Oppervlaktewaterkwaliteit</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
                 <SelectLabel className="text-muted-foreground text-xs">
                   Productiethema's
                 </SelectLabel>
-                <SelectItem value="S_PROD_BIOL_BLN">Biologische bodemkwaliteit</SelectItem>
-                <SelectItem value="S_PROD_CHEM_BLN">Chemische bodemkwaliteit</SelectItem>
-                <SelectItem value="S_PROD_PHYS_BLN">Fysische bodemkwaliteit</SelectItem>
+                <SelectItem value="S_PROD_B">Biologische bodemkwaliteit</SelectItem>
+                <SelectItem value="S_PROD_C">Chemische bodemkwaliteit</SelectItem>
+                <SelectItem value="S_PROD_P">Fysische bodemkwaliteit</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
@@ -303,18 +317,20 @@ export function ScoreSelect({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <Button
-            asChild
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 shrink-0"
+          <Link
+            to={detailPath}
+            className={buttonVariants({
+              variant: "outline",
+              size: "icon",
+              className: "h-8 w-8 shrink-0",
+            })}
+            data-slot="button"
             title="Tabelweergave"
           >
-            <Link to={detailPath}>
-              <LayoutList className="h-4 w-4" />
-            </Link>
-          </Button>
+            <LayoutList className="h-4 w-4" />
+          </Link>
         </div>
+        {children}
         <Bln3BetaBanner />
       </CardContent>
     </Card>

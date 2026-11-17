@@ -60,6 +60,7 @@ export const BaseEmailLayout = ({
   lang = "nl",
   emailTimestamp,
 }: BaseEmailLayoutProps) => {
+  "use no memo"
   const logoPath = appBaseUrl ? `${appBaseUrl}${logoFileName}` : logoFileName
   const privacyUrl = appBaseUrl ? `${appBaseUrl}/privacy` : undefined
 

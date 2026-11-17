@@ -10,6 +10,7 @@ import {
 import { Suspense, use, useEffect } from "react"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { CutAdviceCard } from "~/components/blocks/nutrient-advice/cut-advice-card"
 import { FieldNutrientAdviceLayout } from "~/components/blocks/nutrient-advice/layout"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
@@ -24,6 +25,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNmiApiKey } from "../integrations/nmi.server"
 
@@ -52,7 +54,7 @@ export const meta: MetaFunction = () => {
  * @throws {Error} - Throws an error if the `b_id_farm` or `b_id` parameter is missing.
  * @throws {Error} - Throws an error if any error occurs during the process, handled by `handleLoaderError`.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -73,6 +75,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const field = await getField(fdm, session.principal_id, b_id)
 
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        field: field,
+        nutrientsDescription: getNutrientsDescription(),
+        calendar: calendar,
+        asyncData: null,
+        fieldAvailability,
+      }
+    }
+
     const asyncData = (async () => {
       try {
         const currentSoilData = getCurrentSoilData(fdm, session.principal_id, b_id)
@@ -89,10 +103,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
 
         if (!cultivations.length) {
-          throw handleLoaderError("missing: cultivations")
+          throw new Error("missing: cultivations")
         }
 
-        const url = new URL(request.url)
         const cultivationId = url.searchParams.get("cultivation")
 
         const activeCultivation = cultivationId
@@ -156,6 +169,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       nutrientsDescription: nutrientsDescription,
       calendar: calendar,
       asyncData: asyncData,
+      fieldAvailability: null,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -173,7 +187,22 @@ export default function FieldNutrientAdviceBlock() {
       b_id: field.b_id,
       calendar: loaderData.calendar,
     })
-  }, [])
+  }, [capture, field.b_id_farm, field.b_id, loaderData.calendar])
+
+  if (loaderData.fieldAvailability || !loaderData.asyncData) {
+    return (
+      <div className="p-10">
+        <FieldNotAvailableForYear
+          availability={loaderData.fieldAvailability ?? "ended"}
+          calendar={loaderData.calendar}
+          b_name={field.b_name}
+          b_start={field.b_start}
+          b_end={field.b_end}
+          settingsHref={`/farm/${field.b_id_farm}/${loaderData.calendar}/field/${field.b_id}/settings`}
+        />
+      </div>
+    )
+  }
 
   const primaryNutrients = nutrientsDescription.filter(
     (item: NutrientDescription) => item.type === "primary",
@@ -196,7 +225,10 @@ export default function FieldNutrientAdviceBlock() {
       key={`${field.b_id_farm}#${loaderData.calendar}#${field.b_id}`}
       fallback={<FieldNutrientAdviceSkeleton {...splittedNutrients} />}
     >
-      <FieldNutrientAdvice loaderData={loaderData} {...splittedNutrients} />
+      <FieldNutrientAdvice
+        loaderData={{ ...loaderData, asyncData: loaderData.asyncData }}
+        {...splittedNutrients}
+      />
     </Suspense>
   )
 }
@@ -216,7 +248,9 @@ function FieldNutrientAdvice({
   secondaryNutrients,
   traceNutrients,
 }: {
-  loaderData: Awaited<ReturnType<typeof loader>>
+  loaderData: Awaited<ReturnType<typeof loader>> & {
+    asyncData: NonNullable<Awaited<ReturnType<typeof loader>>["asyncData"]>
+  }
   primaryNutrients: NutrientDescription[]
   secondaryNutrients: NutrientDescription[]
   traceNutrients: NutrientDescription[]

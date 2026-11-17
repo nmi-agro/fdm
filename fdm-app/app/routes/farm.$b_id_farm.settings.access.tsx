@@ -4,9 +4,9 @@ import {
   declineInvitation,
   getFarm,
   grantRoleToFarm,
+  identifyPrincipal,
   isAllowedToShareFarm,
   listPrincipalsForFarm,
-  lookupPrincipal,
   revokePrincipalFromFarm,
   updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
@@ -19,7 +19,11 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
-import { AccessInfoCard } from "~/components/blocks/access/access-info-card"
+import type { HelpHandle } from "~/lib/manual/help-targets"
+import {
+  AccessInfoCard,
+  type AccessVerificationProvider,
+} from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -30,12 +34,16 @@ import {
   sendEmail,
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Meta
+
+export const handle: HelpHandle = { help: "toegang" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Toegang - Instellingen - Bedrijf | ${clientConfig.name}` },
@@ -74,7 +82,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Check if user has share permission
     const hasSharePermission = await isAllowedToShareFarm(fdm, session.principal_id, b_id_farm)
-    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+    // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+    // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     // Return user information from loader
     return {
@@ -82,7 +91,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmName: farm.b_name_farm,
       principals: principals,
       hasSharePermission: hasSharePermission,
-      verificationProviders: farmVerification.providers,
+      // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+      // verificationProviders: farmVerification.providers,
+      verificationProviders: [] as AccessVerificationProvider[],
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -140,12 +151,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const isEmailTarget = isEmail(normalizedTarget)
 
         // Try to find the principal to get their email if they are registered
-        const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-        targetPrincipal = matchedPrincipals.find(
-          (p) =>
-            p.username.toLowerCase() === normalizedTarget ||
-            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-        )
+        targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
 
         const targetEmail = isEmailTarget
           ? normalizedTarget
@@ -235,12 +241,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           const farm = await getFarm(fdm, session.principal_id, b_id_farm)
           const normalizedTarget = formValues.username.toLowerCase().trim()
           const isEmailTarget = isEmail(normalizedTarget)
-          const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-          const targetPrincipal = matchedPrincipals.find(
-            (p) =>
-              p.username.toLowerCase() === normalizedTarget ||
-              (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-          )
+          const targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
           const targetEmail = isEmailTarget
             ? normalizedTarget
             : targetPrincipal?.type === "user"

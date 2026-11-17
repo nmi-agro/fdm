@@ -2,12 +2,12 @@ import type { GoogleOptions, User } from "better-auth"
 import { apiKey } from "@better-auth/api-key"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
-import { genericOAuth, magicLink, organization, username } from "better-auth/plugins"
+import { magicLink, organization, username } from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
 import type { FdmType } from "./fdm.types"
-import { createMicrosoftOAuthConfig, type MicrosoftCertConfig } from "./authentication-ms"
+import { createMicrosoftSocialConfig, type MicrosoftCertConfig } from "./authentication-ms"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
 import { autoAcceptInvitationsForNewUser } from "./invitation"
@@ -50,7 +50,8 @@ export function createFdmAuth(
         return {
           name: profile.name,
           email: profile.email,
-          emailVerified: true,
+          // Only trust the address when Google reports it as verified
+          emailVerified: profile.email_verified === true,
           image: profile.picture,
           firstname: profile.given_name,
           surname: profile.family_name,
@@ -61,8 +62,8 @@ export function createFdmAuth(
     }
   }
 
-  const microsoftGenericOAuthConfig = microsoft
-    ? createMicrosoftOAuthConfig(microsoft, {
+  const microsoftAuth = microsoft
+    ? createMicrosoftSocialConfig(microsoft, {
         splitFullName,
         createUsername: (email) => createUsername(fdm, email),
         createDisplayUsername,
@@ -73,6 +74,7 @@ export function createFdmAuth(
     database: drizzleAdapter(fdm, {
       provider: "pg",
       schema: authNSchema,
+      schemaName: "fdm-authn",
     }),
     user: {
       additionalFields: {
@@ -104,6 +106,7 @@ export function createFdmAuth(
     },
     socialProviders: {
       google: googleAuth,
+      microsoft: microsoftAuth,
     },
     rateLimit: {
       enabled: process.env.NODE_ENV === "production",
@@ -128,9 +131,6 @@ export function createFdmAuth(
         },
       }),
       username(),
-      genericOAuth({
-        config: microsoftGenericOAuthConfig ? [microsoftGenericOAuthConfig] : [],
-      }),
       organization({
         organizationHooks: {
           beforeCreateOrganization: async ({ organization }) => {

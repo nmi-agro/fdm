@@ -23,14 +23,14 @@ export type {
   CatalogueAnimalCategoryName,
 } from "./animal-categories/d"
 export { hashAnimalCategory } from "./animal-categories/hash"
-export { getCultivationCatalogue } from "./cultivations"
+export { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "./cultivations"
 export type {
   CatalogueCultivation,
   CatalogueCultivationItem,
   CatalogueCultivationName,
 } from "./cultivations/d"
 export { hashCultivation } from "./cultivations/hash"
-export { getFertilizersCatalogue } from "./fertilizers"
+export { fertilizerCatalogueNames, getFertilizersCatalogue } from "./fertilizers"
 export type {
   ApplicationMethods,
   CatalogueFertilizer,

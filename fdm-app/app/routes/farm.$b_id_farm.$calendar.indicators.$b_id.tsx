@@ -23,6 +23,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
@@ -57,10 +58,13 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import {
   type Ecosysteemdienst,
+  getBestVariantIds,
   getBln3ExclusionMessage,
+  getMeasureFamilyId,
   INDICATORS,
   scoreToDisplay,
 } from "~/lib/indicators"
@@ -79,26 +83,26 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
       { value: "avg", label: "Gemiddelde (alle indicatoren)" },
       { value: "S_BLN", label: "BLN Bodemkwaliteit" },
       { value: "S_BBWP", label: "BedrijfsBodemWaterPlan (BBWP)" },
-      { value: "S_WAT_BLN", label: "Water" },
-      { value: "S_NUT_BLN", label: "Nutriëntenkringloop" },
-      { value: "S_CLIM_BLN", label: "Klimaat" },
-      { value: "S_PROD_BLN", label: "Productie (OBI)" },
+      { value: "S_WAT", label: "Water" },
+      { value: "S_NUT", label: "Nutriëntenkringloop" },
+      { value: "S_CLIM", label: "Klimaat" },
+      { value: "S_PROD", label: "Productie (OBI)" },
     ],
   },
   {
     group: "Water Subaggregaties",
     options: [
-      { value: "S_GW_QUANT_BLN", label: "Grondwaterkwantiteit" },
-      { value: "S_GW_QUAL_BLN", label: "Grondwaterkwaliteit" },
-      { value: "S_SW_QUAL_BLN", label: "Oppervlaktewaterkwaliteit" },
+      { value: "S_WAT_GWQUAN", label: "Grondwaterkwantiteit" },
+      { value: "S_WAT_GWQUAL", label: "Grondwaterkwaliteit" },
+      { value: "S_WAT_SWQUAL", label: "Oppervlaktewaterkwaliteit" },
     ],
   },
   {
     group: "Productie Subaggregaties",
     options: [
-      { value: "S_PROD_BIOL_BLN", label: "Biologische Bodemkwaliteit" },
-      { value: "S_PROD_CHEM_BLN", label: "Chemische Bodemkwaliteit" },
-      { value: "S_PROD_PHYS_BLN", label: "Fysische Bodemkwaliteit" },
+      { value: "S_PROD_B", label: "Biologische Bodemkwaliteit" },
+      { value: "S_PROD_C", label: "Chemische Bodemkwaliteit" },
+      { value: "S_PROD_P", label: "Fysische Bodemkwaliteit" },
     ],
   },
   {
@@ -132,6 +136,10 @@ function findScoreLabel(value: string): string {
     if (opt) return opt.label
   }
   return value
+}
+
+function isKnownScoreKey(value: string): boolean {
+  return MAP_SCORE_OPTION_GROUPS.some((group) => group.options.some((o) => o.value === value))
 }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
@@ -202,11 +210,38 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
+    const [field, fields] = await Promise.all([
+      getField(fdm, session.principal_id, b_id),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+
+    if (!field) {
+      throw data("not found: b_id", {
+        status: 404,
+        statusText: "not found: b_id",
+      })
+    }
+
+    const fieldList = fields.map((f) => ({
+      b_id: f.b_id,
+      b_name: f.b_name ?? null,
+    }))
+
+    // Skip the calculations when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        field,
+        fieldScore: null,
+        fieldList,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
+
+    // Load in parallel: BLN3 score + inputs, active measures, cultivations, BRP catalogue
     // Cultivations are fetched without timeframe to cover multi-year history (for display)
     const [
-      field,
-      fields,
       bln3Result,
       fieldMeasures,
       cultivations,
@@ -216,8 +251,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       advice,
       fieldWritePermission,
     ] = await Promise.all([
-      getField(fdm, session.principal_id, b_id),
-      getFields(fdm, session.principal_id, b_id_farm, timeframe),
       getIndicatorsForField({
         principal_id: session.principal_id,
         b_id,
@@ -268,13 +301,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const fieldScore = bln3Result.score
     const bln3Inputs = bln3Result.inputs
 
-    if (!field) {
-      throw data("not found: b_id", {
-        status: 404,
-        statusText: "not found: b_id",
-      })
-    }
-
     // Also fetch all farm scores (for map colouring)
     const farmScores = await getIndicatorsForFarm({
       principal_id: session.principal_id,
@@ -296,7 +322,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fs = farmScores.find((s) => s.b_id === f.b_id)
         const scores = computeFieldScores(fs)
         const isBufferstrip = f.b_bufferstrip === true || fs?.isBufferstrip === true
-        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
+        const hasNoMainCultivation = !isBufferstrip && fs?.exclusionReason === "no_main_cultivation"
+        const isNature =
+          !hasNoMainCultivation &&
+          (fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true))
         return {
           type: "Feature" as const,
           properties: {
@@ -306,7 +335,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_bufferstrip: isBufferstrip,
             isBufferstrip,
             isNature,
-            isExcluded: isBufferstrip || isNature,
+            hasNoMainCultivation,
+            isExcluded: isBufferstrip || isNature || hasNoMainCultivation,
             avgScore: scores.avg, // kept for backward compat
             ...scores,
           },
@@ -401,11 +431,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Build per-indicator recommended measures: raw advice, cross-referenced
     // against a fresh applicability check and already-active measures (the
     // advice endpoint's own list is never trusted to be pre-filtered), keyed
-    // by indicator ID, top 3 per indicator, with catalogue names resolved.
+    // by indicator ID, top 3 per indicator with at most one variant per measure
+    // family, with catalogue names resolved.
     // `advice` is null when the NMI fetch failed — signal unavailability with
     // null so cards hide the section instead of showing a false empty state.
     const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
-    const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
+    const activeFamilyIds = new Set(fieldMeasures.map((m) => getMeasureFamilyId(m.m_id)))
     const adviceUnavailable = applicabilityMap === null || advice === null
     const indicatorAdvice: Record<
       string,
@@ -413,12 +444,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     > | null = adviceUnavailable ? null : {}
     if (applicabilityMap !== null && advice !== null && indicatorAdvice !== null) {
       for (const entry of advice?.indicator_advice ?? []) {
-        const recommendations = entry.measures
-          .filter(
-            (measure) =>
-              applicabilityMap[measure.m_id]?.applicability === "applicable" &&
-              !activeMeasureIds.has(measure.m_id),
-          )
+        // At most one variant per measure family, and none when a variant of
+        // that family is already active on the field.
+        const candidates = entry.measures.filter(
+          (measure) =>
+            applicabilityMap[measure.m_id]?.applicability === "applicable" &&
+            !activeFamilyIds.has(getMeasureFamilyId(measure.m_id)),
+        )
+        const bestVariantIds = getBestVariantIds(
+          new Map(candidates.map((measure) => [measure.m_id, measure.measure_impact])),
+        )
+        const recommendations = candidates
+          .filter((measure) => bestVariantIds.has(measure.m_id))
           .sort((a, b) => b.measure_impact - a.measure_impact)
           .slice(0, 3)
           .map((measure) => ({
@@ -442,17 +479,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       indicatorAdvice,
       adviceUnavailable,
       isExcluded: bln3Result.inputs.isExcluded ?? false,
+      exclusionReason: bln3Result.inputs.exclusionReason ?? null,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
         measurements: soilMeasurements,
         bcsScores,
       },
-      fieldList: fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name ?? null,
-      })),
+      fieldList,
       fieldWritePermission,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -487,27 +524,17 @@ function readSessionMeasures(): boolean {
 function readSessionMapScore(): string {
   if (typeof window === "undefined") return "S_BLN"
   try {
-    return sessionStorage.getItem(SESSION_KEY_MAP_SCORE) ?? "S_BLN"
+    // Fall back to S_BLN when the stored key is unknown, e.g. a retired aggregation code
+    const stored = sessionStorage.getItem(SESSION_KEY_MAP_SCORE)
+    return stored !== null && isKnownScoreKey(stored) ? stored : "S_BLN"
   } catch {
     return "S_BLN"
   }
 }
 
 export default function IndicatorsFieldDetail() {
-  const {
-    field,
-    fieldScore,
-    fieldMeasures,
-    fieldsGeoJSON,
-    selectedFieldGeoJSON,
-    currentCultivationName,
-    currentCultivationCropRotation,
-    cultivationSummaries,
-    indicatorAdvice,
-    adviceUnavailable,
-    isExcluded,
-    soilData,
-  } = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
+  const { fieldScore } = loaderData
   const { b_id_farm, calendar, b_id } = useParams()
 
   // Restore filter state from sessionStorage
@@ -545,16 +572,17 @@ export default function IndicatorsFieldDetail() {
   const indicatorId = deepLinkIndicator?.id
 
   // If a deep-linked indicator is specified and the current category filter
-  // excludes its category, select/retain that category so it remains visible
-  useEffect(() => {
-    if (!deepLinkIndicator) return
-    setActiveCategories((prev) => {
-      if (prev.length > 0 && !prev.includes(deepLinkIndicator.ecosysteemdienst)) {
-        return [...prev, deepLinkIndicator.ecosysteemdienst]
-      }
-      return prev
-    })
-  }, [deepLinkIndicator])
+  // excludes its category, include that category so it remains visible — without
+  // persisting it to the user's actual filter selection.
+  const effectiveCategories = useMemo(
+    () =>
+      deepLinkIndicator &&
+      activeCategories.length > 0 &&
+      !activeCategories.includes(deepLinkIndicator.ecosysteemdienst)
+        ? [...activeCategories, deepLinkIndicator.ecosysteemdienst]
+        : activeCategories,
+    [deepLinkIndicator, activeCategories],
+  )
 
   useEffect(() => {
     if (!indicatorId) return
@@ -576,14 +604,14 @@ export default function IndicatorsFieldDetail() {
   // Filter indicators by active ecosystem service, while ensuring a deep-linked indicator remains visible
   const visibleIndicatorInfos = useMemo(
     () =>
-      activeCategories.length === 0
+      effectiveCategories.length === 0
         ? INDICATORS
         : INDICATORS.filter(
             (i) =>
-              activeCategories.includes(i.ecosysteemdienst) ||
+              effectiveCategories.includes(i.ecosysteemdienst) ||
               (indicatorId && i.id === indicatorId),
           ),
-    [activeCategories, indicatorId],
+    [effectiveCategories, indicatorId],
   )
 
   // Sort indicator results: red (< 40) → yellow (40–69) → green (≥ 70), then alphabetical
@@ -606,6 +634,34 @@ export default function IndicatorsFieldDetail() {
     })
   }, [fieldScore, visibleIndicatorInfos, withMeasures])
 
+  if (loaderData.fieldAvailability) {
+    return (
+      <FieldNotAvailableForYear
+        availability={loaderData.fieldAvailability}
+        calendar={loaderData.calendar}
+        b_name={loaderData.field.b_name}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${b_id_farm}/${loaderData.calendar}/field/${b_id}/settings`}
+      />
+    )
+  }
+
+  const {
+    field,
+    fieldMeasures,
+    fieldsGeoJSON,
+    selectedFieldGeoJSON,
+    currentCultivationName,
+    currentCultivationCropRotation,
+    cultivationSummaries,
+    indicatorAdvice,
+    adviceUnavailable,
+    isExcluded,
+    exclusionReason,
+    soilData,
+  } = loaderData
+
   const scoreOf = (aggId: AggregationId) => {
     return getFieldAggregationScore(fieldScore, aggId)
   }
@@ -623,6 +679,7 @@ export default function IndicatorsFieldDetail() {
   return (
     <>
       <FarmTitle
+        help="bodemkwaliteit"
         title={field.b_name ?? `Perceel ${b_id}`}
         description={currentCultivationName ?? "Geen teelt geregistreerd"}
         descriptionNode={
@@ -657,6 +714,7 @@ export default function IndicatorsFieldDetail() {
                     b_bufferstrip: field.b_bufferstrip,
                     cultivationName: currentCultivationName,
                     calendarYear: calendar,
+                    exclusionReason,
                   })}
                 </p>
               </div>
@@ -666,7 +724,7 @@ export default function IndicatorsFieldDetail() {
                 <div className="flex flex-col gap-4">
                   {fieldScore && (
                     <Card className="border-border shadow-sm">
-                      <CardHeader className="pb-3">
+                      <CardHeader>
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
@@ -780,7 +838,15 @@ export default function IndicatorsFieldDetail() {
             <div className="relative h-64 overflow-hidden rounded-lg border sm:h-80 lg:sticky lg:top-4 lg:h-[560px]">
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
-                <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
+                <Select
+                  value={mapScoreKey}
+                  items={MAP_SCORE_OPTION_GROUPS.flatMap((group) => group.options)}
+                  onValueChange={(value) => {
+                    if (typeof value === "string") {
+                      setMapScoreKey(value)
+                    }
+                  }}
+                >
                   <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>

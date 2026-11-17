@@ -3,8 +3,11 @@ import { useFetcher } from "react-router"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Spinner } from "~/components/ui/spinner"
 import type { FieldExtended } from "./columns"
+import { fieldsTableFeatures } from "./table-features"
 
-export function BufferStripCheckbox({ row }: CellContext<FieldExtended, unknown>) {
+export function BufferStripCheckbox({
+  row,
+}: CellContext<typeof fieldsTableFeatures, FieldExtended, unknown>) {
   const fetcher = useFetcher()
 
   const submit = (value: boolean) => {

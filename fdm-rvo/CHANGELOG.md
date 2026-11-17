@@ -1,5 +1,48 @@
 # @nmi-agro/fdm-rvo
 
+## 0.6.3
+
+### Patch Changes
+
+- Updated dependencies [[`cc8a891`](https://github.com/nmi-agro/fdm/commit/cc8a89101cb6a573a3822be02ced6d17224d54fa), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`cf1fb25`](https://github.com/nmi-agro/fdm/commit/cf1fb25994f3d8485410e826fc4220143acd4050), [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196), [`0e9b593`](https://github.com/nmi-agro/fdm/commit/0e9b593b0080553b243d23f68bf56d972d651eda), [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc)]:
+  - @nmi-agro/fdm-core@0.39.0
+
+## 0.6.2
+
+### Patch Changes
+
+- [#852](https://github.com/nmi-agro/fdm/pull/852) [`f33e384`](https://github.com/nmi-agro/fdm/commit/f33e3847dd0e5b5222bfa9e8767cbf61f7e48fff) Thanks [@SvenVw](https://github.com/SvenVw)! - Compare field start and end dates, and the start of the import year, as calendar dates in Europe/Amsterdam, consistent with how fdm-core returns `b_end`. An RVO end date on 1 January now matches a local field that ends on 31 December.
+- Updated dependencies [[`702c643`](https://github.com/nmi-agro/fdm/commit/702c643678d15caae37cffd7a1497c0ce73954ad)]:
+  - @nmi-agro/fdm-core@0.38.1
+
+## 0.6.1
+
+### Patch Changes
+
+- [#848](https://github.com/nmi-agro/fdm/pull/848) [`3ec0953`](https://github.com/nmi-agro/fdm/commit/3ec0953a87fcc2615e58f0c127b109ecacc18f7a) Thanks [@SvenVw](https://github.com/SvenVw)! - Support requesting RVO fields for the authenticated company itself:
+
+  - `fetchRvoFields`: the `kvkNumber` parameter is now optional. Omit it when a farmer requests the fields of their own farm; RVO then derives the farm from the eHerkenning identity. Pass it only when requesting data on behalf of another farm with a machtiging, as it is sent to RVO as `ThirdPartyFarmID`.
+  - `isRvoPermissionDeniedError`: recognises the `EDI009` (Toegang geweigerd) SOAP fault, which RVO returns with HTTP status 500 and which `@nmi-agro/rvo-connector` 2.4.0 throws as `RvoSoapFaultError`.
+  - Add `getRvoErrorDetails`, which returns the HTTP status, EDI-Crop error code and a short description of an RVO client error, without the raw response body.
+  - Upgrade `@nmi-agro/rvo-connector` to 2.4.0.
+
+## 0.6.0
+
+### Minor Changes
+
+- [#821](https://github.com/nmi-agro/fdm/pull/821) [`13aa9d6`](https://github.com/nmi-agro/fdm/commit/13aa9d63dea0ebbffba2613379b372d9b963894d) Thanks [@SvenVw](https://github.com/SvenVw)! - Upgrade `@nmi-agro/rvo-connector` to `^2.3.0` and add an optional `logXml` parameter to `createRvoClient` (`none`, `request`, `response` or `both`; default `none`) to log the SOAP XML exchanged with RVO. Logged XML can contain farm data, so only enable it temporarily for debugging.
+
+## 0.5.0
+
+### Minor Changes
+
+- [#803](https://github.com/nmi-agro/fdm/pull/803) [`54fe321`](https://github.com/nmi-agro/fdm/commit/54fe321c5e2299684311d2ae07f1a1da86831c3a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the case when a Shapefile does not have an ending date for a field, yet it defines a start date. Before this change, if a matched FDM field had an end date that is before the Shapefile start date, for example, this would cause `updateField` thus the whole import to fail.
+
+### Patch Changes
+
+- Updated dependencies [[`ac78820`](https://github.com/nmi-agro/fdm/commit/ac7882026875aad8147b7a03ad094a36fa02fe52), [`4eb2599`](https://github.com/nmi-agro/fdm/commit/4eb25999b4eaab2fed1079eb9c59dee7d2e82b7a)]:
+  - @nmi-agro/fdm-core@0.38.0
+
 ## 0.4.0
 
 ### Minor Changes

@@ -40,14 +40,12 @@ export function FarmSelectDialog({
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline">Wijzig selectie</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button variant="outline">Wijzig selectie</Button>} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Wijzig selectie van bedrijven</DialogTitle>
           <DialogDescription>
-            De geselecteerde bedrijven zijn uitgesloten in de berekening.
+            Alleen de geselecteerde bedrijven worden meegenomen in de berekening.
           </DialogDescription>
         </DialogHeader>
         <form ref={formRef} className="max-h-50 space-y-4 overflow-y-scroll">
@@ -67,7 +65,6 @@ export function FarmSelectDialog({
         </form>
         <DialogFooter>
           <DialogClose
-            asChild
             onClick={() => {
               const form = formRef.current
 
@@ -99,9 +96,8 @@ export function FarmSelectDialog({
                 })
               }
             }}
-          >
-            <Button variant="outline">Opslaan</Button>
-          </DialogClose>
+            render={<Button variant="outline">Opslaan</Button>}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

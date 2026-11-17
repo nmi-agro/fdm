@@ -1,5 +1,6 @@
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { useEffect, useRef } from "react"
 import {
   type ActionFunctionArgs,
@@ -16,7 +17,7 @@ import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { auth } from "~/lib/auth.server"
@@ -37,9 +38,8 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   try {
-    const url = new URL(request.url)
     const code = url.searchParams.get("code") || ""
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
 
@@ -77,17 +77,19 @@ export default function Verify() {
 
   // Capture code failure when actionData signals an error, and move focus
   // back to the code field so the failure and its recovery link are announced.
+  const formSetFocus = form.setFocus
   useEffect(() => {
     if (actionData?.errors?.code) {
       const reason = actionData.errors.code.includes("Te veel") ? "rate_limited" : "invalid_code"
       capture("signin_code_failed", { reason })
-      form.setFocus("code")
+      formSetFocus("code")
     }
-  }, [actionData, capture, form])
+  }, [formSetFocus, actionData, capture])
 
   // Reveal the emailed code character by character so the user sees it was
   // received and is about to be verified, rather than jumping straight to a
   // spinner. Fills instantly when the user prefers reduced motion.
+  const formSetValue = form.setValue
   useEffect(() => {
     if (!(code && code.length === 6 && !hasAnimated.current)) {
       return
@@ -96,18 +98,16 @@ export default function Verify() {
     const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
 
     if (prefersReducedMotion) {
-      form.setValue("code", code)
+      formSetValue("code", code)
       return
     }
 
     const chars = code.split("")
-    let current = ""
     // Track every scheduled timeout so we can clear them all on cleanup,
     // preventing form.setValue from firing after the component unmounts.
-    const timeoutIds = chars.map((char, index) =>
+    const timeoutIds = chars.map((_char, index) =>
       setTimeout(() => {
-        current += char
-        form.setValue("code", current)
+        formSetValue("code", code.slice(0, index + 1))
       }, index * 75),
     ) // 75ms delay between keystrokes
 
@@ -116,7 +116,7 @@ export default function Verify() {
         clearTimeout(id)
       }
     }
-  }, [code, form])
+  }, [formSetValue, code])
 
   const requestNewCodeUrl = modifySearchParams("/signin/check-your-email", (params) => {
     params.set("redirectTo", redirectTo || "/farm")
@@ -147,19 +147,18 @@ export default function Verify() {
                 <span>Verifiëren...</span>
               </div>
             ) : (
-              "Verifiëren en aanmelden"
+              <span>Verifiëren en aanmelden</span>
             )}
           </Button>
 
           {actionData?.errors?.code && (
-            <Button asChild variant="link" className="w-full">
-              <Link
-                to={requestNewCodeUrl}
-                onClick={() => capture("signin_request_new_code_clicked")}
-              >
-                Nieuwe code aanvragen
-              </Link>
-            </Button>
+            <Link
+              to={requestNewCodeUrl}
+              onClick={() => capture("signin_request_new_code_clicked")}
+              className={cn(buttonVariants({ variant: "link" }), "w-full")}
+            >
+              Nieuwe code aanvragen
+            </Link>
           )}
         </Form>
       </AuthCard>

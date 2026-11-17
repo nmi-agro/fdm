@@ -1,5 +1,15 @@
 export type CatalogueCultivationName = "brp"
 
+export interface CultivationCatalogueBuildingContext {
+  firstAllowedAvailabilityYear: number
+  lastAllowedAvailabilityYear: number
+}
+
+export interface AggregatedCultivationCatalogueInfo {
+  b_lu_ya_min?: number
+  b_lu_ya_max?: number
+}
+
 export interface CatalogueCultivationItem {
   b_lu_source: CatalogueCultivationName
   b_lu_catalogue: string
@@ -42,6 +52,7 @@ export interface CatalogueCultivationItem {
   b_lu_variety_options: string[] | null
   b_lu_start_default: string | null
   b_date_harvest_default: string | null
+  b_lu_ya: number[] | null
   hash: string | null
 }
 

@@ -10,6 +10,7 @@ export function NewFieldsBlock({
   b_area,
   b_lu_catalogue,
   b_bufferstrip,
+  cultivationAvailabilityYear,
   cultivationOptions,
   featureCollection,
   mapStyle,
@@ -28,6 +29,7 @@ export function NewFieldsBlock({
             b_area={b_area}
             b_lu_catalogue={b_lu_catalogue}
             b_bufferstrip={b_bufferstrip}
+            cultivationAvailabilityYear={cultivationAvailabilityYear}
             cultivationOptions={cultivationOptions}
           />
         </div>
@@ -54,6 +56,7 @@ type NewFieldsBlockProps = {
   b_area: number
   b_lu_catalogue: string
   b_bufferstrip: boolean
+  cultivationAvailabilityYear: number | undefined
   cultivationOptions: {
     value: string
     label: string

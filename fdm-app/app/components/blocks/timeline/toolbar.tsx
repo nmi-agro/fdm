@@ -1,4 +1,4 @@
-import { Eye, Locate } from "lucide-react"
+import { Eye, Locate, Undo2 } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { Badge } from "~/components/ui/badge"
@@ -36,12 +36,15 @@ export function TimelineToolbar({
   filters,
   onFiltersChange,
   onJumpToToday,
+  onUndo,
 }: {
   range: Range
   onRangeChange: (range: Range) => void
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
+  /** Reverts the last saved change; the button is only shown when this is set. */
+  onUndo?: (() => void) | null
 }) {
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
@@ -49,7 +52,20 @@ export function TimelineToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
+      {onUndo && (
+        <Button onClick={onUndo} variant="secondary">
+          <Undo2 className="size-4" />
+          Ongedaan maken
+        </Button>
+      )}
+      <Select
+        onValueChange={(value) => onRangeChange(value as Range)}
+        value={range}
+        items={(Object.keys(rangeLabels) as Range[]).map((k) => ({
+          value: k,
+          label: rangeLabels[k],
+        }))}
+      >
         <SelectTrigger className="w-40">
           <SelectValue />
         </SelectTrigger>
@@ -68,20 +84,22 @@ export function TimelineToolbar({
       </Button>
 
       <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline">
-            <Eye className="size-4" />
-            Weergave
-            {activeFilterCount > 0 && (
-              <Badge
-                className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
-                key={activeFilterCount}
-              >
-                {activeFilterCount}
-              </Badge>
-            )}
-          </Button>
-        </PopoverTrigger>
+        <PopoverTrigger
+          render={
+            <Button variant="outline">
+              <Eye className="size-4" />
+              Weergave
+              {activeFilterCount > 0 && (
+                <Badge
+                  className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
+                  key={activeFilterCount}
+                >
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          }
+        />
         <PopoverContent align="end" className="w-64 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground text-xs font-medium">Zichtbare onderdelen</p>

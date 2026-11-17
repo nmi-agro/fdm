@@ -1,8 +1,8 @@
 import type { Row } from "@tanstack/react-table"
+import { cn } from "cn"
 import { Controller, useForm } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { Button } from "~/components/ui/button"
 import {
@@ -13,8 +13,9 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, MemoizedRotationExtended } from "./columns"
 import type { RotationTableFormSchemaType } from "./schema"
+import { rotationTableFeatures } from "./table-features"
 
 type AllowedFormSchemaType = Pick<RotationTableFormSchemaType, "b_lu_variety">
 function TableVarietySelectorForm({
@@ -27,7 +28,7 @@ function TableVarietySelectorForm({
 }: {
   name: keyof AllowedFormSchemaType
   value: string[]
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   b_lu_variety_options: { label: string; value: string }[]
   onHide?: () => unknown
   fetcher: ReturnType<typeof useFetcher>
@@ -68,7 +69,8 @@ function TableVarietySelectorForm({
                 }
                 field.onChange(value)
               }}
-              value={field.value ?? undefined}
+              value={field.value ?? null}
+              items={b_lu_variety_options}
               disabled={field.disabled}
             >
               <SelectTrigger disabled={!row.original.canModify}>
@@ -103,7 +105,7 @@ export function TableVarietySelector({
   canModify,
 }: {
   name: keyof AllowedFormSchemaType
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   cellId: string
   canModify: boolean
 }) {

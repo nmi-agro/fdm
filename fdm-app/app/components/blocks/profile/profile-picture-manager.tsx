@@ -1,10 +1,9 @@
 import type { ReactNode, Ref, SubmitEventHandler } from "react"
 import imageCompression from "browser-image-compression"
+import { cn } from "cn"
 import { LucideImage } from "lucide-react"
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useId, useState, useTransition } from "react"
 import { useFetcher } from "react-router"
-import { compressAvatar } from "@/app/lib/image-upload.client"
-import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
 import {
   ImageCropperApp,
@@ -26,28 +25,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
+import { useIsMobile } from "~/hooks/use-mobile"
+import { compressAvatar } from "~/lib/image-upload.client"
+import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
 
 const DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME = "file"
 
 export const MAX_SIZE_BYTES = 5 * 1024 * 1024
 
 export const MAX_DIMENSIONS = 500
-
-export const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-])
-
-export const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/heic": "heic",
-  "image/heif": "heif",
-}
 
 type ProfilePictureManagerProps = {
   avatarFallback: ReactNode
@@ -61,6 +48,8 @@ type ProfilePictureManagerProps = {
 
 export function ProfilePictureInput({
   ref: propRef,
+  id,
+  className,
   name,
   files,
   onFilesChange,
@@ -77,6 +66,9 @@ export function ProfilePictureInput({
   required,
 }: ProfilePictureManagerProps & {
   ref?: Ref<HTMLInputElement>
+  /** Id of the underlying file input, for a caller's own `<label htmlFor>`. */
+  id?: string
+  className?: string
   name?: string
   title?: string
   files: File[]
@@ -87,8 +79,12 @@ export function ProfilePictureInput({
   frameRelativeSize?: number
   required?: boolean
 }) {
-  const [imageData, setImageData] = useState<ImageData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  // Keyed on the current file so it resets to "not loaded yet" whenever it changes.
+  const [imageData, setImageData] = useKeyedState<File | null, ImageData | null>(
+    files[0] ?? null,
+    () => null,
+  )
+  const isLoading = files.length > 0 && imageData === null
   const [cropFramePosition, setCropFramePosition] = useState({ x: 0, y: 0, scale: 1 })
   const [cropFrameRectangle, setCropFrameRectangle] = useState({
     x: 0,
@@ -99,31 +95,25 @@ export function ProfilePictureInput({
 
   // Take the input file, first convert it into a data URL, then read its width and height using an Image object, making up two asynchronous passes.
   useEffect(() => {
+    if (files.length === 0) return
     let active = true
-    if (files.length > 0) {
-      setIsLoading(true)
-      const fileReader = new FileReader()
-      fileReader.addEventListener("load", () => {
+    const fileReader = new FileReader()
+    fileReader.addEventListener("load", () => {
+      if (!active) return
+      if (typeof fileReader.result !== "string") return
+      const dataUrl = fileReader.result
+      const img = new Image()
+      img.src = dataUrl
+      img.addEventListener("load", () => {
         if (!active) return
-        if (typeof fileReader.result !== "string") return
-        const dataUrl = fileReader.result
-        const img = new Image()
-        img.src = dataUrl
-        img.addEventListener("load", () => {
-          if (!active) return
-          setIsLoading(false)
-          setImageData({ src: dataUrl, imageWidth: img.width, imageHeight: img.height })
-        })
+        setImageData({ src: dataUrl, imageWidth: img.width, imageHeight: img.height })
       })
-      fileReader.readAsDataURL(files[0])
-    } else {
-      setImageData(null)
-    }
+    })
+    fileReader.readAsDataURL(files[0])
     return () => {
       active = false
-      setIsLoading(false)
     }
-  }, [files])
+  }, [files, setImageData])
 
   return (
     <>
@@ -134,8 +124,9 @@ export function ProfilePictureInput({
       <div className={cn("relative", imageData && "hidden")}>
         <Dropzone
           ref={propRef}
+          id={id}
           name={name ?? DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME}
-          accept={Object.values(MIME_TO_EXT).map((ext) => `.${ext}`)}
+          accept={[...ALLOWED_IMAGE_MIME_TYPES].map((mime) => `.${getFileExtensionFromMime(mime)}`)}
           maxSize={maxFileSize}
           multiple={false}
           required={required}
@@ -177,20 +168,22 @@ export function ProfilePictureInput({
         </Dropzone>
       </div>
       {imageData && (
-        <ImageCropperApp
-          aspectRatio={aspectRatio}
-          appAspectRatio={appAspectRatio}
-          frameRelativeSize={frameRelativeSize}
-          imageData={imageData}
-          onClear={() => {
-            onFilesChange([])
-          }}
-          frameShape={frameShape}
-          framePosition={cropFramePosition}
-          cropBounds={cropBounds}
-          onFramePositionChange={setCropFramePosition}
-          onFrameRectangleChange={setCropFrameRectangle}
-        />
+        <div className="w-full" style={{ aspectRatio: `${appAspectRatio}/1` }}>
+          <ImageCropperApp
+            className={className}
+            aspectRatio={aspectRatio}
+            frameRelativeSize={frameRelativeSize}
+            imageData={imageData}
+            onClear={() => {
+              onFilesChange([])
+            }}
+            frameShape={frameShape}
+            framePosition={cropFramePosition}
+            cropBounds={cropBounds}
+            onFramePositionChange={setCropFramePosition}
+            onFrameRectangleChange={setCropFrameRectangle}
+          />
+        </div>
       )}
     </>
   )
@@ -204,10 +197,11 @@ export function ProfilePictureManager({
   frameShape,
   cropBounds,
 }: ProfilePictureManagerProps) {
+  const isMobile = useIsMobile()
   const uploadFetcher = useFetcher()
   const deleteFetcher = useFetcher()
   const maxFileSize = MAX_SIZE_BYTES
-  const appAspectRatio = 3 / 2
+  const appAspectRatio = isMobile ? 4 / 3 : 1
   const aspectRatio = 1
   const frameRelativeSize = 0.6
   const [files, setFiles] = useState<File[]>([])
@@ -217,23 +211,18 @@ export function ProfilePictureManager({
   const isUploading = isProcessingForm || uploadFetcher.state !== "idle"
   const isDeleting = deleteFetcher.state !== "idle"
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputId = useId()
 
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
     processForm(async () => {
-      void uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
+      await uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
         method: "post",
         encType: "multipart/form-data",
       })
+      setFiles([])
     })
   }
-
-  useEffect(() => {
-    if (uploadFetcher.state === "idle") {
-      setFiles([])
-    }
-  }, [uploadFetcher.state])
 
   return (
     <uploadFetcher.Form
@@ -244,7 +233,7 @@ export function ProfilePictureManager({
     >
       <input type="hidden" name="intent" value="update_profile_picture" />
       <ProfilePictureInput
-        ref={fileInputRef}
+        id={fileInputId}
         avatarFallback={avatarFallback}
         currentTitle={currentTitle}
         currentPicture={currentPicture as string}
@@ -266,19 +255,21 @@ export function ProfilePictureManager({
               {currentPicture ? "Annuleren" : "Kies een andere afbeelding"}
             </Button>
             <Button type="submit" disabled={isUploading}>
-              Opslaan
+              <span>Opslaan</span>
               {isUploading ? <Spinner /> : undefined}
             </Button>
           </>
         ) : currentPicture ? (
           <>
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="destructive" disabled={isDeleting}>
-                  Verwijderen
-                  {isDeleting ? <Spinner /> : undefined}
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button type="button" variant="destructive" disabled={isDeleting}>
+                    <span>Verwijderen</span>
+                    {isDeleting ? <Spinner /> : undefined}
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
@@ -301,9 +292,12 @@ export function ProfilePictureManager({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button type="button" variant="outline" asChild>
-              <label htmlFor={fileInputRef.current?.id ?? ""}>Kies één nieuwe</label>
-            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              nativeButton={false}
+              render={<label htmlFor={fileInputId}>Kies één nieuwe</label>}
+            />
           </>
         ) : (
           <Button type="submit" disabled>

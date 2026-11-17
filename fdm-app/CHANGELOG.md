@@ -1,5 +1,292 @@
 # Changelog fdm-app
 
+## 0.39.9
+
+### Patch Changes
+
+- [#958](https://github.com/nmi-agro/fdm/pull/958) [`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae) Thanks [@SvenVw](https://github.com/SvenVw)! - Bodemkwaliteit (BLN) and bodemmaatregelen are no longer calculated for a field without a main cultivation in the selected year. The indicator and measure pages explain that the field has no main cultivation in that year, and the indicator maps no longer show such a field as a nature field.
+- Updated dependencies [[`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae)]:
+  - @nmi-agro/fdm-calculator@0.20.1
+  - @nmi-agro/fdm-agents@0.6.1
+
+## 0.39.8
+
+### Patch Changes
+
+- [#949](https://github.com/nmi-agro/fdm/pull/949) [`f0b796e`](https://github.com/nmi-agro/fdm/commit/f0b796e8e7b336f43a9ccd97922332b42c7d4e6f) Thanks [@SvenVw](https://github.com/SvenVw)! - Opening the soil analysis of a field in the atlas for a year in which the field is not part of the farm now shows the "page unavailable" message instead of the unexpected error page.
+
+## 0.39.7
+
+### Patch Changes
+
+- [#933](https://github.com/nmi-agro/fdm/pull/933) [`e87b8c4`](https://github.com/nmi-agro/fdm/commit/e87b8c4a017f8ab07a14b935ead018ba0a7f47ac) Thanks [@SvenVw](https://github.com/SvenVw)! - The fertilizer application form now rejects an amount above 100,000 kg/ha and shows the maximum in the unit of the selected fertilizer, for example "Hoeveelheid mag niet groter zijn dan 95,23 m³/ha". The impact preview of the bulk edit shows the same limit instead of calculating with the amount. When an amount is rejected while saving, for example in the bulk edit, a warning with the maximum in the unit of that fertilizer is shown instead of a general error. Moving a fertilizer application in the timeline keeps its stored amount.
+- Updated dependencies [[`e87b8c4`](https://github.com/nmi-agro/fdm/commit/e87b8c4a017f8ab07a14b935ead018ba0a7f47ac)]:
+  - @nmi-agro/fdm-core@0.39.2
+  - @nmi-agro/fdm-agents@0.6.1
+
+## 0.39.6
+
+### Patch Changes
+
+- [#917](https://github.com/nmi-agro/fdm/pull/917) [`300a018`](https://github.com/nmi-agro/fdm/commit/300a0185e41d5cd2b47932d9a11f203f72e77cfb) Thanks [@SvenVw](https://github.com/SvenVw)! - Update Better Auth to 1.7.16. When a Google or Microsoft sign-in cannot be linked to an existing account because the provider did not confirm the email address, the sign-in page now explains this and offers a sign-in link by email.
+- Updated dependencies [[`300a018`](https://github.com/nmi-agro/fdm/commit/300a0185e41d5cd2b47932d9a11f203f72e77cfb)]:
+  - @nmi-agro/fdm-core@0.39.1
+  - @nmi-agro/fdm-agents@0.6.1
+
+## 0.39.5
+
+### Patch Changes
+
+- [#906](https://github.com/nmi-agro/fdm/pull/906) [`7131ba8`](https://github.com/nmi-agro/fdm/commit/7131ba85bf5bf137767a2227010e97742b2c0915) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - People with the Researcher role on a farm now see the BRP cultivation suggestions, but they won't be able to accept it through the user interface, and instead they will see a message instructing them to ask the farm owner to apply the suggestion. This change applies to the farm dashboard, fields table, and the nutrient advice table (if it shows a suggestion at all).
+
+## 0.39.4
+
+### Patch Changes
+
+- [#905](https://github.com/nmi-agro/fdm/pull/905) [`533d76a`](https://github.com/nmi-agro/fdm/commit/533d76aa36c61fe1e62c51fe30be5a254225922f) Thanks [@SvenVw](https://github.com/SvenVw)! - Opening a link to an organization invitation that can no longer be used now explains why, instead of showing the error page: the invitation has expired, was already accepted, was rejected earlier, or was cancelled by the organization. Invitations that do not exist or are meant for another account show "Uitnodiging niet beschikbaar". The "Terug naar mijn organisaties" button on these messages now works as well.
+
+## 0.39.3
+
+### Patch Changes
+
+- [#903](https://github.com/nmi-agro/fdm/pull/903) [`931a0f0`](https://github.com/nmi-agro/fdm/commit/931a0f014742d4011fe274accb3d11190ddb43ef) Thanks [@SvenVw](https://github.com/SvenVw)! - Pages no longer crash with an error page when the browser translates the app, for example on the KvK lookup and when selecting fields on the map. Choosing a value in a dropdown no longer crashes the page, and the cultivation picker shows the chosen cultivation again. Labels next to icons and spinners now also update correctly in a translated page.
+
+## 0.39.2
+
+### Patch Changes
+
+- [#899](https://github.com/nmi-agro/fdm/pull/899) [`8fc4883`](https://github.com/nmi-agro/fdm/commit/8fc4883b4863acfce072e766c3c51af86e437351) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed several forms showing the full-page error screen instead of a warning toast when an action fails, for example accepting all BRP main-cultivation suggestions on the farm dashboard, deleting a fertilizer application on the timeline, removing a fertilization plan and saving profile settings. Warning and error toasts from a failed action now also appear right away, instead of only after the next page navigation. Validation errors from these forms are no longer reported twice with a second error code. Deleting a fertilization plan now refreshes the list even when its PDF file could not be removed from storage. Error responses sent to the browser no longer include the underlying error message, only a user-facing message and the error code that support can look up.
+
+## 0.39.1
+
+### Patch Changes
+
+- [#895](https://github.com/nmi-agro/fdm/pull/895) [`8ab6b11`](https://github.com/nmi-agro/fdm/commit/8ab6b11b488043b6fa8b2f7f0d71d59840b9999b) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed the KvK lookup reporting the same result on every render. When creating a farm, "Wijzigen" after a lookup now returns to the KvK step instead of freezing the page, and on the farm settings page fields filled in from KvK can be edited again.
+
+## 0.39.0
+
+### Minor Changes
+
+- [#865](https://github.com/nmi-agro/fdm/pull/865) [`1815c11`](https://github.com/nmi-agro/fdm/commit/1815c114315972636f58763ba5290119aa82f6ac) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Added the Atlas map layer "Bemestingsadvies". It colours every field of a farm by the nutrient advice for the selected nutrient (in kg/ha): still to apply, percentage of the advice, or the advice itself. Hovering a field shows the advice, the amount already applied and the amount still to apply; clicking a field opens its fertilization advice page. The per-field advice calculation is now shared with the Bemestingsadvies overview. The Bemestingsadvies overview has a "Kaartweergave" button to open the layer, and the layer has a "Tabelweergave" button back to the overview.
+
+  In "Nog te geven" the fields are shaded from light (nothing left to apply, also when more than the advice was applied) to dark (the largest amount still to apply on the farm). In "% van advies" the fields are shaded on a continuous scale of the percentage of the advice applied, from orange (too little) through green (around 100 %) to red (too much), so small differences between fields stay visible. Fields with an advice of 0 and nothing applied are shown as "Geen behoefte" instead of "advice met". The legend shows the number of fields under, on and over the advice, the progress while the advice is calculated and a message when no field has advice. The tooltip also shows the percentage of the advice applied. On phones the controls span the width and the legend starts collapsed; on touch screens the controls are larger.
+
+  The advice now appears per field as soon as it is calculated, on the map and in the Bemestingsadvies overview, with the progress shown ("Advies berekend voor X van N percelen"). The next field starts as soon as any running calculation finishes, instead of waiting for the slowest field of a batch.
+
+  The farm row in the Bemestingsadvies overview now states whether it shows the area-weighted average per hectare ("Bedrijfsgemiddelde") or the total for the farm ("Bedrijfstotaal"), with a tooltip that explains the calculation.
+
+  The map, the overview table, the progress bars and the summary cards now use the same status colours for nutrient advice: orange below 90 % of the advice, green within 90–110 %, red above 110 %. EOC is never flagged as too much, so it is only orange or green. Previously the overview table used a 105 % threshold with red for a deficit and amber for excess, and the summary cards showed a deficit in red and excess in orange.
+
+- [#874](https://github.com/nmi-agro/fdm/pull/874) [`8a4ec5f`](https://github.com/nmi-agro/fdm/commit/8a4ec5f2e76a37f6ed0f1a7dca0a5e9afcf7a990) Thanks [@SvenVw](https://github.com/SvenVw)! - Redesign the page for adding one fertilizer application to several fields, from both the fields table and the rotation table. Before saving, the page now shows the farm's gebruiksruimte and filling, the area-weighted N, P₂O₅ and K₂O advice and the area-weighted nitrogen balance of the selected fields, and a per-field breakdown. All values show the effect of the application while the form is filled in, without saving. The effect is calculated in the browser from data loaded once with the page, so it updates directly while typing. Fields can be left out of the application from the field table. Exceeding a farm norm shows a warning but does not block saving. When buffer strips are selected, a warning offers to exclude them with one click.
+
+  Adding an application from the rotation table now also runs in a single transaction and ignores duplicate fields, like the fields table already did.
+
+  The fertilizer page of a single field now shows the form directly on the page instead of in a dialog, and uses the same impact blocks: the gebruiksruimte of the field (with a switch to the whole farm), the advice and the nitrogen balance of the field, before and after the application. The saved applications are shown at the top of the page in a table with the workable nitrogen, phosphate and potassium each application supplies. Changing an existing application loads it into the same form and previews the effect of the change.
+
+  The applications of a fertilizer, opened from the fields table or the rotation table, are now shown on their own page instead of in a dialog. Several applications can be selected and changed or removed together, with the effect on the farm norms, advice and nitrogen balance shown while the form is filled in. Old links to change applications from the bulk page are redirected to this page.
+
+  Near the save button, the page now gives one verdict on the same level as the norms block: per norm the room that is left or by how much it is exceeded, on a field page also the verdict for the whole farm (which is what counts legally), and neutral notes when the nitrogen balance ends above its target or a field ends above the advice. Saving is never blocked. Other improvements on these pages:
+
+  - The advice on the field page is always based on the main cultivation, shown as a coloured dot; the field table shows cultivations as badges, as in the rotation table.
+  - Statuses are named precisely ("Geen advies", "Geen balans") and calculation errors are shown in Dutch, with the option to try again.
+  - The field selection has a search field and buttons to select all fields with the crop or none.
+  - An application method is filled in when a fertilizer has only one, and all required fields are marked.
+  - Removing applications asks for confirmation with the effect on the nutrient supply.
+  - In the farm creation wizard, the bulk page keeps the wizard header, and the breadcrumb shows the rotation step.
+
+- [#873](https://github.com/nmi-agro/fdm/pull/873) [`05fcc10`](https://github.com/nmi-agro/fdm/commit/05fcc106e6bf1c5018c436c0d33f296a75f137ba) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Added the option `useEffectiveNitrogen` to the nitrogen balance to calculate the nitrogen supply by fertilizers with effective nitrogen (`p_n_rt * p_n_wc`) and soil mineralization with the MINIP model. Nitrate leaching is based on the surplus of the balance with total nitrogen in both modes. The default remains total nitrogen. In the app, the nitrogen balance pages let you choose between calculating with total nitrogen or with effective nitrogen; the target and status are only shown for the balance with total nitrogen.
+
+- [#832](https://github.com/nmi-agro/fdm/pull/832) [`5bdacae`](https://github.com/nmi-agro/fdm/commit/5bdacaeb5a0d54d277ebaf124e8796aff3b70eed) Thanks [@SvenVw](https://github.com/SvenVw)! - Add farm groups for organizations. Organization farms in the farm overview are shown under collapsible group headers when groups exist. The organization farms table gets a "Groepen" column, a group filter and a bulk action to assign farms to groups. The organization balance pages (nitrogen, organic matter), indicators, measures and the atlas indicators map get a group picker that selects the farms that are part of a group in the selected calendar year. The organization page lists the groups and shows the groups on each farm card for the selected year. Groups are managed on the new `/organization/:slug/:calendar/groups` overview, with a page per group that lists the periods of its farms in the selected year. Throughout the organization, a farm belongs to a group in a year when it is part of the group at some point in that year. For every farm, users set the dates from which and until which it is part of a group with the shared date picker; the start date defaults to 1 January of the selected year and there is no default end date. Periods can be edited afterwards and an end date before the start date is rejected. A period recorded by mistake can be deleted, as if the farm never was part of the group in it. These are the dates of the period itself, not the moment of the change.
+
+- [#836](https://github.com/nmi-agro/fdm/pull/836) [`7834467`](https://github.com/nmi-agro/fdm/commit/783446725425745c6a0f931f86c9d2ca81e30be2) Thanks [@SvenVw](https://github.com/SvenVw)! - Look up a farm's name and address in the KvK Handelsregister by KvK number. When creating a farm, users now start with their KvK number and can skip this step if they have none; the farm address and postal code can also be entered right away. The farm settings page has an "Ophalen uit KvK" action as well. The lookup is enabled with `KVK_API_KEY` (and optionally `KVK_API_BASE_URL`) and is hidden when not configured.
+
+- [#870](https://github.com/nmi-agro/fdm/pull/870) [`fdad56f`](https://github.com/nmi-agro/fdm/commit/fdad56f8f24e47a68322272c0e201780dbd59a57) Thanks [@SvenVw](https://github.com/SvenVw)! - Redesign the Mineralisatie app (Labs) around Dyna v2. The farm overview shows how many fields are calculated, a sortable table with per field the available nitrogen, uptake and leaching, and the fields that need attention: an expected nitrogen shortage, rain around a planned application or harvest, a nitrogen surplus or a failed calculation. Fields without a harvest are grouped per crop and link to the harvest form of the crop rotation, where the harvests or cuts of all those fields can be entered at once; that form now returns to the page that opened it. The field page shows an interactive chart of nitrogen supply, uptake, available nitrogen and nitrate leaching with sowing, fertilization and harvest events, the weather forecast, the workable nitrogen balance, the data used for the calculation, and a what-if scenario to shift or change applications and harvests; for grassland every cut of the year is shown and cuts can be changed, added or removed. Each harvest shows the same fields as the harvest form for its crop (for grassland the yield and crude protein); a new cut starts with the usual values for the crop, and saving stores the harvests with these values. Amounts below 1 can be typed in the scenario. The effect of a scenario is shown next to the chart and on the event lane, and before saving the page lists what will change in the fertilization plan. Planning, growing season and evaluation are pre-selected based on the date and can be switched. The order of the page follows the phase: when planning, the scenario sits right under the chart; in the growing season the nitrogen balance and attention points come first, followed by the weather and the scenario. When the harvest is missing, the page asks for the measured or planned harvest, with the same fields as the harvest form for the crop, filled in with its usual values; they can also be left empty to save only the date. The pages for soil nitrogen supply (MINIP, PMN, Century) are removed. Calculations stream in per field, so the page no longer waits for all fields.
+
+  Return links after saving (for example on the fertilizer application, fertilizer and harvest forms) are now resolved against the app's own address, so a crafted link can no longer send users to another site.
+
+  The weather forecast is shown in the growing season only. Harvests or cuts of one cultivation need at least 10 days between them for the calculation: a harvest closer to the previous one is left out, and the page and farm overview warn which ones were not included. In a scenario, any number of cuts can be added, as long as they are at least 10 days apart.
+
+  A note under the page title says the Mineralisatie pages are experimental in design and model, available to test users only, and links to Ondersteuning for feedback.
+
+- [#841](https://github.com/nmi-agro/fdm/pull/841) [`c4e9c36`](https://github.com/nmi-agro/fdm/commit/c4e9c36c3173ba737477a8372db00e13802a2787) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Adopted React compiler to simplify development, make programming errors visible, and to improve client-side performance. Fixed any errors that the new linting rules have surfaced.
+
+- [#883](https://github.com/nmi-agro/fdm/pull/883) [`9c305d2`](https://github.com/nmi-agro/fdm/commit/9c305d231a849e5ff72d2afd76ee129be17bee1d) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Organization slugs can no longer be changed after an organization is created, so renaming an organization keeps its URL intact. On the create form, the suggested slug now updates as you type the organization name.
+
+- [#863](https://github.com/nmi-agro/fdm/pull/863) [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can now only select cultivation codes that are available for the relevant year in RVO Basisregistratie Percelen. This removes unnecessary options from cultivation selection combo boxes and makes entering correct data easier. Existing cultivations stay as they are and can be part of calculations, however the user sees a warning that the cultivation code is not allowed by RVO in the given time period, naming the first unavailable year. The warning is shown on the field dashboard, the cultivation details page and when adding or editing a cultivation, and cultivation badges in the field and rotation tables show a warning triangle with a tooltip.
+
+- [#880](https://github.com/nmi-agro/fdm/pull/880) [`b4aec7f`](https://github.com/nmi-agro/fdm/commit/b4aec7f28534e969d950430f79651dda06e933be) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed all possible redirect issues that would be caused by the manual parsing of request.url. Also, PostHog event captures might improve since the URL pathnames are normalized now.
+
+- [#872](https://github.com/nmi-agro/fdm/pull/872) [`1e504c1`](https://github.com/nmi-agro/fdm/commit/1e504c1d39a8c442071801bc3573581c4e36af79) Thanks [@SvenVw](https://github.com/SvenVw)! - The RVO and shapefile import review table now lets you choose per column whether to use the value from RVO or from the app, or enter your own value, before importing:
+
+  - Every field follows RVO by default. New fields are added, conflicting fields take the RVO values, and fields that RVO no longer reports are closed. The table shows the date on which each field will be closed.
+  - The import is blocked when a field has no name, no start date, or an end date that does not lie after its start date. The server checks the same rules.
+  - The confirmation dialog names the fields that will be added, updated, closed or removed. It warns that removing a field also removes its cultivations, harvests, fertilizer applications, soil analyses and measures.
+  - After applying the changes a confirmation message is shown. Error messages are now in Dutch.
+  - Clearer wording in the table. The statuses are now "Alleen bij RVO", "Alleen in" the app and "Niet meer bij RVO", and their explanations say what happens by default. The column explanations now say that choosing an area also chooses the field boundary, and how the buffer strip is estimated for shapefile uploads.
+  - Fields without a crop now also get soil estimates when they are imported.
+  - A summary above the table shows how many fields there are per status, and which columns differ for the fields with differences. It also states whether the fields will match RVO after saving, or how many will differ because of your choices.
+  - The table lists the fields that need a decision first. Fields that match RVO are collapsed and can be shown with one click. Ignored fields are dimmed, and a field with a problem shows that problem in its row.
+  - The buttons to save stay visible while you scroll through a long list of fields.
+  - Calmer status badges. Statuses that change data by default (Verschil, Alleen bij RVO, Niet meer bij RVO) get a filled badge, and the others stay neutral. Each badge has an icon, so the meaning no longer depends on color, and "Verschil" is no longer shown in red as if it were an error.
+  - Better keyboard and screen reader support. Every choice and input names its column and field, for example "Gewas van Huiskavel". The status explanations are all in the header of the status column, so the badges are no longer separate tab stops. The edit buttons are larger, and the crop list only opens by itself when you ask to enter a value.
+
+### Patch Changes
+
+- [#854](https://github.com/nmi-agro/fdm/pull/854) [`b902111`](https://github.com/nmi-agro/fdm/commit/b90211187c7d00ad342e8d41fba1483d21dc2257) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Corrected redirects after the new fertilizer and modify fertilizer bulk actions.
+
+- [#888](https://github.com/nmi-agro/fdm/pull/888) [`7b59617`](https://github.com/nmi-agro/fdm/commit/7b5961790b2a685918f42e7610b26178448f34fa) Thanks [@posthog-eu](https://github.com/apps/posthog-eu)! - Initialize PostHog before hydration, using the stored cookie consent for persistence, so events at the start of a page load are no longer dropped for lacking a `distinct_id`.
+
+- [#854](https://github.com/nmi-agro/fdm/pull/854) [`b902111`](https://github.com/nmi-agro/fdm/commit/b90211187c7d00ad342e8d41fba1483d21dc2257) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixes that fertilizer application metrics nutrient advice section now shows the workable nitrogen, instead of total nitrogen, to align with nutrient advices.
+
+- [#829](https://github.com/nmi-agro/fdm/pull/829) [`2e0ab65`](https://github.com/nmi-agro/fdm/commit/2e0ab65ac95fac055d38d494ee08aac366a11eeb) Thanks [@SvenVw](https://github.com/SvenVw)! - Use the indicator score, aggregation, exclusion and measure-ranking helpers from `fdm-calculator`, so the application and the REST API apply the same rules.
+
+- [#861](https://github.com/nmi-agro/fdm/pull/861) [`3df3762`](https://github.com/nmi-agro/fdm/commit/3df3762b603d1047d725e382f9336c1be629d47a) Thanks [@SvenVw](https://github.com/SvenVw)! - Listed in the norms disclaimer that the generic herb codes use the leaf-crop norm, as separate norms for root and seed herbs are not (yet) applied.
+
+- [#875](https://github.com/nmi-agro/fdm/pull/875) [`d8b1b60`](https://github.com/nmi-agro/fdm/commit/d8b1b602987a3d10448b94dbc3bd66805ef192bd) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Recommended measures now show at most one variant per measure family (for example only the strongest of "Hoger stuwpeil in hoofdwatergang" 20 cm and 35 cm), so the freed slot goes to another measure. This applies to "Aanbevolen maatregelen" on the farm measures overview, "Waar te beginnen" in the Knelpunten panel and the recommended measures per indicator on the field page. A variant is no longer recommended for a field that already has another variant of the same family.
+
+- [#829](https://github.com/nmi-agro/fdm/pull/829) [`6dec3fc`](https://github.com/nmi-agro/fdm/commit/6dec3fc04ad7b2d428657535628e796d27fb3bce) Thanks [@SvenVw](https://github.com/SvenVw)! - Treat a missing or empty `NMI_API_KEY` as not configured. Previously the application sent the text `undefined` as the API key, so NMI API requests failed with an authorization error instead of being skipped.
+
+- [#864](https://github.com/nmi-agro/fdm/pull/864) [`61f4354`](https://github.com/nmi-agro/fdm/commit/61f43545b7865dd7e00b6b6e6f52e6a7f9623e7a) Thanks [@SvenVw](https://github.com/SvenVw)! - List consumption and seed potato grow-out with haulm destruction after 15 August (`Consumptieaardappel, vroeg; Pootaardappelen, uitgroeiteelt (loofvernietiging na 15 augustus)`) under the unsupported situations of the nitrogen usage norms, because the haulm destruction date is not recorded.
+
+- [#864](https://github.com/nmi-agro/fdm/pull/864) [`ea85f3d`](https://github.com/nmi-agro/fdm/commit/ea85f3dde18db37fc837f701008884d63233f06a) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixes to use S_PROD instead of S_PROD_T at Indicators
+
+- [#854](https://github.com/nmi-agro/fdm/pull/854) [`b902111`](https://github.com/nmi-agro/fdm/commit/b90211187c7d00ad342e8d41fba1483d21dc2257) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Made fertilizer bulk actions data loading more efficient and the data changes atomic.
+
+- [#876](https://github.com/nmi-agro/fdm/pull/876) [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc) Thanks [@SvenVw](https://github.com/SvenVw)! - Update `@hookform/resolvers` to v6.
+
+- [#868](https://github.com/nmi-agro/fdm/pull/868) [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Corrected the displayed units and names of several soil parameters to match the NMI parameter definitions: `a_c_of` is now shown in g C/kg and `a_n_rt` in mg N/kg, `a_mg_co` uses the same "mmol+/kg" notation as `a_ca_co` and `a_k_co`, and these three exchangeable cations are now labelled "uitwisselbaar" instead of "totale bodemvoorraad". The input range for `a_ca_co_po` is limited to 1–100 %. Bulk density is documented in g/cm³ throughout the calculator.
+
+- [#849](https://github.com/nmi-agro/fdm/pull/849) [`d168b19`](https://github.com/nmi-agro/fdm/commit/d168b19830443e41431e344153d9aee0680be8d7) Thanks [@SvenVw](https://github.com/SvenVw)! - Update `framer-motion` to v14 and `@remix-run/file-storage` and `@remix-run/form-data-parser` to v1.
+
+- [#887](https://github.com/nmi-agro/fdm/pull/887) [`793908a`](https://github.com/nmi-agro/fdm/commit/793908ab4ffcde9cbd76612d0dabb9eb08a999d2) Thanks [@SvenVw](https://github.com/SvenVw)! - Redesign the "Wat is er nieuw?" page for scanning. Each change now has its own heading, and the text uses the full foreground colour at a readable line length. The latest release is expanded, and so is any release that is new since the user's previous visit. A line at the top counts these new releases and older releases are collapsed. Each release has a link anchor and its date is marked up as `<time>`. The page follows the interior type scale and uses a single column on smaller screens. The release copy has been proofread and uses formal address throughout, and one superseded statement about the 2026 grassland-renewal reductions now points to its correction. Release data moved to `app/lib/changelog.ts`.
+
+  The sidebar notification for a new release is redesigned as a compact, flat notice that sits in the sidebar menu. It shows "Nieuw in" followed by the application name, with the title of the latest release underneath. Closing it now only hides it until the next release, so the "Wat is er nieuw?" page still shows which versions are new since the last visit. New users no longer see the notification for the release that was current when they started. The close button is larger and has an accessible label.
+
+- Updated dependencies [[`2d9da29`](https://github.com/nmi-agro/fdm/commit/2d9da29dcf294ad8817ce8095fe02a178f49ea67), [`05fcc10`](https://github.com/nmi-agro/fdm/commit/05fcc106e6bf1c5018c436c0d33f296a75f137ba), [`cc8a891`](https://github.com/nmi-agro/fdm/commit/cc8a89101cb6a573a3822be02ced6d17224d54fa), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`cf1fb25`](https://github.com/nmi-agro/fdm/commit/cf1fb25994f3d8485410e826fc4220143acd4050), [`2e0ab65`](https://github.com/nmi-agro/fdm/commit/2e0ab65ac95fac055d38d494ee08aac366a11eeb), [`1970cef`](https://github.com/nmi-agro/fdm/commit/1970cef75abba6dd5c831a7a70b71c27d043689b), [`0faf07a`](https://github.com/nmi-agro/fdm/commit/0faf07a43c60272aa59ee51eabc4ac49c1168102), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`d8b1b60`](https://github.com/nmi-agro/fdm/commit/d8b1b602987a3d10448b94dbc3bd66805ef192bd), [`fdad56f`](https://github.com/nmi-agro/fdm/commit/fdad56f8f24e47a68322272c0e201780dbd59a57), [`8498cbc`](https://github.com/nmi-agro/fdm/commit/8498cbce7096b00e466225cbd8b9a2c57bb702e9), [`fa57acb`](https://github.com/nmi-agro/fdm/commit/fa57acb13cb01e8e896661d01cbe3099f150552e), [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196), [`0e9b593`](https://github.com/nmi-agro/fdm/commit/0e9b593b0080553b243d23f68bf56d972d651eda), [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc), [`f7c4ff2`](https://github.com/nmi-agro/fdm/commit/f7c4ff2f57048bb0d5e88a90c2e7d85294ab9d7b)]:
+  - @nmi-agro/fdm-calculator@0.20.0
+  - @nmi-agro/fdm-core@0.39.0
+  - @nmi-agro/fdm-data@0.24.0
+  - @nmi-agro/fdm-agents@0.6.1
+  - @nmi-agro/fdm-rvo@0.6.3
+
+## 0.38.3
+
+### Patch Changes
+
+- [#852](https://github.com/nmi-agro/fdm/pull/852) [`0da61be`](https://github.com/nmi-agro/fdm/commit/0da61be1e8c3ffd33ab4a74ca77cf1b5ec19dfd7) Thanks [@SvenVw](https://github.com/SvenVw)! - Calendar years are now interpreted in Europe/Amsterdam instead of UTC, so a field ended on 31 December or 1 January is no longer shown in, or included in calculations for, the next calendar year.
+
+  When a page of a field (field pages, nitrogen and organic matter balance, norms, nutrient advice, indicators, measures and mineralization) is opened for a calendar year in which the field is not managed, the page now shows a message instead of an empty result. The message names the field and its start or end date, links to the same page in the field's first or last year, and links to the field's settings page to correct the dates. Calculations for that page are skipped. The settings and delete pages of the field remain available.
+
+  The field picker in the header now shows the name of the selected field when it is not managed in the selected calendar year, instead of "Onbekend perceel".
+
+  The RVO import review table shows an RVO end date on 1 January as 31 December of the previous year, consistent with the local end date.
+
+- [#852](https://github.com/nmi-agro/fdm/pull/852) [`f187547`](https://github.com/nmi-agro/fdm/commit/f18754758d0e1b60d89a7ba5289d8a165a968613) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix name of `S_WAT_GWQUAN` instead of `S_WAT_GWQUANT`
+- Updated dependencies [[`702c643`](https://github.com/nmi-agro/fdm/commit/702c643678d15caae37cffd7a1497c0ce73954ad), [`f33e384`](https://github.com/nmi-agro/fdm/commit/f33e3847dd0e5b5222bfa9e8767cbf61f7e48fff)]:
+  - @nmi-agro/fdm-core@0.38.1
+  - @nmi-agro/fdm-rvo@0.6.2
+  - @nmi-agro/fdm-agents@0.6.0
+
+## 0.38.2
+
+### Patch Changes
+
+- [#848](https://github.com/nmi-agro/fdm/pull/848) [`79acc99`](https://github.com/nmi-agro/fdm/commit/79acc99385c5e9d6be4064b249fe6eb1cac938f3) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix importing fields from RVO for your own farm:
+
+  - Before connecting to RVO, the user now chooses which eHerkenning they log in with: the eHerkenning of the farm itself, or the eHerkenning of their own organisation with a machtiging for the farm at RVO. The options mention the farm by name. The KvK number is only sent to RVO for a machtiging, so farmers who log in with the eHerkenning of their own farm no longer get "Toegang geweigerd".
+  - When RVO denies access, the import page now shows a message for the chosen option with an "Opnieuw verbinden" button that pre-selects the other option, instead of a generic "page not available" page.
+  - Updated the design of the "Percelen ophalen bij RVO" card. It now asks the choice first, explains what is read from RVO and that nothing changes before the user reviews the differences, shows the KvK number as plain text with a link to change it, and explains inline when no option is chosen yet.
+  - When RVO returns no fields, the message now depends on the chosen option.
+  - Farm verifications are only recorded for requests with a machtiging, as a request for the own farm does not prove the farm's KvK number.
+  - The farm verification status, badges and explanations are hidden for now. The KvK number of a farm that is already verified stays locked.
+
+- Updated dependencies [[`3ec0953`](https://github.com/nmi-agro/fdm/commit/3ec0953a87fcc2615e58f0c127b109ecacc18f7a)]:
+  - @nmi-agro/fdm-rvo@0.6.1
+
+## 0.38.1
+
+### Patch Changes
+
+- [#844](https://github.com/nmi-agro/fdm/pull/844) [`8cc7fb3`](https://github.com/nmi-agro/fdm/commit/8cc7fb3e92dc47d79d3f768de4e148c9f5346c59) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch to the new BLN3 aggregation codes returned by the NMI API (for example `S_WAT_BLN` → `S_WAT`, `S_PROD_BLN` → `S_PROD_T`, `S_GW_QUANT_BLN` → `S_WAT_GWQUANT`). The aggregation tree, atlas map selector, field overview cards and indicators page now match on the new codes. A stored map score that is no longer valid falls back to `S_BLN`. The calculator version bump invalidates cached BLN3 results that still hold the old codes.
+- Updated dependencies [[`8cc7fb3`](https://github.com/nmi-agro/fdm/commit/8cc7fb3e92dc47d79d3f768de4e148c9f5346c59)]:
+  - @nmi-agro/fdm-calculator@0.19.3
+  - @nmi-agro/fdm-agents@0.6.0
+
+## 0.38.0
+
+### Minor Changes
+
+- [#831](https://github.com/nmi-agro/fdm/pull/831) [`0ff6213`](https://github.com/nmi-agro/fdm/commit/0ff6213fff255cc5facca238c8c2b4f999a7446c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now the fields table also shows the selected rows in green.
+
+- [#823](https://github.com/nmi-agro/fdm/pull/823) [`ddcd887`](https://github.com/nmi-agro/fdm/commit/ddcd887f4f9a25e545f0de354bb7a5d11af45341) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - BodemConditieScore analyses on the timeline now have a distinct icon, say "BodemConditieScore" in their popup, and link to the correct analysis view and edit pages.
+
+### Patch Changes
+
+- [#824](https://github.com/nmi-agro/fdm/pull/824) [`605a77c`](https://github.com/nmi-agro/fdm/commit/605a77c410bd33d921a5a398f94e4a04b013df9c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can no longer select text (accidentally) on the rotation table by shift-clicking.
+
+- [#822](https://github.com/nmi-agro/fdm/pull/822) [`3911253`](https://github.com/nmi-agro/fdm/commit/3911253dc4657e5ffdc2032ae138168c4d486897) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - BRP cultivation suggestions on the field dashboard and field table are now correctly shown to the user in the next route when the user tries to add them.
+
+- [#823](https://github.com/nmi-agro/fdm/pull/823) [`ddcd887`](https://github.com/nmi-agro/fdm/commit/ddcd887f4f9a25e545f0de354bb7a5d11af45341) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Standalone fertilizer and soil analysis markers on the timeline now have a rounded shape.
+
+## 0.37.2
+
+### Patch Changes
+
+- [#835](https://github.com/nmi-agro/fdm/pull/835) [`175f367`](https://github.com/nmi-agro/fdm/commit/175f36705e0a13aad2ca61d220a580b844b50c46) Thanks [@SvenVw](https://github.com/SvenVw)! - Stop reporting React Router's internal 404 and 405 responses (unmatched routes and unsupported methods, typically from bots and scanners) to Sentry. These are now logged as a single debug line with status, method and path instead of a multi-line error with stack trace.
+
+## 0.37.1
+
+### Patch Changes
+
+- [#821](https://github.com/nmi-agro/fdm/pull/821) [`13aa9d6`](https://github.com/nmi-agro/fdm/commit/13aa9d63dea0ebbffba2613379b372d9b963894d) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the `RVO_LOG_XML` environment variable (`none`, `request`, `response` or `both`; default `none`) to log the SOAP XML exchanged with RVO. The value is validated at startup. Logged XML can contain farm data, so only enable it temporarily for debugging.
+- Updated dependencies [[`13aa9d6`](https://github.com/nmi-agro/fdm/commit/13aa9d63dea0ebbffba2613379b372d9b963894d)]:
+  - @nmi-agro/fdm-rvo@0.6.0
+
+## 0.37.0
+
+### Minor Changes
+
+- [#808](https://github.com/nmi-agro/fdm/pull/808) [`311df04`](https://github.com/nmi-agro/fdm/commit/311df045e7b70a7bc490db32615f29f9e6b58dc8) Thanks [@SvenVw](https://github.com/SvenVw)! - Existing BodemConditieScore assessments can now be edited: users with write access see a "Bewerken" button on the detail page to change the date, scores, photos and notes. Photos can also be removed. Soil photo thumbnails now adapt to portrait and landscape orientation so vertical photos are no longer cropped to a thin strip.
+
+- [#811](https://github.com/nmi-agro/fdm/pull/811) [`68be8b6`](https://github.com/nmi-agro/fdm/commit/68be8b6dff69543ffa57110c92c61fd71df44e0b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Organization dashboard now displays the summary information only for the selected calendar year.
+
+- [#811](https://github.com/nmi-agro/fdm/pull/811) [`0a54797`](https://github.com/nmi-agro/fdm/commit/0a54797c52fe288e322c32ebede3ab2d0134f91b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Farm dashboard preserves an explicit calendar query year while synchronizing the calendar store, then resume redirects for calendar changes.
+
+- [#814](https://github.com/nmi-agro/fdm/pull/814) [`71926bd`](https://github.com/nmi-agro/fdm/commit/71926bd7b58a18b7ca81905b10ddd1260b81269b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added PostHog events before and after field fetches from the RVO (EDICrop) service. Also made sure a PostHog event is captured when the user confirms the import of the fields.
+
+- [#796](https://github.com/nmi-agro/fdm/pull/796) [`b5526e6`](https://github.com/nmi-agro/fdm/commit/b5526e6076a8493555925a8ae5dca3c28a737453) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Made shift-click range selection work when clicking the selection checkboxes in the fields, rotation, and measures field summary tables.
+
+- [#801](https://github.com/nmi-agro/fdm/pull/801) [`c719b86`](https://github.com/nmi-agro/fdm/commit/c719b86443891c45405acd746b8250be7a95b2b2) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added message attachment functionality in the helpdesk. Users can add attachments while they create a ticket or write a new message. Ticket assignees and senders also see any attachments in the new message email notifications. Accepted attachment types include XML and SVG files, detected via their content rather than their file extension. Agents are exempt from the regular 5-attachment limit.
+
+- [#806](https://github.com/nmi-agro/fdm/pull/806) [`5c3b7f9`](https://github.com/nmi-agro/fdm/commit/5c3b7f9238e97a2d65d281cb6b22d5b58e6c4e83) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added inline editing to the timeline. Left click a cultivation, fertilizer application, harvest or soil analysis, or an empty spot on a field row, to open a context menu with sections for details (with a link to the item's page), adding and managing. On a cultivation you can add a fertilizer application, register a harvest or end the cultivation; on empty space you can add a cultivation, fertilizer application or soil analysis; editing opens a pre-filled form in a side sheet and deleting asks for confirmation (soil analyses can be deleted too, except BodemConditieScore analyses). Hovering a fertilizer/harvest marker and pressing Delete also removes it. On mobile, tapping an event card opens the same menu.
+
+  In the Gantt view, drag a cultivation bar's edges to adjust its start/end date, drag the whole bar to move it, or drag a fertilizer/harvest marker to change its date. The new date is shown while dragging, harvests of single-harvest crops can be dragged past the cultivation end, and each drop is saved immediately. While saving, the timeline is greyed out with an "Opslaan..." indicator, and afterwards an "Ongedaan maken" button next to the toolbar buttons reverts the move. Canceling an edit sheet reloads the chart from the latest data.
+
+- [#789](https://github.com/nmi-agro/fdm/pull/789) [`94bcf36`](https://github.com/nmi-agro/fdm/commit/94bcf369beba8f3e59d4b802f7a29c0589c8a7b0) Thanks [@SvenVw](https://github.com/SvenVw)! - - Upgrade default model for Gerrit to Gemini 3.7 Flash
+  - Implement EU AI Act (Art. 50) and GPAI Code of Practice AI transparency disclosures across agent system prompts, UI badges, disclaimers, and documentation
+  - Clarify Gerrit as an AI-agronomist and decision-support system with reasoner-verifier safeguards
+  - Fix fertilizer catalogue ID resolution and farm context handling in Gerrit planner
+
+### Patch Changes
+
+- [#802](https://github.com/nmi-agro/fdm/pull/802) [`b16f7a6`](https://github.com/nmi-agro/fdm/commit/b16f7a67730a52ede562ba27a575aaa6dfc706a2) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Microsoft sign-in now uses the Better Auth social flow. The redirect URI in the Entra app registration must be changed to `<BETTER_AUTH_URL>/api/auth/callback/microsoft`.
+
+- [#795](https://github.com/nmi-agro/fdm/pull/795) [`df7458f`](https://github.com/nmi-agro/fdm/commit/df7458f852d12191a8e58c59ab30abfa750282c3) Thanks [@posthog-eu](https://github.com/apps/posthog-eu)! - Fix a recurring React hydration error on the bedrijven overview page (`/farm`). The time-based greeting in the page title was computed while rendering, both on the server and again in the browser, so the two renders disagreed whenever their clocks or timezones did. The greeting is now resolved once in the loader and in a fixed timezone (`Europe/Amsterdam`), which also keeps it correct when the server runs in another timezone.
+
+- [#811](https://github.com/nmi-agro/fdm/pull/811) [`4fe6af1`](https://github.com/nmi-agro/fdm/commit/4fe6af156ce8d0bcb85daa7708476d6fe8252062) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed sidebar atlas tabs not navigating to the atlas for the correct selected calendar year.
+- Updated dependencies [[`54fe321`](https://github.com/nmi-agro/fdm/commit/54fe321c5e2299684311d2ae07f1a1da86831c3a), [`c719b86`](https://github.com/nmi-agro/fdm/commit/c719b86443891c45405acd746b8250be7a95b2b2), [`ac78820`](https://github.com/nmi-agro/fdm/commit/ac7882026875aad8147b7a03ad094a36fa02fe52), [`94bcf36`](https://github.com/nmi-agro/fdm/commit/94bcf369beba8f3e59d4b802f7a29c0589c8a7b0), [`4eb2599`](https://github.com/nmi-agro/fdm/commit/4eb25999b4eaab2fed1079eb9c59dee7d2e82b7a)]:
+  - @nmi-agro/fdm-rvo@0.5.0
+  - @nmi-agro/fdm-helpdesk@0.3.0
+  - @nmi-agro/fdm-core@0.38.0
+  - @nmi-agro/fdm-agents@0.6.0
+  - @nmi-agro/fdm-calculator@0.19.1
+
+## 0.36.3
+
+### Patch Changes
+
+- [#788](https://github.com/nmi-agro/fdm/pull/788) [`ef2afe0`](https://github.com/nmi-agro/fdm/commit/ef2afe0806d8bb0f69000bb0854852f7fbf5e9b1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - When no farm is selected (so the fieldsSaved layer is missing) gewaspercelen atlas no longer throws errors and the field tooltip/popup works.
+
 ## 0.36.2
 
 ### Patch Changes

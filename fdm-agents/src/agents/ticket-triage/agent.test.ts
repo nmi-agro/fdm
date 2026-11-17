@@ -1,5 +1,10 @@
-import { describe, expect, it, vi } from "vitest"
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
+import { createAgent } from "langchain"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { createDefaultModel } from "../../models/default"
+import { OneShotAgentResult, runOneShotAgent } from "../../runners/one-shot"
 import {
+  ATTACHMENTS_PROMPT,
   createTicketTriageAgent,
   DEFAULT_MODEL_CODE,
   generateTicketSubjectAndPriority,
@@ -7,16 +12,28 @@ import {
 } from "./agent"
 
 vi.mock("../../models/default", () => ({
-  createDefaultModel: vi.fn().mockReturnValue({}),
+  createDefaultModel: vi.fn(),
 }))
 
 const mockStream = vi.fn()
 vi.mock("langchain", () => ({
-  createAgent: vi.fn().mockImplementation(() => ({ stream: mockStream })),
+  createAgent: vi.fn(),
 }))
 
 vi.mock("../../runners/one-shot", () => ({
-  runOneShotAgent: vi.fn().mockResolvedValue({
+  runOneShotAgent: vi.fn(),
+}))
+
+beforeEach(() => {
+  vi.resetAllMocks()
+
+  vi.mocked(createDefaultModel).mockReturnValue({} as unknown as ChatGoogleGenerativeAI)
+
+  vi.mocked(createAgent).mockImplementation(
+    () => ({ stream: mockStream }) as unknown as ReturnType<typeof createAgent>,
+  )
+
+  vi.mocked(runOneShotAgent).mockResolvedValue({
     result: "",
     structuredResponse: {
       subject: "Test Subject",
@@ -25,8 +42,8 @@ vi.mock("../../runners/one-shot", () => ({
     },
     usage: null,
     toolCalls: [],
-  }),
-}))
+  } as unknown as OneShotAgentResult)
+})
 
 describe("Ticket Triage Agent — constants", () => {
   it("DEFAULT_MODEL_CODE should be the expected lite model", () => {
@@ -94,11 +111,34 @@ describe("generateTicketSubjectAndPriority", () => {
 
   it("should call runOneShotAgent with the prompt prepended for non-empty body", async () => {
     const { runOneShotAgent } = await import("../../runners/one-shot")
-    await generateTicketSubjectAndPriority("My fields are not loading.", "test-key")
+    await generateTicketSubjectAndPriority("My fields are not loading.", [], "test-key")
     expect(runOneShotAgent).toHaveBeenCalledWith(
       expect.anything(),
       expect.stringContaining(
-        SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "FDM (Farm Data Model)"),
+        SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "FDM (Farm Data Model)").replace(
+          "{{ATTACHMENTS_PROMPT}}",
+          "",
+        ),
+      ),
+      undefined,
+      undefined,
+    )
+  })
+
+  it("should call runOneShotAgent with the attachments mentioned in the prompt", async () => {
+    const { runOneShotAgent } = await import("../../runners/one-shot")
+    await generateTicketSubjectAndPriority(
+      "My fields are not loading.",
+      [{ file_name: "cat.png" }, { file_name: "dog.jpg" }],
+      "test-key",
+    )
+    expect(runOneShotAgent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining(
+        SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "FDM (Farm Data Model)").replace(
+          "{{ATTACHMENTS_PROMPT}}",
+          `${ATTACHMENTS_PROMPT.replace("{{NUM_ATTACHMENTS}}", "2 attachments")}\n- cat.png\n- dog.jpg`,
+        ),
       ),
       undefined,
       undefined,
@@ -109,13 +149,17 @@ describe("generateTicketSubjectAndPriority", () => {
     const { runOneShotAgent } = await import("../../runners/one-shot")
     await generateTicketSubjectAndPriority(
       "My fields are not loading.",
+      [],
       "test-key",
       "##Custom FDM##",
     )
     expect(runOneShotAgent).toHaveBeenCalledWith(
       expect.anything(),
       expect.stringContaining(
-        SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "##Custom FDM##"),
+        SUBJECT_AND_PRIORITY_PROMPT.replace("{{APP_NAME}}", "##Custom FDM##").replace(
+          "{{ATTACHMENTS_PROMPT}}",
+          "",
+        ),
       ),
       undefined,
       undefined,
@@ -125,7 +169,7 @@ describe("generateTicketSubjectAndPriority", () => {
   it("should include the ticket body after the prompt", async () => {
     const { runOneShotAgent } = await import("../../runners/one-shot")
     const body = "Urgent: I cannot log in."
-    await generateTicketSubjectAndPriority(body, "test-key")
+    await generateTicketSubjectAndPriority(body, [], "test-key")
     expect(runOneShotAgent).toHaveBeenCalledWith(
       expect.anything(),
       expect.stringContaining(body),
@@ -144,13 +188,17 @@ describe("generateTicketSubjectAndPriority", () => {
       usage: null,
       toolCalls: [],
     })
-    await expect(generateTicketSubjectAndPriority("Some ticket body.", "test-key")).rejects.toThrow(
-      "No structured response was generated",
-    )
+    await expect(
+      generateTicketSubjectAndPriority("Some ticket body.", [], "test-key"),
+    ).rejects.toThrow("No structured response was generated")
   })
 
   it("should return the parsed structured response on success", async () => {
-    const result = await generateTicketSubjectAndPriority("My fields are not loading.", "test-key")
+    const result = await generateTicketSubjectAndPriority(
+      "My fields are not loading.",
+      [],
+      "test-key",
+    )
     expect(result).toEqual({
       subject: "Test Subject",
       priority: "normal",

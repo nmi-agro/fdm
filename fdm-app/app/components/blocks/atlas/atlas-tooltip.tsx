@@ -1,10 +1,18 @@
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { X } from "lucide-react"
 import { Point, MapGeoJSONFeature, LngLat, Popup as MapPopup } from "maplibre-gl"
-import { ComponentProps, ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import {
+  ComponentProps,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import { createPortal } from "react-dom"
 import { useMap, MapRef } from "react-map-gl/maplibre"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardHeader, CardContent, CardFooter } from "~/components/ui/card"
 import { useMapContainer } from "./atlas-shell"
@@ -38,12 +46,14 @@ export function AtlasTooltip({
   layers,
   layersExclude,
   onFeatureClicked,
+  zoomLevelFields,
   touchDisplaysPopupInstead = true,
 }: {
   render: (props: AtlasTooltipRenderProps) => ReactNode
   layers: string[]
   layersExclude?: string[]
   onFeatureClicked?: (feature: MapGeoJSONFeature) => void
+  zoomLevelFields?: number
   touchDisplaysPopupInstead?: boolean
 }) {
   const { current: map } = useMap()
@@ -66,9 +76,23 @@ export function AtlasTooltip({
     (map: MapRef, x: number, y: number) => {
       const coords = new Point(x, y)
 
-      if (layersExcludeSet.size > 0) {
+      const zoom = map.getZoom()
+      if (typeof zoomLevelFields === "number" && zoom < zoomLevelFields) return []
+      if (!map.isStyleLoaded()) return []
+
+      const renderedIncludedLayers = [...layersSet].filter((layerId) => map.getLayer(layerId))
+
+      if (renderedIncludedLayers.length === 0) {
+        return []
+      }
+
+      const renderedExcludedLayers = [...layersExcludeSet].filter((layerId) =>
+        map.getLayer(layerId),
+      )
+
+      if (renderedExcludedLayers.length > 0) {
         const excludedFeatures = map.queryRenderedFeatures(coords, {
-          layers: [...layersExcludeSet],
+          layers: renderedExcludedLayers,
         })
 
         if (excludedFeatures.length > 0) {
@@ -76,13 +100,11 @@ export function AtlasTooltip({
         }
       }
 
-      const features = map.queryRenderedFeatures(coords, {
-        layers: [...layersSet],
+      return map.queryRenderedFeatures(coords, {
+        layers: renderedIncludedLayers,
       })
-
-      return features
     },
-    [layersSet, layersExcludeSet],
+    [layersSet, layersExcludeSet, zoomLevelFields],
   )
 
   // Throttle tooltip updates to reduce flashing.
@@ -356,13 +378,23 @@ export function AtlasPopup({
 }) {
   const { current: map } = useMap()
   const popupRef = useRef<MapPopup | null>(null)
-  const [container, setContainer] = useState<HTMLDivElement | null>(null)
+  // Created once (lazily), independent of map readiness, so it never needs to be synced into
+  // state from an effect — children can portal into it immediately; it only becomes visible once
+  // the popup below attaches it to the map.
+  const [container] = useState(() => document.createElement("div"))
+
+  // The initial anchor for the popup created below. Kept in a ref (synced in a layout effect,
+  // since refs can't be written during render) instead of listing longitude/latitude as effect
+  // dependencies, which would tear down and recreate the popup on every position update — the
+  // effect below only needs their value once, at creation time.
+  const initialPositionRef = useRef({ longitude, latitude })
+  useLayoutEffect(() => {
+    initialPositionRef.current = { longitude, latitude }
+  })
 
   // Create the maplibre Popup once when the map is ready and tear it down on unmount.
   useEffect(() => {
     if (!map) return
-
-    const el = document.createElement("div")
 
     const popup = new MapPopup({
       closeButton: false,
@@ -370,27 +402,22 @@ export function AtlasPopup({
       maxWidth: "none",
       className: "atlas-popup",
     })
-      .setLngLat([longitude, latitude])
-      .setDOMContent(el)
+      .setLngLat([initialPositionRef.current.longitude, initialPositionRef.current.latitude])
+      .setDOMContent(container)
       .addTo(map.getMap())
 
     popupRef.current = popup
-    setContainer(el)
 
     return () => {
       popup.remove()
       popupRef.current = null
-      setContainer(null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map])
+  }, [map, container])
 
   // Keep the anchor coordinates in sync without recreating the popup.
   useEffect(() => {
     popupRef.current?.setLngLat([longitude, latitude])
   }, [longitude, latitude])
-
-  if (!container) return null
 
   return createPortal(
     <AtlasNativePopupCard className={className} onPointerUp={onPointerUp}>
@@ -436,7 +463,7 @@ function AtlasNativePopupCard({
 
   return (
     <div ref={cardRef} className={cn("cursor-default", className)}>
-      <Card className="maplibregl-popup-native-card relative p-3 text-xs shadow-md">
+      <Card className="maplibregl-popup-native-card relative gap-0 p-3 text-xs shadow-md">
         {children}
       </Card>
     </div>
@@ -520,7 +547,7 @@ function AtlasTooltipCard({
                 : "none",
       }}
     >
-      <Card className="relative p-3 text-xs shadow-md">{children}</Card>
+      <Card className="relative gap-0 p-3 text-xs shadow-md">{children}</Card>
     </div>
   )
 }

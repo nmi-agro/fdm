@@ -31,6 +31,7 @@ export const FarmInvitationEmail = ({
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
   isUnregistered = false,
 }: FarmInvitationEmailProps) => {
+  "use no memo"
   const roleLabel = roleLabels[role] ?? role
   const previewText = `Je bent uitgenodigd voor ${farmName}. Bekijk de details.`
 

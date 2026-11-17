@@ -20,9 +20,9 @@ export interface OrganizationWithRoles {
 export function OrganizationCard({ organization }: { organization: OrganizationWithRoles }) {
   const description = organization.metadata?.data?.description
   return (
-    <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
+    <Card className="group hover:border-primary/50 relative flex flex-col py-0 transition-all hover:shadow-md">
       <NavLink to={`/organization/${organization.slug}`} className="flex h-full flex-col">
-        <CardHeader>
+        <CardHeader className="pt-6 pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <OrganizationAvatar
@@ -47,12 +47,12 @@ export function OrganizationCard({ organization }: { organization: OrganizationW
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grow overflow-hidden">
+        <CardContent className="grow overflow-hidden py-2">
           <p className="text-muted-foreground line-clamp-2 text-xs">
             {description && description.length > 0 ? description : "Geen beschrijving"}
           </p>
         </CardContent>
-        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
+        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 flex h-10 items-center border-t py-0!">
           <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
             Selecteer organisatie <ArrowRight className="ml-2 h-4 w-4" />
           </span>

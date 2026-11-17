@@ -1,3 +1,4 @@
+import type * as GeoJSON from "geojson"
 import type * as schema from "./db/schema"
 
 export interface SoilAnalysis {
@@ -56,7 +57,22 @@ export interface SoilAnalysis {
   b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"]
   b_id: schema.soilSamplingTypeSelect["b_id"]
   b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]
-  b_sampling_geometry?: schema.soilSamplingTypeSelect["b_sampling_geometry"]
+  /** Locations of the subsamples (WGS84), or `null` when unknown. */
+  b_sampling_geometry: schema.soilSamplingTypeSelect["b_sampling_geometry"] | null
+  /** Area the analysis represents (WGS84), or `null` when it represents the whole field. */
+  b_sampling_geometry_zone: schema.soilSamplingTypeSelect["b_sampling_geometry_zone"] | null
+}
+
+/**
+ * Optional sampling geometries that can be passed when adding or updating a soil analysis.
+ *
+ * Coordinates are in WGS84 (EPSG:4326). A `Polygon` zone is stored as a `MultiPolygon`.
+ */
+export interface SoilSamplingGeometries {
+  /** Locations of the subsamples. Pass `null` to clear. */
+  b_sampling_geometry?: GeoJSON.MultiPoint | null
+  /** Area the analysis represents: the whole field or a zone within it. Pass `null` to clear. */
+  b_sampling_geometry_zone?: GeoJSON.Polygon | GeoJSON.MultiPolygon | null
 }
 
 export type SoilParameters =
@@ -113,17 +129,56 @@ export type SoilParameters =
   | "a_c_bcs"
   | "a_rt_bcs"
 
-export interface CurrentSoilDataItem {
-  parameter: SoilParameters
-  value: number | string | null
+/**
+ * A soil analysis that contributes to the current value of a soil parameter.
+ */
+export interface CurrentSoilDataSource {
   a_id: schema.soilAnalysisTypeSelect["a_id"]
+  a_source: schema.soilAnalysisTypeSelect["a_source"]
   b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]
   a_depth_upper: schema.soilSamplingTypeSelect["a_depth_upper"]
   a_depth_lower: schema.soilSamplingTypeSelect["a_depth_lower"]
-  a_source: schema.soilAnalysisTypeSelect["a_source"]
+  /** The value of the parameter in this analysis. */
+  value: number | string | null
+  /** Share of the area with a value that this analysis represents (0–1). */
+  area_fraction: number
+}
+
+/**
+ * The current value of a soil parameter for a field.
+ *
+ * When the value comes from several sampling zones, `is_aggregated` is `true` and `sources`
+ * lists every contributing analysis with its area share.
+ */
+export interface CurrentSoilDataItem {
+  parameter: SoilParameters
+  /** Area-weighted mean for numeric parameters; the value with the largest area for categorical parameters. */
+  value: number | string | null
+  /** `true` when the value combines several sampling zones. */
+  is_aggregated: boolean
+  /** Share of the field area that the sources represent (0–1), or `null` when it cannot be determined. */
+  coverage: number | null
+  /** `true` when the sampling zones cover less than 95% of the field (`SOIL_ZONE_MIN_COVERAGE`). */
+  has_coverage_warning: boolean
+  /** Contributing analyses, newest first. Contains at least one entry. */
+  sources: CurrentSoilDataSource[]
 }
 
 export type CurrentSoilData = CurrentSoilDataItem[]
+
+/**
+ * The current soil data of a single sampling zone within a field.
+ */
+export interface SoilZone {
+  /** The zone clipped to the field boundary, or `null` when the zone is the whole field. */
+  b_sampling_geometry_zone: GeoJSON.MultiPolygon | null
+  /** Area of the zone (ha), or `null` when it cannot be determined. */
+  b_area: number | null
+  /** Analyses that belong to this zone, newest first. */
+  a_ids: schema.soilAnalysisTypeSelect["a_id"][]
+  /** The current soil data within this zone. Every item has exactly one source. */
+  data: CurrentSoilData
+}
 
 export interface SoilParameterDescriptionItem {
   parameter: SoilParameters

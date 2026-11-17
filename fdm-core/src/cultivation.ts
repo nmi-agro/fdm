@@ -1,3 +1,4 @@
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import {
   and,
   asc,
@@ -47,10 +48,11 @@ export async function getCultivationsFromCatalogue(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  year?: number,
 ): Promise<CultivationCatalogue[]> {
   try {
     const catalogueIds = await getEnabledCultivationCatalogues(fdm, principal_id, b_id_farm)
-    return await getCultivationsFromCatalogues(fdm, catalogueIds)
+    return await getCultivationsFromCatalogues(fdm, catalogueIds, year)
   } catch (err) {
     throw handleError(err, "Exception for getCultivationsFromCatalogue", {
       principal_id,
@@ -72,6 +74,7 @@ export async function getCultivationsFromCatalogue(
 export async function getCultivationsFromCatalogues(
   fdm: FdmType,
   catalogueIds: schema.cultivationCatalogueSelectingTypeSelect["b_lu_source"][],
+  year?: number,
 ): Promise<CultivationCatalogue[]> {
   try {
     if (catalogueIds.length === 0) {
@@ -81,7 +84,17 @@ export async function getCultivationsFromCatalogues(
     return fdm
       .select()
       .from(schema.cultivationsCatalogue)
-      .where(inArray(schema.cultivationsCatalogue.b_lu_source, catalogueIds))
+      .where(
+        and(
+          inArray(schema.cultivationsCatalogue.b_lu_source, catalogueIds),
+          typeof year === "number"
+            ? or(
+                isNull(schema.cultivationsCatalogue.b_lu_ya),
+                sql`${year}=ANY(${schema.cultivationsCatalogue.b_lu_ya})`,
+              )
+            : undefined,
+        ),
+      )
       .orderBy(
         asc(schema.cultivationsCatalogue.b_lu_source),
         asc(schema.cultivationsCatalogue.b_lu_name),
@@ -126,6 +139,7 @@ export async function addCultivationToCatalogue(
     b_lu_variety_options: schema.cultivationsCatalogueTypeInsert["b_lu_variety_options"]
     b_lu_start_default: schema.cultivationsCatalogueTypeInsert["b_lu_start_default"]
     b_date_harvest_default: schema.cultivationsCatalogueTypeInsert["b_date_harvest_default"]
+    b_lu_ya: schema.cultivationsCatalogueTypeInsert["b_lu_ya"]
   },
 ): Promise<void> {
   try {
@@ -148,6 +162,14 @@ export async function addCultivationToCatalogue(
       }
       if (properties.b_date_harvest_default && !dateRegex.test(properties.b_date_harvest_default)) {
         throw new Error("Invalid b_date_harvest_default format. Expected MM-dd.")
+      }
+      if (
+        Array.isArray(properties.b_lu_ya) &&
+        (properties.b_lu_ya.length === 0 || properties.b_lu_ya.some((x) => typeof x !== "number"))
+      ) {
+        throw new Error(
+          "Invalid b_lu_ya. Expected null, undefined, or an array of numbers with a minimum length of 1.",
+        )
       }
 
       // Insert the cultivation in the db
@@ -270,6 +292,95 @@ export async function getDefaultDatesOfCultivation(
   }
 }
 
+// Guards against runaway loops when the dates are clearly wrong.
+const MAX_PERIOD_YEARS_FOR_AVAILABILITY = 100
+
+/**
+ * Determines whether the RVO crop code of a cultivation is unavailable in at least one of the
+ * years in which the cultivation is active.
+ *
+ * @param period - Start and end date of the cultivation. A missing end date means the cultivation
+ * is still active and runs up to `lastCultivationAvailabilityYear`.
+ * @param b_lu_ya - Sorted array of years in which the crop code is available, or `null` when no
+ * availability information exists for the crop code.
+ * @param lastCultivationAvailabilityYear - Last year that is checked for cultivations without an end date.
+ * @returns An object with the first_unavailable_in field and last_unavailable_in fields if there is
+ * a specific range of years that is determined to be unavailable yet requested for the cultivation.
+ * An empty object is returned when the cultivation is assumed to be unavailable but the years aren't
+ * determined for mitigation reasons. null if the crop code is available in every year or when
+ * b_lu_end < b_lu_start.
+ */
+export function isCultivationUnavailableInPeriod(
+  period: { b_lu_start?: Date | string | null; b_lu_end?: Date | string | null },
+  b_lu_ya: number[] | null | undefined,
+  lastCultivationAvailabilityYear: number | undefined,
+): { first_unavailable_in?: number; last_unavailable_in?: number } | null {
+  if (
+    !b_lu_ya ||
+    b_lu_ya.length === 0 ||
+    typeof lastCultivationAvailabilityYear !== "number" ||
+    Number.isNaN(lastCultivationAvailabilityYear) ||
+    !period.b_lu_start
+  ) {
+    return null
+  }
+
+  const start = new Date(period.b_lu_start)
+  const end = period.b_lu_end ? new Date(period.b_lu_end) : null
+
+  if (Number.isNaN(start.getFullYear()) || (end && Number.isNaN(end.getFullYear()))) {
+    return null
+  }
+
+  if (end && end.getTime() < start.getTime()) {
+    // End before start: user will see another warning anyways so return null.
+    return null
+  }
+
+  const startYear = Math.min(lastCultivationAvailabilityYear, start.getFullYear())
+
+  // Can return an open unavailability range when end is null.
+  if (end === null && lastCultivationAvailabilityYear > b_lu_ya[b_lu_ya.length - 1]) {
+    return { first_unavailable_in: b_lu_ya[b_lu_ya.length - 1] + 1 }
+  }
+
+  // The boundary offsets can invert the years for very short periods around 1 January.
+  const endYear = Math.max(
+    startYear,
+    Math.min(
+      lastCultivationAvailabilityYear,
+      end ? end.getFullYear() : lastCultivationAvailabilityYear,
+    ),
+  )
+
+  if (endYear > b_lu_ya[b_lu_ya.length - 1]) {
+    return {
+      first_unavailable_in: Math.max(startYear, b_lu_ya[b_lu_ya.length - 1] + 1),
+      last_unavailable_in: endYear,
+    }
+  }
+
+  if (startYear < b_lu_ya[0]) {
+    return {
+      first_unavailable_in: startYear,
+      last_unavailable_in: Math.min(endYear, b_lu_ya[0] - 1),
+    }
+  }
+
+  if (endYear - startYear > MAX_PERIOD_YEARS_FOR_AVAILABILITY) {
+    // Guard against long-running loops, there probably won't be an
+    // agricultural cultivation that has been active for 100+ years.
+    return {}
+  }
+
+  for (let y = startYear; y <= endYear; y++) {
+    if (!b_lu_ya.includes(y)) {
+      return { first_unavailable_in: y, last_unavailable_in: y }
+    }
+  }
+  return null
+}
+
 /**
  * Adds a new cultivation to a specific field.
  *
@@ -321,16 +432,6 @@ export async function addCultivation(
         }
       }
 
-      // Validate if field exists
-      const field = await tx
-        .select()
-        .from(schema.fields)
-        .where(eq(schema.fields.b_id, b_id))
-        .limit(1)
-      if (field.length === 0) {
-        throw new Error("Field does not exist")
-      }
-
       // Validate if cultivation exists in catalogue
       const cultivation = await tx
         .select()
@@ -339,6 +440,16 @@ export async function addCultivation(
         .limit(1)
       if (cultivation.length === 0) {
         throw new Error("Cultivation in catalogue does not exist")
+      }
+
+      if (
+        isCultivationUnavailableInPeriod(
+          { b_lu_start, b_lu_end },
+          cultivation[0].b_lu_ya,
+          await getLastCultivationAvailabilityYear(),
+        )
+      ) {
+        throw new Error("Cultivation code is not available for this time period")
       }
 
       // Validate if cultivation is not an duplicate of already existing cultivation
@@ -1061,6 +1172,20 @@ export async function updateCultivation(
         throw new Error("Cultivation does not exist")
       }
 
+      // Load the stored period before applying any updates, to detect what actually changes
+      const previousPeriod = await tx
+        .select({
+          b_lu_start: schema.cultivationStarting.b_lu_start,
+          b_lu_end: schema.cultivationEnding.b_lu_end,
+        })
+        .from(schema.cultivationStarting)
+        .leftJoin(
+          schema.cultivationEnding,
+          eq(schema.cultivationStarting.b_lu, schema.cultivationEnding.b_lu),
+        )
+        .where(eq(schema.cultivationStarting.b_lu, b_lu))
+        .limit(1)
+
       //Validate if the cultivation exists in catalogue
       const cultivation = await tx
         .select()
@@ -1148,7 +1273,7 @@ export async function updateCultivation(
       }
 
       if (b_lu_end) {
-        // Validate if terminatinge date is after sowing date
+        // Validate if terminating date is after sowing date
         if (!b_lu_start) {
           const result = await tx
             .select({
@@ -1181,6 +1306,49 @@ export async function updateCultivation(
             b_lu_end: b_lu_end,
           })
           .where(eq(schema.cultivationEnding.b_lu, b_lu))
+      }
+
+      // Only check availability when the start, end or catalogue code differs from the stored value
+      const storedStart = previousPeriod[0]?.b_lu_start ?? null
+      const storedEnd = previousPeriod[0]?.b_lu_end ?? null
+      const startChanged = !!b_lu_start && b_lu_start.getTime() !== storedStart?.getTime()
+      const endChanged =
+        b_lu_end !== undefined && (b_lu_end?.getTime() ?? null) !== (storedEnd?.getTime() ?? null)
+      const catalogueChanged =
+        !!b_lu_catalogue && b_lu_catalogue !== existingCultivation[0].b_lu_catalogue
+
+      if (startChanged || endChanged || catalogueChanged) {
+        const result = await tx
+          .select({
+            b_lu_start: schema.cultivationStarting.b_lu_start,
+            b_lu_end: schema.cultivationEnding.b_lu_end,
+          })
+          .from(schema.cultivationStarting)
+          .leftJoin(
+            schema.cultivationEnding,
+            eq(schema.cultivationStarting.b_lu, schema.cultivationEnding.b_lu),
+          )
+          .where(
+            and(
+              eq(schema.cultivationStarting.b_lu, b_lu),
+              isNotNull(schema.cultivationStarting.b_lu_start),
+            ),
+          )
+          .limit(1)
+
+        if (
+          result.length > 0 &&
+          isCultivationUnavailableInPeriod(
+            {
+              b_lu_start: result[0].b_lu_start,
+              b_lu_end: b_lu_end === null ? null : result[0].b_lu_end,
+            },
+            cultivation[0].b_lu_ya,
+            await getLastCultivationAvailabilityYear(),
+          )
+        ) {
+          throw new Error("Cultivation code is not available for this time period")
+        }
       }
 
       if (m_cropresidue !== undefined) {

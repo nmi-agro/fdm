@@ -7,11 +7,12 @@ import {
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
-import { Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import {
   type ActionFunctionArgs,
   data,
   type LoaderFunctionArgs,
+  NavLink,
   useFetcher,
   useLoaderData,
 } from "react-router"
@@ -29,73 +30,28 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { deleteObject, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import { getBcsPath, getBcsRouteParams, parseAnnotationCoordinates } from "~/lib/bcs-route.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 function getRouteParams(params: ActionFunctionArgs["params"]) {
-  const { a_id, b_id, b_id_farm, calendar } = params
-  if (!b_id_farm) {
-    throw data("Farm ID is required", {
-      status: 400,
-      statusText: "Farm ID is required",
-    })
-  }
-  if (!calendar) {
-    throw data("Calendar is required", {
-      status: 400,
-      statusText: "Calendar is required",
-    })
-  }
-  if (!b_id) {
-    throw data("Field ID is required", {
-      status: 400,
-      statusText: "Field ID is required",
-    })
-  }
+  const { a_id, b_id } = getBcsRouteParams(params)
   if (!a_id) {
     throw data("Analysis ID is required", {
       status: 400,
       statusText: "Analysis ID is required",
     })
   }
-  return { a_id, b_id, b_id_farm, calendar }
+  return { a_id, b_id }
 }
 
-function getBcsPath(params: ActionFunctionArgs["params"]) {
-  const { b_id, b_id_farm, calendar } = getRouteParams(params)
-  return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
-}
-
-function parseCoordinates(value: unknown) {
-  if (typeof value === "string") {
-    try {
-      return parseCoordinates(JSON.parse(value))
-    } catch {
-      return { x: 50, y: 50 }
-    }
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "x" in value &&
-    typeof value.x === "number" &&
-    "y" in value &&
-    typeof value.y === "number"
-  ) {
-    return { x: value.x, y: value.y }
-  }
-
-  return { x: 50, y: 50 }
-}
-
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const { a_id, b_id } = getRouteParams(params)
     const session = await getSession(request)
@@ -114,7 +70,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 
@@ -134,7 +90,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               | "circle"
               | "arrow"
               | "freehand",
-            coordinates: parseCoordinates(annotation.a_image_annotation_coordinates),
+            coordinates: parseAnnotationCoordinates(annotation.a_image_annotation_coordinates),
             text: annotation.a_image_annotation ?? undefined,
             bcsIndicator: annotation.a_image_annotation_bcs ?? undefined,
           })),
@@ -151,13 +107,27 @@ export default function FieldBcsDetailRoute() {
   const fetcher = useFetcher()
   const measuredAt = loaderData.analysis.b_sampling_date ?? loaderData.analysis.a_date
 
+  const editButton = loaderData.fieldWritePermission ? (
+    <NavLink to="edit" className={buttonVariants({ variant: "outline" })}>
+      <Pencil className="size-4" />
+      Bewerken
+    </NavLink>
+  ) : null
+
   const deleteButton = loaderData.fieldWritePermission ? (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button type="button" variant="destructive" size="icon" disabled={fetcher.state !== "idle"}>
-          <Trash2 className="size-4" />
-        </Button>
-      </AlertDialogTrigger>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            disabled={fetcher.state !== "idle"}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>BodemConditieScore verwijderen?</AlertDialogTitle>
@@ -212,7 +182,14 @@ export default function FieldBcsDetailRoute() {
                 })
               : "Onbekende datum"
           }
-          actions={deleteButton}
+          actions={
+            editButton || deleteButton ? (
+              <div className="flex items-center gap-2">
+                {editButton}
+                {deleteButton}
+              </div>
+            ) : null
+          }
         />
 
         {loaderData.images.length > 0 ? (

@@ -47,18 +47,22 @@ export function CultivationSelector({
     variant === "icon" ? (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="h-3 w-3 cursor-pointer rounded-full"
-              style={{
-                backgroundColor: getCultivationColor(
-                  selectedCultivation?.b_lu_croprotation ?? undefined,
-                ),
-              }}
-            />
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <div
+                className="h-3 w-3 cursor-pointer rounded-full"
+                style={{
+                  backgroundColor: getCultivationColor(
+                    selectedCultivation?.b_lu_croprotation ?? undefined,
+                  ),
+                }}
+              />
+            }
+          />
           <TooltipContent>
-            <p>{selectedCultivation?.b_lu_name || "Selecteer gewas"}</p>
+            <p key={selectedCultivation?.b_lu ?? ""}>
+              {selectedCultivation?.b_lu_name || "Selecteer gewas"}
+            </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -70,14 +74,21 @@ export function CultivationSelector({
         className="px-3 py-1 text-sm text-white hover:opacity-90"
         variant="default"
       >
-        {selectedCultivation.b_lu_name}
+        <span key={selectedCultivation.b_lu}>{selectedCultivation.b_lu_name}</span>
       </Badge>
     ) : (
       <span className="text-muted-foreground italic">Selecteer gewas</span>
     )
 
   return (
-    <Select value={selectedCultivationId} onValueChange={handleValueChange}>
+    <Select
+      value={selectedCultivationId}
+      onValueChange={(value) => {
+        if (typeof value === "string") {
+          handleValueChange(value)
+        }
+      }}
+    >
       <SelectTrigger className="text-foreground h-auto w-auto gap-2 border-none bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0 [&>span]:line-clamp-1 [&>svg]:hidden">
         {triggerContent}
       </SelectTrigger>

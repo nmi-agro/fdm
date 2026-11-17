@@ -28,6 +28,7 @@ import {
   updateFertilizerApplication,
   updateFertilizerFromCatalogue,
 } from "./fertilizer"
+import { AppAmountOutOfRangeError } from "./fertilizer-application-unit-conversion"
 import { addField } from "./field"
 import { createId } from "./id"
 import { mockFdmThatThrowsOnSelectFrom } from "./test-util"
@@ -1148,26 +1149,18 @@ describe("Fertilizer Data Model", () => {
       // Clean up the database after each test (optional)
     })
 
-    it("should add a new fertilizer application with no amount specified", async () => {
-      const p_app_date = new Date("2024-03-15")
-
-      const new_p_app_id = await addFertilizerApplication(
-        fdm,
-        principal_id,
-        b_id,
-        p_id,
-        0,
-        "broadcasting",
-        p_app_date,
-      )
-      expect(new_p_app_id).toBeDefined()
-
-      const fertilizerApplication = await getFertilizerApplication(fdm, principal_id, new_p_app_id)
-      expect(fertilizerApplication).toBeDefined()
-      expect(fertilizerApplication?.p_id).toBe(p_id)
-      expect(fertilizerApplication?.p_app_amount).toBe(0)
-      expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
-      expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
+    it("should reject a new fertilizer application with an amount of 0", async () => {
+      await expect(
+        addFertilizerApplication(
+          fdm,
+          principal_id,
+          b_id,
+          p_id,
+          0,
+          "broadcasting",
+          new Date("2024-03-15"),
+        ),
+      ).rejects.toThrowError("Exception for addFertilizerApplication")
     })
 
     it("should add a new fertilizer application with amount specified", async () => {
@@ -1192,27 +1185,18 @@ describe("Fertilizer Data Model", () => {
       expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
     })
 
-    it("should add a new fertilizer application with no amount specified", async () => {
-      const p_app_date = new Date("2024-03-15")
-
-      const new_p_app_id = await addFertilizerApplication(
-        fdm,
-        principal_id,
-        b_id,
-        p_id_liquid,
-        0,
-        "broadcasting",
-        p_app_date,
-      )
-      expect(new_p_app_id).toBeDefined()
-
-      const fertilizerApplication = await getFertilizerApplication(fdm, principal_id, new_p_app_id)
-      expect(fertilizerApplication).toBeDefined()
-      expect(fertilizerApplication?.p_id).toBe(p_id_liquid)
-      expect(fertilizerApplication?.p_app_amount).toBe(0)
-      expect(fertilizerApplication?.p_app_amount_display).toBe(0)
-      expect(fertilizerApplication?.p_app_method).toBe("broadcasting")
-      expect(fertilizerApplication?.p_app_date).toEqual(p_app_date)
+    it("should reject a new fertilizer application in volume per ha with an amount of 0", async () => {
+      await expect(
+        addFertilizerApplication(
+          fdm,
+          principal_id,
+          b_id,
+          p_id_liquid,
+          0,
+          "broadcasting",
+          new Date("2024-03-15"),
+        ),
+      ).rejects.toThrowError("Exception for addFertilizerApplication")
     })
 
     it("should update a fertilizer application", async () => {
@@ -1423,6 +1407,112 @@ describe("Fertilizer Data Model", () => {
           new Date("2024-03-15"),
         ),
       ).rejects.toThrowError("Exception for addFertilizerApplication")
+    })
+
+    it("should accept an applied amount of exactly 100,000 kg/ha", async () => {
+      const p_app_id = await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id,
+        p_id,
+        100_000,
+        "broadcasting",
+        new Date("2024-03-15"),
+      )
+      const application = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(application?.p_app_amount).toBe(100_000)
+    })
+
+    it.each([0, -10, 100_000.01])(
+      "should reject adding an applied amount of %s kg/ha",
+      async (amount) => {
+        const error = await addFertilizerApplication(
+          fdm,
+          principal_id,
+          b_id,
+          p_id,
+          amount,
+          "broadcasting",
+          new Date("2024-03-15"),
+        ).catch((err: unknown) => err)
+        expect(error).toBeInstanceOf(Error)
+        expect((error as Error).message).toBe("Exception for addFertilizerApplication")
+        expect((error as Error).cause).toBeInstanceOf(AppAmountOutOfRangeError)
+      },
+    )
+
+    it("should reject an amount in volume per ha that converts to more than 100,000 kg/ha", async () => {
+      // Density 1.2 kg/l: 85,000 l/ha is 102,000 kg/ha
+      const error = await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id,
+        p_id_liquid,
+        85_000,
+        "broadcasting",
+        new Date("2024-03-15"),
+      ).catch((err: unknown) => err)
+      const cause = (error as Error).cause
+      expect(cause).toBeInstanceOf(AppAmountOutOfRangeError)
+      // The maximum is reported in the unit of the fertilizer
+      expect((cause as AppAmountOutOfRangeError).p_app_amount_unit).toBe("l/ha")
+      expect((cause as AppAmountOutOfRangeError).p_app_amount_display_max).toBeCloseTo(
+        100_000 / 1.2,
+        6,
+      )
+    })
+
+    it("should reject updating to an out-of-range amount and keep the stored amount", async () => {
+      const p_app_id = await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id,
+        p_id,
+        100,
+        "broadcasting",
+        new Date("2024-03-15"),
+      )
+
+      for (const amount of [0, 100_001]) {
+        const error = await updateFertilizerApplication(
+          fdm,
+          principal_id,
+          p_app_id,
+          p_id,
+          amount,
+          "broadcasting",
+          new Date("2024-03-15"),
+        ).catch((err: unknown) => err)
+        expect((error as Error).message).toBe("Exception for updateFertilizerApplication")
+        expect((error as Error).cause).toBeInstanceOf(AppAmountOutOfRangeError)
+      }
+
+      const application = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(application?.p_app_amount).toBe(100)
+    })
+
+    it("should allow an update without an amount", async () => {
+      const p_app_id = await addFertilizerApplication(
+        fdm,
+        principal_id,
+        b_id,
+        p_id,
+        100,
+        "broadcasting",
+        new Date("2024-03-15"),
+      )
+      await updateFertilizerApplication(
+        fdm,
+        principal_id,
+        p_app_id,
+        p_id,
+        null,
+        "injection",
+        new Date("2024-03-15"),
+      )
+      const application = await getFertilizerApplication(fdm, principal_id, p_app_id)
+      expect(application?.p_app_amount).toBe(100)
+      expect(application?.p_app_method).toBe("injection")
     })
   })
 })

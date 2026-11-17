@@ -189,12 +189,14 @@ export async function getNitrogenBalanceForField({
   b_id_farm,
   b_id,
   timeframe,
+  useEffectiveNitrogen = false,
 }: {
   fdm: FdmType
   principal_id: PrincipalId
   b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
   b_id: Field["b_id"]
   timeframe: Timeframe
+  useEffectiveNitrogen?: boolean
 }): Promise<NitrogenBalanceFieldResultNumeric> {
   const { fields, ...rest } = await collectInputForNitrogenBalance(
     fdm,
@@ -211,6 +213,7 @@ export async function getNitrogenBalanceForField({
   const nitrogenBalanceResult = await getNitrogenBalanceField(fdm, {
     fieldInput: fields[0],
     ...rest,
+    useEffectiveNitrogen,
   })
   return {
     b_id: b_id,
@@ -225,15 +228,17 @@ export async function getNitrogenBalanceForFarm({
   principal_id,
   b_id_farm,
   timeframe,
+  useEffectiveNitrogen = false,
 }: {
   fdm: FdmType
   principal_id: PrincipalId
   b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
   timeframe: Timeframe
+  useEffectiveNitrogen?: boolean
 }): Promise<NitrogenBalanceNumeric> {
   const input = await collectInputForNitrogenBalance(fdm, principal_id, b_id_farm, timeframe)
 
-  return calculateNitrogenBalance(fdm, input)
+  return calculateNitrogenBalance(fdm, { ...input, useEffectiveNitrogen })
 }
 
 // Get organic matter balance for a field

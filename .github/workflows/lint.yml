@@ -1,0 +1,46 @@
+name: Type Check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [24]
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Cache turbo build setup
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Setup pnpm 11
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.8.1
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Type check all packages
+        run: pnpm turbo run lint --force

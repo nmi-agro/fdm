@@ -79,13 +79,13 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
     <Card className="shadow-sm">
       <CardHeader className="border-b">
         <CardTitle className="text-base font-semibold">
-          Gerrit heeft een paar gerichte vragen
+          Gerrit (AI) heeft een paar gerichte vragen
         </CardTitle>
         <CardDescription>
           Beantwoord de vragen die voor jou van toepassing zijn. Je kunt de vragen ook overslaan.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-8 p-6">
+      <CardContent className="space-y-8">
         {questions.map((q, qi) => (
           <div key={q.id} className="space-y-3">
             <p id={`question-${q.id}`} className="text-foreground text-sm font-medium">

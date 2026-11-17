@@ -4,18 +4,18 @@ import type { FieldFertilizerFormValues } from "~/components/blocks/fertilizer-a
 
 interface FieldFertilizerFormStore {
   db: Record<string, Partial<FieldFertilizerFormValues>>
-  save(
+  save: (
     b_id_farm: string,
     b_id_or_b_lu_catalogue: string,
     formData: Partial<FieldFertilizerFormValues>,
     calendar?: string,
-  ): void
-  load(
+  ) => void
+  load: (
     b_id_farm: string,
     b_id_or_b_lu_catalogue: string,
     calendar?: string,
-  ): Partial<FieldFertilizerFormValues> | undefined
-  delete(b_id_farm: string, b_id_or_b_lu_catalogue: string, calendar?: string): void
+  ) => Partial<FieldFertilizerFormValues> | undefined
+  delete: (b_id_farm: string, b_id_or_b_lu_catalogue: string, calendar?: string) => void
 }
 
 function makeId(b_id_farm: string, b_id: string, calendar?: string) {
@@ -25,7 +25,7 @@ export const useFieldFertilizerFormStore = create<FieldFertilizerFormStore>()(
   persist(
     (set, get) => ({
       db: {},
-      save(b_id_farm, b_id_or_b_lu_catalogue, formData, calendar) {
+      save: (b_id_farm, b_id_or_b_lu_catalogue, formData, calendar) => {
         const db = {
           ...get().db,
           [makeId(b_id_farm, b_id_or_b_lu_catalogue, calendar)]: formData,

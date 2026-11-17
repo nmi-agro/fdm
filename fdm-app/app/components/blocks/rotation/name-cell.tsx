@@ -1,11 +1,15 @@
 import type { CellContext } from "@tanstack/react-table"
 import { ArrowUpRightFromSquare } from "lucide-react"
 import { NavLink, useLocation, useParams } from "react-router"
+import { CultivationAvailabilityWarningIcon } from "~/components/blocks/cultivation/availability-warning"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
-import type { RotationExtended } from "./columns"
+import type { MemoizedRotationExtended } from "./columns"
+import { rotationTableFeatures } from "./table-features"
 
-export function NameCell({ row }: CellContext<RotationExtended, unknown>) {
+export function NameCell({
+  row,
+}: CellContext<typeof rotationTableFeatures, MemoizedRotationExtended, string>) {
   const original = row.original
   const params = useParams()
   const location = useLocation()
@@ -14,10 +18,13 @@ export function NameCell({ row }: CellContext<RotationExtended, unknown>) {
       style={{
         backgroundColor: getCultivationColor(original.b_lu_croprotation),
       }}
-      className={"text-white"}
+      className={"gap-1 text-white"}
       variant="default"
     >
       {original.b_lu_name}
+      {original.availabilityWarning ? (
+        <CultivationAvailabilityWarningIcon result={original.availabilityWarning} />
+      ) : null}
     </Badge>
   ) : (
     <NavLink

@@ -1,10 +1,10 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 
 export type AdvancedCultivationField = {
   b_lu_brp: number
@@ -102,21 +102,23 @@ function YearRow({
             key={`${field.b_lu_name}-${field.overlap_pct_of_selected}-${field.b_area_overlap}`}
           >
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className="flex h-full shrink-0 cursor-help items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
-                  style={{
-                    width: `${field.overlap_pct_of_selected * 100}%`,
-                    backgroundColor: getCultivationColor(field.b_lu_croprotation),
-                  }}
-                >
-                  {field.overlap_pct_of_selected >= 0.12 && (
-                    <span className="truncate px-1.5 text-[10px] font-semibold text-white drop-shadow-sm select-none">
-                      {field.b_lu_name}
-                    </span>
-                  )}
-                </div>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <div
+                    className="flex h-full shrink-0 cursor-help items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
+                    style={{
+                      width: `${field.overlap_pct_of_selected * 100}%`,
+                      backgroundColor: getCultivationColor(field.b_lu_croprotation),
+                    }}
+                  >
+                    {field.overlap_pct_of_selected >= 0.12 && (
+                      <span className="truncate px-1.5 text-[10px] font-semibold text-white drop-shadow-sm select-none">
+                        {field.b_lu_name}
+                      </span>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent className="space-y-0.5">
                 <p className="text-sm font-semibold">{field.b_lu_name}</p>
                 <p className="text-xs">
@@ -200,12 +202,12 @@ export function AdvancedCultivationFlow({
             {isExpanded ? (
               <>
                 <ChevronUp className="mr-2 h-4 w-4" />
-                Minder jaren tonen
+                <span key="less">Minder jaren tonen</span>
               </>
             ) : (
               <>
                 <ChevronDown className="mr-2 h-4 w-4" />
-                Meer jaren tonen ({data.history.length - mobileLimit})
+                <span key="more">Meer jaren tonen ({data.history.length - mobileLimit})</span>
               </>
             )}
           </Button>

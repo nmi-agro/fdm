@@ -23,5 +23,5 @@
     "preserveWhitespace": true
   },
   "sortPackageJson": true,
-  "ignorePatterns": [".github/skills/**"]
+  "ignorePatterns": [".claude/skills/**"]
 }

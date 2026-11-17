@@ -1,18 +1,15 @@
 import {
-  type ColumnDef,
   type ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
+  FlexRender,
+  RowData,
   type SortingState,
-  useReactTable,
-  type VisibilityState,
+  useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -28,22 +25,23 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { cn } from "~/lib/utils"
+import type { columns as ColumnsT, Fertilizer } from "./columns"
+import { fertilizerTableFeatures } from "./table-features"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+interface DataTableProps<TData extends RowData> {
+  columns: typeof ColumnsT
   data: TData[]
   canAddItem: boolean
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends Fertilizer>({
   columns,
   data,
   canAddItem,
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     p_dm: false,
     p_om: false,
     p_n_wc: false,
@@ -68,15 +66,13 @@ export function DataTable<TData, TValue>({
     p_cl_rt: false,
   })
 
-  const table = useReactTable({
+  const table = useTable({
     data,
+    features: fertilizerTableFeatures,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
       columnFilters,
@@ -126,9 +122,7 @@ export function DataTable<TData, TValue>({
         />
         <div className="flex shrink-0 items-center gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">Kolommen</Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger render={<Button variant="outline">Kolommen</Button>} />
             <DropdownMenuContent align="end" className="max-h-100 overflow-y-auto">
               {table
                 .getAllColumns()
@@ -148,13 +142,11 @@ export function DataTable<TData, TValue>({
             </DropdownMenuContent>
           </DropdownMenu>
           <div className={cn(!canAddItem ? "hidden" : "")}>
-            <Button asChild>
-              <NavLink to={"./new"}>
-                <Plus className="mr-2 h-4 w-4" />
-                <span className="hidden sm:inline">Meststof toevoegen</span>
-                <span className="sm:hidden">Toevoegen</span>
-              </NavLink>
-            </Button>
+            <NavLink to={"./new"} className={buttonVariants({})} data-slot="button">
+              <Plus className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Meststof toevoegen</span>
+              <span className="sm:hidden">Toevoegen</span>
+            </NavLink>
           </div>
         </div>
       </div>
@@ -166,9 +158,7 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </TableHead>
                   )
                 })}
@@ -178,19 +168,12 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => {
-                const fertilizer = row.original as {
-                  p_id?: string
-                  p_name_nl?: string
-                }
+                const fertilizer = row.original
                 const p_id = fertilizer.p_id
                 const p_name = fertilizer.p_name_nl || "Onbekende meststof"
 
                 return (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="hover:bg-muted/50 transition-colors"
-                  >
+                  <TableRow key={row.id} className="hover:bg-muted/50 transition-colors">
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {cell.column.id === "p_name_nl" && p_id ? (
@@ -199,10 +182,10 @@ export function DataTable<TData, TValue>({
                             className="focus-visible:ring-ring block rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                             aria-label={`Bekijk details van ${p_name}`}
                           >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            <FlexRender cell={cell} />
                           </NavLink>
                         ) : (
-                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                          <FlexRender cell={cell} />
                         )}
                       </TableCell>
                     ))}

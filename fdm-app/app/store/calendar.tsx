@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware"
 import { ssrSafeSessionJSONStorage } from "./storage"
 
 interface CalendarState {
-  calendar: string | undefined
+  calendar: string
   setCalendar: (calendar: string | undefined) => void
 }
 

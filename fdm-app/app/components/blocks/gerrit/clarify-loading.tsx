@@ -14,7 +14,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
     <GerritLoading
       events={events}
       title="Gerrit bekijkt het bedrijf…"
-      initialMessage="Gerrit analyseert de gewassen, gebruiksruimte en beschikbare meststoffen om te bepalen of er gerichte vragen nodig zijn."
+      initialMessage="Gerrit analyseert als AI-assistent de gewassen, gebruiksruimte en beschikbare meststoffen om te bepalen of er gerichte vragen nodig zijn."
     />
   )
 }

@@ -1,4 +1,4 @@
-import { Semaphore } from "../shared/geotiff"
+import { Semaphore } from "../shared/semaphore"
 
 function promiseDelayed<T>(cb: () => Promise<T>, after: number, signal?: AbortSignal | null) {
   if (signal?.aborted) {
@@ -60,11 +60,11 @@ export class NmiApiClient {
    * @param options Initialization options.
    */
   constructor(options?: {
-    /** Maximum number of concurrent requests to initialize the internal semaphore for. Default: 10 */
+    /** Maximum number of concurrent requests to initialize the internal semaphore for. Default: 25 */
     maxConcurrency?: number
     /** Maximum number of retries per request. Default: 3 */
     maxRetries?: number
-    /** Timeout for each trial for a request in ms. Default: 30000ms */
+    /** Timeout for each trial for a request in ms. Default: 60000ms */
     timeout?: number
   }) {
     const maxConcurrency = tryAsPositive(
@@ -235,3 +235,7 @@ export class NmiApiClient {
 export const bln3Client = new NmiApiClient()
 export const soilEstimatesClient = new NmiApiClient()
 export const soilReaderClient = new NmiApiClient()
+/** Client for Dyna nitrogen simulations; at most 5 simulations run at the same time. */
+export const dynaClient = new NmiApiClient({ maxConcurrency: 5, maxRetries: 2 })
+/** Client for weather forecasts. */
+export const weatherClient = new NmiApiClient({ maxRetries: 2 })

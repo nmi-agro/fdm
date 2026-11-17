@@ -1,13 +1,8 @@
 /* eslint-disable typescript/restrict-template-expressions -- Number, Decimal, and string union literals are intentionally formatted in template strings and serialize safely. */
-import {
-  type BaseFertilizerApplication,
-  type Fertilizer,
-  withCalculationCache,
-} from "@nmi-agro/fdm-core"
+import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type { NormFilling } from "../../types"
 import type { NL2025NormsFillingInput } from "./types"
-import pkg from "../../../../package"
 import { table11Mestcodes } from "./table-11-mestcodes"
 
 const rvoMestcodesOrganicRich25Percent = ["111", "112"] // Compost, Zeer schone compost
@@ -253,18 +248,3 @@ function determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
   }, new Decimal(0))
   return totalPhosphateDoseOrganicDose.gte(20)
 }
-
-/**
- * Memoized version of {@link calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm}.
- *
- * This function is wrapped with `withCalculationCache` to optimize performance by caching
- * results based on the input and the current calculator version.
- *
- * @param {NL2025NormsFillingInput} input - The standardized input object containing all necessary data.
- * @returns {NormFilling} An object containing the total norm filling and a breakdown per application.
- */
-export const getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm = withCalculationCache(
-  calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
-  "calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm",
-  pkg.calculatorVersion,
-)

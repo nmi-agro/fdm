@@ -2,9 +2,13 @@ import type { CellContext } from "@tanstack/react-table"
 import { useFetcher } from "react-router"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, MemoizedRotationExtended } from "./columns"
+import { rotationTableFeatures } from "./table-features"
 
-export function CropResidueCheckbox({ cell, row }: CellContext<RotationExtended, unknown>) {
+export function CropResidueCheckbox({
+  cell,
+  row,
+}: CellContext<typeof rotationTableFeatures, MemoizedRotationExtended, unknown>) {
   const fetcher = useFetcher()
 
   const fields =
@@ -36,14 +40,6 @@ export function CropResidueCheckbox({ cell, row }: CellContext<RotationExtended,
       ? "none"
       : "some"
 
-  const checkedState = (
-    {
-      all: true,
-      some: "indeterminate",
-      none: false,
-    } as const
-  )[m_cropresidue]
-
   return fetcher.state !== "idle" ? (
     <Spinner />
   ) : (
@@ -51,11 +47,17 @@ export function CropResidueCheckbox({ cell, row }: CellContext<RotationExtended,
       {row.original.canModify ? (
         <Checkbox
           id={inputId}
-          checked={checkedState}
+          checked={m_cropresidue === "all"}
+          indeterminate={m_cropresidue === "some"}
           onCheckedChange={(value) => submit(!!value)}
         />
       ) : (
-        <Checkbox id={inputId} checked={checkedState} disabled={true} />
+        <Checkbox
+          id={inputId}
+          checked={m_cropresidue === "all"}
+          indeterminate={m_cropresidue === "some"}
+          disabled={true}
+        />
       )}
       <label htmlFor={inputId}>
         {" "}

@@ -16,6 +16,7 @@ import {
 import { Bot, FlaskConical } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useWatch } from "react-hook-form"
 import {
   type ActionFunctionArgs,
   data,
@@ -30,6 +31,7 @@ import {
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
@@ -53,7 +55,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import {
   Dialog,
@@ -64,6 +66,8 @@ import {
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useHydrated } from "~/hooks/use-hydrated"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -71,14 +75,14 @@ import { fdm } from "~/lib/fdm.server"
 import { getGerritUsage } from "~/lib/gerrit-limit.server"
 import PostHogClient from "~/posthog.server"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "gerrit" }
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Gerrit's Bemestingsplan | ${clientConfig.name}` },
+    { title: `Gerrit (AI-bemestingsassistent) | ${clientConfig.name}` },
     {
       name: "description",
-      content: "AI-gedreven bemestingsplan genereren",
+      content: "AI-beslissingsondersteunend systeem voor bemestingsplanning",
     },
   ]
 }
@@ -164,17 +168,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const posthog = PostHogClient()
 
-  // If Gerrit is explicitly disabled for this user reject the request
-  let isGerritEnabled = false
+  // Gerrit is enabled by default, matching the Gerrit API routes; reject the request only when the
+  // flag explicitly disables it for this user. Without PostHog there are no flags, so Gerrit stays
+  // enabled. If evaluating the flags fails, the request is blocked (fail-closed).
+  let isGerritEnabled = !posthog
   try {
-    isGerritEnabled =
-      (
-        await posthog?.evaluateFlags(session.principal_id, {
-          flagKeys: ["gerrit"],
-        })
-      )?.isEnabled("gerrit") ?? false
+    if (posthog) {
+      isGerritEnabled =
+        (
+          await posthog.evaluateFlags(session.principal_id, {
+            flagKeys: ["gerrit"],
+          })
+        )?.isEnabled("gerrit", { defaultValue: true }) ?? true
+    }
   } catch {
-    // PostHog unavailable — default to blocked (fail-closed)
+    // Flag evaluation failed — default to blocked (fail-closed)
   }
   if (!isGerritEnabled) {
     throw data(null, {
@@ -276,10 +284,9 @@ export default function GerritApp() {
   const navigation = useNavigation()
   const { capture } = useAnalytics()
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     capture("gerrit_opened", { b_id_farm: farm.b_id_farm, calendar })
-  }, [])
+  }, [capture, farm.b_id_farm, calendar])
 
   const headerAction = {
     to: `/farm/${farm.b_id_farm}`,
@@ -289,7 +296,12 @@ export default function GerritApp() {
 
   const supportedYears = ["2025", "2026"]
   const isSupportedYear = supportedYears.includes(calendar)
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
+  // Gerrit is enabled by default; only an explicit `false` flag disables it. Until hydration has
+  // finished, keep it enabled so the browser renders the same markup as the server, which has no
+  // feature flags.
+  const isHydrated = useHydrated()
+  const gerritFlag = useFeatureFlagEnabled("gerrit")
+  const isGerritEnabled = isHydrated ? (gerritFlag ?? true) : true
 
   // Optimistic usage counter: increments when generation starts, reverts on
   // error. This makes the counter immediately reflect an in-flight request
@@ -524,7 +536,6 @@ export default function GerritApp() {
         startPlanStream(formData)
       }) as EventListener)
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [addEvent, buildSearchParams, closeEventSource, startPlanStream],
   )
 
@@ -541,14 +552,14 @@ export default function GerritApp() {
           ? (fertilizerOptions.map((f) => f.p_id_catalogue) as any)
           : undefined,
       additionalContext: "",
-      geminiModel: "gemini-3.6-flash",
+      geminiModel: "gemini-3.7-flash",
     },
     submitHandlers: {
       onValid: handleSubmit,
     },
   })
 
-  const additionalContextValue = form.watch("additionalContext")
+  const additionalContextValue = useWatch({ control: form.control, name: "additionalContext" })
 
   const isSaving =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "accept"
@@ -567,10 +578,12 @@ export default function GerritApp() {
       isAIGenerating && currentLocation.pathname !== nextLocation.pathname,
   )
 
-  // When the user confirms navigation away, close the stream
+  // When the user confirms navigation away, close the stream. Reacts to the router's navigation
+  // blocker proceeding (an external system), not a direct user event this component can hook into.
   useEffect(() => {
     if (blocker.state === "proceeding") {
       closeEventSource()
+      // oxlint-disable-next-line react/set-state-in-effect
       setPhase("idle")
     }
   }, [blocker.state, closeEventSource])
@@ -582,12 +595,10 @@ export default function GerritApp() {
   const isRateLimited =
     gerritUsage.limit !== null && optimisticUsed >= (gerritUsage.limit ?? Number.POSITIVE_INFINITY)
 
-  const [showStrategyForm, setShowStrategyForm] = useState(true)
+  // Hides once a plan is generated; the user can reopen it ("edit strategy") until a new plan
+  // replaces this one.
+  const [showStrategyForm, setShowStrategyForm] = useKeyedState(plan, (p) => !p)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    if (plan) setShowStrategyForm(false)
-  }, [plan])
 
   function toggleRow(b_id: string) {
     setExpandedRows((prev) => {
@@ -675,12 +686,20 @@ export default function GerritApp() {
                   en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Button asChild size="lg">
-                    <a href={`/farm/${farm.b_id_farm}/2025/gerrit`}>Switch naar 2025</a>
-                  </Button>
-                  <Button asChild size="lg">
-                    <a href={`/farm/${farm.b_id_farm}/2026/gerrit`}>Switch naar 2026</a>
-                  </Button>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2025/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2025
+                  </a>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2026/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2026
+                  </a>
                 </div>
               </div>
             </div>
@@ -701,24 +720,26 @@ export default function GerritApp() {
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* ── Left column ── */}
             <div className="flex flex-col gap-6 lg:col-span-1">
-              {/* Research preview notice + daily usage counter */}
+              {/* AI system notice + daily usage counter */}
               <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 shrink-0 text-amber-600" />
-                    <p className="text-sm font-semibold text-amber-800">Experimenteel</p>
+                    <p className="text-sm font-semibold text-amber-800">
+                      AI-assistent (Experimenteel)
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowInfoDialog(true)}
-                    className="shrink-0 text-[11px] text-amber-700 hover:underline"
+                    className="shrink-0 text-[11px] font-medium text-amber-700 hover:underline"
                   >
-                    Meer info
+                    Uitleg
                   </button>
                 </div>
                 <p className="text-xs leading-relaxed text-amber-700">
-                  Gerrit is een vroege onderzoeksversie. De uitkomsten kunnen onjuist zijn —
-                  controleer altijd het gegenereerde plan.
+                  Gerrit is een AI-systeem. Uitkomsten zijn adviezen en dienen altijd door de teler
+                  of adviseur te worden gecontroleerd voordat ze in de praktijk worden toegepast.
                 </p>
                 {gerritUsage.limit !== null && (
                   <p className="text-xs font-medium text-amber-700">
@@ -793,7 +814,7 @@ export default function GerritApp() {
                   toggleRow={toggleRow}
                 />
               ) : (
-                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center border-dashed p-12 text-center">
+                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center gap-0 border-dashed p-12 text-center">
                   <div className="bg-primary/10 mb-6 rounded-full p-6">
                     <Bot className="text-primary h-12 w-12 opacity-80" />
                   </div>
@@ -801,9 +822,9 @@ export default function GerritApp() {
                     Gerrit staat voor je klaar
                   </h3>
                   <p className="text-muted-foreground max-w-lg leading-relaxed">
-                    Selecteer aan de linkerkant jouw bedrijfsvoorkeuren. Gerrit berekent een
-                    integraal bemestingsplan voor het hele bedrijf, rekening houdend met
-                    gebruiksnormen, bemestingsadvies en je voorkeuren.
+                    Selecteer aan de linkerkant jouw bedrijfsvoorkeuren. Als AI-assistent berekent
+                    Gerrit een integraal bemestingsplan voor het hele bedrijf, rekening houdend met
+                    wettelijke gebruiksnormen, bemestingsadvies en je voorkeuren.
                   </p>
                 </Card>
               )}
@@ -813,73 +834,116 @@ export default function GerritApp() {
       </SidebarInset>
       {blockerDialog}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />
               Hoe werkt Gerrit?
             </DialogTitle>
             <DialogDescription>
-              Gerrit stelt een bemestingsplan op op basis van jouw gekozen strategie. Elk voorstel
-              wordt direct getoetst en doorloopt een cyclus van verbeteringen tot het plan optimaal
-              is.
+              Gerrit is een AI-beslissingsondersteunend systeem voor bemestingsplanning. Elk
+              voorstel wordt direct getoetst en doorloopt een iteratieve cyclus tot het plan
+              optimaal is.
             </DialogDescription>
           </DialogHeader>
-          <ol className="mt-2 space-y-4">
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                1
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Inventarisatie</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Eerst worden alle gegevens verzameld: je percelen, de gewassen, de bodemanalyses
-                  en welke meststoffen beschikbaar zijn.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                2
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Verduidelijkende vragen</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Als er onduidelijkheden zijn over je strategie of percelen, stelt Gerrit een paar
-                  gerichte vragen. Je kunt deze beantwoorden of overslaan.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                3
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Ontwerpen en controleren</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Gerrit maakt een eerste bemestingsplan en rekent dit direct door. Er wordt
-                  getoetst of het plan past binnen de gebruiksruimte en of de gewassen voldoende
-                  krijgen.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                4
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Bijsturen tot het klopt</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Als het eerste ontwerp niet voldoet, past Gerrit het plan zelfstandig aan. Dit
-                  herhaalt zich tot er een agronomisch en wettelijk correct voorstel ligt.
-                </p>
-              </div>
-            </li>
-          </ol>
-          <p className="text-muted-foreground mt-2 text-xs italic">
-            Het uiteindelijke voorstel zie je op je scherm. Pas als je op 'Plan toepassen' klikt,
-            worden de bemestingen opgeslagen.
-          </p>
+
+          <div className="space-y-6 text-sm">
+            <div>
+              <h4 className="text-foreground mb-3 font-semibold">Stappenplan</h4>
+              <ol className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-semibold">Inventarisatie</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Verzamelen van percelen, teelten, bodemanalyses en beschikbare meststoffen uit
+                      je bedrijf.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-semibold">Verduidelijkende vragen</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Bij ambiguïteiten in de strategie stelt de AI gerichte keuzes voor die je kunt
+                      beantwoorden of overslaan.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-semibold">Ontwerpen en controleren</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Genereren van een plan via LLM-redeneerstappen en deterministische berekening
+                      van gebruiksruimte en bemestingsadviezen.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    4
+                  </div>
+                  <div>
+                    <p className="font-semibold">Bijsturen tot het klopt</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Zelfstandig verfijnen en simuleren tot het plan voldoet aan de wettelijke
+                      kaders en jouw bedrijfsstrategie.
+                    </p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-foreground mb-2 font-semibold">
+                AI & Transparantieverantwoording
+              </h4>
+              <ul className="text-muted-foreground space-y-2 text-xs">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">AI-systeem:</strong> Gerrit is een
+                    kunstmatige intelligentie (AI) en geen menselijke adviseur. Uitkomsten zijn
+                    niet-bindende adviezen.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">Reasoner-Verifier architectuur:</strong>{" "}
+                    Generatieve AI redeneert over de verdeling en strategie, terwijl harde
+                    rekenregels en wetgeving (gebruiksruimte en bemestingsadviezen) deterministisch
+                    worden berekend.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">Gegevensbescherming:</strong>{" "}
+                    Bedrijfsgegevens worden verwerkt via beveiligde API-verbindingen onder een Zero
+                    Data Retention (ZDR) overeenkomst en worden niet opgeslagen door de
+                    modelaanbieder of gebruikt voor modeltraining.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">Jij beslist:</strong> Je beslist altijd zelf
+                    of je het voorgestelde plan wilt gebruiken. Pas na jouw controle en het klikken
+                    op 'Plan toepassen' wordt het plan definitief opgeslagen.
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

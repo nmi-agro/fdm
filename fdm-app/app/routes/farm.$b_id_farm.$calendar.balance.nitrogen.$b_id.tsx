@@ -7,13 +7,12 @@ import { checkPermission, getFarm, getField } from "@nmi-agro/fdm-core"
 import {
   ArrowDown,
   ArrowRight,
-  ArrowRightFromLine,
   ArrowRightLeft,
   ArrowUpFromLine,
   CircleAlert,
   CircleCheck,
 } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -23,9 +22,15 @@ import {
   useLocation,
 } from "react-router"
 import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
+import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import NitrogenBalanceDetails from "~/components/blocks/balance/nitrogen-details"
+import {
+  NitrateLeachingCard,
+  NitrousOxideCard,
+} from "~/components/blocks/balance/nitrous-oxide-card"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -40,6 +45,8 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
+import { formatBalanceValue } from "~/lib/format"
 import { useCalendarStore } from "~/store/calendar"
 
 type NitrogenFieldResultWithErrorId = NitrogenBalanceFieldResultNumeric & {
@@ -85,6 +92,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
 
+    // Calculate with effective nitrogen when selected with the toggle
+    const useEffectiveNitrogen = isEffectiveNitrogenRequested(request)
+
     // Get details of farm
     const farm = await getFarm(fdm, session.principal_id, b_id_farm)
     if (!farm) {
@@ -107,6 +117,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       false,
     )
 
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        nitrogenBalanceResult: null,
+        field: field,
+        farm: farm,
+        fieldWritePermission,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+        useEffectiveNitrogen,
+      }
+    }
+
     // Return promise directly for React Router v7 Suspense pattern
     const nitrogenBalancePromise = collectInputForNitrogenBalance(
       fdm,
@@ -115,7 +139,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       b_id,
     ).then(async (input) => {
-      const nitrogenBalanceResult = await calculateNitrogenBalance(fdm, input)
+      const nitrogenBalanceResult = await calculateNitrogenBalance(fdm, {
+        ...input,
+        useEffectiveNitrogen,
+      })
       let fieldResult: NitrogenFieldResultWithErrorId | undefined =
         nitrogenBalanceResult.fields.find((field: { b_id: string }) => field.b_id === b_id)
 
@@ -166,6 +193,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       field: field,
       farm: farm,
       fieldWritePermission,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
+      useEffectiveNitrogen,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -175,13 +205,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmBalanceNitrogenFieldBlock() {
   const loaderData = useLoaderData<typeof loader>()
 
+  if (loaderData.fieldAvailability || !loaderData.nitrogenBalanceResult) {
+    return (
+      <FieldNotAvailableForYear
+        b_name={loaderData.field.b_name}
+        availability={loaderData.fieldAvailability ?? "ended"}
+        calendar={loaderData.calendar}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${loaderData.farm.b_id_farm}/${loaderData.calendar}/field/${loaderData.field.b_id}/settings`}
+      />
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Suspense
-        key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}`}
+        key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}#${loaderData.useEffectiveNitrogen}`}
         fallback={<NitrogenBalanceFallback />}
       >
-        <NitrogenBalance {...loaderData} />
+        <NitrogenBalance {...loaderData} nitrogenBalanceResult={loaderData.nitrogenBalanceResult} />
       </Suspense>
     </div>
   )
@@ -200,12 +243,17 @@ function NitrogenBalance({
   farm,
   field,
   nitrogenBalanceResult,
-}: Awaited<ReturnType<typeof loader>>) {
+  useEffectiveNitrogen,
+}: Awaited<ReturnType<typeof loader>> & {
+  nitrogenBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["nitrogenBalanceResult"]>
+}) {
   const { fieldResult, fieldInput } = use(nitrogenBalanceResult)
 
   const location = useLocation()
   const page = location.pathname
   const calendar = useCalendarStore((state) => state.calendar)
+  // Computed once, not on every render: only shown in the error branch's debug dump below.
+  const [errorTimestamp] = useState(() => new Date())
 
   if (field.b_bufferstrip) {
     return <BufferStripWarning b_id={field.b_id} />
@@ -249,7 +297,7 @@ function NitrogenBalance({
                         //     fieldResult.errorMessage,
                         errorId: fieldResult.errorId,
                         page: page,
-                        timestamp: new Date(),
+                        timestamp: errorTimestamp,
                       },
                       null,
                       2,
@@ -297,20 +345,35 @@ function NitrogenBalance({
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overschot / Doel (Perceel)</CardTitle>
-            <ArrowRightLeft className="text-muted-foreground text-xs" />
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              {/* The target applies to the balance with total nitrogen only */}
+              {useEffectiveNitrogen ? "Overschot (Perceel)" : "Overschot / Doel (Perceel)"}
+            </CardTitle>
+            <ArrowRightLeft className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{`${result.balance} / ${result.target}`}</p>
-                {result.balance <= result.target ? (
-                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
+                <p>
+                  {useEffectiveNitrogen
+                    ? formatBalanceValue(result.balance)
+                    : `${formatBalanceValue(result.balance)} / ${formatBalanceValue(result.target)}`}
+                </p>
+                {useEffectiveNitrogen ? null : result.balance <= result.target ? (
+                  <CircleCheck
+                    className="rounded-full bg-green-100 p-0 text-green-500"
+                    role="img"
+                    aria-label="Onder het doel"
+                  />
                 ) : (
-                  <CircleAlert className="rounded-full bg-red-100 text-red-500 " />
+                  <CircleAlert
+                    className="rounded-full bg-red-100 text-red-500"
+                    role="img"
+                    aria-label="Boven het doel"
+                  />
                 )}
               </div>
             </div>
@@ -318,54 +381,54 @@ function NitrogenBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDown className="text-muted-foreground text-xs" />
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium">
+              {useEffectiveNitrogen ? "Aanvoer (werkzaam)" : "Aanvoer"}
+            </CardTitle>
+            <ArrowDown className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.supply.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.supply.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowRight className="text-muted-foreground text-xs" />
+            <ArrowRight className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.removal.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.removal.total)}</div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
-            <ArrowUpFromLine className="text-muted-foreground text-xs" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" aria-hidden="true" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.emission.ammonia.total}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(result.emission.ammonia.total)}
+            </div>
             <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
-            <ArrowRightFromLine className="text-muted-foreground text-xs" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{result.emission.nitrate.total}</div>
-            <p className="text-muted-foreground text-xs">kg N / ha</p>
-          </CardContent>
-        </Card>
+        <NitrousOxideCard
+          nitrousOxide={result.emission.nitrous_oxide.total}
+          co2eq={result.emission.nitrous_oxide.co2eq}
+        />
+        <NitrateLeachingCard nitrate={result.emission.nitrate.total} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Balans</CardTitle>
             <CardDescription>
-              De stikstofbalans voor {field.b_name} van {farm.b_name_farm}. De balans is het
-              verschil tussen de totale aanvoer, afvoer en emissie van stikstof. Een positieve
-              balans betekent een overschot aan stikstof, een negatieve balans een tekort.
+              De stikstofbalans voor {field.b_name} van {farm.b_name_farm}. De balans is de aanvoer
+              min de afvoer, de ammoniakemissie en de lachgasemissie. Nitraatuitspoeling telt niet
+              mee. Een positieve balans betekent een overschot aan stikstof, een negatieve balans
+              een tekort.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">

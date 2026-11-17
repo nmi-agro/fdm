@@ -3,11 +3,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import { cn } from "cn"
 import imageSize from "image-size"
 import { User } from "lucide-react"
 import crypto from "node:crypto"
 import { useRef, useState, useTransition } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, redirect, useLoaderData, useNavigation, useSubmit } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
@@ -16,11 +17,9 @@ import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
 import { ProfileInfoSchema } from "~/components/blocks/profile/profile-info-schema"
 import {
-  ALLOWED_MIME_TYPES,
   cropProfilePicture,
   MAX_DIMENSIONS,
   MAX_SIZE_BYTES,
-  MIME_TO_EXT,
   ProfilePictureInput,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { Button } from "~/components/ui/button"
@@ -32,8 +31,8 @@ import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
-import { cn } from "~/lib/utils"
 import { detectExistingProfilePictureObjectKey } from "../components/blocks/profile/detect-existing.server"
 
 export const meta: MetaFunction = () => {
@@ -123,7 +122,7 @@ export default function Welcome() {
     },
   })
 
-  const doNotUseSocialImage = form.watch("doNotUseSocialImage")
+  const doNotUseSocialImage = useWatch({ control: form.control, name: "doNotUseSocialImage" })
 
   const profilePictureInputRef = useRef<HTMLInputElement>(null)
   const [profilePictureFiles, setProfilePictureFiles] = useState<File[]>([])
@@ -176,11 +175,13 @@ export default function Welcome() {
               />
               <Field className="mx-auto max-w-75">
                 <FieldLabel>
-                  {profilePictureMode === "toBeRemoved"
-                    ? "Foto niet te gebruiken"
-                    : loaderData.image
-                      ? "Foto"
-                      : "Foto (optioneel)"}
+                  <span key={profilePictureMode}>
+                    {profilePictureMode === "toBeRemoved"
+                      ? "Foto niet te gebruiken"
+                      : loaderData.image
+                        ? "Foto"
+                        : "Foto (optioneel)"}
+                  </span>
                 </FieldLabel>
                 <div
                   className={cn("space-y-2", profilePictureMode === "toBeRemoved" && "opacity-50")}
@@ -246,7 +247,7 @@ export default function Welcome() {
                     <span>Opslaan...</span>
                   </div>
                 ) : (
-                  "Doorgaan"
+                  <span>Doorgaan</span>
                 )}
               </Button>
             </div>
@@ -257,10 +258,9 @@ export default function Welcome() {
   )
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, url }: ActionFunctionArgs) {
   try {
     // Get the URL object to extract search params
-    const url = new URL(request.url)
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
     // Validate redirectTo to prevent open redirect
     const isValidRedirect = redirectTo.startsWith("/") && !redirectTo.startsWith("//")
@@ -275,7 +275,7 @@ export async function action({ request }: ActionFunctionArgs) {
       // The file submission will be empty if the user hasn't added a profile picture
       if (fileUpload.name === "" && fileUpload.size === 0) return
 
-      const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+      const result = await readAndValidateFileUpload(fileUpload, new Set(ALLOWED_IMAGE_MIME_TYPES))
       fileBuffer = result.buffer
       detectedMime = result.mime
 
@@ -328,9 +328,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const oldProfilePictureKey = detectExistingProfilePictureObjectKey(session.user.image)
     if (profilePicture) {
-      const detectedExt = MIME_TO_EXT[profilePicture.detectedMime]
+      const detectedExt = getFileExtensionFromMime(profilePicture.detectedMime)
 
-      const objectKey = buildObjectKey("profile_picture_user", session.user.id, detectedExt)
+      const objectKey = buildObjectKey(
+        "profile_picture_user",
+        session.user.id,
+        detectedExt as string,
+      )
 
       let uploaded = false
       try {

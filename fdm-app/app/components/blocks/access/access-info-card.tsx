@@ -37,6 +37,7 @@ export const AccessInfoCard = () => {
         <p className="text-muted-foreground text-sm">
           <b>Let op:</b> Een bedrijf heeft minimaal één <i>Eigenaar</i> nodig.
         </p>
+        {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
         <br />
         <p className="text-muted-foreground text-sm">
           <b>Geverifieerd bedrijf:</b> Een bedrijf wordt geverifieerd zodra u met eHerkenning
@@ -44,6 +45,7 @@ export const AccessInfoCard = () => {
           KvK-nummer van dit bedrijf. Verwijdert u de enige gebruiker die dit bedrijf zo heeft
           geverifieerd, dan verliest het bedrijf de geverifieerde status.
         </p>
+        */}
       </CardContent>
     </Card>
   )

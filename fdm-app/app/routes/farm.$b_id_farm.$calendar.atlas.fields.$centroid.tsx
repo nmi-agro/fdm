@@ -9,7 +9,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { Map as MapIcon } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
+import { Suspense, use, useEffect, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -28,7 +28,7 @@ import { getFieldByCentroid } from "~/components/blocks/atlas-fields/query"
 import { FieldDetailsAtlasSkeleton } from "~/components/blocks/atlas-fields/skeleton"
 import { SoilTextureCard } from "~/components/blocks/atlas-fields/soil-texture"
 import { ErrorBlock } from "~/components/custom/error"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getCalendar } from "~/lib/calendar"
@@ -264,7 +264,7 @@ export default function FieldDetailsAtlasBlock() {
       b_id_farm: loaderData.b_id_farm,
       calendar: loaderData.calendar,
     })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.calendar])
 
   return (
     <Suspense
@@ -297,12 +297,14 @@ function FieldDetailsAtlas({ b_id_farm, calendar, asyncData }: Awaited<ReturnTyp
   } = use(asyncData)
 
   const location = useLocation()
+  // Computed once, not on every render: only shown in the error branch below.
+  const [errorTimestamp] = useState(() => new Date().toISOString())
 
   if (typeof errorMessage === "string") {
     return (
       <ErrorBlock
         page={location.pathname}
-        timestamp={new Date().toISOString()}
+        timestamp={errorTimestamp}
         status={500}
         message={errorMessage}
         stacktrace={undefined}
@@ -325,12 +327,14 @@ function FieldDetailsAtlas({ b_id_farm, calendar, asyncData }: Awaited<ReturnTyp
         groundWater={<GroundwaterCard groundwaterEstimates={groundwaterEstimates} />}
       />
       <div className="fixed right-6 bottom-6 z-50">
-        <Button asChild size="lg" className="rounded-full shadow-lg">
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
-            <MapIcon className="mr-2 h-4 w-4" />
-            Terug naar kaart
-          </NavLink>
-        </Button>
+        <NavLink
+          to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}
+          className={buttonVariants({ size: "lg", className: "rounded-full shadow-lg" })}
+          data-slot="button"
+        >
+          <MapIcon className="mr-2 h-4 w-4" />
+          Terug naar kaart
+        </NavLink>
       </div>
     </>
   )

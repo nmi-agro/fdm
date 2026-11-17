@@ -9,7 +9,7 @@ import {
   CircleCheck,
   CircleX,
 } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
+import { Suspense, use, useEffect, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -30,6 +30,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { formatBalanceValue } from "~/lib/format"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
@@ -131,7 +132,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
       calendar: params.calendar,
       balance_type: "organic_matter",
     })
-  }, [])
+  }, [capture, params.b_id_farm, params.calendar])
 
   return (
     <div className="space-y-4">
@@ -151,6 +152,8 @@ function FarmBalanceOrganicMatterOverview({
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { organicMatterBalanceResult } = use(asyncData)
+  // Computed once, not on every render: only shown in the error branch's debug dump below.
+  const [errorTimestamp] = useState(() => new Date())
 
   const cultivationsMap = new Map(cultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
@@ -177,7 +180,7 @@ function FarmBalanceOrganicMatterOverview({
                   {JSON.stringify(
                     {
                       message: organicMatterBalanceResult.errorMessage,
-                      timestamp: new Date(),
+                      timestamp: errorTimestamp,
                     },
                     null,
                     2,
@@ -203,32 +206,38 @@ function FarmBalanceOrganicMatterOverview({
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Balans (Bedrijf)</CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organicMatterBalanceResult.balance}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(organicMatterBalanceResult.balance)}
+            </div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organicMatterBalanceResult.supply}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(organicMatterBalanceResult.supply)}
+            </div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organicMatterBalanceResult.degradation}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(organicMatterBalanceResult.degradation)}
+            </div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
@@ -252,7 +261,7 @@ function FarmBalanceOrganicMatterOverview({
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="flex flex-row items-center justify-between">
               <p>Percelen</p>
               <BufferStripInfo />
             </CardTitle>
@@ -292,7 +301,7 @@ function FarmBalanceOrganicMatterOverview({
                     </div>
                     <div className="ml-auto font-medium">
                       {fieldResult.balance ? (
-                        `${fieldResult.balance.balance}`
+                        <span>{formatBalanceValue(fieldResult.balance.balance)}</span>
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">

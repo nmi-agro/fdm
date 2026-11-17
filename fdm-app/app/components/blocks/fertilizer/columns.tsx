@@ -1,10 +1,11 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { Pencil } from "lucide-react"
+import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
 import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { DataTableColumnHeader } from "./column-header"
+import { fertilizerTableFeatures } from "./table-features"
 
 export type Fertilizer = {
   p_id: string
@@ -58,7 +59,7 @@ function formatPercent(value: number | null | undefined): string {
   }).format(value)
 }
 
-export const columns: ColumnDef<Fertilizer>[] = [
+export const columns: ColumnDef<typeof fertilizerTableFeatures, Fertilizer>[] = [
   {
     accessorKey: "p_name_nl",
     header: "Naam",
@@ -70,11 +71,13 @@ export const columns: ColumnDef<Fertilizer>[] = [
           {isCustom && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="h-5 px-1 py-0">
-                    <Pencil className="text-muted-foreground h-3 w-3" />
-                  </Badge>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Badge variant="outline" className="h-5 px-1 py-0">
+                      <Pencil className="text-muted-foreground h-3 w-3" />
+                    </Badge>
+                  }
+                />
                 <TooltipContent>
                   <p>Eigen meststof</p>
                 </TooltipContent>
@@ -299,7 +302,7 @@ export const columns: ColumnDef<Fertilizer>[] = [
           {isTruncated ? (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                <TooltipTrigger render={badge} />
                 <TooltipContent>
                   <p>{displayLabel}</p>
                 </TooltipContent>

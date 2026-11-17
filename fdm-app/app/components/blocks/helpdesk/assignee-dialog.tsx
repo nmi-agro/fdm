@@ -3,10 +3,10 @@ import type {
   AgentAvailabilityStatus,
   TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
-import { type MouseEventHandler, useEffect, useId, useState } from "react"
+import { type MouseEventHandler, useId, useState } from "react"
 import { useFetcher } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { AvatarGroup, AvatarGroupCount } from "~/components/blocks/farms/user-display"
 import { Button } from "~/components/ui/button"
 import {
@@ -23,6 +23,7 @@ import { Field } from "~/components/ui/field"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import type { HelpdeskUser } from "./types"
 import { AgentAvailabilityDisplay } from "./agent-availability"
 import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
@@ -51,11 +52,12 @@ export function AssignmentSelector({
   const formId = useId()
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
 
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
-    assignees.map((assignee) => assignee.agent_id),
+  // Reset to the server's assignees (clearing local edits) whenever they change externally.
+  const [selectedAssignees, setSelectedAssignees] = useKeyedState(assignees, (a) =>
+    a.map((assignee) => assignee.agent_id),
   )
-  const [primaryAssignees, setPrimaryAssignees] = useState<string[]>(
-    assignees.filter((assignee) => assignee.is_primary).map((assignee) => assignee.agent_id),
+  const [primaryAssignees, setPrimaryAssignees] = useKeyedState(assignees, (a) =>
+    a.filter((assignee) => assignee.is_primary).map((assignee) => assignee.agent_id),
   )
 
   const assigneeNames = assignees.map((assignee) => assignee.display_name)
@@ -115,57 +117,54 @@ export function AssignmentSelector({
     })
   }
 
-  // Close dialogs when navigation finishes (the user has probably submitted the form in the dialog)
-  useEffect(() => {
-    if (fetcher.state === "idle") {
-      setAssignmentDialogOpen(false)
-    }
-  }, [fetcher.state])
-
-  useEffect(() => {
-    setSelectedAssignees(assignees.map((assignee) => assignee.agent_id))
-    setPrimaryAssignees(
-      assignees.filter((assignee) => assignee.is_primary).map((assignee) => assignee.agent_id),
-    )
-  }, [assignees])
-
   return (
     <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
-      <DialogTrigger asChild>
-        <Button
-          id={triggerId}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          disabled={fetcher.state !== "idle"}
-        >
-          {assignees.length > 0 ? (
-            <AvatarGroup>
-              {assignees.slice(0, ASSIGNEE_DISPLAY_CUTOFF).map((assignee) => (
-                <HelpdeskUserAvatar
-                  key={assignee.agent_id}
-                  user={makeHelpdeskUser(assignee, principalLookup)}
-                  type="agent"
-                />
-              ))}
-              {assignees.length > ASSIGNEE_DISPLAY_CUTOFF ? (
-                <AvatarGroupCount>+{assignees.length - ASSIGNEE_DISPLAY_CUTOFF}</AvatarGroupCount>
-              ) : null}
-            </AvatarGroup>
-          ) : (
-            <UserPlus className="text-muted-foreground size-4" />
-          )}
-          <span>
-            {assigneeNames.length > 0
-              ? assigneeNames.length > 3
-                ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
-                : assigneeNames.join(", ")
-              : "Toewijzen"}
-          </span>
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button
+            id={triggerId}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={fetcher.state !== "idle"}
+          >
+            {assignees.length > 0 ? (
+              <AvatarGroup>
+                {assignees.slice(0, ASSIGNEE_DISPLAY_CUTOFF).map((assignee) => (
+                  <HelpdeskUserAvatar
+                    key={assignee.agent_id}
+                    user={makeHelpdeskUser(assignee, principalLookup)}
+                    type="agent"
+                  />
+                ))}
+                {assignees.length > ASSIGNEE_DISPLAY_CUTOFF ? (
+                  <AvatarGroupCount>+{assignees.length - ASSIGNEE_DISPLAY_CUTOFF}</AvatarGroupCount>
+                ) : null}
+              </AvatarGroup>
+            ) : (
+              <UserPlus className="text-muted-foreground size-4" />
+            )}
+            <span>
+              {assigneeNames.length > 0
+                ? assigneeNames.length > 3
+                  ? `${assigneeNames.slice(0, 3).join(", ")} en meer`
+                  : assigneeNames.join(", ")
+                : "Toewijzen"}
+            </span>
+          </Button>
+        }
+      />
       <DialogContent className="sm:max-w-md">
-        <fetcher.Form id={formId} method="post" className="space-y-4">
+        <fetcher.Form
+          id={formId}
+          method="post"
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault()
+            await fetcher.submit(new FormData(e.currentTarget), { method: "post" })
+            setAssignmentDialogOpen(false)
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Medewerker toewijzen</DialogTitle>
             <DialogDescription>
@@ -271,18 +270,14 @@ export function AssignmentSelector({
           )}
 
           <DialogFooter className="gap-2">
-            <DialogClose asChild>
-              <Button variant="outline">Annuleren</Button>
-            </DialogClose>
+            <DialogClose render={<Button variant="outline">Annuleren</Button>} />
             {canModify ? (
               <Button type="submit" form={formId}>
-                Opslaan
+                <span>Opslaan</span>
                 {fetcher.state !== "idle" ? <Spinner className="ms-2" /> : null}
               </Button>
             ) : (
-              <DialogClose asChild>
-                <Button>Sluiten</Button>
-              </DialogClose>
+              <DialogClose render={<Button>Sluiten</Button>} />
             )}
           </DialogFooter>
         </fetcher.Form>
@@ -346,37 +341,39 @@ function AssigneeSelectItem({
       </Button>
 
       <Tooltip>
-        <TooltipTrigger asChild>
-          {canModify ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 hover:bg-transparent"
-              onClick={onIsPrimaryClick}
-              disabled={!isSelected}
-              aria-label={
-                isPrimary
-                  ? `${agent.display_name} is hoofdverantwoordelijke`
-                  : `Maak ${agent.display_name} hoofdverantwoordelijke`
-              }
-            >
+        <TooltipTrigger
+          render={
+            canModify ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="shrink-0 hover:bg-transparent"
+                onClick={onIsPrimaryClick}
+                disabled={!isSelected}
+                aria-label={
+                  isPrimary
+                    ? `${agent.display_name} is hoofdverantwoordelijke`
+                    : `Maak ${agent.display_name} hoofdverantwoordelijke`
+                }
+              >
+                <Crown
+                  className={cn(
+                    "size-4 transition-colors",
+                    isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30",
+                  )}
+                />
+              </Button>
+            ) : (
               <Crown
                 className={cn(
-                  "size-4 transition-colors",
-                  isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30",
+                  "me-2 size-4",
+                  isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20",
                 )}
               />
-            </Button>
-          ) : (
-            <Crown
-              className={cn(
-                "me-2 size-4",
-                isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20",
-              )}
-            />
-          )}
-        </TooltipTrigger>
+            )
+          }
+        />
         <TooltipContent>
           {isPrimary ? "Hoofdverantwoordelijke" : canModify ? "Hoofdverantwoordelijke maken" : null}
         </TooltipContent>

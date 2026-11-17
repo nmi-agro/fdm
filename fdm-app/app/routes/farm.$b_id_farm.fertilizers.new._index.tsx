@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router"
 import { type Fertilizer, getFertilizers } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Pencil, Plus } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router"
@@ -8,7 +9,7 @@ import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer
 import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import {
   Command,
@@ -20,6 +21,7 @@ import {
 } from "~/components/ui/command"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
+import { stripDataSuffixFromAddress } from "~/lib/url-utils"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { b_id_farm } = params
@@ -58,7 +60,8 @@ export default function NewFertilizerIndexPage() {
   }, [])
 
   const handleSelect = (p_id: string) => {
-    const returnUrl = searchParams.get("returnUrl")
+    const returnUrlParam = searchParams.get("returnUrl")
+    const returnUrl = returnUrlParam ? stripDataSuffixFromAddress(returnUrlParam) : null
     const url = returnUrl ? `${p_id}?returnUrl=${encodeURIComponent(returnUrl)}` : `${p_id}`
     void navigate(url)
   }
@@ -108,21 +111,20 @@ export default function NewFertilizerIndexPage() {
                   </p>
                 </div>
 
-                <Card className="bg-muted/20 hover:bg-muted/30 group flex flex-col items-center justify-center border-2 border-dashed p-10 transition-colors">
+                <Card className="bg-muted/20 hover:bg-muted/30 group flex flex-col items-center justify-center gap-0 border-2 border-dashed p-10 transition-colors">
                   <div className="bg-background mb-6 flex h-16 w-16 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-110">
                     <Plus className="text-primary h-8 w-8" />
                   </div>
-                  <Button asChild size="lg" className="w-full font-bold shadow-sm">
-                    <Link
-                      to={
-                        searchParams.has("returnUrl")
-                          ? `custom?returnUrl=${encodeURIComponent(searchParams.get("returnUrl") ?? "")}`
-                          : "custom"
-                      }
-                    >
-                      Start leeg formulier
-                    </Link>
-                  </Button>
+                  <Link
+                    to={
+                      searchParams.has("returnUrl")
+                        ? `custom?returnUrl=${encodeURIComponent(stripDataSuffixFromAddress(searchParams.get("returnUrl") ?? ""))}`
+                        : "custom"
+                    }
+                    className={cn(buttonVariants({ size: "lg" }), "w-full font-bold shadow-sm")}
+                  >
+                    Start leeg formulier
+                  </Link>
                 </Card>
               </div>
 
@@ -143,7 +145,7 @@ export default function NewFertilizerIndexPage() {
                   </p>
                 </div>
 
-                <Card className="overflow-hidden border-2 shadow-sm">
+                <Card className="overflow-hidden border-2 py-0 shadow-sm">
                   <Command className="border-none" shouldFilter={false}>
                     <CommandInput
                       aria-label="Zoek meststof in catalogus"

@@ -28,6 +28,7 @@ export const FarmInvitationRoleUpdatedEmail = ({
   senderName,
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
 }: FarmInvitationRoleUpdatedEmailProps) => {
+  "use no memo"
   const roleLabel = roleLabels[newRole] ?? newRole
   const previewText = `Je uitnodiging voor ${farmName} is bijgewerkt. Je nieuwe rol is ${roleLabel}.`
 

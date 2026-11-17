@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronUp, Info } from "lucide-react"
 import { useState } from "react"
 import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { cn } from "~/lib/utils"
 
 interface NormsDisclaimerProps {
   calendar?: string
@@ -30,20 +30,22 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
 
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex items-center">
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-foreground/80 hover:bg-muted/80 hover:text-foreground -ml-1.5 h-6 px-1.5 text-xs font-medium"
-                >
-                  <span>Niet-ondersteunde situaties</span>
-                  {isOpen ? (
-                    <ChevronUp className="ml-1 h-3 w-3 opacity-70" />
-                  ) : (
-                    <ChevronDown className="ml-1 h-3 w-3 opacity-70" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-foreground/80 hover:bg-muted/80 hover:text-foreground -ml-1.5 h-6 px-1.5 text-xs font-medium"
+                  >
+                    <span>Niet-ondersteunde situaties</span>
+                    {isOpen ? (
+                      <ChevronUp className="ml-1 h-3 w-3 opacity-70" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-3 w-3 opacity-70" />
+                    )}
+                  </Button>
+                }
+              />
             </div>
 
             <CollapsibleContent className="pt-2.5">
@@ -71,6 +73,14 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
                     december) die nog niet worden opgeslagen in de applicatie.
                   </li>
                   <li>
+                    <span className="text-foreground font-medium">
+                      Consumptieaardappel, vroeg en Pootaardappelen, uitgroeiteelt (loofvernietiging
+                      na 15 augustus):
+                    </span>{" "}
+                    De datum van loofvernietiging wordt nog niet vastgelegd in de applicatie. Er
+                    wordt daarom niet gecontroleerd of het loof na 15 augustus is vernietigd.
+                  </li>
+                  <li>
                     <span className="text-foreground font-medium">Mengteelten:</span> Gecombineerde
                     teelten op hetzelfde perceel.
                   </li>
@@ -85,6 +95,14 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
                       Tweejarige winterteelt budgetsplitsing (voetnoot 5/18):
                     </span>{" "}
                     Uitsplitsing van de stikstofruimte over zaai- en oogstjaar.
+                  </li>
+                  <li>
+                    <span className="text-foreground font-medium">
+                      Kruiden (wortel- en zaadgewassen):
+                    </span>{" "}
+                    Voor de algemene BRP-codes voor kruiden wordt de norm voor bladgewassen
+                    gebruikt; aparte normen voor wortel- en zaadgewassen worden hiervoor (nog) niet
+                    toegepast.
                   </li>
                 </ul>
               </div>

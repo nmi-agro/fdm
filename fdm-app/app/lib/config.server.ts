@@ -1,5 +1,20 @@
 import type { ServerConfig } from "~/types/config.d"
 
+const RVO_LOG_XML_VALUES = ["none", "request", "response", "both"] as const
+
+/**
+ * Parses and validates `RVO_LOG_XML`. Defaults to "none" when unset or empty;
+ * throws at startup for unsupported values so misconfigurations surface immediately.
+ */
+function parseRvoLogXml(value: string | undefined): (typeof RVO_LOG_XML_VALUES)[number] {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) return "none"
+  if ((RVO_LOG_XML_VALUES as readonly string[]).includes(normalized)) {
+    return normalized as (typeof RVO_LOG_XML_VALUES)[number]
+  }
+  throw new Error(`Invalid RVO_LOG_XML "${value}". Use one of: ${RVO_LOG_XML_VALUES.join(", ")}.`)
+}
+
 // ---------------------------------------------------------------------------
 // Microsoft cert config — validated at startup so misconfigurations surface
 // immediately rather than during the first sign-in attempt.
@@ -45,6 +60,7 @@ export const serverConfig: ServerConfig = {
   name: String(process.env.PUBLIC_FDM_NAME),
   url: String(process.env.PUBLIC_FDM_URL),
   privacy_url: process.env.FDM_PRIVACY_URL,
+  seo_indexing: process.env.FDM_SEO_INDEXING === "true",
   datasets_url:
     process.env.PUBLIC_FDM_DATASETS_URL || "https://storage.googleapis.com/fdm-public-data",
 
@@ -79,20 +95,33 @@ export const serverConfig: ServerConfig = {
         process.env.PUBLIC_MAPTILER_API_KEY ?? process.env.MAPTILER_API_KEY ?? "",
       ),
     },
-    nmi: {
-      api_key: String(process.env.NMI_API_KEY),
-    },
+    ...(process.env.NMI_API_KEY?.trim()
+      ? {
+          nmi: {
+            api_key: process.env.NMI_API_KEY.trim(),
+          },
+        }
+      : {}),
     rvo: {
       clientId: String(process.env.RVO_CLIENT_ID),
       redirectUri: String(process.env.RVO_REDIRECT_URI),
       clientName: String(process.env.RVO_CLIENT_NAME),
       pkioPrivateKey: String(process.env.RVO_PKIO_PRIVATE_KEY),
+      logXml: parseRvoLogXml(process.env.RVO_LOG_XML),
     },
     ...(process.env.GEMINI_API_KEY
       ? {
           gemini: {
             api_key: process.env.GEMINI_API_KEY,
             model: process.env.GEMINI_MODEL,
+          },
+        }
+      : {}),
+    ...(process.env.KVK_API_KEY?.trim()
+      ? {
+          kvk: {
+            api_key: process.env.KVK_API_KEY.trim(),
+            base_url: process.env.KVK_API_BASE_URL?.trim() || "https://api.kvk.nl/test/api",
           },
         }
       : {}),

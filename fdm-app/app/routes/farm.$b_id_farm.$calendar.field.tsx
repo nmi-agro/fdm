@@ -1,15 +1,18 @@
 import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
-  getCultivations,
-  getCurrentSoilData,
+  getCultivationsForFarm,
+  getCultivationsFromCatalogue,
+  getCurrentSoilDataForFarm,
   getFarms,
-  getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
   getFertilizers,
   getFields,
-  getSoilAnalyses,
+  getSoilAnalysesForFarm,
   updateField,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { cn } from "cn"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -22,6 +25,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { buildColumns, type FieldExtended } from "~/components/blocks/fields/columns"
@@ -29,7 +33,7 @@ import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
@@ -38,11 +42,11 @@ import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
@@ -58,6 +62,8 @@ function chunk<T>(items: T[], size: number): T[][] {
   }
   return chunks
 }
+
+export const handle: HelpHandle = { help: "percelen" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -90,15 +96,15 @@ export const meta: MetaFunction = () => {
  */
 export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
-    // This route is a layout to be able to show dialogs on top of the table
-    // An empty layout should be rendered for irrelevant routes
+    // This route renders the fields table only on its own path; child routes are full pages,
+    // so an empty layout is rendered for them
     if (params.b_id_farm && params.calendar) {
       const base = `/farm/${params.b_id_farm}/${params.calendar}/field`
 
       const toTest = url.pathname.endsWith("/")
         ? url.pathname.substring(0, url.pathname.length - 1)
         : url.pathname
-      if (toTest !== base && !toTest.startsWith(`${base}/modify_fertilizer`)) {
+      if (toTest !== base) {
         return {
           shouldShowLayout: false,
           b_id_farm: params.b_id_farm,
@@ -164,16 +170,48 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const calendar = params.calendar ?? new Date().getFullYear().toString()
     const nmiApiKey = getNmiApiKey()
 
+    const cultivationsForFarm = await getCultivationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+    // The catalogue holds the years in which each RVO crop code is available.
+    const availabilityYearsByCatalogue = new Map(
+      (await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm)).map((item) => [
+        item.b_lu_catalogue,
+        item.b_lu_ya,
+      ]),
+    )
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
+    const fertilizerApplicationsForFarm = await getFertilizerApplicationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+    const currentSoilDataForFarm = await getCurrentSoilDataForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+    const soilAnalysesForFarm = await getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm, {
+      start: undefined,
+      end: timeframe?.end,
+    })
     const fieldsExtended = await Promise.all(
       fields.map(async (field) => {
-        const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
+        const cultivations = (cultivationsForFarm.get(field.b_id) ?? []).map((cultivation) => ({
+          ...cultivation,
+          availabilityWarning: isCultivationUnavailableInPeriod(
+            cultivation,
+            availabilityYearsByCatalogue.get(cultivation.b_lu_catalogue),
+            lastCultivationAvailabilityYear,
+          ),
+        }))
 
-        const fertilizerApplications = await getFertilizerApplications(
-          fdm,
-          session.principal_id,
-          field.b_id,
-          timeframe,
-        )
+        const fertilizerApplications = fertilizerApplicationsForFarm.get(field.b_id) ?? []
 
         const fertilizersFiltered = fertilizers.filter((fertilizer) => {
           return fertilizerApplications.some((application) => {
@@ -181,12 +219,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           })
         })
 
-        const currentSoilData = await getCurrentSoilData(
-          fdm,
-          session.principal_id,
-          field.b_id,
-          timeframe,
-        )
+        const currentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
         const a_som_loi = Number(
           currentSoilData.find((x) => x.parameter === "a_som_loi")?.value ?? 0,
         )
@@ -213,10 +246,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         )
 
         // Fetch latest BCS analysis up to end of this calendar year.
-        const soilAnalyses = await getSoilAnalyses(fdm, session.principal_id, field.b_id, {
-          start: undefined,
-          end: timeframe?.end,
-        })
+        const soilAnalyses = soilAnalysesForFarm.get(field.b_id) ?? []
         const latestBcs = soilAnalyses.filter(isBcsAnalysis).sort((a, b) => {
           const da = a.b_sampling_date?.getTime() ?? 0
           const db = b.b_sampling_date?.getTime() ?? 0
@@ -259,7 +289,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           "write",
           field.b_id,
           session.principal_id,
-          new URL(request.url).pathname,
+          url.pathname,
           false,
         )
         return {
@@ -307,7 +337,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 
@@ -390,9 +420,12 @@ export default function FarmFieldIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button asChild className={cn(!loaderData.farmWritePermission ? "invisible" : "")}>
-                  <NavLink to="./new">Maak een perceel</NavLink>
-                </Button>
+                <NavLink
+                  to="./new"
+                  className={cn(buttonVariants(), !loaderData.farmWritePermission && "invisible")}
+                >
+                  Maak een perceel
+                </NavLink>
               </div>
               {/* <p className="px-8 text-center text-sm text-muted-foreground">
                             </p> */}

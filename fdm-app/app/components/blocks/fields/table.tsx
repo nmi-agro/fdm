@@ -1,22 +1,13 @@
-import {
-  type ColumnDef,
-  type ColumnFiltersState,
-  type FilterFn,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type Row,
-  type SortingState,
-  useReactTable,
-  type VisibilityState,
-} from "@tanstack/react-table"
+import { FlexRender, type Row, RowSelectionState, useTable } from "@tanstack/react-table"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
+import { dataTableRowCN, dataTableStickyCellCN } from "~/components/blocks/data-table/row"
+import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -34,36 +25,35 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
-import { cn } from "~/lib/utils"
-import type { FieldExtended } from "./columns"
-import { FieldFilterToggle } from "../../custom/field-filter-toggle"
+import type { buildColumns, FieldExtended } from "./columns"
+import { fieldsTableFeatures } from "./table-features"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+interface DataTableProps<TData extends FieldExtended> {
+  columns: ReturnType<typeof buildColumns>
   data: TData[]
   canAddItem: boolean
 }
 
-export function DataTable<TData extends FieldExtended, TValue>({
+export function DataTable<TData extends FieldExtended>({
   columns,
   data,
   canAddItem,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+}: DataTableProps<TData>) {
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
-    isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
+  const [columnVisibility, setColumnVisibility] = useKeyedState<boolean, Record<string, boolean>>(
+    isMobile,
+    (mobile): Record<string, boolean> =>
+      mobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
   )
   const fieldIds = useFieldSelectionStore((state) => state.fieldIds)
   const setFieldIds = useFieldSelectionStore((state) => state.setFieldIds)
   const syncFarm = useFieldSelectionStore((state) => state.syncFarm)
-  const lastSelectedRowIndex = useRef<number | null>(null)
   const fieldFilter = useFieldFilterStore()
 
   const rowSelection = useMemo(
-    () => Object.fromEntries(fieldIds.map((id) => [id, true])),
+    () => Object.fromEntries(fieldIds.map((id) => [id, true])) as RowSelectionState,
     [fieldIds],
   )
 
@@ -71,18 +61,18 @@ export function DataTable<TData extends FieldExtended, TValue>({
   const b_id_farm = params.b_id_farm
   const calendar = params.calendar
 
+  const fieldFilterSyncFarm = fieldFilter.syncFarm
   useEffect(() => {
     if (b_id_farm) {
       syncFarm(b_id_farm)
-      fieldFilter.syncFarm(b_id_farm)
+      fieldFilterSyncFarm(b_id_farm)
     }
-  }, [b_id_farm, syncFarm, fieldFilter.syncFarm])
+  }, [b_id_farm, syncFarm, fieldFilterSyncFarm])
 
-  useEffect(() => {
-    setColumnVisibility(isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {})
-  }, [isMobile])
-
-  const handleRowClick = (row: Row<TData>, event: React.MouseEvent<HTMLTableRowElement>) => {
+  const handleRowClick = (
+    row: Row<typeof fieldsTableFeatures, FieldExtended>,
+    event: React.MouseEvent<HTMLTableRowElement>,
+  ) => {
     // Ignore clicks on interactive elements inside the row
     const isInteractive = (target: EventTarget | null): boolean => {
       if (!(target instanceof Element)) return false
@@ -96,23 +86,12 @@ export function DataTable<TData extends FieldExtended, TValue>({
       return
     }
 
-    if (event.shiftKey && lastSelectedRowIndex.current !== null) {
-      const currentIndex = row.index
-      const start = Math.min(currentIndex, lastSelectedRowIndex.current)
-      const end = Math.max(currentIndex, lastSelectedRowIndex.current)
+    document.getSelection()?.removeAllRanges()
 
-      const rowsToSelect = table
-        .getRowModel()
-        .rows.slice(start, end + 1)
-        .map((r) => r.original.b_id) // Use b_id directly
-
-      const newFieldIds = new Set(fieldIds)
-      rowsToSelect.forEach((id) => newFieldIds.add(id))
-      setFieldIds(Array.from(newFieldIds))
-    } else {
-      row.toggleSelected()
-    }
-    lastSelectedRowIndex.current = row.index
+    row.getToggleSelectedHandler()({
+      ...event,
+      target: { checked: !row.getIsSelected() },
+    })
   }
 
   const memoizedData = useMemo(() => {
@@ -122,21 +101,11 @@ export function DataTable<TData extends FieldExtended, TValue>({
     }))
   }, [data])
 
-  const fuzzyFilter: FilterFn<TData> = (row, _columnId, { searchTerms }) => {
-    if (searchTerms === "") return true
-    const result = fuzzysort.go(searchTerms, [(row.original as any).searchTarget])
-    return result.length > 0
-  }
-
-  const table = useReactTable({
+  const table = useTable({
     data: memoizedData,
+    features: fieldsTableFeatures,
     columns,
     getRowId: (row) => row.b_id,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: (fn) => {
       const result = typeof fn === "function" ? fn(fieldFilter) : fn
@@ -150,26 +119,56 @@ export function DataTable<TData extends FieldExtended, TValue>({
       const selection = typeof fn === "function" ? fn(rowSelection) : fn
       setFieldIds(Object.keys(selection).filter((k) => selection[k]))
     },
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: (row, _columnId, { searchTerms }) => {
+      if (searchTerms === "") return true
+      const result = fuzzysort.go(searchTerms, [(row.original as any).searchTarget])
+      return result.length > 0
+    },
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       globalFilter: fieldFilter,
-      rowSelection,
+      rowSelection: rowSelection,
     },
   })
 
-  const selectedFields = useMemo(() => {
-    return table.getFilteredSelectedRowModel().rows.map((row) => row.original)
-  }, [table, rowSelection])
+  const selectedFieldIds = table.getFilteredSelectedRowModel().rows.map((row) => row.original.b_id)
 
-  const selectedFieldIds = selectedFields.map((field) => field.b_id)
-
-  const isFertilizerButtonDisabled = selectedFields.length === 0
+  const isFertilizerButtonDisabled = selectedFieldIds.length === 0
   const fertilizerTooltipContent = isFertilizerButtonDisabled
     ? "Selecteer één of meerdere percelen om bemesting toe te voegen"
     : "Bemesting toevoegen aan geselecteerde percelen"
+
+  const tableScrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Whether the sticky table cells on the left and right may be in a stuck state.
+  const [stuck, setStuck] = useState({ left: false, right: false })
+
+  // Add scroll and resize listeners to the scroll container of the table which will
+  // adjust the styles of sticky cells.
+  useEffect(() => {
+    const table = tableScrollContainerRef.current?.querySelector("table")
+    const scroller = table?.parentElement
+    if (!table || !scroller) return
+
+    const update = () => {
+      const left = scroller.scrollLeft > 0
+      const right = Math.ceil(scroller.scrollLeft + scroller.clientWidth) < scroller.scrollWidth
+      setStuck((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+    }
+
+    update()
+    scroller.addEventListener("scroll", update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(scroller)
+    observer.observe(table)
+    return () => {
+      scroller.removeEventListener("scroll", update)
+      observer.disconnect()
+    }
+  }, [])
+
+  const isCellStuck = (columnId: string) =>
+    (columnId === "select" && stuck.left) || (columnId === "actions" && stuck.right)
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -182,12 +181,14 @@ export function DataTable<TData extends FieldExtended, TValue>({
         />
         <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {table
                 .getAllColumns()
@@ -219,25 +220,27 @@ export function DataTable<TData extends FieldExtended, TValue>({
           <FieldFilterToggle />
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(!canAddItem ? "hidden" : "")}>
-                  {isFertilizerButtonDisabled ? (
-                    <Button disabled={isFertilizerButtonDisabled}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Bemesting
-                    </Button>
-                  ) : (
-                    <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/field/fertilizer?fieldIds=${selectedFieldIds.map(encodeURIComponent).join(",")}`}
-                    >
-                      <Button>
+              <TooltipTrigger
+                render={
+                  <div className={cn(!canAddItem ? "hidden" : "")}>
+                    {isFertilizerButtonDisabled ? (
+                      <Button disabled={isFertilizerButtonDisabled}>
                         <Plus className="mr-2 h-4 w-4" />
                         Bemesting
                       </Button>
-                    </NavLink>
-                  )}
-                </div>
-              </TooltipTrigger>
+                    ) : (
+                      <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/field/fertilizer?fieldIds=${selectedFieldIds.map(encodeURIComponent).join(",")}`}
+                      >
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Bemesting
+                        </Button>
+                      </NavLink>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent>
                 <p>{fertilizerTooltipContent}</p>
               </TooltipContent>
@@ -246,14 +249,16 @@ export function DataTable<TData extends FieldExtended, TValue>({
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <NavLink to={"./new"} className={cn(!canAddItem ? "hidden" : "")}>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nieuw perceel
-                  </Button>
-                </NavLink>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <NavLink to={"./new"} className={cn(!canAddItem ? "hidden" : "")}>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Nieuw perceel
+                    </Button>
+                  </NavLink>
+                }
+              />
               <TooltipContent>
                 <p>Voeg een nieuw perceel toe</p>
               </TooltipContent>
@@ -261,7 +266,10 @@ export function DataTable<TData extends FieldExtended, TValue>({
           </TooltipProvider>
         </div>
       </div>
-      <div className="relative grow overflow-x-auto rounded-md border">
+      <div
+        ref={tableScrollContainerRef}
+        className="relative grow overflow-x-auto rounded-md border"
+      >
         <Table>
           <TableHeader className="bg-background sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -270,14 +278,15 @@ export function DataTable<TData extends FieldExtended, TValue>({
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn({
-                        "bg-background sticky left-0": header.column.id === "select",
-                        "bg-background sticky right-0": header.column.id === "actions",
+                      data-stuck={isCellStuck(header.column.id) ? "" : undefined}
+                      className={cn("transition-colors", {
+                        "data-stuck:bg-background sticky left-0 z-10":
+                          header.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          header.column.id === "actions",
                       })}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </TableHead>
                   )
                 })}
@@ -289,18 +298,21 @@ export function DataTable<TData extends FieldExtended, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   onClick={(event) => handleRowClick(row, event)}
+                  className={dataTableRowCN(row)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
+                      data-stuck={isCellStuck(cell.column.id) ? "" : undefined}
                       className={cn({
-                        "bg-background sticky left-0": cell.column.id === "select",
-                        "bg-background sticky right-0": cell.column.id === "actions",
+                        [`${dataTableStickyCellCN(row)} sticky left-0 z-10`]:
+                          cell.column.id === "select",
+                        [`${dataTableStickyCellCN(row)} sticky right-0 z-10`]:
+                          cell.column.id === "actions",
                       })}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </TableCell>
                   ))}
                 </TableRow>

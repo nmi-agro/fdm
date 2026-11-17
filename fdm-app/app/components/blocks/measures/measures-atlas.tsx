@@ -9,6 +9,7 @@
 import type { FeatureCollection } from "geojson"
 import type { MapGeoJSONFeature, StyleSpecification } from "maplibre-gl"
 import type { LayerProps } from "react-map-gl/maplibre"
+import { cn } from "cn"
 import { useCallback, useMemo } from "react"
 import { Layer } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
@@ -23,7 +24,6 @@ import {
 } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
 
 const FIELDS_LAYER = "measuresMapFields"
 const FIELDS_OUTLINE_LAYER = "measuresMapFieldsOutline"

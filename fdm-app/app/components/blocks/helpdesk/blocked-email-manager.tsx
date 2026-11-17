@@ -1,13 +1,13 @@
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { EmailBlock } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { MailX, User, Users } from "lucide-react"
-import { useEffect, useId, useMemo, useState } from "react"
+import { useId, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
@@ -79,7 +79,7 @@ export function BlockedEmailsManager({ blockedEmails, canModify }: HelpdeskAgent
           <AddBlockedEmailForm />
         </CardHeader>
       )}
-      <CardContent className="first:pt-6">
+      <CardContent>
         {searchResults.length > 0 ? (
           <Table className="w-full">
             <TableHeader>
@@ -141,13 +141,6 @@ export function AddBlockedEmailForm() {
     },
   })
 
-  // Close the form when submission succeeds
-  useEffect(() => {
-    if (form.formState.isSubmitted && form.formState.isSubmitSuccessful) {
-      setOpen(false)
-    }
-  }, [form.formState.isSubmitted, form.formState.isSubmitSuccessful])
-
   // Define icon map for AutoComplete
   const iconMap = { user: User, organization: Users }
 
@@ -161,12 +154,20 @@ export function AddBlockedEmailForm() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild onClick={resetForm}>
-        <Button>Nieuw toevoegen</Button>
-      </DialogTrigger>
+      <DialogTrigger onClick={resetForm} render={<Button>Nieuw toevoegen</Button>} />
       <DialogContent>
         <RemixFormProvider {...form}>
-          <Form method="post" className="space-y-6" onSubmit={form.handleSubmit}>
+          <Form
+            method="post"
+            className="space-y-6"
+            onSubmit={async (e) => {
+              await form.handleSubmit(e)
+              // Close the dialog when submission succeeds
+              if (form.formState.isSubmitSuccessful) {
+                setOpen(false)
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Nieuw geblokkeerd e-mailadres toevoegen</DialogTitle>
             </DialogHeader>
@@ -210,13 +211,16 @@ export function AddBlockedEmailForm() {
               />
             </fieldset>
             <DialogFooter className="gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Sluiten
-                </Button>
-              </DialogClose>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline">
+                    Sluiten
+                  </Button>
+                }
+              />
               <Button type="submit" disabled={isSubmitting}>
-                Toevoegen{isSubmitting && <Spinner />}
+                <span>Toevoegen</span>
+                {isSubmitting && <Spinner />}
               </Button>
             </DialogFooter>
           </Form>

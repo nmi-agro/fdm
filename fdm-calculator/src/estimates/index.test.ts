@@ -2,6 +2,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./types"
 import { requestSoilParameterEstimates } from "./index"
 
+// Default NmiApiClient timeout (60s) plus margin for the retry back-off
+const ATTEMPT_STEP_MS = 62_000
+
 const mockEstimatesData: SoilParameterEstimatesResponse = {
   a_al_ox: 1,
   a_ca_co: 1,
@@ -167,9 +170,9 @@ describe("requestSoilParameterEstimates", () => {
       )
 
       try {
-        await vi.advanceTimersByTimeAsync(32_000)
-        await vi.advanceTimersByTimeAsync(32_000)
-        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
       } finally {
         await assertion
       }

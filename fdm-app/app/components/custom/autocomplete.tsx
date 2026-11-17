@@ -1,5 +1,6 @@
 import type { FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { Command as CommandPrimitive } from "cmdk"
+import { cn } from "cn"
 import { Check, User, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher } from "react-router"
@@ -12,11 +13,10 @@ import {
   CommandList,
 } from "~/components/ui/command"
 import { Input } from "~/components/ui/input"
-import { Popover, PopoverAnchor, PopoverContent } from "~/components/ui/popover"
+import { Popover, PopoverContent } from "~/components/ui/popover"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 
-// Stable empty array
+// Stable empty arrays
 const EMPTY_EXCLUDE_VALUES: readonly string[] = []
 
 // Expected shape of items returned by the lookup API
@@ -24,6 +24,7 @@ type LookupItem<T extends string> = {
   value: T
   label: string
   icon?: string // Icon identifier string (key for iconMap)
+  description?: string // Optional muted second line
 }
 
 type IconMap = Record<string, React.ComponentType<{ className?: string }>>
@@ -73,41 +74,47 @@ export function AutoComplete<
   const fetcher = useFetcher<LookupItem<T>[]>()
   const [open, setOpen] = useState(false)
   const openRef = useRef(open)
-  const [inputValue, setInputValue] = useState<string | undefined>("") // Internal input state
-  const [items, setItems] = useState<LookupItem<T>[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  // The text the user typed, tagged with the selectedValue it was typed under (pattern C).
+  // Falls back to the selected item's label once the tag no longer matches selectedValue.
+  const [typed, setTyped] = useState<{ for: T | undefined; text: string } | null>(null)
+  // The last input text a fetch was requested for, so we don't refetch for the same term.
+  const [lastRequested, setLastRequested] = useState<string | null>(null)
   const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const prevInputValue = useRef<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null) // Ref for the input element
-  // Guards the sync effect from overriding the input while the user is actively typing
-  const preventSyncRef = useRef(false)
+
+  // All items known from the last fetch, regardless of the current input text.
+  const rawItems = useMemo(
+    () => (fetcher.data ?? []).filter((item) => !excludeValues.includes(item.value)),
+    [fetcher.data, excludeValues],
+  )
 
   // Derive display label for the currently selected value.
   // Falls back to selectedValue for free-form entries (when allowValuesOutsideList is true).
   const selectedLabel = useMemo(() => {
-    const selectedItem = items.find((item) => item.value === selectedValue)
+    const selectedItem = rawItems.find((item) => item.value === selectedValue)
     return selectedItem?.label ?? (allowValuesOutsideList && selectedValue ? selectedValue : "")
-  }, [selectedValue, items, allowValuesOutsideList])
+  }, [selectedValue, rawItems, allowValuesOutsideList])
 
-  // Effect to fetch data when input value changes (debounced)
+  const inputValue =
+    typed !== null && Object.is(typed.for, selectedValue) ? typed.text : selectedLabel
+  const items = inputValue ? rawItems : []
+  const debouncePending = inputValue.length >= 1 && lastRequested !== inputValue
+  const isLoading = fetcher.state !== "idle" || debouncePending
+
+  // Fetch data when the input value changes (debounced)
   useEffect(() => {
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current)
     }
 
-    // Only fetch if input has changed and is not empty
-    if (inputValue && inputValue.length >= 1 && prevInputValue.current !== inputValue) {
+    if (debouncePending) {
       debounceTimeout.current = setTimeout(() => {
-        prevInputValue.current = inputValue
-        setIsLoading(true)
+        setLastRequested(inputValue)
         const url = modifySearchParams(lookupUrl, (searchParams) => {
           searchParams.set(searchParamName, inputValue)
         })
         void fetcher.load(url) // Use GET request via fetcher.load
       }, 300)
-    } else if (!inputValue || inputValue.length < 1) {
-      setItems([]) // Clear items if input is empty
-      setIsLoading(false)
     }
 
     return () => {
@@ -115,51 +122,23 @@ export function AutoComplete<
         clearTimeout(debounceTimeout.current)
       }
     }
-  }, [inputValue, lookupUrl, searchParamName, fetcher])
+  }, [inputValue, debouncePending, lookupUrl, searchParamName, fetcher])
 
-  // Effect to process fetched data
+  // Refocus the input once suggestions have finished loading, if it's still open
   useEffect(() => {
-    if (fetcher.data) {
-      const filteredItems = fetcher.data.filter((item) => !excludeValues.includes(item.value))
-      setItems(filteredItems)
-    }
-    // Stop loading regardless of data presence, but only if fetcher is idle
-    if (fetcher.state === "idle") {
-      setIsLoading(false)
-      // Refocus the input if it's still open after loading suggestions
+    if (fetcher.state === "idle" && open && inputRef.current) {
       // Use setTimeout to ensure focus happens after potential DOM updates
-      if (open && inputRef.current) {
-        setTimeout(() => {
-          inputRef.current?.focus()
-        }, 0)
-      }
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 0)
     }
-  }, [fetcher.data, fetcher.state, excludeValues, open])
-
-  // Effect to sync input field when selectedValue changes externally
-  useEffect(() => {
-    // Skip when we the input is cleared by code but the user was still typing
-    if (preventSyncRef.current) {
-      preventSyncRef.current = false
-      return
-    }
-    // If a value is selected externally, update the input field to its label
-    // This handles cases where the form is reset or pre-populated
-    if (selectedValue && selectedLabel) {
-      setInputValue(selectedLabel)
-    } else if (!selectedValue) {
-      // If selectedValue is cleared externally, clear the input
-      setInputValue("")
-    }
-    // We only want this effect to run when selectedValue changes externally,
-    // not when selectedLabel changes due to items loading.
-  }, [selectedValue, selectedLabel])
+  }, [fetcher.state, open])
 
   const handleInputChange = (value: string) => {
-    setInputValue(value)
     // If user types something different than the selected label, clear the selection
-    if (selectedValue && value !== selectedLabel) {
-      preventSyncRef.current = true // Don't let the sync effect clear the user's input
+    const clearingSelection = !!selectedValue && value !== selectedLabel
+    setTyped({ for: clearingSelection ? undefined : selectedValue, text: value })
+    if (clearingSelection) {
       onSelectedValueChange(undefined) // Clear parent state
       if (form && name) {
         form.setValue(name, "" as FieldPathValue<TFieldValues, TName>)
@@ -171,8 +150,8 @@ export function AutoComplete<
     const selectedItem = items.find((item) => item.value === itemValue)
     if (selectedItem) {
       onSelectedValueChange(selectedItem.value as T)
-      setInputValue(selectedItem.label) // Update input to reflect selection
-      prevInputValue.current = selectedItem.label // Update previous input value to prevent unnecessary fetch
+      setTyped({ for: selectedItem.value as T, text: selectedItem.label })
+      setLastRequested(selectedItem.label) // Prevent unnecessary refetch
       if (form && name) {
         form.setValue(name, selectedItem.value as FieldPathValue<TFieldValues, TName>)
       }
@@ -183,9 +162,8 @@ export function AutoComplete<
 
   const handleClear = () => {
     onSelectedValueChange(undefined)
-    setInputValue("")
-    prevInputValue.current = null
-    setItems([])
+    setTyped({ for: undefined, text: "" })
+    setLastRequested(null)
     if (form && name) {
       form.setValue(name, undefined as any)
     }
@@ -200,120 +178,144 @@ export function AutoComplete<
       if (allowValuesOutsideList) {
         // Accept typed value as-is (e.g. email address)
         onSelectedValueChange(inputValue as T)
+        setTyped({ for: inputValue as T, text: inputValue })
         if (form && name) {
           form.setValue(name, inputValue as FieldPathValue<TFieldValues, TName>)
         }
       } else {
         // Only dropdown selections allowed — clear the input
-        setInputValue("")
+        setTyped({ for: selectedValue, text: "" })
       }
     }
     // If input doesn't match selected label, revert input to selected label
     else if (inputValue !== selectedLabel && selectedValue) {
-      setInputValue(selectedLabel)
+      setTyped({ for: selectedValue, text: selectedLabel })
     }
   }
+
+  // Anchor for the PopoverContent. Needs to be a state in order to create rerenders.
+  const [anchor, setAnchor] = useState<HTMLDivElement | null>(null)
 
   return (
     <div className={cn("flex items-center", className)}>
       <Popover
         open={open}
-        onOpenChange={(value) => {
+        onOpenChange={(value, { reason, event, cancel }) => {
+          // A press inside the input wrapper is not an outside press: keep the suggestions open.
+          if (
+            !value &&
+            reason === "outside-press" &&
+            event.target instanceof Node &&
+            anchor?.contains(event.target)
+          ) {
+            cancel()
+            return
+          }
+          if (
+            !value &&
+            (reason === "trigger-hover" ||
+              reason === "trigger-focus" ||
+              reason === "trigger-press" ||
+              reason === "focus-out")
+          ) {
+            return
+          }
           setOpen(value)
           openRef.current = value
         }}
       >
         <Command shouldFilter={false} className="w-full">
-          <PopoverAnchor asChild>
-            <div className="relative w-full">
-              <CommandPrimitive.Input
-                asChild
-                value={inputValue}
-                onValueChange={handleInputChange}
-                onKeyDown={(e) => {
-                  const next = e.key !== "Escape"
-                  setOpen(next)
-                  openRef.current = next
+          <div ref={setAnchor} className="relative w-full">
+            <CommandPrimitive.Input
+              asChild
+              value={inputValue}
+              onValueChange={handleInputChange}
+              onKeyDown={(e) => {
+                const next = e.key !== "Escape"
+                setOpen(next)
+                openRef.current = next
+              }}
+              onMouseDown={() => {
+                const next = !!inputValue || !open
+                setOpen(next)
+                openRef.current = next
+              }}
+              onFocus={() => {
+                setOpen(true)
+                openRef.current = true
+              }}
+              onBlur={handleInputBlur}
+            >
+              <Input
+                ref={inputRef}
+                placeholder={placeholder}
+                className={cn("w-full", selectedValue && !allowValuesOutsideList && "pr-8")}
+                autoComplete="off"
+                disabled={disabled}
+              />
+            </CommandPrimitive.Input>
+            {selectedValue && !allowValuesOutsideList && (
+              <button
+                type="button"
+                aria-label="Wis selectie"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  handleClear()
                 }}
-                onMouseDown={() => {
-                  const next = !!inputValue || !open
-                  setOpen(next)
-                  openRef.current = next
-                }}
-                onFocus={() => {
-                  setOpen(true)
-                  openRef.current = true
-                }}
-                onBlur={handleInputBlur}
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
               >
-                <Input
-                  ref={inputRef}
-                  placeholder={placeholder}
-                  className={cn("w-full", selectedValue && !allowValuesOutsideList && "pr-8")}
-                  autoComplete="off"
-                  disabled={disabled}
-                />
-              </CommandPrimitive.Input>
-              {selectedValue && !allowValuesOutsideList && (
-                <button
-                  type="button"
-                  aria-label="Wis selectie"
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    handleClear()
-                  }}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-          </PopoverAnchor>
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
           {!open && <CommandList aria-hidden="true" className="hidden" />}
           <PopoverContent
-            asChild
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onInteractOutside={(e) => {
-              if (e.target instanceof Element && e.target.hasAttribute("cmdk-input")) {
-                e.preventDefault()
-              }
-            }}
-            className="w-(--radix-popover-trigger-width) p-0"
-          >
-            <CommandList>
-              {isLoading && (
-                <CommandPrimitive.Loading>
-                  <div className="p-1">
-                    <Spinner className="h-6 w-full" />
-                  </div>
-                </CommandPrimitive.Loading>
-              )}
-              {items.length > 0 && !isLoading ? (
-                <CommandGroup>
-                  {items.map((option) => {
-                    // Use iconMap to get the component, default to Check
-                    const IconComponent = option.icon ? (iconMap[option.icon] ?? Check) : Check
-                    return (
-                      <CommandItem
-                        key={option.value}
-                        value={option.value} // Use value for selection logic
-                        onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
-                        onSelect={() => handleSelectItem(option.value)}
-                      >
-                        <IconComponent className={"mr-2 h-4 w-4"} />
-                        {option.label}
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
-              ) : null}
-              {!isLoading && !items.length && inputValue ? ( // Show empty only if not loading and user typed something
-                <CommandEmpty>
-                  {typeof emptyMessage === "function" ? emptyMessage(inputValue) : emptyMessage}
-                </CommandEmpty>
-              ) : null}
-            </CommandList>
-          </PopoverContent>
+            anchor={anchor}
+            initialFocus={false}
+            className="w-(--anchor-width) p-0"
+            render={
+              <CommandList>
+                {isLoading && (
+                  <CommandPrimitive.Loading>
+                    <div className="p-1">
+                      <Spinner className="h-6 w-full" />
+                    </div>
+                  </CommandPrimitive.Loading>
+                )}
+                {items.length > 0 && !isLoading ? (
+                  <CommandGroup>
+                    {items.map((option) => {
+                      // Use iconMap to get the component, default to Check
+                      const IconComponent = option.icon ? (iconMap[option.icon] ?? Check) : Check
+                      return (
+                        <CommandItem
+                          key={option.value}
+                          value={option.value} // Use value for selection logic
+                          onMouseDown={(e) => e.preventDefault()} // Prevent blur on click
+                          onSelect={() => handleSelectItem(option.value)}
+                        >
+                          <IconComponent className={"mr-2 h-4 w-4 shrink-0"} />
+                          <span className="flex min-w-0 flex-col">
+                            <span>{option.label}</span>
+                            {option.description && (
+                              <span className="text-muted-foreground truncate text-xs">
+                                {option.description}
+                              </span>
+                            )}
+                          </span>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                ) : null}
+                {!isLoading && !items.length && inputValue ? ( // Show empty only if not loading and user typed something
+                  <CommandEmpty>
+                    {typeof emptyMessage === "function" ? emptyMessage(inputValue) : emptyMessage}
+                  </CommandEmpty>
+                ) : null}
+              </CommandList>
+            }
+          />
         </Command>
       </Popover>
       {name && <input type="hidden" name={name} value={selectedValue ?? ""} readOnly />}

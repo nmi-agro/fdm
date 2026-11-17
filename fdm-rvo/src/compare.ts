@@ -1,4 +1,9 @@
 import type { Cultivation, CultivationCatalogue, Field } from "@nmi-agro/fdm-core"
+import {
+  adjustEndDateAtYearStart,
+  startOfDayInFdmTimeZone,
+  toFdmDateString,
+} from "@nmi-agro/fdm-core"
 import bbox from "@turf/bbox"
 import {
   type FieldDiff,
@@ -12,7 +17,7 @@ import { bboxOverlap, calculateIoU } from "./utils"
 // A value of 0.99 means the intersection area must be at least 99% of the union area.
 const IOU_THRESHOLD = 0.99
 
-type FieldWithCultivations = Field & { cultivations?: Cultivation[] }
+export type FieldWithCultivations = Field & { cultivations?: Cultivation[] }
 type FieldWithGeometry = FieldWithCultivations & {
   b_geometry: NonNullable<Field["b_geometry"]>
 }
@@ -203,7 +208,8 @@ export function compareFields(
           : local.b_start
             ? new Date(local.b_start)
             : null
-      const importYearStart = new Date(calendar, 0, 1) // Jan 1st of import year
+      // Start of Jan 1st of the import year in Europe/Amsterdam
+      const importYearStart = startOfDayInFdmTimeZone(calendar, 1, 1)
       // A missing start date means the field has no known start, so treat as not-yet-started → NEW_LOCAL
       const isStartedBeforeYear = localStart !== null && localStart < importYearStart
 
@@ -212,7 +218,9 @@ export function compareFields(
           ? local.b_end
           : new Date(local.b_end)
         : null
-      // If it has no end date, OR the end date is after the start of the import year
+      // If it has no end date, OR the end date is after the start of the import year.
+      // fdm-core returns a `b_end` on Jan 1st as the end of Dec 31st, so a field ended on
+      // Dec 31st or Jan 1st does not end in the import year.
       const isOpenOrEndsInYear = !localEnd || localEnd >= importYearStart
 
       // If the field ended before the import year, it's a historical field that is already closed.
@@ -279,11 +287,10 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
     }
   }
 
-  // 3. Dates (Start)
-  const localStart =
-    local.b_start instanceof Date ? local.b_start.toISOString().split("T")[0] : local.b_start
+  // 3. Dates (Start), compared as calendar dates in Europe/Amsterdam
+  const localStart = local.b_start instanceof Date ? toFdmDateString(local.b_start) : local.b_start
   const rvoStart = rvo.properties.BeginDate
-    ? new Date(rvo.properties.BeginDate).toISOString().split("T")[0]
+    ? toFdmDateString(new Date(rvo.properties.BeginDate))
     : null
 
   // Treat null/undefined as equal if both are missing
@@ -294,12 +301,13 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
   // 4. Dates (End)
   const localEnd =
     local.b_end instanceof Date
-      ? local.b_end.toISOString().split("T")[0]
+      ? toFdmDateString(local.b_end)
       : typeof local.b_end === "string"
         ? local.b_end
         : null
+  // Adjust the RVO end date the same way fdm-core returns `b_end` (1 January becomes 31 December)
   const rvoEnd = rvo.properties.EndDate
-    ? new Date(rvo.properties.EndDate).toISOString().split("T")[0]
+    ? toFdmDateString(adjustEndDateAtYearStart(new Date(rvo.properties.EndDate)))
     : null
 
   // Treat null/undefined as equal if both are missing

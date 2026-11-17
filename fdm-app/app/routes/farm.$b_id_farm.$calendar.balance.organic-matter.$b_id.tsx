@@ -11,7 +11,7 @@ import {
   CircleAlert,
   CircleCheck,
 } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -25,6 +25,7 @@ import { MissingParametersWarning } from "~/components/blocks/balance/missing-pa
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import OrganicMatterBalanceDetails from "~/components/blocks/balance/organic-matter-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -39,6 +40,8 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
+import { formatBalanceValue } from "~/lib/format"
 import { useCalendarStore } from "~/store/calendar"
 
 type OrganicMatterFieldResultWithErrorId = OrganicMatterBalanceFieldResultNumeric & {
@@ -85,6 +88,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "routes/farm.$b_id_farm.$calendar.balance.organic-matter.$b_id",
       false,
     )
+
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        organicMatterBalanceResult: null,
+        field: field,
+        farm: farm,
+        fieldWritePermission,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
 
     const organicMatterBalancePromise = collectInputForOrganicMatterBalance(
       fdm,
@@ -136,6 +152,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       field: field,
       farm: farm,
       fieldWritePermission,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -145,13 +163,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmBalanceOrganicMatterFieldBlock() {
   const loaderData = useLoaderData<typeof loader>()
 
+  if (loaderData.fieldAvailability || !loaderData.organicMatterBalanceResult) {
+    return (
+      <FieldNotAvailableForYear
+        availability={loaderData.fieldAvailability ?? "ended"}
+        calendar={loaderData.calendar}
+        b_name={loaderData.field.b_name}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${loaderData.farm.b_id_farm}/${loaderData.calendar}/field/${loaderData.field.b_id}/settings`}
+      />
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Suspense
         key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}`}
         fallback={<NitrogenBalanceFallback />}
       >
-        <OrganicMatterBalance {...loaderData} />
+        <OrganicMatterBalance
+          {...loaderData}
+          organicMatterBalanceResult={loaderData.organicMatterBalanceResult}
+        />
       </Suspense>
     </div>
   )
@@ -161,11 +195,17 @@ function OrganicMatterBalance({
   farm,
   field,
   organicMatterBalanceResult,
-}: Awaited<ReturnType<typeof loader>>) {
+}: Awaited<ReturnType<typeof loader>> & {
+  organicMatterBalanceResult: NonNullable<
+    Awaited<ReturnType<typeof loader>>["organicMatterBalanceResult"]
+  >
+}) {
   const { fieldResult, fieldInput } = use(organicMatterBalanceResult)
   const location = useLocation()
   const page = location.pathname
   const calendar = useCalendarStore((state) => state.calendar)
+  // Computed once, not on every render: only shown in the error branch's debug dump below.
+  const [errorTimestamp] = useState(() => new Date())
 
   if (field.b_bufferstrip) {
     return <BufferStripWarning b_id={field.b_id} />
@@ -206,7 +246,7 @@ function OrganicMatterBalance({
                       {
                         errorId: fieldResult.errorId,
                         page: page,
-                        timestamp: new Date(),
+                        timestamp: errorTimestamp,
                       },
                       null,
                       2,
@@ -252,14 +292,14 @@ function OrganicMatterBalance({
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Balans (Perceel)</CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{result.balance}</p>
+                <p>{formatBalanceValue(result.balance)}</p>
                 {result.balance > 0 ? (
                   <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
@@ -271,22 +311,22 @@ function OrganicMatterBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.supply.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.supply.total)}</div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.degradation.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.degradation.total)}</div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>

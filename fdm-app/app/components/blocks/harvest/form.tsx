@@ -1,15 +1,15 @@
 import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import type { UseRemixFormReturn } from "remix-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
-import { type MouseEventHandler, useEffect, useMemo, useState } from "react"
-import { Controller, type Resolver } from "react-hook-form"
+import { type MouseEventHandler, useEffect, useMemo, useState, useSyncExternalStore } from "react"
+import { Controller, useWatch, type Resolver } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
-import { cn } from "@/app/lib/utils"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
@@ -36,10 +36,13 @@ function toDate(value: Date | string) {
 }
 
 type HarvestFormDialogProps = {
+  intent?: string
+  b_id_harvesting?: string
   b_lu_croprotation?: string
   harvestParameters: HarvestParameters
   exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
   example_b_lu_harvest_date?: Date | null
+  b_lu?: string
   b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
   b_date_harvest_default?: string | null // MM-dd format from cultivation catalogue
   b_lu_yield: number | undefined
@@ -56,18 +59,25 @@ type HarvestFormDialogProps = {
   b_lu_end: Date | undefined | null
   action?: string
   handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
+  isHarvestUpdate?: boolean
   editable?: boolean
   allowBatch?: boolean
   onBatchClick?: MouseEventHandler
+  onDelete?: () => void
 }
 
 const SchemaWithIntent = FormSchema.extend({
-  intent: z.literal("single_harvest"),
+  intent: z.string(),
 })
 
 type HarvestFormValues = z.infer<typeof SchemaWithIntent>
 
+const DEFAULT_INTENT = "single_harvest"
+
 function useHarvestRemixForm({
+  intent = DEFAULT_INTENT,
+  b_id_harvesting,
+  b_lu,
   harvestParameters,
   b_lu_harvest_date,
   b_date_harvest_default,
@@ -87,7 +97,8 @@ function useHarvestRemixForm({
   handleConfirmation,
 }: HarvestFormDialogProps) {
   const { calendar } = useCalendarStore()
-  const currentYear = new Date().getFullYear()
+  // Computed once, not on every render: only used as a fallback when the store has no calendar yet.
+  const [currentYear] = useState(() => new Date().getFullYear())
   const parsedCalendar = calendar ? Number(calendar) : Number.NaN
   const calendarYear = Number.isNaN(parsedCalendar) ? currentYear : parsedCalendar
 
@@ -156,7 +167,9 @@ function useHarvestRemixForm({
       return validation as any
     }) as Resolver<HarvestFormValues>,
     defaultValues: {
-      intent: "single_harvest",
+      intent: intent,
+      b_id_harvesting: b_id_harvesting,
+      b_lu: b_lu,
       b_lu_harvest_date: defaultHarvestDate,
       b_lu_yield: harvestParameters.includes("b_lu_yield") ? b_lu_yield : undefined,
       b_lu_yield_fresh: harvestParameters.includes("b_lu_yield_fresh")
@@ -181,19 +194,20 @@ function useHarvestRemixForm({
 
   // When the calendar store is populated after initial render, re-evaluate the
   // default harvest date, but only if the user has not already entered a value.
+  const form_b_lu_harvest_date = useWatch({ control: form.control, name: "b_lu_harvest_date" })
+  const formGetFieldState = form.getFieldState
+  const formSetValue = form.setValue
   useEffect(() => {
-    const currentValue = form.getValues("b_lu_harvest_date")
-    const { isDirty } = form.getFieldState("b_lu_harvest_date")
-    if (!b_lu_harvest_date && !example_b_lu_harvest_date && !currentValue && !isDirty) {
-      form.setValue("b_lu_harvest_date", defaultHarvestDate ?? null)
+    const { isDirty } = formGetFieldState("b_lu_harvest_date")
+    if (!b_lu_harvest_date && !example_b_lu_harvest_date && !form_b_lu_harvest_date && !isDirty) {
+      formSetValue("b_lu_harvest_date", defaultHarvestDate ?? null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    form.setValue,
+    form_b_lu_harvest_date,
+    formGetFieldState,
+    formSetValue,
     example_b_lu_harvest_date,
     defaultHarvestDate,
-    form.getFieldState,
-    form.getValues,
     b_lu_harvest_date,
   ])
 
@@ -203,6 +217,9 @@ function useHarvestRemixForm({
 function HarvestFields({
   form,
   className,
+  intent = DEFAULT_INTENT,
+  b_id_harvesting,
+  b_lu,
   b_lu_croprotation,
   b_lu_harvestable,
   harvestParameters,
@@ -218,7 +235,11 @@ function HarvestFields({
     : undefined
   return (
     <FieldGroup className={cn("gap-5", className)}>
-      <input type="hidden" name="intent" value="single_harvest" />
+      <input type="hidden" name="intent" value={intent} />
+      {typeof b_id_harvesting === "string" && (
+        <input type="hidden" name="b_id_harvesting" value={b_id_harvesting} />
+      )}
+      <input type="hidden" name="b_lu" value={b_lu} />
       <Controller
         name="b_lu_harvest_date"
         control={form.control}
@@ -470,13 +491,20 @@ function HarvestFields({
   )
 }
 
+const noopSubscribe = () => () => {}
+function getHostnameSnapshot() {
+  return window.location.hostname
+}
+function getHostnameServerSnapshot() {
+  return ""
+}
+
 export function HarvestFormExplainer() {
-  const [hostname, setHostname] = useState("")
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHostname(window.location.hostname)
-    }
-  }, [])
+  const hostname = useSyncExternalStore(
+    noopSubscribe,
+    getHostnameSnapshot,
+    getHostnameServerSnapshot,
+  )
 
   return (
     <FieldGroup>
@@ -515,7 +543,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.isHarvestUpdate ?? b_lu_harvest_date !== undefined
 
   return (
     <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -556,7 +584,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={handleDeleteHarvest}
+                  onClick={props.onDelete ?? handleDeleteHarvest}
                   disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
                   className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
                 >
@@ -565,16 +593,18 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                       <Spinner />
                     </div>
                   ) : null}
-                  Verwijderen
+                  <span>Verwijderen</span>
                 </Button>
-                <DialogClose asChild>
-                  <Button
-                    variant="outline"
-                    disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
-                  >
-                    Sluiten
-                  </Button>
-                </DialogClose>
+                <DialogClose
+                  render={
+                    <Button
+                      variant="outline"
+                      disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+                    >
+                      Sluiten
+                    </Button>
+                  }
+                />
                 <Button
                   type="submit"
                   form="formHarvest"
@@ -587,9 +617,9 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                       <p>Opslaan...</p>
                     </div>
                   ) : isHarvestUpdate ? (
-                    "Bijwerken"
+                    <span key="update">Bijwerken</span>
                   ) : (
-                    "Toevoegen"
+                    <span key="add">Toevoegen</span>
                   )}
                 </Button>
               </Field>
@@ -612,7 +642,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.isHarvestUpdate ?? b_lu_harvest_date !== undefined
 
   return (
     <div className="space-y-6">
@@ -640,7 +670,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
               <Button
                 type="button"
                 variant="destructive"
-                onClick={handleDeleteHarvest}
+                onClick={props.onDelete ?? handleDeleteHarvest}
                 disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
                 className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
               >
@@ -649,7 +679,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     <Spinner />
                   </div>
                 ) : null}
-                Verwijderen
+                <span>Verwijderen</span>
               </Button>
               <Button
                 type="submit"
@@ -662,9 +692,9 @@ export function HarvestForm(props: HarvestFormDialogProps) {
                     <span>Opslaan...</span>
                   </div>
                 ) : isHarvestUpdate ? (
-                  "Bijwerken"
+                  <span key="update">Bijwerken</span>
                 ) : (
-                  "Toevoegen"
+                  <span key="add">Toevoegen</span>
                 )}
               </Button>
             </div>

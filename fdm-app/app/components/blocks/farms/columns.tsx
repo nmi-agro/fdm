@@ -1,13 +1,15 @@
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { CellContext, ColumnDef } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ArrowUpRightFromSquare, ChevronRight } from "lucide-react"
 import { NavLink, useParams } from "react-router"
-import { cn } from "@/app/lib/utils"
-import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
+import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import { Checkbox } from "~/components/ui/checkbox"
+import { farmTableFeatures } from "./table-features"
 import { type DisplayUser, UserDisplay } from "./user-display"
 
 export interface FarmExtended {
@@ -16,12 +18,14 @@ export interface FarmExtended {
   b_name_farm: string | null
   b_area: number | null
   owners?: DisplayUser[]
+  /** The groups of the organization this farm belongs to. Field rows carry the groups of their farm. */
+  groups?: { b_id_group: string; b_name_group: string }[]
   fields?: FarmExtended[]
   fertilizers: Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">[]
   cultivations: Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">[]
 }
 
-export const columns: ColumnDef<FarmExtended>[] = [
+export const columns: ColumnDef<typeof farmTableFeatures, FarmExtended>[] = [
   {
     id: "Children",
     enableHiding: false,
@@ -81,7 +85,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
   {
     accessorKey: "cultivations",
     enableSorting: true,
-    sortingFn: (rowA, rowB, _columnId) => {
+    sortFn: (rowA, rowB, _columnId) => {
       const cultivationA = rowA.original.cultivations[0]?.b_lu_name || ""
       const cultivationB = rowB.original.cultivations[0]?.b_lu_name || ""
       return cultivationA.localeCompare(cultivationB)
@@ -118,7 +122,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
   {
     accessorKey: "fertilizers",
     enableSorting: true,
-    sortingFn: (rowA, rowB, _columnId) => {
+    sortFn: (rowA, rowB, _columnId) => {
       const fertilizerA = rowA.original.fertilizers[0]?.p_name_nl || ""
       const fertilizerB = rowB.original.fertilizers[0]?.p_name_nl || ""
       return fertilizerA.localeCompare(fertilizerB)
@@ -161,7 +165,57 @@ export const columns: ColumnDef<FarmExtended>[] = [
   },
 ]
 
-function FarmNameCell({ row }: CellContext<FarmExtended, unknown>) {
+/**
+ * Column with a checkbox to select farms, used to assign them to groups in bulk.
+ * Field rows cannot be selected.
+ */
+export const selectColumn: ColumnDef<typeof farmTableFeatures, FarmExtended> = {
+  id: "select",
+  enableSorting: false,
+  enableHiding: false,
+  header: ({ table }) => (
+    <Checkbox
+      checked={table.getIsAllRowsSelected()}
+      indeterminate={table.getIsSomeRowsSelected()}
+      onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+      aria-label="Selecteer alle bedrijven"
+    />
+  ),
+  cell: ({ row }) =>
+    row.original.type === "farm" ? (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label={`Selecteer ${row.original.b_name_farm ?? "bedrijf"}`}
+      />
+    ) : null,
+}
+
+/**
+ * Column with the groups of a farm as neutral badges. Only shown when the organization has groups.
+ */
+export const groupsColumn: ColumnDef<typeof farmTableFeatures, FarmExtended> = {
+  id: "groups",
+  accessorFn: (row) => row.groups?.map((group) => group.b_name_group).join(", ") ?? "",
+  enableSorting: true,
+  header: ({ column }) => <DataTableColumnHeader column={column} title="Groepen" />,
+  filterFn: (row, _columnId, filterValue: string[]) =>
+    !filterValue ||
+    filterValue.length === 0 ||
+    (row.original.groups?.some((group) => filterValue.includes(group.b_id_group)) ?? false),
+  cell: ({ row }) =>
+    row.original.type === "farm" ? (
+      <div className="flex flex-wrap items-center gap-1">
+        {(row.original.groups ?? []).map((group) => (
+          <Badge key={group.b_id_group} variant="secondary">
+            {group.b_name_group}
+          </Badge>
+        ))}
+      </div>
+    ) : null,
+}
+
+function FarmNameCell({ row }: CellContext<typeof farmTableFeatures, FarmExtended, unknown>) {
   const params = useParams()
   const farm = row.original
 

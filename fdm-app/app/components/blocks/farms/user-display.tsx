@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { cn } from "@/app/lib/utils"
+import { cn } from "cn"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import {
   DropdownMenu,
@@ -40,16 +40,19 @@ export function UserDisplay({
     )
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <AvatarGroup>
-          {users.slice(0, TRUNCATE_AFTER).map((user, i) => (
-            <UserAvatar key={`${i}_${user.displayUserName}`} user={user} />
-          ))}
-          {users.length > TRUNCATE_AFTER && (
-            <AvatarGroupCount>+{users.length - TRUNCATE_AFTER}</AvatarGroupCount>
-          )}
-        </AvatarGroup>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        nativeButton={false}
+        render={
+          <AvatarGroup>
+            {users.slice(0, TRUNCATE_AFTER).map((user, i) => (
+              <UserAvatar key={`${i}_${user.displayUserName}`} user={user} />
+            ))}
+            {users.length > TRUNCATE_AFTER && (
+              <AvatarGroupCount>+{users.length - TRUNCATE_AFTER}</AvatarGroupCount>
+            )}
+          </AvatarGroup>
+        }
+      />
       <DropdownMenuContent>
         {users.map((user, i) => (
           <DropdownMenuItem key={`${i}_${user.displayUserName}`}>

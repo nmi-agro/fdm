@@ -1,4 +1,4 @@
-import type { LinksFunction, LoaderFunctionArgs } from "react-router"
+import type { LinksFunction, LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from "react-router"
 import { withAuditContext } from "@nmi-agro/fdm-core"
 import mapLibreStyle from "maplibre-gl/dist/maplibre-gl.css?url"
 import posthog from "posthog-js"
@@ -24,6 +24,7 @@ import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 import styles from "~/tailwind.css?url"
 import type { Route } from "./+types/root"
+import { TooltipProvider } from "./components/ui/tooltip"
 
 export const middleware: Route.MiddlewareFunction[] = [
   async function auditMiddleware({ request }, next) {
@@ -65,6 +66,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       PUBLIC_FDM_NAME: process.env.PUBLIC_FDM_NAME,
       PUBLIC_FDM_DATASETS_URL: process.env.PUBLIC_FDM_DATASETS_URL,
       PUBLIC_FDM_API_URL: process.env.PUBLIC_FDM_API_URL,
+      PUBLIC_FDM_MCP_URL: process.env.PUBLIC_FDM_MCP_URL,
       PUBLIC_MAP_PROVIDER: process.env.PUBLIC_MAP_PROVIDER,
       PUBLIC_MAPTILER_API_KEY: process.env.PUBLIC_MAPTILER_API_KEY,
       PUBLIC_SENTRY_DSN: process.env.PUBLIC_SENTRY_DSN,
@@ -91,34 +93,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 }
 
+/**
+ * Always reloads the root loader after a form or fetcher submission.
+ *
+ * React Router skips revalidation when an action returns a 4xx/5xx status, but the toast that
+ * `handleActionError` sets for such a response is only read here, by the root loader. Without
+ * this, a failed action would show no feedback at all until the next navigation.
+ */
+export function shouldRevalidate({
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs): boolean {
+  if (formMethod && formMethod.toUpperCase() !== "GET") return true
+  return defaultShouldRevalidate
+}
+
 export function Layout() {
   const loaderData = useLoaderData<typeof loader>()
   const toast = loaderData?.toast
   const runtimeEnv = loaderData?.runtimeEnv // Get runtimeEnv from loader data
   const location = useLocation()
-
-  // Initialize PostHog
-  useEffect(() => {
-    const posthogConfig = clientConfig.analytics.posthog
-    if (posthogConfig) {
-      try {
-        posthog.init(posthogConfig.key, {
-          api_host: "/ingest",
-          ui_host: posthogConfig.host,
-          person_profiles: "always",
-          bootstrap: {
-            featureFlags: {
-              gerrit: false,
-              mineralization: false,
-            },
-          },
-          loaded: () => {},
-        })
-      } catch (error) {
-        console.error("Failed to initialize PostHog:", error)
-      }
-    }
-  }, [])
 
   // Capture pageviews if PostHog is configured
   useEffect(() => {
@@ -208,16 +202,18 @@ export function Layout() {
         <Links />
       </head>
       <body>
-        <Outlet />
-        <NavigationProgress />
-        <Banner />
-        <Toaster />
-        <ErrorBoundary error={null} params={{}} />
-        <ScrollRestoration
-          getKey={(location) => {
-            return location.pathname
-          }}
-        />
+        <TooltipProvider>
+          <Outlet />
+          <NavigationProgress />
+          <Banner />
+          <Toaster />
+          <ErrorBoundary error={null} params={{}} />
+          <ScrollRestoration
+            getKey={(location) => {
+              return location.pathname
+            }}
+          />
+        </TooltipProvider>
         {/* Inject runtime environment variables */}
         {runtimeEnv && (
           <script

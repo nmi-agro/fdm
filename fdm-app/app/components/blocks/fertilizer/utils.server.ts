@@ -1,4 +1,8 @@
-import { type Fertilizer, getFertilizerParametersDescription } from "@nmi-agro/fdm-core"
+import {
+  type Fertilizer,
+  getFertilizerParametersDescription,
+  getFertilizerTypesByRvoCode,
+} from "@nmi-agro/fdm-core"
 
 /**
  * Retrieves RVO label and type mappings used across fertilizer forms and summaries.
@@ -18,12 +22,7 @@ export async function getRvoMappings(fertilizers: Partial<Fertilizer>[] = []) {
     p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
   )
 
-  const rvoToType: Record<string, string> = {}
-  for (const f of fertilizers) {
-    if (f.p_type_rvo && f.p_type) {
-      rvoToType[f.p_type_rvo] = f.p_type
-    }
-  }
+  const rvoToType = getFertilizerTypesByRvoCode(fertilizers)
 
   return { rvoLabels, rvoToType }
 }

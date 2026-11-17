@@ -1,12 +1,31 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
-import { TriangleAlert } from "lucide-react"
-import { useId, useMemo } from "react"
+import { cn } from "cn"
+import { ChevronUp, TriangleAlert } from "lucide-react"
+import { type ReactNode, useId, useMemo, useState } from "react"
 import { Bar, BarChart, type BarShapeProps, Rectangle, XAxis, YAxis } from "recharts"
-import { cn } from "@/app/lib/utils"
+import type { AdviceProgressStatus } from "~/components/blocks/nutrient-advice/progress-bar"
+import { SAMPLING_POINT_COLOR } from "~/components/blocks/soil/soil-sampling-colors"
+import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
 import { Spinner } from "~/components/ui/spinner"
+import { useIsMobile } from "~/hooks/use-mobile"
+import { ELEVATION_LEGEND_GRADIENT } from "./atlas-elevation-colors"
+import {
+  formatKgPerHa,
+  NUTRIENT_ADVICE_COPY,
+  getNutrientAdvicePercentageGradient,
+  NUTRIENT_ADVICE_NONE_COLOR,
+  NUTRIENT_ADVICE_PERCENTAGE_MAX,
+  NUTRIENT_ADVICE_REMAINING_RAMP,
+  NUTRIENT_ADVICE_SEQUENTIAL_RAMP,
+  NUTRIENT_ADVICE_STATUS_COLORS,
+  NUTRIENT_ADVICE_ZERO_COLOR,
+  type NutrientAdviceClass,
+  type NutrientAdviceMode,
+  type NutrientAdviceScale,
+} from "./atlas-nutrient-advice"
 import {
   GRADIENT_DEFINITIONS,
   GRADIENT_SHADED_SOIL_PARAMETERS,
@@ -14,6 +33,7 @@ import {
   getShadingParameterMapper,
   SHADED_SOIL_TYPES,
   type ShadedSoilParameters,
+  SOIL_SAMPLING_COPY,
   transformGradientStops,
 } from "./atlas-soil-analysis"
 
@@ -74,7 +94,7 @@ function ScoreLegendBar({
  */
 export function ScoreLegend({ label, showSelectedFieldSwatch }: ScoreLegendProps) {
   return (
-    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+    <Card className="pointer-events-none max-w-[200px] gap-0 p-2 text-xs shadow-sm">
       {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
       <div className="mb-5 flex h-2.5 w-full gap-px px-1.5">
         <ScoreLegendBar size={0} marker={0} color="#ef4444" />
@@ -101,7 +121,7 @@ export function MeasureCountLegend({
   showSelectedFieldSwatch?: boolean
 }) {
   return (
-    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+    <Card className="pointer-events-none max-w-[200px] gap-0 p-2 text-xs shadow-sm">
       <p className="text-foreground mb-1.5 font-medium">Maatregelen</p>
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
@@ -143,7 +163,7 @@ export function ElevationLegend({
 }: ElevationLegendProps) {
   return (
     <div className="w-40">
-      <Card className="shadow-xs">
+      <Card className="py-0 shadow-xs">
         <CardContent className="p-3">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -169,11 +189,7 @@ export function ElevationLegend({
               <div className="border-border relative flex h-4 w-full overflow-hidden rounded border">
                 <div
                   className="absolute inset-0 h-full w-full"
-                  style={{
-                    // BrewerSpectral11 Reversed (Blue -> Red)
-                    background:
-                      "linear-gradient(to right, #5e4fa2, #3288bd, #66c2a5, #abdda4, #e6f598, #ffffbf, #fee08b, #fdae61, #f46d43, #d53e4f, #9e0142)",
-                  }}
+                  style={{ background: ELEVATION_LEGEND_GRADIENT }}
                 />
               </div>
               <div className="text-muted-foreground flex justify-between text-xs font-medium tabular-nums">
@@ -198,6 +214,8 @@ interface SoilAnalysisLegendProps {
   soilParametersDescriptions: SoilParameterDescription
   min?: number
   max?: number
+  /** Adds the sampling zones and points to the legend. */
+  showSampling?: boolean
 }
 
 export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
@@ -227,7 +245,7 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
   const title = parameterDescription ? `${parameterDescription.name}${unitDisplay}` : undefined
 
   return (
-    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4 shadow-xs">
+    <Card className="min-h-0 flex-initial gap-0 space-y-2 overflow-y-auto p-4 shadow-xs">
       <CardHeader className="p-0">
         <CardTitle className="text-muted-foreground text-center text-xs">{title}</CardTitle>
       </CardHeader>
@@ -243,6 +261,25 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
             <TriangleAlert className="h-4 w-4 text-orange-500" />
             Geen data op hele bedrijf
           </p>
+        )}
+        {props.showSampling && (
+          <ul className="text-muted-foreground mt-2 space-y-1 border-t pt-2 text-xs">
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-4 rounded-[2px] border border-dashed border-white bg-slate-500 ring-1 ring-slate-300"
+                aria-hidden
+              />
+              {SOIL_SAMPLING_COPY.legendZone}
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block size-2.5 rounded-full ring-2 ring-white"
+                style={{ backgroundColor: SAMPLING_POINT_COLOR }}
+                aria-hidden
+              />
+              {SOIL_SAMPLING_COPY.legendPoint}
+            </li>
+          </ul>
         )}
       </CardContent>
     </Card>
@@ -352,5 +389,344 @@ function GradientSoilAnalysisLegend(
         />
       </BarChart>
     </ChartContainer>
+  )
+}
+
+/** Colour swatch of the Bemestingsadvies layer, shared by the legend and the tooltip. */
+export function NutrientAdviceSwatch({ color, className }: { color: string; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("inline-block size-3.5 shrink-0 rounded-sm", className)}
+      style={{ backgroundColor: color }}
+    />
+  )
+}
+
+/** Swatch per status class, shared by the legend and the tooltip. */
+export const NUTRIENT_ADVICE_STATUS_SWATCHES = {
+  under: { color: NUTRIENT_ADVICE_STATUS_COLORS.under },
+  "on-target": { color: NUTRIENT_ADVICE_STATUS_COLORS["on-target"] },
+  over: { color: NUTRIENT_ADVICE_STATUS_COLORS.over },
+} as const
+
+interface NutrientAdviceLegendProps {
+  /** Display mode of the layer. */
+  mode: NutrientAdviceMode
+  /** Name of the selected nutrient, e.g. "Stikstof, werkzaam". */
+  nutrientName: string
+  /** Unit of the selected nutrient, always kg/ha (e.g. "kg N/ha"). */
+  unit: string
+  /** Farm-wide scale, or `null` while the advice is still loading. */
+  scale: NutrientAdviceScale | null
+  /** Number of fields per shading class, from `countNutrientAdviceClasses`. */
+  counts: Record<NutrientAdviceClass, number>
+  /** Number of fields on the map. */
+  fieldCount: number
+  /** How many fields' advice has arrived (`settled`) out of `total`; shown while streaming. */
+  progress: { settled: number; total: number }
+  /** Reason shown when no field has advice (e.g. the first error message), if known. */
+  noAdviceReason?: string
+  /** `true` when loading the advice failed (network/transport error), not "no advice". */
+  loadFailed?: boolean
+  /** Called by the retry button shown when `loadFailed` is `true`. */
+  onRetry?: () => void
+  /** Disables the retry button while a retry is running. */
+  isRetrying?: boolean
+  /** `true` for nutrients that are never harmful in excess (EOC): no "over" swatch. */
+  excessExempt?: boolean
+}
+
+/** One legend row: swatch, label and the number of fields in that class. */
+function NutrientAdviceLegendRow({
+  swatch,
+  label,
+  count,
+}: {
+  swatch: ReactNode
+  label: string
+  count: number
+}) {
+  return (
+    <li className={cn("flex items-center gap-2 text-xs", count === 0 && "text-muted-foreground")}>
+      {swatch}
+      <span className="grow">{label}</span>
+      <span className="text-muted-foreground tabular-nums">
+        {count}
+        <span className="sr-only"> {count === 1 ? "perceel" : "percelen"}</span>
+      </span>
+    </li>
+  )
+}
+
+/**
+ * Colour bar of a continuous scale with its values underneath: lowest and highest, plus an optional
+ * middle value centred under the bar.
+ */
+function NutrientAdviceLegendRamp({
+  background,
+  from,
+  middle,
+  to,
+  label,
+}: {
+  background: string
+  from: string
+  middle?: string
+  to: string
+  label: string
+}) {
+  return (
+    <div className="space-y-1">
+      <div
+        className="h-3 w-full rounded-sm"
+        style={{ background }}
+        role="img"
+        aria-label={`${label}: van ${from} tot ${to}`}
+      />
+      <div className="text-muted-foreground flex justify-between text-xs tabular-nums">
+        <span>{from}</span>
+        {middle && <span>{middle}</span>}
+        <span>{to}</span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Legend of the Atlas "Bemestingsadvies" layer.
+ *
+ * - "Nog te geven": a purple bar from 0 (nothing left, also for a surplus) to the largest amount
+ *   still to apply on the farm.
+ * - "% van advies": the continuous red–green–orange bar on the percentage of the advice, plus the
+ *   number of fields that are under (< 90 %), on (90–110 %) and over (> 110 %) the advice. EOC is
+ *   never "over", so its bar ends at 100 % and it has no orange row.
+ * - "Advies": a blue bar from the lowest to the highest advice on the farm.
+ *
+ * Rows for "no need" (advice 0) and "no advice" appear only when such fields exist. While loading
+ * the legend shows progress instead of an empty key; when no field has advice it says so for the
+ * whole farm. Every colour has a text label next to it (DESIGN.md: colour is never the only signal).
+ */
+export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
+  const {
+    mode,
+    nutrientName,
+    unit,
+    scale,
+    counts,
+    fieldCount,
+    progress,
+    noAdviceReason,
+    loadFailed,
+    onRetry,
+    isRetrying,
+    excessExempt = false,
+  } = props
+
+  // On a phone the key starts collapsed to its title, so it does not cover half of the map.
+  const isMobile = useIsMobile()
+  const [expanded, setExpanded] = useState(false)
+  const collapsed = isMobile && !expanded
+
+  const title = (
+    <>
+      <span className="block text-sm leading-tight font-medium">{nutrientName}</span>
+      <span className="text-muted-foreground block text-xs">
+        {unit} · {NUTRIENT_ADVICE_COPY.modes[mode]}
+      </span>
+    </>
+  )
+  // Announced to screen readers when the nutrient or mode changes. Only collapsible states get the
+  // toggle, so `aria-expanded` always matches what is shown.
+  const renderHeader = (collapsible: boolean) => (
+    <CardHeader className="space-y-0.5 p-0" aria-live="polite">
+      {collapsible ? (
+        <button
+          type="button"
+          // The legend wrapper ignores pointer events so it never blocks the map.
+          className="pointer-events-auto -m-1 flex min-h-11 items-center justify-between gap-2 rounded-sm p-1 text-left"
+          aria-expanded={!collapsed}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <span className="space-y-0.5">{title}</span>
+          <span className="sr-only">
+            {collapsed ? NUTRIENT_ADVICE_COPY.showLegend : NUTRIENT_ADVICE_COPY.hideLegend}
+          </span>
+          <ChevronUp
+            aria-hidden="true"
+            className={cn(
+              "text-muted-foreground size-4 shrink-0 transition-transform motion-reduce:transition-none",
+              collapsed && "rotate-180",
+            )}
+          />
+        </button>
+      ) : (
+        title
+      )}
+    </CardHeader>
+  )
+  const header = renderHeader(isMobile)
+  // Failure and "no advice" messages stay visible (the retry button must stay reachable), so
+  // their header has no toggle.
+  const staticHeader = renderHeader(false)
+  const cardClassName =
+    "min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial gap-0 space-y-3 overflow-y-auto p-3 shadow-xs md:p-4"
+
+  // A failed load gets its own message and retry button instead of a legend that would suggest
+  // the fields have no advice.
+  if (loadFailed) {
+    return (
+      <Card className={cardClassName}>
+        {staticHeader}
+        <CardContent className="space-y-2 p-0">
+          <p className="flex items-start gap-2 text-xs" role="alert">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-orange-500" />
+            {NUTRIENT_ADVICE_COPY.loadFailed}
+          </p>
+          {onRetry && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              // The legend wrapper ignores pointer events so it never blocks the map.
+              className="pointer-events-auto w-full"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying && <Spinner className="size-3" />}
+              <span>{NUTRIENT_ADVICE_COPY.retry}</span>
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (scale === null) {
+    if (collapsed) return <Card className={cardClassName}>{header}</Card>
+    return (
+      <Card className={cardClassName}>
+        {header}
+        <CardContent className="p-0">
+          <p className="flex items-center gap-2 text-xs" role="status">
+            <Spinner className="size-3" />
+            {fieldCount > 0
+              ? NUTRIENT_ADVICE_COPY.loadingFields(fieldCount)
+              : NUTRIENT_ADVICE_COPY.loading}
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const complete = progress.settled >= progress.total
+  // Progress while the advice streams in field by field; also shown when collapsed on a phone.
+  const progressLine = complete ? null : (
+    <p className="text-muted-foreground flex items-center gap-2 text-xs" role="status">
+      <Spinner className="size-3" />
+      {NUTRIENT_ADVICE_COPY.loadingProgress(progress.settled, progress.total)}
+    </p>
+  )
+
+  if (complete && fieldCount > 0 && counts.none === fieldCount) {
+    return (
+      <Card className={cardClassName}>
+        {staticHeader}
+        <CardContent className="space-y-1 p-0" role="alert">
+          <p className="flex items-start gap-2 text-xs">
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-orange-500" />
+            {NUTRIENT_ADVICE_COPY.noAdviceFarm}
+          </p>
+          {noAdviceReason && <p className="text-muted-foreground text-xs">{noAdviceReason}</p>}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (collapsed) {
+    return (
+      <Card className={cardClassName}>
+        {header}
+        {progressLine}
+      </Card>
+    )
+  }
+
+  const swatch = (status: AdviceProgressStatus) => (
+    <NutrientAdviceSwatch {...NUTRIENT_ADVICE_STATUS_SWATCHES[status]} />
+  )
+
+  const percentageMax = excessExempt ? 100 : NUTRIENT_ADVICE_PERCENTAGE_MAX
+  const overRow = excessExempt ? null : (
+    <NutrientAdviceLegendRow
+      swatch={swatch("over")}
+      label={NUTRIENT_ADVICE_COPY.legendOver}
+      count={counts.over}
+    />
+  )
+
+  return (
+    <Card className={cardClassName}>
+      {header}
+      <CardContent className="space-y-2 p-0">
+        {mode === "advice" ? (
+          <NutrientAdviceLegendRamp
+            background={`linear-gradient(to right, ${NUTRIENT_ADVICE_SEQUENTIAL_RAMP.join(", ")})`}
+            from={`${formatKgPerHa(scale.minAdvice)} ${unit}`}
+            to={`${formatKgPerHa(scale.maxAdvice)} ${unit}`}
+            label={NUTRIENT_ADVICE_COPY.legendAdvice}
+          />
+        ) : mode === "remaining" ? (
+          <NutrientAdviceLegendRamp
+            background={`linear-gradient(to right, ${NUTRIENT_ADVICE_REMAINING_RAMP.join(", ")})`}
+            from={`0 ${unit}`}
+            to={`${formatKgPerHa(scale.maxRemaining)} ${unit}`}
+            label={NUTRIENT_ADVICE_COPY.legendRemaining}
+          />
+        ) : (
+          <NutrientAdviceLegendRamp
+            background={getNutrientAdvicePercentageGradient(percentageMax)}
+            from="0%"
+            middle={excessExempt ? undefined : "100%"}
+            to={`≥ ${percentageMax}%`}
+            label={NUTRIENT_ADVICE_COPY.legendPercentage}
+          />
+        )}
+        <ul className="space-y-1">
+          {mode === "percentage" && (
+            <>
+              <NutrientAdviceLegendRow
+                swatch={swatch("under")}
+                label={NUTRIENT_ADVICE_COPY.legendUnder}
+                count={counts.under}
+              />
+              <NutrientAdviceLegendRow
+                swatch={swatch("on-target")}
+                label={NUTRIENT_ADVICE_COPY.legendMet}
+                count={counts["on-target"]}
+              />
+              {overRow}
+            </>
+          )}
+          {counts.zero > 0 && (
+            <NutrientAdviceLegendRow
+              swatch={
+                <NutrientAdviceSwatch color={NUTRIENT_ADVICE_ZERO_COLOR} className="border" />
+              }
+              label={NUTRIENT_ADVICE_COPY.noNeed}
+              count={counts.zero}
+            />
+          )}
+          {counts.none > 0 && (
+            <NutrientAdviceLegendRow
+              swatch={<NutrientAdviceSwatch color={NUTRIENT_ADVICE_NONE_COLOR} />}
+              label={NUTRIENT_ADVICE_COPY.noAdvice}
+              count={counts.none}
+            />
+          )}
+        </ul>
+        {progressLine}
+      </CardContent>
+    </Card>
   )
 }

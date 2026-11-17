@@ -4,7 +4,7 @@ import {
   getRvoCredentials,
   parseRvoState,
   rvoStateCookie,
-  rvoTokenCookie,
+  serializeRvoToken,
 } from "~/integrations/rvo.server"
 import { exchangeToken } from "~/lib/rvo.server"
 
@@ -14,14 +14,13 @@ import { exchangeToken } from "~/lib/rvo.server"
  * RVO redirects here after the user completes eHerkenning login. This route:
  * 1. Verifies the CSRF state parameter against the signed cookie
  * 2. Exchanges the authorization code for an access token
- * 3. Stores the access token in a short-lived signed cookie
+ * 3. Stores the access token and the request mode (own farm or machtiging) in a short-lived signed cookie
  * 4. Redirects to the originating RVO page (decoded from the state payload)
  *
  * The originating page reads the token cookie, calls rvoClient.setAccessToken(),
  * and proceeds to fetch the user's RVO fields.
  */
-export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url)
+export async function loader({ request, url }: LoaderFunctionArgs) {
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
 
@@ -31,8 +30,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     })
   }
 
-  // Verify CSRF state and decode returnUrl + farmId
-  const { returnUrl } = await parseRvoState(request, state)
+  // Verify CSRF state and decode returnUrl + farmId + request mode
+  const { returnUrl, mode } = await parseRvoState(request, state)
 
   const rvoCredentials = getRvoCredentials()
   if (!rvoCredentials) {
@@ -55,8 +54,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw e
   }
 
-  // Store access token in a short-lived signed cookie; clear the state cookie
-  const tokenCookieHeader = await rvoTokenCookie.serialize(accessToken)
+  // Store access token and request mode in a short-lived signed cookie; clear the state cookie
+  const tokenCookieHeader = await serializeRvoToken(accessToken, mode)
   const clearedStateCookieHeader = await rvoStateCookie.serialize("", {
     maxAge: 0,
   })

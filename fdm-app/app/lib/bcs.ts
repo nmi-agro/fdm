@@ -1,38 +1,17 @@
+import {
+  BCS_VISUAL_KEYS,
+  type BcsAnalysisLike,
+  type BcsVisualKey,
+  isBcsAnalysis,
+} from "@nmi-agro/fdm-calculator/browser"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 
-const BCS_VISUAL_KEYS = [
-  "a_ss_bcs",
-  "a_sc_bcs",
-  "a_rd_bcs",
-  "a_ew_bcs",
-  "a_cc_bcs",
-  "a_gs_bcs",
-  "a_p_bcs",
-  "a_c_bcs",
-  "a_rt_bcs",
-] as const
+// The rule for a BCS assessment is shared with the REST API.
+export { BCS_VISUAL_KEYS, isBcsAnalysis }
+export type { BcsAnalysisLike, BcsVisualKey }
 
-export { BCS_VISUAL_KEYS }
-
-export type BcsVisualKey = (typeof BCS_VISUAL_KEYS)[number]
 export type BcsLabKey = "a_ph_bcs" | "a_som_bcs"
 export type BcsIndicatorKey = BcsVisualKey | BcsLabKey
-
-export interface BcsAnalysisLike {
-  a_ss_bcs?: number | null
-  a_sc_bcs?: number | null
-  a_rd_bcs?: number | null
-  a_ew_bcs?: number | null
-  a_cc_bcs?: number | null
-  a_gs_bcs?: number | null
-  a_p_bcs?: number | null
-  a_c_bcs?: number | null
-  a_rt_bcs?: number | null
-}
-
-export function isBcsAnalysis(analysis: BcsAnalysisLike): boolean {
-  return BCS_VISUAL_KEYS.some((key) => analysis[key] != null)
-}
 
 export interface WizardImage {
   tempId: string
