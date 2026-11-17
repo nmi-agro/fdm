@@ -648,6 +648,11 @@ function CatalogueResults({
               href={getMeasureCataloguePath(b_id_farm, calendar, row.m_id)}
               returnState={returnState}
               counts={countsByMeasure ? (countsByMeasure[row.m_id] ?? NO_COUNTS) : null}
+              absenceConfirmed={
+                statusData !== null &&
+                statusData.recommendationsAvailable &&
+                statusData.applicabilityAvailable
+              }
               statusPending={loaded === null}
             />
           ))}
@@ -667,12 +672,15 @@ function CatalogueListRow({
   href,
   returnState,
   counts,
+  absenceConfirmed,
   statusPending,
 }: {
   row: CatalogueRow
   href: string
   returnState: CatalogueReturnState
   counts: StatusCounts | null
+  /** Whether recommendations and applicability both loaded, so "no status" really means none */
+  absenceConfirmed: boolean
   statusPending: boolean
 }) {
   const isInactive = row.m_status === "inactive"
@@ -731,11 +739,16 @@ function CatalogueListRow({
           {statusPending ? (
             <Skeleton className="h-3.5 w-32" aria-hidden="true" />
           ) : counts && statusKeys.length === 0 ? (
-            // Loaded, but on no field: say so instead of leaving an empty column
-            <span className="text-muted-foreground">
-              <span aria-hidden="true">—</span>
-              <span className="sr-only">Niet op uw percelen</span>
-            </span>
+            absenceConfirmed ? (
+              // Loaded, but on no field: say so instead of leaving an empty column
+              <span className="text-muted-foreground">
+                <span aria-hidden="true">—</span>
+                <span className="sr-only">Niet op uw percelen</span>
+              </span>
+            ) : (
+              // Part of the status is missing (see the notice above), so absence is not confirmed
+              <span className="text-muted-foreground">Status onbekend</span>
+            )
           ) : (
             statusKeys.map((key) => (
               <MeasureStatusLabel key={key} status={key} count={counts?.[key]} />

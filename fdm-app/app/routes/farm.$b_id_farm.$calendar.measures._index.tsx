@@ -13,7 +13,7 @@ import {
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import { BookOpen, ClipboardList, Sparkles } from "lucide-react"
+import { AlertTriangle, BookOpen, ClipboardList, RefreshCw, Sparkles } from "lucide-react"
 import { lazy, Suspense, useCallback, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
@@ -26,6 +26,7 @@ import {
   useFetcher,
   useLoaderData,
   useParams,
+  useRevalidator,
   useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
@@ -44,6 +45,7 @@ import {
 import { MeasureDetailLink } from "~/components/blocks/measures/measure-detail-link"
 import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import {
@@ -203,6 +205,41 @@ function GroupedRecommendations({
         </button>
       )}
     </div>
+  )
+}
+
+/**
+ * Shown in place of "Aanbevolen maatregelen" when the advice could not be loaded for any field,
+ * so the missing card does not read as "nothing to recommend". "Opnieuw proberen" reruns the
+ * loader, like the status notice in the measures catalogue.
+ */
+function RecommendationsUnavailable() {
+  const revalidator = useRevalidator()
+  const isRetrying = revalidator.state === "loading"
+  return (
+    <Alert>
+      <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+      <AlertTitle>Aanbevolen maatregelen niet beschikbaar</AlertTitle>
+      <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          De aanbevelingen konden niet worden geladen. Een maatregel zonder aanbeveling is dus niet
+          per se ongeschikt.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5 self-start sm:self-auto"
+          disabled={isRetrying}
+          onClick={() => {
+            void revalidator.revalidate()
+          }}
+        >
+          {isRetrying ? <Spinner /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+          <span>Opnieuw proberen</span>
+        </Button>
+      </AlertDescription>
+    </Alert>
   )
 }
 
@@ -935,6 +972,11 @@ export default function MeasuresFarmIndex() {
                 {(recData: FarmRecommendationsData) => {
                   if (recData && recData !== recommendationsData && !recommendationsData) {
                     setTimeout(() => setRecommendationsData(recData), 0)
+                  }
+                  // No advice for any eligible field: say so instead of hiding the section,
+                  // which would read as "nothing to recommend"
+                  if (recData && !recData.adviceAvailable && fieldList.length > 0) {
+                    return <RecommendationsUnavailable />
                   }
                   return (
                     recData?.steps &&
