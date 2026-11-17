@@ -1,4 +1,5 @@
 import type { GwlClasses, SoilTypes } from "@nmi-agro/fdm-core"
+import type { Bln3ExclusionReason } from "./exclusion"
 
 /**
  * A single cultivation entry for the BLN3 score request.
@@ -24,17 +25,19 @@ export type Bln3Measure = {
 
 /**
  * Input parameters for the BLN3 score calculation, assembled from the FDM
- * database. Only `a_lat` and `a_lon` are required by the NMI API; all other
- * fields are optional and improve calculation quality when provided.
+ * database. `a_lat`, `a_lon` and `b_year` are required; all other fields are
+ * optional and improve calculation quality when provided.
  * Only the fields in `BLN3_SCORE_FIELDS` (`payload.ts`) are sent to the API;
  * fields marked `@internal` are used locally only.
  */
 export type Bln3ScoreCollectedInputs = {
-  // ── Location (required) ──────────────────────────────────────────────────
+  // ── Required ─────────────────────────────────────────────────────────────
   /** Latitude of the field centroid (WGS84; EPSG:4326) */
   a_lat: number
   /** Longitude of the field centroid (WGS84; EPSG:4326) */
   a_lon: number
+  /** Calendar year the score is calculated for */
+  b_year: number
 
   // ── Cultivation history ──────────────────────────────────────────────────
   /** Crop cultivations on the field (most recent first) */
@@ -53,6 +56,8 @@ export type Bln3ScoreCollectedInputs = {
   b_lu_catalogue?: string
   /** Flag indicating field is excluded from BLN3 calculations. @internal Not sent to the NMI API. */
   isExcluded?: boolean
+  /** Why the field is excluded; set together with `isExcluded`. @internal Not sent to the NMI API. */
+  exclusionReason?: Bln3ExclusionReason
 
   // ── Soil analysis ────────────────────────────────────────────────────────
   /** Calcium occupation of the CEC (%) */
@@ -232,6 +237,8 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
   b_lu_catalogue?: string
   /** Flag indicating field is excluded from BLN3 calculations. @internal Not sent to the NMI API. */
   isExcluded?: boolean
+  /** Why the field is excluded; set together with `isExcluded`. @internal Not sent to the NMI API. */
+  exclusionReason?: Bln3ExclusionReason
 
   // Groundwater / soil potential estimates (optional)
   b_gwl_glg?: number

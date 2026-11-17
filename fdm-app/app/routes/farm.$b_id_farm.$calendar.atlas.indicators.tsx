@@ -92,7 +92,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
 
         const isBufferstrip = field.b_bufferstrip === true || fs?.isBufferstrip === true
-        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
+        const hasNoMainCultivation = !isBufferstrip && fs?.exclusionReason === "no_main_cultivation"
+        const isNature =
+          !hasNoMainCultivation &&
+          (fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true))
 
         return {
           type: "Feature" as const,
@@ -103,7 +106,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_bufferstrip: isBufferstrip,
             isBufferstrip,
             isNature,
-            isExcluded: isBufferstrip || isNature,
+            hasNoMainCultivation,
+            isExcluded: isBufferstrip || isNature || hasNoMainCultivation,
             avgScore: computeFieldAvgScore(fs),
             ...aggProps,
             ...indicatorProps,

@@ -44,7 +44,7 @@ const fieldIndicatorsRoute = createRoute({
   "x-badges": [NEW_BADGE],
   summary: "Get indicator scores of a field",
   description:
-    "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips and nature fields return `is_excluded: true` with empty arrays. Counts against the `nmi` rate limit.",
+    "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips, nature fields and fields without a main cultivation in the year return `is_excluded: true` with their `exclusion_reason` and empty arrays. Counts against the `nmi` rate limit.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: { params: IndicatorFieldParamsSchema, query: IndicatorYearQuerySchema },
   responses: {

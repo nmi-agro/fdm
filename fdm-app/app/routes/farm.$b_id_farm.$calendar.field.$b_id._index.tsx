@@ -751,6 +751,11 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         })
 
         if (!result.score) {
+          if (result.inputs.exclusionReason === "no_main_cultivation") {
+            return buildEmptyResult(
+              "Dit perceel heeft dit jaar geen hoofdteelt en is uitgesloten van BLN3.",
+            )
+          }
           if (result.inputs.isExcluded) {
             return buildEmptyResult(
               "Dit perceel is een bufferstrook of natuurperceel en is uitgesloten van BLN3.",

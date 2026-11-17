@@ -57,6 +57,7 @@ describe("GET /fields/{b_id}/indicators", () => {
       b_id: "field-1",
       year: 2026,
       is_excluded: false,
+      exclusion_reason: null,
       score: { indicators: [indicator], aggregations: [{ aggregation_id: "S_BLN", score: 0.7 }] },
     })
     const res = await makeApp({ getFieldIndicators }).request(url, { headers })
@@ -65,6 +66,7 @@ describe("GET /fields/{b_id}/indicators", () => {
       b_id: "field-1",
       year: 2026,
       is_excluded: false,
+      exclusion_reason: null,
       indicators: [indicator],
       aggregations: [{ aggregation_id: "S_BLN", score: 0.7 }],
     })
@@ -77,14 +79,26 @@ describe("GET /fields/{b_id}/indicators", () => {
     )
   })
 
-  it("returns an excluded field as 200 with empty arrays", async () => {
-    const getFieldIndicators = vi
-      .fn()
-      .mockResolvedValue({ b_id: "field-1", year: 2026, is_excluded: true, score: null })
-    const res = await makeApp({ getFieldIndicators }).request(url, { headers })
-    expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ is_excluded: true, indicators: [], aggregations: [] })
-  })
+  it.each(["bufferstrip", "nature", "no_main_cultivation"])(
+    "returns a field excluded for '%s' as 200 with empty arrays",
+    async (exclusion_reason) => {
+      const getFieldIndicators = vi.fn().mockResolvedValue({
+        b_id: "field-1",
+        year: 2026,
+        is_excluded: true,
+        exclusion_reason,
+        score: null,
+      })
+      const res = await makeApp({ getFieldIndicators }).request(url, { headers })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({
+        is_excluded: true,
+        exclusion_reason,
+        indicators: [],
+        aggregations: [],
+      })
+    },
+  )
 
   it.each(["", "?year=26", "?year=abcd", "?year=20266"])(
     "rejects year query '%s' with 400",
@@ -217,15 +231,20 @@ describe("GET /fields/{b_id}/measures/catalogue", () => {
   }
 
   it("returns options with metadata, applicability and recommendation", async () => {
-    const getFieldMeasureOptions = vi
-      .fn()
-      .mockResolvedValue({ b_id: "field-1", year: 2026, is_excluded: false, data: [option] })
+    const getFieldMeasureOptions = vi.fn().mockResolvedValue({
+      b_id: "field-1",
+      year: 2026,
+      is_excluded: false,
+      exclusion_reason: null,
+      data: [option],
+    })
     const res = await makeApp({ getFieldMeasureOptions }).request(url, { headers })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       b_id: "field-1",
       year: 2026,
       is_excluded: false,
+      exclusion_reason: null,
       data: [option],
     })
   })
@@ -241,9 +260,13 @@ describe("GET /fields/{b_id}/measures/catalogue", () => {
       conflicts_with_active: ["bln_BM1"],
       active_measures: ["inst-1"],
     }
-    const getFieldMeasureOptions = vi
-      .fn()
-      .mockResolvedValue({ b_id: "field-1", year: 2026, is_excluded: false, data: [blocked] })
+    const getFieldMeasureOptions = vi.fn().mockResolvedValue({
+      b_id: "field-1",
+      year: 2026,
+      is_excluded: false,
+      exclusion_reason: null,
+      data: [blocked],
+    })
     const res = await makeApp({ getFieldMeasureOptions }).request(url, { headers })
     const body = await res.json()
     expect(body.data[0]).toMatchObject({
@@ -254,11 +277,19 @@ describe("GET /fields/{b_id}/measures/catalogue", () => {
   })
 
   it("returns excluded fields with empty data", async () => {
-    const getFieldMeasureOptions = vi
-      .fn()
-      .mockResolvedValue({ b_id: "field-1", year: 2026, is_excluded: true, data: [] })
+    const getFieldMeasureOptions = vi.fn().mockResolvedValue({
+      b_id: "field-1",
+      year: 2026,
+      is_excluded: true,
+      exclusion_reason: "no_main_cultivation",
+      data: [],
+    })
     const res = await makeApp({ getFieldMeasureOptions }).request(url, { headers })
-    expect(await res.json()).toMatchObject({ is_excluded: true, data: [] })
+    expect(await res.json()).toMatchObject({
+      is_excluded: true,
+      exclusion_reason: "no_main_cultivation",
+      data: [],
+    })
   })
 
   it("maps errors: 400, 404, 503", async () => {

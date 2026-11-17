@@ -21,10 +21,10 @@ import { pickBln3Payload } from "./payload"
  *
  * Calls `POST /maatwerk/bln3/score/field` with the provided field data and
  * returns per-indicator status, target, index, impact, and score values.
- * If the field is excluded (buffer strip or nature crop rotation), returns
- * `null` immediately without calling the API.
+ * If the field is excluded (buffer strip, nature crop rotation or no main
+ * cultivation in `b_year`), returns `null` immediately without calling the API.
  *
- * @param inputs - Field data and NMI API key. Only `a_lat`, `a_lon`, and
+ * @param inputs - Field data and NMI API key. Only `a_lat`, `a_lon`, `b_year` and
  *   `nmiApiKey` are required; all other fields improve calculation quality.
  * @returns A promise resolving to a `Bln3Score` with `indicators` and
  *   optional `aggregations`, or `null` if excluded.
@@ -249,8 +249,8 @@ export const getBln3MeasureApplicability = withCalculationCache(
  * returns, per indicator, a list of candidate measures ranked by their
  * predicted impact on that indicator. Each measure ID is prefixed with
  * "bln_" (e.g. "bln_BM226") to match FDM catalogue conventions.
- * If the field is excluded (buffer strip or nature crop rotation), returns
- * `null` immediately without calling the API.
+ * If the field is excluded (buffer strip, nature crop rotation or no main
+ * cultivation in `b_year`), returns `null` immediately without calling the API.
  *
  * This endpoint is marked experimental by NMI: the interface may change
  * without the usual advance notice given for stable endpoints.
