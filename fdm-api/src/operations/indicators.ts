@@ -61,6 +61,14 @@ const FarmMetricSchema = z.object({
   score: z.number().describe("Area-weighted score (0..1)."),
 })
 
+/** Why a field has no indicator score or measure options in the year. */
+const ExclusionReasonSchema = z
+  .enum(["bufferstrip", "nature", "no_main_cultivation"])
+  .nullable()
+  .describe(
+    "Why the field is excluded: 'bufferstrip', 'nature' (nature or other non-agricultural main cultivation) or 'no_main_cultivation' (no main cultivation in the year). `null` when the field is not excluded.",
+  )
+
 /** Indicator and aggregation scores of a field for a calendar year. */
 export const FieldIndicatorsSchema = z
   .object({
@@ -69,8 +77,9 @@ export const FieldIndicatorsSchema = z
     is_excluded: z
       .boolean()
       .describe(
-        "`true` for buffer strips and nature fields, which have no indicator score. `indicators` and `aggregations` are then empty.",
+        "`true` for buffer strips, nature fields and fields without a main cultivation in the year, which have no indicator score. `indicators` and `aggregations` are then empty.",
       ),
+    exclusion_reason: ExclusionReasonSchema,
     indicators: z.array(IndicatorScoreSchema).describe("Score per soil quality indicator."),
     aggregations: z
       .array(AggregationScoreSchema)
@@ -97,7 +106,9 @@ export const FarmIndicatorsSchema = z
             .describe("Scores aggregated per soil function and overall."),
         }),
       )
-      .describe("Eligible fields only; buffer strips and nature fields are left out."),
+      .describe(
+        "Eligible fields only; buffer strips, nature fields and fields without a main cultivation in the year are left out.",
+      ),
     farm: z
       .object({
         indicators: z
@@ -215,6 +226,7 @@ export const FieldMeasureOptionsSchema = z
     b_id: FieldIdSchema,
     year: z.number().int().describe("Calendar year the results apply to."),
     is_excluded: z.boolean().describe("`true` for excluded fields; `data` is then empty."),
+    exclusion_reason: ExclusionReasonSchema,
     data: z
       .array(MeasureOptionSchema)
       .describe("Measures from the catalogue, with their applicability and predicted impact."),
@@ -264,8 +276,9 @@ async function requireField(
 }
 
 /**
- * Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips and
- * nature fields are returned with `is_excluded: true` and empty arrays. Calls the NMI API.
+ * Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips,
+ * nature fields and fields without a main cultivation in the year are returned with
+ * `is_excluded: true`, their `exclusion_reason` and empty arrays. Calls the NMI API.
  */
 export const getFieldIndicators = defineOperation({
   name: "getFieldIndicators",
@@ -291,6 +304,7 @@ export const getFieldIndicators = defineOperation({
       b_id: result.b_id,
       year: result.year,
       is_excluded: result.is_excluded,
+      exclusion_reason: result.exclusion_reason,
       indicators: result.score?.indicators ?? [],
       aggregations: result.score?.aggregations ?? [],
     }

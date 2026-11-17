@@ -5,6 +5,7 @@ section: Bodem
 order: 3
 inApp:
   - Indicatoren
+updated: 2026-11-17
 lastReviewed: 2026-11-05
 routes: []
 watch:
@@ -74,6 +75,7 @@ Kijk eerst naar de thema's met de laagste score en daarna naar de indicatoren da
 - BLN3 is nog in ontwikkeling. De scores, de indicatoren en de lijst met maatregelen zijn nog niet definitief en kunnen veranderen.
 - De berekening van de impact van maatregelen is experimenteel.
 - Bufferstroken en percelen met een natuur- of niet-landbouwkundig hoofdgewas, zoals sloten en natuurterreinen, krijgen geen score. BLN3 is ontworpen voor productieve landbouwgrond.
+- Een perceel zonder hoofdteelt in het gekozen jaar krijgt geen score en geen maatregelen. De hoofdteelt is de teelt die tussen 15 mei en 15 juli het langst op het perceel staat.
 - Geschatte bodemwaarden maken de scores minder zeker dan gemeten waarden.
 - Als de rekendienst niet bereikbaar is, kunnen er geen scores worden berekend.
 

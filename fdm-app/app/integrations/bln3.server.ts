@@ -8,6 +8,7 @@
  */
 
 import {
+  type Bln3ExclusionReason,
   type Bln3IndicatorAdvice,
   type Bln3IndicatorMeasureAdvice,
   type Bln3MeasureAdviceResult,
@@ -54,6 +55,7 @@ export {
 export type { FieldTopOpportunity, MeasureApplicabilityInfo }
 
 export type {
+  Bln3ExclusionReason,
   Bln3IndicatorAdvice,
   Bln3IndicatorMeasureAdvice,
   Bln3MeasureAdviceResult,
@@ -71,6 +73,8 @@ export type FieldBln3Score = {
   isExcluded?: boolean
   isBufferstrip?: boolean
   isNature?: boolean
+  /** Why the field is excluded in the selected year; `null` when it is not excluded */
+  exclusionReason?: Bln3ExclusionReason | null
 }
 
 export type FieldBln3Result = {
@@ -150,8 +154,10 @@ export async function getIndicatorsForFarm({
     if (result.status === "fulfilled") {
       const inputs = result.value.inputs
       const isBufferstrip = field.b_bufferstrip === true || inputs.b_bufferstrip === true
+      const exclusionReason = isBufferstrip ? "bufferstrip" : (inputs.exclusionReason ?? null)
       const isNature =
         !isBufferstrip &&
+        exclusionReason !== "no_main_cultivation" &&
         (inputs.b_lu_croprotation === "nature" ||
           (inputs.b_lu_catalogue != null &&
             EXCLUDED_BLN3_BRP_CODES.includes(inputs.b_lu_catalogue)) ||
@@ -163,6 +169,7 @@ export async function getIndicatorsForFarm({
         isExcluded: result.value.inputs.isExcluded ?? false,
         isBufferstrip,
         isNature,
+        exclusionReason,
       }
     }
     const errorMessage =
@@ -175,6 +182,7 @@ export async function getIndicatorsForFarm({
       isExcluded: false,
       isBufferstrip: field.b_bufferstrip === true,
       isNature: false,
+      exclusionReason: null,
     }
   })
 }

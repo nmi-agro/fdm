@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
 import { Spinner } from "~/components/ui/spinner"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { ELEVATION_LEGEND_GRADIENT } from "./atlas-elevation-colors"
 import {
   formatKgPerHa,
   NUTRIENT_ADVICE_COPY,
@@ -188,11 +189,7 @@ export function ElevationLegend({
               <div className="border-border relative flex h-4 w-full overflow-hidden rounded border">
                 <div
                   className="absolute inset-0 h-full w-full"
-                  style={{
-                    // BrewerSpectral11 Reversed (Blue -> Red)
-                    background:
-                      "linear-gradient(to right, #5e4fa2, #3288bd, #66c2a5, #abdda4, #e6f598, #ffffbf, #fee08b, #fdae61, #f46d43, #d53e4f, #9e0142)",
-                  }}
+                  style={{ background: ELEVATION_LEGEND_GRADIENT }}
                 />
               </div>
               <div className="text-muted-foreground flex justify-between text-xs font-medium tabular-nums">

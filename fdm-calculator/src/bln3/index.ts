@@ -7,6 +7,7 @@ import {
   getMeasuresFromCatalogue,
   startOfDayInFdmTimeZone,
 } from "@nmi-agro/fdm-core"
+import type { Bln3ExclusionReason } from "./exclusion"
 import type { Bln3Score } from "./types"
 import { getBln3MeasureAdvice, getBln3MeasureApplicability, getBln3Score } from "./api"
 import { IndicatorsUnavailableError } from "./errors"
@@ -54,8 +55,13 @@ function requireKey(nmiApiKey: string | undefined): string {
 export type FieldIndicators = {
   b_id: string
   year: number
-  /** `true` for buffer strips and nature fields, which have no indicator score */
+  /**
+   * `true` for buffer strips, nature fields and fields without a main cultivation in the year,
+   * which have no indicator score
+   */
   is_excluded: boolean
+  /** Why the field is excluded; `null` when it is not */
+  exclusion_reason: Bln3ExclusionReason | null
   /** Score of the field; `null` only when the field is excluded */
   score: Bln3Score | null
 }
@@ -86,7 +92,13 @@ export async function getFieldIndicators(
 ): Promise<FieldIndicators> {
   const inputs = await collectInputForBln3Score(fdm, principal_id, b_id, getYearTimeframe(year))
   if (inputs.isExcluded) {
-    return { b_id, year, is_excluded: true, score: null }
+    return {
+      b_id,
+      year,
+      is_excluded: true,
+      exclusion_reason: inputs.exclusionReason ?? null,
+      score: null,
+    }
   }
   const key = requireKey(nmiApiKey)
   let score: Bln3Score | null
@@ -98,7 +110,7 @@ export async function getFieldIndicators(
   if (!score) {
     throw new IndicatorsUnavailableError("indicator score is unavailable")
   }
-  return { b_id, year, is_excluded: false, score }
+  return { b_id, year, is_excluded: false, exclusion_reason: null, score }
 }
 
 /**
@@ -114,7 +126,8 @@ export type FarmIndicators = {
 /**
  * Retrieves indicator scores for all eligible fields of a farm and the area-weighted farm scores.
  *
- * Buffer strips and nature fields are left out of the fields and the weighting. If any
+ * Buffer strips, nature fields and fields without a main cultivation in the year are left out
+ * of the fields and the weighting. If any
  * eligible field cannot be scored, the whole request fails instead of returning partial
  * aggregates.
  *
@@ -165,6 +178,8 @@ export type FieldMeasureOptions = {
   b_id: string
   year: number
   is_excluded: boolean
+  /** Why the field is excluded; `null` when it is not */
+  exclusion_reason: Bln3ExclusionReason | null
   data: MeasureOption[]
 }
 
@@ -198,7 +213,13 @@ export async function getFieldMeasureOptions(
     timeframe,
   )
   if (inputs.isExcluded) {
-    return { b_id, year, is_excluded: true, data: [] }
+    return {
+      b_id,
+      year,
+      is_excluded: true,
+      exclusion_reason: inputs.exclusionReason ?? null,
+      data: [],
+    }
   }
   const key = requireKey(nmiApiKey)
 
@@ -241,5 +262,5 @@ export async function getFieldMeasureOptions(
     advice,
     score,
   })
-  return { b_id, year, is_excluded: false, data }
+  return { b_id, year, is_excluded: false, exclusion_reason: null, data }
 }

@@ -170,12 +170,15 @@ export default function IndicatorsMap({
                 </AtlasTooltipHeader>
                 {feature.properties?.b_bufferstrip ||
                 feature.properties?.isBufferstrip ||
-                feature.properties?.isNature ? (
+                feature.properties?.isNature ||
+                feature.properties?.hasNoMainCultivation ? (
                   <div className="mt-1.5 border-t pt-1.5">
                     <p className="text-muted-foreground italic">
                       {feature.properties.b_bufferstrip || feature.properties.isBufferstrip
                         ? "Geen indicatoren beschikbaar (bufferstrook)"
-                        : "Geen indicatoren beschikbaar (natuurperceel)"}
+                        : feature.properties.hasNoMainCultivation
+                          ? "Geen indicatoren beschikbaar (geen hoofdteelt)"
+                          : "Geen indicatoren beschikbaar (natuurperceel)"}
                     </p>
                   </div>
                 ) : (

@@ -144,7 +144,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
-    // Exclude buffer strips and nature plots from indicator calculations and views
+    // Exclude buffer strips, nature plots and fields without a main cultivation from indicator calculations and views
     const fieldScores = allFieldScores.filter((s) => !s.isExcluded)
     const eligibleFieldIds = new Set(fieldScores.map((s) => s.b_id))
     const eligibleFields = fields.filter((f) => eligibleFieldIds.has(f.b_id))

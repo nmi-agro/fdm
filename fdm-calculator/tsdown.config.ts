@@ -1,19 +1,11 @@
-import { readFileSync } from "node:fs"
 import { defineConfig } from "tsdown"
+import {
+  CALCULATOR_VERSION_PLACEHOLDER,
+  getCalculatorVersionReplacement,
+} from "./calculator-version.mjs"
 
-const pkg = JSON.parse(readFileSync("./package.json", "utf-8"))
-
-const placeholder = `"fdm-calculator:{FDM_CALCULATOR_VERSION}"`
-const replacement = `"fdm-calculator:${pkg.version}"`
-
-if (replacement.length > placeholder.length) {
-  console.warn(
-    "⚠️ Replacement fdm-calculator version string ended up longer than the placeholder. Source map will be broken.",
-  )
-}
-
-// Pad the replacement to match the placeholder length so source maps stay valid
-const paddedReplacement = replacement.padEnd(placeholder.length, " ")
+// Version with a hash of the source, so that cached calculations of older code are not reused
+const replacement = getCalculatorVersionReplacement()
 
 export default defineConfig({
   entry: {
@@ -34,11 +26,11 @@ export default defineConfig({
     {
       name: "replace-calculator-version",
       renderChunk(code) {
-        if (!code.includes(placeholder)) {
+        if (!code.includes(CALCULATOR_VERSION_PLACEHOLDER)) {
           return null
         }
         return {
-          code: code.replace(placeholder, paddedReplacement),
+          code: code.replace(CALCULATOR_VERSION_PLACEHOLDER, replacement),
           map: null,
         }
       },

@@ -27,7 +27,7 @@ keywords:
 related:
   - background/bln3-bodemkwaliteit
   - bodem
-updated: 2026-11-10
+updated: 2026-11-17
 ---
 
 Onder **Indicatoren** zie je hoe gezond je bodem is volgens BLN3, de Bodemindicatoren voor Landbouwgronden in Nederland. BLN3 kijkt naar meer dan alleen de bemesting: ook naar water, klimaat, de nutriëntenkringloop en de productiefunctie van de bodem.
@@ -83,6 +83,6 @@ Bij **Vast effect** is het effect op elke indicator een vaste waarde, gelijk voo
 
 ## Goed om te weten {#goed-om-te-weten}
 
-BLN3 is nog in ontwikkeling. De scores en de lijst met maatregelen zijn nog niet definitief. Voor de berekening is een bodemanalyse nodig; de [BodemConditieScore](/manual/bodemconditiescore) wordt meegenomen als je die hebt ingevuld. Bufferstroken en natuurpercelen krijgen geen score.
+BLN3 is nog in ontwikkeling. De scores en de lijst met maatregelen zijn nog niet definitief. Voor de berekening is een bodemanalyse nodig; de [BodemConditieScore](/manual/bodemconditiescore) wordt meegenomen als je die hebt ingevuld. Bufferstroken, natuurpercelen en percelen zonder hoofdteelt in het gekozen jaar krijgen geen score en geen maatregelen.
 
 Voor organisaties is er een overzicht van de indicatoren en maatregelen over alle bedrijven heen, met een kaart van de scores per perceel.

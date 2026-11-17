@@ -30,6 +30,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { formatBalanceValue } from "~/lib/format"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
@@ -210,7 +211,9 @@ function FarmBalanceOrganicMatterOverview({
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organicMatterBalanceResult.balance}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(organicMatterBalanceResult.balance)}
+            </div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
@@ -220,7 +223,9 @@ function FarmBalanceOrganicMatterOverview({
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organicMatterBalanceResult.supply}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(organicMatterBalanceResult.supply)}
+            </div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
@@ -230,7 +235,9 @@ function FarmBalanceOrganicMatterOverview({
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{organicMatterBalanceResult.degradation}</div>
+            <div className="text-2xl font-bold">
+              {formatBalanceValue(organicMatterBalanceResult.degradation)}
+            </div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
@@ -294,7 +301,7 @@ function FarmBalanceOrganicMatterOverview({
                     </div>
                     <div className="ml-auto font-medium">
                       {fieldResult.balance ? (
-                        <span>{`${fieldResult.balance.balance}`}</span>
+                        <span>{formatBalanceValue(fieldResult.balance.balance)}</span>
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">

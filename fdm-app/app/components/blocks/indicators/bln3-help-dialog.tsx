@@ -89,7 +89,8 @@ export function Bln3HelpDialog() {
               sloten, schouwpaden en natuurterreinen) worden uitgesloten van de BLN3-berekeningen en
               het maatregelenadvies. Omdat BLN3 en de bodemmaatregelen specifiek zijn ontworpen voor
               productieve landbouwgronden, zijn deze voor dit type percelen (in het betreffende
-              teeltjaar) niet beschikbaar.
+              teeltjaar) niet beschikbaar. Dat geldt ook voor percelen zonder hoofdteelt in het
+              gekozen jaar.
             </p>
           </div>
 

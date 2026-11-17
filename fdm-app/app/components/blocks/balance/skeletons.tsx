@@ -62,7 +62,9 @@ export function NitrogenBalanceFieldsSkeleton() {
 export function NitrogenBalanceFallback() {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <NitrogenBalanceCardSkeleton />
+        <NitrogenBalanceCardSkeleton />
         <NitrogenBalanceCardSkeleton />
         <NitrogenBalanceCardSkeleton />
         <NitrogenBalanceCardSkeleton />
