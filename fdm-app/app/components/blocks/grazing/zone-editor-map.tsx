@@ -6,8 +6,9 @@
  */
 
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson"
+import type { Map as MaplibreMap } from "maplibre-gl"
 import { useEffect, useMemo, useRef } from "react"
-import { Layer, type LayerProps, Source, useMap } from "react-map-gl/maplibre"
+import { Layer, type LayerProps, NavigationControl, Source, useMap } from "react-map-gl/maplibre"
 import {
   type GeoJSONStoreFeatures,
   TerraDraw,
@@ -18,7 +19,6 @@ import {
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import type { Area } from "~/lib/grazing-strip"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
-import { COOPERATIVE_GESTURES_PROPS } from "~/components/blocks/atlas/atlas-cooperative-gestures"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
@@ -50,11 +50,39 @@ function toFeatureCollection(geometries: Area[]): FeatureCollection {
   }
 }
 
-/** Splits a zone into the polygons terra-draw edits one by one. */
+/**
+ * Decimal places terra-draw accepts for a coordinate (its default `coordinatePrecision`). It rejects
+ * a feature with more, which a computed strip has after rotating and clipping.
+ */
+const TERRA_DRAW_PRECISION = 9
+
+const roundCoordinate = (value: number) => Number(value.toFixed(TERRA_DRAW_PRECISION))
+
+/**
+ * Splits a zone into the polygons terra-draw edits one by one, with coordinates rounded to the
+ * precision terra-draw accepts.
+ */
 function toPolygons(zone: Area | null): Polygon[] {
   if (!zone) return []
-  if (zone.type === "Polygon") return [zone]
-  return zone.coordinates.map((coordinates) => ({ type: "Polygon", coordinates }))
+  const polygons = zone.type === "Polygon" ? [zone.coordinates] : zone.coordinates
+  return polygons.map((rings) => ({
+    type: "Polygon",
+    coordinates: rings.map((ring) =>
+      ring.map((position) => [roundCoordinate(position[0]), roundCoordinate(position[1])]),
+    ),
+  }))
+}
+
+/** Whether the map still has the sources of terra-draw, which it removes when it is torn down. */
+function hasTerraDrawSources(map: MaplibreMap): boolean {
+  try {
+    return ["point", "linestring", "polygon"].every(
+      (geometry) => map.getSource(`td-${geometry}`) !== undefined,
+    )
+  } catch {
+    // The style of a removed map throws
+    return false
+  }
 }
 
 /** Combines the drawn polygons into one zone. */
@@ -99,14 +127,16 @@ export default function ZoneEditorMap({
   const fieldOutline = { ...getFieldsStyle("fieldsSavedOutline"), id: "grazing-zone-field-outline" }
 
   return (
+    // The editor is a drawing tool in a dialog, not a map on a scrolling page, so scrolling zooms
+    // the map (also with Ctrl) instead of needing the cooperative gestures of the other small maps
     <Atlas
       initialViewState={initialViewState}
       interactive={true}
-      {...COOPERATIVE_GESTURES_PROPS}
       useStoredViewState={false}
       updateFromInitialViewState={true}
       style={{ height, width: "100%" }}
     >
+      <NavigationControl position="top-right" showCompass={false} />
       <MapTilerAttribution />
       <FieldsSourceNotClickable id="grazing-zone-field" fieldsData={fieldData}>
         <Layer {...fieldOutline} />
@@ -228,9 +258,15 @@ function ZoneDrawing({
 
     return () => {
       map.off("load", start)
+      loadingRef.current = null
       if (drawRef.current === draw) {
-        draw.stop()
         drawRef.current = null
+        // When the dialog closes, the map removes its sources before this cleanup runs; stopping
+        // terra-draw then fails while clearing its layers. Nothing is left to clean up in that
+        // case, so only stop it while its sources still exist.
+        if (hasTerraDrawSources(map)) {
+          draw.stop()
+        }
       }
     }
   }, [mapRef])
@@ -262,5 +298,10 @@ function loadZone(draw: TerraDraw, zone: Area | null): void {
     (geometry) =>
       ({ type: "Feature", geometry, properties: { mode: "polygon" } }) as GeoJSONStoreFeatures,
   )
-  if (features.length > 0) draw.addFeatures(features)
+  if (features.length === 0) return
+  // terra-draw silently skips a feature it does not accept; report it, so a zone that does not
+  // appear on the map can be traced
+  for (const result of draw.addFeatures(features)) {
+    if (!result.valid) console.warn("Zone not shown on the map:", result.reason)
+  }
 }
