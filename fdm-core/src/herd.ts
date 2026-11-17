@@ -11,7 +11,7 @@ import { createId } from "./id"
  * Adds a new herd asset to a farm and records its initial starting event.
  *
  * In Dutch livestock reporting (such as RVO compliance and statutory manure standards), animals are grouped into herds
- * sharing common management, feeding, and statutory categories (e.g. `rvo_100` for dairy cows, `rvo_101` for youngstock <1 year).
+ * sharing common management, feeding, and statutory categories (e.g. `rvo_100` for dairy cows, `rvo_101` for youngstock under 1 year).
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal creating the herd.

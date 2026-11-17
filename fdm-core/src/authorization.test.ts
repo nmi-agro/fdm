@@ -1,3 +1,4 @@
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
@@ -17,6 +18,7 @@ import {
   withAuditContext,
 } from "./authorization"
 import { addBarn } from "./barn"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -132,6 +134,11 @@ describe("Authorization Functions", () => {
   })
 
   describe("checkPermission", () => {
+    beforeAll(async () => {
+      // addAnimal derives its category from the herd, so the catalogue must exist
+      await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+    })
+
     it("should allow access if principal has the required role", async () => {
       await grantRole(fdm, "farm", "owner", farm_id, principal_id)
       await checkPermission(fdm, "farm", "read", farm_id, principal_id, "test")
@@ -189,7 +196,9 @@ describe("Authorization Functions", () => {
       const b_id_barn = await addBarn(fdm, principal_id, real_farm_id)
       await checkPermission(fdm, "barn", "read", b_id_barn, principal_id, "test")
 
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "test")
 
       const l_id_animal = await addAnimal(fdm, principal_id, real_farm_id, l_id_herd)
@@ -223,7 +232,9 @@ describe("Authorization Functions", () => {
       await checkPermission(fdm, "milk", "read", l_id_milktank, principal_id, "test")
 
       // Branch 2: resource_id matches a herd-level milking record (l_id_herd)
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, new Date())
       await checkPermission(fdm, "milk", "read", l_id_herd, principal_id, "test")
 
@@ -268,7 +279,9 @@ describe("Authorization Functions", () => {
       await checkPermission(fdm, "feed", "read", f_id_batch, principal_id, "test")
 
       // Branch 2: resource_id matches a herd feeding record (l_id_herd)
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, new Date())
       await checkPermission(fdm, "feed", "read", l_id_herd, principal_id, "test")
 
@@ -298,7 +311,9 @@ describe("Authorization Functions", () => {
       await checkPermission(fdm, "manure", "read", b_id_manurepit, principal_id, "test")
 
       // Branch 2: resource_id matches an excreting record (l_id_excreting)
-      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
       const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit)
       await checkPermission(fdm, "manure", "read", l_id_excreting, principal_id, "test")
 
