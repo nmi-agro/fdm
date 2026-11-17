@@ -25,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { useKeyedState } from "~/hooks/use-keyed-state"
+import { useToday } from "~/hooks/use-today"
 import { type Area, areaHa } from "~/lib/grazing-strip"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD } from "~/lib/grazing-zone"
 
@@ -80,7 +82,9 @@ export function GrazingPopover({
   const defaultHerdId = existingGrazing?.l_id_herd ?? initialHerdId ?? herds[0]?.l_id_herd ?? ""
   const [herdId, setHerdId] = useState(defaultHerdId)
 
-  const [today] = useState(() => format(new Date(), "yyyy-MM-dd"))
+  // "Today" is only known on the client; empty until then
+  const todayDate = useToday()
+  const today = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
 
   const defaultStart = existingGrazing?.l_grazing_start
     ? format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd")
@@ -90,8 +94,9 @@ export function GrazingPopover({
     ? format(new Date(existingGrazing.l_grazing_end), "yyyy-MM-dd")
     : (initialEndDate ?? defaultStart)
 
-  const [startDate, setStartDate] = useState(defaultStart)
-  const [endDate, setEndDate] = useState(defaultEnd)
+  // Start from the defaults, which may still change once "today" is known
+  const [startDate, setStartDate] = useKeyedState(defaultStart, (day) => day)
+  const [endDate, setEndDate] = useKeyedState(defaultEnd, (day) => day)
 
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "custom">(
     existingGrazing?.l_grazing_hours === 24
@@ -141,7 +146,7 @@ export function GrazingPopover({
       : 1
   const totalHours = diffDays * (hours || 0)
 
-  const isFuture = startDate > today
+  const isFuture = today !== "" && startDate > today
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { useKeyedState } from "~/hooks/use-keyed-state"
+import { useToday } from "~/hooks/use-today"
 
 export interface QuickEntrySheetProps {
   open: boolean
@@ -69,8 +70,11 @@ export function QuickEntrySheet({
     initialFieldId,
     (id) => id ?? fields[0]?.b_id ?? "",
   )
-  const [startDate, setStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"))
-  const [endDate, setEndDate] = useState(() => format(new Date(), "yyyy-MM-dd"))
+  // The dates default to today, which is only known on the client; a date the user picks sticks
+  const today = useToday()
+  const todayStr = today ? format(today, "yyyy-MM-dd") : ""
+  const [startDate, setStartDate] = useKeyedState(todayStr, (day) => day)
+  const [endDate, setEndDate] = useKeyedState(todayStr, (day) => day)
   const [hours, setHours] = useState<number>(8)
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "12" | "custom">("8")
 

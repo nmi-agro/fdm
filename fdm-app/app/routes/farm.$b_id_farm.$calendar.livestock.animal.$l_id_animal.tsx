@@ -54,6 +54,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import { useKeyedState } from "~/hooks/use-keyed-state"
+import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -302,7 +304,12 @@ export default function AnimalDetailPage() {
   )
 
   const [targetHerdId, setTargetHerdId] = useState("")
-  const [leavingDate, setLeavingDate] = useState(() => format(new Date(), "yyyy-MM-dd"))
+  // Defaults to today, which is only known on the client; a date the user picks sticks
+  const today = useToday()
+  const [leavingDate, setLeavingDate] = useKeyedState(
+    today ? format(today, "yyyy-MM-dd") : "",
+    (day) => day,
+  )
   const [leavingMethod, setLeavingMethod] = useState<"sold" | "died" | "slaughtered" | "exported">(
     "sold",
   )

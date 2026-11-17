@@ -12,7 +12,7 @@ import {
   updateGrazing,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import { differenceInDays, format } from "date-fns"
+import { addDays, differenceInDays, format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -32,6 +32,7 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -267,28 +268,21 @@ export default function TodayMapPage() {
     farmWritePermission,
   } = useLoaderData<typeof loader>()
 
-  const [currentDate, setCurrentDate] = useState(() => new Date())
+  // "Today" is only known on the client; the selected day is an offset from it
+  const today = useToday()
+  const [dayOffset, setDayOffset] = useState(0)
   const [quickEntryFieldId, setQuickEntryFieldId] = useState<string | undefined>(undefined)
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false)
 
-  const dateStr = format(currentDate, "yyyy-MM-dd")
-  const displayDate = format(currentDate, "EEEE d MMMM yyyy", { locale: nl })
+  const currentDate = today ? addDays(today, dayOffset) : undefined
+  const dateStr = currentDate ? format(currentDate, "yyyy-MM-dd") : ""
+  const displayDate = currentDate
+    ? format(currentDate, "EEEE d MMMM yyyy", { locale: nl })
+    : "Vandaag"
 
-  const handlePrevDay = () => {
-    const prev = new Date(currentDate)
-    prev.setDate(prev.getDate() - 1)
-    setCurrentDate(prev)
-  }
-
-  const handleNextDay = () => {
-    const next = new Date(currentDate)
-    next.setDate(next.getDate() + 1)
-    setCurrentDate(next)
-  }
-
-  const handleToday = () => {
-    setCurrentDate(new Date())
-  }
+  const handlePrevDay = () => setDayOffset((offset) => offset - 1)
+  const handleNextDay = () => setDayOffset((offset) => offset + 1)
+  const handleToday = () => setDayOffset(0)
 
   const handleFieldCardClick = (b_id: string) => {
     setQuickEntryFieldId(b_id)
@@ -486,7 +480,7 @@ export default function TodayMapPage() {
                 className="h-8 px-2.5 text-xs font-semibold"
                 onClick={handleToday}
               >
-                {displayDate}
+                <span key={dateStr || "today"}>{displayDate}</span>
               </Button>
               <Button
                 variant="ghost"

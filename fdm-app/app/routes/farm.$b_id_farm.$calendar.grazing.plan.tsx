@@ -66,6 +66,8 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import { useKeyedState } from "~/hooks/use-keyed-state"
+import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -256,7 +258,9 @@ export default function GrazingPlanAssistent() {
   } = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
 
-  const [todayStr] = useState(() => format(new Date(), "yyyy-MM-dd"))
+  // "Today" is only known on the client; empty until then
+  const today = useToday()
+  const todayStr = today ? format(today, "yyyy-MM-dd") : ""
   const defaultSeasonStart = todayStr > `${calendarYear}-05-01` ? todayStr : `${calendarYear}-05-01`
   const defaultSeasonEnd = `${calendarYear}-10-15`
 
@@ -273,7 +277,8 @@ export default function GrazingPlanAssistent() {
   const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
     grasslandFields.map((f) => f.b_id),
   )
-  const [startDate, setStartDate] = useState(defaultSeasonStart)
+  // Follows the default start until the user picks a date, also once "today" becomes known
+  const [startDate, setStartDate] = useKeyedState(defaultSeasonStart, (day) => day)
   const [endDate, setEndDate] = useState(defaultSeasonEnd)
   const [hoursPerDay, setHoursPerDay] = useState(8)
   const [periodDays, setPeriodDays] = useState(4)
@@ -893,8 +898,10 @@ export default function GrazingPlanAssistent() {
 
                     <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
                       <Info className="text-primary h-3.5 w-3.5 shrink-0" />
-                      Plannen kan alleen vooruit. De periode start op zijn vroegst vandaag (
-                      {todayStr}).
+                      <span>
+                        Plannen kan alleen vooruit. De periode start op zijn vroegst vandaag
+                        {todayStr ? ` (${todayStr})` : ""}.
+                      </span>
                     </p>
                   </CardContent>
                 </Card>
