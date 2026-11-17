@@ -119,6 +119,10 @@ Bij stripgrazen en rantsoenbeweiding kies je ook hoe groot het beweide deel per 
 - **Stroken op de kaart**: de planner snijdt voor elke weidebeurt een nieuwe strook uit het perceel, met de grootte uit de berekening hierboven. Elke strook sluit aan op de vorige.
 - **Percentage, zonder kaart**: elke weidebeurt beslaat een vast percentage van het perceel, zonder plek.
 
+Bij Nieuw Nederlands Weiden deelt de planner de gekozen percelen op in percelen van gelijke grootte. Bij _Perceelsgrootte (ha)_ staat 2,5 ha per 120 koeien, omgerekend naar je koppel; pas het aan voor je bedrijf. De koppel krijgt elke dag het volgende perceel. Weidt de koppel dag en nacht (meer dan 12 uur), dan krijgt hij 's ochtends en 's avonds een nieuw perceel, elk met de helft van de uren.
+
+Bij stroken en bij Nieuw Nederlands Weiden zie je de stroken of percelen op een kaart boven het plan. Ga met de muis over een regel van het plan om de strook op de kaart te zien, of over een strook op de kaart om de regels ervan te zien.
+
 Percelen zonder perceelsgrens krijgen altijd het percentage. Perioden die overlappen met beweiding die je al hebt vastgelegd, slaat de planner over; je ziet ze in een waarschuwing.
 
 ![De planner: systeem, percelen en de geplande perioden](screenshot:beweidingsplan)

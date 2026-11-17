@@ -95,7 +95,7 @@ De planner gebruikt per systeem een standaard aantal dagen per perceel, volgens 
 | Stripgrazen             | 1                         | Elke beweiding een nieuwe strook                               |
 | Rantsoenbeweiding       | 1                         | Een nieuwe strook aansluitend op het eerder beweide land       |
 
-Bij Nieuw Nederlands Weiden schaar je in bij 10 tot 12 cm graslengte en uit bij 9 tot 11 cm. Groen Kennisnet beschrijft daarnaast een indeling van de percelen in drie blokken, waarbij de koeien na vier weken naar het volgende blok gaan. Die wisseling tussen blokken neemt de planner niet mee: hij laat de koeien elke dag naar het volgende gekozen perceel gaan. Kies daarom de percelen van het blok dat je wilt beweiden.
+Bij Nieuw Nederlands Weiden deel je de huiskavel eenmalig op in percelen van gelijke grootte. In alle voorbeelden van de brochure zijn dat percelen van 2,5 ha voor 120 koeien; de planner rekent die grootte om naar het aantal dieren in je koppel (een aanname). De koeien krijgen elke dag een nieuw perceel, en bij dag en nacht weiden (meer dan 12 uur) 's ochtends en 's avonds. Je schaart in bij 10 tot 12 cm graslengte en uit bij 9 tot 11 cm. De rust telt per perceel, omdat elk perceel als zone wordt vastgelegd. Groen Kennisnet beschrijft daarnaast een indeling van de percelen in drie blokken, waarbij de koeien na vier weken naar het volgende blok gaan. Die wisseling tussen blokken neemt de planner niet mee: hij laat de koeien elke dag naar het volgende perceel op de gekozen percelen gaan. Kies daarom de percelen van het blok dat je wilt beweiden.
 
 De standaard van 8 weide-uren per dag is een aanname voor beperkt weiden; pas hem aan voor je bedrijf. Bij zomerstalvoedering en summerfeeding is er geen weidegang.
 
