@@ -38,7 +38,12 @@ import { fdm } from "~/lib/fdm.server"
 
 /** From this zoom level on the map draws the AHN kaartbladen; below it the PDOK WMS overview. */
 const ZOOM_LEVEL_ELEVATION = 13
+/** Legend range (m NAP) until the first tiles in view have loaded; covers most of the country. */
 const DEFAULT_RANGE = { min: -5, max: 50 }
+/** Smallest legend range in m, so a nearly flat view isn't stretched into noise. */
+const MIN_RANGE_SPAN = 1
+/** Margin added on both ends of the legend range, as a share of the range. */
+const RANGE_PADDING = 0.05
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -237,13 +242,12 @@ export default function FarmAtlasElevationBlock() {
           if (!found) return
 
           let { min, max } = found
-          // Ensure minimum contrast
-          if (max - min < 1) {
-            min -= 0.5
-            max += 0.5
+          if (max - min < MIN_RANGE_SPAN) {
+            const widen = (MIN_RANGE_SPAN - (max - min)) / 2
+            min -= widen
+            max += widen
           }
-          // Pad range slightly
-          const padding = (max - min) * 0.05
+          const padding = (max - min) * RANGE_PADDING
           setRange({ min: min - padding, max: max + padding })
         },
         300,
@@ -252,6 +256,9 @@ export default function FarmAtlasElevationBlock() {
     [tiles],
   )
 
+  // Recompute the legend range whenever the tile store changes (tiles arrive or leave), not only
+  // when the map stops moving: the tiles in view often finish loading after `moveend`. The store
+  // returns the unsubscribe function, which React calls on unmount.
   useEffect(
     () =>
       tiles.subscribe(() => {

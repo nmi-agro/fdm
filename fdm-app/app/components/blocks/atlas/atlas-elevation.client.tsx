@@ -38,6 +38,10 @@ const toRd = proj4("EPSG:4326", RD_NEW)
  * discard them with an exact comparison.
  */
 const NO_DATA = -9999
+/**
+ * Plausible elevation range in m NAP. The Netherlands lies between about -7 m and +323 m; values
+ * outside this wide margin are artefacts and are treated as nodata.
+ */
 const MIN_VALID = -100
 const MAX_VALID = 1000
 
@@ -179,6 +183,16 @@ export class ElevationTiles {
     for (const layer of this.layers.values()) yield* layer
   }
 
+  /**
+   * Registers a listener that is called after every change of the store: a tile loaded or
+   * released, a layer finished loading its view, or the loading status changed. The listener
+   * gets no arguments; read what you need with {@link getStatus}, {@link rangeIn} or
+   * {@link valueAt}.
+   *
+   * The signature fits `useSyncExternalStore(subscribe, getStatus)`.
+   *
+   * @returns A function that removes the listener again.
+   */
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener)
     return () => {
@@ -186,6 +200,7 @@ export class ElevationTiles {
     }
   }
 
+  /** The loading status of the tiles in view, for the legend. */
   getStatus = (): ElevationTilesStatus => this.status
 
   private setStatus(status: ElevationTilesStatus) {
