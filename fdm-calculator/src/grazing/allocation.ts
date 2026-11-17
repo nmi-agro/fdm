@@ -1,5 +1,6 @@
 import {
   GRAZING_HOURS_PER_KG_DM_MIN,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "./constants"
@@ -17,6 +18,11 @@ export interface GrazingAllocationInput {
    * {@link INSCHAREN_DRY_MATTER_TARGET_KG_HA} (1.700 kg DM/ha).
    */
   availableGrassKgDmPerHa?: number
+  /**
+   * Regrowth of grass on offer per day of grazing (kg DM/ha/day). Defaults to
+   * {@link GROWTH_DURING_GRAZING_KG_DM_HA_DAY} (45 kg DM/ha/day).
+   */
+  growthDuringGrazingKgDmPerHaPerDay?: number
   /** Number of days the herd stays on the allocated area. Defaults to 1. */
   days?: number
 }
@@ -29,21 +35,27 @@ export interface GrazingAllocationResult {
   areaHa: number
   /** Grass the herd takes up from the allocated area (kg DM). */
   grassDemandKgDm: number
+  /** Grass on offer per hectare over the grazing period: at in-grazing plus regrowth (kg DM/ha). */
+  grassOnOfferKgDmPerHa: number
 }
 
 /**
  * Calculates the pasture area to allocate to a herd for a number of days, for example the size of a
  * strip (stripgrazen), a daily plot (Nieuw Nederlands Weiden) or a plot for omweiden:
  *
- * area (ha) = animals × grass intake per animal per day (kg DM) × days ÷ grass on offer (kg DM/ha)
+ * grass on offer (kg DM/ha) = grass on offer at in-grazing + regrowth per day × days
+ * area (ha) = animals × grass intake per animal per day (kg DM) × days ÷ grass on offer
  *
- * Assumption: all grass on offer at in-grazing is available to the herd. Grass left behind at
- * out-grazing is not subtracted, so pass a lower `availableGrassKgDmPerHa` to allow for it. The
- * default of 1.700 kg DM/ha is the in-grazing target for omweiden in the Handboek Melkveehouderij
- * §3.10.2.
+ * The total grass on offer of a grazing cut is the offer at in-grazing plus the regrowth during
+ * grazing, about half the undisturbed growth (Handboek Melkveehouderij §3.9.2). The defaults are
+ * 1.700 kg DM/ha at in-grazing (§3.10.2) and 45 kg DM/ha per day of grazing (§3.9.2, at 300 kg
+ * N/ha).
  *
- * @param input - Herd size, grass intake, grass on offer and number of days.
- * @returns The area to allocate (ha) and the grass demand (kg DM).
+ * Assumption: all grass on offer is eaten. Grass left behind at out-grazing is not subtracted, so
+ * pass a lower `availableGrassKgDmPerHa` to allow for it.
+ *
+ * @param input - Herd size, grass intake, grass on offer, regrowth and number of days.
+ * @returns The area to allocate (ha), the grass demand (kg DM) and the grass on offer (kg DM/ha).
  * @throws {Error} If a value is negative, or the grass on offer is not positive.
  */
 export function calculateGrazingAllocationArea(
@@ -53,17 +65,25 @@ export function calculateGrazingAllocationArea(
     animals,
     grassIntakeKgDmPerAnimalPerDay,
     availableGrassKgDmPerHa = INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+    growthDuringGrazingKgDmPerHaPerDay = GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
     days = 1,
   } = input
-  assertNonNegative({ animals, grassIntakeKgDmPerAnimalPerDay, days })
+  assertNonNegative({
+    animals,
+    grassIntakeKgDmPerAnimalPerDay,
+    growthDuringGrazingKgDmPerHaPerDay,
+    days,
+  })
   if (!(availableGrassKgDmPerHa > 0)) {
     throw new Error("availableGrassKgDmPerHa must be greater than 0")
   }
 
   const grassDemandKgDm = animals * grassIntakeKgDmPerAnimalPerDay * days
+  const grassOnOfferKgDmPerHa = availableGrassKgDmPerHa + growthDuringGrazingKgDmPerHaPerDay * days
   return {
-    areaHa: round(grassDemandKgDm / availableGrassKgDmPerHa, 2),
+    areaHa: round(grassDemandKgDm / grassOnOfferKgDmPerHa, 2),
     grassDemandKgDm: round(grassDemandKgDm, 1),
+    grassOnOfferKgDmPerHa: round(grassOnOfferKgDmPerHa, 0),
   }
 }
 

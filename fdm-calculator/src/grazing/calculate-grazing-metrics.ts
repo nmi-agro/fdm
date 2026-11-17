@@ -17,6 +17,7 @@ import {
   WEIDEMELK_MIN_HOURS_PER_DAY,
   WEIDEMELK_TARGET_DAYS,
 } from "./constants"
+import { calculateRestBeforeUses, type FieldUse } from "./rest-periods"
 
 function toDateKey(date: Date): string {
   const y = date.getUTCFullYear()
@@ -68,8 +69,10 @@ function getDaysBetween(start: Date, end: Date): string[] {
  *    combined when `fields[].b_area_grazed` is given) and derives
  *    stocking density in GVE/ha with qualitative classification (extensief, gemiddeld, intensief).
  * 6. **Rustperiodes & Overgrazing Alerts**:
- *    Calculates rest intervals between consecutive uses (grazing and mowing/harvests) per parcel. Flags
- *    intervals shorter than 14 days during the growing season with explanatory guidance.
+ *    Calculates the rest before each use (grazing and mowing/harvests) of a parcel, counted from the
+ *    most recent earlier use of the same part of the parcel (see {@link calculateRestBeforeUses}), so
+ *    successive grazing strips each get their own rest. Flags rest shorter than
+ *    {@link REST_PERIOD_THRESHOLD_DAYS} days during the growing season with explanatory guidance.
  *
  * @param input - The {@link GrazingMetricsInput} payload containing the calendar year, optional status date, herds, grazing records, field parcels, and harvest records.
  * @returns A {@link GrazingMetricsResult} object with computed weidedagen, hours, Weidemelk progress, platform metrics, stocking densities, rest periods, and alerts.
@@ -384,11 +387,8 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
   }
 
   // 6. Rustperiodes & Overbeweiding
-  // Collect all events per field: grazings and harvests
-  const fieldEventsMap = new Map<
-    string,
-    Array<{ type: "weiden" | "maaien"; start: Date; end: Date }>
-  >()
+  // Collect all uses per field: grazings (with their zone) and harvests (whole field)
+  const fieldEventsMap = new Map<string, FieldUse[]>()
 
   for (const field of input.fields) {
     fieldEventsMap.set(field.b_id, [])
@@ -400,7 +400,9 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
     }
     const start = new Date(g.l_grazing_start)
     const end = g.l_grazing_end ? new Date(g.l_grazing_end) : start
-    fieldEventsMap.get(g.b_id)!.push({ type: "weiden", start, end })
+    fieldEventsMap
+      .get(g.b_id)!
+      .push({ type: "weiden", start, end, zone: g.l_grazing_geometry_zone ?? null })
   }
 
   if (input.harvests) {
@@ -426,15 +428,13 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
       continue
     }
 
-    events.sort((a, b) => a.start.getTime() - b.start.getTime())
     const field = fieldMap.get(b_id)
 
-    for (let i = 0; i < events.length - 1; i++) {
-      const prev = events[i]
-      const next = events[i + 1]
-
-      const diffMs = next.start.getTime() - prev.end.getTime()
-      const restDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)))
+    // Rest is counted per part of the field, so successive strips are not a re-use
+    for (const { use: next, previous: prev, restDays } of calculateRestBeforeUses(events)) {
+      if (!prev || restDays === null) {
+        continue
+      }
 
       const inGrowingSeason = prev.end >= seasonStartThreshold
 
@@ -458,7 +458,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
           b_name: field?.b_name ?? null,
           restDays,
           thresholdDays: REST_PERIOD_THRESHOLD_DAYS,
-          message: `${fieldDisplayName} is binnen ${restDays} dagen opnieuw ${next.type === "weiden" ? "beweid" : "gemaaid"} (richtlijn ${REST_PERIOD_THRESHOLD_DAYS} dagen rust). FDM rekent (nog) niet met de werkelijke grasgroei. Als richtwaarde voor inscharen geldt ± ${INSCHAREN_DRY_MATTER_TARGET_KG_HA.toLocaleString("nl-NL")} kg ds/ha (Handboek Melkveehouderij §3.10).`,
+          message: `${fieldDisplayName} is binnen ${restDays} dagen opnieuw ${next.type === "weiden" ? "beweid" : "gemaaid"} (richtlijn ${REST_PERIOD_THRESHOLD_DAYS} dagen rust). De richtlijn houdt geen rekening met de werkelijke grasgroei. Als richtwaarde voor inscharen geldt ± ${INSCHAREN_DRY_MATTER_TARGET_KG_HA.toLocaleString("nl-NL")} kg ds/ha; dat kost minstens ${REST_PERIOD_THRESHOLD_DAYS} groeidagen (Handboek Melkveehouderij, tabel 3.8).`,
         })
       }
     }

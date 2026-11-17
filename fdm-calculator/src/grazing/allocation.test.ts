@@ -7,15 +7,15 @@ import {
 import { GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY } from "./constants"
 
 describe("calculateGrazingAllocationArea", () => {
-  it("calculates the area for one day with the default grass on offer", () => {
-    // 100 cows x 10 kg DM = 1.000 kg DM; 1.000 / 1.700 kg DM/ha = 0,59 ha
+  it("calculates the area for one day with the default grass on offer and regrowth", () => {
+    // 100 cows x 10 kg DM = 1.000 kg DM; offer 1.700 + 45 x 1 = 1.745 kg DM/ha; 0,57 ha
     expect(
       calculateGrazingAllocationArea({ animals: 100, grassIntakeKgDmPerAnimalPerDay: 10 }),
-    ).toEqual({ areaHa: 0.59, grassDemandKgDm: 1000 })
+    ).toEqual({ areaHa: 0.57, grassDemandKgDm: 1000, grassOnOfferKgDmPerHa: 1745 })
   })
 
-  it("scales with the number of days and the grass on offer", () => {
-    // Omweiden: 4 days on a plot with 2.000 kg DM/ha
+  it("adds the regrowth of every grazing day to the grass on offer", () => {
+    // Omweiden: 4 days on a plot with 2.000 kg DM/ha; offer 2.000 + 4 x 45 = 2.180 kg DM/ha
     const result = calculateGrazingAllocationArea({
       animals: 80,
       grassIntakeKgDmPerAnimalPerDay: 12,
@@ -23,7 +23,17 @@ describe("calculateGrazingAllocationArea", () => {
       days: 4,
     })
     expect(result.grassDemandKgDm).toBe(3840)
-    expect(result.areaHa).toBe(1.92)
+    expect(result.grassOnOfferKgDmPerHa).toBe(2180)
+    expect(result.areaHa).toBe(1.76)
+  })
+
+  it("ignores regrowth when it is set to 0", () => {
+    const result = calculateGrazingAllocationArea({
+      animals: 100,
+      grassIntakeKgDmPerAnimalPerDay: 10,
+      growthDuringGrazingKgDmPerHaPerDay: 0,
+    })
+    expect(result.areaHa).toBe(0.59)
   })
 
   it("rejects invalid input", () => {

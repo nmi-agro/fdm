@@ -73,6 +73,10 @@ export type {
 export {
   GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY,
   GRAZING_HOURS_PER_KG_DM_MIN,
+  GRAZING_SYSTEMS,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
+  REST_PERIOD_THRESHOLD_DAYS,
 } from "./grazing/constants"
+export type { GrazingSystemKey } from "./grazing/constants"

@@ -272,6 +272,7 @@ export {
   GRAZING_HOURS_PER_KG_DM_MIN,
   GROWING_SEASON_START_DAY,
   GROWING_SEASON_START_MONTH,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
   REST_PERIOD_THRESHOLD_DAYS,
@@ -285,10 +286,14 @@ export {
   calculateGrazingAllocationArea,
   calculateGrazingMetrics,
   calculatePlatformArea,
+  calculateRestBeforeUses,
   estimateGrassIntake,
+  zonesOverlap,
 } from "./grazing/index"
 export type {
   FieldInput as GrazingFieldInput,
+  FieldUse as GrazingFieldUse,
+  FieldUseRest as GrazingFieldUseRest,
   GrassGrowthSeason,
   GrassIntakeInput,
   GrassIntakeResult,

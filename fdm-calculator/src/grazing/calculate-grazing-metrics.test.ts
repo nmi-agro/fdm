@@ -181,7 +181,7 @@ describe("calculateGrazingMetrics", () => {
     expect(result.weidemelk.plannedQualifyingDays).toBe(10)
   })
 
-  it("should calculate beweidingsplatform, veebezetting and identify overgrazing (<14 rest days)", () => {
+  it("should calculate beweidingsplatform, veebezetting and identify overgrazing (rest below the threshold)", () => {
     const input: GrazingMetricsInput = {
       year: 2026,
       today: new Date("2026-07-01T00:00:00.000Z"),
@@ -230,10 +230,10 @@ describe("calculateGrazingMetrics", () => {
         },
       ],
       harvests: [
-        // Mowing on f1 on June 5 (21 days after May 15 -> compliant rest)
+        // Mowing on f1 on June 7 (22 days after May 15 -> compliant rest of at least 21 days)
         {
           b_id: "f1",
-          b_harvest_date: new Date("2026-06-05T10:00:00.000Z"),
+          b_harvest_date: new Date("2026-06-07T10:00:00.000Z"),
         },
       ],
     }
@@ -249,7 +249,7 @@ describe("calculateGrazingMetrics", () => {
     expect(result.veebezetting.platformGvePerHa).toBe(15.5)
     expect(result.veebezetting.platformStockingCategory).toBe("intensief")
 
-    // Overgrazing alerts: f1 had rest from May 4 to May 12 = 7 days (< 14)
+    // Overgrazing alerts: f1 had rest from May 4 to May 12 = 7 days (< 21)
     expect(result.overbeweidingAlerts.length).toBe(1)
     expect(result.overbeweidingAlerts[0].b_id).toBe("f1")
     expect(result.overbeweidingAlerts[0].restDays).toBe(7)

@@ -41,6 +41,11 @@ export interface GrazingInput {
    * whole field (`l_grazing_area_grazed` from fdm-core). When omitted, the whole field is assumed.
    */
   l_grazing_area_grazed?: number | null
+  /**
+   * Grazed zone within the field (`l_grazing_geometry_zone` from fdm-core). Used to count the rest
+   * per part of the field; omitted or `null` means the whole field.
+   */
+  l_grazing_geometry_zone?: import("geojson").Polygon | import("geojson").MultiPolygon | null
 }
 
 /**
@@ -123,7 +128,7 @@ export interface OvergrazingAlert {
   b_name?: string | null
   /** Realised or planned rest duration in days. */
   restDays: number
-  /** Target rest duration threshold in days (e.g. 14 days). */
+  /** Rest threshold in days (`REST_PERIOD_THRESHOLD_DAYS`). */
   thresholdDays: number
   /** Explanatory Dutch advisory message referencing Handboek Melkveehouderij guidelines. */
   message: string
@@ -220,7 +225,7 @@ export interface GrazingMetricsResult {
    */
   rustperiodes: RestPeriodDetail[]
   /**
-   * Advisory alerts for fields re-used within fewer than 14 days during the growing season.
+   * Advisory alerts for parts of fields re-used within fewer than `REST_PERIOD_THRESHOLD_DAYS` days during the growing season.
    */
   overbeweidingAlerts: OvergrazingAlert[]
   /**

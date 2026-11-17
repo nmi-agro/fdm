@@ -1,51 +1,64 @@
 /**
- * Standard agronomic constants and benchmarks for grazing management in the Netherlands.
+ * Agronomic constants and reference values for grazing management in the Netherlands.
  *
  * References:
- * - Handboek Melkveehouderij (Wageningen Livestock Research), Chapter 3:
- *   "Grasland en voedergewassen", §3.9 Grasgroei and §3.10 Graslandgebruik.
- * - Stichting Weidegang guidelines (Weidemelk criteria 120 days x 6 hours).
- * - Statutory GVE / RVO animal categories (Tabel 4 & Tabel 6).
+ * - Handboek Melkveehouderij 2023-2024 (Wageningen Livestock Research), chapter 3 "Grasland en
+ *   voedergewassen": §3.9 Grasgroei (tables 3.7 and 3.8) and §3.10 Graslandgebruik.
+ * - Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden".
+ * - Groen Kennisnet, "4.1.1 Graslandbeheer en beweidingssystemen".
+ * - Weidemelk definition (120 days x 6 hours) of the Convenant Weidegang / ZuivelNL.
+ *
+ * Values that are not stated in these sources are marked as assumptions.
  */
 
 /**
- * Benchmark rest period threshold in days during the growing season.
- * If a grassland parcel is grazed or mown again within fewer than 14 days,
- * an advisory alert is generated.
- * Source: Handboek Melkveehouderij §3.10.2 & §3.10.3.
+ * Minimum rest period (days) between two uses of a grassland field in the growing season. A field
+ * grazed or mown again sooner gets an advisory alert.
+ * Source: Handboek Melkveehouderij Table 3.8: reaching the grazing yield of 1.700 kg DM/ha takes
+ * at least 21 growth days (400 kg N/ha in the second half of April), and longer later in the
+ * season or at a lower N rate.
  */
-export const REST_PERIOD_THRESHOLD_DAYS = 14
+export const REST_PERIOD_THRESHOLD_DAYS = 21
 
 /**
- * Start of the active grassland growing season (15 February).
- * Source: Handboek Melkveehouderij §3.9.1 & statutory fertilization windows.
+ * Start of the period in which rest periods are checked (15 February).
+ * Assumption: the Handboek Melkveehouderij §3.9.1 ties the start of grass growth to a temperature
+ * sum (T-som) of 200, which some years is reached in early February; this fixed date approximates
+ * it.
  */
 export const GROWING_SEASON_START_MONTH = 1 // 0-based month (February)
 export const GROWING_SEASON_START_DAY = 15
 
 /**
- * Statutory and industry standard Weidemelk criteria:
- * Minimum 120 days of outdoor grazing with at least 6 hours of grazing per day
- * for all dairy and milking cows (category RVO 100).
- * Source: Stichting Weidegang / ZuivelNL.
+ * Weidemelk criteria: at least 120 days of grazing with at least 6 hours per day for the dairy
+ * cows (category RVO 100).
+ * Source: Weidemelk definition of the Convenant Weidegang / ZuivelNL.
  */
 export const WEIDEMELK_TARGET_DAYS = 120
 export const WEIDEMELK_MIN_HOURS_PER_DAY = 6
 export const WEIDEMELK_CATEGORY_CODE = "rvo_100"
 
 /**
- * Typical target dry matter yield to aim for at in-grazing (inscharen).
- * As a rule of thumb, ± 1.700 kg DM/ha is targeted for fresh pasture.
- * Source: Handboek Melkveehouderij §3.10.2.
+ * Grass on offer at in-grazing (inscharen) for a grazing cut (kg DM/ha).
+ * Source: Handboek Melkveehouderij §3.10.2 (omweiden: inscharen bij 1.700 kg ds/ha) and Table 3.8
+ * (streefopbrengst weidesnede 1.700 kg ds/ha).
  */
 export const INSCHAREN_DRY_MATTER_TARGET_KG_HA = 1700
 
 /**
- * Livestock density benchmarks on grassland (GVE / ha):
- * - < 2.0 GVE/ha: Extensive (extensief)
- * - 2.0 - 2.6 GVE/ha: Average (gemiddeld)
- * - > 2.6 GVE/ha: Intensive (intensief)
- * Source: Handboek Melkveehouderij §3.10 & Agrimatie / LMM monitoring.
+ * Regrowth of grass on offer per day of grazing (kg DM/ha/day), added to the grass on offer at
+ * in-grazing. Regrowth during grazing is about half the undisturbed growth.
+ * Source: Handboek Melkveehouderij §3.9.2 ("Tel per dag beweiding dus respectievelijk 50 of 45 kg
+ * droge stof per hectare op bij het aanbod op het moment van inscharen", at 400 or 300 kg N/ha per
+ * year). The value for 300 kg N/ha is used.
+ */
+export const GROWTH_DURING_GRAZING_KG_DM_HA_DAY = 45
+
+/**
+ * Indicative thresholds to label the stocking density on the grazing platform (GVE/ha):
+ * below 2,0 extensief, 2,0 to 2,6 gemiddeld, above 2,6 intensief.
+ * Assumption: there is no official classification into extensive and intensive grazing in GVE/ha;
+ * these thresholds are indicative and not taken from the sources above.
  */
 export const STOCKING_DENSITY_BENCHMARKS = {
   extensiveMax: 2.0,
@@ -53,8 +66,10 @@ export const STOCKING_DENSITY_BENCHMARKS = {
 } as const
 
 /**
- * System specifications and defaults for Dutch grazing systems.
- * Source: Handboek Melkveehouderij §3.10.2 (Handleiding Weiden of Opstallen).
+ * Grazing systems with default period and grazing hours, used to plan grazing.
+ * Source: Handboek Melkveehouderij §3.10.2 (Handleiding Weiden of Opstallen) for the systems and
+ * their periods. Assumption: 8 grazing hours per day as the default for all systems (limited
+ * grazing); adjust it per farm.
  */
 export const GRAZING_SYSTEMS = {
   omweiden: {
@@ -75,10 +90,11 @@ export const GRAZING_SYSTEMS = {
   },
   modern_standweiden: {
     name: "Modern standweiden",
-    description: "Roterend standweiden / Nieuw Nederlands Weiden op deelblokken van het perceel",
-    defaultPeriodDays: 14,
+    description: "Standweiden in blokken; na drie tot zes weken naar het volgende blok",
+    // Handboek §3.10.2: "De dieren worden na drie tot zes weken verplaatst naar het volgende blok"
+    defaultPeriodDays: 21,
     defaultHoursPerDay: 8,
-    grazingType: "partial" as const,
+    grazingType: "full" as const,
     requiresGrazingRecords: true,
   },
   stripgrazen: {

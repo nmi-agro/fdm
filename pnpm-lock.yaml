@@ -805,7 +805,16 @@ importers:
       '@terraformer/wkt':
         specifier: ^2.2.2
         version: 2.2.2
+      '@turf/area':
+        specifier: ^7.4.0
+        version: 7.4.0
       '@turf/boolean-point-in-polygon':
+        specifier: ^7.4.0
+        version: 7.4.0
+      '@turf/helpers':
+        specifier: ^7.4.0
+        version: 7.4.0
+      '@turf/intersect':
         specifier: ^7.4.0
         version: 7.4.0
       '@types/geojson':
