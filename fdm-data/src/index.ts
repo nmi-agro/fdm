@@ -27,5 +27,12 @@ export type {
 } from "./fertilizers/d"
 export { hashFertilizer } from "./fertilizers/hash"
 export { getMeasuresCatalogue } from "./measures"
-export type { CatalogueMeasure, CatalogueMeasureItem, CatalogueMeasureName } from "./measures/d"
+export type {
+  CatalogueMeasure,
+  CatalogueMeasureCondition,
+  CatalogueMeasureEffectSize,
+  CatalogueMeasureImpact,
+  CatalogueMeasureItem,
+  CatalogueMeasureName,
+} from "./measures/d"
 export { hashMeasure } from "./measures/hash"

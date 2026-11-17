@@ -1,13 +1,33 @@
 import { and, asc, desc, eq, gte, isNotNull, isNull, lte, ne, or, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
-import type { Measure, MeasureCatalogue } from "./measure.types"
+import type { Measure, MeasureCatalogue, MeasureCatalogueDetails } from "./measure.types"
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
 import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+
+/** Columns of `measures_catalogue` returned as a {@link MeasureCatalogue}. */
+const measureCatalogueColumns = {
+  m_id: schema.measuresCatalogue.m_id,
+  m_source: schema.measuresCatalogue.m_source,
+  m_name: schema.measuresCatalogue.m_name,
+  m_description: schema.measuresCatalogue.m_description,
+  m_summary: schema.measuresCatalogue.m_summary,
+  m_source_url: schema.measuresCatalogue.m_source_url,
+  m_conflicts: schema.measuresCatalogue.m_conflicts,
+  m_stage_applicability: schema.measuresCatalogue.m_stage_applicability,
+  m_effect_costs: schema.measuresCatalogue.m_effect_costs,
+  m_effect_type: schema.measuresCatalogue.m_effect_type,
+  m_impacts_score: schema.measuresCatalogue.m_impacts_score,
+  m_applicability: schema.measuresCatalogue.m_applicability,
+  m_effect_size: schema.measuresCatalogue.m_effect_size,
+  m_origin: schema.measuresCatalogue.m_origin,
+  m_external_ids: schema.measuresCatalogue.m_external_ids,
+  m_status: schema.measuresCatalogue.m_status,
+}
 
 /**
  * Throws if adding/updating a measure for `(b_id, m_id)` would create an
@@ -337,22 +357,45 @@ export async function getMeasuresForFarm(
 export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCatalogue[]> {
   try {
     const rows = await fdm
-      .select({
-        m_id: schema.measuresCatalogue.m_id,
-        m_source: schema.measuresCatalogue.m_source,
-        m_name: schema.measuresCatalogue.m_name,
-        m_description: schema.measuresCatalogue.m_description,
-        m_summary: schema.measuresCatalogue.m_summary,
-        m_source_url: schema.measuresCatalogue.m_source_url,
-        m_conflicts: schema.measuresCatalogue.m_conflicts,
-        m_stage_applicability: schema.measuresCatalogue.m_stage_applicability,
-      })
+      .select(measureCatalogueColumns)
       .from(schema.measuresCatalogue)
       .orderBy(asc(schema.measuresCatalogue.m_source), asc(schema.measuresCatalogue.m_name))
 
     return rows as MeasureCatalogue[]
   } catch (err) {
     throw handleError(err, "Exception for getMeasuresFromCatalogue", {})
+  }
+}
+
+/**
+ * Returns a single entry from the `measures_catalogue` table, including when it was
+ * created and last changed by a catalogue sync.
+ *
+ * No permission check is performed — the catalogue is not per-user data.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param m_id The catalogue ID of the measure (e.g. "bln_BM1").
+ * @returns A Promise resolving to the {@link MeasureCatalogueDetails}, or `undefined` when no
+ *   catalogue entry exists for `m_id`.
+ */
+export async function getMeasureFromCatalogue(
+  fdm: FdmType,
+  m_id: schema.measuresCatalogueTypeSelect["m_id"],
+): Promise<MeasureCatalogueDetails | undefined> {
+  try {
+    const rows = await fdm
+      .select({
+        ...measureCatalogueColumns,
+        created: schema.measuresCatalogue.created,
+        updated: schema.measuresCatalogue.updated,
+      })
+      .from(schema.measuresCatalogue)
+      .where(eq(schema.measuresCatalogue.m_id, m_id))
+      .limit(1)
+
+    return rows[0] as MeasureCatalogueDetails | undefined
+  } catch (err) {
+    throw handleError(err, "Exception for getMeasureFromCatalogue", { m_id })
   }
 }
 

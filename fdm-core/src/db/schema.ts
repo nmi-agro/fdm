@@ -1,4 +1,8 @@
-import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type {
+  ApplicationMethods,
+  CatalogueMeasureCondition,
+  CatalogueMeasureEffectSize,
+} from "@nmi-agro/fdm-data"
 import { sql } from "drizzle-orm"
 import {
   boolean,
@@ -1041,6 +1045,17 @@ export const stageApplicabilityTypeEnum = fdmSchema.enum(
   stageApplicabilityTypeOptions.map((x) => x.value) as [string, ...string[]],
 )
 
+// Whether a catalogue measure is still in its source catalogue. An inactive measure is kept
+// because fields may still apply it, but it is no longer offered.
+export const measureStatusOptions = [
+  { value: "active", label: "Actief" },
+  { value: "inactive", label: "Niet meer beschikbaar" },
+] as const
+export const measureStatusEnum = fdmSchema.enum(
+  "m_status",
+  measureStatusOptions.map((x) => x.value) as ["active", "inactive"],
+)
+
 export const measuresCatalogue = fdmSchema.table(
   "measures_catalogue",
   {
@@ -1052,6 +1067,14 @@ export const measuresCatalogue = fdmSchema.table(
     m_source_url: text(),
     m_conflicts: text().array(), // Conflicting m_id values
     m_stage_applicability: stageApplicabilityTypeEnum(), // "field" | "farm"
+    m_effect_costs: numericCasted(), // Cost indication: 0 (low), 1 (medium), 2 (high)
+    m_effect_type: text(), // "qual" | "classed"
+    m_impacts_score: text().array(), // Score variables affected, e.g. "S_NUT_N"
+    m_applicability: jsonb().$type<CatalogueMeasureCondition[]>(),
+    m_effect_size: jsonb().$type<CatalogueMeasureEffectSize[]>(),
+    m_origin: text(), // Where the measure comes from, e.g. "BBWP"
+    m_external_ids: jsonb().$type<Record<string, string>>(), // IDs in related schemes
+    m_status: measureStatusEnum().notNull().default("active"),
     hash: text(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
