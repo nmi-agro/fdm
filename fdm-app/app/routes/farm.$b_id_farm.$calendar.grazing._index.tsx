@@ -202,17 +202,25 @@ export default function BeweidingskalenderPage() {
           description="Plan en registreer de beweiding en het graslandgebruik van je percelen."
           rightNode={
             <div className="flex flex-wrap items-center gap-2.5">
-              <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/plan`}>
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Graslandgebruiksysteem planner
-                </NavLink>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                nativeButton={false}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/plan`} />}
+              >
+                <Sparkles className="text-primary h-3.5 w-3.5" />
+                Graslandgebruiksysteem planner
               </Button>
-              <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/today`}>
-                  <Compass className="h-3.5 w-3.5 text-primary" />
-                  Vandaag op de kaart
-                </NavLink>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                nativeButton={false}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing/today`} />}
+              >
+                <Compass className="text-primary h-3.5 w-3.5" />
+                Vandaag op de kaart
               </Button>
               {farmWritePermission && (
                 <Button
@@ -238,11 +246,13 @@ export default function BeweidingskalenderPage() {
                 <p className="text-muted-foreground mt-2 text-sm">
                   Voeg je eerste koppel toe om te starten met de beweidingskalender.
                 </p>
-                <Button className="mt-6 gap-1.5" asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`}>
-                    <Plus className="h-4 w-4" />
-                    Melkvee toevoegen
-                  </NavLink>
+                <Button
+                  className="mt-6 gap-1.5"
+                  nativeButton={false}
+                  render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`} />}
+                >
+                  <Plus className="h-4 w-4" />
+                  Melkvee toevoegen
                 </Button>
               </div>
             ) : !hasGrassland ? (
@@ -250,12 +260,15 @@ export default function BeweidingskalenderPage() {
                 <SquareArrowRightExit className="text-muted-foreground mx-auto h-12 w-12" />
                 <h3 className="mt-4 text-lg font-semibold">Geen graslandpercelen gevonden</h3>
                 <p className="text-muted-foreground mt-2 text-sm">
-                  Er zijn voor dit kalenderjaar geen percelen met graslandteelt geregistreerd in het bouwplan.
+                  Er zijn voor dit kalenderjaar geen percelen met graslandteelt geregistreerd in het
+                  bouwplan.
                 </p>
-                <Button className="mt-6 gap-1.5" asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/rotation`}>
-                    Naar Bouwplan
-                  </NavLink>
+                <Button
+                  className="mt-6 gap-1.5"
+                  nativeButton={false}
+                  render={<NavLink to={`/farm/${b_id_farm}/${calendar}/rotation`} />}
+                >
+                  Naar Bouwplan
                 </Button>
               </div>
             ) : (
@@ -284,4 +297,3 @@ export default function BeweidingskalenderPage() {
     </SidebarInset>
   )
 }
-

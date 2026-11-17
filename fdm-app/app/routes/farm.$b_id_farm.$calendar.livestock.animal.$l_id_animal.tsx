@@ -10,13 +10,7 @@ import {
   updateAnimal,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
-import {
-  ArrowLeft,
-  ArrowRightLeft,
-  LogOut,
-  Save,
-  SquareArrowRightExit,
-} from "lucide-react"
+import { ArrowLeft, ArrowRightLeft, LogOut, Save, SquareArrowRightExit } from "lucide-react"
 import { useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -30,11 +24,18 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { Badge } from "~/components/ui/badge"
+import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
+import { Button } from "~/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
@@ -107,39 +108,46 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
 
     // Correlate animal assignment history with grazing periods
-    const animalGrazings = history.flatMap((assign) => {
-      const aStart = assign.l_assigning_start ? new Date(assign.l_assigning_start) : new Date(0)
-      const aEnd = assign.l_assigning_end ? new Date(assign.l_assigning_end) : new Date(8640000000000000)
+    const animalGrazings = history
+      .flatMap((assign) => {
+        const aStart = assign.l_assigning_start ? new Date(assign.l_assigning_start) : new Date(0)
+        const aEnd = assign.l_assigning_end
+          ? new Date(assign.l_assigning_end)
+          : new Date(8640000000000000)
 
-      return grazings
-        .filter((g) => {
-          if (g.l_id_herd !== assign.l_id_herd) return false
-          const gStart = new Date(g.l_grazing_start)
-          const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-          return gStart <= aEnd && gEnd >= aStart
-        })
-        .map((g) => {
-          const gStart = new Date(g.l_grazing_start)
-          const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-          const days = Math.max(1, Math.floor((gEnd.getTime() - gStart.getTime()) / 86400000) + 1)
-          return {
-            l_id_grazing: g.l_id_grazing,
-            l_id_herd: g.l_id_herd,
-            l_herd_name: g.l_herd_name ?? "Koppel",
-            b_id: g.b_id,
-            b_name: g.b_name ?? "Onbekend perceel",
-            b_area: g.b_area,
-            l_grazing_start: gStart.toISOString(),
-            l_grazing_end: gEnd.toISOString(),
-            l_grazing_hours: g.l_grazing_hours ?? 8,
-            l_grazing_type: g.l_grazing_type ?? "full",
-            days,
-          }
-        })
-    }).sort((a, b) => new Date(b.l_grazing_start).getTime() - new Date(a.l_grazing_start).getTime())
+        return grazings
+          .filter((g) => {
+            if (g.l_id_herd !== assign.l_id_herd) return false
+            const gStart = new Date(g.l_grazing_start)
+            const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
+            return gStart <= aEnd && gEnd >= aStart
+          })
+          .map((g) => {
+            const gStart = new Date(g.l_grazing_start)
+            const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
+            const days = Math.max(1, Math.floor((gEnd.getTime() - gStart.getTime()) / 86400000) + 1)
+            return {
+              l_id_grazing: g.l_id_grazing,
+              l_id_herd: g.l_id_herd,
+              l_herd_name: g.l_herd_name ?? "Koppel",
+              b_id: g.b_id,
+              b_name: g.b_name ?? "Onbekend perceel",
+              b_area: g.b_area,
+              l_grazing_start: gStart.toISOString(),
+              l_grazing_end: gEnd.toISOString(),
+              l_grazing_hours: g.l_grazing_hours ?? 8,
+              l_grazing_type: g.l_grazing_type ?? "full",
+              days,
+            }
+          })
+      })
+      .sort((a, b) => new Date(b.l_grazing_start).getTime() - new Date(a.l_grazing_start).getTime())
 
     const totalGrazingDays = animalGrazings.reduce((acc, g) => acc + g.days, 0)
-    const totalGrazingHours = animalGrazings.reduce((acc, g) => acc + g.days * (g.l_grazing_hours ?? 8), 0)
+    const totalGrazingHours = animalGrazings.reduce(
+      (acc, g) => acc + g.days * (g.l_grazing_hours ?? 8),
+      0,
+    )
 
     return {
       b_id_farm,
@@ -155,9 +163,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_coatcolor: animal.l_coatcolor,
         l_birth_date: animal.l_birth_date ? new Date(animal.l_birth_date).toISOString() : null,
         l_sex: animal.l_sex,
-        l_arriving_date: animal.l_arriving_date ? new Date(animal.l_arriving_date).toISOString() : null,
+        l_arriving_date: animal.l_arriving_date
+          ? new Date(animal.l_arriving_date).toISOString()
+          : null,
         l_arriving_method: animal.l_arriving_method,
-        l_leaving_date: animal.l_leaving_date ? new Date(animal.l_leaving_date).toISOString() : null,
+        l_leaving_date: animal.l_leaving_date
+          ? new Date(animal.l_leaving_date).toISOString()
+          : null,
         l_leaving_method: animal.l_leaving_method,
         l_id_herd: animal.l_id_herd,
         l_id_category: animal.l_id_category,
@@ -247,7 +259,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     if (intent === "record_departure") {
       const leavingDateVal = String(formData.get("l_leaving_date") ?? "")
-      const l_leaving_method = (formData.get("l_leaving_method") as "died" | "sold" | "slaughtered" | "exported" | null) ?? "sold"
+      const l_leaving_method =
+        (formData.get("l_leaving_method") as "died" | "sold" | "slaughtered" | "exported" | null) ??
+        "sold"
 
       await updateAnimal(fdm, session.principal_id, l_id_animal, {
         l_leaving_date: leavingDateVal ? new Date(leavingDateVal) : new Date(),
@@ -290,7 +304,9 @@ export default function AnimalDetailPage() {
 
   const [targetHerdId, setTargetHerdId] = useState("")
   const [leavingDate, setLeavingDate] = useState(format(new Date(), "yyyy-MM-dd"))
-  const [leavingMethod, setLeavingMethod] = useState<"sold" | "died" | "slaughtered" | "exported">("sold")
+  const [leavingMethod, setLeavingMethod] = useState<"sold" | "died" | "slaughtered" | "exported">(
+    "sold",
+  )
 
   const isLeft = Boolean(animal.l_leaving_date)
   const currentHerd = herds.find((h) => h.l_id_herd === animal.l_id_herd)
@@ -338,12 +354,14 @@ export default function AnimalDetailPage() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`}>Veestapel</NavLink>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+          Veestapel
         </BreadcrumbLink>
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`}>Dieren</NavLink>
+        <BreadcrumbLink
+          render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
+        >
+          Dieren
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
@@ -351,31 +369,33 @@ export default function AnimalDetailPage() {
         </BreadcrumbItem>
       </Header>
 
-      <main className="container max-w-5xl py-6 space-y-6">
+      <main className="container max-w-5xl space-y-6 py-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" asChild className="h-8 gap-1 pl-0 text-muted-foreground hover:text-foreground">
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Dieren
-                </NavLink>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-8 gap-1 pl-0"
+                nativeButton={false}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Dieren
               </Button>
               <span className="text-muted-foreground">/</span>
-              <span className="font-semibold text-sm">
+              <span className="text-sm font-semibold">
                 Werknummer {animal.l_id_worknumber ?? animal.l_id_animal.slice(0, 8)}
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+            <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight">
               <span>Dier #{animal.l_id_worknumber ?? "—"}</span>
               {isLeft ? (
                 <Badge variant="outline" className="text-muted-foreground border-slate-300">
                   Afgevoerd ({animal.l_leaving_method ?? "vertrokken"})
                 </Badge>
               ) : (
-                <Badge className="bg-emerald-600 text-white">
-                  Actief op bedrijf
-                </Badge>
+                <Badge className="bg-emerald-600 text-white">Actief op bedrijf</Badge>
               )}
             </h1>
           </div>
@@ -385,10 +405,12 @@ export default function AnimalDetailPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card>
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Levensnummer</CardTitle>
+              <CardTitle className="text-muted-foreground text-xs font-medium">
+                Levensnummer
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="font-mono font-semibold text-sm truncate">
+              <p className="truncate font-mono text-sm font-semibold">
                 {animal.l_id_eartag ?? "Geen oormerk"}
               </p>
             </CardContent>
@@ -396,10 +418,12 @@ export default function AnimalDetailPage() {
 
           <Card>
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Huidige koppel</CardTitle>
+              <CardTitle className="text-muted-foreground text-xs font-medium">
+                Huidige koppel
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="font-semibold text-sm truncate">
+              <p className="truncate text-sm font-semibold">
                 {currentHerd?.l_herd_name ?? "Geen koppel"}
               </p>
             </CardContent>
@@ -407,21 +431,23 @@ export default function AnimalDetailPage() {
 
           <Card>
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Diercategorie</CardTitle>
+              <CardTitle className="text-muted-foreground text-xs font-medium">
+                Diercategorie
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="font-semibold text-sm truncate">
-                {animal.l_category ?? "—"}
-              </p>
+              <p className="truncate text-sm font-semibold">{animal.l_category ?? "—"}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Weidegang ({calendar})</CardTitle>
+              <CardTitle className="text-muted-foreground text-xs font-medium">
+                Weidegang ({calendar})
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="font-semibold text-sm">
+              <p className="text-sm font-semibold">
                 {grazingSummary.totalDays} dagen ({grazingSummary.totalHours}u)
               </p>
             </CardContent>
@@ -469,18 +495,30 @@ export default function AnimalDetailPage() {
                         field={{
                           name: "l_birth_date",
                           value: editBirthdate,
-                          onChange: (val) => setEditBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                          onChange: (val) =>
+                            setEditBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
                           onBlur: () => {},
                           ref: () => {},
                           disabled: !farmWritePermission,
                         }}
-                        fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                        fieldState={{
+                          invalid: false,
+                          isTouched: false,
+                          isDirty: false,
+                          isValidating: false,
+                        }}
                       />
                       <Field>
                         <FieldLabel htmlFor="detail-sex">Geslacht</FieldLabel>
                         <Select
                           value={editSex}
-                          onValueChange={(v: "female" | "male") => setEditSex(v)}
+                          items={[
+                            { value: "female", label: "Vrouwelijk" },
+                            { value: "male", label: "Mannelijk" },
+                          ]}
+                          onValueChange={(v) => {
+                            if (v !== null) setEditSex(v)
+                          }}
                           disabled={!farmWritePermission}
                         >
                           <SelectTrigger id="detail-sex">
@@ -539,7 +577,7 @@ export default function AnimalDetailPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
                       <SquareArrowRightExit className="h-4 w-4 text-emerald-600" />
                       Beweidingshistorie {calendar}
                     </CardTitle>
@@ -547,9 +585,7 @@ export default function AnimalDetailPage() {
                       Overzicht van percelen waar dit dier met haar koppel heeft gegraasd.
                     </CardDescription>
                   </div>
-                  <Badge variant="secondary">
-                    {grazingSummary.totalDays} weidedagen
-                  </Badge>
+                  <Badge variant="secondary">{grazingSummary.totalDays} weidedagen</Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -565,7 +601,10 @@ export default function AnimalDetailPage() {
                   <TableBody>
                     {grazingHistory.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-xs">
+                        <TableCell
+                          colSpan={4}
+                          className="text-muted-foreground py-6 text-center text-xs"
+                        >
                           Nog geen beweidingsregistraties voor dit dier in {calendar}.
                         </TableCell>
                       </TableRow>
@@ -573,13 +612,16 @@ export default function AnimalDetailPage() {
                       grazingHistory.map((g, idx) => (
                         <TableRow key={idx} className="text-xs">
                           <TableCell className="font-mono">
-                            {format(new Date(g.l_grazing_start), "dd-MM")} → {format(new Date(g.l_grazing_end), "dd-MM")}
+                            {format(new Date(g.l_grazing_start), "dd-MM")} →{" "}
+                            {format(new Date(g.l_grazing_end), "dd-MM")}
                           </TableCell>
                           <TableCell className="font-medium">
                             {g.b_name} {g.b_area ? `(${g.b_area} ha)` : ""}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{g.l_herd_name}</TableCell>
-                          <TableCell className="text-right font-mono">{g.l_grazing_hours} u</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {g.l_grazing_hours} u
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -600,14 +642,18 @@ export default function AnimalDetailPage() {
               </CardHeader>
               <CardContent>
                 {isLeft ? (
-                  <div className="rounded-lg border bg-muted/40 p-4 space-y-1 text-xs">
+                  <div className="bg-muted/40 space-y-1 rounded-lg border p-4 text-xs">
                     <p>
                       <strong>Vertrekdatum: </strong>
-                      {animal.l_leaving_date ? format(new Date(animal.l_leaving_date), "dd-MM-yyyy") : "—"}
+                      {animal.l_leaving_date
+                        ? format(new Date(animal.l_leaving_date), "dd-MM-yyyy")
+                        : "—"}
                     </p>
                     <p>
                       <strong>Reden / Methode: </strong>
-                      <span className="capitalize">{animal.l_leaving_method ?? "Niet gespecificeerd"}</span>
+                      <span className="capitalize">
+                        {animal.l_leaving_method ?? "Niet gespecificeerd"}
+                      </span>
                     </p>
                   </div>
                 ) : farmWritePermission ? (
@@ -619,20 +665,32 @@ export default function AnimalDetailPage() {
                           field={{
                             name: "l_leaving_date",
                             value: leavingDate,
-                            onChange: (val) => setLeavingDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                            onChange: (val) =>
+                              setLeavingDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
                             onBlur: () => {},
                             ref: () => {},
                           }}
-                          fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                          fieldState={{
+                            invalid: false,
+                            isTouched: false,
+                            isDirty: false,
+                            isValidating: false,
+                          }}
                           required
                         />
                         <Field>
                           <FieldLabel htmlFor="dep-method">Reden</FieldLabel>
                           <Select
                             value={leavingMethod}
-                            onValueChange={(v: "sold" | "died" | "slaughtered" | "exported") =>
-                              setLeavingMethod(v)
-                            }
+                            items={[
+                              { value: "sold", label: "Verkocht (sold)" },
+                              { value: "slaughtered", label: "Geslacht (slaughtered)" },
+                              { value: "died", label: "Overleden (died)" },
+                              { value: "exported", label: "Geëxporteerd (exported)" },
+                            ]}
+                            onValueChange={(v) => {
+                              if (v !== null) setLeavingMethod(v)
+                            }}
                           >
                             <SelectTrigger id="dep-method">
                               <SelectValue />
@@ -672,7 +730,15 @@ export default function AnimalDetailPage() {
                   <CardContent className="space-y-3">
                     <Field>
                       <FieldLabel htmlFor="move-herd">Doelkoppel</FieldLabel>
-                      <Select value={targetHerdId} onValueChange={setTargetHerdId}>
+                      <Select
+                        value={targetHerdId}
+                        items={herds
+                          .filter((h) => h.l_id_herd !== animal.l_id_herd)
+                          .map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
+                        onValueChange={(v) => {
+                          if (v !== null) setTargetHerdId(v)
+                        }}
+                      >
                         <SelectTrigger id="move-herd">
                           <SelectValue placeholder="Kies nieuwe koppel" />
                         </SelectTrigger>
@@ -723,7 +789,10 @@ export default function AnimalDetailPage() {
                   <TableBody>
                     {history.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center py-6 text-muted-foreground text-xs">
+                        <TableCell
+                          colSpan={3}
+                          className="text-muted-foreground py-6 text-center text-xs"
+                        >
                           Geen toewijzingshistorie gevonden.
                         </TableCell>
                       </TableRow>
@@ -732,7 +801,9 @@ export default function AnimalDetailPage() {
                         <TableRow key={idx} className="text-xs">
                           <TableCell className="font-medium">{h.l_herd_name}</TableCell>
                           <TableCell className="text-muted-foreground">
-                            {h.l_assigning_start ? format(new Date(h.l_assigning_start), "dd-MM-yy") : "—"}
+                            {h.l_assigning_start
+                              ? format(new Date(h.l_assigning_start), "dd-MM-yy")
+                              : "—"}
                           </TableCell>
                           <TableCell>
                             {h.l_assigning_end ? (
@@ -740,7 +811,10 @@ export default function AnimalDetailPage() {
                                 {format(new Date(h.l_assigning_end), "dd-MM-yy")}
                               </span>
                             ) : (
-                              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-700"
+                              >
                                 Huidig
                               </Badge>
                             )}

@@ -1,7 +1,4 @@
-import {
-  getFarm,
-  getFarms,
-} from "@nmi-agro/fdm-core"
+import { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import {
   AlertTriangle,
   Award,
@@ -25,8 +22,8 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Badge } from "~/components/ui/badge"
+import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Progress } from "~/components/ui/progress"
 import { SidebarInset } from "~/components/ui/sidebar"
@@ -81,12 +78,28 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
-const MONTH_NAMES = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
+const MONTH_NAMES = [
+  "jan",
+  "feb",
+  "mrt",
+  "apr",
+  "mei",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+]
 
 export default function GrazingInsightsPage() {
   const { b_id_farm, calendar, farmOptions, metrics } = useLoaderData<typeof loader>()
 
-  const weidemelkProgressPercent = Math.min(100, Math.round((metrics.weidemelk.qualifyingDays / metrics.weidemelk.targetDays) * 100))
+  const weidemelkProgressPercent = Math.min(
+    100,
+    Math.round((metrics.weidemelk.qualifyingDays / metrics.weidemelk.targetDays) * 100),
+  )
 
   return (
     <SidebarInset>
@@ -99,8 +112,8 @@ export default function GrazingInsightsPage() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`}>Beweiding</NavLink>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}>
+          Beweiding
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Kengetallen</BreadcrumbItem>
@@ -119,14 +132,18 @@ export default function GrazingInsightsPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">Weidedagen</CardTitle>
-                    <Calendar className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-muted-foreground text-xs font-medium">
+                      Weidedagen
+                    </CardTitle>
+                    <Calendar className="text-primary h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{metrics.weidedagen.total}</div>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    {metrics.weidedagen.planned > 0 ? `+ ${metrics.weidedagen.planned} gepland` : `Gerealiseerd in ${calendar}`}
+                    {metrics.weidedagen.planned > 0
+                      ? `+ ${metrics.weidedagen.planned} gepland`
+                      : `Gerealiseerd in ${calendar}`}
                   </p>
                 </CardContent>
               </Card>
@@ -134,8 +151,10 @@ export default function GrazingInsightsPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">Weide-uren per dag</CardTitle>
-                    <Clock className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-muted-foreground text-xs font-medium">
+                      Weide-uren per dag
+                    </CardTitle>
+                    <Clock className="text-primary h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -149,14 +168,17 @@ export default function GrazingInsightsPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">Beweidingsplatform</CardTitle>
-                    <Compass className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-muted-foreground text-xs font-medium">
+                      Beweidingsplatform
+                    </CardTitle>
+                    <Compass className="text-primary h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{metrics.beweidingsplatform.areaHa} ha</div>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    {metrics.beweidingsplatform.fieldCount} {metrics.beweidingsplatform.fieldCount === 1 ? "perceel" : "percelen"} beweid
+                    {metrics.beweidingsplatform.fieldCount}{" "}
+                    {metrics.beweidingsplatform.fieldCount === 1 ? "perceel" : "percelen"} beweid
                   </p>
                 </CardContent>
               </Card>
@@ -164,18 +186,26 @@ export default function GrazingInsightsPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">Veebezetting platform</CardTitle>
-                    <Scale className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-muted-foreground text-xs font-medium">
+                      Veebezetting platform
+                    </CardTitle>
+                    <Scale className="text-primary h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold">
-                      {metrics.veebezetting.platformGvePerHa !== null ? `${metrics.veebezetting.platformGvePerHa} GVE/ha` : "—"}
+                      {metrics.veebezetting.platformGvePerHa !== null
+                        ? `${metrics.veebezetting.platformGvePerHa} GVE/ha`
+                        : "—"}
                     </span>
                     {metrics.veebezetting.platformStockingCategory && (
                       <Badge
-                        variant={metrics.veebezetting.platformStockingCategory === "intensief" ? "destructive" : "secondary"}
+                        variant={
+                          metrics.veebezetting.platformStockingCategory === "intensief"
+                            ? "destructive"
+                            : "secondary"
+                        }
                         className="text-[10px]"
                       >
                         {metrics.veebezetting.platformStockingCategory}
@@ -199,13 +229,18 @@ export default function GrazingInsightsPage() {
                       Weidemelk · 120 dagen × 6 uur
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      Alleen dagen met minimaal 6 uur weidegang van de melkkoeien (categorie 100) tellen mee.
+                      Alleen dagen met minimaal 6 uur weidegang van de melkkoeien (categorie 100)
+                      tellen mee.
                     </CardDescription>
                   </div>
                   {metrics.weidemelk.isMet ? (
-                    <Badge className="bg-emerald-600 text-white gap-1 py-1">
+                    <Badge className="gap-1 bg-emerald-600 py-1 text-white">
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      Norm behaald ({metrics.weidemelk.marginDays >= 0 ? `+${metrics.weidemelk.marginDays}d marge` : ""})
+                      Norm behaald (
+                      {metrics.weidemelk.marginDays >= 0
+                        ? `+${metrics.weidemelk.marginDays}d marge`
+                        : ""}
+                      )
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-muted-foreground py-1">
@@ -220,7 +255,7 @@ export default function GrazingInsightsPage() {
                   <span>{weidemelkProgressPercent}%</span>
                 </div>
                 <Progress value={weidemelkProgressPercent} className="h-3" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                <div className="text-muted-foreground flex items-center justify-between pt-1 text-xs">
                   <span>Start weideseizoen</span>
                   <span>Doel: 120 dagen met ≥ 6 uur</span>
                   {metrics.weidemelk.plannedQualifyingDays > 0 && (
@@ -244,30 +279,40 @@ export default function GrazingInsightsPage() {
                     .filter((m) => m.month >= 4 && m.month <= 10) // April to October
                     .map((m) => {
                       const totalMonthDays = 30
-                      const realisedWidth = Math.min(100, Math.round((m.realisedDays / totalMonthDays) * 100))
-                      const plannedWidth = Math.min(100 - realisedWidth, Math.round((m.plannedDays / totalMonthDays) * 100))
+                      const realisedWidth = Math.min(
+                        100,
+                        Math.round((m.realisedDays / totalMonthDays) * 100),
+                      )
+                      const plannedWidth = Math.min(
+                        100 - realisedWidth,
+                        Math.round((m.plannedDays / totalMonthDays) * 100),
+                      )
 
                       return (
                         <div key={m.month} className="flex items-center gap-3 text-xs">
-                          <span className="w-8 font-mono font-medium text-muted-foreground uppercase">
+                          <span className="text-muted-foreground w-8 font-mono font-medium uppercase">
                             {MONTH_NAMES[m.month - 1]}
                           </span>
-                          <div className="relative h-6 flex-1 bg-muted/40 rounded-sm overflow-hidden flex items-center">
+                          <div className="bg-muted/40 relative flex h-6 flex-1 items-center overflow-hidden rounded-sm">
                             {realisedWidth > 0 && (
                               <div
                                 style={{ width: `${realisedWidth}%` }}
-                                className="h-full bg-emerald-600 dark:bg-emerald-500 transition-all"
+                                className="h-full bg-emerald-600 transition-all dark:bg-emerald-500"
                               />
                             )}
                             {plannedWidth > 0 && (
                               <div
                                 style={{ width: `${plannedWidth}%` }}
-                                className="h-full bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.3)_2px,rgba(16,185,129,0.3)_4px)] border-l border-emerald-500/40 opacity-70"
+                                className="h-full border-l border-emerald-500/40 bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(16,185,129,0.3)_2px,rgba(16,185,129,0.3)_4px)] opacity-70"
                               />
                             )}
                           </div>
                           <span className="w-16 text-right font-medium">
-                            {m.realisedDays > 0 ? `${m.realisedDays} dgn` : m.plannedDays > 0 ? `(${m.plannedDays} p)` : "—"}
+                            {m.realisedDays > 0
+                              ? `${m.realisedDays} dgn`
+                              : m.plannedDays > 0
+                                ? `(${m.plannedDays} p)`
+                                : "—"}
                           </span>
                         </div>
                       )
@@ -283,44 +328,51 @@ export default function GrazingInsightsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {metrics.overbeweidingAlerts.map((alert, idx) => (
-                  <div key={idx} className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200"
+                  >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                     <div>
-                      <p className="font-semibold">Rustperiode te kort op {alert.b_name ?? "perceel"}</p>
+                      <p className="font-semibold">
+                        Rustperiode te kort op {alert.b_name ?? "perceel"}
+                      </p>
                       <p className="mt-0.5">{alert.message}</p>
                     </div>
                   </div>
                 ))}
 
                 {metrics.incompleteRecords.count > 0 && (
-                  <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center justify-between">
+                  <div className="bg-muted/40 text-muted-foreground flex items-center justify-between rounded-lg border p-3 text-xs">
                     <div className="flex items-center gap-2">
-                      <FileQuestion className="h-4 w-4 text-muted-foreground" />
+                      <FileQuestion className="text-muted-foreground h-4 w-4" />
                       <span>
-                        Van <strong>{metrics.incompleteRecords.count}</strong> beweidingen ontbreekt het aantal uren per dag.
+                        Van <strong>{metrics.incompleteRecords.count}</strong> beweidingen ontbreekt
+                        het aantal uren per dag.
                       </span>
                     </div>
                     <NavLink
                       to={`/farm/${b_id_farm}/${calendar}/grazing`}
-                      className="text-primary font-medium hover:underline flex items-center gap-1"
+                      className="text-primary flex items-center gap-1 font-medium hover:underline"
                     >
                       Aanvullen in kalender →
                     </NavLink>
                   </div>
                 )}
 
-                <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-900 dark:text-blue-200 flex items-start gap-2.5">
-                  <Landmark className="h-4 w-4 shrink-0 text-blue-600 mt-0.5" />
-                  <div className="flex-1 flex items-center justify-between">
+                <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-900 dark:text-blue-200">
+                  <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                  <div className="flex flex-1 items-center justify-between">
                     <div>
                       <p className="font-semibold">Stikstofgebruiksnorm</p>
                       <p className="mt-0.5">
-                        Beweiding {calendar} staat aan. In de stikstofgebruiksnorm rekent dit als beweid grasland in plaats van geheel maaien.
+                        Beweiding {calendar} staat aan. In de stikstofgebruiksnorm rekent dit als
+                        beweid grasland in plaats van geheel maaien.
                       </p>
                     </div>
                     <NavLink
                       to={`/farm/${b_id_farm}/${calendar}/norms`}
-                      className="text-primary font-medium hover:underline text-xs shrink-0 ml-4"
+                      className="text-primary ml-4 shrink-0 text-xs font-medium hover:underline"
                     >
                       Bekijk Gebruiksruimte →
                     </NavLink>
@@ -330,9 +382,13 @@ export default function GrazingInsightsPage() {
             </Card>
 
             {/* Provenance Footer */}
-            <div className="border-t pt-4 text-xs text-muted-foreground flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span>Herkomst: handmatig ingevulde beweidingsregistraties · GVE-factoren uit de diercategorieëncatalogus · gebruiksnorm-effect via de bestaande normen van {calendar}.</span>
+            <div className="text-muted-foreground flex items-center gap-1.5 border-t pt-4 text-xs">
+              <Info className="text-primary h-3.5 w-3.5 shrink-0" />
+              <span>
+                Herkomst: handmatig ingevulde beweidingsregistraties · GVE-factoren uit de
+                diercategorieëncatalogus · gebruiksnorm-effect via de bestaande normen van{" "}
+                {calendar}.
+              </span>
             </div>
           </div>
         </FarmContent>

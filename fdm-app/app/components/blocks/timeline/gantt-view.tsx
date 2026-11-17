@@ -715,7 +715,8 @@ function buildFieldFeatures(
         lane: field.b_id,
         kind: "cultivation",
         href,
-        detail: `Beweiding: ${name}${hoursText}\n${field.b_name}\n${formatNl(startAt)} – ${grazing.l_grazing_end ? formatNl(grazing.l_grazing_end) : "nu actief"}`,
+        label: name,
+        detail: `Beweiding:${name}${hoursText}\n${field.b_name}\n${formatNl(startAt)} – ${grazing.l_grazing_end ? formatNl(grazing.l_grazing_end) : "nu actief"}`,
       })
     }
   }

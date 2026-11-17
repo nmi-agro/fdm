@@ -1,9 +1,6 @@
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
+import { Minus, MoreHorizontal, Plus, Warehouse } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { NavLink, useFetcher } from "react-router"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +11,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog"
+import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "~/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -22,9 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "~/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import { Field, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
@@ -34,9 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { Minus, MoreHorizontal, Plus, Warehouse } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { NavLink, useFetcher } from "react-router"
 
 export interface HerdCardProps {
   b_id_farm: string
@@ -159,16 +159,20 @@ export function HerdCard({
         <CardHeader className="space-y-1.5 pb-2">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-base font-semibold leading-none">{herd.l_herd_name ?? "Koppel"}</h3>
-              <p className="text-muted-foreground mt-1 text-xs">{herd.l_category ?? "Diercategorie"}</p>
+              <h3 className="text-base leading-none font-semibold">
+                {herd.l_herd_name ?? "Koppel"}
+              </h3>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {herd.l_category ?? "Diercategorie"}
+              </p>
             </div>
             {canWrite && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">Koppelopties</span>
-                  </Button>
+                <DropdownMenuTrigger
+                  render={<Button variant="ghost" size="icon" className="h-8 w-8" />}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">Koppelopties</span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setIsRenameOpen(true)}>
@@ -226,7 +230,10 @@ export function HerdCard({
           {/* GVE stats */}
           <div className="text-muted-foreground flex items-center justify-between text-xs">
             <span>
-              <strong className="text-foreground font-semibold">{totalGve.toLocaleString("nl-NL")}</strong> GVE
+              <strong className="text-foreground font-semibold">
+                {totalGve.toLocaleString("nl-NL")}
+              </strong>{" "}
+              GVE
             </span>
             <span>{lsuFactor.toLocaleString("nl-NL", { minimumFractionDigits: 2 })} GVE/dier</span>
           </div>
@@ -234,13 +241,19 @@ export function HerdCard({
           {/* Grazing Status Badge */}
           <div className="pt-1">
             {status.type === "grazing_now" && (
-              <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+              <Badge
+                variant="outline"
+                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              >
                 <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500" />
                 Loopt nu op {status.fieldName ?? "onbekend perceel"}
               </Badge>
             )}
             {status.type === "planned" && (
-              <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              <Badge
+                variant="outline"
+                className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              >
                 <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-500" />
                 Gepland {status.dateStr ?? ""}
               </Badge>
@@ -256,15 +269,18 @@ export function HerdCard({
 
         <CardFooter className="border-t pt-3">
           <Button
-            asChild
             variant="outline"
             size="sm"
             className="w-full gap-1.5 text-xs font-medium"
+            nativeButton={false}
+            render={
+              <NavLink
+                to={`/farm/${b_id_farm}/${calendar}/livestock/animals?herd=${herd.l_id_herd}`}
+              />
+            }
           >
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals?herd=${herd.l_id_herd}`}>
-              <Warehouse className="h-3.5 w-3.5" />
-              Dieren bekijken ({count})
-            </NavLink>
+            <Warehouse className="h-3.5 w-3.5" />
+            Dieren bekijken ({count})
           </Button>
         </CardFooter>
       </Card>
@@ -278,12 +294,17 @@ export function HerdCard({
           <AlertDialogHeader>
             <AlertDialogTitle>Dier afvoeren uit {herd.l_herd_name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Het verlagen van het aantal dieren sluit de meest recente toewijzing af en registreert dat het dier het bedrijf heeft verlaten. Dieren zonder oormerk worden als eerste afgevoerd.
+              Het verlagen van het aantal dieren sluit de meest recente toewijzing af en registreert
+              dat het dier het bedrijf heeft verlaten. Dieren zonder oormerk worden als eerste
+              afgevoerd.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReduction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmReduction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Afvoeren bevestigen
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -296,9 +317,7 @@ export function HerdCard({
           <form onSubmit={handleRenameSubmit}>
             <DialogHeader>
               <DialogTitle>Koppelnaam wijzigen</DialogTitle>
-              <DialogDescription>
-                Geef de koppel een herkenbare naam.
-              </DialogDescription>
+              <DialogDescription>Geef de koppel een herkenbare naam.</DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Field>
@@ -329,13 +348,22 @@ export function HerdCard({
             <DialogHeader>
               <DialogTitle>Dieren verplaatsen</DialogTitle>
               <DialogDescription>
-                Verplaats alle actieve dieren van {herd.l_herd_name} naar een andere koppel op dit bedrijf. De toewijzingshistorie blijft bewaard.
+                Verplaats alle actieve dieren van {herd.l_herd_name} naar een andere koppel op dit
+                bedrijf. De toewijzingshistorie blijft bewaard.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Field>
                 <FieldLabel htmlFor="target-herd-select">Doelkoppel</FieldLabel>
-                <Select value={targetHerdId} onValueChange={setTargetHerdId}>
+                <Select
+                  value={targetHerdId}
+                  items={allHerds
+                    .filter((h) => h.l_id_herd !== herd.l_id_herd)
+                    .map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
+                  onValueChange={(v) => {
+                    if (v !== null) setTargetHerdId(v)
+                  }}
+                >
                   <SelectTrigger id="target-herd-select">
                     <SelectValue placeholder="Kies een koppel" />
                   </SelectTrigger>
@@ -377,7 +405,10 @@ export function HerdCard({
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             {count === 0 && (
-              <AlertDialogAction onClick={handleDeleteSubmit} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                onClick={handleDeleteSubmit}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
                 Verwijderen
               </AlertDialogAction>
             )}

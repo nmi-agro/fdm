@@ -2,6 +2,7 @@ import type { FeatureCollection } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import type { LayerProps } from "react-map-gl/maplibre"
 import centroid from "@turf/centroid"
+import { cn } from "cn"
 import * as maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -16,7 +17,6 @@ import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { cn } from "~/lib/utils"
 
 const GRAZING_MAP_FIELDS_LAYER = "grazingMapFields"
 const GRAZING_MAP_OUTLINE_LAYER = "grazingMapFieldsOutline"
@@ -185,7 +185,10 @@ export function TodayGrazingMap({
   }, [fieldsGeoJSON])
 
   return (
-    <div className="relative w-full h-full overflow-hidden" style={{ height, isolation: "isolate" }}>
+    <div
+      className="relative h-full w-full overflow-hidden"
+      style={{ height, isolation: "isolate" }}
+    >
       <MapGL
         {...viewState}
         ref={mapRef}
@@ -197,24 +200,16 @@ export function TodayGrazingMap({
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}
-        cursor={hoveredFieldId && hoveredFeature?.properties?.status !== "disabled" ? "pointer" : "default"}
+        cursor={
+          hoveredFieldId && hoveredFeature?.properties?.status !== "disabled"
+            ? "pointer"
+            : "default"
+        }
       >
         <Controls
-          onViewportChange={({ longitude, latitude, zoom }) =>
-            setViewState((current) => ({
-              ...current,
-              longitude,
-              latitude,
-              zoom,
-            }))
-          }
+          initialViewState={initialViewState}
           showFlyToFields={fieldsGeoJSON.features.length > 0}
-          onFlyToFields={() => {
-            setViewState({ ...initialViewState })
-            if (initialViewState.bounds) {
-              mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-            }
-          }}
+          showStyleSelect={false}
         />
 
         <MapTilerAttribution />
@@ -236,13 +231,13 @@ export function TodayGrazingMap({
             >
               <div
                 className={cn(
-                  "pointer-events-none rounded-md px-1.5 py-0.5 text-[11px] font-semibold shadow-xs select-none backdrop-blur-xs transition-all",
+                  "pointer-events-none rounded-md px-1.5 py-0.5 text-[11px] font-semibold shadow-xs backdrop-blur-xs transition-all select-none",
                   c.status === "weiden_today" && "bg-emerald-600 text-white ring-1 ring-white/50",
                   c.status === "maaien_today" && "bg-amber-600 text-white ring-1 ring-white/50",
                   (c.status === "last_weiden" || c.status === "last_maaien") &&
-                    "bg-background/90 text-foreground border border-border shadow-xs",
+                    "bg-background/90 text-foreground border-border border shadow-xs",
                   c.status === "unused" &&
-                    "bg-white/95 text-slate-800 dark:bg-slate-900/95 dark:text-slate-100 border border-slate-300/80 dark:border-slate-700 shadow-xs text-[10.5px] font-medium backdrop-blur-sm",
+                    "border border-slate-300/80 bg-white/95 text-[10.5px] font-medium text-slate-800 shadow-xs backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100",
                 )}
               >
                 {c.labelText}
@@ -254,9 +249,9 @@ export function TodayGrazingMap({
 
       {/* Hover Floating Card */}
       {hoveredFeature && (
-        <div className="bg-background/95 pointer-events-none absolute bottom-4 left-4 z-20 rounded-xl border p-3.5 text-xs shadow-lg backdrop-blur-md max-w-xs space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="bg-background/95 animate-in fade-in zoom-in-95 pointer-events-none absolute bottom-4 left-4 z-20 max-w-xs space-y-1.5 rounded-xl border p-3.5 text-xs shadow-lg backdrop-blur-md duration-150">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-bold text-sm text-foreground">
+            <span className="text-foreground text-sm font-bold">
               {hoveredFeature.properties?.b_name ?? "Perceel"}
             </span>
             <span className="text-muted-foreground font-medium">
@@ -266,7 +261,7 @@ export function TodayGrazingMap({
 
           {hoveredFeature.properties?.status === "weiden_today" && (
             <div className="space-y-0.5 text-emerald-950 dark:text-emerald-200">
-              <p className="font-semibold text-xs">
+              <p className="text-xs font-semibold">
                 {hoveredFeature.properties?.herdName ?? "Koppel"}{" "}
                 {hoveredFeature.properties?.animalCount
                   ? `(${hoveredFeature.properties?.animalCount} ${hoveredFeature.properties?.animalCount === 1 ? "dier" : "dieren"})`
@@ -274,43 +269,53 @@ export function TodayGrazingMap({
                 · actief weiden
               </p>
               <p className="text-muted-foreground text-[11px]">
-                {hoveredFeature.properties?.hours ? `${hoveredFeature.properties?.hours} uur/dag` : "Uren niet ingevuld"}
+                {hoveredFeature.properties?.hours
+                  ? `${hoveredFeature.properties?.hours} uur/dag`
+                  : "Uren niet ingevuld"}
               </p>
             </div>
           )}
 
           {hoveredFeature.properties?.status === "maaien_today" && (
-            <p className="text-amber-900 dark:text-amber-200 font-semibold">
+            <p className="font-semibold text-amber-900 dark:text-amber-200">
               Vandaag gemaaid (maaisnede)
             </p>
           )}
 
           {hoveredFeature.properties?.status === "last_weiden" && (
             <p className="text-muted-foreground text-[11px]">
-              Laatst beweid · <strong className="text-foreground">{hoveredFeature.properties?.restDays} dagen rust</strong>
+              Laatst beweid ·{" "}
+              <strong className="text-foreground">
+                {hoveredFeature.properties?.restDays} dagen rust
+              </strong>
             </p>
           )}
 
           {hoveredFeature.properties?.status === "last_maaien" && (
             <p className="text-muted-foreground text-[11px]">
-              Laatst gemaaid · <strong className="text-foreground">{hoveredFeature.properties?.restDays} dagen rust</strong>
+              Laatst gemaaid ·{" "}
+              <strong className="text-foreground">
+                {hoveredFeature.properties?.restDays} dagen rust
+              </strong>
             </p>
           )}
 
           {hoveredFeature.properties?.status === "unused" && (
-            <p className="text-emerald-800 dark:text-emerald-300 font-medium text-[11px]">
+            <p className="text-[11px] font-medium text-emerald-800 dark:text-emerald-300">
               Graslandperceel · Nog niet gebruikt dit seizoen
             </p>
           )}
 
           {hoveredFeature.properties?.status === "disabled" && (
             <p className="text-muted-foreground text-[11px]">
-              {hoveredFeature.properties?.isBufferstrip ? "Bufferstrook (niet beweid)" : "Geen graslandperceel"}
+              {hoveredFeature.properties?.isBufferstrip
+                ? "Bufferstrook (niet beweid)"
+                : "Geen graslandperceel"}
             </p>
           )}
 
           {hoveredFeature.properties?.status !== "disabled" && (
-            <p className="text-[10px] text-primary pt-1 border-t font-medium">
+            <p className="text-primary border-t pt-1 text-[10px] font-medium">
               Klik op het perceel om beweiding vast te leggen →
             </p>
           )}

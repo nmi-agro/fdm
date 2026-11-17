@@ -1,3 +1,9 @@
+import { format } from "date-fns"
+import { Info, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useFetcher } from "react-router"
+import { DatePicker } from "~/components/custom/date-picker-v2"
+import { Button } from "~/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,8 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { Button } from "~/components/ui/button"
-import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
@@ -19,10 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { format } from "date-fns"
-import { Info, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useFetcher } from "react-router"
 
 export interface GrazingPopoverProps {
   open: boolean
@@ -69,11 +69,11 @@ export function GrazingPopover({
 
   const defaultStart = existingGrazing?.l_grazing_start
     ? format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd")
-    : initialStartDate ?? format(new Date(), "yyyy-MM-dd")
+    : (initialStartDate ?? format(new Date(), "yyyy-MM-dd"))
 
   const defaultEnd = existingGrazing?.l_grazing_end
     ? format(new Date(existingGrazing.l_grazing_end), "yyyy-MM-dd")
-    : initialEndDate ?? defaultStart
+    : (initialEndDate ?? defaultStart)
 
   const [startDate, setStartDate] = useState(defaultStart)
   const [endDate, setEndDate] = useState(defaultEnd)
@@ -198,7 +198,14 @@ export function GrazingPopover({
               {/* Koppel Select */}
               <Field>
                 <FieldLabel htmlFor="popover-herd">Koppel *</FieldLabel>
-                <Select value={herdId} onValueChange={setHerdId} disabled={Boolean(existingGrazing)}>
+                <Select
+                  value={herdId}
+                  items={herds.map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
+                  onValueChange={(v) => {
+                    if (v !== null) setHerdId(v)
+                  }}
+                  disabled={Boolean(existingGrazing)}
+                >
                   <SelectTrigger id="popover-herd">
                     <SelectValue placeholder="Kies een koppel" />
                   </SelectTrigger>
@@ -227,7 +234,12 @@ export function GrazingPopover({
                     onBlur: () => {},
                     ref: () => {},
                   }}
-                  fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                  fieldState={{
+                    invalid: false,
+                    isTouched: false,
+                    isDirty: false,
+                    isValidating: false,
+                  }}
                   required
                 />
                 <DatePicker
@@ -242,7 +254,12 @@ export function GrazingPopover({
                     onBlur: () => {},
                     ref: () => {},
                   }}
-                  fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                  fieldState={{
+                    invalid: false,
+                    isTouched: false,
+                    isDirty: false,
+                    isValidating: false,
+                  }}
                   required
                 />
               </div>
@@ -301,18 +318,18 @@ export function GrazingPopover({
                 <FieldLabel>Oppervlak</FieldLabel>
                 <RadioGroup
                   value={areaMode}
-                  onValueChange={(val: "full" | "partial") => setAreaMode(val)}
+                  onValueChange={(val) => setAreaMode(val as "full" | "partial")}
                   className="space-y-1"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="full" id="area-full" />
-                    <Label htmlFor="area-full" className="cursor-pointer font-normal text-xs">
+                    <Label htmlFor="area-full" className="cursor-pointer text-xs font-normal">
                       Volledig perceel ({field?.b_area} ha)
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="partial" id="area-partial" />
-                    <Label htmlFor="area-partial" className="cursor-pointer font-normal text-xs">
+                    <Label htmlFor="area-partial" className="cursor-pointer text-xs font-normal">
                       Deel van perceel
                     </Label>
                   </div>
@@ -357,7 +374,7 @@ export function GrazingPopover({
                         step="0.1"
                         value={partialArea}
                         onChange={(e) => setPartialArea(parseFloat(e.target.value || "0"))}
-                        className="w-24 h-8 text-xs"
+                        className="h-8 w-24 text-xs"
                       />
                       <span className="text-muted-foreground text-xs">ha van {fieldArea} ha</span>
                     </div>
@@ -367,10 +384,11 @@ export function GrazingPopover({
             </FieldGroup>
 
             {/* Trust-building live summary */}
-            <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
-              <p className="font-medium text-foreground flex items-center gap-1.5">
-                <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-                {diffDays} {diffDays === 1 ? "weidedag" : "weidedagen"} · {totalHours} weide-uren op {field?.b_name} ({effectiveArea} ha).
+            <div className="bg-muted/30 text-muted-foreground space-y-1 rounded-lg border p-3 text-xs">
+              <p className="text-foreground flex items-center gap-1.5 font-medium">
+                <Info className="text-primary h-3.5 w-3.5 shrink-0" />
+                {diffDays} {diffDays === 1 ? "weidedag" : "weidedagen"} · {totalHours} weide-uren op{" "}
+                {field?.b_name} ({effectiveArea} ha).
               </p>
               {isFuture && (
                 <p className="text-amber-700 dark:text-amber-400">
@@ -380,7 +398,7 @@ export function GrazingPopover({
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-between sm:justify-between border-t pt-4">
+          <DialogFooter className="flex items-center justify-between border-t pt-4 sm:justify-between">
             {existingGrazing && canWrite ? (
               <Button
                 type="button"

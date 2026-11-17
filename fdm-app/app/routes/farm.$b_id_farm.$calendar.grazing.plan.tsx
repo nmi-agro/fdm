@@ -8,17 +8,9 @@ import {
   getGrazingCalendarForFarm,
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
-import {
-  GRAZING_SYSTEMS,
-  type GrazingSystemKey,
-} from "~/components/blocks/grazing/systems"
+import { cn } from "cn"
 import { format } from "date-fns"
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-  Sparkles,
-} from "lucide-react"
+import { AlertTriangle, CheckCircle2, Info, Sparkles } from "lucide-react"
 import { useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -32,14 +24,22 @@ import {
 import { redirectWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { GRAZING_SYSTEMS, type GrazingSystemKey } from "~/components/blocks/grazing/systems"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
-import { Checkbox } from "~/components/ui/checkbox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { Badge } from "~/components/ui/badge"
+import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
+import { Button } from "~/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"
+import { Checkbox } from "~/components/ui/checkbox"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
@@ -63,7 +63,6 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -219,8 +218,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function GrazingPlanAssistent() {
-  const { b_id_farm, calendar, calendarYear, farmOptions, herds, grasslandFields, existingGrazings } =
-    useLoaderData<typeof loader>()
+  const {
+    b_id_farm,
+    calendar,
+    calendarYear,
+    farmOptions,
+    herds,
+    grasslandFields,
+    existingGrazings,
+  } = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
 
   const todayStr = format(new Date(), "yyyy-MM-dd")
@@ -390,8 +396,8 @@ export default function GrazingPlanAssistent() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`}>Beweiding</NavLink>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}>
+          Beweiding
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Graslandgebruiksysteem planner</BreadcrumbItem>
@@ -404,7 +410,7 @@ export default function GrazingPlanAssistent() {
         />
 
         <FarmContent>
-          <div className="space-y-8 max-w-4xl">
+          <div className="max-w-4xl space-y-8">
             {/* Step 1: System Selection */}
             <Card>
               <CardHeader>
@@ -424,15 +430,15 @@ export default function GrazingPlanAssistent() {
                         type="button"
                         onClick={() => handleSystemSelect(key)}
                         className={cn(
-                          "cursor-pointer text-left rounded-xl border p-4 transition-all",
+                          "cursor-pointer rounded-xl border p-4 text-left transition-all",
                           isSelected
-                            ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs"
+                            ? "border-primary bg-primary/5 ring-primary/20 shadow-xs ring-2"
                             : "border-border hover:bg-muted/40",
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-sm">{sys.name}</span>
-                          {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                          <span className="text-sm font-semibold">{sys.name}</span>
+                          {isSelected && <CheckCircle2 className="text-primary h-4 w-4" />}
                         </div>
                         <p className="text-muted-foreground mt-1.5 text-xs">{sys.description}</p>
                       </button>
@@ -441,14 +447,16 @@ export default function GrazingPlanAssistent() {
                 </div>
 
                 {!selectedSystem.requiresGrazingRecords && (
-                  <div className="mt-4 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3.5 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                  <div className="mt-4 space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200">
                     <p className="font-semibold">Let op bij {selectedSystem.name}:</p>
                     <p>
-                      Bij dit systeem is er geen weidegang. In de stikstofgebruiksnorm telt al je grasland mee als <strong>geheel maaien</strong>, wat leidt tot een hogere stikstofgebruiksruimte. Er worden geen weidedagen vastgelegd.
+                      Bij dit systeem is er geen weidegang. In de stikstofgebruiksnorm telt al je
+                      grasland mee als <strong>geheel maaien</strong>, wat leidt tot een hogere
+                      stikstofgebruiksruimte. Er worden geen weidedagen vastgelegd.
                     </p>
                     <NavLink
                       to={`/farm/${b_id_farm}/${calendar}/norms`}
-                      className="text-primary font-medium underline inline-block mt-1"
+                      className="text-primary mt-1 inline-block font-medium underline"
                     >
                       Bekijk de gebruiksruimte →
                     </NavLink>
@@ -462,9 +470,12 @@ export default function GrazingPlanAssistent() {
                 {/* Step 2: Huiskavel */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">2 · Welke percelen horen bij de huiskavel?</CardTitle>
+                    <CardTitle className="text-lg">
+                      2 · Welke percelen horen bij de huiskavel?
+                    </CardTitle>
                     <CardDescription className="text-xs">
-                      FDM weet nog niet welke percelen huiskavel zijn. Je keuze wordt gebruikt voor het advies en de kalenderindeling.
+                      FDM weet nog niet welke percelen huiskavel zijn. Je keuze wordt gebruikt voor
+                      het advies en de kalenderindeling.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -500,9 +511,13 @@ export default function GrazingPlanAssistent() {
                       })}
                     </div>
 
-                    <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground flex items-center gap-2">
-                      <Info className="h-4 w-4 text-primary shrink-0" />
-                      <span>Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong>. Bij Nieuw Nederlands Weiden (Handboek §3.10) bepaalt de grootte van de huiskavel en de veebezetting welk schema optimaal is.</span>
+                    <div className="bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-lg p-3 text-xs">
+                      <Info className="text-primary h-4 w-4 shrink-0" />
+                      <span>
+                        Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong>. Bij Nieuw
+                        Nederlands Weiden (Handboek §3.10) bepaalt de grootte van de huiskavel en de
+                        veebezetting welk schema optimaal is.
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -517,7 +532,13 @@ export default function GrazingPlanAssistent() {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <Field>
                           <FieldLabel htmlFor="plan-herd">Koppel</FieldLabel>
-                          <Select value={selectedHerdId} onValueChange={setSelectedHerdId}>
+                          <Select
+                            value={selectedHerdId}
+                            items={herds.map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
+                            onValueChange={(v) => {
+                              if (v !== null) setSelectedHerdId(v)
+                            }}
+                          >
                             <SelectTrigger id="plan-herd">
                               <SelectValue placeholder="Kies koppel" />
                             </SelectTrigger>
@@ -537,11 +558,17 @@ export default function GrazingPlanAssistent() {
                             field={{
                               name: "plan_start",
                               value: startDate,
-                              onChange: (val) => setStartDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                              onChange: (val) =>
+                                setStartDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
                               onBlur: () => {},
                               ref: () => {},
                             }}
-                            fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                            fieldState={{
+                              invalid: false,
+                              isTouched: false,
+                              isDirty: false,
+                              isValidating: false,
+                            }}
                             required
                           />
                           <DatePicker
@@ -549,11 +576,17 @@ export default function GrazingPlanAssistent() {
                             field={{
                               name: "plan_end",
                               value: endDate,
-                              onChange: (val) => setEndDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                              onChange: (val) =>
+                                setEndDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
                               onBlur: () => {},
                               ref: () => {},
                             }}
-                            fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                            fieldState={{
+                              invalid: false,
+                              isTouched: false,
+                              isDirty: false,
+                              isValidating: false,
+                            }}
                             required
                           />
                         </div>
@@ -608,7 +641,9 @@ export default function GrazingPlanAssistent() {
                         </Field>
 
                         <Field>
-                          <FieldLabel htmlFor="plan-days">Wissel van perceel elke (dagen)</FieldLabel>
+                          <FieldLabel htmlFor="plan-days">
+                            Wissel van perceel elke (dagen)
+                          </FieldLabel>
                           <Input
                             id="plan-days"
                             type="number"
@@ -621,8 +656,10 @@ export default function GrazingPlanAssistent() {
                       </div>
 
                       {selectedSystem.grazingType === "partial" && (
-                        <Field className="rounded-lg border bg-muted/20 p-3.5 space-y-2">
-                          <FieldLabel>Schatting oppervlakte per deelblok ({selectedSystem.name})</FieldLabel>
+                        <Field className="bg-muted/20 space-y-2 rounded-lg border p-3.5">
+                          <FieldLabel>
+                            Schatting oppervlakte per deelblok ({selectedSystem.name})
+                          </FieldLabel>
                           <div className="flex flex-wrap items-center gap-2">
                             {[50, 33, 25].map((pct) => (
                               <Button
@@ -631,12 +668,16 @@ export default function GrazingPlanAssistent() {
                                 variant={partialPercentage === pct ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => setPartialPercentage(pct)}
-                                className="text-xs h-8"
+                                className="h-8 text-xs"
                               >
-                                {pct === 50 ? "1/2 blok (50%)" : pct === 33 ? "1/3 blok (33%)" : "1/4 blok (25%)"}
+                                {pct === 50
+                                  ? "1/2 blok (50%)"
+                                  : pct === 33
+                                    ? "1/3 blok (33%)"
+                                    : "1/4 blok (25%)"}
                               </Button>
                             ))}
-                            <div className="flex items-center gap-1.5 ml-2">
+                            <div className="ml-2 flex items-center gap-1.5">
                               <Input
                                 type="number"
                                 min="5"
@@ -647,21 +688,24 @@ export default function GrazingPlanAssistent() {
                                     Math.min(95, Math.max(5, parseInt(e.target.value || "50", 10))),
                                   )
                                 }
-                                className="w-20 text-xs h-8"
+                                className="h-8 w-20 text-xs"
                               />
                               <span className="text-muted-foreground text-xs">% van perceel</span>
                             </div>
                           </div>
                           <p className="text-muted-foreground text-[11px]">
-                            Bij {selectedSystem.name} weidt de koppel steeds op een deel van het perceel. FDM schat de oppervlakte per weidebeurt automatisch op {partialPercentage}% van de totale perceelsgrootte.
+                            Bij {selectedSystem.name} weidt de koppel steeds op een deel van het
+                            perceel. FDM schat de oppervlakte per weidebeurt automatisch op{" "}
+                            {partialPercentage}% van de totale perceelsgrootte.
                           </p>
                         </Field>
                       )}
                     </FieldGroup>
 
-                    <p className="text-muted-foreground text-xs flex items-center gap-1.5">
-                      <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-                      Plannen kan alleen vooruit. De periode start op zijn vroegst vandaag ({todayStr}).
+                    <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                      <Info className="text-primary h-3.5 w-3.5 shrink-0" />
+                      Plannen kan alleen vooruit. De periode start op zijn vroegst vandaag (
+                      {todayStr}).
                     </p>
                   </CardContent>
                 </Card>
@@ -681,12 +725,14 @@ export default function GrazingPlanAssistent() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {collisions.length > 0 && (
-                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-                        <p className="font-semibold flex items-center gap-1.5">
+                      <div className="space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                        <p className="flex items-center gap-1.5 font-semibold">
                           <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          {collisions.length} {collisions.length === 1 ? "periode overlapt" : "perioden overlappen"} met bestaande registraties en worden overgeslagen:
+                          {collisions.length}{" "}
+                          {collisions.length === 1 ? "periode overlapt" : "perioden overlappen"} met
+                          bestaande registraties en worden overgeslagen:
                         </p>
-                        <ul className="list-disc pl-5 space-y-0.5 mt-1">
+                        <ul className="mt-1 list-disc space-y-0.5 pl-5">
                           {collisions.slice(0, 3).map((c, i) => (
                             <li key={i}>
                               {c.fieldName} ({c.startDate} → {c.endDate})
@@ -709,7 +755,10 @@ export default function GrazingPlanAssistent() {
                         <TableBody>
                           {generatedRows.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                              <TableCell
+                                colSpan={4}
+                                className="text-muted-foreground py-6 text-center"
+                              >
                                 Geen perioden gegenereerd. Selecteer minimaal 1 perceel.
                               </TableCell>
                             </TableRow>
@@ -717,15 +766,22 @@ export default function GrazingPlanAssistent() {
                             generatedRows.map((row, idx) => (
                               <TableRow key={idx}>
                                 <TableCell className="font-mono text-xs">
-                                  {format(new Date(row.l_grazing_start), "dd-MM")} → {format(new Date(row.l_grazing_end), "dd-MM")}
+                                  {format(new Date(row.l_grazing_start), "dd-MM")} →{" "}
+                                  {format(new Date(row.l_grazing_end), "dd-MM")}
                                 </TableCell>
-                                <TableCell className="font-medium text-xs">
+                                <TableCell className="text-xs font-medium">
                                   {row.fieldName}{" "}
                                   <span className="text-muted-foreground font-normal">
-                                    ({row.l_grazing_area ? `${row.l_grazing_area} ha van ${row.fieldArea} ha` : `${row.fieldArea} ha`})
+                                    (
+                                    {row.l_grazing_area
+                                      ? `${row.l_grazing_area} ha van ${row.fieldArea} ha`
+                                      : `${row.fieldArea} ha`}
+                                    )
                                   </span>
                                 </TableCell>
-                                <TableCell className="text-right text-xs">{row.l_grazing_hours} u</TableCell>
+                                <TableCell className="text-right text-xs">
+                                  {row.l_grazing_hours} u
+                                </TableCell>
                                 <TableCell className="text-xs capitalize">
                                   {row.l_grazing_type === "partial"
                                     ? `Deelperceel (${partialPercentage}%)`
@@ -738,14 +794,19 @@ export default function GrazingPlanAssistent() {
                       </Table>
                     </div>
 
-                    <p className="text-muted-foreground text-xs flex items-center gap-1.5">
-                      <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-                      Rustperiodes zijn gebaseerd op een vaste richtlijn, niet op de werkelijke grasgroei.
+                    <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                      <Info className="text-primary h-3.5 w-3.5 shrink-0" />
+                      Rustperiodes zijn gebaseerd op een vaste richtlijn, niet op de werkelijke
+                      grasgroei.
                     </p>
                   </CardContent>
                   <CardFooter className="flex justify-between border-t pt-4">
-                    <Button variant="outline" asChild>
-                      <NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`}>Annuleren</NavLink>
+                    <Button
+                      variant="outline"
+                      nativeButton={false}
+                      render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}
+                    >
+                      Annuleren
                     </Button>
 
                     <fetcher.Form method="post">

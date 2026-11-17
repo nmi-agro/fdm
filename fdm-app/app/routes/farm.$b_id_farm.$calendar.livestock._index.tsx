@@ -31,8 +31,8 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { HerdCard } from "~/components/blocks/livestock/herd-card"
+import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
@@ -124,7 +124,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const now = new Date()
     const herdStatusMap = new Map<
       string,
-      { type: "grazing_now" | "planned" | "idle"; fieldName?: string | null; dateStr?: string | null }
+      {
+        type: "grazing_now" | "planned" | "idle"
+        fieldName?: string | null
+        dateStr?: string | null
+      }
     >()
 
     for (const h of herds) {
@@ -143,7 +147,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       } else {
         const planned = herdGrazings
           .filter((g) => new Date(g.l_grazing_start) > now)
-          .sort((a, b) => new Date(a.l_grazing_start).getTime() - new Date(b.l_grazing_start).getTime())[0]
+          .sort(
+            (a, b) => new Date(a.l_grazing_start).getTime() - new Date(b.l_grazing_start).getTime(),
+          )[0]
 
         if (planned) {
           const d = new Date(planned.l_grazing_start)
@@ -214,13 +220,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
       if (targetCount > previousCount) {
         const toAdd = targetCount - previousCount
         await addAnimalsToHerd(fdm, session.principal_id, l_id_herd, toAdd)
-        return dataWithSuccess({ targetCount }, { message: `${toAdd} ${toAdd === 1 ? "dier" : "dieren"} toegevoegd.` })
+        return dataWithSuccess(
+          { targetCount },
+          { message: `${toAdd} ${toAdd === 1 ? "dier" : "dieren"} toegevoegd.` },
+        )
       } else if (targetCount < previousCount) {
         const toRemove = previousCount - targetCount
         await removeAnimalsFromHerd(fdm, session.principal_id, l_id_herd, toRemove, {
           l_leaving_method: "sold",
         })
-        return dataWithSuccess({ targetCount }, { message: `${toRemove} ${toRemove === 1 ? "dier" : "dieren"} afgevoerd.` })
+        return dataWithSuccess(
+          { targetCount },
+          { message: `${toRemove} ${toRemove === 1 ? "dier" : "dieren"} afgevoerd.` },
+        )
       }
       return { success: true }
     }
@@ -289,11 +301,8 @@ export default function VeestapelOverview() {
   const fetcher = useFetcher()
 
   const totalAnimals = herds.reduce((acc, h) => acc + h.count, 0)
-  const totalGve = Number(
-    herds.reduce((acc, h) => acc + h.count * (h.l_lsu ?? 1.0), 0).toFixed(1),
-  )
-  const gvePerHaGrassland =
-    grasslandArea > 0 ? Number((totalGve / grasslandArea).toFixed(1)) : null
+  const totalGve = Number(herds.reduce((acc, h) => acc + h.count * (h.l_lsu ?? 1.0), 0).toFixed(1))
+  const gvePerHaGrassland = grasslandArea > 0 ? Number((totalGve / grasslandArea).toFixed(1)) : null
 
   const handleAddHerdSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -326,11 +335,15 @@ export default function VeestapelOverview() {
           description="Beheer je koppels, veebezetting en individuele dieren."
           rightNode={
             <div className="flex items-center gap-2">
-              <Button variant="outline" asChild size="sm" className="gap-1.5 text-xs">
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`}>
-                  <Warehouse className="h-4 w-4" />
-                  Alle dieren bekijken
-                </NavLink>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                nativeButton={false}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
+              >
+                <Warehouse className="h-4 w-4" />
+                Alle dieren bekijken
               </Button>
               {farmWritePermission && (
                 <Button
@@ -356,11 +369,13 @@ export default function VeestapelOverview() {
                 <p className="text-muted-foreground mt-2 text-sm">
                   Voeg een eerste koppel toe om te starten met veestapel- en beweidingsbeheer.
                 </p>
-                <Button className="mt-6 gap-1.5" asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`}>
-                    <Plus className="h-4 w-4" />
-                    Melkvee toevoegen
-                  </NavLink>
+                <Button
+                  className="mt-6 gap-1.5"
+                  nativeButton={false}
+                  render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`} />}
+                >
+                  <Plus className="h-4 w-4" />
+                  Melkvee toevoegen
                 </Button>
               </div>
             ) : (
@@ -380,17 +395,21 @@ export default function VeestapelOverview() {
                 </div>
 
                 {/* Overall Stats Footer */}
-                <div className="rounded-xl border bg-card p-4 shadow-xs">
+                <div className="bg-card rounded-xl border p-4 shadow-xs">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-6 text-sm">
                       <div>
                         <span className="text-muted-foreground">Totaal: </span>
-                        <strong className="text-foreground font-semibold">{totalAnimals} dieren</strong>
+                        <strong className="text-foreground font-semibold">
+                          {totalAnimals} dieren
+                        </strong>
                       </div>
                       <span className="text-muted-foreground">·</span>
                       <div>
                         <span className="text-muted-foreground">GVE: </span>
-                        <strong className="text-foreground font-semibold">{totalGve.toLocaleString("nl-NL")} GVE</strong>
+                        <strong className="text-foreground font-semibold">
+                          {totalGve.toLocaleString("nl-NL")} GVE
+                        </strong>
                       </div>
                       {gvePerHaGrassland !== null && (
                         <>
@@ -400,15 +419,20 @@ export default function VeestapelOverview() {
                             <strong className="text-foreground font-semibold">
                               {gvePerHaGrassland.toLocaleString("nl-NL")} GVE/ha
                             </strong>
-                            <span className="text-muted-foreground ml-1 text-xs">({grasslandArea} ha gras)</span>
+                            <span className="text-muted-foreground ml-1 text-xs">
+                              ({grasslandArea} ha gras)
+                            </span>
                           </div>
                         </>
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 border-t pt-2 text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span>Aantallen zijn afgeleid uit de dieren in de koppel — er wordt geen aantal opgeslagen. GVE-factoren: diercategorieëncatalogus (l_lsu).</span>
+                  <div className="text-muted-foreground mt-3 flex items-center gap-1.5 border-t pt-2 text-xs">
+                    <Info className="text-primary h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      Aantallen zijn afgeleid uit de dieren in de koppel — er wordt geen aantal
+                      opgeslagen. GVE-factoren: diercategorieëncatalogus (l_lsu).
+                    </span>
                   </div>
                 </div>
               </>
@@ -432,7 +456,16 @@ export default function VeestapelOverview() {
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="cat-select">Diercategorie *</FieldLabel>
-                  <Select value={newCatId} onValueChange={setNewCatId}>
+                  <Select
+                    value={newCatId}
+                    items={categories.map((c) => ({
+                      value: c.l_id_category,
+                      label: `${c.l_category} (${c.l_lsu} GVE/dier)`,
+                    }))}
+                    onValueChange={(v) => {
+                      if (v !== null) setNewCatId(v)
+                    }}
+                  >
                     <SelectTrigger id="cat-select">
                       <SelectValue />
                     </SelectTrigger>
@@ -484,4 +517,3 @@ export default function VeestapelOverview() {
     </SidebarInset>
   )
 }
-

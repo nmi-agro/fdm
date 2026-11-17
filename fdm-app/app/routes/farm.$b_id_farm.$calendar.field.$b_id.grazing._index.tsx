@@ -8,6 +8,7 @@ import {
   getHarvestsForFarm,
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { AlertTriangle, Plus, Tractor } from "lucide-react"
 import { useState } from "react"
@@ -35,7 +36,6 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -135,23 +135,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ].sort((a, b) => a.start.getTime() - b.start.getTime())
 
     // Compute rest before each event
-    const eventsWithRest = allEvents.map((ev, idx) => {
-      let restDays: number | null = null
-      let isShortRest = false
-      if (idx > 0) {
-        const prev = allEvents[idx - 1]
-        const diffMs = ev.start.getTime() - prev.end.getTime()
-        restDays = Math.max(0, Math.floor(diffMs / 86400000))
-        isShortRest = restDays < 14
-      }
-      return {
-        ...ev,
-        startStr: format(ev.start, "dd-MM-yyyy"),
-        endStr: format(ev.end, "dd-MM-yyyy"),
-        restDays,
-        isShortRest,
-      }
-    }).reverse() // Most recent first for display
+    const eventsWithRest = allEvents
+      .map((ev, idx) => {
+        let restDays: number | null = null
+        let isShortRest = false
+        if (idx > 0) {
+          const prev = allEvents[idx - 1]
+          const diffMs = ev.start.getTime() - prev.end.getTime()
+          restDays = Math.max(0, Math.floor(diffMs / 86400000))
+          isShortRest = restDays < 14
+        }
+        return {
+          ...ev,
+          startStr: format(ev.start, "dd-MM-yyyy"),
+          endStr: format(ev.end, "dd-MM-yyyy"),
+          restDays,
+          isShortRest,
+        }
+      })
+      .reverse() // Most recent first for display
 
     return {
       b_id_farm,
@@ -280,19 +282,27 @@ export default function FieldGrazingPage() {
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div>
               <span className="text-muted-foreground">Dit jaar: </span>
-              <strong className="text-foreground font-semibold">{summary.totalDays} weidedagen</strong>
+              <strong className="text-foreground font-semibold">
+                {summary.totalDays} weidedagen
+              </strong>
             </div>
             <span className="text-muted-foreground">·</span>
             <div>
-              <strong className="text-foreground font-semibold">{summary.totalHours} weide-uren</strong>
+              <strong className="text-foreground font-semibold">
+                {summary.totalHours} weide-uren
+              </strong>
             </div>
             <span className="text-muted-foreground">·</span>
             <div>
-              <strong className="text-foreground font-semibold">{summary.periodsCount} beweidingsperioden</strong>
+              <strong className="text-foreground font-semibold">
+                {summary.periodsCount} beweidingsperioden
+              </strong>
             </div>
             <span className="text-muted-foreground">·</span>
             <div>
-              <strong className="text-foreground font-semibold">{summary.harvestsCount} sneden gemaaid</strong>
+              <strong className="text-foreground font-semibold">
+                {summary.harvestsCount} sneden gemaaid
+              </strong>
             </div>
           </div>
         </CardContent>
@@ -321,7 +331,7 @@ export default function FieldGrazingPage() {
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
                       Nog geen beweiding of oogst geregistreerd voor dit perceel in {calendar}.
                     </TableCell>
                   </TableRow>
@@ -352,7 +362,12 @@ export default function FieldGrazingPage() {
                       </TableCell>
                       <TableCell className="text-right text-xs">
                         {ev.restDays !== null ? (
-                          <span className={cn(ev.isShortRest && "text-amber-600 font-semibold flex items-center justify-end gap-1")}>
+                          <span
+                            className={cn(
+                              ev.isShortRest &&
+                                "flex items-center justify-end gap-1 font-semibold text-amber-600",
+                            )}
+                          >
                             {ev.isShortRest && <AlertTriangle className="h-3 w-3" />}
                             {ev.restDays} dagen {ev.isShortRest ? "(kort)" : ""}
                           </span>
@@ -368,7 +383,7 @@ export default function FieldGrazingPage() {
           </div>
 
           {fieldHarvests.length > 0 && (
-            <div className="mt-4 text-xs text-muted-foreground">
+            <div className="text-muted-foreground mt-4 text-xs">
               ⓘ Maaimomenten komen uit de oogstregistratie van de graslandteelt op dit perceel.
             </div>
           )}

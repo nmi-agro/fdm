@@ -25,8 +25,9 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
+import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Badge } from "~/components/ui/badge"
+import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
@@ -36,7 +37,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
@@ -209,7 +209,10 @@ export default function AnimalsOverviewPage() {
   const [newBirthdate, setNewBirthdate] = useState("")
   const [newSex, setNewSex] = useState<"female" | "male">("female")
 
-  const herdNameMap = useMemo(() => new Map(herds.map((h) => [h.l_id_herd, h.l_herd_name])), [herds])
+  const herdNameMap = useMemo(
+    () => new Map(herds.map((h) => [h.l_id_herd, h.l_herd_name])),
+    [herds],
+  )
 
   const filteredAnimals = useMemo(() => {
     return animals.filter((a) => {
@@ -277,8 +280,8 @@ export default function AnimalsOverviewPage() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`}>Veestapel</NavLink>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+          Veestapel
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Dieren</BreadcrumbItem>
@@ -302,7 +305,7 @@ export default function AnimalsOverviewPage() {
           <div className="space-y-6">
             {/* Filters Bar */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-1 items-center gap-3 max-w-md">
+              <div className="flex max-w-md flex-1 items-center gap-3">
                 <div className="relative flex-1">
                   <Search className="text-muted-foreground absolute top-2.5 left-3 h-4 w-4" />
                   <Input
@@ -315,8 +318,20 @@ export default function AnimalsOverviewPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedHerdFilter} onValueChange={handleHerdFilterChange}>
+                <Filter className="text-muted-foreground h-4 w-4" />
+                <Select
+                  value={selectedHerdFilter}
+                  items={[
+                    { value: "all", label: `Alle koppels (${animals.length})` },
+                    ...herds.map((h) => ({
+                      value: h.l_id_herd,
+                      label: `${h.l_herd_name} (${animals.filter((a) => a.l_id_herd === h.l_id_herd).length})`,
+                    })),
+                  ]}
+                  onValueChange={(v) => {
+                    if (v !== null) handleHerdFilterChange(v)
+                  }}
+                >
                   <SelectTrigger className="w-52 text-xs">
                     <SelectValue placeholder="Filter op koppel" />
                   </SelectTrigger>
@@ -336,7 +351,7 @@ export default function AnimalsOverviewPage() {
             </div>
 
             {/* Animals Table */}
-            <div className="rounded-xl border bg-card shadow-xs overflow-hidden">
+            <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -353,7 +368,7 @@ export default function AnimalsOverviewPage() {
                 <TableBody>
                   {filteredAnimals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-muted-foreground py-12 text-center">
                         {search || selectedHerdFilter !== "all"
                           ? "Geen dieren gevonden voor deze selectie."
                           : "Nog geen dieren geregistreerd op dit bedrijf."}
@@ -361,14 +376,16 @@ export default function AnimalsOverviewPage() {
                     </TableRow>
                   ) : (
                     filteredAnimals.map((animal) => {
-                      const herdName = animal.l_id_herd ? herdNameMap.get(animal.l_id_herd) ?? "Koppel" : "—"
+                      const herdName = animal.l_id_herd
+                        ? (herdNameMap.get(animal.l_id_herd) ?? "Koppel")
+                        : "—"
                       return (
                         <TableRow
                           key={animal.l_id_animal}
                           onClick={() => handleRowClick(animal.l_id_animal)}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
+                          className="hover:bg-muted/50 cursor-pointer transition-colors"
                         >
-                          <TableCell className="font-mono font-semibold text-xs">
+                          <TableCell className="font-mono text-xs font-semibold">
                             {animal.l_id_worknumber ?? "—"}
                           </TableCell>
                           <TableCell className="font-mono text-xs">
@@ -386,18 +403,28 @@ export default function AnimalsOverviewPage() {
                               {herdName}
                             </span>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {animal.l_birth_date ? format(new Date(animal.l_birth_date), "dd-MM-yyyy") : "—"}
+                          <TableCell className="text-muted-foreground text-xs">
+                            {animal.l_birth_date
+                              ? format(new Date(animal.l_birth_date), "dd-MM-yyyy")
+                              : "—"}
                           </TableCell>
                           <TableCell className="text-xs">
-                            {animal.l_sex === "female" ? "Vrouwelijk" : animal.l_sex === "male" ? "Mannelijk" : "—"}
+                            {animal.l_sex === "female"
+                              ? "Vrouwelijk"
+                              : animal.l_sex === "male"
+                                ? "Mannelijk"
+                                : "—"}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{animal.l_breed ?? "—"}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {animal.l_arriving_date ? format(new Date(animal.l_arriving_date), "dd-MM-yyyy") : "—"}
+                          <TableCell className="text-muted-foreground text-xs">
+                            {animal.l_breed ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {animal.l_arriving_date
+                              ? format(new Date(animal.l_arriving_date), "dd-MM-yyyy")
+                              : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            <ChevronRight className="h-4 w-4 text-muted-foreground inline-block" />
+                            <ChevronRight className="text-muted-foreground inline-block h-4 w-4" />
                           </TableCell>
                         </TableRow>
                       )
@@ -425,7 +452,16 @@ export default function AnimalsOverviewPage() {
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="add-herd-select">Koppel *</FieldLabel>
-                  <Select value={newHerdId} onValueChange={setNewHerdId}>
+                  <Select
+                    value={newHerdId}
+                    items={herds.map((h) => ({
+                      value: h.l_id_herd,
+                      label: `${h.l_herd_name} (${h.l_category})`,
+                    }))}
+                    onValueChange={(v) => {
+                      if (v !== null) setNewHerdId(v)
+                    }}
+                  >
                     <SelectTrigger id="add-herd-select">
                       <SelectValue />
                     </SelectTrigger>
@@ -466,15 +502,30 @@ export default function AnimalsOverviewPage() {
                     field={{
                       name: "add_birthdate",
                       value: newBirthdate,
-                      onChange: (val) => setNewBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                      onChange: (val) =>
+                        setNewBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
                       onBlur: () => {},
                       ref: () => {},
                     }}
-                    fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                    fieldState={{
+                      invalid: false,
+                      isTouched: false,
+                      isDirty: false,
+                      isValidating: false,
+                    }}
                   />
                   <Field>
                     <FieldLabel htmlFor="add-sex">Geslacht</FieldLabel>
-                    <Select value={newSex} onValueChange={(v: "female" | "male") => setNewSex(v)}>
+                    <Select
+                      value={newSex}
+                      items={[
+                        { value: "female", label: "Vrouwelijk" },
+                        { value: "male", label: "Mannelijk" },
+                      ]}
+                      onValueChange={(v) => {
+                        if (v !== null) setNewSex(v)
+                      }}
+                    >
                       <SelectTrigger id="add-sex">
                         <SelectValue />
                       </SelectTrigger>

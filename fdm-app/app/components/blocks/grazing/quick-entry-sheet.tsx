@@ -1,3 +1,9 @@
+import { format } from "date-fns"
+import { LogIn, LogOut, MapPin } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useFetcher } from "react-router"
+import { DatePicker } from "~/components/custom/date-picker-v2"
+import { Button } from "~/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,8 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { Button } from "~/components/ui/button"
-import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
@@ -17,10 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { format } from "date-fns"
-import { LogIn, LogOut, MapPin } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useFetcher } from "react-router"
 
 export interface QuickEntrySheetProps {
   open: boolean
@@ -141,12 +141,21 @@ export function QuickEntrySheet({
           </div>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="space-y-4 py-4">
           <FieldGroup>
             {/* Herd Selector */}
             <Field>
               <FieldLabel htmlFor="quick-herd">Koppel</FieldLabel>
-              <Select value={selectedHerdId} onValueChange={setSelectedHerdId}>
+              <Select
+                value={selectedHerdId}
+                items={herds.map((h) => ({
+                  value: h.l_id_herd,
+                  label: `${h.l_herd_name} ${h.count ? `(${h.count} dieren)` : ""}`,
+                }))}
+                onValueChange={(v) => {
+                  if (v !== null) setSelectedHerdId(v)
+                }}
+              >
                 <SelectTrigger id="quick-herd">
                   <SelectValue />
                 </SelectTrigger>
@@ -180,7 +189,12 @@ export function QuickEntrySheet({
                     onBlur: () => {},
                     ref: () => {},
                   }}
-                  fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                  fieldState={{
+                    invalid: false,
+                    isTouched: false,
+                    isDirty: false,
+                    isValidating: false,
+                  }}
                   required
                 />
 
@@ -224,7 +238,16 @@ export function QuickEntrySheet({
                       Dichtstbijzijnd
                     </span>
                   </div>
-                  <Select value={selectedFieldId} onValueChange={setSelectedFieldId}>
+                  <Select
+                    value={selectedFieldId}
+                    items={fields.map((f) => ({
+                      value: f.b_id,
+                      label: `${f.b_name} (${f.b_area} ha)`,
+                    }))}
+                    onValueChange={(v) => {
+                      if (v !== null) setSelectedFieldId(v)
+                    }}
+                  >
                     <SelectTrigger id="quick-field">
                       <SelectValue placeholder="Kies een perceel" />
                     </SelectTrigger>
@@ -247,7 +270,12 @@ export function QuickEntrySheet({
                     onBlur: () => {},
                     ref: () => {},
                   }}
-                  fieldState={{ invalid: false, isTouched: false, isDirty: false, isValidating: false }}
+                  fieldState={{
+                    invalid: false,
+                    isTouched: false,
+                    isDirty: false,
+                    isValidating: false,
+                  }}
                   required
                 />
 
@@ -298,4 +326,3 @@ export function QuickEntrySheet({
     </Dialog>
   )
 }
-

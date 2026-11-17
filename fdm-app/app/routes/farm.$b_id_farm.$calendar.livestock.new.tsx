@@ -20,7 +20,14 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
@@ -156,7 +163,9 @@ export default function LivestockOnboarding() {
   const { b_id_farm, calendar, farmOptions, categories } = useLoaderData<typeof loader>()
 
   const defaultCategory = categories.find((c) => c.l_id_category === "rvo_100") ?? categories[0]
-  const [selectedCategory, setSelectedCategory] = useState(defaultCategory?.l_id_category ?? "rvo_100")
+  const [selectedCategory, setSelectedCategory] = useState(
+    defaultCategory?.l_id_category ?? "rvo_100",
+  )
   const [herdName, setHerdName] = useState("Melkkoeien")
   const [count, setCount] = useState<number>(96)
 
@@ -186,8 +195,8 @@ export default function LivestockOnboarding() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`}>Veestapel</NavLink>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+          Veestapel
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Melkvee toevoegen</BreadcrumbItem>
@@ -199,7 +208,8 @@ export default function LivestockOnboarding() {
             <CardHeader>
               <CardTitle className="text-2xl">Melkvee toevoegen</CardTitle>
               <CardDescription className="text-sm">
-                Nog geen dieren op dit bedrijf. Voeg je eerste koppel toe — daarna kun je beweiding vastleggen en zie je direct je weidedagen en veebezetting.
+                Nog geen dieren op dit bedrijf. Voeg je eerste koppel toe — daarna kun je beweiding
+                vastleggen en zie je direct je weidedagen en veebezetting.
               </CardDescription>
             </CardHeader>
 
@@ -207,7 +217,17 @@ export default function LivestockOnboarding() {
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="category-select">Diercategorie *</FieldLabel>
-                  <Select value={selectedCategory} onValueChange={handleCategoryChange} name="l_id_category">
+                  <Select
+                    value={selectedCategory}
+                    items={categories.map((c) => ({
+                      value: c.l_id_category,
+                      label: `${c.l_category} (${c.l_lsu} GVE/dier)`,
+                    }))}
+                    onValueChange={(v) => {
+                      if (v !== null) handleCategoryChange(v)
+                    }}
+                    name="l_id_category"
+                  >
                     <SelectTrigger id="category-select">
                       <SelectValue placeholder="Kies diercategorie" />
                     </SelectTrigger>
@@ -249,20 +269,29 @@ export default function LivestockOnboarding() {
                 </div>
               </FieldGroup>
 
-              <div className="rounded-lg border bg-muted/40 p-4 space-y-2 text-xs text-muted-foreground">
+              <div className="bg-muted/40 text-muted-foreground space-y-2 rounded-lg border p-4 text-xs">
                 <p className="flex items-start gap-1.5">
-                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <span>We maken {count} dieren aan zonder oormerk. Vul ze later aan met oormerk en levensnummer, of laat ze zoals ze zijn — voor beweiding en veebezetting is het aantal genoeg.</span>
+                  <Info className="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    We maken {count} dieren aan zonder oormerk. Vul ze later aan met oormerk en
+                    levensnummer, of laat ze zoals ze zijn — voor beweiding en veebezetting is het
+                    aantal genoeg.
+                  </span>
                 </p>
-                <p className="font-medium text-foreground text-sm">
-                  Dit levert op: <span className="font-bold">{count} dieren</span> · <span className="font-bold">{totalGve} GVE</span>
+                <p className="text-foreground text-sm font-medium">
+                  Dit levert op: <span className="font-bold">{count} dieren</span> ·{" "}
+                  <span className="font-bold">{totalGve} GVE</span>
                 </p>
               </div>
             </CardContent>
 
             <CardFooter className="flex justify-between border-t pt-6">
-              <Button variant="outline" asChild type="button">
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`}>Annuleren</NavLink>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}
+              >
+                Annuleren
               </Button>
               <Button type="submit">Koppel aanmaken</Button>
             </CardFooter>

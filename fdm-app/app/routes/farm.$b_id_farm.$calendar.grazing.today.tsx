@@ -14,11 +14,7 @@ import {
 import { simplify } from "@turf/simplify"
 import { differenceInDays, format } from "date-fns"
 import { nl } from "date-fns/locale"
-import {
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, LogOut } from "lucide-react"
 import { useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -49,7 +45,8 @@ export const meta: MetaFunction = () => {
     { title: `Vandaag op de kaart | ${clientConfig.name}` },
     {
       name: "description",
-      content: "Bekijk welke koppel op welk perceel loopt en leg snel wijzigingen vast op de kaart.",
+      content:
+        "Bekijk welke koppel op welk perceel loopt en leg snel wijzigingen vast op de kaart.",
     },
   ]
 }
@@ -438,7 +435,7 @@ export default function TodayMapPage() {
   }, [fieldsGeoJSON, grazings, harvestsByField, herdCensusMap, dateStr])
 
   return (
-    <SidebarInset className="relative flex flex-col h-[calc(100vh-theme(spacing.16))] overflow-hidden">
+    <SidebarInset className="relative flex h-[calc(100vh-theme(spacing.16))] flex-col overflow-hidden">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/grazing`,
@@ -448,14 +445,14 @@ export default function TodayMapPage() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
-        <BreadcrumbLink asChild>
-          <NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`}>Beweiding</NavLink>
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/grazing`} />}>
+          Beweiding
         </BreadcrumbLink>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Vandaag op de kaart</BreadcrumbItem>
       </Header>
 
-      <main className="relative flex-1 w-full h-full overflow-hidden">
+      <main className="relative h-full w-full flex-1 overflow-hidden">
         {/* Full Section Interactive Map */}
         <TodayGrazingMap
           fieldsGeoJSON={dynamicGeoJSON}
@@ -465,8 +462,8 @@ export default function TodayMapPage() {
         />
 
         {/* Floating Top Control Bar Overlay */}
-        <div className="absolute top-4 left-4 right-4 z-10 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-          <div className="bg-background/90 backdrop-blur-md border rounded-xl p-2 px-3 shadow-lg flex items-center gap-3 pointer-events-auto">
+        <div className="pointer-events-none absolute top-4 right-4 left-4 z-10 flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-background/90 pointer-events-auto flex items-center gap-3 rounded-xl border p-2 px-3 shadow-lg backdrop-blur-md">
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -480,7 +477,7 @@ export default function TodayMapPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-xs font-semibold px-2.5"
+                className="h-8 px-2.5 text-xs font-semibold"
                 onClick={handleToday}
               >
                 {displayDate}
@@ -498,7 +495,7 @@ export default function TodayMapPage() {
           </div>
 
           {farmWritePermission && (
-            <div className="bg-background/90 backdrop-blur-md border rounded-xl p-1 shadow-lg pointer-events-auto">
+            <div className="bg-background/90 pointer-events-auto rounded-xl border p-1 shadow-lg backdrop-blur-md">
               <Button
                 size="sm"
                 onClick={() => {
@@ -515,9 +512,9 @@ export default function TodayMapPage() {
         </div>
 
         {/* Floating Bottom Legend Overlay */}
-        <div className="absolute bottom-6 right-4 z-10 pointer-events-auto">
-          <div className="bg-background/90 backdrop-blur-md border rounded-xl p-3 text-xs shadow-lg space-y-2 max-w-xs">
-            <p className="font-semibold text-foreground text-[11px] uppercase tracking-wider">
+        <div className="pointer-events-auto absolute right-4 bottom-6 z-10">
+          <div className="bg-background/90 max-w-xs space-y-2 rounded-xl border p-3 text-xs shadow-lg backdrop-blur-md">
+            <p className="text-foreground text-[11px] font-semibold tracking-wider uppercase">
               Legenda perceelstatus
             </p>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
@@ -538,7 +535,7 @@ export default function TodayMapPage() {
                 <span>Laatst gemaaid</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-block h-3 w-3 rounded-sm bg-white border border-slate-300 dark:bg-slate-800 dark:border-slate-600" />
+                <span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800" />
                 <span>Nog niet gebruikt</span>
               </div>
               <div className="flex items-center gap-2">
