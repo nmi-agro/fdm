@@ -970,7 +970,9 @@ export default function MeasuresFarmIndex() {
             >
               <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
                 {(recData: FarmRecommendationsData) => {
-                  if (recData && recData !== recommendationsData && !recommendationsData) {
+                  // Keep the latest result, also after "Opnieuw proberen", so the add dialog
+                  // gets the current recommendations
+                  if (recData && recData !== recommendationsData) {
                     setTimeout(() => setRecommendationsData(recData), 0)
                   }
                   // No advice for any eligible field: say so instead of hiding the section,
