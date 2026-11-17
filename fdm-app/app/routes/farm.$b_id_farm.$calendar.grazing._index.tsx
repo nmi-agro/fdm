@@ -6,32 +6,66 @@ import {
   removeGrazing,
   updateGrazing,
 } from "@nmi-agro/fdm-core"
-import { ChartColumn, Compass, Plus, Sparkles, SquareArrowRightExit, Warehouse } from "lucide-react"
-import { useState } from "react"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { format } from "date-fns"
+import {
+  ChartColumn,
+  ChevronDown,
+  Compass,
+  Plus,
+  Shovel,
+  Sparkles,
+  SquareArrowRightExit,
+  Warehouse,
+  Wheat,
+} from "lucide-react"
+import { type ReactNode, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
+  useActionData,
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { CalendarGrid } from "~/components/blocks/grazing/calendar-grid"
 import { QuickEntrySheet } from "~/components/blocks/grazing/quick-entry-sheet"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
+import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import {
+  FieldEventSchema,
+  getFertilizerOptions,
+  handleFieldEvent,
+  isFieldEventIntent,
+} from "~/lib/field-events.server"
+import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import { defaultMapDay } from "~/lib/grazing-map"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD, parseGrazingExtent } from "~/lib/grazing-zone"
+import { fetchTimelineFields } from "~/lib/timeline-data.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -55,11 +89,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
 
-    const [farm, farms, matrix] = await Promise.all([
+    const [farm, farms, matrix, timelineFields, fertilizerOptions] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
       getFarms(fdm, session.principal_id),
       fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
+      // Cultivations, harvests and fertilizer applications per field, for the mowing and
+      // fertilizing forms shared with the Tijdlijn
+      fetchTimelineFields(session.principal_id, b_id_farm, getTimeframe(params)),
+      getFertilizerOptions(session.principal_id, b_id_farm),
     ])
+    const grasslandIds = new Set(matrix.fields.map((f) => f.b_id))
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -81,8 +120,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_name_farm: farm.b_name_farm,
       calendar,
       farmOptions,
+      calendarYear,
       matrix,
       openGrazings: matrix.openGrazings,
+      grasslandFields: timelineFields.filter((field) => grasslandIds.has(field.b_id)),
+      fertilizerOptions,
+      lastCultivationAvailabilityYear: await getLastCultivationAvailabilityYear(),
       farmWritePermission,
     }
   } catch (error) {
@@ -112,8 +155,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
       throw data("U heeft geen schrijfrechten op dit bedrijf.", { status: 403 })
     }
 
-    const formData = await request.formData()
+    // Read a copy, so a mowing or fertilizing form can still be parsed from the request
+    const formData = await request.clone().formData()
     const intent = String(formData.get("intent") ?? "")
+
+    // Mowing and fertilizing, with the same forms and handling as the Tijdlijn
+    if (isFieldEventIntent(intent)) {
+      const values = await extractFormValuesFromRequest(request, FieldEventSchema)
+      return await handleFieldEvent(values, {
+        principal_id: session.principal_id,
+        b_id_farm,
+        calendar,
+        source: "grazing_calendar",
+      })
+    }
 
     if (intent === "add_grazing") {
       const b_id = String(formData.get("b_id") ?? "")
@@ -168,15 +223,46 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     throw data("Ongeldige actie", { status: 400 })
   } catch (error) {
+    // extractFormValuesFromRequest already turned validation errors into a toast response
+    if (isToastResponse(error)) return error
     return handleActionError(error)
   }
 }
 
 export default function BeweidingskalenderPage() {
-  const { b_id_farm, calendar, farmOptions, matrix, openGrazings, farmWritePermission } =
-    useLoaderData<typeof loader>()
+  const {
+    b_id_farm,
+    calendar,
+    calendarYear,
+    farmOptions,
+    matrix,
+    openGrazings,
+    grasslandFields,
+    fertilizerOptions,
+    lastCultivationAvailabilityYear,
+    farmWritePermission,
+  } = useLoaderData<typeof loader>()
+  const actionData = useActionData<{ closeSheet?: boolean }>()
 
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false)
+
+  // The mowing or fertilizing form, tagged with the action data it was opened under. It closes
+  // when a newer save reports `closeSheet`, derived here instead of set in an effect.
+  const [sheetState, setSheetState] = useState<
+    { request: AddEventSheetRequest; openedWithActionData: unknown } | undefined
+  >()
+  const sheetRequest =
+    sheetState && !(actionData !== sheetState.openedWithActionData && actionData?.closeSheet)
+      ? sheetState.request
+      : undefined
+  const openSheet = (request: AddEventSheetRequest | undefined) =>
+    setSheetState(request ? { request, openedWithActionData: actionData } : undefined)
+
+  // New mowing and fertilizing default to today, or the same day in another year
+  const today = useToday()
+  const defaultDate = today
+    ? new Date(`${defaultMapDay(format(today, "yyyy-MM-dd"), calendarYear)}T12:00:00`)
+    : undefined
 
   const hasKoppels = matrix.herds.length > 0
   const hasGrassland = matrix.fields.length > 0
@@ -231,6 +317,26 @@ export default function BeweidingskalenderPage() {
                 <ChartColumn className="text-primary h-3.5 w-3.5" />
                 Weidegang
               </Button>
+              {farmWritePermission && hasGrassland && (
+                <>
+                  <FieldPickerButton
+                    label="Maaisnede toevoegen"
+                    icon={<Wheat className="text-primary h-3.5 w-3.5" />}
+                    fields={matrix.fields}
+                    onPick={(b_id) =>
+                      openSheet({ type: "harvest", context: { b_id, date: defaultDate } })
+                    }
+                  />
+                  <FieldPickerButton
+                    label="Bemesting toevoegen"
+                    icon={<Shovel className="text-primary h-3.5 w-3.5" />}
+                    fields={matrix.fields}
+                    onPick={(b_id) =>
+                      openSheet({ type: "fertilizer", context: { b_id, date: defaultDate } })
+                    }
+                  />
+                </>
+              )}
               {farmWritePermission && (
                 <Button
                   size="sm"
@@ -286,6 +392,7 @@ export default function BeweidingskalenderPage() {
                 b_id_farm={b_id_farm}
                 calendar={calendar}
                 canWrite={farmWritePermission}
+                onSheetRequest={openSheet}
               />
             )}
           </div>
@@ -303,6 +410,58 @@ export default function BeweidingskalenderPage() {
         openGrazings={openGrazings}
         canWrite={farmWritePermission}
       />
+
+      {/* Mowing and fertilizing, with the forms of the Tijdlijn */}
+      <AddEventSheet
+        request={sheetRequest}
+        onOpenChange={(open) => {
+          if (!open) openSheet(undefined)
+        }}
+        b_id_farm={b_id_farm}
+        calendar={calendar}
+        lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+        canModify={farmWritePermission}
+        fields={grasslandFields}
+        fertilizerOptions={fertilizerOptions}
+        cultivationOptions={[]}
+        // This page is an index route; React Router only adds "?index" itself without an action
+        formAction="?index"
+      />
     </SidebarInset>
+  )
+}
+
+/** A toolbar button that asks for the grassland field to record something on. */
+function FieldPickerButton({
+  label,
+  icon,
+  fields,
+  onPick,
+}: {
+  label: string
+  icon: ReactNode
+  fields: Array<{ b_id: string; b_name: string }>
+  onPick: (b_id: string) => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="outline" size="sm" className="gap-1.5 text-xs" />}
+      >
+        {icon}
+        <span>{label}</span>
+        <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Kies een perceel</DropdownMenuLabel>
+          {fields.map((field) => (
+            <DropdownMenuItem key={field.b_id} onClick={() => onPick(field.b_id)}>
+              {field.b_name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

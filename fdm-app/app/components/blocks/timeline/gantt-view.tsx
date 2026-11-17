@@ -108,34 +108,6 @@ function getDateFromOffsetX(offsetX: number, range: Range): Date {
 }
 
 /**
- * Finds the cultivation covering `date` on this field, preferring the tightest-fitting one (same
- * "narrowest span wins" rule used to attach fertilizer/harvest/soil events to a bar in
- * `buildFieldFeatures`) — needed so an empty-space click or the "Oogst" quick-add option can
- * resolve which cultivation the date falls into.
- *
- * @param cultivations:
- */
-export function findActiveCultivationForDate(
-  cultivations: TimelineCultivation[],
-  date: Date,
-  openCultivationEndAt: Date,
-): TimelineCultivation | undefined {
-  let best: TimelineCultivation | undefined
-  let bestSpan = Number.POSITIVE_INFINITY
-  for (const cultivation of cultivations) {
-    if (!cultivation.b_lu_start) continue
-    const endAt = cultivation.b_lu_end ?? openCultivationEndAt
-    if (date < cultivation.b_lu_start || date > endAt) continue
-    const span = endAt.getTime() - cultivation.b_lu_start.getTime()
-    if (span < bestSpan) {
-      best = cultivation
-      bestSpan = span
-    }
-  }
-  return best
-}
-
-/**
  * Invisible, full-row click target rendered *behind* a field's `GanttFeatureRow` (i.e. before it
  * in DOM order — see the "positioned elements painted in DOM order" rule) so cultivation
  * bars/event icons, painted after, still win hit-testing over their own area, while the rest of
