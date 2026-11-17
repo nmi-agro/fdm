@@ -80,8 +80,9 @@ Op veel pagina's staat rechtsboven een vraagteken. Daarmee open je het deel van 
 
 Klik je op een bedrijf, dan kom je op het dashboard. Dit is je startpunt:
 
-- Onder **Apps** staan kaarten naar Atlas, Stikstofbalans, OS Balans, Bemestingsadvies, Gebruiksruimte, Weidegang (als je [melkvee](/manual/veestapel) hebt) en Bemestingsplan.
-- Onder **Acties** vind je de dingen die je vaak doet als je gegevens wilt toevoegen, zoals **Nieuwe percelen**, **Ophalen bij RVO**, **RVO Shapefile uploaden** en **Upload bodemanalyses**.
+- Onder **Overzichten** staan Percelen, Bouwplan en Weidegang (als je [melkvee](/manual/veestapel) hebt).
+- Onder **Apps** staan kaarten naar Atlas, Stikstofbalans, OS Balans, Bemestingsadvies, Gebruiksruimte en Bemestingsplan.
+- Onder **Acties** vind je de dingen die je vaak doet als je gegevens wilt toevoegen, zoals **Nieuwe percelen**, **Ophalen bij RVO**, **RVO Shapefile uploaden**, **Upload bodemanalyses** en, met melkvee, **Beweiding vandaag**.
 
 ![Het bedrijfsdashboard van een demobedrijf, met de apps en de acties](screenshot:bedrijf-dashboard)
 

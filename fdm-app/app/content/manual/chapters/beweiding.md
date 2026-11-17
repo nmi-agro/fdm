@@ -31,7 +31,7 @@ Op **Beweiding** leg je vast welke koppel wanneer op welk perceel heeft geweid, 
 
 ## De beweidingskalender {#kalender}
 
-De kalender toont per graslandperceel de weken van het jaar. Een cel laat zien of er die week is beweid, gemaaid of dat het perceel rust; geplande beweiding is apart gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform.
+De kalender toont per graslandperceel de weken van het jaar. Een cel laat zien of er die week is beweid, gemaaid of dat het perceel rust; geplande beweiding is apart gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform.
 
 ![De beweidingskalender met weken per perceel](screenshot:beweiding-kalender)
 
@@ -90,6 +90,8 @@ Zolang de koeien buiten lopen, staat de beweiding in de kalender tot en met vand
 ## Vandaag op de kaart {#vandaag}
 
 **Vandaag op de kaart** toont al je percelen met hun status van vandaag: beweid, gemaaid, de dagen rust sinds het laatste gebruik of nog niet gebruikt. Zones die vandaag worden beweid, staan op het perceel getekend. Met de pijlen ga je een dag terug of vooruit; klik op de datum om terug te gaan naar vandaag.
+
+De kaart blijft binnen het gekozen jaar. Bekijk je een eerder jaar, dan begint hij op 31 december van dat jaar; bij een later jaar op 1 januari. De dagen rust tellen alleen vanaf een gebruik in dat jaar.
 
 Klik op een graslandperceel om er direct koeien naartoe te sturen; dat werkt hetzelfde als **Koeien naar buiten / binnen**.
 
