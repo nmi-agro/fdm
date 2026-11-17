@@ -32,7 +32,6 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -175,8 +174,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       l_grazing_type: g.l_grazing_type,
     }))
 
-    const mapStyle = getMapStyle("satellite")
-
     return {
       b_id_farm,
       b_name_farm: farm.b_name_farm,
@@ -188,7 +185,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       grazings: serializedGrazings,
       harvestsByField: harvestsByFieldData,
       herdCensusMap,
-      mapStyle,
       farmWritePermission,
     }
   } catch (error) {
@@ -269,7 +265,6 @@ export default function TodayMapPage() {
     grazings,
     harvestsByField,
     herdCensusMap,
-    mapStyle,
     farmWritePermission,
   } = useLoaderData<typeof loader>()
 
@@ -456,7 +451,6 @@ export default function TodayMapPage() {
         {/* Full Section Interactive Map */}
         <TodayGrazingMap
           fieldsGeoJSON={dynamicGeoJSON}
-          mapStyle={mapStyle}
           height="100%"
           onFieldClick={handleFieldCardClick}
         />

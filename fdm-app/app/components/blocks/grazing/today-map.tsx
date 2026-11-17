@@ -1,22 +1,14 @@
 import type { FeatureCollection } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
 import type { LayerProps } from "react-map-gl/maplibre"
 import centroid from "@turf/centroid"
 import { cn } from "cn"
-import * as maplibregl from "maplibre-gl"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  Layer,
-  Map as MapGL,
-  Marker,
-  type MapMouseEvent,
-  type MapRef,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { useCallback, useMemo, useRef, useState } from "react"
+import { Layer, Marker, type MapMouseEvent, type MapRef } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 
 const GRAZING_MAP_FIELDS_LAYER = "grazingMapFields"
 const GRAZING_MAP_OUTLINE_LAYER = "grazingMapFieldsOutline"
@@ -24,36 +16,30 @@ const GRAZING_MAP_SOURCE = "grazingMapSource"
 
 export interface TodayGrazingMapProps {
   fieldsGeoJSON: FeatureCollection
-  mapStyle: string | StyleSpecification
   height?: string
   onFieldClick?: (b_id: string) => void
 }
 
+/**
+ * Atlas map of the farm's fields coloured by today's grazing or mowing status, with a label per
+ * field and a hover card. Clicking a field that can be grazed calls `onFieldClick`.
+ */
 export function TodayGrazingMap({
   fieldsGeoJSON,
-  mapStyle,
-  height = "calc(100vh - 64px)",
+  height = "calc(100vh - var(--app-header-height))",
   onFieldClick,
 }: TodayGrazingMapProps) {
   const mapRef = useRef<MapRef>(null)
   const initialViewState = useMemo(() => getViewState(fieldsGeoJSON), [fieldsGeoJSON])
-  const [viewState, setViewState] = useState<AtlasViewState>(initialViewState)
   const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (initialViewState.bounds) {
-      mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-    }
-  }, [initialViewState])
-
-  const onViewportChange = useCallback(
-    (event: ViewStateChangeEvent) => setViewState(event.viewState),
-    [],
-  )
 
   const onMouseMove = useCallback((e: MapMouseEvent) => {
     const feature = e.features?.[0]
     setHoveredFieldId(feature ? ((feature.properties?.b_id as string) ?? null) : null)
+    // Atlas shows a pointer over every field; fields that can't be grazed are not clickable.
+    if (feature?.properties?.status === "disabled" && mapRef.current) {
+      mapRef.current.getCanvas().style.cursor = "grab"
+    }
   }, [])
 
   const onMouseLeave = useCallback(() => setHoveredFieldId(null), [])
@@ -189,27 +175,20 @@ export function TodayGrazingMap({
       className="relative h-full w-full overflow-hidden"
       style={{ height, isolation: "isolate" }}
     >
-      <MapGL
-        {...viewState}
+      <Atlas
         ref={mapRef}
-        style={{ height: "100%", width: "100%" }}
-        mapStyle={mapStyle as any}
-        mapLib={maplibregl}
+        initialViewState={initialViewState}
+        updateFromInitialViewState={true}
+        interactive={true}
         interactiveLayerIds={[GRAZING_MAP_FIELDS_LAYER]}
-        onMove={onViewportChange}
+        style={{ height: "100%" }}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onClick={onClick}
-        cursor={
-          hoveredFieldId && hoveredFeature?.properties?.status !== "disabled"
-            ? "pointer"
-            : "default"
-        }
       >
         <Controls
           initialViewState={initialViewState}
           showFlyToFields={fieldsGeoJSON.features.length > 0}
-          showStyleSelect={false}
         />
 
         <MapTilerAttribution />
@@ -245,7 +224,7 @@ export function TodayGrazingMap({
             </Marker>
           )
         })}
-      </MapGL>
+      </Atlas>
 
       {/* Hover Floating Card */}
       {hoveredFeature && (
