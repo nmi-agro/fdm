@@ -53,7 +53,11 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
     l_grazing_type?: "full" | "partial" | null
   } | null>(null)
 
+  // Bumped on every open so the popover remounts and starts from the clicked cell's values.
+  const [popoverSession, setPopoverSession] = useState(0)
+
   const handleCellClick = (field: GrazingCalendarFieldRow, cell: GrazingCalendarCell) => {
+    setPopoverSession((s) => s + 1)
     setPopoverField({ b_id: field.b_id, b_name: field.b_name, b_area: field.b_area })
 
     if (cell.grazingEntries && cell.grazingEntries.length > 0) {
@@ -100,6 +104,7 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
       const startCell = dragField.weeks[minW]
       const endCell = dragField.weeks[maxW]
 
+      setPopoverSession((s) => s + 1)
       setPopoverField({ b_id: dragField.b_id, b_name: dragField.b_name, b_area: dragField.b_area })
       setPopoverExistingGrazing(null)
       setPopoverStartDate(startCell.dateStart)
@@ -393,6 +398,7 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
 
       {/* Popover */}
       <GrazingPopover
+        key={popoverSession}
         open={popoverOpen}
         onOpenChange={setPopoverOpen}
         b_id_farm={b_id_farm}

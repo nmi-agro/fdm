@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 import { Info, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useFetcher } from "react-router"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -67,9 +67,11 @@ export function GrazingPopover({
   const defaultHerdId = existingGrazing?.l_id_herd ?? initialHerdId ?? herds[0]?.l_id_herd ?? ""
   const [herdId, setHerdId] = useState(defaultHerdId)
 
+  const [today] = useState(() => format(new Date(), "yyyy-MM-dd"))
+
   const defaultStart = existingGrazing?.l_grazing_start
     ? format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd")
-    : (initialStartDate ?? format(new Date(), "yyyy-MM-dd"))
+    : (initialStartDate ?? today)
 
   const defaultEnd = existingGrazing?.l_grazing_end
     ? format(new Date(existingGrazing.l_grazing_end), "yyyy-MM-dd")
@@ -94,37 +96,6 @@ export function GrazingPopover({
     existingGrazing?.l_grazing_area ?? Number(((field?.b_area ?? 1) / 2).toFixed(1)),
   )
 
-  useEffect(() => {
-    if (existingGrazing) {
-      setHerdId(existingGrazing.l_id_herd)
-      setStartDate(format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd"))
-      setEndDate(
-        existingGrazing.l_grazing_end
-          ? format(new Date(existingGrazing.l_grazing_end), "yyyy-MM-dd")
-          : format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd"),
-      )
-      setHours(existingGrazing.l_grazing_hours ?? 8)
-      setHourPreset(
-        existingGrazing.l_grazing_hours === 24
-          ? "24"
-          : existingGrazing.l_grazing_hours === 8
-            ? "8"
-            : "custom",
-      )
-      setAreaMode(existingGrazing.l_grazing_type === "partial" ? "partial" : "full")
-      if (existingGrazing.l_grazing_area) {
-        setPartialArea(existingGrazing.l_grazing_area)
-      }
-    } else {
-      if (initialHerdId) setHerdId(initialHerdId)
-      if (initialStartDate) setStartDate(initialStartDate)
-      if (initialEndDate) setEndDate(initialEndDate)
-      setHours(8)
-      setHourPreset("8")
-      setAreaMode("full")
-    }
-  }, [existingGrazing, initialHerdId, initialStartDate, initialEndDate, field])
-
   const handleHourPresetChange = (preset: "8" | "24" | "custom") => {
     setHourPreset(preset)
     if (preset === "8") setHours(8)
@@ -143,7 +114,7 @@ export function GrazingPopover({
       : 1
   const totalHours = diffDays * (hours || 0)
 
-  const isFuture = startDate > format(new Date(), "yyyy-MM-dd")
+  const isFuture = startDate > today
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

@@ -273,7 +273,7 @@ export default function TodayMapPage() {
     farmWritePermission,
   } = useLoaderData<typeof loader>()
 
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(() => new Date())
   const [quickEntryFieldId, setQuickEntryFieldId] = useState<string | undefined>(undefined)
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false)
 

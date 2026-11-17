@@ -251,6 +251,8 @@ export default function FieldGrazingPage() {
   } = useLoaderData<typeof loader>()
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  // Bumped on every open so the popover remounts with an empty form.
+  const [popoverSession, setPopoverSession] = useState(0)
 
   return (
     <div className="space-y-6">
@@ -266,7 +268,10 @@ export default function FieldGrazingPage() {
         {farmWritePermission && (
           <Button
             type="button"
-            onClick={() => setIsPopoverOpen(true)}
+            onClick={() => {
+              setPopoverSession((s) => s + 1)
+              setIsPopoverOpen(true)
+            }}
             disabled={herds.length === 0}
             className="gap-1.5 text-xs font-medium"
           >
@@ -392,6 +397,7 @@ export default function FieldGrazingPage() {
 
       {/* Add Grazing Popover */}
       <GrazingPopover
+        key={popoverSession}
         open={isPopoverOpen}
         onOpenChange={setIsPopoverOpen}
         b_id_farm={b_id_farm}

@@ -303,7 +303,7 @@ export default function AnimalDetailPage() {
   )
 
   const [targetHerdId, setTargetHerdId] = useState("")
-  const [leavingDate, setLeavingDate] = useState(format(new Date(), "yyyy-MM-dd"))
+  const [leavingDate, setLeavingDate] = useState(() => format(new Date(), "yyyy-MM-dd"))
   const [leavingMethod, setLeavingMethod] = useState<"sold" | "died" | "slaughtered" | "exported">(
     "sold",
   )

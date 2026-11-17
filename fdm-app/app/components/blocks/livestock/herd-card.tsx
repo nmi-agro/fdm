@@ -1,5 +1,5 @@
 import { Minus, MoreHorizontal, Plus, Warehouse } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { NavLink, useFetcher } from "react-router"
 import {
   AlertDialog,
@@ -68,7 +68,12 @@ export function HerdCard({
 }: HerdCardProps) {
   const fetcher = useFetcher()
 
-  const [count, setCount] = useState(herd.count)
+  // Optimistic count: the local value is shown while a change is pending (debouncing or being
+  // submitted); otherwise the count from the loader.
+  const [localCount, setLocalCount] = useState<number | null>(null)
+  const [isDebouncing, setIsDebouncing] = useState(false)
+  const isCountPending = isDebouncing || fetcher.formData?.get("intent") === "update_count"
+  const count = isCountPending && localCount !== null ? localCount : herd.count
   const [pendingReduceCount, setPendingReduceCount] = useState<number | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -78,13 +83,6 @@ export function HerdCard({
   const [isReassignOpen, setIsReassignOpen] = useState(false)
   const [targetHerdId, setTargetHerdId] = useState("")
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-
-  // Keep count synced with incoming props if not currently editing
-  useEffect(() => {
-    if (fetcher.state === "idle") {
-      setCount(herd.count)
-    }
-  }, [herd.count, fetcher.state])
 
   const submitCountChange = (newCount: number) => {
     if (newCount === herd.count) return
@@ -98,9 +96,11 @@ export function HerdCard({
 
   const handleIncrement = () => {
     const next = count + 1
-    setCount(next)
+    setLocalCount(next)
+    setIsDebouncing(true)
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     debounceTimerRef.current = setTimeout(() => {
+      setIsDebouncing(false)
       submitCountChange(next)
     }, 600)
   }
@@ -115,7 +115,7 @@ export function HerdCard({
   const confirmReduction = () => {
     if (pendingReduceCount !== null) {
       const next = pendingReduceCount
-      setCount(next)
+      setLocalCount(next)
       setPendingReduceCount(null)
       submitCountChange(next)
     }

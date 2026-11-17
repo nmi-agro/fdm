@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 import { LogIn, LogOut, MapPin } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useFetcher } from "react-router"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 
 export interface QuickEntrySheetProps {
   open: boolean
@@ -63,17 +64,15 @@ export function QuickEntrySheet({
   const fetcher = useFetcher()
 
   const [selectedHerdId, setSelectedHerdId] = useState(herds[0]?.l_id_herd ?? "")
-  const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId ?? fields[0]?.b_id ?? "")
-  const [startDate, setStartDate] = useState(format(new Date(), "yyyy-MM-dd"))
-  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"))
+  // Follows initialFieldId (e.g. a field clicked on the map); a field picked here sticks until it changes.
+  const [selectedFieldId, setSelectedFieldId] = useKeyedState(
+    initialFieldId,
+    (id) => id ?? fields[0]?.b_id ?? "",
+  )
+  const [startDate, setStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"))
+  const [endDate, setEndDate] = useState(() => format(new Date(), "yyyy-MM-dd"))
   const [hours, setHours] = useState<number>(8)
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "12" | "custom">("8")
-
-  useEffect(() => {
-    if (initialFieldId) {
-      setSelectedFieldId(initialFieldId)
-    }
-  }, [initialFieldId])
 
   // Check if current herd has an open grazing record
   const activeOpenGrazing = openGrazings.find((g) => g.l_id_herd === selectedHerdId)

@@ -229,7 +229,7 @@ export default function GrazingPlanAssistent() {
   } = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
 
-  const todayStr = format(new Date(), "yyyy-MM-dd")
+  const [todayStr] = useState(() => format(new Date(), "yyyy-MM-dd"))
   const defaultSeasonStart = todayStr > `${calendarYear}-05-01` ? todayStr : `${calendarYear}-05-01`
   const defaultSeasonEnd = `${calendarYear}-10-15`
 
