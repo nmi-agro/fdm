@@ -31,24 +31,20 @@ Op **Beweiding** leg je vast welke koppel wanneer op welk perceel heeft geweid, 
 
 ## De beweidingskalender {#kalender}
 
-De kalender toont per graslandperceel de weken van het jaar. Percelen die in het gekozen jaar zijn beweid staan bovenaan, daarna de grootste percelen eerst. Een cel laat zien of er die week is beweid, gemaaid of dat het perceel rust; geplande beweiding is apart gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform.
+De kalender toont per graslandperceel elke dag van het weideseizoen, van 1 maart tot en met 31 oktober. De dagen staan smal naast elkaar; op een kleiner scherm schuif je de kalender opzij. Percelen die in het gekozen jaar zijn beweid staan bovenaan, daarna de grootste percelen eerst. Een lichtgroene dag is beweid, een donkergroene gemaaid; geplande beweiding is gestreept. Een bemesting is een stip in de kleur van de meststof: bruin voor dierlijke mest, blauw voor kunstmest. Ga met de muis over een dag voor de koppel, de maaisnede of de bemesting van die dag. Vandaag is gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform.
 
-![De beweidingskalender met weken per perceel](screenshot:beweiding-kalender)
+![De beweidingskalender met de dagen van het seizoen per perceel](screenshot:beweiding-kalender)
 
 Kies bovenaan de koppel waarvoor je wilt registreren. Daarna:
 
-- klik op een lege cel om een beweiding van één dag vast te leggen: vandaag als die in de week valt, anders de eerste dag van de week. Klik op een cel met een beweiding om die te bekijken en aan te passen;
-- sleep over meerdere cellen van één perceel om een langere periode in één keer vast te leggen;
-- of klik op **Beweiding toevoegen** boven de kalender en kies een perceel. De beweiding staat dan op vandaag, of op dezelfde dag in het gekozen jaar.
-
-Met **Week** en **Dag** boven de kalender wissel je tussen de weken van het jaar en elke dag van het weideseizoen, van 1 maart tot en met 31 oktober. In de dagweergave staan de dagen smal naast elkaar; op een kleiner scherm schuif je de kalender opzij. Ga met de muis over een dag voor de koppel, de maaisnede of de bemesting van die dag. De huidige week of dag is gemarkeerd.
+- klik op een lege dag om een beweiding op die dag vast te leggen. Klik op een dag met een beweiding, maaisnede of bemesting om die te bekijken, aan te passen of te verwijderen;
+- sleep over meerdere dagen van één perceel om een langere periode in één keer vast te leggen;
+- klik met de rechtermuisknop op een dag om daar een beweiding, maaisnede of bemesting toe te voegen;
+- of gebruik **Beweiding toevoegen** boven de kalender en kies een perceel. De beweiding staat dan op vandaag, of op dezelfde dag in het gekozen jaar.
 
 ### Maaien en bemesten in de kalender {#maaien-bemesten}
 
-De kalender toont ook de maaisneden en bemestingen van je graslandpercelen, met een aar voor maaien en een schep voor bemesten. Ga met de muis over het symbool voor de datum en de meststof.
-
-- Met **Maaisnede toevoegen** of **Bemesting toevoegen** boven de kalender kies je een perceel. Daarna vul je hetzelfde formulier in als op de [Tijdlijn](/manual/tijdlijn). De datum staat op vandaag, of op dezelfde dag in het gekozen jaar.
-- Klik op het symbool in een week om die maaisnede of bemesting aan te passen of te verwijderen. In de dagweergave klik je op de dag zelf; een bemesting is daar een blauwe stip.
+Met **Maaisnede toevoegen** of **Bemesting toevoegen** boven de kalender, of met de rechtermuisknop op een dag, voeg je een maaisnede of bemesting toe. Je vult hetzelfde formulier in als op de [Tijdlijn](/manual/tijdlijn), in een venster. Via de knoppen boven de kalender staat de datum op vandaag, of op dezelfde dag in het gekozen jaar.
 
 Een bemesting telt niet mee als gebruik voor de dagen rust; een maaisnede wel.
 
