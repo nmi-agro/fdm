@@ -369,6 +369,7 @@ export async function fetchGrazingCalendarMatrix(
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours,
       l_grazing_area_grazed: g.l_grazing_area_grazed,
+      l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
     })),
     harvests: grasslandFields.flatMap((f) =>
       (harvestsByField.get(f.b_id) ?? []).map((h) => ({

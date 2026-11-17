@@ -2,6 +2,7 @@ import type { MultiPolygon } from "geojson"
 import {
   calculateGrazingAllocationArea,
   GRAZING_HOURS_PER_KG_DM_MIN,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "@nmi-agro/fdm-calculator/browser"
@@ -29,8 +30,8 @@ const ZoneEditorMap = lazy(() => import("./zone-editor-map"))
 
 /**
  * Days before the start of a grazing in which earlier zones on the field count as recently grazed:
- * a new strip connects to them instead of overlapping them. Nieuw Nederlands Weiden switches block
- * after four weeks; using that as the rotation window is an assumption.
+ * a new strip connects to them instead of overlapping them. The Handboek Melkveehouderij §3.9.2
+ * advises grazing a field again after at most 28 growth days, so a strip older than that is free.
  */
 const STRIP_ROTATION_DAYS = 28
 
@@ -261,7 +262,7 @@ export function ZoneEditor({
 
 /**
  * Calculates the strip size for the herd and cuts it from the free part of the field:
- * area = animals × grass intake × days ÷ grass on offer.
+ * area = animals × grass intake × days ÷ (grass on offer at in-grazing + regrowth × days).
  */
 function StripBuilder({
   field,
@@ -389,7 +390,8 @@ function StripBuilder({
               Strook van{" "}
               <strong className="text-foreground">{formatHa(allocation.areaHa)} ha</strong> voor{" "}
               {days} {days === 1 ? "dag" : "dagen"}: {animalCount} dieren × {intake} kg ds × {days}{" "}
-              ÷ {offer} kg ds/ha.
+              ÷ {allocation.grassOnOfferKgDmPerHa.toLocaleString("nl-NL")} kg ds/ha ({offer} bij
+              inscharen + {GROWTH_DURING_GRAZING_KG_DM_HA_DAY} bijgroei per weidedag).
             </span>
           ) : (
             <span key="incomplete">Vul het aantal dieren, de grasopname en het grasaanbod in.</span>
@@ -413,8 +415,10 @@ function StripBuilder({
       )}
       <p className="text-muted-foreground text-[11px]">
         De strook sluit aan op de stroken van de afgelopen {STRIP_ROTATION_DAYS} dagen (grijs). De
-        grasopname gaat uit van minimaal 1 weide-uur per kg ds (Nieuw Nederlands Weiden); het
-        grasaanbod van 1.700 kg ds/ha bij inscharen (Handboek Melkveehouderij).
+        grasopname is maximaal 1 kg ds per weide-uur (Nieuw Nederlands Weiden: minimaal 1 weide-uur
+        per kg ds). Het grasaanbod is 1.700 kg ds/ha bij inscharen plus{" "}
+        {GROWTH_DURING_GRAZING_KG_DM_HA_DAY} kg ds/ha bijgroei per weidedag (Handboek
+        Melkveehouderij). Pas de waarden aan voor je eigen bedrijf.
       </p>
     </div>
   )

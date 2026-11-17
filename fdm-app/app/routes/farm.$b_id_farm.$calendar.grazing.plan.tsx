@@ -2,6 +2,9 @@ import type { MultiPolygon, Polygon } from "geojson"
 import {
   calculateGrazingAllocationArea,
   GRAZING_HOURS_PER_KG_DM_MIN,
+  GRAZING_SYSTEMS,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
+  type GrazingSystemKey,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "@nmi-agro/fdm-calculator/browser"
@@ -32,7 +35,6 @@ import {
 import { redirectWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { GRAZING_SYSTEMS, type GrazingSystemKey } from "~/components/blocks/grazing/systems"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -833,8 +835,11 @@ export default function GrazingPlanAssistent() {
                                     </strong>{" "}
                                     per weidebeurt: {selectedHerdCount} dieren × {grassIntake} kg ds
                                     × {periodDays} {periodDays === 1 ? "dag" : "dagen"} ÷{" "}
-                                    {grassOffer} kg ds/ha. Elke strook sluit aan op de vorige; is
-                                    het perceel rond, dan begint de koppel weer vooraan.
+                                    {stripAllocation.grassOnOfferKgDmPerHa.toLocaleString("nl-NL")}{" "}
+                                    kg ds/ha ({grassOffer} bij inscharen +{" "}
+                                    {GROWTH_DURING_GRAZING_KG_DM_HA_DAY} bijgroei per weidedag).
+                                    Elke strook sluit aan op de vorige; is het perceel rond, dan
+                                    begint de koppel weer vooraan.
                                   </span>
                                 ) : (
                                   <span key="no-animals">
@@ -844,9 +849,11 @@ export default function GrazingPlanAssistent() {
                                 )}
                               </p>
                               <p className="text-muted-foreground text-[11px]">
-                                Grasopname: minimaal 1 weide-uur per kg ds (Nieuw Nederlands
-                                Weiden). Grasaanbod: 1.700 kg ds/ha bij inscharen (Handboek
-                                Melkveehouderij). Percelen zonder perceelsgrens krijgen het
+                                Grasopname: maximaal 1 kg ds per weide-uur (Nieuw Nederlands Weiden:
+                                minimaal 1 weide-uur per kg ds). Grasaanbod: 1.700 kg ds/ha bij
+                                inscharen plus {GROWTH_DURING_GRAZING_KG_DM_HA_DAY} kg ds/ha
+                                bijgroei per weidedag (Handboek Melkveehouderij). Pas de waarden aan
+                                voor je eigen bedrijf. Percelen zonder perceelsgrens krijgen het
                                 percentage.
                               </p>
                             </div>

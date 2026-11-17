@@ -1,3 +1,4 @@
+import { calculateRestBeforeUses, REST_PERIOD_THRESHOLD_DAYS } from "@nmi-agro/fdm-calculator"
 import {
   addGrazing,
   checkPermission,
@@ -133,6 +134,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           : g.l_grazing_area
             ? ("partial" as const)
             : ("full" as const),
+        zone: g.l_grazing_geometry_zone ?? null,
       })),
       ...fieldHarvests.map((h) => ({
         type: "maaien" as const,
@@ -143,26 +145,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         hours: null,
         area: field.b_area,
         areaType: "full" as const,
+        zone: null,
       })),
-    ].sort((a, b) => a.start.getTime() - b.start.getTime())
+    ]
 
-    // Compute rest before each event
-    const eventsWithRest = allEvents
-      .map((ev, idx) => {
-        let restDays: number | null = null
-        let isShortRest = false
-        if (idx > 0) {
-          const prev = allEvents[idx - 1]
-          const diffMs = ev.start.getTime() - prev.end.getTime()
-          restDays = Math.max(0, Math.floor(diffMs / 86400000))
-          isShortRest = restDays < 14
-        }
+    // Rest before each event, counted from the last use of the same part of the field, so
+    // successive strips each get their own rest
+    const eventsWithRest = calculateRestBeforeUses(
+      allEvents.map((ev) => ({
+        type: ev.type,
+        start: ev.start,
+        end: ev.end,
+        zone: ev.zone,
+        data: ev,
+      })),
+    )
+      .map(({ use, restDays }) => {
+        const { zone: _zone, ...ev } = use.data!
         return {
           ...ev,
           startStr: format(ev.start, "dd-MM-yyyy"),
           endStr: format(ev.end, "dd-MM-yyyy"),
           restDays,
-          isShortRest,
+          isShortRest: restDays !== null && restDays < REST_PERIOD_THRESHOLD_DAYS,
         }
       })
       .reverse() // Most recent first for display
