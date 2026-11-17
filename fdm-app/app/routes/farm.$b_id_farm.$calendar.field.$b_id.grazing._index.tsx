@@ -1,6 +1,5 @@
 import { calculateRestBeforeUses, REST_PERIOD_THRESHOLD_DAYS } from "@nmi-agro/fdm-calculator"
 import {
-  addGrazing,
   checkPermission,
   getCultivationsForFarm,
   getFarm,
@@ -21,7 +20,6 @@ import {
   type MetaFunction,
   useLoaderData,
 } from "react-router"
-import { dataWithSuccess } from "remix-toast"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Button } from "~/components/ui/button"
@@ -40,7 +38,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { parseGrazingExtent } from "~/lib/grazing-zone"
+import { handleGrazingEvent } from "~/lib/grazing-events.server"
 
 // Lazy-loaded to avoid SSR issues with maplibre-gl and to keep it out of the initial bundle
 const GrazingZonesMap = lazy(() => import("~/components/blocks/grazing/grazing-zones-map"))
@@ -230,28 +228,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
       throw data("U heeft geen schrijfrechten op dit bedrijf.", { status: 403 })
     }
 
+    // The grazing dialog of this page records grazing on this field
     const formData = await request.formData()
-    const intent = String(formData.get("intent") ?? "")
-
-    if (intent === "add_grazing") {
-      const l_id_herd = String(formData.get("l_id_herd") ?? "")
-      const l_grazing_start = new Date(String(formData.get("l_grazing_start")))
-      const endVal = formData.get("l_grazing_end")
-      const l_grazing_end = endVal ? new Date(String(endVal)) : undefined
-      const hoursVal = formData.get("l_grazing_hours")
-      const l_grazing_hours = hoursVal ? parseFloat(String(hoursVal)) : undefined
-
-      await addGrazing(fdm, session.principal_id, l_id_herd, l_grazing_start, {
-        b_id,
-        l_grazing_end,
-        l_grazing_hours,
-        ...parseGrazingExtent(formData),
-      })
-
-      return dataWithSuccess({}, { message: "Beweiding op perceel vastgelegd." })
-    }
-
-    throw data("Ongeldige actie", { status: 400 })
+    formData.set("b_id", b_id)
+    return await handleGrazingEvent(formData, {
+      principal_id: session.principal_id,
+      calendar: params.calendar ?? String(new Date().getFullYear()),
+    })
   } catch (error) {
     return handleActionError(error)
   }

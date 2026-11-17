@@ -31,29 +31,34 @@ Op **Beweiding** leg je vast welke koppel wanneer op welk perceel heeft geweid, 
 
 ## De beweidingskalender {#kalender}
 
-De kalender toont per graslandperceel de weken van het jaar. Een cel laat zien of er die week is beweid, gemaaid of dat het perceel rust; geplande beweiding is apart gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform.
+De kalender toont per graslandperceel de weken van het jaar. Percelen die in het gekozen jaar zijn beweid staan bovenaan, daarna de grootste percelen eerst. Een cel laat zien of er die week is beweid, gemaaid of dat het perceel rust; geplande beweiding is apart gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform.
 
 ![De beweidingskalender met weken per perceel](screenshot:beweiding-kalender)
 
 Kies bovenaan de koppel waarvoor je wilt registreren. Daarna:
 
 - klik op een lege cel om een beweiding van één dag vast te leggen: vandaag als die in de week valt, anders de eerste dag van de week. Klik op een cel met een beweiding om die te bekijken en aan te passen;
-- sleep over meerdere cellen van één perceel om een langere periode in één keer vast te leggen.
+- sleep over meerdere cellen van één perceel om een langere periode in één keer vast te leggen;
+- of klik op **Beweiding toevoegen** boven de kalender en kies een perceel. De beweiding staat dan op vandaag, of op dezelfde dag in het gekozen jaar.
 
-Met **Week** en **Dag** boven de kalender wissel je tussen de weken van het jaar en de dagen van één maand. In de dagweergave blader je met de pijlen naar een andere maand. De huidige week of dag is gemarkeerd.
+Met **Week** en **Dag** boven de kalender wissel je tussen de weken van het jaar en elke dag van het weideseizoen, van 1 maart tot en met 31 oktober. In de dagweergave staan de dagen smal naast elkaar; op een kleiner scherm schuif je de kalender opzij. Ga met de muis over een dag voor de koppel, de maaisnede of de bemesting van die dag. De huidige week of dag is gemarkeerd.
 
 ### Maaien en bemesten in de kalender {#maaien-bemesten}
 
 De kalender toont ook de maaisneden en bemestingen van je graslandpercelen, met een aar voor maaien en een schep voor bemesten. Ga met de muis over het symbool voor de datum en de meststof.
 
 - Met **Maaisnede toevoegen** of **Bemesting toevoegen** boven de kalender kies je een perceel. Daarna vul je hetzelfde formulier in als op de [Tijdlijn](/manual/tijdlijn). De datum staat op vandaag, of op dezelfde dag in het gekozen jaar.
-- Klik op het symbool in een week om die maaisnede of bemesting aan te passen of te verwijderen.
+- Klik op het symbool in een week om die maaisnede of bemesting aan te passen of te verwijderen. In de dagweergave klik je op de dag zelf; een bemesting is daar een blauwe stip.
 
 Een bemesting telt niet mee als gebruik voor de dagen rust; een maaisnede wel.
 
 ## Een beweiding vastleggen {#vastleggen}
 
-In het venster dat opent kies je de koppel en de periode, en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan.
+Een beweiding leg je overal in {{appName}} met hetzelfde venster vast: vanuit de kalender, met **Beweiding toevoegen** op de kalender of op de kaart, en op de beweidingspagina van een perceel.
+
+In het venster kies je de koppel en de periode, en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan.
+
+Een beweiding zonder einddatum, bijvoorbeeld uit een eerdere registratie, loopt door tot en met vandaag. Open je haar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft ze lopen. Vul je een einddatum in, dan is de beweiding afgesloten.
 
 Bij _Oppervlak_ kies je welk deel van het perceel de koppel heeft beweid:
 
@@ -89,12 +94,6 @@ De nieuwe strook sluit aan op de stroken die je de afgelopen 28 dagen op dit per
 
 ![De strook berekenen: richting, dieren, grasopname en grasaanbod, met de berekende strook op de kaart](screenshot:beweiding-strook)
 
-## Koeien naar buiten en naar binnen {#naar-buiten}
-
-Met **Koeien naar buiten** leg je snel vast waar een koppel weidt. Kies de koppel, het perceel en het aantal uren per dag. Bij _Wanneer_ staat vandaag; bij _Tot en met_ dezelfde dag. Kies je bij _Tot en met_ een latere datum, dan plan je de beweiding alvast vooruit. Klik op **Koeien naar buiten vastleggen**.
-
-Loopt een koppel nog buiten zonder einddatum, bijvoorbeeld uit een eerdere registratie, dan toont hetzelfde venster **Koeien naar binnen**. Vul de einddatum in en klik op **Koeien naar binnen vastleggen**. Zolang zo'n beweiding loopt, staat ze in de kalender tot en met vandaag. Open je haar daar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft de beweiding lopen.
-
 ## Beweiding op de kaart {#vandaag}
 
 In de [Atlas](/manual/atlas) staat de kaartlaag _Beweiding_. Je opent hem met **Beweiding op de kaart** op de beweidingskalender, met **Beweiding vandaag** onder _Acties_ op de bedrijfspagina, of via de lijst met kaartlagen in de Atlas.
@@ -103,7 +102,7 @@ De kaart kleurt je percelen naar hun gebruik op één dag: beweid, gemaaid, in r
 
 - _Dag kiezen_: met de pijlen ga je een dag terug of vooruit, en met de datumkiezer spring je naar een andere dag. De kaart opent op de datum van vandaag in het gekozen jaar en blijft binnen dat jaar. Met **Vandaag** ga je terug naar die dag. **Beweiding vandaag** opent altijd het huidige jaar.
 - _Perceel bekijken_: ga met de muis over een perceel voor de koppel en de uren per dag, de opbrengst van een maaisnede of het aantal dagen rust. De dagen rust tellen alleen vanaf een gebruik in het gekozen jaar. Klik op een graslandperceel om de beweidingspagina van dat perceel te openen; op een telefoon tik je op het perceel en daarna op **Bekijk beweiding**.
-- _Koeien naar buiten of binnen_: met **Koeien naar buiten / binnen** in het paneel links boven leg je dat direct vast, zoals hierboven beschreven.
+- _Beweiding toevoegen_: met **Beweiding toevoegen** in het paneel links boven kies je een perceel en leg je een beweiding vast op de getoonde dag.
 
 Heeft je bedrijf nog geen koppel, dan staat de kaartlaag grijs in de lijst. Voeg eerst een koppel toe bij [Veestapel](/manual/veestapel).
 

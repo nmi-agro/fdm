@@ -83,17 +83,39 @@ export interface GrazingCalendarFieldRow {
   recentRestDays: number | null
 }
 
-/** How the calendar is shown: 52 weeks of the year, or the days of one month. */
-export type GrazingCalendarView = { kind: "week" } | { kind: "day"; month: number }
+/** How the calendar is shown: 52 weeks of the year, or every day of the grazing season. */
+export type GrazingCalendarView = { kind: "week" } | { kind: "day" }
+
+/**
+ * The grazing season the day view shows: 1 March up to and including 31 October, as in the
+ * grassland calendars of Nieuw Nederlands Weiden.
+ */
+const SEASON_FIRST_MONTH = 3
+const SEASON_LAST_MONTH = 10
+
+const MONTH_NAMES = [
+  "jan",
+  "feb",
+  "mrt",
+  "apr",
+  "mei",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "okt",
+  "nov",
+  "dec",
+] as const
 
 /** A column of the calendar. */
 export interface GrazingCalendarColumn {
   key: string
-  /** Header text: the week number or the day of the month. */
+  /** Header text: the week number, or the month name on the first day of a month. */
   label: string
   dateStart: string
   dateEnd: string
-  /** Starts a group (every fourth week, or a Monday), drawn with a stronger line. */
+  /** Starts a group (every fourth week, or the first day of a month), drawn with a stronger line. */
   groupStart: boolean
 }
 
@@ -111,14 +133,6 @@ export interface GrazingCalendarMatrix {
     /** Current number of animals in the herd. */
     count: number
     colorIndex: number
-  }>
-  openGrazings: Array<{
-    l_id_grazing: string
-    l_id_herd: string
-    b_id?: string | null
-    b_name?: string | null
-    l_grazing_start: string
-    l_grazing_hours?: number | null
   }>
   summary: {
     weidedagen: number
@@ -150,7 +164,7 @@ function grazingEnd(start: Date, end: Date | string | null | undefined, today: D
 
 /**
  * The columns of the calendar with their period: 52 ISO weeks of the year, starting at the Monday
- * of the week with 4 January, or the days of one month.
+ * of the week with 4 January, or every day of the grazing season.
  */
 function getCalendarColumns(
   calendarYear: number,
@@ -164,15 +178,19 @@ function getCalendarColumns(
   }
 
   if (view.kind === "day") {
-    const daysInMonth = new Date(Date.UTC(calendarYear, view.month, 0)).getUTCDate()
-    for (let day = 1; day <= daysInMonth; day++) {
-      const start = new Date(Date.UTC(calendarYear, view.month - 1, day))
+    const last = new Date(Date.UTC(calendarYear, SEASON_LAST_MONTH, 0))
+    for (
+      let start = new Date(Date.UTC(calendarYear, SEASON_FIRST_MONTH - 1, 1));
+      start <= last;
+      start = new Date(start.getTime() + 86_400_000)
+    ) {
+      const isMonthStart = start.getUTCDate() === 1
       columns.push({
         key: `d-${toIsoDate(start)}`,
-        label: String(day),
+        label: isMonthStart ? MONTH_NAMES[start.getUTCMonth()] : "",
         dateStart: toIsoDate(start),
         dateEnd: toIsoDate(start),
-        groupStart: start.getUTCDay() === 1,
+        groupStart: isMonthStart,
         start,
         end: endOfDay(start),
       })
@@ -426,11 +444,12 @@ export async function fetchGrazingCalendarMatrix(
     }
   })
 
-  // Sort by totalGrazingDays descending, then name
+  // Fields grazed in the selected year first, then the largest fields first, then by name
   fieldRows.sort((a, b) => {
-    if (b.totalGrazingDays !== a.totalGrazingDays) {
-      return b.totalGrazingDays - a.totalGrazingDays
-    }
+    const aGrazed = a.totalGrazingDays > 0
+    const bGrazed = b.totalGrazingDays > 0
+    if (aGrazed !== bGrazed) return aGrazed ? -1 : 1
+    if (b.b_area !== a.b_area) return b.b_area - a.b_area
     return a.b_name.localeCompare(b.b_name, "nl")
   })
 
@@ -470,17 +489,6 @@ export async function fetchGrazingCalendarMatrix(
     ),
   })
 
-  const openGrazings = grazings
-    .filter((g) => g.l_grazing_end === null || g.l_grazing_end === undefined)
-    .map((g) => ({
-      l_id_grazing: g.l_id_grazing,
-      l_id_herd: g.l_id_herd,
-      b_id: g.b_id,
-      b_name: g.b_name,
-      l_grazing_start: toIsoDate(new Date(g.l_grazing_start)),
-      l_grazing_hours: g.l_grazing_hours,
-    }))
-
   return {
     year: calendarYear,
     todayKey,
@@ -488,7 +496,6 @@ export async function fetchGrazingCalendarMatrix(
     columns: columns.map(({ start: _start, end: _end, ...column }) => column),
     fields: fieldRows,
     herds: herdList,
-    openGrazings,
     summary: {
       weidedagen: metrics.weidedagen.total,
       averageHours: metrics.weideUren.averageHoursPerDay,

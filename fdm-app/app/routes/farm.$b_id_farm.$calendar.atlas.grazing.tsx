@@ -1,18 +1,16 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MapGeoJSONFeature } from "maplibre-gl"
 import {
-  addGrazing,
   checkPermission,
   getCultivationsForFarm,
   getFields,
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
-  updateGrazing,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { CalendarDays, ChevronLeft, ChevronRight, LogOut } from "lucide-react"
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Layer, type LayerProps, Source } from "react-map-gl/maplibre"
 import {
@@ -24,7 +22,6 @@ import {
   useLoaderData,
   useNavigate,
 } from "react-router"
-import { dataWithSuccess } from "remix-toast"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -47,7 +44,8 @@ import {
   AtlasTooltipHeader,
 } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { QuickEntrySheet } from "~/components/blocks/grazing/quick-entry-sheet"
+import { FieldPickerButton } from "~/components/blocks/grazing/field-picker-button"
+import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
@@ -60,6 +58,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import {
   clampToYear,
   defaultMapDay,
@@ -91,7 +90,7 @@ function toIsoDate(date: Date): string {
 
 /**
  * Loads the fields of the farm with their grazings and harvests in the selected year, and what the
- * quick entry needs (herds, grassland fields and grazings that still run).
+ * grazing dialog needs (herds and grassland fields).
  *
  * @returns Field geometries, grazings and harvests per field, herds and the write permission.
  * @throws {Response} When loading fails.
@@ -186,7 +185,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_name: f.b_name,
         b_area: f.b_area,
       })),
-      openGrazings: matrix.openGrazings,
       farmWritePermission,
     }
   } catch (error) {
@@ -194,7 +192,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
-/** Records cows going out (`add_grazing`) or coming in (`update_grazing`) from the quick entry. */
+/** Saves the grazing dialog, the same as on the grazing calendar. */
 export async function action({ request, params }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
@@ -216,39 +214,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
       throw data("U heeft geen schrijfrechten op dit bedrijf.", { status: 403 })
     }
 
-    const formData = await request.formData()
-    const intent = String(formData.get("intent") ?? "")
-
-    if (intent === "add_grazing") {
-      const b_id = String(formData.get("b_id") ?? "")
-      const l_id_herd = String(formData.get("l_id_herd") ?? "")
-      const l_grazing_start = new Date(String(formData.get("l_grazing_start")))
-      const endVal = formData.get("l_grazing_end")
-      const hoursVal = formData.get("l_grazing_hours")
-
-      await addGrazing(fdm, session.principal_id, l_id_herd, l_grazing_start, {
-        b_id: b_id || undefined,
-        l_grazing_end: endVal ? new Date(String(endVal)) : undefined,
-        l_grazing_hours: hoursVal ? Number.parseFloat(String(hoursVal)) : undefined,
-      })
-
-      return dataWithSuccess({}, { message: "Beweiding vastgelegd." })
-    }
-
-    if (intent === "update_grazing") {
-      const l_id_grazing = String(formData.get("l_id_grazing") ?? "")
-      const endVal = formData.get("l_grazing_end")
-      const hoursVal = formData.get("l_grazing_hours")
-
-      await updateGrazing(fdm, session.principal_id, l_id_grazing, {
-        l_grazing_end: endVal ? new Date(String(endVal)) : undefined,
-        l_grazing_hours: hoursVal ? Number.parseFloat(String(hoursVal)) : undefined,
-      })
-
-      return dataWithSuccess({}, { message: "Beweidingsregistratie bijgewerkt." })
-    }
-
-    throw data("Ongeldige actie", { status: 400 })
+    return await handleGrazingEvent(await request.formData(), {
+      principal_id: session.principal_id,
+      calendar: getCalendar(params),
+    })
   } catch (error) {
     return handleActionError(error)
   }
@@ -294,7 +263,6 @@ function GrazingLayer() {
     harvestsByField,
     herds,
     grasslandFields,
-    openGrazings,
     farmWritePermission,
   } = useLoaderData<typeof loader>()
   const navigate = useNavigate()
@@ -320,7 +288,10 @@ function GrazingLayer() {
   const dayLabel = day ? formatDay(day) : ""
   const isCurrentYear = today.startsWith(`${calendarYear}-`)
 
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false)
+  // The grazing dialog for a field picked in the panel, on the day shown on the map; bumped on
+  // every open so it starts fresh
+  const [grazingField, setGrazingField] = useState<(typeof grasslandFields)[number] | null>(null)
+  const [grazingSession, setGrazingSession] = useState(0)
 
   const herdCounts = useMemo(() => new Map(herds.map((h) => [h.l_id_herd, h.count ?? 0])), [herds])
   const grazingsByField = useMemo(() => {
@@ -540,16 +511,18 @@ function GrazingLayer() {
               </span>
             </Button>
           )}
-          {farmWritePermission && (
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 text-xs pointer-coarse:h-10"
-              onClick={() => setIsQuickEntryOpen(true)}
-            >
-              <LogOut className="size-3.5" />
-              <span>{GRAZING_MAP_COPY.cowsOutIn}</span>
-            </Button>
+          {farmWritePermission && grasslandFields.length > 0 && (
+            <FieldPickerButton
+              label={GRAZING_MAP_COPY.addGrazing}
+              icon={<Plus className="size-3.5" />}
+              variant="default"
+              className="h-8 w-full gap-1.5 text-xs pointer-coarse:h-10"
+              fields={grasslandFields}
+              onPick={(b_id) => {
+                setGrazingSession((s) => s + 1)
+                setGrazingField(grasslandFields.find((f) => f.b_id === b_id) ?? null)
+              }}
+            />
           )}
           <NavLink
             to={`/farm/${b_id_farm}/${calendar}/grazing`}
@@ -573,14 +546,19 @@ function GrazingLayer() {
         </div>
       )}
 
-      <QuickEntrySheet
-        open={isQuickEntryOpen}
-        onOpenChange={setIsQuickEntryOpen}
+      {/* The grazing dialog, the same as on the grazing calendar */}
+      <GrazingPopover
+        key={grazingSession}
+        open={grazingField !== null}
+        onOpenChange={(open) => {
+          if (!open) setGrazingField(null)
+        }}
         b_id_farm={b_id_farm}
         calendar={calendar}
+        field={grazingField}
+        initialStartDate={day || undefined}
+        initialEndDate={day || undefined}
         herds={herds}
-        fields={grasslandFields}
-        openGrazings={openGrazings}
         canWrite={farmWritePermission}
       />
     </div>
