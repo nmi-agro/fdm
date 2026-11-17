@@ -57,7 +57,8 @@ export type FarmRecommendationsData = {
  * indicators most, with one variant per measure family chosen over the whole farm.
  *
  * Pass `farmFields` and `applicabilityByField` when the caller already loaded them, to avoid
- * loading the fields and the applicability a second time.
+ * loading the fields and the applicability a second time. Pass `scores` when the caller already
+ * started loading the BLN3 scores, so they load in parallel with the caller's own requests.
  *
  * @returns The ranked steps, the opportunities per field, the farm-wide opportunities, the
  *   summed impact per measure and indicator, and whether any advice could be loaded.
@@ -72,6 +73,7 @@ export async function getFarmNextSteps({
   catalogue,
   farmFields,
   applicabilityByField,
+  scores: preloadedScores,
 }: {
   principal_id: PrincipalId
   b_id_farm: string
@@ -82,14 +84,16 @@ export async function getFarmNextSteps({
   catalogue: { m_id: string; m_name: string }[]
   farmFields?: Field[]
   applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null>
+  scores?: ReturnType<typeof getIndicatorsForFarm>
 }): Promise<FarmRecommendationsData> {
   const b_ids = fields.map((f) => f.b_id)
-  const scores = await getIndicatorsForFarm({
-    principal_id,
-    b_id_farm,
-    timeframe,
-    preloadedFields: farmFields,
-  })
+  const scores = await (preloadedScores ??
+    getIndicatorsForFarm({
+      principal_id,
+      b_id_farm,
+      timeframe,
+      preloadedFields: farmFields,
+    }))
   const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
   const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
   const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
@@ -232,6 +236,12 @@ export type FarmMeasureStatus = {
  * Pass `measuresMap` when the caller already loaded the measures of the farm, to avoid loading
  * them a second time.
  *
+ * A complete result is kept for {@link STATUS_CACHE_TTL_MS} per user, farm and year, so opening
+ * several measures of the catalogue does not collect the input of every field again for each
+ * page. The key includes the measures applied on the farm, so adding, changing or removing a
+ * measure gives a fresh result right away. A result with missing recommendations or applicability
+ * is not kept, so "Opnieuw proberen" always loads again.
+ *
  * @returns The fields per measure and whether recommendations and applicability were available.
  */
 export async function getFarmMeasureStatus({
@@ -249,10 +259,93 @@ export async function getFarmMeasureStatus({
   catalogue: MeasureCatalogue[]
   measuresMap?: Awaited<ReturnType<typeof getMeasuresForFarm>>
 }): Promise<FarmMeasureStatus> {
-  const [fields, measuresMap] = await Promise.all([
-    getFields(fdm, principal_id, b_id_farm, timeframe),
-    preloadedMeasuresMap ?? getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe),
-  ])
+  const measuresMap =
+    preloadedMeasuresMap ?? (await getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe))
+  const key = getStatusCacheKey(principal_id, b_id_farm, calendar, measuresMap)
+
+  const now = Date.now()
+  for (const [cachedKey, entry] of statusCache) {
+    if (entry.expires <= now) statusCache.delete(cachedKey)
+  }
+  const cached = statusCache.get(key)
+  if (cached) return cached.status
+
+  // The promise is kept, so requests that arrive while it loads share it
+  const status = loadFarmMeasureStatus({
+    principal_id,
+    b_id_farm,
+    calendar,
+    timeframe,
+    catalogue,
+    measuresMap,
+  })
+  statusCache.set(key, { expires: now + STATUS_CACHE_TTL_MS, status })
+  status.then(
+    (result) => {
+      if (!result.recommendationsAvailable || !result.applicabilityAvailable) {
+        statusCache.delete(key)
+      }
+    },
+    () => statusCache.delete(key),
+  )
+  return status
+}
+
+/** How long a complete farm measure status is reused: long enough to open a few measures. */
+const STATUS_CACHE_TTL_MS = 2 * 60 * 1000
+
+/** Farm measure status per user, farm, year and applied measures; see {@link getFarmMeasureStatus}. */
+const statusCache = new Map<string, { expires: number; status: Promise<FarmMeasureStatus> }>()
+
+/**
+ * Builds the cache key of a farm measure status. It includes the user, because the fields a user
+ * may see differ, and every applied measure with its period, because they change the status.
+ */
+function getStatusCacheKey(
+  principal_id: PrincipalId,
+  b_id_farm: string,
+  calendar: string,
+  measuresMap: Awaited<ReturnType<typeof getMeasuresForFarm>>,
+): string {
+  const applied = [...measuresMap]
+    .flatMap(([b_id, measures]) =>
+      measures.map(
+        (measure) =>
+          `${b_id}:${measure.m_id}:${measure.m_start?.valueOf() ?? ""}:${measure.m_end?.valueOf() ?? ""}`,
+      ),
+    )
+    .sort()
+    .join(",")
+  return JSON.stringify([principal_id, b_id_farm, calendar, applied])
+}
+
+/** Loads the farm measure status without the cache; see {@link getFarmMeasureStatus}. */
+async function loadFarmMeasureStatus({
+  principal_id,
+  b_id_farm,
+  calendar,
+  timeframe,
+  catalogue,
+  measuresMap,
+}: {
+  principal_id: PrincipalId
+  b_id_farm: string
+  calendar: string
+  timeframe: Timeframe
+  catalogue: MeasureCatalogue[]
+  measuresMap: Awaited<ReturnType<typeof getMeasuresForFarm>>
+}): Promise<FarmMeasureStatus> {
+  const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+  // The BLN3 scores do not depend on the applicability, so they load while it is fetched below
+  const scores = getIndicatorsForFarm({
+    principal_id,
+    b_id_farm,
+    timeframe,
+    preloadedFields: fields,
+  })
+  // Handled where the recommendations await it; this only keeps an early rejection from being
+  // reported as unhandled while the applicability is still loading
+  scores.catch(() => undefined)
   const fieldNames = new Map(fields.map((field) => [field.b_id, field.b_name ?? null]))
   const calendarYear = Number(calendar)
   const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
@@ -311,6 +404,7 @@ export async function getFarmMeasureStatus({
     catalogue,
     farmFields: fields,
     applicabilityByField,
+    scores,
   }).catch((error) => {
     reportError(error, { page: "measures catalogue recommendations" })
     return null
