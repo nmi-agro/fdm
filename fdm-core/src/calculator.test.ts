@@ -314,6 +314,27 @@ describe("withCalculationCache", () => {
     expect(calculate).toHaveBeenCalledTimes(2)
     expect(insertSpy).not.toHaveBeenCalled()
   })
+
+  it("should cache falsy results such as 0 and false", async () => {
+    const calculate = vi.fn(async (input: { value: number | boolean }) => input.value)
+    const getCalculation = withCalculationCache(calculate, "calculateFalsy", "1.0.0")
+    const hashes = [{ value: 0 }, { value: false }].map((input) =>
+      generateCalculationHash("calculateFalsy", "1.0.0", input),
+    )
+
+    await expect(getCalculation(fdm, { value: 0 })).resolves.toBe(0)
+    await expect(Promise.all(getCalculation.many(fdm, [{ value: false }]))).resolves.toEqual([
+      false,
+    ])
+    await vi.waitFor(async () => expect((await getCachedCalculations(fdm, hashes)).size).toBe(2))
+
+    // Both are now hits, for a single call and for `many`
+    await expect(getCalculation(fdm, { value: 0 })).resolves.toBe(0)
+    await expect(
+      Promise.all(getCalculation.many(fdm, [{ value: 0 }, { value: false }])),
+    ).resolves.toEqual([0, false])
+    expect(calculate).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe("getCachedCalculations and setCachedCalculations", () => {

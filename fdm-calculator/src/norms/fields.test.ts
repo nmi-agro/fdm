@@ -29,7 +29,8 @@ describe("calculateNormsForFields", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     functions = {
-      calculateNormForManure: cached(async () => norm(170)),
+      // Distinct per field, so a swapped association between inputs and results fails a test
+      calculateNormForManure: cached(async (input) => norm(input.b_id === "f2" ? 160 : 170)),
       calculateNormForPhosphate: cached(async (input) => {
         if (input.b_id === "no-soil") throw new Error("missing soil analysis data")
         return norm(75)
@@ -56,7 +57,7 @@ describe("calculateNormsForFields", () => {
       },
       undefined,
       {
-        values: { manure: norm(170), phosphate: norm(75), nitrogen: norm(200), renure: norm(100) },
+        values: { manure: norm(160), phosphate: norm(75), nitrogen: norm(200), renure: norm(100) },
       },
     ])
     for (const fn of Object.values(functions)) {

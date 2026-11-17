@@ -74,11 +74,11 @@ export type CachedCalculation<T_Input extends object, T_Output> = ((
 }
 
 /**
- * Returns whether a cached value counts as a hit. Empty results (such as `null`) are not stored
- * and are always calculated again.
+ * Returns whether a cached value counts as a hit. Empty results (`null` or `undefined`) are not
+ * stored and are always calculated again; other values such as `0` or `false` are cached.
  */
 function isUsableResult<T_Output>(result: T_Output | null | undefined): result is T_Output {
-  return Boolean(result)
+  return result !== null && result !== undefined
 }
 
 function errorToMessage(e: unknown): string {
