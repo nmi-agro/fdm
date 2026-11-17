@@ -264,4 +264,92 @@ export const captures = {
       { click: { role: "button", name: "Aandacht nodig" } },
     ],
   },
+  // The livestock and grazing pages depend on "today" (grazing status, rest days, default dates),
+  // so they start on the dashboard with the fixed clock and open the page through the menu. The
+  // seed grazes strips on the home plot on 13, 14 and 15 June.
+  "veestapel-overzicht": {
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "button", name: "Melkvee", exact: true } },
+      { click: { selector: 'a[href$="/livestock"]' } },
+      { waitFor: { text: "Alle dieren bekijken" } },
+    ],
+  },
+  "beweiding-kalender": {
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "button", name: "Melkvee", exact: true } },
+      { click: { selector: 'a[href$="/grazing"]' } },
+      { waitFor: { text: "Koppels:" } },
+    ],
+  },
+  "beweiding-zone-tekenen": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
+    ready: { text: "Perceelskaart", exact: true },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "link", name: "Beweiding", exact: true } },
+      { waitFor: { text: "Gebruikshistorie", exact: false } },
+      { click: { role: "button", name: "Beweiding toevoegen" } },
+      { click: { text: "Zone op de kaart", exact: true } },
+      { waitFor: { text: "Eerder gebruikte zones" } },
+    ],
+    element: { role: "dialog", name: "Beweiding" },
+    map: true,
+  },
+  "beweiding-strook": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
+    ready: { text: "Perceelskaart", exact: true },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "link", name: "Beweiding", exact: true } },
+      { waitFor: { text: "Gebruikshistorie", exact: false } },
+      { click: { role: "button", name: "Beweiding toevoegen" } },
+      { click: { text: "Zone op de kaart", exact: true } },
+      { waitFor: { text: "Eerder gebruikte zones" } },
+      { click: { role: "button", name: "Strook berekenen" } },
+      { click: { role: "button", name: "Strook maken" } },
+      { waitFor: { text: "binnen het perceel" } },
+    ],
+    element: { role: "dialog", name: "Beweiding" },
+    map: true,
+  },
+  beweidingsplan: {
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "button", name: "Melkvee", exact: true } },
+      { click: { selector: 'a[href$="/grazing"]' } },
+      { click: { role: "link", name: "Graslandgebruiksysteem planner" } },
+      { click: { text: "Stripgrazen", exact: true } },
+      { click: { role: "button", name: "Stroken op de kaart" } },
+      { waitFor: { text: "Strook op de kaart", exact: true } },
+    ],
+  },
+  "beweiding-vandaag": {
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "button", name: "Melkvee", exact: true } },
+      { click: { selector: 'a[href$="/grazing"]' } },
+      { click: { role: "link", name: "Vandaag op de kaart" } },
+      { waitFor: { text: "Legenda perceelstatus" } },
+    ],
+    map: true,
+  },
+  "beweiding-inzichten": {
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-06-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "link", name: "Weidegang" } },
+      { waitFor: { text: "Weidemelk · 120 dagen × 6 uur" } },
+    ],
+  },
 } satisfies Record<string, CaptureDefinition>

@@ -17,6 +17,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { CalendarGrid } from "~/components/blocks/grazing/calendar-grid"
@@ -32,6 +33,8 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD, parseGrazingExtent } from "~/lib/grazing-zone"
+
+export const handle: HelpHandle = { help: "beweiding" }
 
 export const meta: MetaFunction = () => {
   return [

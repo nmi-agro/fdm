@@ -22,6 +22,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -61,6 +62,8 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+
+export const handle: HelpHandle = { help: "veestapel-dieren" }
 
 export const meta: MetaFunction = () => {
   return [

@@ -18,6 +18,7 @@ import {
   NavLink,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -32,6 +33,8 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingInsightsData } from "~/lib/grazing-insights.server"
+
+export const handle: HelpHandle = { help: "beweiding-inzichten" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -123,6 +126,7 @@ export default function GrazingInsightsPage() {
         <FarmTitle
           title={`Weidegang ${calendar}`}
           description="Inzichten in weidedagen, uren, Weidemelk-voortgang en veebezetting op het platform."
+          help="achtergrond-beweiding"
         />
 
         <FarmContent>

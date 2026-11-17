@@ -44,7 +44,7 @@ lastReviewed: 2026-11-05 # required on background pages; last agronomic review
 ---
 ```
 
-Sections for chapters: `Aan de slag`, `Gegevens vastleggen`, `Resultaten`, `Samenwerken en account`. Sections for background pages: `Balansen`, `Normen en advies`, `Bodem`.
+Sections for chapters: `Aan de slag`, `Gegevens vastleggen`, `Resultaten`, `Samenwerken en account`. Sections for background pages: `Balansen`, `Normen en advies`, `Bodem`, `Vee en beweiding`.
 
 `routes` globs are relative to `fdm-app/app/routes/`; `watch` globs are relative to the repository root. Every glob must match at least one file. Escape `[` and `]` in globs (`sitemap\[.\]xml.ts`), because brackets are a character class.
 

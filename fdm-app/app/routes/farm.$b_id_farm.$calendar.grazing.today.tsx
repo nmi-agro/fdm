@@ -25,6 +25,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { QuickEntrySheet } from "~/components/blocks/grazing/quick-entry-sheet"
 import { TodayGrazingMap } from "~/components/blocks/grazing/today-map"
 import { Header } from "~/components/blocks/header/base"
@@ -39,6 +40,8 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+
+export const handle: HelpHandle = { help: "beweiding-vandaag" }
 
 export const meta: MetaFunction = () => {
   return [
