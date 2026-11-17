@@ -82,10 +82,6 @@ Aannames:
 
 Een nieuwe strook sluit aan op de stroken die de afgelopen 28 dagen op het perceel zijn beweid. Het Handboek adviseert een perceel na maximaal 28 groeidagen weer in te scharen (§3.9.2); een strook die langer geleden is beweid, is weer vrij.
 
-## Huiskavel {#huiskavel}
-
-In de planner kies je welke percelen bij de huiskavel horen. {{appName}} deelt het aantal koeien van de koppel door de oppervlakte van de huiskavel en laat zien welk voorbeeld van Nieuw Nederlands Weiden daar het dichtst bij ligt: XL bij 2 koeien per hectare huiskavel, L bij 4, M bij 6 en S of XS bij 8. Elk voorbeeld beschrijft hoe je de huiskavel indeelt in percelen van gelijke grootte en hoe vaak je de koeien een nieuw perceel geeft. De keuze voor de huiskavel wordt niet bewaard en verandert het plan zelf niet.
-
 ## Graslandgebruiksystemen {#systemen}
 
 De planner gebruikt per systeem een standaard aantal dagen per perceel, volgens het Handboek Melkveehouderij §3.10.2:

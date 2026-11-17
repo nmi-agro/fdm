@@ -182,17 +182,3 @@ export const SWARD_HEIGHT_CM = {
  * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden".
  */
 export const UITSCHAREN_SUPPLEMENTATION_SIGNAL_CM = { lower: 8, upper: 12 } as const
-
-/**
- * The example farms of Nieuw Nederlands Weiden, by stocking density on the huiskavel (cows per ha):
- * the size of the huiskavel and the number of cows per hectare decide which example fits. Each
- * example has 120 cows; S and XS both have 8 cows per ha on a 15 ha huiskavel.
- * Source: Stichting Weidegang, "Nieuw Nederlands Weiden - Eenvoudig, goed weiden" ("Kies jouw
- * weideplatform").
- */
-export const NNW_HUISKAVEL_EXAMPLES = [
-  { name: "XL", cowsPerHa: 2 },
-  { name: "L", cowsPerHa: 4 },
-  { name: "M", cowsPerHa: 6 },
-  { name: "S/XS", cowsPerHa: 8 },
-] as const

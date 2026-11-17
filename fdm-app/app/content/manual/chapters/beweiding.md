@@ -96,9 +96,8 @@ Klik op een graslandperceel om er direct koeien naartoe te sturen; dat werkt het
 Met de **Graslandgebruiksysteem planner** maak je in één keer een plan voor het hele seizoen:
 
 1. Kies een systeem, zoals omweiden, standweiden, stripgrazen of rantsoenbeweiding. {{appName}} vult per systeem het aantal dagen per perceel en de uren per dag in. Bij zomerstalvoedering of summerfeeding is er geen weidegang; dan maakt de planner geen plan.
-2. Kies je huiskavel: de percelen bij de stal, waar de koeien vanuit de stal naartoe lopen. Met de koppel uit stap 3 zie je hoeveel koeien per hectare huiskavel je hebt en welk voorbeeld van Nieuw Nederlands Weiden daar het best bij past. {{appName}} bewaart deze keuze niet; je kiest de huiskavel bij elk plan opnieuw.
-3. Kies wat je meeneemt: de koppel, de periode, de percelen, de uren per dag en hoe vaak je van perceel wisselt.
-4. Controleer het plan en klik op de knop om het vast te leggen.
+2. Kies wat je meeneemt: de koppel, de periode, de percelen die je wilt beweiden, de uren per dag en hoe vaak je van perceel wisselt.
+3. Controleer het plan en klik op de knop om het vast te leggen.
 
 Bij stripgrazen en rantsoenbeweiding kies je ook hoe groot het beweide deel per keer is:
 

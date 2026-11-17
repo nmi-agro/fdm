@@ -6,7 +6,6 @@ import {
   GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   type GrazingSystemKey,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
-  NNW_HUISKAVEL_EXAMPLES,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "@nmi-agro/fdm-calculator/browser"
 import {
@@ -273,12 +272,7 @@ export default function GrazingPlanAssistent() {
   // Step 1: Systeem
   const [systemKey, setSystemKey] = useState<GrazingSystemKey>("omweiden")
 
-  // Step 2: Huiskavel
-  const [huiskavelIds, setHuiskavelIds] = useState<string[]>(
-    grasslandFields.slice(0, Math.min(4, grasslandFields.length)).map((f) => f.b_id),
-  )
-
-  // Step 3: Parameters
+  // Step 2: Parameters
   const [selectedHerdId, setSelectedHerdId] = useState(herds[0]?.l_id_herd ?? "")
   const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
     grasslandFields.map((f) => f.b_id),
@@ -320,42 +314,13 @@ export default function GrazingPlanAssistent() {
     if (sys.defaultHoursPerDay > 0) setHoursPerDay(sys.defaultHoursPerDay)
   }
 
-  const toggleHuiskavel = (b_id: string) => {
-    setHuiskavelIds((prev) =>
-      prev.includes(b_id) ? prev.filter((id) => id !== b_id) : [...prev, b_id],
-    )
-  }
-
   const toggleField = (b_id: string) => {
     setSelectedFieldIds((prev) =>
       prev.includes(b_id) ? prev.filter((id) => id !== b_id) : [...prev, b_id],
     )
   }
 
-  // Live calculation of Huiskavel area & stocking density
-  const huiskavelArea = useMemo(
-    () =>
-      grasslandFields
-        .filter((f) => huiskavelIds.includes(f.b_id))
-        .reduce((acc, f) => acc + f.b_area, 0),
-    [grasslandFields, huiskavelIds],
-  )
-  // Cows per hectare of huiskavel, and the Nieuw Nederlands Weiden example closest to it
-  const huiskavelCowsPerHa =
-    huiskavelArea > 0 && selectedHerdCount > 0
-      ? Math.round((selectedHerdCount / huiskavelArea) * 10) / 10
-      : null
-  const nnwExample =
-    huiskavelCowsPerHa === null
-      ? null
-      : NNW_HUISKAVEL_EXAMPLES.reduce((closest, example) =>
-          Math.abs(example.cowsPerHa - huiskavelCowsPerHa) <
-          Math.abs(closest.cowsPerHa - huiskavelCowsPerHa)
-            ? example
-            : closest,
-        )
-
-  // Step 4: Generation and Collision Detection
+  // Step 3: Generation and Collision Detection
   const { generatedRows, collisions } = useMemo(() => {
     if (!selectedSystem.requiresGrazingRecords) {
       return { generatedRows: [], collisions: [] }
@@ -508,7 +473,7 @@ export default function GrazingPlanAssistent() {
       <main>
         <FarmTitle
           title="Graslandgebruiksysteem planner"
-          description="Genereer een doordacht rotatieschema passend bij jouw huiskavel, veebezetting en gekozen graslandgebruiksysteem."
+          description="Genereer een rotatieschema voor de percelen die je wilt beweiden, passend bij je koppel en het gekozen graslandgebruiksysteem."
           help="beweidingsplan"
         />
 
@@ -570,78 +535,10 @@ export default function GrazingPlanAssistent() {
 
             {selectedSystem.requiresGrazingRecords && (
               <>
-                {/* Step 2: Huiskavel */}
+                {/* Step 2: Parameters */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">
-                      2 · Welke percelen horen bij de huiskavel?
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      De huiskavel zijn de percelen bij de stal, waar de koeien vanuit de stal
-                      naartoe lopen. Met de oppervlakte en het aantal koeien zie je welk voorbeeld
-                      van Nieuw Nederlands Weiden bij je bedrijf past. Je keuze wordt niet bewaard.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-                      {grasslandFields.map((field) => {
-                        const isChecked = huiskavelIds.includes(field.b_id)
-                        return (
-                          <div
-                            key={field.b_id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => toggleHuiskavel(field.b_id)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault()
-                                toggleHuiskavel(field.b_id)
-                              }
-                            }}
-                            className={cn(
-                              "flex cursor-pointer items-center justify-between rounded-lg border p-3 text-xs transition-colors",
-                              isChecked
-                                ? "border-primary/50 bg-primary/5"
-                                : "border-border hover:bg-muted/30",
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Checkbox checked={isChecked} tabIndex={-1} />
-                              <span className="font-medium">{field.b_name}</span>
-                            </div>
-                            <span className="text-muted-foreground">{field.b_area} ha</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    <div className="bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-lg p-3 text-xs">
-                      <Info className="text-primary h-4 w-4 shrink-0" />
-                      {huiskavelCowsPerHa !== null && nnwExample ? (
-                        <span key="example">
-                          Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong> voor{" "}
-                          {selectedHerdCount} koeien, dus{" "}
-                          <strong>
-                            {huiskavelCowsPerHa.toLocaleString("nl-NL")} koeien per ha
-                          </strong>
-                          . Dat ligt het dichtst bij voorbeeld {nnwExample.name} van Nieuw
-                          Nederlands Weiden ({nnwExample.cowsPerHa} koeien per ha huiskavel).
-                        </span>
-                      ) : (
-                        <span key="area">
-                          Huiskavel: <strong>{huiskavelArea.toFixed(1)} ha</strong>. Kies in de
-                          volgende stap een koppel met dieren om de veebezetting op de huiskavel te
-                          zien.
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Step 3: Parameters */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">3 · Wat neem je mee in het plan?</CardTitle>
+                    <CardTitle className="text-lg">2 · Wat neem je mee in het plan?</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <FieldGroup>
@@ -946,12 +843,12 @@ export default function GrazingPlanAssistent() {
                   </CardContent>
                 </Card>
 
-                {/* Step 4: Plan Review Table */}
+                {/* Step 3: Plan Review Table */}
                 <Card>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg">4 · Controleer het plan</CardTitle>
+                        <CardTitle className="text-lg">3 · Controleer het plan</CardTitle>
                         <CardDescription className="text-xs">
                           {generatedRows.length} perioden · ± {totalWeidedagen} weidedagen
                         </CardDescription>
