@@ -119,17 +119,16 @@ export default defineConfig((env) => {
     },
     envPrefix: "PUBLIC_",
     ssr: {
-      noExternal: [
-        "posthog-js",
-        "posthog-js/react",
-        "@geomatico/maplibre-cog-protocol",
-        "maplibre-gl",
-        "remix-hook-form",
-      ],
+      noExternal: ["posthog-js", "posthog-js/react", "maplibre-gl", "remix-hook-form"],
     },
     build: {
       sourcemap: true,
       target: "baseline-widely-available",
+    },
+    // The GeoTIFF decoder workers of @developmentseed/deck.gl-geotiff (Atlas elevation layer)
+    // are ES modules; `vite build` fails with the default "iife" worker format.
+    worker: {
+      format: "es",
     },
     optimizeDeps: {
       // Keep workspace packages excluded so Vite resolves them from source

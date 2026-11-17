@@ -59,8 +59,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     apk add --no-cache libc6-compat curl
 
 # Copy production node_modules from the deploy bundle.
-# This avoids re-fetching and re-building git-hosted packages (like
-# @geomatico/maplibre-cog-protocol) which fail when tsc is unavailable in --prod mode.
+# This avoids re-fetching and re-building packages in the runner stage.
 COPY --from=builder --chown=user:nodejs /app/deployed/node_modules ./fdm-app/node_modules
 COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-app/package.json
 
