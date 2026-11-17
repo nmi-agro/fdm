@@ -41,6 +41,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
+import { formatBalanceValue } from "~/lib/format"
 import { useCalendarStore } from "~/store/calendar"
 
 type OrganicMatterFieldResultWithErrorId = OrganicMatterBalanceFieldResultNumeric & {
@@ -298,7 +299,7 @@ function OrganicMatterBalance({
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{result.balance}</p>
+                <p>{formatBalanceValue(result.balance)}</p>
                 {result.balance > 0 ? (
                   <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
@@ -315,7 +316,7 @@ function OrganicMatterBalance({
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.supply.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.supply.total)}</div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
@@ -325,7 +326,7 @@ function OrganicMatterBalance({
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.degradation.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.degradation.total)}</div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>

@@ -117,7 +117,8 @@ const getBln3ScoreCached = withCalculationCache(
  * Uses `withCalculationCache` to store and retrieve results from the
  * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
  * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
+ * redacted). The calculator version contains a hash of the calculator source,
+ * so a change to the calculator code invalidates all
  * existing cache entries. Aggregations without a numeric score are also removed
  * from cached results stored before they were filtered.
  *
@@ -230,7 +231,8 @@ export async function requestBln3MeasureApplicability(
  * Uses `withCalculationCache` to store and retrieve results from the
  * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
  * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
+ * redacted). The calculator version contains a hash of the calculator source,
+ * so a change to the calculator code invalidates all
  * existing cache entries.
  */
 export const getBln3MeasureApplicability = withCalculationCache(
@@ -363,7 +365,8 @@ export async function requestBln3MeasureAdvice(
  * Uses `withCalculationCache` to store and retrieve results from the
  * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
  * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
+ * redacted). The calculator version contains a hash of the calculator source,
+ * so a change to the calculator code invalidates all
  * existing cache entries.
  */
 export const getBln3MeasureAdvice = withCalculationCache(

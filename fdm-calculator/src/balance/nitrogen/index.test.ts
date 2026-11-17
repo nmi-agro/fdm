@@ -159,6 +159,9 @@ describe("calculateNitrogenBalance", () => {
     assertValidFertilizerBreakdown(result.emission.ammonia.fertilizers)
     expect(typeof result.emission.ammonia.residues).toBe("number")
     expect(typeof result.emission.nitrate).toBe("number")
+    expect(typeof result.emission.nitrous_oxide.total).toBe("number")
+    expect(result.emission.nitrous_oxide.total).toBeLessThanOrEqual(0)
+    expect(result.emission.nitrous_oxide.co2eq).toBeGreaterThanOrEqual(0)
     expect(typeof result.target).toBe("number")
     expect(Array.isArray(result.fields)).toBe(true)
   })
@@ -370,6 +373,8 @@ describe("calculateNitrogenBalance", () => {
     expect(result.supply.total).toBe(0)
     expect(result.removal.total).toBe(0)
     expect(result.emission.total).toBe(0)
+    expect(result.emission.nitrous_oxide.total).toBe(0)
+    expect(result.emission.nitrous_oxide.co2eq).toBe(0)
   })
 
   it("should return correct error message for no fields in input", async () => {
@@ -428,6 +433,7 @@ describe("calculateNitrogenBalance", () => {
               residues: { total: 0 },
             },
             nitrate: { total: 0 },
+            nitrous_oxide: nitrousOxideOfField(0, 0),
           } as any,
         } as any,
       },
@@ -463,7 +469,133 @@ describe("calculateNitrogenBalance", () => {
     expect(farmBalance.balance).toBe(100)
     expect(farmBalance.supply.total).toBe(100)
   })
+
+  it("averages the N2O emission by area and subtracts it in the farm balance", () => {
+    const fieldResult = (
+      b_id: string,
+      b_area: number,
+      nitrousOxide: number,
+      co2eq: number,
+    ): NitrogenBalanceFieldResultNumeric => ({
+      b_id,
+      b_area,
+      b_bufferstrip: false,
+      balance: {
+        b_id,
+        balance: 100 + nitrousOxide,
+        supply: {
+          total: 100,
+          deposition: { total: 0 },
+          fixation: { total: 0 },
+          mineralisation: { total: 0 },
+          fertilizers: {
+            total: 0,
+            mineral: { total: 0 },
+            manure: { total: 0 },
+            compost: { total: 0 },
+            other: { total: 0 },
+          },
+        } as any,
+        removal: { total: 0, harvests: { total: 0 }, residues: { total: 0 } } as any,
+        target: 0,
+        emission: {
+          total: nitrousOxide,
+          ammonia: {
+            total: 0,
+            fertilizers: {
+              total: 0,
+              mineral: { total: 0 },
+              manure: { total: 0 },
+              compost: { total: 0 },
+              other: { total: 0 },
+            },
+            residues: { total: 0 },
+          },
+          nitrate: { total: 0 },
+          nitrous_oxide: nitrousOxideOfField(nitrousOxide, co2eq),
+        } as any,
+      },
+    })
+
+    const farmBalance = calculateNitrogenBalancesFieldToFarm(
+      [fieldResult("field1", 10, -1, 416.429), fieldResult("field2", 30, -3, 1249.286)],
+      false,
+      [],
+    )
+
+    expect(farmBalance.emission.nitrous_oxide.total).toBe(-2.5)
+    expect(farmBalance.emission.nitrous_oxide.fertilizers.mineral).toBe(-2.5)
+    expect(farmBalance.emission.nitrous_oxide.co2eq).toBeCloseTo(1041.1, 1)
+    expect(farmBalance.emission.total).toBe(-2.5)
+    // 100 supply minus 2.5 N2O, rounded to a whole number
+    expect(farmBalance.balance).toBe(98)
+  })
+
+  it("averages the CO2-equivalents of the fields, so that small N2O emissions still count", () => {
+    const results = [0.0004, 0].map((value, i): NitrogenBalanceFieldResultNumeric => ({
+      b_id: `field${i}`,
+      b_area: 10,
+      b_bufferstrip: false,
+      balance: {
+        b_id: `field${i}`,
+        balance: 0,
+        supply: {
+          total: 0,
+          deposition: { total: 0 },
+          fixation: { total: 0 },
+          mineralisation: { total: 0 },
+          fertilizers: {
+            total: 0,
+            mineral: { total: 0 },
+            manure: { total: 0 },
+            compost: { total: 0 },
+            other: { total: 0 },
+          },
+        } as any,
+        removal: { total: 0, harvests: { total: 0 }, residues: { total: 0 } } as any,
+        target: 0,
+        emission: {
+          total: 0,
+          ammonia: {
+            total: 0,
+            fertilizers: {
+              total: 0,
+              mineral: { total: 0 },
+              manure: { total: 0 },
+              compost: { total: 0 },
+              other: { total: 0 },
+            },
+            residues: { total: 0 },
+          },
+          nitrate: { total: 0 },
+          // N2O-N rounded to 0 in the field result, CO2-eq kept
+          nitrous_oxide: nitrousOxideOfField(0, value === 0 ? 0 : 1.5),
+        } as any,
+      },
+    }))
+
+    const farmBalance = calculateNitrogenBalancesFieldToFarm(results, false, [])
+    expect(farmBalance.emission.nitrous_oxide.total).toBe(0)
+    expect(farmBalance.emission.nitrous_oxide.co2eq).toBeCloseTo(0.8, 8)
+  })
 })
+
+/** An N₂O emission of a field, all from mineral fertilizer. */
+function nitrousOxideOfField(total: number, co2eq: number) {
+  return {
+    total,
+    fertilizers: {
+      total,
+      mineral: { total, applications: [] },
+      manure: { total: 0, applications: [] },
+      compost: { total: 0, applications: [] },
+      other: { total: 0, applications: [] },
+    },
+    residues: { total: 0, cultivations: [] },
+    soil: { total: 0 },
+    co2eq,
+  }
+}
 
 describe("getNitrogenBalanceField", () => {
   it("should use the same cache entry for useEffectiveNitrogen false and omitted", async () => {
