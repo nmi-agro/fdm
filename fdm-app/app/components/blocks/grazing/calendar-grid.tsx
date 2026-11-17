@@ -1,15 +1,20 @@
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, Shovel, Wheat } from "lucide-react"
+import { AlertTriangle, ChevronLeft, ChevronRight, Shovel, Wheat } from "lucide-react"
 import { type MouseEvent, useState } from "react"
+import { useSearchParams } from "react-router"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import type {
   GrazingCalendarCell,
   GrazingCalendarFieldRow,
   GrazingCalendarMatrix,
+  GrazingCalendarView,
 } from "~/lib/grazing-calendar.server"
+import { Button } from "~/components/ui/button"
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
 import { TooltipProvider } from "~/components/ui/tooltip"
+import { useToday } from "~/hooks/use-today"
 import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
 
 const HERD_COLORS = [
@@ -44,6 +49,10 @@ export function CalendarGrid({
   const [dragField, setDragField] = useState<GrazingCalendarFieldRow | null>(null)
   const [dragStartWeek, setDragStartWeek] = useState<number | null>(null)
   const [dragEndWeek, setDragEndWeek] = useState<number | null>(null)
+
+  // "Today" is only known on the client; empty until then
+  const todayDate = useToday()
+  const todayKey = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
 
   // Popover state
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -80,9 +89,12 @@ export function CalendarGrid({
       // A grazing that still runs has no end date, so saving it keeps it running
       setPopoverEndDate(g.l_grazing_end ?? undefined)
     } else {
+      // A new grazing covers one day: today when it falls in the clicked week, otherwise the first
+      // day of the week (or the clicked day). Dragging over several cells records a longer period.
+      const day = todayKey >= cell.dateStart && todayKey <= cell.dateEnd ? todayKey : cell.dateStart
       setPopoverExistingGrazing(null)
-      setPopoverStartDate(cell.dateStart)
-      setPopoverEndDate(cell.dateEnd)
+      setPopoverStartDate(day)
+      setPopoverEndDate(day)
     }
 
     setPopoverOpen(true)
@@ -107,8 +119,8 @@ export function CalendarGrid({
       const minW = Math.min(dragStartWeek, dragEndWeek)
       const maxW = Math.max(dragStartWeek, dragEndWeek)
 
-      const startCell = dragField.weeks[minW]
-      const endCell = dragField.weeks[maxW]
+      const startCell = dragField.cells[minW]
+      const endCell = dragField.cells[maxW]
 
       setPopoverSession((s) => s + 1)
       setPopoverField({ b_id: dragField.b_id, b_name: dragField.b_name, b_area: dragField.b_area })
@@ -177,6 +189,8 @@ export function CalendarGrid({
           </div>
         </div>
 
+        <CalendarViewSwitch view={matrix.view} year={matrix.year} />
+
         {/* Matrix Table */}
         <div className="bg-card relative overflow-x-auto rounded-xl border shadow-xs">
           <table className="w-full border-collapse text-left text-xs" role="grid">
@@ -186,16 +200,17 @@ export function CalendarGrid({
                   Perceel
                 </th>
                 <th className="w-16 p-3 text-right">ha</th>
-                {/* 52 weeks headers, rendered by month groups */}
-                {Array.from({ length: 52 }, (_, i) => i + 1).map((weekNum) => (
+                {/* Week numbers, or the days of the shown month */}
+                {matrix.columns.map((column) => (
                   <th
-                    key={weekNum}
+                    key={column.key}
                     className={cn(
                       "border-border/40 min-w-8 border-l p-1.5 text-center text-[11px] font-normal",
-                      weekNum % 4 === 1 && "border-l-border text-foreground font-semibold",
+                      column.groupStart && "border-l-border text-foreground font-semibold",
+                      column.dateStart <= todayKey && todayKey <= column.dateEnd && "bg-primary/10",
                     )}
                   >
-                    {weekNum}
+                    {column.label}
                   </th>
                 ))}
               </tr>
@@ -217,7 +232,7 @@ export function CalendarGrid({
                     {field.b_area}
                   </td>
 
-                  {field.weeks.map((cell, wIdx) => {
+                  {field.cells.map((cell, wIdx) => {
                     const isSelected =
                       isDragging &&
                       dragField?.b_id === field.b_id &&
@@ -232,13 +247,19 @@ export function CalendarGrid({
                         className={cn(
                           "border-border/40 relative cursor-pointer border-l p-0.5 text-center transition-colors select-none",
                           isSelected && "bg-primary/30",
-                          wIdx % 4 === 0 && "border-l-border",
+                          matrix.columns[wIdx]?.groupStart && "border-l-border",
                         )}
                         onMouseDown={() => handleMouseDown(field, wIdx)}
                         onMouseEnter={() => handleMouseEnter(wIdx)}
                         onClick={() => handleCellClick(field, cell)}
                         role="gridcell"
-                        aria-label={`${field.b_name}, week ${wIdx + 1}, ${cell.type}`}
+                        aria-label={`${field.b_name}, ${
+                          matrix.view.kind === "day"
+                            ? format(new Date(`${cell.dateStart}T12:00:00`), "d MMMM", {
+                                locale: nl,
+                              })
+                            : `week ${cell.label}`
+                        }, ${cell.type}`}
                       >
                         <div
                           className={cn(
@@ -340,6 +361,81 @@ export function CalendarGrid({
 }
 
 const formatDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
+
+/**
+ * Switches the calendar between the weeks of the year and the days of one month, with the
+ * previous and next month in the day view. The view lives in the URL (`weergave`, `maand`), so the
+ * loader builds the matching columns and a link keeps the view.
+ */
+function CalendarViewSwitch({ view, year }: { view: GrazingCalendarView; year: number }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const setView = (next: GrazingCalendarView) => {
+    const params = new URLSearchParams(searchParams)
+    if (next.kind === "day") {
+      params.set("weergave", "dag")
+      params.set("maand", String(next.month))
+    } else {
+      params.delete("weergave")
+      params.delete("maand")
+    }
+    setSearchParams(params, { preventScrollReset: true })
+  }
+  const monthLabel = (month: number) =>
+    format(new Date(year, month - 1, 1), "MMMM yyyy", { locale: nl })
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <ToggleGroup
+        size="sm"
+        variant="outline"
+        value={[view.kind]}
+        // Base UI sends an empty array when the active item is clicked again; keep the view then
+        onValueChange={([value]) => {
+          if (value === "week") setView({ kind: "week" })
+          // The day view opens on the current month
+          if (value === "day" && view.kind !== "day")
+            setView({ kind: "day", month: new Date().getMonth() + 1 })
+        }}
+        aria-label="Weergave van de kalender"
+      >
+        <ToggleGroupItem value="week" className="px-3 text-xs">
+          Week
+        </ToggleGroupItem>
+        <ToggleGroupItem value="day" className="px-3 text-xs">
+          Dag
+        </ToggleGroupItem>
+      </ToggleGroup>
+      {view.kind === "day" && (
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => setView({ kind: "day", month: view.month - 1 })}
+            disabled={view.month <= 1}
+            aria-label="Vorige maand"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span key={view.month} className="min-w-32 text-center text-sm font-medium capitalize">
+            {monthLabel(view.month)}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => setView({ kind: "day", month: view.month + 1 })}
+            disabled={view.month >= 12}
+            aria-label="Volgende maand"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 /**
  * Markers for the mowing and fertilizer applications in a week. With write permission they are

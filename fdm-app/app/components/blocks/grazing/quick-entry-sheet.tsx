@@ -88,6 +88,11 @@ export function QuickEntrySheet({
     : ""
   const endDate = pickedEndDate !== "" && pickedEndDate < openStart ? openStart : pickedEndDate
 
+  // Cows going out are recorded for one day, the chosen day, unless a later end is planned. The
+  // end follows the day until the user picks another end, and never lies before it.
+  const [pickedOutEnd, setOutEnd] = useKeyedState(startDate, (day) => day)
+  const outEndDate = pickedOutEnd < startDate ? startDate : pickedOutEnd
+
   const handleHourPreset = (preset: "8" | "24" | "12" | "custom") => {
     setHourPreset(preset)
     if (preset === "8") setHours(8)
@@ -102,6 +107,7 @@ export function QuickEntrySheet({
     formData.set("b_id", selectedFieldId)
     formData.set("l_id_herd", selectedHerdId)
     formData.set("l_grazing_start", startDate)
+    formData.set("l_grazing_end", outEndDate)
     formData.set("l_grazing_hours", String(hours))
 
     void fetcher.submit(formData, { method: "post" })
@@ -263,23 +269,44 @@ export function QuickEntrySheet({
                   </Select>
                 </Field>
 
-                <DatePicker
-                  label="Vanaf"
-                  field={{
-                    name: "l_grazing_start",
-                    value: startDate,
-                    onChange: (val) => setStartDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
-                    onBlur: () => {},
-                    ref: () => {},
-                  }}
-                  fieldState={{
-                    invalid: false,
-                    isTouched: false,
-                    isDirty: false,
-                    isValidating: false,
-                  }}
-                  required
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <DatePicker
+                    label="Wanneer"
+                    field={{
+                      name: "l_grazing_start",
+                      value: startDate,
+                      onChange: (val) =>
+                        setStartDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                      onBlur: () => {},
+                      ref: () => {},
+                    }}
+                    fieldState={{
+                      invalid: false,
+                      isTouched: false,
+                      isDirty: false,
+                      isValidating: false,
+                    }}
+                    required
+                  />
+                  <DatePicker
+                    label="Tot en met"
+                    description="Een latere datum plant de beweiding vooruit."
+                    field={{
+                      name: "l_grazing_end",
+                      value: outEndDate,
+                      onChange: (val) => setOutEnd(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                      onBlur: () => {},
+                      ref: () => {},
+                    }}
+                    fieldState={{
+                      invalid: false,
+                      isTouched: false,
+                      isDirty: false,
+                      isValidating: false,
+                    }}
+                    required
+                  />
+                </div>
 
                 <Field>
                   <FieldLabel>Uren per dag</FieldLabel>
