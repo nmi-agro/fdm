@@ -868,15 +868,15 @@ export default function MeasuresFarmIndex() {
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
         rightNode={
-          <div className="flex flex-col items-start gap-1 xl:items-end">
+          // Help stays quiet; the catalogue is a destination, so it gets a real button
+          <div className="flex flex-wrap items-center gap-2">
             <Bln3HelpDialog />
             {b_id_farm && calendar ? (
               <Link
                 to={getMeasuresCataloguePath(b_id_farm, calendar)}
                 className={buttonVariants({
-                  variant: "ghost",
-                  size: "sm",
-                  className: "text-muted-foreground hover:text-foreground gap-1.5",
+                  variant: "outline",
+                  className: "gap-1.5 pointer-coarse:h-11",
                 })}
                 data-slot="button"
               >

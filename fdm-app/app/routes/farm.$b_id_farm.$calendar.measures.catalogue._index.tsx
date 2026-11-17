@@ -145,6 +145,15 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "recommended", label: "Meest aanbevolen" },
 ]
 
+/** Whether the recommendations that "Meest aanbevolen" sorts on could be loaded. */
+type RecommendationsState = "loading" | "ready" | "unavailable"
+
+/** Added to "Meest aanbevolen" while that order cannot be applied. */
+const RECOMMENDED_SORT_SUFFIX: Record<Exclude<RecommendationsState, "ready">, string> = {
+  loading: "(laden…)",
+  unavailable: "(niet beschikbaar)",
+}
+
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: "Alle maatregelen",
   applied: "Toegepast",
@@ -272,11 +281,45 @@ export default function MeasuresCatalogueIndex() {
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [])
 
+  // Whether the recommendations behind "Meest aanbevolen" are there. Tracked here, outside the
+  // status Suspense, so the sort select keeps an open dropdown when the status arrives. The result
+  // is stored with its promise: after "Opnieuw proberen" a new promise reads as loading again.
+  const [settledRecommendations, setSettledRecommendations] = useState<{
+    promise: Promise<CatalogueStatus>
+    state: Exclude<RecommendationsState, "loading">
+  } | null>(null)
+  useEffect(() => {
+    let current = true
+    statusPromise.then(
+      (loaded) => {
+        if (!current) return
+        setSettledRecommendations({
+          promise: statusPromise,
+          state: loaded.recommendationsAvailable ? "ready" : "unavailable",
+        })
+      },
+      () => {
+        if (current) setSettledRecommendations({ promise: statusPromise, state: "unavailable" })
+      },
+    )
+    return () => {
+      current = false
+    }
+  }, [statusPromise])
+  const recommendationsState: RecommendationsState =
+    settledRecommendations?.promise === statusPromise ? settledRecommendations.state : "loading"
+  const sortOptions = SORT_OPTIONS.map((option) =>
+    option.value === "recommended" && recommendationsState !== "ready"
+      ? { ...option, label: `${option.label} ${RECOMMENDED_SORT_SUFFIX[recommendationsState]}` }
+      : option,
+  )
+
   const rows = useMemo(() => buildCatalogueRows(catalogue), [catalogue])
 
   const filters: CatalogueFilters = { query, sortMode, status, effectType, costLevel, theme }
   const resetFilters = () => {
     setQuery("")
+    setSortMode("name")
     setStatus("all")
     setEffectType("all")
     setCostLevel("all")
@@ -324,13 +367,14 @@ export default function MeasuresCatalogueIndex() {
               )}
             </div>
             {/* Not inside the status Suspense: a remount when the status arrives would close an
-                open dropdown. "Meest aanbevolen" keeps the alphabetical order until then. */}
+                open dropdown. Until the recommendations are there, "Meest aanbevolen" says so and
+                the list stays alphabetical. */}
             <FilterSelect
               id="measures-catalogue-sort"
               label="Sorteer"
               value={sortMode}
               onChange={(v) => setSortMode(v as SortMode)}
-              options={SORT_OPTIONS}
+              options={sortOptions}
             />
           </div>
 
@@ -473,6 +517,17 @@ function CatalogueResults({
   const { query, sortMode, status, effectType, costLevel, theme } = filters
   // A status filter can only be applied once the status is there
   const statusFilterPending = status !== "all" && loaded === null
+  // "Meest aanbevolen" needs the recommendations; without them the list stays alphabetical
+  // and says so, instead of presenting an order the user would read as a ranking
+  const recommendedSortNote =
+    sortMode !== "recommended"
+      ? null
+      : loaded === null
+        ? "Op naam gesorteerd tot de aanbevelingen zijn geladen."
+        : loaded === "failed" || !loaded.recommendationsAvailable
+          ? "Aanbevelingen niet beschikbaar, daarom op naam gesorteerd."
+          : null
+  const effectiveSortMode = recommendedSortNote ? "name" : sortMode
   // Passed to the detail page, so its "Terug naar catalogus" returns to this filtered list. The
   // filters are written to the URL without a navigation, so the router location lags behind.
   const returnState: CatalogueReturnState = {
@@ -483,7 +538,7 @@ function CatalogueResults({
     () =>
       filterCatalogueRows(
         rows,
-        { query, sortMode, status, effectType, costLevel, theme },
+        { query, sortMode: effectiveSortMode, status, effectType, costLevel, theme },
         countsByMeasure,
         appliedMeasureIds,
       ),
@@ -492,7 +547,7 @@ function CatalogueResults({
       countsByMeasure,
       appliedMeasureIds,
       query,
-      sortMode,
+      effectiveSortMode,
       status,
       effectType,
       costLevel,
@@ -534,6 +589,9 @@ function CatalogueResults({
             </span>
           )}
         </p>
+        {recommendedSortNote && !statusFilterPending && (
+          <p className="text-muted-foreground">{recommendedSortNote}</p>
+        )}
         {hasFilters && (
           <Button type="button" variant="link" size="sm" onClick={onReset} className="h-auto p-0">
             Filters wissen

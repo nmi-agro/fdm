@@ -7,13 +7,14 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "~/components/ui/breadcrumb"
+import { getCatalogueReturnSearch } from "~/lib/measures-catalogue"
 
 export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
   const calendarFromStore = useCalendarStore((state) => state.calendar)
   const { calendar: calendarFromRoute, b_id, m_id } = useParams()
   const calendar = calendarFromRoute ?? calendarFromStore
   const matches = useMatches()
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
 
   const isFieldDetail = !!b_id
 
@@ -74,7 +75,10 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
           <BreadcrumbSeparator className={m_id ? "hidden md:block" : undefined} />
           <BreadcrumbItem className={m_id ? "hidden md:block" : undefined}>
             {m_id ? (
-              <BreadcrumbLink render={<Link to={cataloguePath}>Catalogus</Link>} />
+              // Back to the filtered list the measure was opened from, like "Terug naar catalogus"
+              <BreadcrumbLink
+                render={<Link to={cataloguePath + getCatalogueReturnSearch(state)}>Catalogus</Link>}
+              />
             ) : (
               <BreadcrumbPage>Catalogus</BreadcrumbPage>
             )}
