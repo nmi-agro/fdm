@@ -731,6 +731,16 @@ export default function FarmDashboardIndex() {
                 <h2 className="text-2xl font-semibold tracking-tight">Acties</h2>
                 <Card className="py-0">
                   <CardContent className="divide-border divide-y p-0">
+                    {loaderData.hasHerds && (
+                      <ActionLink
+                        to={`${calendar}/grazing/today`}
+                        icon={<Icon iconNode={cowHead} className="text-primary h-5 w-5" />}
+                        title="Beweiding vandaag"
+                        description="Leg vast op welk perceel de koppels vandaag weiden."
+                        disabledDescription="U heeft geen schrijfrechten om beweiding vast te leggen."
+                        disabled={!loaderData.farmWritePermission}
+                      />
+                    )}
                     <NavLink
                       to={"soil-analysis/bulk"}
                       className="hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl"

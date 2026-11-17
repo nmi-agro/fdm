@@ -163,3 +163,90 @@ export function cutStrips(options: Omit<StripOptions, "occupied">, count: number
   }
   return strips
 }
+
+/** Converts a WGS84 position to screen pixels, as the map does. */
+export type ProjectToScreen = (lng: number, lat: number) => { x: number; y: number }
+
+/** Distance within which a drawn point snaps to an edge (screen pixels). */
+export const SNAP_TOLERANCE_PX = 12
+
+/** The rings of an area as lists of positions. */
+function ringsOf(target: Area): Position[][] {
+  return target.type === "Polygon" ? target.coordinates : target.coordinates.flat()
+}
+
+/**
+ * Finds the point to snap a drawn point to: a corner of one of the areas within the tolerance,
+ * or else the nearest point on one of their edges within the tolerance. Corners go first, so a
+ * zone can start exactly in the corner of the field. Distances are measured in screen pixels, so
+ * snapping feels the same at every zoom level.
+ *
+ * @param point - The drawn point (WGS84).
+ * @param targets - The areas to snap to, such as the field outline and earlier strips.
+ * @param project - Converts a WGS84 position to screen pixels.
+ * @param tolerancePx - Maximum distance to snap (pixels). Defaults to {@link SNAP_TOLERANCE_PX}.
+ * @returns The position to use, or `undefined` when nothing is within the tolerance.
+ */
+export function snapToEdges(
+  point: Position,
+  targets: Area[],
+  project: ProjectToScreen,
+  tolerancePx = SNAP_TOLERANCE_PX,
+): Position | undefined {
+  const p = project(point[0], point[1])
+  let bestCorner: { position: Position; distance: number } | undefined
+  let bestEdge: { position: Position; distance: number } | undefined
+
+  for (const target of targets) {
+    for (const ring of ringsOf(target)) {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const a = ring[i]
+        const b = ring[i + 1]
+        const pa = project(a[0], a[1])
+        const pb = project(b[0], b[1])
+
+        const cornerDistance = Math.hypot(p.x - pa.x, p.y - pa.y)
+        if (
+          cornerDistance <= tolerancePx &&
+          (!bestCorner || cornerDistance < bestCorner.distance)
+        ) {
+          bestCorner = { position: [a[0], a[1]], distance: cornerDistance }
+        }
+
+        // Nearest point on the segment, in screen space; at field scale the map projection is
+        // linear enough to interpolate the WGS84 position with the same fraction
+        const dx = pb.x - pa.x
+        const dy = pb.y - pa.y
+        const lengthSquared = dx * dx + dy * dy
+        if (lengthSquared === 0) continue
+        const t = Math.max(0, Math.min(1, ((p.x - pa.x) * dx + (p.y - pa.y) * dy) / lengthSquared))
+        const edgeDistance = Math.hypot(p.x - (pa.x + t * dx), p.y - (pa.y + t * dy))
+        if (edgeDistance <= tolerancePx && (!bestEdge || edgeDistance < bestEdge.distance)) {
+          bestEdge = {
+            position: [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])],
+            distance: edgeDistance,
+          }
+        }
+      }
+    }
+  }
+
+  return bestCorner?.position ?? bestEdge?.position
+}
+
+/** Area below which a difference between two zones counts as rounding (square metres). */
+const NEGLIGIBLE_AREA_M2 = 0.5
+
+/**
+ * Clips a drawn zone to the field, so it never extends beyond the field outline.
+ *
+ * @param zone - The drawn zone.
+ * @param field - The field outline.
+ * @returns The part of the zone within the field: `zone` itself when it already lies within the
+ *   field, `null` when it lies entirely outside the field.
+ */
+export function clipZoneToField(zone: Area, field: Area): Area | null {
+  const clipped = intersectAreas(zone, field)
+  if (!clipped) return null
+  return area(zone) - area(clipped) < NEGLIGIBLE_AREA_M2 ? zone : clipped
+}

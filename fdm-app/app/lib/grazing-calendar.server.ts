@@ -42,6 +42,10 @@ export interface GrazingCalendarCell {
     l_id_grazing: string
     l_id_herd: string
     l_herd_name: string
+    /** Start of the grazing (YYYY-MM-DD), which may lie before the week. */
+    l_grazing_start: string
+    /** End of the grazing (YYYY-MM-DD), which may lie after the week; `null` while it runs. */
+    l_grazing_end: string | null
     l_grazing_hours?: number | null
     /** Grazed part of the field without a known location (ha). */
     l_grazing_area?: number | null
@@ -277,6 +281,8 @@ export async function fetchGrazingCalendarMatrix(
           l_id_grazing: g.l_id_grazing,
           l_id_herd: g.l_id_herd,
           l_herd_name: g.l_herd_name ?? "Koppel",
+          l_grazing_start: toIsoDate(gStart),
+          l_grazing_end: g.l_grazing_end ? toIsoDate(new Date(g.l_grazing_end)) : null,
           l_grazing_hours: g.l_grazing_hours,
           l_grazing_area: g.l_grazing_area,
           l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,

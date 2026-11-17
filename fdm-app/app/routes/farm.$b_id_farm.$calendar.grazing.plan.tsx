@@ -263,8 +263,13 @@ export default function GrazingPlanAssistent() {
   // "Today" is only known on the client; empty until then
   const today = useToday()
   const todayStr = today ? format(today, "yyyy-MM-dd") : ""
-  const defaultSeasonStart = todayStr > `${calendarYear}-05-01` ? todayStr : `${calendarYear}-05-01`
-  const defaultSeasonEnd = `${calendarYear}-10-15`
+  // The plan starts on 1 May, or today when the season in this calendar year is underway. It ends on
+  // 15 October, or on 31 December when it starts after that.
+  const seasonStart = `${calendarYear}-05-01`
+  const seasonEnd = `${calendarYear}-10-15`
+  const todayInYear = todayStr.startsWith(`${calendarYear}-`) ? todayStr : ""
+  const defaultSeasonStart = todayInYear > seasonStart ? todayInYear : seasonStart
+  const defaultSeasonEnd = defaultSeasonStart < seasonEnd ? seasonEnd : `${calendarYear}-12-31`
 
   // Step 1: Systeem
   const [systemKey, setSystemKey] = useState<GrazingSystemKey>("omweiden")
@@ -276,7 +281,9 @@ export default function GrazingPlanAssistent() {
   )
   // Follows the default start until the user picks a date, also once "today" becomes known
   const [startDate, setStartDate] = useKeyedState(defaultSeasonStart, (day) => day)
-  const [endDate, setEndDate] = useState(defaultSeasonEnd)
+  const [pickedEndDate, setEndDate] = useKeyedState(defaultSeasonEnd, (day) => day)
+  // The end never lies before the start
+  const endDate = pickedEndDate !== "" && pickedEndDate < startDate ? startDate : pickedEndDate
   const [hoursPerDay, setHoursPerDay] = useState(8)
   const [periodDays, setPeriodDays] = useState(4)
   const [partialPercentage, setPartialPercentage] = useState<number>(50)

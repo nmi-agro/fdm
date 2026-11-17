@@ -54,18 +54,20 @@ export function CalendarGrid({ matrix, b_id_farm, calendar, canWrite = true }: C
     setPopoverField({ b_id: field.b_id, b_name: field.b_name, b_area: field.b_area })
 
     if (cell.grazingEntries && cell.grazingEntries.length > 0) {
+      // Edit the grazing with its own dates, not those of the week that was clicked
       const g = cell.grazingEntries[0]
       setPopoverExistingGrazing({
         l_id_grazing: g.l_id_grazing,
         l_id_herd: g.l_id_herd,
-        l_grazing_start: cell.dateStart,
-        l_grazing_end: cell.dateEnd,
+        l_grazing_start: g.l_grazing_start,
+        l_grazing_end: g.l_grazing_end,
         l_grazing_hours: g.l_grazing_hours,
         l_grazing_area: g.l_grazing_area,
         l_grazing_geometry_zone: g.l_grazing_geometry_zone,
       })
-      setPopoverStartDate(cell.dateStart)
-      setPopoverEndDate(cell.dateEnd)
+      setPopoverStartDate(g.l_grazing_start)
+      // For a grazing that still runs, suggest the end of the clicked week
+      setPopoverEndDate(g.l_grazing_end ?? cell.dateEnd)
     } else {
       setPopoverExistingGrazing(null)
       setPopoverStartDate(cell.dateStart)

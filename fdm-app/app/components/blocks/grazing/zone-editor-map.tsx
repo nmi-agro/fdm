@@ -5,24 +5,25 @@
  * and to keep both out of the initial JS payload.
  */
 
-import type { FeatureCollection, MultiPolygon, Polygon } from "geojson"
+import type { FeatureCollection, MultiPolygon, Polygon, Position } from "geojson"
 import type { Map as MaplibreMap } from "maplibre-gl"
 import { useEffect, useMemo, useRef } from "react"
 import { Layer, type LayerProps, NavigationControl, Source, useMap } from "react-map-gl/maplibre"
 import {
   type GeoJSONStoreFeatures,
+  type SnapToCustom,
   TerraDraw,
   TerraDrawPolygonMode,
   TerraDrawSelectMode,
   ValidateNotSelfIntersecting,
 } from "terra-draw"
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
-import type { Area } from "~/lib/grazing-strip"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { type Area, clipZoneToField, snapToEdges } from "~/lib/grazing-strip"
 
 /** What the user is doing on the map. */
 export type ZoneEditorMode = "view" | "draw" | "edit"
@@ -58,6 +59,11 @@ const TERRA_DRAW_PRECISION = 9
 
 const roundCoordinate = (value: number) => Number(value.toFixed(TERRA_DRAW_PRECISION))
 
+const roundPosition = (position: Position): Position => [
+  roundCoordinate(position[0]),
+  roundCoordinate(position[1]),
+]
+
 /**
  * Splits a zone into the polygons terra-draw edits one by one, with coordinates rounded to the
  * precision terra-draw accepts.
@@ -67,9 +73,7 @@ function toPolygons(zone: Area | null): Polygon[] {
   const polygons = zone.type === "Polygon" ? [zone.coordinates] : zone.coordinates
   return polygons.map((rings) => ({
     type: "Polygon",
-    coordinates: rings.map((ring) =>
-      ring.map((position) => [roundCoordinate(position[0]), roundCoordinate(position[1])]),
-    ),
+    coordinates: rings.map((ring) => ring.map(roundPosition)),
   }))
 }
 
@@ -148,6 +152,8 @@ export default function ZoneEditorMap({
         </Source>
       )}
       <ZoneDrawing
+        fieldGeometry={fieldGeometry}
+        otherZones={otherZones}
         zone={zone}
         onZoneChange={onZoneChange}
         mode={mode}
@@ -161,13 +167,21 @@ export default function ZoneEditorMap({
  * Connects terra-draw to the map. terra-draw is an external system with its own state: the zone
  * is pushed into it when it changes from outside (reuse, strip builder), and read back from it when
  * the user finishes a drawing or an edit.
+ *
+ * Drawn and dragged points snap to the corners and edges of the field and of the other zones, and
+ * a finished zone is clipped to the field, so a zone never extends beyond the field.
  */
 function ZoneDrawing({
+  fieldGeometry,
+  otherZones = [],
   zone,
   onZoneChange,
   mode,
   onDrawFinished,
-}: Pick<ZoneEditorMapProps, "zone" | "onZoneChange" | "mode" | "onDrawFinished">) {
+}: Pick<
+  ZoneEditorMapProps,
+  "fieldGeometry" | "otherZones" | "zone" | "onZoneChange" | "mode" | "onDrawFinished"
+>) {
   const { current: mapRef } = useMap()
   const drawRef = useRef<TerraDraw | null>(null)
   // Runs a programmatic update of terra-draw without reading its changes back
@@ -175,15 +189,26 @@ function ZoneDrawing({
   // The zone terra-draw currently holds, so a zone read from it is not pushed back into it
   const loadedRef = useRef<Area | null>(null)
   // Latest props, read by the terra-draw callbacks and when terra-draw starts
-  const latestRef = useRef({ zone, mode, onZoneChange, onDrawFinished })
+  const latestRef = useRef({ fieldGeometry, otherZones, zone, mode, onZoneChange, onDrawFinished })
   useEffect(() => {
-    latestRef.current = { zone, mode, onZoneChange, onDrawFinished }
+    latestRef.current = { fieldGeometry, otherZones, zone, mode, onZoneChange, onDrawFinished }
   })
 
   // Start terra-draw once the map is available
   useEffect(() => {
     const map = mapRef?.getMap()
     if (!map) return
+
+    const snapToField: SnapToCustom = (event, context) => {
+      const { fieldGeometry, otherZones } = latestRef.current
+      const snapped = snapToEdges(
+        [event.lng, event.lat],
+        [fieldGeometry, ...otherZones],
+        context.project,
+      )
+      return snapped ? roundPosition(snapped) : undefined
+    }
+
     const draw = new TerraDraw({
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
       modes: [
@@ -195,13 +220,19 @@ function ZoneDrawing({
             outlineWidth: 2,
           },
           validation: (feature) => ValidateNotSelfIntersecting(feature),
+          snapping: { toCustom: snapToField },
         }),
         new TerraDrawSelectMode({
           flags: {
             polygon: {
               feature: {
                 draggable: true,
-                coordinates: { midpoints: true, draggable: true, deletable: true },
+                coordinates: {
+                  midpoints: true,
+                  draggable: true,
+                  deletable: true,
+                  snappable: { toCustom: snapToField },
+                },
               },
             },
           },
@@ -223,9 +254,12 @@ function ZoneDrawing({
         .getSnapshot()
         .filter((feature) => feature.geometry.type === "Polygon")
         .map((feature) => feature.geometry as Polygon)
-      const next = fromPolygons(polygons)
-      loadedRef.current = next
-      latestRef.current.onZoneChange(next)
+      const drawn = fromPolygons(polygons)
+      loadedRef.current = drawn
+      // When the zone extends beyond the field, the clipped zone differs from what terra-draw
+      // holds, so the zone effect below loads the clipped shape into terra-draw
+      const clipped = drawn ? clipZoneToField(drawn, latestRef.current.fieldGeometry) : null
+      latestRef.current.onZoneChange(clipped)
     }
 
     draw.on("finish", (_id, context) => {
