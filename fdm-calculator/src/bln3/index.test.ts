@@ -207,11 +207,14 @@ describe("getFarmIndicators", () => {
     vi.clearAllMocks()
   })
 
-  /** Sets the farm-level inputs of the given fields. */
+  /** Sets the fields of the farm and their inputs, as returned by the farm collector. */
   function mockFarmInputs(
     entries: [string, Awaited<ReturnType<typeof collectInputForBln3Score>>][],
   ) {
-    mockedCollectScoreForFarm.mockResolvedValueOnce(new Map(entries))
+    mockedCollectScoreForFarm.mockResolvedValueOnce({
+      fields: entries.map(([b_id]) => fields.find((field) => field.b_id === b_id)!),
+      inputs: new Map(entries),
+    })
   }
 
   /** Lets `getBln3Scores` return the given scores, in order. */
@@ -226,7 +229,6 @@ describe("getFarmIndicators", () => {
   }
 
   it("should score all eligible fields at once and weight the farm scores by area", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields)
     // field-6 is excluded
     mockFarmInputs(
       fields.map((field) => [
@@ -238,20 +240,13 @@ describe("getFarmIndicators", () => {
 
     const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
 
-    expect(mockedGetFields).toHaveBeenCalledWith(
-      mockFdm,
-      principal_id,
-      "farm-1",
-      getYearTimeframe(year),
-    )
-    // The fields are read once and passed to the collector
-    expect(mockedGetFields).toHaveBeenCalledTimes(1)
+    // The collector reads the fields, so they are not read separately
+    expect(mockedGetFields).not.toHaveBeenCalled()
     expect(mockedCollectScoreForFarm).toHaveBeenCalledWith(
       mockFdm,
       principal_id,
       "farm-1",
       getYearTimeframe(year),
-      fields,
     )
     expect(mockedCollectScore).not.toHaveBeenCalled()
     expect(mockedGetBln3Scores).toHaveBeenCalledTimes(1)
@@ -276,7 +271,6 @@ describe("getFarmIndicators", () => {
   })
 
   it("should weight the farm scores by field area", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
     mockFarmInputs([
       ["field-1", scoreInputs],
       ["field-2", scoreInputs],
@@ -290,7 +284,6 @@ describe("getFarmIndicators", () => {
   })
 
   it("should return empty scores for a farm without fields", async () => {
-    mockedGetFields.mockResolvedValueOnce([])
     mockFarmInputs([])
 
     const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
@@ -305,7 +298,6 @@ describe("getFarmIndicators", () => {
   })
 
   it("should not need an API key when all fields are excluded", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 1))
     mockFarmInputs([["field-1", excludedScoreInputs]])
 
     const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, undefined)
@@ -315,7 +307,6 @@ describe("getFarmIndicators", () => {
   })
 
   it("should fail as a whole when one eligible field cannot be scored", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
     mockFarmInputs([
       ["field-1", scoreInputs],
       ["field-2", scoreInputs],
@@ -328,7 +319,6 @@ describe("getFarmIndicators", () => {
   })
 
   it("should fail as a whole when the request for one field fails", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
     mockFarmInputs([
       ["field-1", scoreInputs],
       ["field-2", scoreInputs],

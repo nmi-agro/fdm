@@ -9,5 +9,5 @@ The farm nutrient advice now applies its `concurrency` to the advice requests an
 New functions:
 
 - `calculateNormsForFields` and `calculateNormFillingsForFields` calculate the legal application norms and their fillings of several fields, with one cache lookup per norm.
-- `collectInputForBln3ScoreForFarm` and `collectInputForBln3MeasureApplicabilityForFarm` collect the BLN3 inputs of all fields of a farm with farm-level queries and one permission check. They give the same inputs per field as their single-field versions. `collectInputForBln3ScoreForFarm` accepts the fields of the farm when the caller already has them.
+- `collectInputForBln3ScoreForFarm` and `collectInputForBln3MeasureApplicabilityForFarm` collect the BLN3 inputs of all fields of a farm with farm-level queries and one permission check. They give the same inputs per field as their single-field versions. `collectInputForBln3ScoreForFarm` also returns the fields of the farm, so callers need not read them again.
 - `getBln3Scores` returns the cached BLN3 scores of several fields at once.

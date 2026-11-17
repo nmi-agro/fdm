@@ -383,11 +383,9 @@ export async function collectInputForBln3Score(
  * @param timeframe - Optional timeframe. It selects the fields of the farm and is applied to
  *   soil analyses (end date only) and measures, as in {@link collectInputForBln3Score}.
  *   Cultivations are always fetched without a timeframe.
- * @param fields - Optional fields of this farm, when the caller already has them (for example
- *   from `getFields`). Saves reading the fields again; the inputs are collected for exactly
- *   these fields.
- * @returns A promise resolving to the collected inputs (without `nmiApiKey`) per field ID, in
- *   the order of the fields.
+ * @returns A promise resolving to the fields of the farm in the timeframe (as returned by
+ *   `getFields`, so callers need not read them again) and the collected inputs (without
+ *   `nmiApiKey`) per field ID.
  * @throws {Error} If data collection fails.
  */
 export async function collectInputForBln3ScoreForFarm(
@@ -395,14 +393,13 @@ export async function collectInputForBln3ScoreForFarm(
   principal_id: PrincipalId,
   b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
   timeframe?: Timeframe,
-  fields?: (Bln3Field & Pick<Field, "b_id">)[],
-): Promise<Map<string, Bln3ScoreCollectedInputs>> {
+): Promise<{ fields: Field[]; inputs: Map<string, Bln3ScoreCollectedInputs> }> {
   try {
     // Fetch all cultivations without timeframe to cover multi-year history
-    const [farmFields, soilAnalysesByField, cultivationsByField, measuresByField] =
+    const [fields, soilAnalysesByField, cultivationsByField, measuresByField] =
       await fdm.transaction((tx: FdmType) =>
         Promise.all([
-          fields ?? getFields(tx, principal_id, b_id_farm, timeframe),
+          getFields(tx, principal_id, b_id_farm, timeframe),
           getSoilAnalysesForFarm(tx, principal_id, b_id_farm, {
             start: undefined,
             end: timeframe?.end,
@@ -414,7 +411,7 @@ export async function collectInputForBln3ScoreForFarm(
 
     // The farm getters also return fields outside the timeframe, so follow the list of fields
     const inputs = new Map<string, Bln3ScoreCollectedInputs>()
-    for (const field of farmFields) {
+    for (const field of fields) {
       inputs.set(
         field.b_id,
         deriveBln3ScoreInputs({
@@ -426,7 +423,7 @@ export async function collectInputForBln3ScoreForFarm(
         }),
       )
     }
-    return inputs
+    return { fields, inputs }
   } catch (error) {
     throw new Error(
       `Failed to collect BLN3 score inputs for farm ${b_id_farm}: ${error instanceof Error ? error.message : String(error)}`,

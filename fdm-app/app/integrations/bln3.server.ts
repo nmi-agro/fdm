@@ -38,7 +38,6 @@ import {
 import {
   type CachedCalculation,
   type Field,
-  getFields,
   getMeasures,
   type PrincipalId,
   type Timeframe,
@@ -173,23 +172,27 @@ export async function getIndicatorsForFarm({
   timeframe?: Timeframe
   preloadedFields?: Field[]
 }): Promise<FieldBln3Score[]> {
-  const fields = preloadedFields ?? (await getFields(fdm, principal_id, b_id_farm, timeframe))
-  // The collector reuses the fields, so they are read only once
-  const farmInputs = await collectInputForBln3ScoreForFarm(
-    fdm,
-    principal_id,
-    b_id_farm,
-    timeframe,
-    fields,
-  ).catch((error: unknown) => ({ error }))
+  // The collector also returns the fields of the farm, so they are read once
+  const farm = await collectInputForBln3ScoreForFarm(fdm, principal_id, b_id_farm, timeframe).catch(
+    (error: unknown) => {
+      // Without preloaded fields there is no list of fields to report the error on
+      if (!preloadedFields) throw error
+      return { error }
+    },
+  )
+  const fields = preloadedFields ?? ("fields" in farm ? farm.fields : [])
 
-  const inputResults = fields.map((field): PromiseSettledResult<Bln3ScoreCollectedInputs> => {
-    if (!(farmInputs instanceof Map)) return { status: "rejected", reason: farmInputs.error }
-    const inputs = farmInputs.get(field.b_id)
-    return inputs
-      ? { status: "fulfilled", value: inputs }
-      : { status: "rejected", reason: new Error(`No BLN3 inputs for field ${field.b_id}`) }
-  })
+  // A preloaded field missing from the farm inputs (for example one outside the timeframe) is
+  // collected on its own, with its own permission check
+  const inputResults = await Promise.allSettled(
+    fields.map(async (field) => {
+      if ("error" in farm) throw farm.error
+      return (
+        farm.inputs.get(field.b_id) ??
+        (await collectInputForBln3Score(fdm, principal_id, field.b_id, timeframe))
+      )
+    }),
+  )
 
   const scoreByField = await getScoresForFields(
     fields.flatMap((field, index) => {

@@ -2,7 +2,6 @@ import type { FdmType, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
 import {
   getEnabledMeasureCatalogues,
   getField,
-  getFields,
   getMeasures,
   getMeasuresFromCatalogue,
   startOfDayInFdmTimeZone,
@@ -162,13 +161,12 @@ export async function getFarmIndicators(
   nmiApiKey: string | undefined,
 ): Promise<FarmIndicators> {
   const timeframe = getYearTimeframe(year)
-  const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
-  const inputsByField = await collectInputForBln3ScoreForFarm(
+  // The collector reads the fields too, so they are read once
+  const { fields, inputs: inputsByField } = await collectInputForBln3ScoreForFarm(
     fdm,
     principal_id,
     b_id_farm,
     timeframe,
-    fields,
   )
 
   const eligible: { field: (typeof fields)[number]; inputs: Bln3ScoreCollectedInputs }[] = []
