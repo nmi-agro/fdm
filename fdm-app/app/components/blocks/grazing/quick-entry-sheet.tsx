@@ -74,13 +74,19 @@ export function QuickEntrySheet({
   const today = useToday()
   const todayStr = today ? format(today, "yyyy-MM-dd") : ""
   const [startDate, setStartDate] = useKeyedState(todayStr, (day) => day)
-  const [endDate, setEndDate] = useKeyedState(todayStr, (day) => day)
+  const [pickedEndDate, setEndDate] = useKeyedState(todayStr, (day) => day)
   const [hours, setHours] = useState<number>(8)
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "12" | "custom">("8")
 
   // Check if current herd has an open grazing record
   const activeOpenGrazing = openGrazings.find((g) => g.l_id_herd === selectedHerdId)
   const isOpenMode = Boolean(activeOpenGrazing)
+
+  // The end of an open grazing never lies before its start, e.g. a grazing that starts after today
+  const openStart = activeOpenGrazing
+    ? format(new Date(activeOpenGrazing.l_grazing_start), "yyyy-MM-dd")
+    : ""
+  const endDate = pickedEndDate !== "" && pickedEndDate < openStart ? openStart : pickedEndDate
 
   const handleHourPreset = (preset: "8" | "24" | "12" | "custom") => {
     setHourPreset(preset)

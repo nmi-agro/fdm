@@ -96,7 +96,9 @@ export function GrazingPopover({
 
   // Start from the defaults, which may still change once "today" is known
   const [startDate, setStartDate] = useKeyedState(defaultStart, (day) => day)
-  const [endDate, setEndDate] = useKeyedState(defaultEnd, (day) => day)
+  const [pickedEndDate, setEndDate] = useKeyedState(defaultEnd, (day) => day)
+  // The end never lies before the start, also when the start moves past a default end
+  const endDate = pickedEndDate !== "" && pickedEndDate < startDate ? startDate : pickedEndDate
 
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "custom">(
     existingGrazing?.l_grazing_hours === 24
@@ -237,7 +239,6 @@ export function GrazingPopover({
                     onChange: (val) => {
                       const str = val ? format(new Date(val), "yyyy-MM-dd") : ""
                       setStartDate(str)
-                      if (str > endDate) setEndDate(str)
                     },
                     onBlur: () => {},
                     ref: () => {},

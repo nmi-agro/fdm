@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest"
 import {
   type Area,
   areaHa,
+  clipZoneToField,
   cutStrip,
   cutStrips,
   intersectAreas,
+  snapToEdges,
   toMultiPolygon,
   zoneAreaWithinField,
 } from "./grazing-strip"
@@ -118,5 +120,98 @@ describe("zoneAreaWithinField", () => {
       ],
     }
     expect(zoneAreaWithinField(halfOutside, field)).toBeCloseTo(areaHa(field) / 2, 0)
+  })
+})
+
+describe("snapToEdges", () => {
+  // A simple linear projection: 0.0001 degree is 1 pixel
+  const project = (lng: number, lat: number) => ({ x: lng * 10_000, y: -lat * 10_000 })
+
+  it("snaps to a corner of the field within the tolerance", () => {
+    expect(snapToEdges([5.0005, 52.0005], [field], project)).toEqual([5.0, 52.0])
+  })
+
+  it("snaps to the nearest point on an edge when no corner is near", () => {
+    const snapped = snapToEdges([5.005, 52.0008], [field], project) as number[]
+    expect(snapped[0]).toBeCloseTo(5.005, 6)
+    expect(snapped[1]).toBeCloseTo(52.0, 6)
+  })
+
+  it("prefers a corner over a nearer edge", () => {
+    // 6 px from the corner, 1 px from the southern edge
+    expect(snapToEdges([5.0006, 51.9999], [field], project)).toEqual([5.0, 52.0])
+  })
+
+  it("does not snap beyond the tolerance", () => {
+    expect(snapToEdges([5.005, 52.005], [field], project)).toBeUndefined()
+  })
+
+  it("also snaps to other areas, such as earlier strips", () => {
+    const strip: Polygon = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [5.0, 52.0],
+          [5.002, 52.0],
+          [5.002, 52.01],
+          [5.0, 52.01],
+          [5.0, 52.0],
+        ],
+      ],
+    }
+    const snapped = snapToEdges([5.0021, 52.005], [field, strip], project) as number[]
+    expect(snapped[0]).toBeCloseTo(5.002, 6)
+  })
+})
+
+describe("clipZoneToField", () => {
+  it("keeps a zone within the field unchanged", () => {
+    const inside: Polygon = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [5.001, 52.001],
+          [5.002, 52.001],
+          [5.002, 52.002],
+          [5.001, 52.002],
+          [5.001, 52.001],
+        ],
+      ],
+    }
+    expect(clipZoneToField(inside, field)).toBe(inside)
+  })
+
+  it("cuts off the part outside the field", () => {
+    const halfOutside: Polygon = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [4.995, 52.0],
+          [5.005, 52.0],
+          [5.005, 52.01],
+          [4.995, 52.01],
+          [4.995, 52.0],
+        ],
+      ],
+    }
+    const clipped = clipZoneToField(halfOutside, field) as Area
+    expect(areaHa(clipped)).toBeCloseTo(areaHa(field) / 2, 0)
+    expect(zoneAreaWithinField(clipped, field)).toBeCloseTo(areaHa(clipped), 2)
+  })
+
+  it("returns null for a zone entirely outside the field", () => {
+    const outside: Polygon = {
+      type: "Polygon",
+      coordinates: [
+        [
+          [4.99, 52.0],
+          [4.995, 52.0],
+          [4.995, 52.01],
+          [4.99, 52.01],
+          [4.99, 52.0],
+        ],
+      ],
+    }
+    expect(clipZoneToField(outside, field)).toBeNull()
   })
 })
