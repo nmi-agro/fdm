@@ -318,6 +318,28 @@ describe("collectInputForBln3Score", () => {
     expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
   })
 
+  it("should send the history only up to and including b_year", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([
+      {
+        ...mockCultivation,
+        b_lu: "later",
+        b_lu_catalogue: "nl_265",
+        b_lu_start: new Date("2025-03-01"),
+        b_lu_end: new Date("2025-10-01"),
+      },
+      mockCultivation,
+    ] as Cultivation[])
+    mockedGetMeasures.mockResolvedValue([])
+
+    // The timeframe of 2024 gives b_year 2024, so the 2025 cultivation is left out
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.b_year).toBe(2024)
+    expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
+  })
+
   it("should skip cultivations with non-nl_ catalogue codes", async () => {
     const foreign: Cultivation = {
       ...mockCultivation,
@@ -833,8 +855,39 @@ describe("collectInputForBln3MeasureApplicability", () => {
     expect(result.b_soiltype_agr).toBe("dekzand")
     expect(result.b_gwl_class).toBe("IIb")
     expect(result.a_som_loi).toBe(4.5)
-    expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
+    // The history runs up to b_year; years without a main cultivation are groene braak
+    expect(result.cultivations).toEqual([
+      { b_lu_brp: 6794, b_lu_year: 2026 },
+      { b_lu_brp: 6794, b_lu_year: 2025 },
+      { b_lu_brp: 266, b_lu_year: 2024 },
+    ])
     expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should not include main cultivations after b_year in the history", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([
+      {
+        ...mockCultivation,
+        b_lu: "later",
+        b_lu_catalogue: "nl_265",
+        b_lu_start: new Date("2025-03-01"),
+        b_lu_end: new Date("2025-10-01"),
+      },
+      mockCultivation,
+    ] as Cultivation[])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2024,
+      timeframe,
+    )
+
+    expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
   })
 
   it("should read the soil values only from the current soil data", async () => {

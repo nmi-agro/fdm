@@ -8,6 +8,8 @@ The farm nutrient advice now applies its `concurrency` to the advice requests an
 
 The BLN3 inputs take the lab values, soil type and groundwater class from the current soil data (`getCurrentSoilData`), as other calculations do. For fields without sampling zones the values stay the same. For fields with analyses for several zones, the zones are now combined: numeric values are the area-weighted mean, and the soil type and groundwater class the value with the largest area. The BodemConditieScore is still taken from the most recent soil analysis that has it.
 
+The cultivation history in the BLN3 inputs now runs up to and including `b_year`, the year of the request; main cultivations of later years are no longer sent.
+
 New functions:
 
 - `calculateNormsForFields` and `calculateNormFillingsForFields` calculate the legal application norms and their fillings of several fields, with one cache lookup per norm.

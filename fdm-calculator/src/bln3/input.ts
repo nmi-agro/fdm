@@ -162,32 +162,23 @@ function selectLatestBcsValues(soilAnalyses: SoilAnalysis[]): Record<string, num
 /**
  * Builds the cultivation history with the Dutch "hoofdteelt" rule (May 15–July 15).
  *
- * Only years within the span of known cultivation data are processed, from the latest year
- * (the end of the timeframe, if later) back to the first. Years in that span without a
- * cultivation in the window receive groene braak (nl_6794). Cultivations without `b_lu_start`
- * are excluded from the range calculation.
+ * The history runs from `b_year`, the year of the BLN3 request, back to the first year with a
+ * known cultivation; later years are not part of it. Years in that span without a cultivation in
+ * the window receive groene braak (nl_6794). Cultivations without `b_lu_start` are excluded from
+ * the range calculation.
  */
 function buildBln3CultivationHistory(
   cultivations: Cultivation[],
-  timeframe?: Timeframe,
+  b_year: number,
 ): Bln3Cultivation[] {
-  const cultivationsWithStart = cultivations.filter((c) => c.b_lu_start != null)
   const bln3Cultivations: Bln3Cultivation[] = []
-  if (cultivationsWithStart.length === 0) return bln3Cultivations
+  const startYears = cultivations
+    .map((c) => c.b_lu_start?.getFullYear())
+    .filter((y): y is number => y !== undefined)
+  if (startYears.length === 0) return bln3Cultivations
+  const minYear = Math.min(...startYears)
 
-  // maxYear: timeframe end year takes precedence; otherwise the latest
-  // year covered by any cultivation (end date or start date).
-  const cultivationMaxYear = cultivationsWithStart.reduce((max, c) => {
-    const y = c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear()
-    return y !== undefined && y > max ? y : max
-  }, 0)
-  const maxYear = Math.max(timeframe?.end?.getFullYear() ?? 0, cultivationMaxYear)
-  const minYear = cultivationsWithStart.reduce((min, c) => {
-    const y = c.b_lu_start?.getFullYear()
-    return y !== undefined && y < min ? y : min
-  }, maxYear)
-
-  for (let year = maxYear; year >= minYear; year--) {
+  for (let year = b_year; year >= minYear; year--) {
     const hoofdteelt = findHoofdteelt(cultivations, year)
     const match = /^nl_(\d+)$/.exec(hoofdteelt.b_lu_catalogue)
     if (!match) continue
@@ -244,8 +235,8 @@ function deriveBln3ScoreInputs({
   const { soilData, b_soiltype_agr, b_gwl_class } = readCurrentSoilValues(currentSoilData)
   const bcsData = selectLatestBcsValues(soilAnalyses)
 
-  const bln3Cultivations = buildBln3CultivationHistory(cultivations, timeframe)
   const b_year = resolveBln3ScoreYear(cultivations, timeframe)
+  const bln3Cultivations = buildBln3CultivationHistory(cultivations, b_year)
   const { targetMainCultivation, catalogueCode, exclusionReason } =
     resolveMainCultivationAndExclusion(field, cultivations, b_year)
 
@@ -294,20 +285,18 @@ function deriveBln3MeasureApplicabilityInputs({
   cultivations,
   fertilizerApplications,
   b_year,
-  timeframe,
 }: {
   field: Bln3Field
   currentSoilData: CurrentSoilData
   cultivations: Cultivation[]
   fertilizerApplications: FertilizerApplication[]
   b_year: number
-  timeframe?: Timeframe
 }): Bln3MeasureApplicabilityCollectedInputs {
   const [a_lon, a_lat] = field.b_centroid
 
   const { soilData, b_soiltype_agr, b_gwl_class } = readCurrentSoilValues(currentSoilData)
 
-  const bln3Cultivations = buildBln3CultivationHistory(cultivations, timeframe)
+  const bln3Cultivations = buildBln3CultivationHistory(cultivations, b_year)
 
   const appMethods = Array.from(
     new Set(
@@ -359,8 +348,8 @@ function deriveBln3MeasureApplicabilityInputs({
  * @param b_id - The field ID for which to collect inputs.
  * @param timeframe - Optional timeframe applied to soil data and measures only.
  *   For soil data only its end counts: analyses sampled after the end are left out.
- *   Cultivations are always fetched without a timeframe to cover the full multi-year
- *   history needed for the BLN3 calculation.
+ *   Cultivations are always fetched without a timeframe to cover the multi-year history
+ *   needed for the BLN3 calculation; the history runs up to and including `b_year`.
  *   `b_year` is the year of a single-year timeframe. For a multi-year timeframe or none, it
  *   is the latest year with a main cultivation (up to the end of the timeframe).
  * @returns A promise resolving to the collected BLN3 score inputs (without `nmiApiKey`).
@@ -492,8 +481,9 @@ export async function collectInputForBln3ScoreForFarm(
  * @param b_year - The calendar year for the applicability check.
  * @param timeframe - Optional timeframe applied to soil data and fertilizer applications.
  *   For soil data only its end counts: analyses sampled after the end are left out.
- *   Cultivations are always fetched without a timeframe to cover the full multi-year
- *   history needed for the BLN3 measure applicability estimation.
+ *   Cultivations are always fetched without a timeframe to cover the multi-year history
+ *   needed for the BLN3 measure applicability estimation; the history runs up to and
+ *   including `b_year`.
  * @returns A promise resolving to collected BLN3 measure applicability inputs.
  *   `isExcluded` and `exclusionReason` are set for buffer strips, nature fields and fields
  *   without a main cultivation in `b_year`.
@@ -518,7 +508,6 @@ export async function collectInputForBln3MeasureApplicability(
       cultivations,
       fertilizerApplications,
       b_year,
-      timeframe,
     })
   } catch (error) {
     throw new Error(
@@ -585,7 +574,6 @@ export async function collectInputForBln3MeasureApplicabilityForFarm(
           cultivations: cultivationsByField.get(field.b_id) ?? [],
           fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
           b_year,
-          timeframe,
         }),
       )
     }
