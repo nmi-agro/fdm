@@ -28,6 +28,11 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import {
+  AnimalNumberFields,
+  focusEartagInput,
+  getEartagError,
+} from "~/components/blocks/livestock/animal-number-fields"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
@@ -41,7 +46,6 @@ import {
   CardTitle,
 } from "~/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
-import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -238,7 +242,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const intent = String(formData.get("intent") ?? "")
 
     if (intent === "update_details") {
-      const l_id_eartag = String(formData.get("l_id_eartag") ?? "").trim() || undefined
+      // An empty levensnummer removes it; fdm-core checks and normalizes a filled one
+      const l_id_eartag = formData.has("l_id_eartag")
+        ? String(formData.get("l_id_eartag") ?? "").trim()
+        : undefined
       const l_id_worknumber = String(formData.get("l_id_worknumber") ?? "").trim() || undefined
       const birthDateVal = String(formData.get("l_birth_date") ?? "")
       const l_sex = (formData.get("l_sex") as "female" | "male" | null) ?? undefined
@@ -302,6 +309,8 @@ export default function AnimalDetailPage() {
 
   const [editWorknumber, setEditWorknumber] = useState(animal.l_id_worknumber ?? "")
   const [editEartag, setEditEartag] = useState(animal.l_id_eartag ?? "")
+  const [showNumberErrors, setShowNumberErrors] = useState(false)
+  const isCattle = animal.l_specie === "cattle"
   const [editBirthdate, setEditBirthdate] = useState(
     animal.l_birth_date ? format(new Date(animal.l_birth_date), "yyyy-MM-dd") : "",
   )
@@ -329,6 +338,11 @@ export default function AnimalDetailPage() {
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (getEartagError(editEartag, isCattle)) {
+      setShowNumberErrors(true)
+      focusEartagInput("detail")
+      return
+    }
     const formData = new FormData()
     formData.set("intent", "update_details")
     formData.set("l_id_worknumber", editWorknumber)
@@ -405,7 +419,7 @@ export default function AnimalDetailPage() {
                 <div className="min-w-0">
                   <dt className="text-muted-foreground text-xs">Levensnummer</dt>
                   <dd className="truncate font-semibold tabular-nums">
-                    {animal.l_id_eartag ?? "Geen oormerk"}
+                    {animal.l_id_eartag ?? "Geen levensnummer"}
                   </dd>
                 </div>
                 <div className="min-w-0">
@@ -436,33 +450,28 @@ export default function AnimalDetailPage() {
                   <CardHeader>
                     <CardTitle className="text-base">Kenmerken & Gegevens</CardTitle>
                     <CardDescription className="text-xs">
-                      Pas werknummer, oormerk, geslacht of geboortedatum aan.
+                      Pas levensnummer, werknummer, geboortedatum of geslacht aan.
                     </CardDescription>
                   </CardHeader>
                   <form onSubmit={handleDetailsSubmit}>
                     <CardContent className="space-y-4">
                       <FieldGroup>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <Field>
-                            <FieldLabel htmlFor="detail-worknumber">Werknummer</FieldLabel>
-                            <Input
-                              id="detail-worknumber"
-                              value={editWorknumber}
-                              onChange={(e) => setEditWorknumber(e.target.value)}
-                              disabled={!farmWritePermission}
-                            />
-                          </Field>
-                          <Field>
-                            <FieldLabel htmlFor="detail-eartag">Levensnummer (oormerk)</FieldLabel>
-                            <Input
-                              id="detail-eartag"
-                              value={editEartag}
-                              onChange={(e) => setEditEartag(e.target.value)}
-                              placeholder="Bijv. NL 999 9999 9999"
-                              disabled={!farmWritePermission}
-                            />
-                          </Field>
-                        </div>
+                        <AnimalNumberFields
+                          idPrefix="detail"
+                          eartag={editEartag}
+                          worknumber={editWorknumber}
+                          onEartagChange={(value) => {
+                            setEditEartag(value)
+                            setShowNumberErrors(false)
+                          }}
+                          onWorknumberChange={setEditWorknumber}
+                          isCattle={isCattle}
+                          showErrors={showNumberErrors}
+                          worknumberDescription={
+                            isCattle ? "Volgt uit een Nederlands levensnummer." : undefined
+                          }
+                          disabled={!farmWritePermission}
+                        />
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <DatePicker

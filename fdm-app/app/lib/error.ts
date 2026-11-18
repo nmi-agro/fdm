@@ -413,6 +413,37 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
   }
 
+  // Validation: life number and work number of an animal (checked by fdm-core)
+  if (
+    containsErrorMessage(error, "has an invalid check digit") ||
+    containsErrorMessage(error, "is not a valid Dutch cattle life number")
+  ) {
+    console.warn("Invalid life number:", error)
+    return dataWithWarning(
+      null,
+      "Dit levensnummer klopt niet. Controleer de cijfers op het oormerk: een Nederlands levensnummer heeft 9 of 12 cijfers.",
+    )
+  }
+
+  if (
+    containsErrorMessage(error, "Work number") &&
+    containsErrorMessage(error, "is already used")
+  ) {
+    console.warn("Work number in use:", error)
+    return dataWithWarning(
+      null,
+      "Een ander dier op dit bedrijf heeft dit werknummer al. Kies een ander werknummer.",
+    )
+  }
+
+  if (
+    containsErrorMessage(error, "Life number") &&
+    containsErrorMessage(error, "is already used")
+  ) {
+    console.warn("Life number in use:", error)
+    return dataWithWarning(null, "Een ander dier op dit bedrijf heeft dit levensnummer al.")
+  }
+
   // Validation: a herd can be on the same field only once a day (checked by fdm-core)
   if (
     containsErrorMessage(error, "overlaps an existing grazing interval") ||

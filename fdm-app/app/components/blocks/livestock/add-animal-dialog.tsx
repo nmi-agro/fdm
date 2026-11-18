@@ -1,6 +1,11 @@
 import { format } from "date-fns"
 import { useState } from "react"
 import { useFetcher } from "react-router"
+import {
+  AnimalNumberFields,
+  focusEartagInput,
+  getEartagError,
+} from "~/components/blocks/livestock/animal-number-fields"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import {
@@ -12,7 +17,6 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
-import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -33,7 +37,12 @@ export function AddAnimalDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  herds: Array<{ l_id_herd: string; l_herd_name: string | null; l_category?: string | null }>
+  herds: Array<{
+    l_id_herd: string
+    l_herd_name: string | null
+    l_category?: string | null
+    l_specie?: string | null
+  }>
 }) {
   const fetcher = useFetcher()
   const [herdId, setHerdId] = useState(herds[0]?.l_id_herd ?? "")
@@ -41,6 +50,8 @@ export function AddAnimalDialog({
   const [worknumber, setWorknumber] = useState("")
   const [birthdate, setBirthdate] = useState("")
   const [sex, setSex] = useState<"female" | "male">("female")
+  const [showErrors, setShowErrors] = useState(false)
+  const isCattle = herds.find((h) => h.l_id_herd === herdId)?.l_specie === "cattle"
 
   const herdLabel = (h: (typeof herds)[number]) =>
     h.l_category ? `${h.l_herd_name ?? "Koppel"} (${h.l_category})` : (h.l_herd_name ?? "Koppel")
@@ -48,6 +59,11 @@ export function AddAnimalDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!herdId) return
+    if (getEartagError(eartag, isCattle)) {
+      setShowErrors(true)
+      focusEartagInput("add")
+      return
+    }
 
     const formData = new FormData()
     formData.set("intent", "add_animal")
@@ -62,6 +78,7 @@ export function AddAnimalDialog({
     setEartag("")
     setWorknumber("")
     setBirthdate("")
+    setShowErrors(false)
   }
 
   return (
@@ -99,26 +116,24 @@ export function AddAnimalDialog({
                 </Select>
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field>
-                  <FieldLabel htmlFor="add-worknumber">Werknummer</FieldLabel>
-                  <Input
-                    id="add-worknumber"
-                    value={worknumber}
-                    onChange={(e) => setWorknumber(e.target.value)}
-                    placeholder="Auto indien leeg"
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="add-eartag">Levensnummer</FieldLabel>
-                  <Input
-                    id="add-eartag"
-                    value={eartag}
-                    onChange={(e) => setEartag(e.target.value)}
-                    placeholder="NL 999 9999 9999"
-                  />
-                </Field>
-              </div>
+              <AnimalNumberFields
+                idPrefix="add"
+                eartag={eartag}
+                worknumber={worknumber}
+                onEartagChange={(value) => {
+                  setEartag(value)
+                  setShowErrors(false)
+                }}
+                onWorknumberChange={setWorknumber}
+                isCattle={isCattle}
+                showErrors={showErrors}
+                worknumberDescription={
+                  isCattle
+                    ? "Volgt uit een Nederlands levensnummer, anders een nummer vanaf 10001."
+                    : "Leeg laten geeft een nummer vanaf 10001."
+                }
+                stacked
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <DatePicker

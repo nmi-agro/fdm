@@ -19,6 +19,8 @@ export interface HerdCardData {
   l_herd_name: string
   l_id_category: string
   l_category: string | null
+  /** Species of the herd's category, e.g. `cattle`. */
+  l_specie: string | null
   l_lsu: number
   /** Number of animals in the herd now. */
   count: number
@@ -73,6 +75,7 @@ export async function getHerdCards(
       l_herd_name: h.l_herd_name ?? "Koppel",
       l_id_category: h.l_id_category ?? "rvo_100",
       l_category: h.l_category ?? null,
+      l_specie: h.l_specie ?? null,
       l_lsu: h.l_lsu ?? 1.0,
       count: censusMap.get(h.l_id_herd) ?? 0,
       status,
