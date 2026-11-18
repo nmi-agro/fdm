@@ -25,7 +25,8 @@ const CACHE_WRITE_DELAY_MS = 1000
 export interface CachedCalculationManyOptions {
   /**
    * Maximum number of cache misses that are calculated at the same time.
-   * Defaults to no limit. Set it when the calculation calls an external service.
+   * Defaults to no limit. Set it when the calculation calls an external service. Must be a
+   * positive integer (or `Infinity`); otherwise every returned promise rejects.
    */
   concurrency?: number
   /**
@@ -82,7 +83,21 @@ function isUsableResult<T_Output>(result: T_Output | null | undefined): result i
 }
 
 function errorToMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
+  if (e instanceof Error) return e.message
+  try {
+    return String(e)
+  } catch {
+    // For example an object without a prototype
+    return "Unknown error"
+  }
+}
+
+/**
+ * Copies a cache row as it will be stored in the JSON columns, so that a caller who changes the
+ * result while the row waits to be written does not change the cached value.
+ */
+function snapshotCacheRow(row: CachedCalculationRow): CachedCalculationRow {
+  return JSON.parse(JSON.stringify(row)) as CachedCalculationRow
 }
 
 /**
@@ -398,7 +413,29 @@ export function withCalculationCache<T_Input extends object, T_Output>(
     // Hash the inputs, read the cache once and start the calculation of the misses. Resolves
     // with one promise per unique hash, before the misses have been calculated.
     const pending = (async () => {
-      const entries = inputs.map((input) => ({ input, ...prepareCacheEntry(input) }))
+      const { concurrency } = options
+      if (
+        concurrency !== undefined &&
+        concurrency !== Number.POSITIVE_INFINITY &&
+        !(Number.isInteger(concurrency) && concurrency >= 1)
+      ) {
+        throw new Error(
+          `Invalid concurrency for ${calculationFunctionName}: ${concurrency}. Use a positive integer.`,
+        )
+      }
+
+      // As for separate calls, an input that cannot be hashed fails on its own
+      const prepared = inputs.map((input) => {
+        try {
+          return { input, ...prepareCacheEntry(input) }
+        } catch (error: unknown) {
+          return { input, error }
+        }
+      })
+      const entries = prepared.filter(
+        (entry): entry is Exclude<(typeof prepared)[number], { error: unknown }> =>
+          !("error" in entry),
+      )
 
       let cached = new Map<string, T_Output>()
       let cacheResults = true
@@ -452,13 +489,22 @@ export function withCalculationCache<T_Input extends object, T_Output>(
           try {
             const result = await calculate(input)
             if (isUsableResult(result)) {
-              writer.addRow({
-                calculation_hash: calculationHash,
-                calculation_function: calculationFunctionName,
-                calculator_version: calculatorVersion,
-                input: inputForCache,
-                result,
-              })
+              let row: CachedCalculationRow | undefined
+              try {
+                row = snapshotCacheRow({
+                  calculation_hash: calculationHash,
+                  calculation_function: calculationFunctionName,
+                  calculator_version: calculatorVersion,
+                  input: inputForCache,
+                  result,
+                })
+              } catch (e: unknown) {
+                // The result cannot be stored as JSON; the caller still gets it
+                console.error(
+                  `Failed to write to calculation cache for ${calculationFunctionName} (hash: ${calculationHash}): ${errorToMessage(e)}`,
+                )
+              }
+              if (row) writer.addRow(row)
             }
             resolve(result)
           } catch (e: unknown) {
@@ -471,14 +517,16 @@ export function withCalculationCache<T_Input extends object, T_Output>(
       // Calculate the misses in the background; write what is left once all have finished
       void runWithConcurrency(misses, options.concurrency).then(() => writer.flush())
 
-      return { entries, resultByHash }
+      return { prepared, resultByHash }
     })()
     // Without inputs, nobody awaits `pending`; its errors reach the callers through the map below
     pending.catch(() => undefined)
 
     return inputs.map((_, index) =>
-      pending.then(({ entries, resultByHash }) => {
-        const result = resultByHash.get(entries[index].calculationHash)
+      pending.then(({ prepared, resultByHash }) => {
+        const entry = prepared[index]
+        if ("error" in entry) throw entry.error
+        const result = resultByHash.get(entry.calculationHash)
         if (!result) throw new Error("Missing calculation result")
         return result
       }),

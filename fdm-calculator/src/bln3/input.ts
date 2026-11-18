@@ -419,21 +419,17 @@ export async function collectInputForBln3ScoreForFarm(
     // Fetch all cultivations without timeframe to cover multi-year history. The soil analyses
     // are only needed for the BodemConditieScore, which the current soil data lacks.
     const soilTimeframe = { start: undefined, end: timeframe?.end }
-    const [
-      fields,
-      currentSoilDataByField,
-      soilAnalysesByField,
-      cultivationsByField,
-      measuresByField,
-    ] = await fdm.transaction((tx: FdmType) =>
-      Promise.all([
-        getFields(tx, principal_id, b_id_farm, timeframe),
-        getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, soilTimeframe),
-        getSoilAnalysesForFarm(tx, principal_id, b_id_farm, soilTimeframe),
-        getCultivationsForFarm(tx, principal_id, b_id_farm),
-        getMeasuresForFarm(tx, principal_id, b_id_farm, timeframe),
-      ]),
-    )
+    // Read the fields outside the transaction, so that a denied read stays in the audit log
+    const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+    const [currentSoilDataByField, soilAnalysesByField, cultivationsByField, measuresByField] =
+      await fdm.transaction((tx: FdmType) =>
+        Promise.all([
+          getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, soilTimeframe),
+          getSoilAnalysesForFarm(tx, principal_id, b_id_farm, soilTimeframe),
+          getCultivationsForFarm(tx, principal_id, b_id_farm),
+          getMeasuresForFarm(tx, principal_id, b_id_farm, timeframe),
+        ]),
+      )
 
     // The farm getters also return fields outside the timeframe, so follow the list of fields
     const inputs = new Map<string, Bln3ScoreCollectedInputs>()
@@ -543,16 +539,16 @@ export async function collectInputForBln3MeasureApplicabilityForFarm(
   timeframe?: Timeframe,
 ): Promise<Map<string, Bln3MeasureApplicabilityCollectedInputs>> {
   try {
-    const [fields, currentSoilDataByField, cultivationsByField] = await fdm.transaction(
-      (tx: FdmType) =>
-        Promise.all([
-          getFields(tx, principal_id, b_id_farm, timeframe),
-          getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, {
-            start: undefined,
-            end: timeframe?.end,
-          }),
-          getCultivationsForFarm(tx, principal_id, b_id_farm),
-        ]),
+    // Read the fields outside the transaction, so that a denied read stays in the audit log
+    const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+    const [currentSoilDataByField, cultivationsByField] = await fdm.transaction((tx: FdmType) =>
+      Promise.all([
+        getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, {
+          start: undefined,
+          end: timeframe?.end,
+        }),
+        getCultivationsForFarm(tx, principal_id, b_id_farm),
+      ]),
     )
     // As for a single field, the inputs are still useful without the application methods.
     // Read outside the transaction, so that a failure does not abort it.

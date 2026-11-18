@@ -1082,7 +1082,7 @@ describe("findHoofdteelt boundary and tie-break cases", () => {
 })
 
 describe("farm collectors give the same inputs as the field collectors", () => {
-  // The farm collectors read their data in a transaction
+  // The farm collectors read the fields first, then the other data in a transaction
   const txFdm = {} as FdmType
   const farmFdm = {
     transaction: (fn: (tx: FdmType) => unknown) => fn(txFdm),
@@ -1283,12 +1283,13 @@ describe("farm collectors give the same inputs as the field collectors", () => {
     })
   }
 
-  it("should read the farm data with farm-level getters in one transaction", async () => {
+  it("should read the farm data with farm-level getters", async () => {
     mockFarmGetters(scenarios[0])
 
     await collectInputForBln3ScoreForFarm(farmFdm, principal_id, b_id_farm, timeframe)
 
-    expect(mockedGetFields).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, timeframe)
+    // The fields outside the transaction, so that a denied read stays in the audit log
+    expect(mockedGetFields).toHaveBeenCalledWith(farmFdm, principal_id, b_id_farm, timeframe)
     expect(mockedGetCurrentSoilDataForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, {
       start: undefined,
       end: timeframe.end,
@@ -1320,6 +1321,7 @@ describe("farm collectors give the same inputs as the field collectors", () => {
       end: timeframe.end,
     })
     expect(mockedGetSoilAnalysesForFarm).not.toHaveBeenCalled()
+    expect(mockedGetFields).toHaveBeenCalledWith(farmFdm, principal_id, b_id_farm, timeframe)
   })
 
   it("should give the same inputs with zone-weighted current soil data", async () => {

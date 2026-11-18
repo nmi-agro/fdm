@@ -700,4 +700,71 @@ describe("withCalculationCache many", () => {
     const results = await Promise.allSettled(getCalculation.many(fdm, [{ a: 1 }, { a: 2 }]))
     expect(results.every((result) => result.status === "rejected")).toBe(true)
   })
+
+  it("should reject only the input that cannot be prepared for the cache", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => input.value)
+    const getCalculation = withCalculationCache(calculate, "manyBadInput", calculatorVersion, [
+      "token",
+    ])
+    const badInput = {
+      get value(): number {
+        throw new Error("unreadable input")
+      },
+    }
+
+    const results = await Promise.allSettled(getCalculation.many(fdm, [{ value: 1 }, badInput]))
+
+    expect(results[0]).toEqual({ status: "fulfilled", value: 1 })
+    expect(results[1]).toEqual({ status: "rejected", reason: new Error("unreadable input") })
+    expect(calculate).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([Number.NaN, 0, 1.5])(
+    "should reject all inputs for an invalid concurrency (%s)",
+    async (concurrency) => {
+      const calculate = vi.fn(async (input: { value: number }) => input.value)
+      const getCalculation = withCalculationCache(calculate, "manyConcurrency", calculatorVersion)
+
+      const results = await Promise.allSettled(
+        getCalculation.many(fdm, [{ value: 1 }, { value: 2 }], { concurrency }),
+      )
+
+      expect(results.every((result) => result.status === "rejected")).toBe(true)
+      expect(calculate).not.toHaveBeenCalled()
+    },
+  )
+
+  it("should cache the calculated result even when the caller changes it afterwards", async () => {
+    const calculate = vi.fn(async (input: { value: number }) => ({ value: input.value }))
+    const getCalculation = withCalculationCache(calculate, "manySnapshot", calculatorVersion)
+    const hash = generateCalculationHash("manySnapshot", calculatorVersion, { value: 10 })
+
+    const [promise] = getCalculation.many(fdm, [{ value: 10 }])
+    const result = await promise
+    // Changed before the delayed writer stores the row
+    result.value = 20
+
+    const cached = await waitForCachedHashes([hash])
+    expect(cached.get(hash)).toEqual({ value: 10 })
+  })
+
+  it("should keep the original rejection for an error that cannot be turned into text", async () => {
+    const rejection = Object.create(null) as object
+    const calculate = vi.fn(async () => {
+      throw rejection
+    })
+    const getCalculation = withCalculationCache(calculate, "manyNoPrototype", calculatorVersion)
+
+    const [promise] = getCalculation.many(fdm, [{ value: 1 }])
+    await expect(promise).rejects.toBe(rejection)
+
+    await vi.waitFor(async () => {
+      const rows = await fdm
+        .select()
+        .from(calculationErrors)
+        .where(eq(calculationErrors.calculation_function, "manyNoPrototype"))
+      expect(rows).toHaveLength(1)
+      expect(rows[0].error_message).toBe("Unknown error")
+    })
+  })
 })
