@@ -1,7 +1,7 @@
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, Plus } from "lucide-react"
+import { AlertTriangle, Info, Plus } from "lucide-react"
 import { useImperativeHandle, useRef, useState } from "react"
 import { NavLink } from "react-router"
 import type { FertilizerKind } from "~/components/blocks/fertilizer/utils"
@@ -21,6 +21,7 @@ import {
   ContextMenuLabel,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useToday } from "~/hooks/use-today"
 import {
@@ -63,6 +64,8 @@ export interface CalendarGridProps {
   canWrite?: boolean
   /** Opens the form to add, change or remove a mowing or fertilizer application. */
   onSheetRequest?: (request: AddEventSheetRequest) => void
+  /** Buttons for the toolbar, next to the herds: other views and adding. */
+  actions?: React.ReactNode
 }
 
 /**
@@ -81,6 +84,7 @@ export function CalendarGrid({
   calendar,
   canWrite = true,
   onSheetRequest,
+  actions,
 }: CalendarGridProps) {
   const [selectedKoppelId, setSelectedKoppelId] = useState(matrix.herds[0]?.l_id_herd ?? "")
 
@@ -324,8 +328,8 @@ export function CalendarGrid({
   return (
     <TooltipProvider>
       <div className="space-y-4" onMouseUp={handleMouseUp}>
-        {/* Top toolbar: herds and legend */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-3 text-xs">
+        {/* Toolbar: the herd to record for and the actions; below it the legend */}
+        <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground font-medium">Koppels:</span>
             {matrix.herds.map((h) => (
@@ -352,7 +356,10 @@ export function CalendarGrid({
               </button>
             ))}
           </div>
+          {actions}
+        </div>
 
+        <div className="flex flex-wrap items-center justify-end gap-4 border-b pb-3 text-xs">
           <ul className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <LegendItem label="Weiden">
               <span
@@ -378,6 +385,46 @@ export function CalendarGrid({
             <LegendItem label="Kunstmest">
               <FertilizerDot kind="mineral" />
             </LegendItem>
+            <li>
+              {/* How the calendar works, out of the way until asked for */}
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-foreground h-7 gap-1.5 text-xs"
+                    />
+                  }
+                >
+                  <Info aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>Uitleg</span>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 space-y-2 text-xs">
+                  <p>
+                    Elke dag van {GRAZING_SEASON_LABEL}. Klik op een lege dag om een beweiding toe
+                    te voegen, sleep over meerdere dagen voor een langere periode, of klik met de
+                    rechtermuisknop voor maaien en bemesten.
+                  </p>
+                  <p>
+                    Met het toetsenbord loop je met de pijltjestoetsen door de dagen en percelen,
+                    open je een dag met Enter en kies je meerdere dagen met Shift en pijl links of
+                    rechts.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => moveFocus(activeCell.row, activeCell.col)}
+                  >
+                    <span>
+                      {todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}
+                    </span>
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            </li>
           </ul>
         </div>
 
@@ -385,26 +432,17 @@ export function CalendarGrid({
           De kalender is het best te gebruiken op een groter scherm. Hier schuif je opzij door de
           dagen, of voeg je beweiding toe met de knop Beweiding toevoegen.
         </p>
-        <p className="text-muted-foreground text-xs">
-          Elke dag van {GRAZING_SEASON_LABEL}. Klik op een lege dag om een beweiding toe te voegen,
-          sleep over meerdere dagen voor een langere periode, of klik met de rechtermuisknop voor
-          maaien en bemesten.
-        </p>
-        <p className="text-muted-foreground text-xs">
-          Met het toetsenbord:{" "}
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto p-0 text-xs"
-            onClick={() => moveFocus(activeCell.row, activeCell.col)}
-          >
-            <span>
-              {todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}
-            </span>
-          </Button>
-          , loop met de pijltjestoetsen door de dagen en percelen, open een dag met Enter en kies
-          meerdere dagen met Shift en pijl links of rechts.
-        </p>
+
+        {/* For keyboard users: appears on Tab and jumps straight into the calendar */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="sr-only text-xs focus-visible:not-sr-only"
+          onClick={() => moveFocus(activeCell.row, activeCell.col)}
+        >
+          <span>{todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}</span>
+        </Button>
 
         {/* Calendar: one narrow column per day; the context menu belongs to the right-clicked day */}
         <ContextMenu>

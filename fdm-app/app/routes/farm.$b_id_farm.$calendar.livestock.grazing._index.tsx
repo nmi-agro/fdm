@@ -17,7 +17,7 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { CalendarGrid } from "~/components/blocks/grazing/calendar-grid"
-import { FieldPickerButton } from "~/components/blocks/grazing/field-picker-button"
+import { FieldPickerButton, OtherUseMenu } from "~/components/blocks/grazing/field-picker-button"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -220,61 +220,6 @@ export default function BeweidingskalenderPage() {
         <FarmTitle
           title={`Beweiding ${calendar}`}
           description="Plan en registreer de beweiding en het graslandgebruik van je percelen."
-          rightNode={
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing/plan`} />}
-              >
-                <Repeat className="text-primary h-3.5 w-3.5" />
-                Beweidingsplanner
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/grazing`} />}
-              >
-                <MapIcon className="text-primary h-3.5 w-3.5" />
-                Beweiding op de kaart
-              </Button>
-              {farmWritePermission && hasGrassland && (
-                <>
-                  <FieldPickerButton
-                    label="Beweiding toevoegen"
-                    icon={<Plus className="h-3.5 w-3.5" />}
-                    variant="default"
-                    fields={matrix.fields}
-                    disabled={!hasKoppels}
-                    onPick={(b_id) => {
-                      const field = matrix.fields.find((f) => f.b_id === b_id)
-                      if (!field) return
-                      setGrazingSession((s) => s + 1)
-                      setGrazingField({ b_id, b_name: field.b_name, b_area: field.b_area })
-                    }}
-                  />
-                  <FieldPickerButton
-                    label="Maaisnede toevoegen"
-                    fields={matrix.fields}
-                    onPick={(b_id) =>
-                      openSheet({ type: "harvest", context: { b_id, date: defaultDate } })
-                    }
-                  />
-                  <FieldPickerButton
-                    label="Bemesting toevoegen"
-                    fields={matrix.fields}
-                    onPick={(b_id) =>
-                      openSheet({ type: "fertilizer", context: { b_id, date: defaultDate } })
-                    }
-                  />
-                </>
-              )}
-            </div>
-          }
         />
 
         <FarmContent>
@@ -318,6 +263,56 @@ export default function BeweidingskalenderPage() {
                 calendar={calendar}
                 canWrite={farmWritePermission}
                 onSheetRequest={openSheet}
+                actions={
+                  // Other views of the grazing quietly, then adding: grazing first, the other
+                  // uses of a field together in one menu
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      nativeButton={false}
+                      render={
+                        <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing/plan`} />
+                      }
+                    >
+                      <Repeat className="h-3.5 w-3.5" />
+                      <span>Beweidingsplanner</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      nativeButton={false}
+                      render={<NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/grazing`} />}
+                    >
+                      <MapIcon className="h-3.5 w-3.5" />
+                      <span>Op de kaart</span>
+                    </Button>
+                    {farmWritePermission && (
+                      <>
+                        <OtherUseMenu
+                          fields={matrix.fields}
+                          onPick={(type, b_id) =>
+                            openSheet({ type, context: { b_id, date: defaultDate } })
+                          }
+                        />
+                        <FieldPickerButton
+                          label="Beweiding toevoegen"
+                          icon={<Plus className="h-3.5 w-3.5" />}
+                          variant="default"
+                          fields={matrix.fields}
+                          onPick={(b_id) => {
+                            const field = matrix.fields.find((f) => f.b_id === b_id)
+                            if (!field) return
+                            setGrazingSession((s) => s + 1)
+                            setGrazingField({ b_id, b_name: field.b_name, b_area: field.b_area })
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
+                }
               />
             )}
           </div>
