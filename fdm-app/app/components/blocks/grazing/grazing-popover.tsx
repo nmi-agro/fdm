@@ -1,5 +1,5 @@
 import type { MultiPolygon } from "geojson"
-import { format } from "date-fns"
+import { addDays, format } from "date-fns"
 import { Info, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useFetcher } from "react-router"
@@ -102,8 +102,31 @@ export function GrazingPopover({
   // Start from the defaults, which may still change once "today" is known
   const [startDate, setStartDate] = useKeyedState(defaultStart, (day) => day)
   const [pickedEndDate, setEndDate] = useKeyedState(defaultEnd, (day) => day)
+  // A grazing of one day ends on its start day; one of several days, or one that still runs, has
+  // its own end
+  const [duration, setDuration] = useState<"single" | "multiple">(
+    isRunning || (defaultEnd !== "" && defaultEnd !== defaultStart) ? "multiple" : "single",
+  )
   // The end never lies before the start, also when the start moves past a default end
-  const endDate = pickedEndDate !== "" && pickedEndDate < startDate ? startDate : pickedEndDate
+  const endDate =
+    duration === "single"
+      ? startDate
+      : pickedEndDate !== "" && pickedEndDate < startDate
+        ? startDate
+        : pickedEndDate
+
+  const handleDurationChange = (next: "single" | "multiple") => {
+    setDuration(next)
+    // Several days: suggest an end the day after the start
+    if (
+      next === "multiple" &&
+      startDate !== "" &&
+      (pickedEndDate === "" || pickedEndDate <= startDate) &&
+      !isRunning
+    ) {
+      setEndDate(format(addDays(new Date(`${startDate}T12:00:00`), 1), "yyyy-MM-dd"))
+    }
+  }
 
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "custom">(
     existingGrazing?.l_grazing_hours === 24
@@ -212,6 +235,32 @@ export function GrazingPopover({
 
           <div className="space-y-4 py-4">
             <FieldGroup>
+              {/* One day or several days */}
+              <Field>
+                <FieldLabel>Duur *</FieldLabel>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={duration === "single" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleDurationChange("single")}
+                    disabled={isRunning}
+                    className="text-xs"
+                  >
+                    1 dag
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={duration === "multiple" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleDurationChange("multiple")}
+                    className="text-xs"
+                  >
+                    Meerdere dagen
+                  </Button>
+                </div>
+              </Field>
+
               {/* Koppel Select */}
               <Field>
                 <FieldLabel htmlFor="popover-herd">Koppel *</FieldLabel>
@@ -236,10 +285,10 @@ export function GrazingPopover({
                 </Select>
               </Field>
 
-              {/* Date Range */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* The day, or the first and last day */}
+              <div className={duration === "multiple" ? "grid grid-cols-2 gap-3" : undefined}>
                 <DatePicker
-                  label="Van *"
+                  label={duration === "multiple" ? "Van *" : "Datum *"}
                   field={{
                     name: "l_grazing_start",
                     value: startDate,
@@ -258,27 +307,29 @@ export function GrazingPopover({
                   }}
                   required
                 />
-                <DatePicker
-                  label={isRunning ? "t/m" : "t/m *"}
-                  description={isRunning ? "Leeg laten: de koeien lopen nog buiten." : undefined}
-                  field={{
-                    name: "l_grazing_end",
-                    value: endDate,
-                    onChange: (val) => {
-                      const str = val ? format(new Date(val), "yyyy-MM-dd") : ""
-                      setEndDate(str)
-                    },
-                    onBlur: () => {},
-                    ref: () => {},
-                  }}
-                  fieldState={{
-                    invalid: false,
-                    isTouched: false,
-                    isDirty: false,
-                    isValidating: false,
-                  }}
-                  required={!isRunning}
-                />
+                {duration === "multiple" && (
+                  <DatePicker
+                    label={isRunning ? "t/m" : "t/m *"}
+                    description={isRunning ? "Leeg laten: de koeien lopen nog buiten." : undefined}
+                    field={{
+                      name: "l_grazing_end",
+                      value: endDate,
+                      onChange: (val) => {
+                        const str = val ? format(new Date(val), "yyyy-MM-dd") : ""
+                        setEndDate(str)
+                      },
+                      onBlur: () => {},
+                      ref: () => {},
+                    }}
+                    fieldState={{
+                      invalid: false,
+                      isTouched: false,
+                      isDirty: false,
+                      isValidating: false,
+                    }}
+                    required={!isRunning}
+                  />
+                )}
               </div>
 
               {/* Hours per Day */}

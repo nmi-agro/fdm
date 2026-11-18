@@ -411,10 +411,25 @@ export default function GrazingPlanAssistent() {
         day.setDate(day.getDate() + 1)
       ) {
         const dayStr = format(day, "yyyy-MM-dd")
-        // One new plot a day, or one in the morning and one in the evening
+        // One new plot a day, or one in the morning and one in the evening. A herd is on a field
+        // only once a day, so the plots of a day on the same field form one grazing.
+        const dayPlots: Array<{
+          field: (typeof plots)[number]["field"]
+          plots: Area[]
+          uses: number
+        }> = []
         for (let k = 0; k < plotsPerDay; k++) {
           const { field: f, plot } = plots[plotIndex % plots.length]
           plotIndex++
+          const last = dayPlots.at(-1)
+          if (last && last.field.b_id === f.b_id) {
+            last.uses++
+            if (plot && !last.plots.includes(plot)) last.plots.push(plot)
+          } else {
+            dayPlots.push({ field: f, plots: plot ? [plot] : [], uses: 1 })
+          }
+        }
+        for (const { field: f, plots: fieldPlots, uses } of dayPlots) {
           if (overlapsExisting(f.b_id, day, day)) {
             skippedCollisions.push({
               fieldName: f.b_name,
@@ -424,6 +439,14 @@ export default function GrazingPlanAssistent() {
             })
             continue
           }
+          // The plots of the day on this field as one zone
+          const zone: MultiPolygon | undefined =
+            fieldPlots.length > 0
+              ? {
+                  type: "MultiPolygon",
+                  coordinates: fieldPlots.flatMap((plot) => toMultiPolygon(plot).coordinates),
+                }
+              : undefined
           rows.push({
             l_id_herd: selectedHerdId,
             b_id: f.b_id,
@@ -431,9 +454,11 @@ export default function GrazingPlanAssistent() {
             fieldArea: f.b_area,
             l_grazing_start: dayStr,
             l_grazing_end: dayStr,
-            l_grazing_hours: hoursPerPlot,
-            l_grazing_geometry_zone: plot ? toMultiPolygon(plot) : undefined,
-            zoneArea: plot ? Number(areaHa(plot).toFixed(2)) : undefined,
+            l_grazing_hours: hoursPerPlot * uses,
+            l_grazing_geometry_zone: zone,
+            zoneArea: zone
+              ? Number(fieldPlots.reduce((sum, plot) => sum + areaHa(plot), 0).toFixed(2))
+              : undefined,
           })
         }
       }
@@ -832,7 +857,7 @@ export default function GrazingPlanAssistent() {
                             ongeveer deze grootte, alle even groot binnen een perceel. De koppel
                             krijgt elke dag een nieuw perceel
                             {plotsPerDay === 2
-                              ? `; bij dag en nacht weiden (meer dan ${NNW_DAY_AND_NIGHT_HOURS} uur) 's ochtends en 's avonds een nieuw perceel, elk met de helft van de uren`
+                              ? `; bij dag en nacht weiden (meer dan ${NNW_DAY_AND_NIGHT_HOURS} uur) 's ochtends en 's avonds een nieuw perceel, elk met de helft van de uren. Liggen ze op hetzelfde perceel, dan worden ze samen één beweiding, omdat een koppel maar één keer per dag op een perceel kan staan`
                               : ""}
                             . De standaard is 2,5 ha per 120 koeien, zoals in de voorbeelden van
                             Nieuw Nederlands Weiden, omgerekend naar deze koppel.
