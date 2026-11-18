@@ -413,6 +413,18 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
   }
 
+  // Validation: a herd can be on the same field only once a day (checked by fdm-core)
+  if (
+    containsErrorMessage(error, "overlaps an existing grazing interval") ||
+    containsErrorMessage(error, "overlaps another grazing interval")
+  ) {
+    console.warn("Grazing overlaps another grazing of the herd:", error)
+    return dataWithWarning(
+      null,
+      "Deze koppel weidt op die dag al op dit perceel. Een koppel kan maar één keer per dag op hetzelfde perceel staan. Pas de datum aan of kies een ander perceel.",
+    )
+  }
+
   // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)
   const amountError = findErrorByName(error, "AppAmountOutOfRangeError")
   if (amountError) {

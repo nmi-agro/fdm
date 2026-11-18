@@ -594,12 +594,28 @@ export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<Dem
     ])
   }
 
+  // A small dairy herd, so the smoke crawler can open the pages of an animal
+  const animals =
+    variant === "minimal"
+      ? (
+          await createHerdWithAnimals(
+            fdm,
+            principal,
+            b_id_farm,
+            { l_herd_name: "Melkkoeien", l_id_category: "rvo_100", l_start: date(year, 1, 1) },
+            3,
+            { l_specie: "cattle", l_arriving_method: "born" },
+          )
+        ).l_id_animals
+      : []
+
   return {
     variant,
     farm: b_id_farm,
     fields,
     records,
     fertilizers: Object.fromEntries(fertilizers),
+    animals,
     year,
     email: user.email,
     principalId: principal,
