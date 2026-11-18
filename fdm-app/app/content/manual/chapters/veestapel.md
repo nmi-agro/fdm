@@ -67,10 +67,18 @@ Daaronder staat de lijst van alle dieren, op werknummer. Je zoekt in alle kolomm
 
 Klik op een dier om de details te openen. Daar:
 
-- vul je werknummer, oormerk, geslacht en geboortedatum aan en sla je ze op met **Wijzigingen opslaan**. Is het geslacht nog niet bekend, dan staat er _Onbekend_;
+- vul je levensnummer, werknummer, geboortedatum en geslacht aan en sla je ze op met **Wijzigingen opslaan**. Is het geslacht nog niet bekend, dan staat er _Onbekend_;
 - verplaats je het dier naar een andere koppel met **Verplaats naar koppel**;
 - leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**;
 - zie je de beweidingshistorie van het dier en in welke koppels het heeft gelopen.
+
+### Levensnummer en werknummer {#levensnummer}
+
+Het werknummer is een deel van het levensnummer op het oormerk: de 4 cijfers voor het laatste cijfer. In NL 1234567 8901 2 is het werknummer dus 8901. Vul je bij een rund een Nederlands levensnummer in, dan vult {{appName}} het werknummer zelf in. Je kunt het daarna nog aanpassen. Een dier zonder levensnummer krijgt een werknummer vanaf 10001, en dat nummer vervangt {{appName}} zodra je het levensnummer invult.
+
+{{appName}} controleert het levensnummer van een rund met een Nederlands oormerk: het heeft 9 of 12 cijfers, en het laatste cijfer is een controlecijfer dat moet kloppen bij de andere cijfers. Zo valt een tikfout direct op. Een levensnummer uit een ander land neemt {{appName}} over zoals je het invult.
+
+Een werknummer en een levensnummer horen op je bedrijf bij één dier tegelijk. Is een dier afgevoerd, dan kan een ander dier het nummer weer krijgen.
 
 De diercategorie van de koppel bepaalt welk geslacht een dier mag hebben. Een dier in de koppel melk- en kalfkoeien is bijvoorbeeld altijd vrouwelijk.
 
