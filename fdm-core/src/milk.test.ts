@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import type { MilkingAnimal, MilkingHerd } from "./milk.types"
 import { addAnimal, assignAnimalToHerd } from "./animal"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import {
   addMilkDelivery,
   addMilkingAnimal,
@@ -128,7 +128,7 @@ describe("Milk Domain", () => {
     ).toBe(0)
 
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL333333333",
+      l_id_eartag: "NL333333330",
       l_arriving_date: milkingStart,
     })
     await addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, milkingStart, {
@@ -181,10 +181,7 @@ describe("Milk Domain", () => {
     )
     expect(updatedWithAnalysis.l_milk_fat).toBe(4.4)
     expect(updatedWithAnalysis.l_milk_protein).toBe(3.6)
-    expect(updatedWithAnalysis).toHaveProperty(
-      "l_milksampling_date",
-      new Date("2025-05-02"),
-    )
+    expect(updatedWithAnalysis).toHaveProperty("l_milksampling_date", new Date("2025-05-02"))
 
     await removeMilkDelivery(fdm, principal_id, delivery.l_id_milkdelivery!)
     expect(await getMilkDeliveriesForFarm(fdm, principal_id, b_id_farm)).toEqual([])
@@ -210,7 +207,7 @@ describe("Milk Domain", () => {
 
   it("should allow farm-wide Milking union arrays from herd and animal records", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL-MILK-UNION-1",
+      l_id_eartag: "NL700000111",
     })
     const start = new Date("2025-05-03T00:00:00.000Z")
 
@@ -244,7 +241,7 @@ describe("Milk Domain", () => {
 
     // Case 2: Animal-level milking is an additive supplement on top of herd-level milking
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL555555555",
+      l_id_eartag: "NL555555550",
       l_arriving_date: startDate,
     })
 
@@ -342,7 +339,7 @@ describe("Milk Domain", () => {
     const d2 = new Date("2025-06-01")
 
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL777777777",
+      l_id_eartag: "NL777777770",
       l_arriving_date: d1,
     })
     await addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, d1, {
@@ -368,7 +365,7 @@ describe("Milk Domain", () => {
   it("should not double count milk production across herds after reassignment via assignAnimalToHerd", async () => {
     const arrivingDate = new Date("2025-01-01")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL999999999",
+      l_id_eartag: "NL999999990",
       l_arriving_date: arrivingDate,
     })
 
@@ -404,7 +401,7 @@ describe("Milk Domain", () => {
     const afterReassignDate = new Date(Date.now() + 120_000)
 
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL888888888",
+      l_id_eartag: "NL888888880",
       l_arriving_date: beforeReassignDate,
     })
 
@@ -493,7 +490,7 @@ describe("Milk Domain", () => {
   it("should deny access to unauthorized principal for remaining milk functions", async () => {
     const invalidUser = "unauthorized_user"
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL222222222",
+      l_id_eartag: "NL222222220",
     })
     const milkingStart = new Date()
     await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, milkingStart)

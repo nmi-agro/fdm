@@ -1,4 +1,5 @@
-import { and, asc, count, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm"
+import { parseCattleEartag } from "@nmi-agro/fdm-data"
+import { and, asc, count, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm"
 import type {
   Animal,
   AnimalAssignmentHistory,
@@ -7,8 +8,8 @@ import type {
 } from "./animal.types"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
-import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import { checkPermission } from "./authorization"
+import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
@@ -127,6 +128,13 @@ function assertAnimalMatchesCategory(
  * For animals born on the farm,
  * l_birth_date and l_arriving_date must be equal.
  *
+ * The life number (`l_id_eartag`) of cattle is checked with `parseCattleEartag` from
+ * `@nmi-agro/fdm-data`: a Dutch life number must have a valid format and check digit and is stored
+ * as `NL` followed by its digits; a foreign one is stored as entered. Without an explicit
+ * `l_id_worknumber`, the work number is taken from a Dutch life number, or otherwise assigned
+ * automatically from 10001 upwards. Work number and life number must not be in use by another
+ * animal that is still on the farm.
+ *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal adding the animal.
  * @param b_id_farm - Identifier of the farm.
@@ -177,11 +185,22 @@ export async function addAnimal(
       const arrivingMethod = properties?.l_arriving_method ?? "born"
       let birthdate = properties?.l_birth_date ?? null
       let arrivingDate = properties?.l_arriving_date ?? birthdate ?? new Date()
+      const eartag = properties?.l_id_eartag
+        ? normalizeEartag(properties.l_id_eartag, l_specie)
+        : null
       const l_id_worknumber =
-        properties?.l_id_worknumber ?? String(await getNextWorknumber(tx, b_id_farm))
+        properties?.l_id_worknumber ??
+        eartag?.worknumber ??
+        String(await getNextWorknumber(tx, b_id_farm))
 
-      if (properties?.l_id_worknumber) {
-        await assertWorknumberAvailable(tx, b_id_farm, properties.l_id_worknumber)
+      // Departed animals don't block a number, so an animal recorded as already gone isn't checked
+      const isPresent =
+        !properties?.l_leaving_date || new Date(properties.l_leaving_date) > new Date()
+      if (isPresent) {
+        await assertIdentifierAvailable(tx, b_id_farm, "l_id_worknumber", l_id_worknumber)
+        if (eartag?.l_id_eartag) {
+          await assertIdentifierAvailable(tx, b_id_farm, "l_id_eartag", eartag.l_id_eartag)
+        }
       }
 
       if (arrivingMethod === "born") {
@@ -201,7 +220,7 @@ export async function addAnimal(
 
       await tx.insert(schema.animals).values({
         l_id_animal,
-        l_id_eartag: properties?.l_id_eartag ?? null,
+        l_id_eartag: eartag?.l_id_eartag ?? null,
         l_id_worknumber,
         l_specie,
         l_breed: properties?.l_breed ?? null,
@@ -453,8 +472,14 @@ export async function getAnimalsForFarm(
       )
       .where(
         and(
-          or(isNull(schema.animalArriving.l_arriving_date), lte(schema.animalArriving.l_arriving_date, atDate)),
-          or(isNull(schema.animalLeaving.l_leaving_date), gt(schema.animalLeaving.l_leaving_date, atDate)),
+          or(
+            isNull(schema.animalArriving.l_arriving_date),
+            lte(schema.animalArriving.l_arriving_date, atDate),
+          ),
+          or(
+            isNull(schema.animalLeaving.l_leaving_date),
+            gt(schema.animalLeaving.l_leaving_date, atDate),
+          ),
         ),
       )
       .orderBy(desc(schema.animals.created))
@@ -521,6 +546,11 @@ export async function getAnimalAssignmentHistory(
  * `animal_leaving`) and closes its currently active herd assignment (if any)
  * with `l_assigning_end` set to `l_leaving_date`.
  *
+ * A life number (`l_id_eartag`) is checked and normalized as in {@link addAnimal}; an empty string
+ * or `null` removes it. The work number is not derived here: pass `l_id_worknumber` to change it.
+ * While the animal is on the farm, its work number and life number must not be in use by another
+ * animal that is still on the farm.
+ *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal updating the animal.
  * @param l_id_animal - Animal ID.
@@ -576,6 +606,64 @@ export async function updateAnimal(
         for (const assign of assignments) {
           const category = await getHerdCategory(tx, assign.l_id_herd)
           assertAnimalMatchesCategory(category, targetSpecie, targetSex)
+        }
+      }
+
+      if (properties.l_id_eartag !== undefined || properties.l_id_worknumber !== undefined) {
+        const current = await tx
+          .select({
+            l_specie: schema.animals.l_specie,
+            b_id_farm: schema.animalArriving.b_id_farm,
+            l_leaving_date: schema.animalLeaving.l_leaving_date,
+          })
+          .from(schema.animals)
+          .innerJoin(
+            schema.animalArriving,
+            eq(schema.animals.l_id_animal, schema.animalArriving.l_id_animal),
+          )
+          .leftJoin(
+            schema.animalLeaving,
+            eq(schema.animals.l_id_animal, schema.animalLeaving.l_id_animal),
+          )
+          .where(eq(schema.animals.l_id_animal, l_id_animal))
+          .limit(1)
+
+        if (current.length === 0) {
+          throw new Error("Animal does not exist")
+        }
+
+        const { b_id_farm } = current[0]
+        if (properties.l_id_eartag !== undefined) {
+          // An empty or null life number clears it
+          animalProperties.l_id_eartag = properties.l_id_eartag
+            ? normalizeEartag(properties.l_id_eartag, properties.l_specie ?? current[0].l_specie)
+                .l_id_eartag
+            : null
+        }
+
+        const leavingDate =
+          l_leaving_date !== undefined ? l_leaving_date : current[0].l_leaving_date
+        const isPresent = !leavingDate || new Date(leavingDate) > new Date()
+        if (isPresent) {
+          await lockFarmWorknumbers(tx, b_id_farm)
+          if (properties.l_id_worknumber) {
+            await assertIdentifierAvailable(
+              tx,
+              b_id_farm,
+              "l_id_worknumber",
+              properties.l_id_worknumber,
+              l_id_animal,
+            )
+          }
+          if (animalProperties.l_id_eartag) {
+            await assertIdentifierAvailable(
+              tx,
+              b_id_farm,
+              "l_id_eartag",
+              animalProperties.l_id_eartag,
+              l_id_animal,
+            )
+          }
         }
       }
 
@@ -641,7 +729,9 @@ export async function removeAnimal(
       await tx
         .delete(schema.animalAssigning)
         .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
-      await tx.delete(schema.animalArriving).where(eq(schema.animalArriving.l_id_animal, l_id_animal))
+      await tx
+        .delete(schema.animalArriving)
+        .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
       await tx.delete(schema.animals).where(eq(schema.animals.l_id_animal, l_id_animal))
     })
   } catch (err) {
@@ -713,9 +803,10 @@ export async function addAnimalsToHerd(
 }
 
 /**
- * Builds the insert rows for `count` new placeholder animals arriving onto a
- * farm and assigned into a herd, sharing default attributes. Used by both
- * {@link addAnimalsToHerd} and {@link createHerdWithAnimals}.
+ * Returns the next automatic work number of a farm: one above the highest numeric work number of
+ * all animals that ever arrived on the farm, and at least 10001. Numbers of departed animals count
+ * too, so an automatic number is never handed out twice. Automatic numbers have 5 digits, while a
+ * work number taken from a Dutch life number has 4, so the two never collide.
  */
 async function getNextWorknumber(
   tx: FdmType,
@@ -749,10 +840,16 @@ async function lockFarmWorknumbers(
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${b_id_farm}))`)
 }
 
-async function assertWorknumberAvailable(
+/**
+ * Checks that no other animal still on the farm uses the work number or life number. Animals with
+ * a leaving date in the past don't count, so their numbers can be used again.
+ */
+async function assertIdentifierAvailable(
   tx: FdmType,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-  l_id_worknumber: string,
+  column: "l_id_worknumber" | "l_id_eartag",
+  value: string,
+  exceptAnimalId?: schema.animalsTypeSelect["l_id_animal"],
 ): Promise<void> {
   const rows = await tx
     .select({ l_id_animal: schema.animals.l_id_animal })
@@ -764,14 +861,61 @@ async function assertWorknumberAvailable(
         eq(schema.animalArriving.b_id_farm, b_id_farm),
       ),
     )
-    .where(eq(schema.animals.l_id_worknumber, l_id_worknumber))
+    .leftJoin(
+      schema.animalLeaving,
+      eq(schema.animals.l_id_animal, schema.animalLeaving.l_id_animal),
+    )
+    .where(
+      and(
+        eq(schema.animals[column], value),
+        exceptAnimalId ? ne(schema.animals.l_id_animal, exceptAnimalId) : undefined,
+        or(
+          isNull(schema.animalLeaving.l_leaving_date),
+          gt(schema.animalLeaving.l_leaving_date, new Date()),
+        ),
+      ),
+    )
     .limit(1)
 
   if (rows.length > 0) {
-    throw new Error(`Work number ${l_id_worknumber} is already used on farm ${b_id_farm}`)
+    const label = column === "l_id_worknumber" ? "Work number" : "Life number"
+    throw new Error(`${label} ${value} is already used by another animal on farm ${b_id_farm}`)
   }
 }
 
+/**
+ * Checks and normalizes the life number of an animal. For cattle, a Dutch life number must pass
+ * {@link parseCattleEartag} and is stored as `NL` followed by its digits; its work number is
+ * returned as well. Other species and foreign life numbers are only trimmed.
+ */
+function normalizeEartag(
+  l_id_eartag: string,
+  l_specie: schema.animalsTypeSelect["l_specie"],
+): { l_id_eartag: string | null; worknumber: string | null } {
+  const trimmed = l_id_eartag.trim()
+  if (!trimmed || l_specie !== "cattle") {
+    return { l_id_eartag: trimmed || null, worknumber: null }
+  }
+
+  const result = parseCattleEartag(trimmed)
+  if (result.kind === "invalid") {
+    throw new Error(
+      result.reason === "check_digit"
+        ? `Life number ${trimmed} has an invalid check digit`
+        : `Life number ${trimmed} is not a valid Dutch cattle life number`,
+    )
+  }
+  if (result.kind === "foreign") {
+    return { l_id_eartag: result.eartag, worknumber: null }
+  }
+  return { l_id_eartag: result.eartag, worknumber: result.worknumber }
+}
+
+/**
+ * Builds the insert rows for `count` new placeholder animals arriving onto a
+ * farm and assigned into a herd, sharing default attributes. Used by both
+ * {@link addAnimalsToHerd} and {@link createHerdWithAnimals}.
+ */
 function buildAnimalRows(
   count: number,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
@@ -1210,8 +1354,22 @@ export async function reassignHerdAnimals(
         throw new Error("Source and target herd must be different")
       }
 
-      await checkPermission(tx, "herd", "write", source_l_id_herd, principal_id, "reassignHerdAnimals")
-      await checkPermission(tx, "herd", "write", target_l_id_herd, principal_id, "reassignHerdAnimals")
+      await checkPermission(
+        tx,
+        "herd",
+        "write",
+        source_l_id_herd,
+        principal_id,
+        "reassignHerdAnimals",
+      )
+      await checkPermission(
+        tx,
+        "herd",
+        "write",
+        target_l_id_herd,
+        principal_id,
+        "reassignHerdAnimals",
+      )
 
       const sourceRows = await tx
         .select({ b_id_farm: schema.herdStarting.b_id_farm })
@@ -1224,10 +1382,7 @@ export async function reassignHerdAnimals(
           l_end: schema.herdEnding.l_end,
         })
         .from(schema.herdStarting)
-        .leftJoin(
-          schema.herdEnding,
-          eq(schema.herdStarting.l_id_herd, schema.herdEnding.l_id_herd),
-        )
+        .leftJoin(schema.herdEnding, eq(schema.herdStarting.l_id_herd, schema.herdEnding.l_id_herd))
         .where(eq(schema.herdStarting.l_id_herd, target_l_id_herd))
         .limit(1)
 
@@ -1482,11 +1637,13 @@ export async function createHerdWithAnimals(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-  herdProperties: {
-    l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
-    l_id_category?: schema.herdsTypeInsert["l_id_category"]
-    l_start?: schema.herdStartingTypeInsert["l_start"]
-  } | undefined,
+  herdProperties:
+    | {
+        l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
+        l_id_category?: schema.herdsTypeInsert["l_id_category"]
+        l_start?: schema.herdStartingTypeInsert["l_start"]
+      }
+    | undefined,
   count: number,
   animalProperties?: {
     l_specie?: schema.animalsTypeInsert["l_specie"]
@@ -1526,14 +1683,10 @@ export async function createHerdWithAnimals(
       if (category) {
         assertAnimalMatchesCategory(category, l_specie, null)
       }
-      const animalRows = buildAnimalRows(
-        count,
-        l_id_herd,
-        b_id_farm,
-        now,
-        firstWorknumber,
-        { ...animalProperties, l_specie },
-      )
+      const animalRows = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, {
+        ...animalProperties,
+        l_specie,
+      })
 
       if (animalRows.length > 0) {
         await tx.insert(schema.animals).values(animalRows.map((r) => r.animalRow))
@@ -1608,9 +1761,7 @@ export async function getCensusForFarm(
           lte(schema.animalLeaving.l_leaving_date, atDate),
         ),
       )
-      .where(
-        and(eq(schema.herdStarting.b_id_farm, b_id_farm), isNull(schema.herdEnding.l_end)),
-      )
+      .where(and(eq(schema.herdStarting.b_id_farm, b_id_farm), isNull(schema.herdEnding.l_end)))
       .groupBy(
         schema.herds.l_id_herd,
         schema.herds.l_herd_name,
