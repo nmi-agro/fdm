@@ -1,16 +1,7 @@
 import { checkPermission, getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
-import {
-  ChartColumn,
-  Compass,
-  Plus,
-  Shovel,
-  Sparkles,
-  SquareArrowRightExit,
-  Warehouse,
-  Wheat,
-} from "lucide-react"
+import { LandPlot, MapIcon, Plus, Repeat, Warehouse } from "lucide-react"
 import { useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -238,8 +229,8 @@ export default function BeweidingskalenderPage() {
                 nativeButton={false}
                 render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing/plan`} />}
               >
-                <Sparkles className="text-primary h-3.5 w-3.5" />
-                Graslandgebruiksysteem planner
+                <Repeat className="text-primary h-3.5 w-3.5" />
+                Beweidingsplanner
               </Button>
               <Button
                 variant="outline"
@@ -248,20 +239,8 @@ export default function BeweidingskalenderPage() {
                 nativeButton={false}
                 render={<NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/grazing`} />}
               >
-                <Compass className="text-primary h-3.5 w-3.5" />
+                <MapIcon className="text-primary h-3.5 w-3.5" />
                 Beweiding op de kaart
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs"
-                nativeButton={false}
-                render={
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`} />
-                }
-              >
-                <ChartColumn className="text-primary h-3.5 w-3.5" />
-                Weidegang
               </Button>
               {farmWritePermission && hasGrassland && (
                 <>
@@ -280,7 +259,6 @@ export default function BeweidingskalenderPage() {
                   />
                   <FieldPickerButton
                     label="Maaisnede toevoegen"
-                    icon={<Wheat className="text-primary h-3.5 w-3.5" />}
                     fields={matrix.fields}
                     onPick={(b_id) =>
                       openSheet({ type: "harvest", context: { b_id, date: defaultDate } })
@@ -288,7 +266,6 @@ export default function BeweidingskalenderPage() {
                   />
                   <FieldPickerButton
                     label="Bemesting toevoegen"
-                    icon={<Shovel className="text-primary h-3.5 w-3.5" />}
                     fields={matrix.fields}
                     onPick={(b_id) =>
                       openSheet({ type: "fertilizer", context: { b_id, date: defaultDate } })
@@ -320,7 +297,7 @@ export default function BeweidingskalenderPage() {
               </div>
             ) : !hasGrassland ? (
               <div className="rounded-xl border border-dashed p-12 text-center">
-                <SquareArrowRightExit className="text-muted-foreground mx-auto h-12 w-12" />
+                <LandPlot className="text-muted-foreground mx-auto h-12 w-12" />
                 <h3 className="mt-4 text-lg font-semibold">Geen graslandpercelen gevonden</h3>
                 <p className="text-muted-foreground mt-2 text-sm">
                   Er zijn voor dit kalenderjaar geen percelen met graslandteelt geregistreerd in het

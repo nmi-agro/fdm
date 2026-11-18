@@ -5,15 +5,19 @@ import type {
   LineLayerSpecification,
 } from "maplibre-gl"
 import type { GrazingMapStatus } from "~/lib/grazing-map"
+import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
 
 /** Feature property that holds the {@link GrazingMapStatus} of a field. */
 export const GRAZING_STATUS = "grazing_status"
 
-/** Fill colour per status, shared by the map, the legend and the popup. */
+/**
+ * Fill colour per status, shared by the map, the legend and the popup. Grazing, mowing and rest
+ * take the colours of the grazing calendar.
+ */
 export const GRAZING_STATUS_COLORS: Record<GrazingMapStatus, string> = {
-  weiden: "#10b981",
-  maaien: "#f59e0b",
-  rust: "#86efac",
+  weiden: GRAZING_USE_COLORS.weiden,
+  maaien: GRAZING_USE_COLORS.maaien,
+  rust: GRAZING_USE_COLORS.rust,
   unused: "#ffffff",
   // Same dark grey as fields without data in the other thematic layers
   disabled: "#4b5563",
@@ -99,6 +103,20 @@ export function getGrazingFillStyle(): {
       ] as ExpressionSpecification,
     },
   }
+}
+
+/**
+ * Dark outline of a field grazed on the shown day, so a grazed field stands apart from a resting
+ * one by more than its colour.
+ */
+export const GRAZING_GRAZED_OUTLINE_STYLE: {
+  type: "line"
+  filter: ExpressionSpecification
+  paint: LineLayerSpecification["paint"]
+} = {
+  type: "line",
+  filter: ["==", ["get", GRAZING_STATUS], "weiden"],
+  paint: { "line-color": GRAZING_USE_COLORS.weidenOutline, "line-width": 3 },
 }
 
 /** Fill of a zone grazed on the shown day. */

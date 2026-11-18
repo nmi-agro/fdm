@@ -23,7 +23,8 @@ import {
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { format } from "date-fns"
-import { AlertTriangle, CheckCircle2, Info, Sparkles } from "lucide-react"
+import { nl } from "date-fns/locale"
+import { AlertTriangle, CheckCircle2, Info, Save } from "lucide-react"
 import { lazy, Suspense, useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -99,10 +100,11 @@ export const handle: HelpHandle = { help: "beweidingsplan" }
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Graslandgebruiksysteem planner | ${clientConfig.name}` },
+    { title: `Beweidingsplanner | ${clientConfig.name}` },
     {
       name: "description",
-      content: "Graslandgebruiksysteem planner en rotatieplan generator.",
+      content:
+        "Maak een beweidingsplan voor je koppel volgens een graslandgebruikssysteem, zoals omweiden of Nieuw Nederlands Weiden.",
     },
   ]
 }
@@ -257,6 +259,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 }
 
+/** A day of the plan, e.g. "3 mei". */
+const formatPlanDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
+
+/** An area in hectares with a decimal comma, e.g. "2,43". */
+const formatPlanHa = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
+
 export default function GrazingPlanAssistent() {
   const {
     b_id_farm,
@@ -272,17 +280,19 @@ export default function GrazingPlanAssistent() {
   // "Today" is only known on the client; empty until then
   const today = useToday()
   const todayStr = today ? format(today, "yyyy-MM-dd") : ""
-  // The plan starts on 1 May, or today when the season in this calendar year is underway. It ends on
-  // 15 October, or on 31 December when it starts after that.
+  // The plan runs from 1 May to 15 October, or from today while the season in this calendar year
+  // is underway. Once that season is over, the plan keeps the whole season and points to the next
+  // year, rather than proposing a rotation in winter.
   const seasonStart = `${calendarYear}-05-01`
   const seasonEnd = `${calendarYear}-10-15`
   const todayInYear = todayStr.startsWith(`${calendarYear}-`) ? todayStr : ""
+  const seasonOver = todayInYear > seasonEnd
   // Whether the plan records past grazing, planned grazing or both (the current year)
   const todayYear = todayStr ? Number(todayStr.slice(0, 4)) : calendarYear
   const planTiming =
     calendarYear < todayYear ? "past" : calendarYear > todayYear ? "future" : "current"
-  const defaultSeasonStart = todayInYear > seasonStart ? todayInYear : seasonStart
-  const defaultSeasonEnd = defaultSeasonStart < seasonEnd ? seasonEnd : `${calendarYear}-12-31`
+  const defaultSeasonStart = todayInYear > seasonStart && !seasonOver ? todayInYear : seasonStart
+  const defaultSeasonEnd = seasonEnd
 
   // Step 1: Systeem
   const [systemKey, setSystemKey] = useState<GrazingSystemKey>("omweiden")
@@ -604,19 +614,23 @@ export default function GrazingPlanAssistent() {
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
+        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+          Melkvee
+        </BreadcrumbLink>
+        <BreadcrumbSeparator />
         <BreadcrumbLink
           render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
         >
-          Beweiding
+          Beweidingskalender
         </BreadcrumbLink>
         <BreadcrumbSeparator />
-        <BreadcrumbItem>Graslandgebruiksysteem planner</BreadcrumbItem>
+        <BreadcrumbItem>Beweidingsplanner</BreadcrumbItem>
       </Header>
 
       <main>
         <FarmTitle
-          title="Graslandgebruiksysteem planner"
-          description="Genereer een rotatieschema voor de percelen die je wilt beweiden, passend bij je koppel en het gekozen graslandgebruiksysteem."
+          title="Beweidingsplanner"
+          description="Genereer een rotatieschema voor de percelen die je wilt beweiden, passend bij je koppel en het gekozen graslandgebruikssysteem."
           help="beweidingsplan"
         />
 
@@ -640,6 +654,7 @@ export default function GrazingPlanAssistent() {
                       <button
                         key={key}
                         type="button"
+                        aria-pressed={isSelected}
                         onClick={() => handleSystemSelect(key)}
                         className={cn(
                           "cursor-pointer rounded-xl border p-4 text-left transition-all",
@@ -650,9 +665,18 @@ export default function GrazingPlanAssistent() {
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold">{sys.name}</span>
-                          {isSelected && <CheckCircle2 className="text-primary h-4 w-4" />}
+                          {isSelected && (
+                            <CheckCircle2 aria-hidden="true" className="text-primary h-4 w-4" />
+                          )}
                         </div>
-                        <p className="text-muted-foreground mt-1.5 text-xs">{sys.description}</p>
+                        <p
+                          className={cn(
+                            "mt-1.5 text-xs text-pretty",
+                            isSelected ? "text-foreground/80" : "text-muted-foreground",
+                          )}
+                        >
+                          {sys.description}
+                        </p>
                       </button>
                     )
                   })}
@@ -749,6 +773,20 @@ export default function GrazingPlanAssistent() {
                         </div>
                       </div>
 
+                      {seasonOver && (
+                        <p className="text-muted-foreground text-xs">
+                          Het weideseizoen van {calendarYear} is voorbij. Het plan laat daarom het
+                          hele seizoen zien; maak een plan voor volgend jaar in{" "}
+                          <NavLink
+                            to={`/farm/${b_id_farm}/${calendarYear + 1}/livestock/grazing/plan`}
+                            className="text-foreground underline underline-offset-2"
+                          >
+                            {calendarYear + 1}
+                          </NavLink>
+                          .
+                        </p>
+                      )}
+
                       <Field>
                         <FieldLabel>Percelen om te beweiden in dit plan</FieldLabel>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
@@ -777,7 +815,12 @@ export default function GrazingPlanAssistent() {
                                   <Checkbox checked={isChecked} tabIndex={-1} />
                                   <span className="font-medium">{field.b_name}</span>
                                 </div>
-                                <span className="text-muted-foreground">{field.b_area} ha</span>
+                                <span className="text-muted-foreground tabular-nums">
+                                  {field.b_area.toLocaleString("nl-NL", {
+                                    maximumFractionDigits: 2,
+                                  })}{" "}
+                                  ha
+                                </span>
                               </div>
                             )
                           })}
@@ -856,7 +899,7 @@ export default function GrazingPlanAssistent() {
                               </Select>
                             </Field>
                           </div>
-                          <p className="text-muted-foreground text-[11px]">
+                          <p className="text-muted-foreground text-xs">
                             {clientConfig.name} deelt de gekozen percelen op in percelen van
                             ongeveer deze grootte, alle even groot binnen een perceel. De koppel
                             krijgt elke dag een nieuw perceel
@@ -879,6 +922,7 @@ export default function GrazingPlanAssistent() {
                               type="button"
                               size="sm"
                               variant={partialMode === "strips" ? "default" : "outline"}
+                              aria-pressed={partialMode === "strips"}
                               onClick={() => setPartialMode("strips")}
                               className="h-8 text-xs"
                             >
@@ -888,6 +932,7 @@ export default function GrazingPlanAssistent() {
                               type="button"
                               size="sm"
                               variant={partialMode === "percentage" ? "default" : "outline"}
+                              aria-pressed={partialMode === "percentage"}
                               onClick={() => setPartialMode("percentage")}
                               className="h-8 text-xs"
                             >
@@ -957,7 +1002,7 @@ export default function GrazingPlanAssistent() {
                                   />
                                 </Field>
                               </div>
-                              <p className="text-muted-foreground text-[11px]">
+                              <p className="text-muted-foreground text-xs">
                                 {stripAllocation ? (
                                   <span key="allocation">
                                     Strook van{" "}
@@ -979,7 +1024,7 @@ export default function GrazingPlanAssistent() {
                                   </span>
                                 )}
                               </p>
-                              <p className="text-muted-foreground text-[11px]">
+                              <p className="text-muted-foreground text-xs">
                                 Grasopname: maximaal 1 kg ds per weide-uur (Nieuw Nederlands Weiden:
                                 minimaal 1 weide-uur per kg ds). Grasaanbod: 1.700 kg ds/ha bij
                                 inscharen plus {GROWTH_DURING_GRAZING_KG_DM_HA_DAY} kg ds/ha
@@ -997,6 +1042,7 @@ export default function GrazingPlanAssistent() {
                                 type="button"
                                 variant={partialPercentage === pct ? "default" : "outline"}
                                 size="sm"
+                                aria-pressed={partialPercentage === pct}
                                 onClick={() => setPartialPercentage(pct)}
                                 className="h-8 text-xs"
                               >
@@ -1019,11 +1065,12 @@ export default function GrazingPlanAssistent() {
                                   )
                                 }
                                 className="h-8 w-20 text-xs"
+                                aria-label="Deel van het perceel in procent"
                               />
                               <span className="text-muted-foreground text-xs">% van perceel</span>
                             </div>
                           </div>
-                          <p className="text-muted-foreground text-[11px]">
+                          <p className="text-muted-foreground text-xs">
                             Bij {selectedSystem.name} weidt de koppel steeds op een deel van het
                             perceel.{" "}
                             {partialMode === "percentage"
@@ -1073,7 +1120,11 @@ export default function GrazingPlanAssistent() {
                         <ul className="mt-1 list-disc space-y-0.5 pl-5">
                           {collisions.slice(0, 3).map((c, i) => (
                             <li key={i}>
-                              {c.fieldName} ({c.startDate} → {c.endDate})
+                              {c.fieldName} (
+                              {c.startDate === c.endDate
+                                ? formatPlanDay(c.startDate)
+                                : `${formatPlanDay(c.startDate)} – ${formatPlanDay(c.endDate)}`}
+                              )
                             </li>
                           ))}
                         </ul>
@@ -1136,24 +1187,26 @@ export default function GrazingPlanAssistent() {
                                       "bg-green-100",
                                   )}
                                 >
-                                  <TableCell className="font-mono text-xs">
-                                    {format(new Date(row.l_grazing_start), "dd-MM")} →{" "}
-                                    {format(new Date(row.l_grazing_end), "dd-MM")}
+                                  <TableCell className="text-xs tabular-nums">
+                                    {row.l_grazing_start === row.l_grazing_end
+                                      ? formatPlanDay(row.l_grazing_start)
+                                      : `${formatPlanDay(row.l_grazing_start)} – ${formatPlanDay(row.l_grazing_end)}`}
                                   </TableCell>
                                   <TableCell className="text-xs font-medium">
                                     {row.fieldName}{" "}
-                                    <span className="text-muted-foreground font-normal">
+                                    <span className="text-muted-foreground font-normal tabular-nums">
                                       (
                                       {row.zoneArea !== undefined
-                                        ? `${row.zoneArea} ha van ${row.fieldArea} ha`
+                                        ? // A part never shows as larger than its rounded field
+                                          `${formatPlanHa(Math.min(row.zoneArea, row.fieldArea))} ha van ${formatPlanHa(row.fieldArea)} ha`
                                         : row.l_grazing_area
-                                          ? `${row.l_grazing_area} ha van ${row.fieldArea} ha`
-                                          : `${row.fieldArea} ha`}
+                                          ? `${formatPlanHa(row.l_grazing_area)} ha van ${formatPlanHa(row.fieldArea)} ha`
+                                          : `${formatPlanHa(row.fieldArea)} ha`}
                                       )
                                     </span>
                                   </TableCell>
-                                  <TableCell className="text-right text-xs">
-                                    {row.l_grazing_hours} u
+                                  <TableCell className="text-right text-xs tabular-nums">
+                                    {row.l_grazing_hours.toLocaleString("nl-NL")} uur
                                   </TableCell>
                                   <TableCell className="text-xs">
                                     {row.l_grazing_geometry_zone
@@ -1194,7 +1247,7 @@ export default function GrazingPlanAssistent() {
                         disabled={generatedRows.length === 0 || fetcher.state !== "idle"}
                         className="gap-1.5"
                       >
-                        <Sparkles className="h-4 w-4" />
+                        <Save aria-hidden="true" className="h-4 w-4" />
                         Plan bevestigen en vastleggen ({generatedRows.length})
                       </Button>
                     </fetcher.Form>

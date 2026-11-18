@@ -15,6 +15,7 @@ import {
   Icon,
   LandPlot,
   LayoutGrid,
+  Repeat,
   Shapes,
   Sprout,
   Warehouse,
@@ -120,7 +121,9 @@ export function SidebarFarm({
   const [isMelkveeOpen, setIsMelkveeOpen] = useKeyedState(isMelkveeRoute, (onRoute) => onRoute)
   const isMelkveeOverview = /\/livestock\/?$/.test(location.pathname)
   const isGrazingInsights = location.pathname.includes("/livestock/grazing/insights")
-  const isGrazingCalendar = location.pathname.includes("/livestock/grazing") && !isGrazingInsights
+  const isGrazingPlan = location.pathname.includes("/livestock/grazing/plan")
+  const isGrazingCalendar =
+    location.pathname.includes("/livestock/grazing") && !isGrazingInsights && !isGrazingPlan
   const isAnimals = location.pathname.includes("/livestock/animal")
   const [targetSegment, setTargetSegment] = useState("")
 
@@ -598,6 +601,19 @@ export function SidebarFarm({
                                 >
                                   <CalendarDays className="size-4" />
                                   <span>Beweidingskalender</span>
+                                </NavLink>
+                              }
+                            />
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton
+                              isActive={isGrazingPlan}
+                              render={
+                                <NavLink
+                                  to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing/plan`}
+                                >
+                                  <Repeat className="size-4" />
+                                  <span>Beweidingsplanner</span>
                                 </NavLink>
                               }
                             />

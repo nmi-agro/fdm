@@ -11,7 +11,8 @@ import {
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { format } from "date-fns"
-import { AlertTriangle, Plus, Tractor } from "lucide-react"
+import { nl } from "date-fns/locale"
+import { AlertTriangle, Plus } from "lucide-react"
 import { lazy, Suspense, useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -39,6 +40,13 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
+import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
+
+const formatNumber = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
+
+/** "1 dag", "3 dagen": a count with the singular or plural of a word. */
+const countOf = (count: number, singular: string, plural: string) =>
+  `${count.toLocaleString("nl-NL")} ${count === 1 ? singular : plural}`
 
 // Lazy-loaded to avoid SSR issues with maplibre-gl and to keep it out of the initial bundle
 const GrazingZonesMap = lazy(() => import("~/components/blocks/grazing/grazing-zones-map"))
@@ -136,6 +144,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             ? ("partial" as const)
             : ("full" as const),
         zone: g.l_grazing_geometry_zone ?? null,
+        // What the grazing dialog needs to change or remove this grazing
+        grazing: {
+          l_id_grazing: g.l_id_grazing,
+          l_id_herd: g.l_id_herd,
+          l_grazing_start: format(new Date(g.l_grazing_start), "yyyy-MM-dd"),
+          l_grazing_end: g.l_grazing_end ? format(new Date(g.l_grazing_end), "yyyy-MM-dd") : null,
+          l_grazing_hours: g.l_grazing_hours,
+          l_grazing_area: g.l_grazing_area,
+          l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
+        },
       })),
       ...fieldHarvests.map((h) => ({
         type: "maaien" as const,
@@ -147,6 +165,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         area: field.b_area,
         areaType: "full" as const,
         zone: null,
+        grazing: null,
       })),
     ]
 
@@ -165,8 +184,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const { zone: _zone, ...ev } = use.data!
         return {
           ...ev,
-          startStr: format(ev.start, "dd-MM-yyyy"),
-          endStr: format(ev.end, "dd-MM-yyyy"),
+          startStr: format(ev.start, "d MMMM", { locale: nl }),
+          endStr: format(ev.end, "d MMMM", { locale: nl }),
           restDays,
           isShortRest: restDays !== null && restDays < REST_PERIOD_THRESHOLD_DAYS,
         }
@@ -257,8 +276,16 @@ export default function FieldGrazingPage() {
   } = useLoaderData<typeof loader>()
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  // Bumped on every open so the popover remounts with an empty form.
+  // Bumped on every open so the popover remounts with the form of the chosen grazing
   const [popoverSession, setPopoverSession] = useState(0)
+  // The grazing to change or remove; null adds a new one
+  const [editedGrazing, setEditedGrazing] = useState<(typeof events)[number]["grazing"]>(null)
+
+  const openGrazing = (grazing: (typeof events)[number]["grazing"]) => {
+    setPopoverSession((s) => s + 1)
+    setEditedGrazing(grazing)
+    setIsPopoverOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -268,16 +295,13 @@ export default function FieldGrazingPage() {
             Beweiding & Graslandgebruik {calendar}
           </h3>
           <p className="text-muted-foreground text-xs">
-            {b_area} ha · Beweidingsperioden, maaimomenten en rusttijden
+            {formatNumber(b_area)} ha · Beweidingsperioden, maaimomenten en rusttijden
           </p>
         </div>
         {farmWritePermission && (
           <Button
             type="button"
-            onClick={() => {
-              setPopoverSession((s) => s + 1)
-              setIsPopoverOpen(true)
-            }}
+            onClick={() => openGrazing(null)}
             disabled={herds.length === 0}
             className="gap-1.5 text-xs font-medium"
           >
@@ -294,25 +318,31 @@ export default function FieldGrazingPage() {
             <div>
               <span className="text-muted-foreground">Dit jaar: </span>
               <strong className="text-foreground font-semibold">
-                {summary.totalDays} weidedagen
+                {countOf(summary.totalDays, "weidedag", "weidedagen")}
               </strong>
             </div>
-            <span className="text-muted-foreground">·</span>
+            <span aria-hidden="true" className="text-muted-foreground">
+              ·
+            </span>
             <div>
               <strong className="text-foreground font-semibold">
-                {summary.totalHours} weide-uren
+                {countOf(summary.totalHours, "weide-uur", "weide-uren")}
               </strong>
             </div>
-            <span className="text-muted-foreground">·</span>
+            <span aria-hidden="true" className="text-muted-foreground">
+              ·
+            </span>
             <div>
               <strong className="text-foreground font-semibold">
-                {summary.periodsCount} beweidingsperioden
+                {countOf(summary.periodsCount, "beweidingsperiode", "beweidingsperioden")}
               </strong>
             </div>
-            <span className="text-muted-foreground">·</span>
+            <span aria-hidden="true" className="text-muted-foreground">
+              ·
+            </span>
             <div>
               <strong className="text-foreground font-semibold">
-                {summary.harvestsCount} sneden gemaaid
+                {countOf(summary.harvestsCount, "snede gemaaid", "sneden gemaaid")}
               </strong>
             </div>
           </div>
@@ -368,42 +398,66 @@ export default function FieldGrazingPage() {
                 ) : (
                   events.map((ev, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="font-mono text-xs">
-                        {ev.startStr === ev.endStr ? ev.startStr : `${ev.startStr} → ${ev.endStr}`}
+                      <TableCell className="text-xs tabular-nums">
+                        {ev.grazing && ev.grazing.l_grazing_end === null
+                          ? `vanaf ${ev.startStr}`
+                          : ev.startStr === ev.endStr
+                            ? ev.startStr
+                            : `${ev.startStr} – ${ev.endStr}`}
                       </TableCell>
                       <TableCell className="text-xs font-medium">
-                        {ev.type === "weiden" ? (
-                          <span className="flex items-center gap-1.5 text-emerald-950 dark:text-emerald-200">
-                            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                            {ev.herdName}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-amber-950 dark:text-amber-200">
-                            <Tractor className="h-3.5 w-3.5 text-amber-600" />
-                            Maaisnede
-                          </span>
-                        )}
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            className="inline-block h-2.5 w-2.5 shrink-0 rounded-xs"
+                            style={{
+                              backgroundColor:
+                                ev.type === "weiden"
+                                  ? GRAZING_USE_COLORS.weiden
+                                  : GRAZING_USE_COLORS.maaien,
+                            }}
+                          />
+                          {ev.grazing && farmWritePermission ? (
+                            // The grazing opens in the grazing dialog, also outside the season
+                            // of the grazing calendar
+                            <button
+                              type="button"
+                              onClick={() => openGrazing(ev.grazing)}
+                              className="cursor-pointer underline-offset-2 hover:underline focus-visible:underline"
+                            >
+                              {ev.herdName}
+                              <span className="sr-only"> (beweiding wijzigen)</span>
+                            </button>
+                          ) : (
+                            <span>{ev.type === "weiden" ? ev.herdName : "Maaisnede"}</span>
+                          )}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-right text-xs">
-                        {ev.hours !== null ? `${ev.hours} u` : "—"}
+                      <TableCell className="text-right text-xs tabular-nums">
+                        {ev.hours != null ? `${formatNumber(ev.hours)} uur` : "—"}
                       </TableCell>
-                      <TableCell className="text-xs">
-                        {ev.areaType === "zone"
-                          ? `${ev.area} ha (zone)`
-                          : ev.areaType === "partial"
-                            ? `${ev.area} ha (deel)`
+                      <TableCell className="text-xs tabular-nums">
+                        {ev.areaType === "zone" && ev.area != null
+                          ? `${formatNumber(ev.area)} ha (zone)`
+                          : ev.areaType === "partial" && ev.area != null
+                            ? `${formatNumber(ev.area)} ha (deel)`
                             : "Volledig"}
                       </TableCell>
-                      <TableCell className="text-right text-xs">
+                      <TableCell className="text-right text-xs tabular-nums">
                         {ev.restDays !== null ? (
                           <span
                             className={cn(
                               ev.isShortRest &&
-                                "flex items-center justify-end gap-1 font-semibold text-amber-600",
+                                "flex items-center justify-end gap-1 font-semibold text-amber-800",
                             )}
                           >
-                            {ev.isShortRest && <AlertTriangle className="h-3 w-3" />}
-                            {ev.restDays} dagen {ev.isShortRest ? "(kort)" : ""}
+                            {ev.isShortRest && (
+                              <AlertTriangle aria-hidden="true" className="h-3 w-3" />
+                            )}
+                            <span>
+                              {countOf(ev.restDays, "dag", "dagen")}
+                              {ev.isShortRest ? " (kort)" : ""}
+                            </span>
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -417,14 +471,14 @@ export default function FieldGrazingPage() {
           </div>
 
           {fieldHarvests.length > 0 && (
-            <div className="text-muted-foreground mt-4 text-xs">
-              ⓘ Maaimomenten komen uit de oogstregistratie van de graslandteelt op dit perceel.
-            </div>
+            <p className="text-muted-foreground mt-4 text-xs">
+              Maaimomenten komen uit de oogstregistratie van de graslandteelt op dit perceel.
+            </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Add Grazing Popover */}
+      {/* Grazing dialog: a new grazing, or the grazing picked in the table */}
       <GrazingPopover
         key={popoverSession}
         open={isPopoverOpen}
@@ -432,6 +486,9 @@ export default function FieldGrazingPage() {
         b_id_farm={b_id_farm}
         calendar={calendar}
         field={{ b_id, b_name, b_area }}
+        existingGrazing={editedGrazing}
+        initialStartDate={editedGrazing?.l_grazing_start}
+        initialEndDate={editedGrazing?.l_grazing_end ?? undefined}
         herds={herds}
         canWrite={farmWritePermission}
       />

@@ -1,10 +1,21 @@
 import type { MultiPolygon } from "geojson"
 import { addDays, format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { Info, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useFetcher } from "react-router"
 import { ZoneEditor } from "~/components/blocks/grazing/zone-editor"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
@@ -27,6 +38,7 @@ import {
 } from "~/components/ui/select"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useToday } from "~/hooks/use-today"
+import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
 import { type Area, areaHa } from "~/lib/grazing-strip"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD } from "~/lib/grazing-zone"
 
@@ -128,14 +140,12 @@ export function GrazingPopover({
     }
   }
 
+  // A new grazing starts at 8 hours, which is the "Beperkt (8u)" preset
+  const initialHours = existingGrazing?.l_grazing_hours ?? 8
   const [hourPreset, setHourPreset] = useState<"8" | "24" | "custom">(
-    existingGrazing?.l_grazing_hours === 24
-      ? "24"
-      : existingGrazing?.l_grazing_hours === 8
-        ? "8"
-        : "custom",
+    initialHours === 24 ? "24" : initialHours === 8 ? "8" : "custom",
   )
-  const [hours, setHours] = useState<number>(existingGrazing?.l_grazing_hours ?? 8)
+  const [hours, setHours] = useState<number>(initialHours)
 
   const fieldArea = field?.b_area ?? 0
   const storedZone = existingGrazing?.l_grazing_geometry_zone ?? null
@@ -178,6 +188,13 @@ export function GrazingPopover({
   const totalHours = diffDays * (hours || 0)
 
   const isFuture = today !== "" && startDate > today
+  // The grazing calendar only shows the grazing season; a grazing outside it is kept, but only
+  // shows on the field's grazing tab
+  const outsideSeason =
+    (startDate !== "" && !isInGrazingSeason(startDate)) ||
+    (endDate !== "" && !isInGrazingSeason(endDate))
+  const zoneMissing = areaMode === "zone" && !zone
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -211,22 +228,18 @@ export function GrazingPopover({
     formData.set("intent", "remove_grazing")
     formData.set("l_id_grazing", existingGrazing.l_id_grazing)
     void fetcher.submit(formData, { method: "post" })
+    setIsDeleteOpen(false)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={
-          areaMode === "zone"
-            ? "max-h-[90vh] max-w-md overflow-y-auto sm:max-w-2xl"
-            : "max-h-[90vh] max-w-md overflow-y-auto sm:max-w-lg"
-        }
-      >
+      {/* One width for every area choice, so the dialog does not jump when the map appears */}
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto sm:max-w-xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
-              Beweiding · {field?.b_name ?? "Perceel"} ({field?.b_area} ha)
+              Beweiding · {field?.b_name ?? "Perceel"} ({formatHa(fieldArea)} ha)
             </DialogTitle>
             <DialogDescription>
               Leg de beweidingsperiode en uren vast voor dit perceel.
@@ -237,12 +250,17 @@ export function GrazingPopover({
             <FieldGroup>
               {/* One day or several days */}
               <Field>
-                <FieldLabel>Duur *</FieldLabel>
-                <div className="grid grid-cols-2 gap-2">
+                <FieldLabel id="popover-duration-label">Duur *</FieldLabel>
+                <div
+                  role="group"
+                  aria-labelledby="popover-duration-label"
+                  className="grid grid-cols-2 gap-2"
+                >
                   <Button
                     type="button"
                     variant={duration === "single" ? "default" : "outline"}
                     size="sm"
+                    aria-pressed={duration === "single"}
                     onClick={() => handleDurationChange("single")}
                     disabled={isRunning}
                     className="text-xs"
@@ -253,6 +271,7 @@ export function GrazingPopover({
                     type="button"
                     variant={duration === "multiple" ? "default" : "outline"}
                     size="sm"
+                    aria-pressed={duration === "multiple"}
                     onClick={() => handleDurationChange("multiple")}
                     className="text-xs"
                   >
@@ -334,12 +353,17 @@ export function GrazingPopover({
 
               {/* Hours per Day */}
               <Field>
-                <FieldLabel>Uren per dag *</FieldLabel>
-                <div className="grid grid-cols-3 gap-2">
+                <FieldLabel id="popover-hours-label">Uren per dag *</FieldLabel>
+                <div
+                  role="group"
+                  aria-labelledby="popover-hours-label"
+                  className="grid grid-cols-3 gap-2"
+                >
                   <Button
                     type="button"
                     variant={hourPreset === "24" ? "default" : "outline"}
                     size="sm"
+                    aria-pressed={hourPreset === "24"}
                     onClick={() => handleHourPresetChange("24")}
                     className="text-xs"
                   >
@@ -349,6 +373,7 @@ export function GrazingPopover({
                     type="button"
                     variant={hourPreset === "8" ? "default" : "outline"}
                     size="sm"
+                    aria-pressed={hourPreset === "8"}
                     onClick={() => handleHourPresetChange("8")}
                     className="text-xs"
                   >
@@ -358,6 +383,7 @@ export function GrazingPopover({
                     type="button"
                     variant={hourPreset === "custom" ? "default" : "outline"}
                     size="sm"
+                    aria-pressed={hourPreset === "custom"}
                     onClick={() => handleHourPresetChange("custom")}
                     className="text-xs"
                   >
@@ -368,6 +394,7 @@ export function GrazingPopover({
                 {hourPreset === "custom" && (
                   <div className="mt-2 flex items-center gap-2">
                     <Input
+                      id="popover-hours"
                       type="number"
                       min="1"
                       max="24"
@@ -375,8 +402,9 @@ export function GrazingPopover({
                       value={hours}
                       onChange={(e) => setHours(parseFloat(e.target.value || "0"))}
                       className="w-24"
+                      aria-label="Aantal uren per dag"
                     />
-                    <span className="text-muted-foreground text-xs">uur / dag</span>
+                    <span className="text-muted-foreground text-xs">uur per dag</span>
                   </div>
                 )}
               </Field>
@@ -392,7 +420,7 @@ export function GrazingPopover({
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="full" id="area-full" />
                     <Label htmlFor="area-full" className="cursor-pointer text-xs font-normal">
-                      Volledig perceel ({field?.b_area} ha)
+                      Volledig perceel ({formatHa(fieldArea)} ha)
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -436,7 +464,8 @@ export function GrazingPopover({
                           variant={partialPercentage === percentage ? "default" : "outline"}
                           size="sm"
                           onClick={() => setPartialPercentage(percentage)}
-                          className="h-7 px-2 text-[11px]"
+                          aria-pressed={partialPercentage === percentage}
+                          className="h-7 px-2 text-xs"
                         >
                           {percentage}%
                         </Button>
@@ -458,7 +487,7 @@ export function GrazingPopover({
                         aria-label="Deel van het perceel in procent"
                       />
                       <span className="text-muted-foreground text-xs">
-                        % van {fieldArea} ha = {partialArea} ha
+                        % van {formatHa(fieldArea)} ha = {formatHa(partialArea)} ha
                       </span>
                     </div>
                   </div>
@@ -466,16 +495,36 @@ export function GrazingPopover({
               </Field>
             </FieldGroup>
 
-            {/* Trust-building live summary */}
-            <div className="bg-muted/30 text-muted-foreground space-y-1 rounded-lg border p-3 text-xs">
+            {/* Live summary of what will be recorded */}
+            <div
+              className="bg-muted/30 text-muted-foreground space-y-1 rounded-lg border p-3 text-xs"
+              aria-live="polite"
+            >
               <p className="text-foreground flex items-center gap-1.5 font-medium">
-                <Info className="text-primary h-3.5 w-3.5 shrink-0" />
-                {diffDays} {diffDays === 1 ? "weidedag" : "weidedagen"} · {totalHours} weide-uren op{" "}
-                {field?.b_name} ({effectiveArea} ha).
+                <Info aria-hidden="true" className="text-primary h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {diffDays.toLocaleString("nl-NL")} {diffDays === 1 ? "weidedag" : "weidedagen"} ·{" "}
+                  {totalHours.toLocaleString("nl-NL")}{" "}
+                  {totalHours === 1 ? "weide-uur" : "weide-uren"} op {field?.b_name} (
+                  {formatHa(effectiveArea)} ha).
+                </span>
               </p>
               {isFuture && (
-                <p className="text-amber-700 dark:text-amber-400">
-                  Startdatum ligt in de toekomst → dit wordt vastgelegd als plan.
+                <p className="text-amber-800">
+                  De startdatum ligt in de toekomst: de beweiding wordt vastgelegd als plan.
+                </p>
+              )}
+              {outsideSeason && (
+                <p className="text-amber-800">
+                  Valt (deels) buiten de beweidingskalender ({GRAZING_SEASON_LABEL}). De beweiding
+                  telt wel mee en staat op de tab Beweiding van het perceel.
+                </p>
+              )}
+              {zoneMissing && <p>Teken eerst een zone op de kaart of kies er een.</p>}
+              {!existingGrazing && calendar && (
+                <p>
+                  Met deze beweiding staat Beweiding {calendar} aan voor dit bedrijf; dat telt mee
+                  voor de stikstofgebruiksnorm.
                 </p>
               )}
             </div>
@@ -487,11 +536,11 @@ export function GrazingPopover({
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={handleDelete}
+                onClick={() => setIsDeleteOpen(true)}
                 className="gap-1.5"
               >
-                <Trash2 className="h-4 w-4" />
-                Verwijderen
+                <Trash2 aria-hidden="true" className="h-4 w-4" />
+                <span>Verwijderen</span>
               </Button>
             ) : (
               <div />
@@ -503,9 +552,7 @@ export function GrazingPopover({
               <Button
                 type="submit"
                 disabled={
-                  !canWrite ||
-                  (areaMode === "zone" && !zone) ||
-                  (areaMode === "partial" && !(partialArea > 0))
+                  !canWrite || zoneMissing || (areaMode === "partial" && !(partialArea > 0))
                 }
               >
                 {existingGrazing ? "Opslaan" : "Vastleggen"}
@@ -514,6 +561,35 @@ export function GrazingPopover({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Beweiding verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              De beweiding van {field?.b_name ?? "dit perceel"} vanaf{" "}
+              {startDate
+                ? format(new Date(`${startDate}T12:00:00`), "d MMMM yyyy", { locale: nl })
+                : "de startdatum"}{" "}
+              wordt verwijderd. Dit kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
+}
+
+/** An area in hectares with a decimal comma, e.g. "9,5". */
+function formatHa(value: number): string {
+  return value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
 }

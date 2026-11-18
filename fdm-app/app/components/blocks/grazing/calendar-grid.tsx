@@ -1,8 +1,9 @@
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, Plus, Shovel, Wheat } from "lucide-react"
-import { useState } from "react"
+import { AlertTriangle, Plus } from "lucide-react"
+import { useImperativeHandle, useRef, useState } from "react"
+import { NavLink } from "react-router"
 import type { FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import type {
@@ -11,6 +12,7 @@ import type {
   GrazingCalendarMatrix,
 } from "~/lib/grazing-calendar.server"
 import { FERTILIZER_CATEGORY_SOLID_CLASSES } from "~/components/custom/fertilizer-badge"
+import { Button } from "~/components/ui/button"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,18 +21,17 @@ import {
   ContextMenuLabel,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu"
-import { TooltipProvider } from "~/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useToday } from "~/hooks/use-today"
+import {
+  formatRestAlert,
+  GRAZING_SEASON_LABEL,
+  GRAZING_USE_COLORS,
+  MIXED_USE_BACKGROUND,
+  PLANNED_GRAZING_BACKGROUND,
+  type RestAlert,
+} from "~/lib/grazing-status"
 import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
-
-/**
- * Colours of the calendar: light green for grazing, dark green for mowing. Fertilizer applications
- * take the colour of their fertilizer badge (see `FertilizerDot`).
- */
-const GRAZING_FILL = "bg-green-300"
-const PLANNED_GRAZING_FILL =
-  "bg-[repeating-linear-gradient(45deg,rgba(134,239,172,0.35),rgba(134,239,172,0.35)_2px,rgba(134,239,172,1)_2px,rgba(134,239,172,1)_4px)]"
-const MOWING_FILL = "bg-green-800"
 
 const HERD_COLORS = [
   "bg-emerald-600 text-white dark:bg-emerald-500",
@@ -41,8 +42,19 @@ const HERD_COLORS = [
   "bg-cyan-600 text-white dark:bg-cyan-500",
 ]
 
+/** Days a Page Up or Page Down moves in the calendar. */
+const PAGE_DAYS = 7
+
 const formatLongDay = (day: string) =>
   format(new Date(`${day}T12:00:00`), "EEEE d MMMM", { locale: nl })
+
+const formatHa = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
+
+/** A position in the calendar: the index of the field row and of the day column. */
+interface GridPosition {
+  row: number
+  col: number
+}
 
 export interface CalendarGridProps {
   matrix: GrazingCalendarMatrix
@@ -60,6 +72,8 @@ export interface CalendarGridProps {
  * - A left click on an empty day adds a grazing on that day; dragging over several days adds a
  *   longer period. A click on a day with a grazing, mowing or fertilizer application opens it.
  * - A right click on a day offers to add a grazing, a mowing or a fertilizer application there.
+ * - With the keyboard, the arrow keys move between days and fields, Enter or Space opens the day,
+ *   and Shift with the left or right arrow selects several days for one grazing.
  */
 export function CalendarGrid({
   matrix,
@@ -85,6 +99,16 @@ export function CalendarGrid({
   // "Today" is only known on the client; empty until then
   const todayDate = useToday()
   const todayKey = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
+  const todayIndex = matrix.columns.findIndex((column) => column.dateStart === todayKey)
+
+  // Keyboard: the one day that is in the tab order, and the first day of a Shift-selection
+  const tableRef = useRef<HTMLTableElement>(null)
+  // The scrolling box of the calendar, and the one tooltip that follows the day under the pointer
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const tooltipRef = useRef<CalendarDayTooltipHandle>(null)
+  const [focusedCell, setFocusedCell] = useState<GridPosition | null>(null)
+  const [keyboardAnchor, setKeyboardAnchor] = useState<GridPosition | null>(null)
+  const activeCell = focusedCell ?? { row: 0, col: Math.max(0, todayIndex) }
 
   // Popover state
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -192,6 +216,111 @@ export function CalendarGrid({
     setDragEnd(null)
   }
 
+  /**
+   * Shows the shared tooltip at a day: the date and what happened, the days of a drag or
+   * Shift-selection, and what a click does.
+   */
+  const showDayTooltip = (target: HTMLElement) => {
+    const [row, col] = (target.dataset.cell ?? "").split("-").map(Number)
+    const field = matrix.fields[row]
+    const cell = field?.cells[col]
+    if (!field || !cell) return
+    const anchorCol =
+      isDragging && dragField?.b_id === field.b_id && dragStart !== null
+        ? dragStart
+        : keyboardAnchor?.row === row
+          ? keyboardAnchor.col
+          : null
+    const first = anchorCol !== null ? field.cells[Math.min(anchorCol, col)] : cell
+    const last = anchorCol !== null ? field.cells[Math.max(anchorCol, col)] : cell
+    const details = dayCellTitle(cell)
+    const action =
+      cell.type === "empty" || anchorCol !== null
+        ? canWrite
+          ? "Klik om een beweiding toe te voegen"
+          : null
+        : "Klik om te openen"
+    tooltipRef.current?.show(
+      target,
+      <span className="flex flex-col gap-0.5">
+        <span className="font-semibold">
+          {first.dateStart === last.dateStart
+            ? formatLongDay(cell.dateStart)
+            : `${formatLongDay(first.dateStart)} t/m ${formatLongDay(last.dateStart)}`}
+        </span>
+        <span>{field.b_name}</span>
+        {details && <span>{details}</span>}
+        {action && <span className="opacity-80">{action}</span>}
+      </span>,
+    )
+  }
+
+  /** Moves the keyboard focus to a day, kept within the calendar. */
+  const moveFocus = (row: number, col: number) => {
+    const next = {
+      row: Math.min(Math.max(row, 0), matrix.fields.length - 1),
+      col: Math.min(Math.max(col, 0), matrix.columns.length - 1),
+    }
+    setFocusedCell(next)
+    tableRef.current
+      ?.querySelector<HTMLElement>(`[data-cell="${next.row}-${next.col}"]`)
+      ?.focus({ preventScroll: false })
+  }
+
+  const handleGridKeyDown = (event: React.KeyboardEvent) => {
+    const { row, col } = activeCell
+    const field = matrix.fields[row]
+    if (!field) return
+
+    // Shift with left or right selects several days of one field; other keys end the selection
+    const extend = event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")
+    if (extend) {
+      if (!canWrite) return
+      event.preventDefault()
+      if (!keyboardAnchor || keyboardAnchor.row !== row) setKeyboardAnchor({ row, col })
+      moveFocus(row, col + (event.key === "ArrowRight" ? 1 : -1))
+      return
+    }
+
+    const moves: Record<string, GridPosition> = {
+      ArrowLeft: { row, col: col - 1 },
+      ArrowRight: { row, col: col + 1 },
+      ArrowUp: { row: row - 1, col },
+      ArrowDown: { row: row + 1, col },
+      Home: { row, col: 0 },
+      End: { row, col: matrix.columns.length - 1 },
+      PageUp: { row, col: col - PAGE_DAYS },
+      PageDown: { row, col: col + PAGE_DAYS },
+    }
+    const move = moves[event.key]
+    if (move) {
+      event.preventDefault()
+      setKeyboardAnchor(null)
+      moveFocus(move.row, move.col)
+      return
+    }
+
+    if (event.key === "Escape" && keyboardAnchor) {
+      event.preventDefault()
+      setKeyboardAnchor(null)
+      return
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      if (keyboardAnchor && keyboardAnchor.row === row && keyboardAnchor.col !== col) {
+        const first = field.cells[Math.min(keyboardAnchor.col, col)]
+        const last = field.cells[Math.max(keyboardAnchor.col, col)]
+        setKeyboardAnchor(null)
+        openNewGrazing(field, first.dateStart, last.dateEnd)
+        return
+      }
+      setKeyboardAnchor(null)
+      const cell = field.cells[col]
+      if (cell) handleCellClick(field, cell)
+    }
+  }
+
   return (
     <TooltipProvider>
       <div className="space-y-4" onMouseUp={handleMouseUp}>
@@ -203,6 +332,7 @@ export function CalendarGrid({
               <button
                 key={h.l_id_herd}
                 type="button"
+                aria-pressed={selectedKoppelId === h.l_id_herd}
                 onClick={() => setSelectedKoppelId(h.l_id_herd)}
                 className={cn(
                   "flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 transition-all",
@@ -212,6 +342,7 @@ export function CalendarGrid({
                 )}
               >
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "inline-block h-2.5 w-2.5 rounded-full",
                     HERD_COLORS[h.colorIndex % HERD_COLORS.length],
@@ -222,33 +353,57 @@ export function CalendarGrid({
             ))}
           </div>
 
-          <div className="text-muted-foreground flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className={cn("inline-block h-3.5 w-4 rounded-xs", GRAZING_FILL)} />
-              <span>Weiden</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={cn("inline-block h-3.5 w-4 rounded-xs", MOWING_FILL)} />
-              <span>Maaien</span>
-            </div>
-            <div className="flex items-center gap-1.5">
+          <ul className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <LegendItem label="Weiden">
+              <span
+                className="inline-block h-3.5 w-4 rounded-xs"
+                style={{ backgroundColor: GRAZING_USE_COLORS.weiden }}
+              />
+            </LegendItem>
+            <LegendItem label="Gepland">
+              <span
+                className="inline-block h-3.5 w-4 rounded-xs"
+                style={{ background: PLANNED_GRAZING_BACKGROUND }}
+              />
+            </LegendItem>
+            <LegendItem label="Maaien">
+              <span
+                className="inline-block h-3.5 w-4 rounded-xs"
+                style={{ backgroundColor: GRAZING_USE_COLORS.maaien }}
+              />
+            </LegendItem>
+            <LegendItem label="Dierlijke mest">
               <FertilizerDot kind="manure" />
-              <span>Dierlijke mest</span>
-            </div>
-            <div className="flex items-center gap-1.5">
+            </LegendItem>
+            <LegendItem label="Kunstmest">
               <FertilizerDot kind="mineral" />
-              <span>Kunstmest</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={cn("inline-block h-3.5 w-4 rounded-xs", PLANNED_GRAZING_FILL)} />
-              <span>Gepland</span>
-            </div>
-          </div>
+            </LegendItem>
+          </ul>
         </div>
 
+        <p className="text-muted-foreground text-xs sm:hidden">
+          De kalender is het best te gebruiken op een groter scherm. Hier schuif je opzij door de
+          dagen, of voeg je beweiding toe met de knop Beweiding toevoegen.
+        </p>
         <p className="text-muted-foreground text-xs">
-          Elke dag van 1 maart tot en met 31 oktober. Klik op een lege dag om een beweiding toe te
-          voegen, of klik met de rechtermuisknop voor maaien en bemesten.
+          Elke dag van {GRAZING_SEASON_LABEL}. Klik op een lege dag om een beweiding toe te voegen,
+          sleep over meerdere dagen voor een langere periode, of klik met de rechtermuisknop voor
+          maaien en bemesten.
+        </p>
+        <p className="text-muted-foreground text-xs">
+          Met het toetsenbord:{" "}
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-xs"
+            onClick={() => moveFocus(activeCell.row, activeCell.col)}
+          >
+            <span>
+              {todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}
+            </span>
+          </Button>
+          , loop met de pijltjestoetsen door de dagen en percelen, open een dag met Enter en kies
+          meerdere dagen met Shift en pijl links of rechts.
         </p>
 
         {/* Calendar: one narrow column per day; the context menu belongs to the right-clicked day */}
@@ -257,21 +412,38 @@ export function CalendarGrid({
             // A right click outside a day (a name or the header) has no day to add to
             onContextMenuCapture={() => setMenuTarget(null)}
             render={
-              <div className="bg-card relative overflow-x-auto rounded-xl border shadow-xs" />
+              <div
+                ref={scrollRef}
+                className="bg-card relative overflow-x-auto rounded-xl border shadow-xs"
+              />
             }
           >
-            <table className="w-full border-collapse text-left text-xs" role="grid">
+            <table
+              ref={tableRef}
+              className="w-full border-collapse text-left text-xs"
+              role="grid"
+              aria-label="Beweidingskalender"
+              onKeyDown={handleGridKeyDown}
+              onMouseOver={(event) => {
+                const target = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]")
+                if (target) showDayTooltip(target)
+              }}
+              onMouseLeave={() => tooltipRef.current?.hide()}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) tooltipRef.current?.hide()
+              }}
+            >
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground border-b font-medium">
-                  <th className="bg-muted/90 sticky left-0 z-20 min-w-44 p-3 backdrop-blur-xs">
+                  <th className="bg-muted text-foreground sticky left-0 z-20 min-w-44 p-3">
                     Perceel
                   </th>
-                  <th className="w-16 p-3 text-right">ha</th>
+                  <th className="text-foreground w-16 p-3 text-right">ha</th>
                   {matrix.columns.map((column) => (
                     <th
                       key={column.key}
                       className={cn(
-                        "relative h-9 w-1.5 min-w-1.5 p-0 text-[10px] font-normal",
+                        "relative h-9 w-1.5 min-w-1.5 p-0 text-xs font-normal",
                         column.groupStart &&
                           "border-l-border text-foreground border-l font-semibold",
                         column.dateStart === todayKey && "bg-primary/30",
@@ -288,45 +460,73 @@ export function CalendarGrid({
 
               <tbody className="divide-border/60 divide-y">
                 {/* Grazed fields first, then the largest fields first (sorted by the loader) */}
-                {matrix.fields.map((field) => (
+                {matrix.fields.map((field, rowIndex) => (
                   <tr key={field.b_id} className="hover:bg-muted/20">
-                    <td className="bg-card/95 sticky left-0 z-10 border-r px-3 py-2 font-medium backdrop-blur-xs">
+                    <th
+                      scope="row"
+                      className="bg-card sticky left-0 z-10 border-r px-3 py-2 text-left font-medium"
+                    >
                       <div className="max-w-40 truncate">{field.b_name}</div>
                       {field.recentRestDays !== null && (
-                        <div className="text-muted-foreground text-[10px]">
-                          ░ {field.recentRestDays}d rust
+                        <div className="text-muted-foreground text-xs font-normal">
+                          {field.recentRestDays === 1
+                            ? "1 dag rust"
+                            : `${field.recentRestDays} dagen rust`}
                         </div>
                       )}
-                    </td>
-                    <td className="text-muted-foreground border-r px-2 py-2 text-right">
-                      {field.b_area}
+                    </th>
+                    <td className="text-muted-foreground border-r px-2 py-2 text-right tabular-nums">
+                      {formatHa(field.b_area)}
                     </td>
 
                     {field.cells.map((cell, index) => {
-                      const isSelected =
+                      const isDragSelected =
                         isDragging &&
                         dragField?.b_id === field.b_id &&
                         dragStart !== null &&
                         dragEnd !== null &&
                         index >= Math.min(dragStart, dragEnd) &&
                         index <= Math.max(dragStart, dragEnd)
+                      const isKeySelected =
+                        keyboardAnchor !== null &&
+                        keyboardAnchor.row === rowIndex &&
+                        activeCell.row === rowIndex &&
+                        index >= Math.min(keyboardAnchor.col, activeCell.col) &&
+                        index <= Math.max(keyboardAnchor.col, activeCell.col)
+                      const isActive = activeCell.row === rowIndex && activeCell.col === index
 
                       return (
                         <td
                           key={cell.key}
+                          data-cell={`${rowIndex}-${index}`}
+                          tabIndex={isActive ? 0 : -1}
                           className={cn(
-                            "relative w-1.5 min-w-1.5 cursor-pointer p-0 py-0.5 transition-colors select-none",
-                            isSelected && "bg-primary/30",
+                            "relative h-8 w-1.5 min-w-1.5 cursor-pointer bg-clip-content p-0 py-0.5 transition-colors select-none",
+                            // A clear ring around the day that has the keyboard focus
+                            "focus-visible:ring-foreground focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none",
+                            cell.type === "empty" && "hover:bg-muted/60",
+                            (isDragSelected || isKeySelected) && "bg-primary/30",
                             matrix.columns[index]?.groupStart && "border-l-border border-l",
                           )}
+                          style={dayCellStyle(cell)}
                           onMouseDown={(event) => handleMouseDown(event, field, index)}
                           onMouseEnter={() => handleMouseEnter(index)}
                           onClick={() => handleCellClick(field, cell)}
+                          onFocus={(event) => {
+                            setFocusedCell({ row: rowIndex, col: index })
+                            showDayTooltip(event.currentTarget)
+                          }}
                           onContextMenu={() => setMenuTarget({ field, day: cell.dateStart })}
                           role="gridcell"
-                          aria-label={`${field.b_name}, ${formatLongDay(cell.dateStart)}, ${cell.type}`}
+                          aria-selected={isDragSelected || isKeySelected || undefined}
+                          aria-label={`${field.b_name}, ${formatLongDay(cell.dateStart)}: ${dayCellDescription(cell)}`}
                         >
-                          <GrazingDayCell cell={cell} />
+                          {cell.fertilizerEntries && (
+                            <FertilizerDot
+                              kind={cell.fertilizerEntries[0].p_type}
+                              className="absolute top-1 left-1/2 size-1.5 -translate-x-1/2"
+                            />
+                          )}
                         </td>
                       )
                     })}
@@ -334,6 +534,7 @@ export function CalendarGrid({
                 ))}
               </tbody>
             </table>
+            <CalendarDayTooltip ref={tooltipRef} containerRef={scrollRef} />
           </ContextMenuTrigger>
           <ContextMenuContent>
             {menuTarget ? (
@@ -360,7 +561,6 @@ export function CalendarGrid({
                     })
                   }
                 >
-                  <Wheat />
                   Maaisnede toevoegen
                 </ContextMenuItem>
                 <ContextMenuItem
@@ -375,7 +575,6 @@ export function CalendarGrid({
                     })
                   }
                 >
-                  <Shovel />
                   Bemesting toevoegen
                 </ContextMenuItem>
               </ContextMenuGroup>
@@ -387,49 +586,47 @@ export function CalendarGrid({
           </ContextMenuContent>
         </ContextMenu>
 
-        {/* Season Summary Strip */}
+        {/* Season summary */}
         <div className="bg-card space-y-2 rounded-xl border p-4 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-xs sm:text-sm">
-            <div className="flex flex-wrap items-center gap-4">
-              <div>
-                <span className="text-muted-foreground">Weidedagen: </span>
-                <strong className="text-foreground font-semibold">
-                  {matrix.summary.weidedagen} ●
-                </strong>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Weide-uren/dag: </span>
-                <strong className="text-foreground font-semibold">
-                  {matrix.summary.averageHours} ●
-                </strong>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Weidemelk 120×6: </span>
-                <strong className="text-foreground font-semibold">
-                  {matrix.summary.weidemelkDays}/120 dgn{" "}
-                  {matrix.summary.weidemelkDays >= 120 ? "✓" : ""}
-                </strong>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Beweidingsplatform: </span>
-                <strong className="text-foreground font-semibold">
-                  {matrix.summary.platformArea} ha
-                </strong>
+          <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm">
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Weidedagen:</dt>
+              <dd className="text-foreground font-semibold tabular-nums">
+                {matrix.summary.weidedagen.toLocaleString("nl-NL")}
+              </dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Gemiddeld per weidedag:</dt>
+              <dd className="text-foreground font-semibold tabular-nums">
+                {matrix.summary.averageHours.toLocaleString("nl-NL")} uur
+              </dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Weidemelk 120 × 6:</dt>
+              <dd className="text-foreground font-semibold tabular-nums">
+                {matrix.summary.weidemelkDays >= 120
+                  ? `${matrix.summary.weidemelkDays} van 120 dagen, gehaald`
+                  : `${matrix.summary.weidemelkDays} van 120 dagen`}
+              </dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-muted-foreground">Beweidingsplatform:</dt>
+              <dd className="text-foreground font-semibold tabular-nums">
+                {formatHa(matrix.summary.platformArea)} ha
                 {matrix.summary.platformGvePerHa !== null && (
-                  <span className="text-muted-foreground ml-1">
-                    · {matrix.summary.platformGvePerHa} GVE/ha
+                  <span className="text-muted-foreground ml-1 font-normal">
+                    · {matrix.summary.platformGvePerHa.toLocaleString("nl-NL")} GVE/ha op het
+                    platform
                   </span>
                 )}
-              </div>
+              </dd>
             </div>
-          </div>
+          </dl>
 
-          {matrix.summary.alerts.length > 0 && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-900 dark:text-amber-200">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <p className="font-medium">{matrix.summary.alerts[0].message}</p>
-            </div>
-          )}
+          <RestAlertNotice
+            alerts={matrix.summary.alerts}
+            insightsHref={`/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`}
+          />
         </div>
       </div>
 
@@ -448,6 +645,118 @@ export function CalendarGrid({
         canWrite={canWrite}
       />
     </TooltipProvider>
+  )
+}
+
+/**
+ * A one-line notice for the fields used again before the rest guideline: the first field, how many
+ * more, and a link to the Kengetallen page that explains the guideline.
+ */
+export function RestAlertNotice({
+  alerts,
+  insightsHref,
+}: {
+  alerts: RestAlert[]
+  insightsHref: string
+}) {
+  if (alerts.length === 0) return null
+  const more = alerts.length - 1
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-900">
+      <AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-700" />
+      <p className="font-medium">
+        {formatRestAlert(alerts[0])}
+        {more > 0 && ` En ${more} ${more === 1 ? "ander perceel" : "andere percelen"}.`}
+      </p>
+      <NavLink to={insightsHref} className="underline underline-offset-2">
+        Bekijk de rustperiodes
+      </NavLink>
+    </div>
+  )
+}
+
+/** Shows or hides the tooltip of the calendar at a day. */
+interface CalendarDayTooltipHandle {
+  show: (target: HTMLElement, content: React.ReactNode) => void
+  hide: () => void
+}
+
+/**
+ * The one tooltip of the calendar. A tooltip per day would add thousands of components, so an
+ * invisible anchor moves to the day under the pointer or the keyboard focus, and the tooltip
+ * opens there. Its state lives here, so moving it does not re-render the calendar.
+ */
+function CalendarDayTooltip({
+  ref,
+  containerRef,
+}: {
+  ref: React.Ref<CalendarDayTooltipHandle>
+  containerRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const [tip, setTip] = useState<{
+    left: number
+    top: number
+    width: number
+    height: number
+    content: React.ReactNode
+  } | null>(null)
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      show(target, content) {
+        const container = containerRef.current
+        if (!container) return
+        const box = container.getBoundingClientRect()
+        const rect = target.getBoundingClientRect()
+        setTip({
+          left: rect.left - box.left + container.scrollLeft,
+          top: rect.top - box.top + container.scrollTop,
+          width: rect.width,
+          height: rect.height,
+          content,
+        })
+      },
+      hide() {
+        setTip(null)
+      },
+    }),
+    [containerRef],
+  )
+
+  return (
+    // A new tooltip for every day: the positioner places itself when it opens, and does not follow
+    // an anchor that moves. Without the entrance animation it simply jumps along.
+    <Tooltip key={tip ? `${tip.left}-${tip.top}` : "hidden"} open={tip !== null}>
+      <TooltipTrigger
+        render={
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute"
+            style={
+              tip
+                ? { left: tip.left, top: tip.top, width: tip.width, height: tip.height }
+                : { display: "none" }
+            }
+          />
+        }
+      />
+      <TooltipContent className="data-open:animate-none data-[state=delayed-open]:animate-none">
+        {tip?.content}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** An entry of the calendar legend: a swatch and its label. */
+function LegendItem({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-1.5">
+      <span aria-hidden="true" className="flex">
+        {children}
+      </span>
+      <span>{label}</span>
+    </li>
   )
 }
 
@@ -470,16 +779,27 @@ function FertilizerDot({ kind, className }: { kind: FertilizerKind; className?: 
 }
 
 /**
- * A day of the season: a narrow coloured bar for grazing (light green, striped when planned) or
- * mowing (dark green), with a dot in the badge colour of a fertilizer application. The title lists
- * what happened that day.
+ * The background of a day: grazing, planned grazing, mowing, or both; nothing when unused. Only
+ * the colour and image are set, so a cell's `background-clip` still applies.
  */
-export function GrazingDayCell({ cell }: { cell: GrazingCalendarCell }) {
-  const title = [
+function dayCellStyle(cell: GrazingCalendarCell): React.CSSProperties | undefined {
+  if (cell.type === "weiden") {
+    return cell.isPlanned
+      ? { backgroundImage: PLANNED_GRAZING_BACKGROUND }
+      : { backgroundColor: GRAZING_USE_COLORS.weiden }
+  }
+  if (cell.type === "maaien") return { backgroundColor: GRAZING_USE_COLORS.maaien }
+  if (cell.type === "mixed") return { backgroundImage: MIXED_USE_BACKGROUND }
+  return undefined
+}
+
+/** What happened on a day, for the tooltip: the herds, the mowing and the fertilizers. */
+function dayCellTitle(cell: GrazingCalendarCell): string {
+  return [
     ...(cell.grazingEntries ?? []).map(
       (g) =>
         `${g.isPlanned ? "Gepland: " : ""}${g.l_herd_name}${
-          g.l_grazing_hours ? `, ${g.l_grazing_hours} uur` : ""
+          g.l_grazing_hours ? `, ${g.l_grazing_hours.toLocaleString("nl-NL")} uur` : ""
         }`,
     ),
     ...(cell.harvestEntries ?? []).map(() => "Maaien"),
@@ -492,18 +812,37 @@ export function GrazingDayCell({ cell }: { cell: GrazingCalendarCell }) {
         }`,
     ),
   ].join(", ")
+}
 
-  return (
+/** What happened on a day in words, for screen readers. */
+function dayCellDescription(cell: GrazingCalendarCell): string {
+  const use =
+    cell.type === "weiden"
+      ? cell.isPlanned
+        ? "beweiding gepland"
+        : "beweid"
+      : cell.type === "maaien"
+        ? "gemaaid"
+        : cell.type === "mixed"
+          ? "beweid en gemaaid"
+          : "niet gebruikt"
+  const details = dayCellTitle(cell)
+  return details ? `${use} (${details})` : use
+}
+
+/**
+ * A day of the season: a narrow coloured bar for grazing (striped when planned), mowing, or both,
+ * with a dot in the badge colour of a fertilizer application. The title lists what happened that
+ * day.
+ */
+export function GrazingDayCell({ cell }: { cell: GrazingCalendarCell }) {
+  const details = dayCellTitle(cell)
+  const bar = (
     <div
-      title={title || undefined}
-      className={cn(
-        "relative h-7 w-full",
-        cell.type === "empty" && "hover:bg-muted/60",
-        cell.type === "weiden" && (cell.isPlanned ? PLANNED_GRAZING_FILL : GRAZING_FILL),
-        cell.type === "maaien" && MOWING_FILL,
-        cell.type === "mixed" && "bg-gradient-to-b from-green-300 to-green-800",
-      )}
+      className={cn("relative h-7 w-full", cell.type === "empty" && "hover:bg-muted/60")}
+      style={dayCellStyle(cell)}
     >
+      <span className="sr-only">{dayCellDescription(cell)}</span>
       {cell.fertilizerEntries && (
         <FertilizerDot
           kind={cell.fertilizerEntries[0].p_type}
@@ -511,5 +850,18 @@ export function GrazingDayCell({ cell }: { cell: GrazingCalendarCell }) {
         />
       )}
     </div>
+  )
+  // An empty day has nothing to tell; a used day names the date and what happened
+  if (!details) return bar
+  return (
+    <Tooltip>
+      <TooltipTrigger render={bar} />
+      <TooltipContent>
+        <span className="flex flex-col gap-0.5">
+          <span className="font-semibold">{formatLongDay(cell.dateStart)}</span>
+          <span>{details}</span>
+        </span>
+      </TooltipContent>
+    </Tooltip>
   )
 }

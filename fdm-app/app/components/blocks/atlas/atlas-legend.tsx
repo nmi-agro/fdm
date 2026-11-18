@@ -739,7 +739,14 @@ export function GrazingStatusSwatch({ status }: { status: GrazingMapStatus }) {
   return (
     <NutrientAdviceSwatch
       color={GRAZING_STATUS_COLORS[status]}
-      className={status === "unused" ? "border" : undefined}
+      className={
+        status === "unused"
+          ? "border"
+          : // A grazed field has a dark outline on the map
+            status === "weiden"
+            ? "border-2 border-emerald-900"
+            : undefined
+      }
     />
   )
 }

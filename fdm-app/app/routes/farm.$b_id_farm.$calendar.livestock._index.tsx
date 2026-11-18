@@ -1,17 +1,14 @@
 import {
   checkPermission,
   getAnimalCategoriesForFarm,
-  getCensusForFarm,
   getCultivationsForFarm,
   getFarms,
   getFields,
-  getGrazingCalendarForFarm,
-  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, CalendarDays, ChartColumn, Plus, Warehouse } from "lucide-react"
+import { CalendarDays, ChartColumn, Plus, Warehouse } from "lucide-react"
 import { useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -19,40 +16,23 @@ import {
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
-  useFetcher,
   useLoaderData,
 } from "react-router"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { GrazingDayCell } from "~/components/blocks/grazing/calendar-grid"
+import { GrazingDayCell, RestAlertNotice } from "~/components/blocks/grazing/calendar-grid"
 import { FieldPickerButton } from "~/components/blocks/grazing/field-picker-button"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddAnimalDialog } from "~/components/blocks/livestock/add-animal-dialog"
+import { AddHerdDialog } from "~/components/blocks/livestock/add-herd-dialog"
 import { HerdCard } from "~/components/blocks/livestock/herd-card"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
-import { Input } from "~/components/ui/input"
 import { Progress } from "~/components/ui/progress"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
@@ -63,6 +43,8 @@ import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
 import { handleGrazingEvent, isGrazingIntent } from "~/lib/grazing-events.server"
 import { defaultMapDay, shiftDay } from "~/lib/grazing-map"
+import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
+import { getHerdCards } from "~/lib/herd-cards.server"
 import { handleLivestockEvent, isLivestockIntent } from "~/lib/livestock-events.server"
 
 export const handle: HelpHandle = { help: "veestapel" }
@@ -94,15 +76,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    const [farms, herds, census, categories, allFields, cultivationsByField, grazings, matrix] =
+    const [farms, herdCards, categories, allFields, cultivationsByField, matrix] =
       await Promise.all([
         getFarms(fdm, session.principal_id),
-        getHerdsForFarm(fdm, session.principal_id, b_id_farm),
-        getCensusForFarm(fdm, session.principal_id, b_id_farm),
+        getHerdCards(session.principal_id, b_id_farm, timeframe),
         getAnimalCategoriesForFarm(fdm, session.principal_id, b_id_farm),
         getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         // Days, fields and key figures of the grazing calendar
         fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
       ])
@@ -131,51 +111,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
       .reduce((acc, f) => acc + (f.b_area ?? 0), 0)
 
-    const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
-
-    // Current grazing status of each herd
-    const now = new Date()
-    const herdCardsData = herds.map((h) => {
-      const herdGrazings = grazings.filter((g) => g.l_id_herd === h.l_id_herd)
-      const current = herdGrazings.find((g) => {
-        const start = new Date(g.l_grazing_start)
-        const end = g.l_grazing_end ? new Date(g.l_grazing_end) : null
-        return start <= now && (!end || end >= now)
-      })
-      const planned = herdGrazings
-        .filter((g) => new Date(g.l_grazing_start) > now)
-        .sort(
-          (a, b) => new Date(a.l_grazing_start).getTime() - new Date(b.l_grazing_start).getTime(),
-        )[0]
-      const status: {
-        type: "grazing_now" | "planned" | "idle"
-        fieldName?: string | null
-        dateStr?: string | null
-      } = current
-        ? { type: "grazing_now", fieldName: current.b_name ?? "onbekend perceel" }
-        : planned
-          ? {
-              type: "planned",
-              dateStr: format(new Date(planned.l_grazing_start), "d MMM", { locale: nl }),
-            }
-          : { type: "idle" }
-      return {
-        l_id_herd: h.l_id_herd,
-        l_herd_name: h.l_herd_name,
-        l_id_category: h.l_id_category,
-        l_category: h.l_category,
-        l_lsu: h.l_lsu ?? 1.0,
-        count: censusMap.get(h.l_id_herd) ?? 0,
-        status,
-      }
-    })
-
     return {
       b_id_farm,
       calendar,
       calendarYear,
       farmOptions,
-      herds: herdCardsData,
+      herds: herdCards,
       categories,
       grasslandArea: Math.round(grasslandArea * 10) / 10,
       // The grazing fields with their days, and the herds as the grazing dialog needs them
@@ -379,22 +320,15 @@ export default function MelkveeOverview() {
                   </Card>
                   <StatTile
                     label="Beweidingsplatform"
-                    value={`${summary.platformArea.toLocaleString("nl-NL")} ha`}
+                    value={`${summary.platformArea.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} ha`}
                     detail={
                       summary.platformGvePerHa !== null
-                        ? `${summary.platformGvePerHa.toLocaleString("nl-NL")} GVE/ha`
-                        : gvePerHaGrassland !== null
-                          ? `${gvePerHaGrassland.toLocaleString("nl-NL")} GVE/ha grasland`
-                          : "Nog geen beweiding"
+                        ? `${summary.platformGvePerHa.toLocaleString("nl-NL")} GVE/ha op het platform`
+                        : "Nog geen beweiding"
                     }
                   />
                 </div>
-                {summary.alerts.length > 0 && (
-                  <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-900">
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-                    <p className="font-medium">{summary.alerts[0].message}</p>
-                  </div>
-                )}
+                <RestAlertNotice alerts={summary.alerts} insightsHref={insightsHref} />
               </section>
 
               {/* Grazing of the last and coming days */}
@@ -505,6 +439,8 @@ function GrazingWindow({
       return { field, cells: days.map((day) => cellByDay.get(day)) }
     })
     .filter((row) => row.cells.some((cell) => cell && cell.type !== "empty"))
+  // The calendar only has the days of the grazing season
+  const outsideSeason = days.length > 0 && days.every((day) => !isInGrazingSeason(day))
 
   // Planned grazing in the coming week, once per grazing
   const upcoming = new Map<
@@ -533,8 +469,7 @@ function GrazingWindow({
         <div>
           <CardTitle className="text-lg">Beweiding</CardTitle>
           <CardDescription className="text-xs">
-            De afgelopen week en de komende week. Lichtgroen is beweid, donkergroen gemaaid,
-            gestreept gepland.
+            De afgelopen week en de komende week, in de kleuren van de beweidingskalender.
           </CardDescription>
         </div>
         <Button
@@ -551,7 +486,9 @@ function GrazingWindow({
       <CardContent className="space-y-4">
         {rows.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            Geen beweiding of maaisnede in deze twee weken.
+            {outsideSeason
+              ? `Deze twee weken vallen buiten het weideseizoen van de beweidingskalender (${GRAZING_SEASON_LABEL}). Beweiding op deze dagen telt wel mee en staat op de tab Beweiding van het perceel.`
+              : "Geen beweiding of maaisnede in deze twee weken."}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -615,105 +552,5 @@ function GrazingWindow({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-/** Dialog to add a herd with a number of animals of one category. */
-function AddHerdDialog({
-  open,
-  onOpenChange,
-  categories,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  categories: Array<{ l_id_category: string; l_category: string; l_lsu: number | null }>
-}) {
-  const fetcher = useFetcher()
-  const [categoryId, setCategoryId] = useState("rvo_100")
-  const [name, setName] = useState("Melkkoeien")
-  const [count, setCount] = useState(20)
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const formData = new FormData()
-    formData.set("intent", "add_herd")
-    formData.set("l_id_category", categoryId)
-    formData.set("l_herd_name", name.trim())
-    formData.set("count", String(count))
-    void fetcher.submit(formData, { method: "post" })
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Nieuwe koppel toevoegen</DialogTitle>
-            <DialogDescription>Voeg een nieuwe groep dieren toe aan je bedrijf.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="cat-select">Diercategorie *</FieldLabel>
-                <Select
-                  value={categoryId}
-                  items={categories.map((c) => ({
-                    value: c.l_id_category,
-                    label: `${c.l_category} (${c.l_lsu} GVE/dier)`,
-                  }))}
-                  onValueChange={(v) => {
-                    if (v !== null) setCategoryId(v)
-                  }}
-                >
-                  <SelectTrigger id="cat-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.l_id_category} value={c.l_id_category}>
-                        {c.l_category} ({c.l_lsu} GVE/dier)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="add-herd-name">Naam van de koppel</FieldLabel>
-                <Input
-                  id="add-herd-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Bijv. Droogstaande koeien"
-                  required
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="add-herd-count">Aantal dieren</FieldLabel>
-                <Input
-                  id="add-herd-count"
-                  type="number"
-                  min="1"
-                  max="5000"
-                  value={count}
-                  onChange={(e) => setCount(Number.parseInt(e.target.value || "1", 10))}
-                  required
-                />
-              </Field>
-            </FieldGroup>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuleren
-            </Button>
-            <Button type="submit">Koppel aanmaken</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   )
 }

@@ -11,7 +11,8 @@ import {
   updateAnimal,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
-import { ArrowLeft, ArrowRightLeft, LogOut, Save, SquareArrowRightExit } from "lucide-react"
+import { nl } from "date-fns/locale"
+import { ArrowRightLeft, CalendarDays, LogOut, Save } from "lucide-react"
 import { useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -24,6 +25,8 @@ import {
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import type { HelpHandle } from "~/lib/manual/help-targets"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -75,6 +78,10 @@ export const meta: MetaFunction = () => {
     },
   ]
 }
+
+/** A day on this page, e.g. "3 mei", or "3 mei 2024" with the year. */
+const formatAnimalDay = (iso: string, withYear = false) =>
+  format(new Date(iso), withYear ? "d MMM yyyy" : "d MMM", { locale: nl })
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -143,6 +150,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               l_grazing_end: gEnd.toISOString(),
               l_grazing_hours: g.l_grazing_hours ?? 8,
               days,
+              isPlanned: gStart > new Date(),
             }
           })
       })
@@ -300,9 +308,13 @@ export default function AnimalDetailPage() {
   const [editBirthdate, setEditBirthdate] = useState(
     animal.l_birth_date ? format(new Date(animal.l_birth_date), "yyyy-MM-dd") : "",
   )
-  const [editSex, setEditSex] = useState<"female" | "male">(
-    animal.l_sex === "male" ? "male" : "female",
+  // Empty while the sex is not known, so the form does not suggest one
+  const [editSex, setEditSex] = useState<"female" | "male" | "">(
+    animal.l_sex === "female" || animal.l_sex === "male" ? animal.l_sex : "",
   )
+  const animalName = animal.l_id_worknumber
+    ? `Werknummer ${animal.l_id_worknumber}`
+    : "Dier zonder werknummer"
 
   const [targetHerdId, setTargetHerdId] = useState("")
   // Defaults to today, which is only known on the client; a date the user picks sticks
@@ -325,7 +337,7 @@ export default function AnimalDetailPage() {
     formData.set("l_id_worknumber", editWorknumber)
     formData.set("l_id_eartag", editEartag)
     if (editBirthdate) formData.set("l_birth_date", editBirthdate)
-    formData.set("l_sex", editSex)
+    if (editSex) formData.set("l_sex", editSex)
     void fetcher.submit(formData, { method: "post" })
   }
 
@@ -369,444 +381,420 @@ export default function AnimalDetailPage() {
           Vee
         </BreadcrumbLink>
         <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          {animal.l_id_worknumber ? `#${animal.l_id_worknumber}` : "Dierdetails"}
-        </BreadcrumbItem>
+        <BreadcrumbItem>{animalName}</BreadcrumbItem>
       </Header>
 
-      <main className="container max-w-5xl space-y-6 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground h-8 gap-1 pl-0"
-                nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Vee
-              </Button>
-              <span className="text-muted-foreground">/</span>
-              <span className="text-sm font-semibold">
-                Werknummer {animal.l_id_worknumber ?? animal.l_id_animal.slice(0, 8)}
-              </span>
-            </div>
-            <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight">
-              <span>Dier #{animal.l_id_worknumber ?? "—"}</span>
-              {isLeft ? (
-                <Badge variant="outline" className="text-muted-foreground border-slate-300">
-                  Afgevoerd (
-                  {leavingMethodLabel(animal.l_leaving_method)?.toLowerCase() ?? "vertrokken"})
-                </Badge>
-              ) : (
-                <Badge className="bg-emerald-600 text-white">Actief op bedrijf</Badge>
-              )}
-            </h1>
-          </div>
-        </div>
+      <main>
+        <FarmTitle
+          title={animalName}
+          description={[animal.l_category, currentHerd?.l_herd_name].filter(Boolean).join(" · ")}
+          rightNode={
+            isLeft ? (
+              <Badge variant="outline" className="text-muted-foreground">
+                Afgevoerd (
+                {leavingMethodLabel(animal.l_leaving_method)?.toLowerCase() ?? "vertrokken"})
+              </Badge>
+            ) : (
+              <Badge variant="outline">Op het bedrijf</Badge>
+            )
+          }
+        />
 
-        {/* Top Summary KPI Cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-muted-foreground text-xs font-medium">
-                Levensnummer
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="truncate font-mono text-sm font-semibold">
-                {animal.l_id_eartag ?? "Geen oormerk"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-muted-foreground text-xs font-medium">
-                Huidige koppel
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="truncate text-sm font-semibold">
-                {currentHerd?.l_herd_name ?? "Geen koppel"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-muted-foreground text-xs font-medium">
-                Diercategorie
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="truncate text-sm font-semibold">{animal.l_category ?? "—"}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-muted-foreground text-xs font-medium">
-                Weidegang ({calendar})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="text-sm font-semibold">
-                {grazingSummary.totalDays} dagen ({grazingSummary.totalHours}u)
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Column: Edit Details & Departure Forms */}
-          <div className="space-y-6 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Kenmerken & Gegevens</CardTitle>
-                <CardDescription className="text-xs">
-                  Pas werknummer, oormerk, geslacht of geboortedatum aan.
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleDetailsSubmit}>
-                <CardContent className="space-y-4">
-                  <FieldGroup>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="detail-worknumber">Werknummer</FieldLabel>
-                        <Input
-                          id="detail-worknumber"
-                          value={editWorknumber}
-                          onChange={(e) => setEditWorknumber(e.target.value)}
-                          disabled={!farmWritePermission}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="detail-eartag">Levensnummer (oormerk)</FieldLabel>
-                        <Input
-                          id="detail-eartag"
-                          value={editEartag}
-                          onChange={(e) => setEditEartag(e.target.value)}
-                          placeholder="Bijv. NL 999 9999 9999"
-                          disabled={!farmWritePermission}
-                        />
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <DatePicker
-                        label="Geboortedatum"
-                        field={{
-                          name: "l_birth_date",
-                          value: editBirthdate,
-                          onChange: (val) =>
-                            setEditBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
-                          onBlur: () => {},
-                          ref: () => {},
-                          disabled: !farmWritePermission,
-                        }}
-                        fieldState={{
-                          invalid: false,
-                          isTouched: false,
-                          isDirty: false,
-                          isValidating: false,
-                        }}
-                      />
-                      <Field>
-                        <FieldLabel htmlFor="detail-sex">Geslacht</FieldLabel>
-                        <Select
-                          value={editSex}
-                          items={[
-                            { value: "female", label: "Vrouwelijk" },
-                            { value: "male", label: "Mannelijk" },
-                          ]}
-                          onValueChange={(v) => {
-                            if (v !== null) setEditSex(v)
-                          }}
-                          disabled={!farmWritePermission}
-                        >
-                          <SelectTrigger id="detail-sex">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="female">Vrouwelijk</SelectItem>
-                            <SelectItem value="male">Mannelijk</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {animal.l_category && (
-                          <p className="text-muted-foreground text-[11px]">
-                            Categorie ({animal.l_category}) bepaalt de toegestane geslachten.
-                          </p>
-                        )}
-                      </Field>
-                    </div>
-                  </FieldGroup>
-                </CardContent>
-                {farmWritePermission && (
-                  <CardFooter className="border-t pt-4">
-                    <Button type="submit" disabled={fetcher.state !== "idle"} className="gap-1.5">
-                      <Save className="h-4 w-4" />
-                      Wijzigingen opslaan
-                    </Button>
-                  </CardFooter>
-                )}
-              </form>
-            </Card>
-
-            {/* Beweidingshistorie Card */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <SquareArrowRightExit className="h-4 w-4 text-emerald-600" />
-                      Beweidingshistorie {calendar}
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Overzicht van percelen waar dit dier met haar koppel heeft gegraasd.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="secondary">{grazingSummary.totalDays} weidedagen</Badge>
+        <FarmContent>
+          <div className="space-y-6">
+            {/* Key facts of the animal */}
+            <Card className="p-4">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+                <div className="min-w-0">
+                  <dt className="text-muted-foreground text-xs">Levensnummer</dt>
+                  <dd className="truncate font-semibold tabular-nums">
+                    {animal.l_id_eartag ?? "Geen oormerk"}
+                  </dd>
                 </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Periode</TableHead>
-                      <TableHead>Perceel</TableHead>
-                      <TableHead>Koppel</TableHead>
-                      <TableHead className="text-right">Uren/dag</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {grazingHistory.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-muted-foreground py-6 text-center text-xs"
-                        >
-                          Nog geen beweidingsregistraties voor dit dier in {calendar}.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      grazingHistory.map((g, idx) => (
-                        <TableRow key={idx} className="text-xs">
-                          <TableCell className="font-mono">
-                            {format(new Date(g.l_grazing_start), "dd-MM")} →{" "}
-                            {format(new Date(g.l_grazing_end), "dd-MM")}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {g.b_name} {g.b_area ? `(${g.b_area} ha)` : ""}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{g.l_herd_name}</TableCell>
-                          <TableCell className="text-right font-mono">
-                            {g.l_grazing_hours} u
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
+                <div className="min-w-0">
+                  <dt className="text-muted-foreground text-xs">Huidige koppel</dt>
+                  <dd className="truncate font-semibold">
+                    {currentHerd?.l_herd_name ?? "Geen koppel"}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-muted-foreground text-xs">Diercategorie</dt>
+                  <dd className="truncate font-semibold">{animal.l_category ?? "—"}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-muted-foreground text-xs">Weidegang {calendar}</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {grazingSummary.totalDays.toLocaleString("nl-NL")}{" "}
+                    {grazingSummary.totalDays === 1 ? "dag" : "dagen"} (
+                    {grazingSummary.totalHours.toLocaleString("nl-NL")} uur)
+                  </dd>
+                </div>
+              </dl>
             </Card>
 
-            {/* Departure Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Afvoer / Vertrek</CardTitle>
-                <CardDescription className="text-xs">
-                  {isLeft
-                    ? "Dit dier heeft het bedrijf verlaten."
-                    : "Registreer wanneer dit dier het bedrijf verlaat."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLeft ? (
-                  <div className="bg-muted/40 space-y-1 rounded-lg border p-4 text-xs">
-                    <p>
-                      <strong>Vertrekdatum: </strong>
-                      {animal.l_leaving_date
-                        ? format(new Date(animal.l_leaving_date), "dd-MM-yyyy")
-                        : "—"}
-                    </p>
-                    <p>
-                      <strong>Reden / Methode: </strong>
-                      <span>
-                        {leavingMethodLabel(animal.l_leaving_method) ?? "Niet gespecificeerd"}
-                      </span>
-                    </p>
-                  </div>
-                ) : farmWritePermission ? (
-                  <form onSubmit={handleDepartureSubmit} className="space-y-4">
-                    <FieldGroup>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <DatePicker
-                          label="Datum vertrek"
-                          field={{
-                            name: "l_leaving_date",
-                            value: leavingDate,
-                            onChange: (val) =>
-                              setLeavingDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
-                            onBlur: () => {},
-                            ref: () => {},
-                          }}
-                          fieldState={{
-                            invalid: false,
-                            isTouched: false,
-                            isDirty: false,
-                            isValidating: false,
-                          }}
-                          required
-                        />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* Left Column: Edit Details & Departure Forms */}
+              <div className="space-y-6 lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Kenmerken & Gegevens</CardTitle>
+                    <CardDescription className="text-xs">
+                      Pas werknummer, oormerk, geslacht of geboortedatum aan.
+                    </CardDescription>
+                  </CardHeader>
+                  <form onSubmit={handleDetailsSubmit}>
+                    <CardContent className="space-y-4">
+                      <FieldGroup>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <Field>
+                            <FieldLabel htmlFor="detail-worknumber">Werknummer</FieldLabel>
+                            <Input
+                              id="detail-worknumber"
+                              value={editWorknumber}
+                              onChange={(e) => setEditWorknumber(e.target.value)}
+                              disabled={!farmWritePermission}
+                            />
+                          </Field>
+                          <Field>
+                            <FieldLabel htmlFor="detail-eartag">Levensnummer (oormerk)</FieldLabel>
+                            <Input
+                              id="detail-eartag"
+                              value={editEartag}
+                              onChange={(e) => setEditEartag(e.target.value)}
+                              placeholder="Bijv. NL 999 9999 9999"
+                              disabled={!farmWritePermission}
+                            />
+                          </Field>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <DatePicker
+                            label="Geboortedatum"
+                            field={{
+                              name: "l_birth_date",
+                              value: editBirthdate,
+                              onChange: (val) =>
+                                setEditBirthdate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                              onBlur: () => {},
+                              ref: () => {},
+                              disabled: !farmWritePermission,
+                            }}
+                            fieldState={{
+                              invalid: false,
+                              isTouched: false,
+                              isDirty: false,
+                              isValidating: false,
+                            }}
+                          />
+                          <Field>
+                            <FieldLabel htmlFor="detail-sex">Geslacht</FieldLabel>
+                            <Select
+                              value={editSex}
+                              items={[
+                                { value: "female", label: "Vrouwelijk" },
+                                { value: "male", label: "Mannelijk" },
+                              ]}
+                              onValueChange={(v) => {
+                                if (v === "female" || v === "male") setEditSex(v)
+                              }}
+                              disabled={!farmWritePermission}
+                            >
+                              <SelectTrigger id="detail-sex">
+                                <SelectValue placeholder="Onbekend" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="female">Vrouwelijk</SelectItem>
+                                <SelectItem value="male">Mannelijk</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {animal.l_category && (
+                              <p className="text-muted-foreground text-xs">
+                                Categorie ({animal.l_category}) bepaalt de toegestane geslachten.
+                              </p>
+                            )}
+                          </Field>
+                        </div>
+                      </FieldGroup>
+                    </CardContent>
+                    {farmWritePermission && (
+                      <CardFooter className="border-t pt-4">
+                        <Button
+                          type="submit"
+                          disabled={fetcher.state !== "idle"}
+                          className="gap-1.5"
+                        >
+                          <Save className="h-4 w-4" />
+                          Wijzigingen opslaan
+                        </Button>
+                      </CardFooter>
+                    )}
+                  </form>
+                </Card>
+
+                {/* Beweidingshistorie Card */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <CalendarDays aria-hidden="true" className="h-4 w-4 text-emerald-700" />
+                          Beweidingshistorie {calendar}
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          De percelen waar dit dier met zijn koppel heeft geweid, of volgens plan
+                          gaat weiden.
+                        </CardDescription>
+                      </div>
+                      <Badge variant="secondary">
+                        {grazingSummary.totalDays.toLocaleString("nl-NL")}{" "}
+                        {grazingSummary.totalDays === 1 ? "weidedag" : "weidedagen"}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Periode</TableHead>
+                          <TableHead>Perceel</TableHead>
+                          <TableHead>Koppel</TableHead>
+                          <TableHead className="text-right">Uren/dag</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {grazingHistory.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-muted-foreground py-6 text-center text-xs"
+                            >
+                              Nog geen beweidingsregistraties voor dit dier in {calendar}.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          grazingHistory.map((g, idx) => (
+                            <TableRow key={idx} className="text-xs">
+                              <TableCell className="tabular-nums">
+                                {g.l_grazing_start.slice(0, 10) === g.l_grazing_end.slice(0, 10)
+                                  ? formatAnimalDay(g.l_grazing_start)
+                                  : `${formatAnimalDay(g.l_grazing_start)} – ${formatAnimalDay(g.l_grazing_end)}`}
+                                {g.isPlanned && (
+                                  <span className="text-muted-foreground"> (gepland)</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {g.b_name}{" "}
+                                {g.b_area
+                                  ? `(${g.b_area.toLocaleString("nl-NL", { maximumFractionDigits: 2 })} ha)`
+                                  : ""}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {g.l_herd_name}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {g.l_grazing_hours.toLocaleString("nl-NL")} uur
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Departure Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Afvoer / Vertrek</CardTitle>
+                    <CardDescription className="text-xs">
+                      {isLeft
+                        ? "Dit dier heeft het bedrijf verlaten."
+                        : "Registreer wanneer dit dier het bedrijf verlaat."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLeft ? (
+                      <div className="bg-muted/40 space-y-1 rounded-lg border p-4 text-xs">
+                        <p>
+                          <strong>Vertrekdatum: </strong>
+                          {animal.l_leaving_date
+                            ? format(new Date(animal.l_leaving_date), "d MMMM yyyy", { locale: nl })
+                            : "—"}
+                        </p>
+                        <p>
+                          <strong>Reden / Methode: </strong>
+                          <span>
+                            {leavingMethodLabel(animal.l_leaving_method) ?? "Niet gespecificeerd"}
+                          </span>
+                        </p>
+                      </div>
+                    ) : farmWritePermission ? (
+                      <form onSubmit={handleDepartureSubmit} className="space-y-4">
+                        <FieldGroup>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <DatePicker
+                              label="Datum vertrek"
+                              field={{
+                                name: "l_leaving_date",
+                                value: leavingDate,
+                                onChange: (val) =>
+                                  setLeavingDate(val ? format(new Date(val), "yyyy-MM-dd") : ""),
+                                onBlur: () => {},
+                                ref: () => {},
+                              }}
+                              fieldState={{
+                                invalid: false,
+                                isTouched: false,
+                                isDirty: false,
+                                isValidating: false,
+                              }}
+                              required
+                            />
+                            <Field>
+                              <FieldLabel htmlFor="dep-method">Reden</FieldLabel>
+                              <Select
+                                value={leavingMethod}
+                                items={leavingMethods}
+                                onValueChange={(v) => {
+                                  if (v !== null) setLeavingMethod(v)
+                                }}
+                              >
+                                <SelectTrigger id="dep-method">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {leavingMethods.map((method) => (
+                                    <SelectItem key={method.value} value={method.value}>
+                                      {method.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+                          </div>
+                        </FieldGroup>
+                        <Button type="submit" variant="destructive" size="sm" className="gap-1.5">
+                          <LogOut className="h-4 w-4" />
+                          Afvoer vastleggen
+                        </Button>
+                      </form>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column: Reassignment & Assignment History */}
+              <div className="space-y-6">
+                {/* Reassign Herd Card */}
+                {!isLeft && farmWritePermission && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Koppeltoewijzing</CardTitle>
+                      <CardDescription className="text-xs">
+                        Verplaats dit dier naar een andere koppel.
+                      </CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleReassignSubmit}>
+                      <CardContent className="space-y-3">
                         <Field>
-                          <FieldLabel htmlFor="dep-method">Reden</FieldLabel>
+                          <FieldLabel htmlFor="move-herd">Doelkoppel</FieldLabel>
                           <Select
-                            value={leavingMethod}
-                            items={leavingMethods}
+                            value={targetHerdId}
+                            items={herds
+                              .filter((h) => h.l_id_herd !== animal.l_id_herd)
+                              .map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
                             onValueChange={(v) => {
-                              if (v !== null) setLeavingMethod(v)
+                              if (v !== null) setTargetHerdId(v)
                             }}
                           >
-                            <SelectTrigger id="dep-method">
-                              <SelectValue />
+                            <SelectTrigger id="move-herd">
+                              <SelectValue placeholder="Kies nieuwe koppel" />
                             </SelectTrigger>
                             <SelectContent>
-                              {leavingMethods.map((method) => (
-                                <SelectItem key={method.value} value={method.value}>
-                                  {method.label}
-                                </SelectItem>
-                              ))}
+                              {herds
+                                .filter((h) => h.l_id_herd !== animal.l_id_herd)
+                                .map((h) => (
+                                  <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
+                                    {h.l_herd_name}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </Field>
-                      </div>
-                    </FieldGroup>
-                    <Button type="submit" variant="destructive" size="sm" className="gap-1.5">
-                      <LogOut className="h-4 w-4" />
-                      Afvoer vastleggen
-                    </Button>
-                  </form>
-                ) : null}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column: Reassignment & Assignment History */}
-          <div className="space-y-6">
-            {/* Reassign Herd Card */}
-            {!isLeft && farmWritePermission && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Koppeltoewijzing</CardTitle>
-                  <CardDescription className="text-xs">
-                    Verplaats dit dier naar een andere koppel.
-                  </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleReassignSubmit}>
-                  <CardContent className="space-y-3">
-                    <Field>
-                      <FieldLabel htmlFor="move-herd">Doelkoppel</FieldLabel>
-                      <Select
-                        value={targetHerdId}
-                        items={herds
-                          .filter((h) => h.l_id_herd !== animal.l_id_herd)
-                          .map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
-                        onValueChange={(v) => {
-                          if (v !== null) setTargetHerdId(v)
-                        }}
-                      >
-                        <SelectTrigger id="move-herd">
-                          <SelectValue placeholder="Kies nieuwe koppel" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {herds
-                            .filter((h) => h.l_id_herd !== animal.l_id_herd)
-                            .map((h) => (
-                              <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
-                                {h.l_herd_name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </CardContent>
-                  <CardFooter className="border-t pt-3">
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={!targetHerdId || fetcher.state !== "idle"}
-                      className="w-full gap-1.5"
-                    >
-                      <ArrowRightLeft className="h-4 w-4" />
-                      Verplaats naar koppel
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
-            )}
-
-            {/* Assignment History Table Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Toewijzingshistorie</CardTitle>
-                <CardDescription className="text-xs">
-                  Historisch overzicht van koppels waarin dit dier gelopen heeft.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Koppel</TableHead>
-                      <TableHead>Van</TableHead>
-                      <TableHead>Tot</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {history.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={3}
-                          className="text-muted-foreground py-6 text-center text-xs"
+                      </CardContent>
+                      <CardFooter className="border-t pt-3">
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={!targetHerdId || fetcher.state !== "idle"}
+                          className="w-full gap-1.5"
                         >
-                          Geen toewijzingshistorie gevonden.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      history.map((h, idx) => (
-                        <TableRow key={idx} className="text-xs">
-                          <TableCell className="font-medium">{h.l_herd_name}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {h.l_assigning_start
-                              ? format(new Date(h.l_assigning_start), "dd-MM-yy")
-                              : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {h.l_assigning_end ? (
-                              <span className="text-muted-foreground">
-                                {format(new Date(h.l_assigning_end), "dd-MM-yy")}
-                              </span>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-700"
-                              >
-                                Huidig
-                              </Badge>
-                            )}
-                          </TableCell>
+                          <ArrowRightLeft className="h-4 w-4" />
+                          Verplaats naar koppel
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  </Card>
+                )}
+
+                {/* Assignment History Table Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Toewijzingshistorie</CardTitle>
+                    <CardDescription className="text-xs">
+                      Historisch overzicht van koppels waarin dit dier gelopen heeft.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Koppel</TableHead>
+                          <TableHead>Van</TableHead>
+                          <TableHead>Tot</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {history.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={3}
+                              className="text-muted-foreground py-6 text-center text-xs"
+                            >
+                              Geen toewijzingshistorie gevonden.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          history.map((h, idx) => (
+                            <TableRow key={idx} className="text-xs">
+                              <TableCell className="font-medium">{h.l_herd_name}</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {h.l_assigning_start
+                                  ? formatAnimalDay(h.l_assigning_start, true)
+                                  : "—"}
+                              </TableCell>
+                              <TableCell>
+                                {h.l_assigning_end ? (
+                                  <span className="text-muted-foreground">
+                                    {formatAnimalDay(h.l_assigning_end, true)}
+                                  </span>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    Nu
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
-        </div>
+        </FarmContent>
       </main>
     </SidebarInset>
   )
