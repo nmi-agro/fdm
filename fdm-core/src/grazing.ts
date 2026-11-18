@@ -15,7 +15,7 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { setGrazingIntention } from "./grazing_intention"
 import { createId } from "./id"
-import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
+import { assertIntervalEndNotBeforeStart, overlapsHalfOpen, sharesCalendarDay } from "./interval"
 import { withTimeframe } from "./timeframe"
 import { clippedZone, normalizeZone } from "./zone"
 
@@ -81,7 +81,9 @@ function assertGrazingExtent(
  * the field, or `l_grazing_area` when only its size is known. A zone is clipped to the field when
  * it is read. Total grazing days are derived from the start/end dates in the calculator layer
  * rather than stored here.
- * Grazing intervals for the same herd on the same field (or herd-level) may not overlap.
+ * A herd can be on the same field only once a day: its grazings on the same field may not share a
+ * calendar day, counting both the start and the end day. Herd-level grazings (without a field)
+ * may not overlap any other grazing of the herd.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the grazing action.
@@ -282,17 +284,10 @@ export async function addGrazings(
 
         for (let j = 0; j < i; j++) {
           const prev = rows[j]
-          if (prev.l_id_herd === row.l_id_herd) {
-            const prevEnd = prev.l_grazing_end ?? null
-            if (overlapsHalfOpen(row.l_grazing_start, grazingEnd, prev.l_grazing_start, prevEnd)) {
-              const rowField = row.b_id ?? null
-              const prevField = prev.b_id ?? null
-              if (rowField === null || prevField === null || rowField === prevField) {
-                throw new Error(
-                  "Grazing interval overlaps another grazing interval in this batch for this herd",
-                )
-              }
-            }
+          if (prev.l_id_herd === row.l_id_herd && grazingsConflict(row, prev)) {
+            throw new Error(
+              "Grazing interval overlaps another grazing interval in this batch for this herd",
+            )
           }
         }
       }
@@ -672,20 +667,41 @@ async function assertNoOverlappingGrazingForHerd(
     .from(schema.grazing)
     .where(eq(schema.grazing.l_id_herd, l_id_herd))
 
-  const targetField = b_id ?? null
-
   for (const row of grazingRows) {
     if (row.l_id_grazing === exclude_l_id_grazing) {
       continue
     }
 
-    if (overlapsHalfOpen(l_grazing_start, l_grazing_end, row.l_grazing_start, row.l_grazing_end)) {
-      const existingField = row.b_id ?? null
-      if (targetField === null || existingField === null || targetField === existingField) {
-        throw new Error("Grazing interval overlaps an existing grazing interval for this herd")
-      }
+    if (
+      grazingsConflict(
+        { b_id, l_grazing_start, l_grazing_end },
+        { b_id: row.b_id, l_grazing_start: row.l_grazing_start, l_grazing_end: row.l_grazing_end },
+      )
+    ) {
+      throw new Error("Grazing interval overlaps an existing grazing interval for this herd")
     }
   }
+}
+
+/**
+ * Whether two grazings of the same herd conflict. Grazings on different fields never conflict.
+ * On the same field the herd can be booked only once a day, so grazings conflict when they share
+ * a calendar day, also when one of them lasts a single day. A grazing without a field conflicts
+ * with every grazing whose period overlaps it.
+ */
+function grazingsConflict(
+  a: { b_id?: string | null; l_grazing_start: Date; l_grazing_end?: Date | null },
+  b: { b_id?: string | null; l_grazing_start: Date; l_grazing_end?: Date | null },
+): boolean {
+  const aField = a.b_id ?? null
+  const bField = b.b_id ?? null
+  if (aField !== null && bField !== null && aField !== bField) {
+    return false
+  }
+  if (aField !== null && aField === bField) {
+    return sharesCalendarDay(a.l_grazing_start, a.l_grazing_end, b.l_grazing_start, b.l_grazing_end)
+  }
+  return overlapsHalfOpen(a.l_grazing_start, a.l_grazing_end, b.l_grazing_start, b.l_grazing_end)
 }
 
 /**
