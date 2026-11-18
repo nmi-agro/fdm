@@ -71,7 +71,7 @@ Klik op **Vastleggen**. Bij een zone kan dat pas als je een zone hebt getekend o
 
 ### Een zone tekenen of hergebruiken {#zones}
 
-Kies je **Zone op de kaart**, dan zie je het perceel op de kaart.
+Kies je **Zone op de kaart**, dan zie je het perceel op de kaart, met de witte stippellijn als perceelsgrens. De zone is licht met een witte rand, zodat hij ook op groen grasland goed zichtbaar is; stroken van de afgelopen 28 dagen zijn donker met een witte streepjeslijn.
 
 1. Klik op **Tekenen** en zet met klikken de hoeken van de zone. Rond af door op het eerste punt te klikken, te dubbelklikken of op Enter te drukken. Met Esc stop je de tekening zonder het venster te sluiten. Teken je opnieuw terwijl er al een zone is, dan vervangt de nieuwe zone de oude.
 2. Met **Aanpassen** is de zone direct gekozen: versleep een hoek, klik op een middenpunt voor een extra hoek of klik met de rechtermuisknop op een hoek om hem te verwijderen. Met **Wissen** begin je opnieuw.
@@ -100,7 +100,7 @@ De nieuwe strook sluit aan op de stroken die je de afgelopen 28 dagen op dit per
 
 In de [Atlas](/manual/atlas) staat de kaartlaag _Beweiding_. Je opent hem met **Op de kaart** boven de beweidingskalender, met **Beweiding vandaag** onder _Acties_ op de bedrijfspagina, of via de lijst met kaartlagen in de Atlas.
 
-De kaart kleurt je percelen naar hun gebruik op één dag, in de kleuren van de kalender: beweid, gemaaid, in rust of nog niet gebruikt in het gekozen jaar. Een beweid perceel heeft ook een donkere rand. Percelen zonder grasland zijn grijs. Zones die die dag worden beweid, staan donkergroen op het perceel. De legenda telt hoeveel percelen elke status hebben.
+De kaart kleurt je percelen naar hun gebruik op één dag, in de kleuren van de kalender: beweid, gemaaid, in rust of nog niet gebruikt in het gekozen jaar. Een beweid perceel heeft ook een donkere rand. Percelen zonder grasland zijn grijs. Zones die die dag worden beweid, staan licht met een witte rand op het perceel, net als bij het tekenen van een zone. De legenda telt hoeveel percelen elke status hebben.
 
 - _Dag kiezen_: met de pijlen ga je een dag terug of vooruit, en met de datumkiezer spring je naar een andere dag. De kaart opent op de datum van vandaag in het gekozen jaar en blijft binnen dat jaar. Met **Vandaag** ga je terug naar die dag. **Beweiding vandaag** opent altijd het huidige jaar.
 - _Perceel bekijken_: ga met de muis over een perceel voor de koppel en de uren per dag, de opbrengst van een maaisnede of het aantal dagen rust. De dagen rust tellen alleen vanaf een gebruik in het gekozen jaar. Klik op een graslandperceel om de beweidingspagina van dat perceel te openen; op een telefoon tik je op het perceel en daarna op **Bekijk beweiding**.
