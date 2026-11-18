@@ -17,6 +17,11 @@ import {
   getFertilizerCategoryFromRvoCode,
 } from "~/components/blocks/fertilizer/utils"
 import { fdm } from "~/lib/fdm.server"
+import {
+  GRAZING_SEASON_FIRST_MONTH,
+  GRAZING_SEASON_LAST_MONTH,
+  type RestAlert,
+} from "~/lib/grazing-status"
 
 /**
  * Grazed area per field (ha) of the grazings that started in the calendar year up to today, with
@@ -90,13 +95,6 @@ export interface GrazingCalendarFieldRow {
   recentRestDays: number | null
 }
 
-/**
- * The grazing season the calendar shows: 1 March up to and including 31 October, as in the
- * grassland calendars of Nieuw Nederlands Weiden.
- */
-const SEASON_FIRST_MONTH = 3
-const SEASON_LAST_MONTH = 10
-
 const MONTH_NAMES = [
   "jan",
   "feb",
@@ -144,7 +142,8 @@ export interface GrazingCalendarMatrix {
     platformArea: number
     platformGvePerHa: number | null
     overgrazingAlertsCount: number
-    alerts: Array<{ b_id: string; message: string }>
+    /** Fields used again before the rest guideline; see `formatRestAlert`. */
+    alerts: RestAlert[]
   }
 }
 
@@ -165,14 +164,17 @@ function grazingEnd(start: Date, end: Date | string | null | undefined, today: D
   return today > start ? today : start
 }
 
-/** The columns of the calendar: every day of the grazing season. */
+/**
+ * The columns of the calendar: every day of the grazing season, 1 March up to and including 31
+ * October, as in the grassland calendars of Nieuw Nederlands Weiden.
+ */
 function getCalendarColumns(
   calendarYear: number,
 ): Array<GrazingCalendarColumn & { start: Date; end: Date }> {
   const columns: Array<GrazingCalendarColumn & { start: Date; end: Date }> = []
-  const last = new Date(Date.UTC(calendarYear, SEASON_LAST_MONTH, 0))
+  const last = new Date(Date.UTC(calendarYear, GRAZING_SEASON_LAST_MONTH, 0))
   for (
-    let start = new Date(Date.UTC(calendarYear, SEASON_FIRST_MONTH - 1, 1));
+    let start = new Date(Date.UTC(calendarYear, GRAZING_SEASON_FIRST_MONTH - 1, 1));
     start <= last;
     start = new Date(start.getTime() + 86_400_000)
   ) {
@@ -436,13 +438,7 @@ export async function fetchGrazingCalendarMatrix(
   const metrics = calculateGrazingMetrics({
     year: calendarYear,
     today,
-    herds: herds.map((h) => ({
-      l_id_herd: h.l_id_herd,
-      l_herd_name: h.l_herd_name,
-      l_id_category: h.l_id_category,
-      l_lsu: h.l_lsu,
-      count: 0, // Counts will be populated from census in insights
-    })),
+    herds: herdList,
     fields: grasslandFields.map((f) => ({
       b_id: f.b_id,
       b_name: f.b_name,
@@ -481,7 +477,12 @@ export async function fetchGrazingCalendarMatrix(
       platformArea: metrics.beweidingsplatform.areaHa,
       platformGvePerHa: metrics.veebezetting.platformGvePerHa,
       overgrazingAlertsCount: metrics.overbeweidingAlerts.length,
-      alerts: metrics.overbeweidingAlerts.map((a) => ({ b_id: a.b_id, message: a.message })),
+      alerts: metrics.overbeweidingAlerts.map((a) => ({
+        b_id: a.b_id,
+        b_name: a.b_name ?? null,
+        restDays: a.restDays,
+        thresholdDays: a.thresholdDays,
+      })),
     },
   }
 }

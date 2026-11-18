@@ -171,7 +171,7 @@ export default function LivestockOnboarding() {
 
   const activeCategoryObj = categories.find((c) => c.l_id_category === selectedCategory)
   const lsuFactor = activeCategoryObj?.l_lsu ?? 1.0
-  const totalGve = (count * lsuFactor).toFixed(1)
+  const totalGve = (count * lsuFactor).toLocaleString("nl-NL", { maximumFractionDigits: 1 })
 
   const handleCategoryChange = (catId: string) => {
     setSelectedCategory(catId)
@@ -208,8 +208,8 @@ export default function LivestockOnboarding() {
             <CardHeader>
               <CardTitle className="text-2xl">Melkvee toevoegen</CardTitle>
               <CardDescription className="text-sm">
-                Nog geen dieren op dit bedrijf. Voeg je eerste koppel toe — daarna kun je beweiding
-                vastleggen en zie je direct je weidedagen en veebezetting.
+                Voeg een koppel toe met een aantal dieren van één diercategorie. Daarna kun je
+                beweiding vastleggen en zie je direct je weidedagen en veebezetting.
               </CardDescription>
             </CardHeader>
 
@@ -221,7 +221,7 @@ export default function LivestockOnboarding() {
                     value={selectedCategory}
                     items={categories.map((c) => ({
                       value: c.l_id_category,
-                      label: `${c.l_category} (${c.l_lsu} GVE/dier)`,
+                      label: `${c.l_category} (${(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)`,
                     }))}
                     onValueChange={(v) => {
                       if (v !== null) handleCategoryChange(v)
@@ -234,7 +234,7 @@ export default function LivestockOnboarding() {
                     <SelectContent>
                       {categories.map((c) => (
                         <SelectItem key={c.l_id_category} value={c.l_id_category}>
-                          {c.l_category} ({c.l_lsu} GVE/dier)
+                          {c.l_category} ({(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -279,8 +279,11 @@ export default function LivestockOnboarding() {
                   </span>
                 </p>
                 <p className="text-foreground text-sm font-medium">
-                  Dit levert op: <span className="font-bold">{count} dieren</span> ·{" "}
-                  <span className="font-bold">{totalGve} GVE</span>
+                  Dit levert op:{" "}
+                  <span className="font-bold">
+                    {count} {count === 1 ? "dier" : "dieren"}
+                  </span>{" "}
+                  · <span className="font-bold">{totalGve} GVE</span>
                 </p>
               </div>
             </CardContent>

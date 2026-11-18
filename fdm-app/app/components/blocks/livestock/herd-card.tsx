@@ -37,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { GRAZING_USE_COLORS, PLANNED_GRAZING_BACKGROUND } from "~/lib/grazing-status"
 
 export interface HerdCardProps {
   b_id_farm: string
@@ -155,7 +156,7 @@ export function HerdCard({
 
   return (
     <>
-      <Card className="flex flex-col justify-between transition-all hover:shadow-md">
+      <Card className="flex flex-col justify-between">
         <CardHeader className="space-y-1.5 pb-2">
           <div className="flex items-start justify-between">
             <div>
@@ -241,21 +242,24 @@ export function HerdCard({
           {/* Grazing Status Badge */}
           <div className="pt-1">
             {status.type === "grazing_now" && (
-              <Badge
-                variant="outline"
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-              >
-                <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                Loopt nu op {status.fieldName ?? "onbekend perceel"}
+              <Badge variant="outline" className="text-emerald-900">
+                <span
+                  aria-hidden="true"
+                  className="mr-1.5 inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: GRAZING_USE_COLORS.weiden }}
+                />
+                <span>Loopt nu op {status.fieldName ?? "onbekend perceel"}</span>
               </Badge>
             )}
             {status.type === "planned" && (
-              <Badge
-                variant="outline"
-                className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-              >
-                <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-500" />
-                Gepland {status.dateStr ?? ""}
+              <Badge variant="outline">
+                {/* Hatched like a planned grazing in the calendar */}
+                <span
+                  aria-hidden="true"
+                  className="mr-1.5 inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundImage: PLANNED_GRAZING_BACKGROUND }}
+                />
+                <span>Gepland vanaf {status.dateStr ?? ""}</span>
               </Badge>
             )}
             {status.type === "idle" && (

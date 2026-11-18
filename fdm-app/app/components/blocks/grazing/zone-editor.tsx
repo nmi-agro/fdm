@@ -139,6 +139,7 @@ export function ZoneEditor({
             type="button"
             size="sm"
             variant={mode === "draw" ? "default" : "outline"}
+            aria-pressed={mode === "draw"}
             onClick={() => setMode("draw")}
             className="gap-1.5 text-xs"
           >
@@ -149,6 +150,7 @@ export function ZoneEditor({
             type="button"
             size="sm"
             variant={mode === "edit" ? "default" : "outline"}
+            aria-pressed={mode === "edit"}
             onClick={() => setMode("edit")}
             disabled={!zone}
             className="gap-1.5 text-xs"
@@ -160,6 +162,7 @@ export function ZoneEditor({
             type="button"
             size="sm"
             variant={showStripBuilder ? "default" : "outline"}
+            aria-pressed={showStripBuilder}
             onClick={() => setShowStripBuilder((show) => !show)}
             className="gap-1.5 text-xs"
           >
@@ -196,6 +199,11 @@ export function ZoneEditor({
           )}
         </p>
       </div>
+
+      <p className="text-muted-foreground text-xs sm:hidden">
+        Een zone tekenen gaat het best op een groter scherm. Op de telefoon kun je ook een eerdere
+        zone kiezen, of Deel van perceel, zonder kaart.
+      </p>
 
       {field ? (
         <div className="overflow-hidden rounded-lg border">
@@ -244,7 +252,7 @@ export function ZoneEditor({
                   onZoneChange(earlier.l_grazing_geometry_zone)
                   setMode("edit")
                 }}
-                className="h-auto px-2 py-1 text-left text-[11px] leading-tight"
+                className="h-auto px-2 py-1 text-left text-xs leading-tight"
               >
                 <span>
                   {formatHa(earlier.l_grazing_area_grazed)} ha ·{" "}
@@ -413,7 +421,7 @@ function StripBuilder({
           strook meer.
         </p>
       )}
-      <p className="text-muted-foreground text-[11px]">
+      <p className="text-muted-foreground text-xs">
         De strook sluit aan op de stroken van de afgelopen {STRIP_ROTATION_DAYS} dagen (grijs). De
         grasopname is maximaal 1 kg ds per weide-uur (Nieuw Nederlands Weiden: minimaal 1 weide-uur
         per kg ds). Het grasaanbod is 1.700 kg ds/ha bij inscharen plus{" "}

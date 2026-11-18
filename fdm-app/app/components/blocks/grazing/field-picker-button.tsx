@@ -25,8 +25,10 @@ export function FieldPickerButton({
   className,
 }: {
   label: string
-  icon: ReactNode
-  fields: Array<{ b_id: string; b_name: string }>
+  /** Optional icon before the label. */
+  icon?: ReactNode
+  /** The fields to choose from; the area helps to tell fields with similar names apart. */
+  fields: Array<{ b_id: string; b_name: string; b_area?: number | null }>
   onPick: (b_id: string) => void
   variant?: "default" | "outline"
   disabled?: boolean
@@ -45,9 +47,19 @@ export function FieldPickerButton({
       <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Kies een perceel</DropdownMenuLabel>
+          {/* Typing the first letters of a name jumps to that field */}
           {fields.map((field) => (
-            <DropdownMenuItem key={field.b_id} onClick={() => onPick(field.b_id)}>
-              {field.b_name}
+            <DropdownMenuItem
+              key={field.b_id}
+              onClick={() => onPick(field.b_id)}
+              className="justify-between gap-4"
+            >
+              <span>{field.b_name}</span>
+              {field.b_area != null && (
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {field.b_area.toLocaleString("nl-NL", { maximumFractionDigits: 2 })} ha
+                </span>
+              )}
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

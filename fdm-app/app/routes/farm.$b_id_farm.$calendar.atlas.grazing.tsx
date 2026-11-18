@@ -29,6 +29,7 @@ import {
   GRAZING_MAP_COPY,
   GRAZING_STATUS,
   GRAZING_ZONE_FILL_STYLE,
+  GRAZING_GRAZED_OUTLINE_STYLE,
   GRAZING_ZONE_LINE_STYLE,
   getGrazingFillStyle,
 } from "~/components/blocks/atlas/atlas-grazing"
@@ -362,6 +363,8 @@ function GrazingLayer() {
     ...outlineStyle,
     layout: { ...outlineStyle.layout, ...layerLayout },
   } as LayerProps
+  // Dark outline of the fields grazed on the shown day
+  const grazedOutlineLayer = { ...GRAZING_GRAZED_OUTLINE_STYLE, layout: layerLayout } as LayerProps
 
   /** Opens the grazing page of a grassland field. */
   function onFieldClick(feature: MapGeoJSONFeature) {
@@ -392,6 +395,7 @@ function GrazingLayer() {
         <FieldsSourceNotClickable id={fillLayerId} fieldsData={shadedFields}>
           <Layer id={fillLayerId} {...fillLayer} />
           <Layer id={outlineLayerId} {...outlineLayer} />
+          <Layer id="fieldsGrazingGrazedOutline" {...grazedOutlineLayer} />
         </FieldsSourceNotClickable>
 
         <Source id="grazingZones" type="geojson" data={zonesData}>
