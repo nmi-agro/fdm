@@ -31,6 +31,7 @@ import {
   GRAZING_STATUS,
   GRAZING_ZONE_FILL_STYLE,
   GRAZING_GRAZED_OUTLINE_STYLE,
+  GRAZING_ZONE_CASING_STYLE,
   GRAZING_ZONE_LINE_STYLE,
   getGrazingFillStyle,
 } from "~/components/blocks/atlas/atlas-grazing"
@@ -403,6 +404,7 @@ function GrazingLayer() {
 
         <Source id="grazingZones" type="geojson" data={zonesData}>
           <Layer id="grazingZonesFill" {...GRAZING_ZONE_FILL_STYLE} layout={layerLayout} />
+          <Layer id="grazingZonesCasing" {...GRAZING_ZONE_CASING_STYLE} layout={layerLayout} />
           <Layer id="grazingZonesLine" {...GRAZING_ZONE_LINE_STYLE} layout={layerLayout} />
         </Source>
 

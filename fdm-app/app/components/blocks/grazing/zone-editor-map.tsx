@@ -23,7 +23,7 @@ import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution
 import { AtlasControls, SingleAtlasButton } from "~/components/blocks/atlas/atlas-controls"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
-import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { getDottedFieldOutlineStyle } from "~/components/blocks/atlas/atlas-styles"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import {
   type Area,
@@ -32,7 +32,18 @@ import {
   hasHoles,
   snapToEdges,
 } from "~/lib/grazing-strip"
-import { OTHER_ZONE_COLOR, ZONE_COLOR, ZONE_OUTLINE_COLOR } from "./zone-colors"
+import {
+  HIGHLIGHT_ZONE_COLOR,
+  OTHER_ZONE_COLOR,
+  OTHER_ZONE_FILL_OPACITY,
+  ZONE_CASING_COLOR,
+  ZONE_CASING_WIDTH,
+  ZONE_FILL_COLOR,
+  ZONE_FILL_OPACITY,
+  ZONE_OUTLINE_COLOR,
+  ZONE_OUTLINE_WIDTH,
+  ZONE_POINT_COLOR,
+} from "./zone-colors"
 
 /** What the user is doing on the map. */
 export type ZoneEditorMode = "view" | "draw" | "edit"
@@ -67,37 +78,54 @@ const CURRENTLY_DRAWING = "currentlyDrawing"
 const otherZonesFill: LayerProps = {
   id: "grazing-other-zones-fill",
   type: "fill",
-  paint: { "fill-color": OTHER_ZONE_COLOR, "fill-opacity": 0.18 },
+  paint: { "fill-color": OTHER_ZONE_COLOR, "fill-opacity": OTHER_ZONE_FILL_OPACITY },
 }
 
 const otherZonesOutline: LayerProps = {
   id: "grazing-other-zones-outline",
   type: "line",
-  paint: { "line-color": OTHER_ZONE_COLOR, "line-width": 1.5, "line-dasharray": [2, 1] },
+  paint: {
+    "line-color": "#ffffff",
+    "line-opacity": 0.8,
+    "line-width": 1.5,
+    "line-dasharray": [2, 2],
+  },
 }
 
 const highlightFill: LayerProps = {
   id: "grazing-zone-highlight-fill",
   type: "fill",
-  paint: { "fill-color": ZONE_COLOR, "fill-opacity": 0.2 },
+  paint: { "fill-color": HIGHLIGHT_ZONE_COLOR, "fill-opacity": 0.3 },
 }
 
 const highlightOutline: LayerProps = {
   id: "grazing-zone-highlight-outline",
   type: "line",
-  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": 2.5, "line-dasharray": [2, 1] },
+  paint: { "line-color": HIGHLIGHT_ZONE_COLOR, "line-width": 3 },
 }
 
 const staticZoneFill: LayerProps = {
   id: "grazing-zone-static-fill",
   type: "fill",
-  paint: { "fill-color": ZONE_COLOR, "fill-opacity": 0.3 },
+  paint: { "fill-color": ZONE_FILL_COLOR, "fill-opacity": ZONE_FILL_OPACITY },
+}
+
+const staticZoneCasing: LayerProps = {
+  id: "grazing-zone-static-casing",
+  type: "line",
+  paint: { "line-color": ZONE_CASING_COLOR, "line-width": ZONE_CASING_WIDTH },
+}
+
+const zoneCasing: LayerProps = {
+  id: "grazing-zone-casing",
+  type: "line",
+  paint: { "line-color": ZONE_CASING_COLOR, "line-width": ZONE_CASING_WIDTH },
 }
 
 const staticZoneOutline: LayerProps = {
   id: "grazing-zone-static-outline",
   type: "line",
-  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": 2 },
+  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": ZONE_OUTLINE_WIDTH },
 }
 
 function toFeatureCollection(geometries: Area[]): FeatureCollection {
@@ -207,11 +235,22 @@ export default function ZoneEditorMap({
     () => (zone && hasHoles(zone) ? toFeatureCollection([zone]) : null),
     [zone],
   )
+  // A dark casing under the white outline that terra-draw draws, so the zone also reads on a light
+  // background. Not while editing: it would trail behind a dragged corner until the edit ends.
+  const casingData = useMemo(
+    () =>
+      zone && !hasHoles(zone) && mode !== "edit"
+        ? toFeatureCollection([zone])
+        : toFeatureCollection([]),
+    [zone, mode],
+  )
   const initialViewState = useMemo(
     () => ({ ...getViewState(fieldData), fitBoundsOptions: { padding: 24 } }),
     [fieldData],
   )
-  const fieldOutline = { ...getFieldsStyle("fieldsSavedOutline"), id: "grazing-zone-field-outline" }
+  // The white dotted field outline of the Atlas layer Beweiding
+  const dotted = getDottedFieldOutlineStyle()
+  const fieldOutline = { ...dotted, id: "grazing-zone-field-outline" } as LayerProps
 
   return (
     // The editor is a drawing tool in a dialog, not a map on a scrolling page, so scrolling zooms
@@ -237,9 +276,14 @@ export default function ZoneEditorMap({
           <Layer {...otherZonesOutline} />
         </Source>
       )}
+      {/* Always mounted, so its layer stays below the layers terra-draw adds later */}
+      <Source id="grazing-zone-casing" type="geojson" data={casingData}>
+        <Layer {...zoneCasing} />
+      </Source>
       {staticZoneData && (
         <Source id="grazing-zone-static" type="geojson" data={staticZoneData}>
           <Layer {...staticZoneFill} />
+          <Layer {...staticZoneCasing} />
           <Layer {...staticZoneOutline} />
         </Source>
       )}
@@ -387,14 +431,23 @@ function ZoneDrawing({
       // Escape is handled below, so that it cancels the drawing without closing the dialog
       keyEvents: { cancel: null, finish: "Enter" },
       styles: {
-        fillColor: ZONE_COLOR,
-        fillOpacity: 0.3,
+        fillColor: ZONE_FILL_COLOR,
+        fillOpacity: ZONE_FILL_OPACITY,
         outlineColor: ZONE_OUTLINE_COLOR,
-        outlineWidth: 2,
+        outlineWidth: ZONE_OUTLINE_WIDTH,
+        // Corners and the closing point: dark with a white ring, visible on green grass
+        coordinatePointColor: ZONE_POINT_COLOR,
+        coordinatePointWidth: 4,
+        coordinatePointOutlineColor: "#ffffff",
+        coordinatePointOutlineWidth: 2,
+        closingPointColor: ZONE_POINT_COLOR,
+        closingPointWidth: 5,
+        closingPointOutlineColor: "#ffffff",
+        closingPointOutlineWidth: 2,
         // The point a corner snaps to, clearly visible on aerial photos and maps alike
         snappingPointColor: "#ffffff",
         snappingPointWidth: 6,
-        snappingPointOutlineColor: ZONE_OUTLINE_COLOR,
+        snappingPointOutlineColor: ZONE_POINT_COLOR,
         snappingPointOutlineWidth: 3,
       },
       validation: (feature) => ValidateNotSelfIntersecting(feature),
@@ -420,9 +473,19 @@ function ZoneDrawing({
             },
           },
           styles: {
-            selectedPolygonColor: ZONE_COLOR,
-            selectedPolygonFillOpacity: 0.3,
+            selectedPolygonColor: ZONE_FILL_COLOR,
+            selectedPolygonFillOpacity: ZONE_FILL_OPACITY,
             selectedPolygonOutlineColor: ZONE_OUTLINE_COLOR,
+            selectedPolygonOutlineWidth: ZONE_OUTLINE_WIDTH,
+            // Corners to drag: dark with a white ring; midpoints to add a corner: small and white
+            selectionPointColor: ZONE_POINT_COLOR,
+            selectionPointWidth: 5,
+            selectionPointOutlineColor: "#ffffff",
+            selectionPointOutlineWidth: 2,
+            midPointColor: "#ffffff",
+            midPointWidth: 3,
+            midPointOutlineColor: ZONE_POINT_COLOR,
+            midPointOutlineWidth: 1,
           },
         }),
       ],
