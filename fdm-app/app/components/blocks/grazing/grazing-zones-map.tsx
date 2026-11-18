@@ -13,21 +13,34 @@ import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution
 import { COOPERATIVE_GESTURES_PROPS } from "~/components/blocks/atlas/atlas-cooperative-gestures"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
-import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { getDottedFieldOutlineStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+  ZONE_CASING_COLOR,
+  ZONE_CASING_WIDTH,
+  ZONE_FILL_COLOR,
+  ZONE_FILL_OPACITY,
+  ZONE_OUTLINE_COLOR,
+  ZONE_OUTLINE_WIDTH,
+} from "./zone-colors"
 
-const ZONE_COLOR = "#10b981"
-
+// The zones look as in the zone editor and the Atlas layer Beweiding; overlapping zones grow lighter
 const zoneFillStyle: LayerProps = {
   id: "grazing-zones-fill",
   type: "fill",
-  paint: { "fill-color": ZONE_COLOR, "fill-opacity": 0.25 },
+  paint: { "fill-color": ZONE_FILL_COLOR, "fill-opacity": ZONE_FILL_OPACITY },
+}
+
+const zoneCasingStyle: LayerProps = {
+  id: "grazing-zones-casing",
+  type: "line",
+  paint: { "line-color": ZONE_CASING_COLOR, "line-width": ZONE_CASING_WIDTH },
 }
 
 const zoneOutlineStyle: LayerProps = {
   id: "grazing-zones-outline",
   type: "line",
-  paint: { "line-color": "#047857", "line-width": 1.5 },
+  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": ZONE_OUTLINE_WIDTH },
 }
 
 function toFeatureCollection(geometries: Area[]): FeatureCollection {
@@ -52,10 +65,11 @@ export default function GrazingZonesMap({
     () => ({ ...getViewState(fieldData), fitBoundsOptions: { padding: 24 } }),
     [fieldData],
   )
+  // The white dotted field outline of the Atlas layer Beweiding
   const fieldOutline = {
-    ...getFieldsStyle("fieldsSavedOutline"),
+    ...getDottedFieldOutlineStyle(),
     id: "grazing-zones-field-outline",
-  }
+  } as LayerProps
 
   return (
     <Atlas
@@ -72,6 +86,7 @@ export default function GrazingZonesMap({
       </FieldsSourceNotClickable>
       <Source id="grazing-zones" type="geojson" data={zoneData}>
         <Layer {...zoneFillStyle} />
+        <Layer {...zoneCasingStyle} />
         <Layer {...zoneOutlineStyle} />
       </Source>
     </Atlas>

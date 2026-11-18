@@ -5,6 +5,14 @@ import type {
   LineLayerSpecification,
 } from "maplibre-gl"
 import type { GrazingMapStatus } from "~/lib/grazing-map"
+import {
+  ZONE_CASING_COLOR,
+  ZONE_CASING_WIDTH,
+  ZONE_FILL_COLOR,
+  ZONE_FILL_OPACITY,
+  ZONE_OUTLINE_COLOR,
+  ZONE_OUTLINE_WIDTH,
+} from "~/components/blocks/grazing/zone-colors"
 import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
 
 /** Feature property that holds the {@link GrazingMapStatus} of a field. */
@@ -22,10 +30,6 @@ export const GRAZING_STATUS_COLORS: Record<GrazingMapStatus, string> = {
   // Same dark grey as fields without data in the other thematic layers
   disabled: "#4b5563",
 }
-
-/** Colours of a grazed zone, drawn on top of its field. */
-const ZONE_FILL_COLOR = "#047857"
-const ZONE_LINE_COLOR = "#064e3b"
 
 /**
  * All Dutch UI copy of the layer in one place, so it can move to an i18n catalogue later.
@@ -122,13 +126,19 @@ export const GRAZING_GRAZED_OUTLINE_STYLE: {
 /** Fill of a zone grazed on the shown day. */
 export const GRAZING_ZONE_FILL_STYLE: { type: "fill"; paint: FillLayerSpecification["paint"] } = {
   type: "fill",
-  paint: { "fill-color": ZONE_FILL_COLOR, "fill-opacity": 0.6 },
+  paint: { "fill-color": ZONE_FILL_COLOR, "fill-opacity": ZONE_FILL_OPACITY },
+}
+
+/** Dark casing under the outline of a zone, as in the zone editor. */
+export const GRAZING_ZONE_CASING_STYLE: { type: "line"; paint: LineLayerSpecification["paint"] } = {
+  type: "line",
+  paint: { "line-color": ZONE_CASING_COLOR, "line-width": ZONE_CASING_WIDTH },
 }
 
 /** Outline of a zone grazed on the shown day. */
 export const GRAZING_ZONE_LINE_STYLE: { type: "line"; paint: LineLayerSpecification["paint"] } = {
   type: "line",
-  paint: { "line-color": ZONE_LINE_COLOR, "line-width": 2 },
+  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": ZONE_OUTLINE_WIDTH },
 }
 
 /**

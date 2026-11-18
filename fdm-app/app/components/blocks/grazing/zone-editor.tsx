@@ -27,7 +27,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { type Area, cutStrip, hasHoles, zoneAreaWithinField } from "~/lib/grazing-strip"
 import { pushUndo } from "~/lib/undo-history"
 import type { ZoneEditorMode, ZoneMapControls, ZoneNotice } from "./zone-editor-map"
-import { OTHER_ZONE_COLOR, ZONE_COLOR, ZONE_OUTLINE_COLOR } from "./zone-colors"
+import {
+  OTHER_ZONE_COLOR,
+  ZONE_CASING_COLOR,
+  ZONE_FILL_COLOR,
+  ZONE_OUTLINE_COLOR,
+} from "./zone-colors"
 
 // Lazy-loaded to avoid SSR issues with maplibre-gl and terra-draw and to keep them out of the bundle
 const ZoneEditorMap = lazy(() => import("./zone-editor-map"))
@@ -458,10 +463,15 @@ function ZoneLegend({ showRecent }: { showRecent: boolean }) {
   return (
     <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
       <span className="inline-flex items-center gap-1.5">
+        {/* As on the map: a white wash with a white outline on a dark casing */}
         <span
           aria-hidden="true"
           className="size-3 rounded-sm border-2"
-          style={{ backgroundColor: `${ZONE_COLOR}4d`, borderColor: ZONE_OUTLINE_COLOR }}
+          style={{
+            backgroundColor: `${ZONE_FILL_COLOR}59`,
+            borderColor: ZONE_OUTLINE_COLOR,
+            boxShadow: `0 0 0 1.5px ${ZONE_CASING_COLOR}`,
+          }}
         />
         <span>Zone</span>
       </span>
@@ -470,7 +480,7 @@ function ZoneLegend({ showRecent }: { showRecent: boolean }) {
           <span
             aria-hidden="true"
             className="size-3 rounded-sm border border-dashed"
-            style={{ backgroundColor: `${OTHER_ZONE_COLOR}2e`, borderColor: OTHER_ZONE_COLOR }}
+            style={{ backgroundColor: `${OTHER_ZONE_COLOR}4d`, borderColor: OTHER_ZONE_COLOR }}
           />
           <span>{`Stroken van de afgelopen ${STRIP_ROTATION_DAYS} dagen`}</span>
         </span>
