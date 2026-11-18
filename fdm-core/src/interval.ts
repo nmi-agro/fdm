@@ -28,3 +28,27 @@ export function overlapsHalfOpen(
   const bEndMs = bEnd?.getTime() ?? Number.POSITIVE_INFINITY
   return aStart.getTime() < bEndMs && bStart.getTime() < aEndMs
 }
+
+const MS_PER_DAY = 86_400_000
+
+/** Number of the (UTC) calendar day of a timestamp. */
+function dayNumber(date: Date): number {
+  return Math.floor(date.getTime() / MS_PER_DAY)
+}
+
+/**
+ * Returns true when two periods share a calendar day. Both the start day and the end day belong
+ * to a period, so a period of one day (start and end on the same day) shares that day with every
+ * other period that includes it. Days are UTC calendar days, as dates such as `2025-06-15` are
+ * stored at UTC midnight. A null/undefined end means the period has not ended.
+ */
+export function sharesCalendarDay(
+  aStart: Date,
+  aEnd: IntervalEnd,
+  bStart: Date,
+  bEnd: IntervalEnd,
+): boolean {
+  const aEndDay = aEnd ? dayNumber(aEnd) : Number.POSITIVE_INFINITY
+  const bEndDay = bEnd ? dayNumber(bEnd) : Number.POSITIVE_INFINITY
+  return dayNumber(aStart) <= bEndDay && dayNumber(bStart) <= aEndDay
+}
