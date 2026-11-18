@@ -73,13 +73,14 @@ Klik op **Vastleggen**. Bij een zone kan dat pas als je een zone hebt getekend o
 
 Kies je **Zone op de kaart**, dan zie je het perceel op de kaart.
 
-1. Klik op **Tekenen** en zet met klikken de hoeken van de zone. Dubbelklik om af te ronden.
-2. Met **Aanpassen** versleep je hoeken of voeg je hoeken toe; met **Wissen** begin je opnieuw.
-3. Onder de kaart staan de **Eerder gebruikte zones** van dit perceel. Klik op een zone om hem opnieuw te gebruiken, bijvoorbeeld een vast blok dat je elke ronde weer beweidt.
+1. Klik op **Tekenen** en zet met klikken de hoeken van de zone. Rond af door op het eerste punt te klikken, te dubbelklikken of op Enter te drukken. Met Esc stop je de tekening zonder het venster te sluiten. Teken je opnieuw terwijl er al een zone is, dan vervangt de nieuwe zone de oude.
+2. Met **Aanpassen** is de zone direct gekozen: versleep een hoek, klik op een middenpunt voor een extra hoek of klik met de rechtermuisknop op een hoek om hem te verwijderen. Met **Wissen** begin je opnieuw.
+3. Met **Ongedaan maken** (of Ctrl+Z) zet je de laatste wijziging terug: tijdens het tekenen de laatste hoek, daarna de vorige zone, ook na **Wissen** of een berekende strook.
+4. Onder de kaart staan de **Eerder gebruikte zones** van dit perceel, met datum, koppel en hoe vaak ze zijn gebruikt. Ga met de muis over een zone om hem op de kaart te zien, en klik om hem opnieuw te gebruiken, bijvoorbeeld een vast blok dat je elke ronde weer beweidt.
 
-Een hoek die je dicht bij de perceelsgrens of bij een eerdere strook zet, springt vanzelf op die grens; dicht bij een hoek van het perceel springt hij op die hoek. Zo sluit een zone precies aan zonder dat je heel nauwkeurig hoeft te klikken. Teken je toch over de perceelsgrens heen, dan knipt {{appName}} de zone af op de grens zodra je klaar bent met tekenen of aanpassen.
+Een hoek die je dicht bij de perceelsgrens, bij een eerdere strook of bij je eigen zone zet, springt vanzelf op die grens; dicht bij een hoek springt hij op die hoek. Een witte stip laat zien waar de hoek terechtkomt. Wil je vrij tekenen, houd dan Alt ingedrukt. Teken je toch over de perceelsgrens heen, dan knipt {{appName}} de zone af op de grens zodra je klaar bent met tekenen of aanpassen, en meldt dat. Een zone die helemaal buiten het perceel ligt, wordt niet overgenomen.
 
-Boven de kaart zie je hoeveel hectare van de zone binnen het perceel ligt.
+Boven de kaart zie je hoeveel hectare van de zone binnen het perceel ligt. Met **Perceel in beeld** zet je het hele perceel weer in beeld.
 
 ![Een zone tekenen op het perceel, met eerder gebruikte zones eronder](screenshot:beweiding-zone-tekenen)
 
