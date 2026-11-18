@@ -2,7 +2,7 @@ import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { AlertTriangle, Info, Plus } from "lucide-react"
-import { useImperativeHandle, useRef, useState } from "react"
+import { memo, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { NavLink } from "react-router"
 import type { FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
@@ -88,11 +88,18 @@ export function CalendarGrid({
 }: CalendarGridProps) {
   const [selectedKoppelId, setSelectedKoppelId] = useState(matrix.herds[0]?.l_id_herd ?? "")
 
-  // Drag-to-paint state
+  // Drag-to-paint state: the row of the field and the first and current day
   const [isDragging, setIsDragging] = useState(false)
-  const [dragField, setDragField] = useState<GrazingCalendarFieldRow | null>(null)
+  const [dragRow, setDragRow] = useState<number | null>(null)
   const [dragStart, setDragStart] = useState<number | null>(null)
   const [dragEnd, setDragEnd] = useState<number | null>(null)
+  const dragField = dragRow !== null ? matrix.fields[dragRow] : undefined
+
+  // The long date of each day, formatted once instead of in every cell on every render
+  const dayLabels = useMemo(
+    () => matrix.columns.map((column) => formatLongDay(column.dateStart)),
+    [matrix.columns],
+  )
 
   // The day that was right-clicked, for the context menu
   const [menuTarget, setMenuTarget] = useState<{
@@ -182,23 +189,13 @@ export function CalendarGrid({
     if (canWrite) openNewGrazing(field, cell.dateStart, cell.dateEnd)
   }
 
-  const handleMouseDown = (
-    event: React.MouseEvent,
-    field: GrazingCalendarFieldRow,
-    index: number,
-  ) => {
+  const handleMouseDown = (event: React.MouseEvent, row: number, col: number) => {
     // Only the left button paints; a right click opens the context menu
     if (!canWrite || event.button !== 0) return
     setIsDragging(true)
-    setDragField(field)
-    setDragStart(index)
-    setDragEnd(index)
-  }
-
-  const handleMouseEnter = (index: number) => {
-    if (isDragging && dragField) {
-      setDragEnd(index)
-    }
+    setDragRow(row)
+    setDragStart(col)
+    setDragEnd(col)
   }
 
   const handleMouseUp = () => {
@@ -215,7 +212,7 @@ export function CalendarGrid({
       openNewGrazing(dragField, startCell.dateStart, endCell.dateEnd)
     }
     setIsDragging(false)
-    setDragField(null)
+    setDragRow(null)
     setDragStart(null)
     setDragEnd(null)
   }
@@ -230,13 +227,13 @@ export function CalendarGrid({
     const cell = field?.cells[col]
     if (!field || !cell) return
     const anchorCol =
-      isDragging && dragField?.b_id === field.b_id && dragStart !== null
+      isDragging && dragRow === row && dragStart !== null
         ? dragStart
         : keyboardAnchor?.row === row
           ? keyboardAnchor.col
           : null
-    const first = anchorCol !== null ? field.cells[Math.min(anchorCol, col)] : cell
-    const last = anchorCol !== null ? field.cells[Math.max(anchorCol, col)] : cell
+    const firstCol = Math.min(anchorCol ?? col, col)
+    const lastCol = Math.max(anchorCol ?? col, col)
     const details = dayCellTitle(cell)
     const action =
       cell.type === "empty" || anchorCol !== null
@@ -248,9 +245,9 @@ export function CalendarGrid({
       target,
       <span className="flex flex-col gap-0.5">
         <span className="font-semibold">
-          {first.dateStart === last.dateStart
-            ? formatLongDay(cell.dateStart)
-            : `${formatLongDay(first.dateStart)} t/m ${formatLongDay(last.dateStart)}`}
+          {firstCol === lastCol
+            ? dayLabels[col]
+            : `${dayLabels[firstCol]} t/m ${dayLabels[lastCol]}`}
         </span>
         <span>{field.b_name}</span>
         {details && <span>{details}</span>}
@@ -461,10 +458,38 @@ export function CalendarGrid({
               className="w-full border-collapse text-left text-xs"
               role="grid"
               aria-label="Beweidingskalender"
+              // The days have no handlers of their own: the table handles their events, so a
+              // row only re-renders when its own selection or focus changes
               onKeyDown={handleGridKeyDown}
+              onMouseDown={(event) => {
+                const day = dayFromEvent(event)
+                if (day) handleMouseDown(event, day.row, day.col)
+              }}
               onMouseOver={(event) => {
-                const target = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]")
-                if (target) showDayTooltip(target)
+                const day = dayFromEvent(event)
+                if (!day) return
+                if (isDragging) setDragEnd(day.col)
+                showDayTooltip(day.target)
+              }}
+              onClick={(event) => {
+                const day = dayFromEvent(event)
+                if (!day) return
+                const field = matrix.fields[day.row]
+                const cell = field?.cells[day.col]
+                if (field && cell) handleCellClick(field, cell)
+              }}
+              onFocus={(event) => {
+                const day = dayFromEvent(event)
+                if (!day) return
+                setFocusedCell({ row: day.row, col: day.col })
+                showDayTooltip(day.target)
+              }}
+              onContextMenu={(event) => {
+                const day = dayFromEvent(event)
+                if (!day) return
+                const field = matrix.fields[day.row]
+                const cell = field?.cells[day.col]
+                if (field && cell) setMenuTarget({ field, day: cell.dateStart })
               }}
               onMouseLeave={() => tooltipRef.current?.hide()}
               onBlur={(event) => {
@@ -498,78 +523,31 @@ export function CalendarGrid({
 
               <tbody className="divide-border/60 divide-y">
                 {/* Grazed fields first, then the largest fields first (sorted by the loader) */}
-                {matrix.fields.map((field, rowIndex) => (
-                  <tr key={field.b_id} className="hover:bg-muted/20">
-                    <th
-                      scope="row"
-                      className="bg-card sticky left-0 z-10 border-r px-3 py-2 text-left font-medium"
-                    >
-                      <div className="max-w-40 truncate">{field.b_name}</div>
-                      {field.recentRestDays !== null && (
-                        <div className="text-muted-foreground text-xs font-normal">
-                          {field.recentRestDays === 1
-                            ? "1 dag rust"
-                            : `${field.recentRestDays} dagen rust`}
-                        </div>
-                      )}
-                    </th>
-                    <td className="text-muted-foreground border-r px-2 py-2 text-right tabular-nums">
-                      {formatHa(field.b_area)}
-                    </td>
-
-                    {field.cells.map((cell, index) => {
-                      const isDragSelected =
-                        isDragging &&
-                        dragField?.b_id === field.b_id &&
-                        dragStart !== null &&
-                        dragEnd !== null &&
-                        index >= Math.min(dragStart, dragEnd) &&
-                        index <= Math.max(dragStart, dragEnd)
-                      const isKeySelected =
-                        keyboardAnchor !== null &&
-                        keyboardAnchor.row === rowIndex &&
-                        activeCell.row === rowIndex &&
-                        index >= Math.min(keyboardAnchor.col, activeCell.col) &&
-                        index <= Math.max(keyboardAnchor.col, activeCell.col)
-                      const isActive = activeCell.row === rowIndex && activeCell.col === index
-
-                      return (
-                        <td
-                          key={cell.key}
-                          data-cell={`${rowIndex}-${index}`}
-                          tabIndex={isActive ? 0 : -1}
-                          className={cn(
-                            "relative h-8 w-1.5 min-w-1.5 cursor-pointer bg-clip-content p-0 py-0.5 transition-colors select-none",
-                            // A clear ring around the day that has the keyboard focus
-                            "focus-visible:ring-foreground focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none",
-                            cell.type === "empty" && "hover:bg-muted/60",
-                            (isDragSelected || isKeySelected) && "bg-primary/30",
-                            matrix.columns[index]?.groupStart && "border-l-border border-l",
-                          )}
-                          style={dayCellStyle(cell)}
-                          onMouseDown={(event) => handleMouseDown(event, field, index)}
-                          onMouseEnter={() => handleMouseEnter(index)}
-                          onClick={() => handleCellClick(field, cell)}
-                          onFocus={(event) => {
-                            setFocusedCell({ row: rowIndex, col: index })
-                            showDayTooltip(event.currentTarget)
-                          }}
-                          onContextMenu={() => setMenuTarget({ field, day: cell.dateStart })}
-                          role="gridcell"
-                          aria-selected={isDragSelected || isKeySelected || undefined}
-                          aria-label={`${field.b_name}, ${formatLongDay(cell.dateStart)}: ${dayCellDescription(cell)}`}
-                        >
-                          {cell.fertilizerEntries && (
-                            <FertilizerDot
-                              kind={cell.fertilizerEntries[0].p_type}
-                              className="absolute top-1 left-1/2 size-1.5 -translate-x-1/2"
-                            />
-                          )}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
+                {matrix.fields.map((field, rowIndex) => {
+                  // Only the row with the drag, the Shift-selection or the keyboard focus gets
+                  // values here; every other row keeps its props and is skipped
+                  const selection =
+                    isDragging && dragRow === rowIndex && dragStart !== null && dragEnd !== null
+                      ? { from: Math.min(dragStart, dragEnd), to: Math.max(dragStart, dragEnd) }
+                      : keyboardAnchor?.row === rowIndex && activeCell.row === rowIndex
+                        ? {
+                            from: Math.min(keyboardAnchor.col, activeCell.col),
+                            to: Math.max(keyboardAnchor.col, activeCell.col),
+                          }
+                        : null
+                  return (
+                    <CalendarRow
+                      key={field.b_id}
+                      field={field}
+                      rowIndex={rowIndex}
+                      columns={matrix.columns}
+                      dayLabels={dayLabels}
+                      selectionFrom={selection?.from ?? null}
+                      selectionTo={selection?.to ?? null}
+                      activeCol={activeCell.row === rowIndex ? activeCell.col : null}
+                    />
+                  )
+                })}
               </tbody>
             </table>
             <CalendarDayTooltip ref={tooltipRef} containerRef={scrollRef} />
@@ -712,6 +690,96 @@ export function RestAlertNotice({
     </div>
   )
 }
+
+/** The day an event in the calendar happened on: its cell and its row and column. */
+function dayFromEvent(
+  event: React.SyntheticEvent,
+): (GridPosition & { target: HTMLElement }) | null {
+  const target = (event.target as HTMLElement).closest<HTMLElement>("[data-cell]")
+  if (!target) return null
+  const [row, col] = (target.dataset.cell ?? "").split("-").map(Number)
+  return { row, col, target }
+}
+
+/**
+ * A field in the calendar: its name, area and one cell per day. Memoized, because a calendar has
+ * thousands of days: a drag or a key press only re-renders the row whose selection or focus
+ * changes. The events of the days are handled by the table.
+ */
+const CalendarRow = memo(function CalendarRow({
+  field,
+  rowIndex,
+  columns,
+  dayLabels,
+  selectionFrom,
+  selectionTo,
+  activeCol,
+}: {
+  field: GrazingCalendarFieldRow
+  rowIndex: number
+  columns: GrazingCalendarMatrix["columns"]
+  /** The long date of each column. */
+  dayLabels: string[]
+  /** The first and last day of the drag or Shift-selection on this field, if any. */
+  selectionFrom: number | null
+  selectionTo: number | null
+  /** The day with the keyboard focus on this field, if any. */
+  activeCol: number | null
+}) {
+  return (
+    <tr className="hover:bg-muted/20">
+      <th
+        scope="row"
+        className="bg-card sticky left-0 z-10 border-r px-3 py-2 text-left font-medium"
+      >
+        <div className="max-w-40 truncate">{field.b_name}</div>
+        {field.recentRestDays !== null && (
+          <div className="text-muted-foreground text-xs font-normal">
+            {field.recentRestDays === 1 ? "1 dag rust" : `${field.recentRestDays} dagen rust`}
+          </div>
+        )}
+      </th>
+      <td className="text-muted-foreground border-r px-2 py-2 text-right tabular-nums">
+        {formatHa(field.b_area)}
+      </td>
+
+      {field.cells.map((cell, index) => {
+        const isSelected =
+          selectionFrom !== null &&
+          selectionTo !== null &&
+          index >= selectionFrom &&
+          index <= selectionTo
+
+        return (
+          <td
+            key={cell.key}
+            data-cell={`${rowIndex}-${index}`}
+            tabIndex={activeCol === index ? 0 : -1}
+            className={cn(
+              "relative h-8 w-1.5 min-w-1.5 cursor-pointer bg-clip-content p-0 py-0.5 transition-colors select-none",
+              // A clear ring around the day that has the keyboard focus
+              "focus-visible:ring-foreground focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none",
+              cell.type === "empty" && "hover:bg-muted/60",
+              isSelected && "bg-primary/30",
+              columns[index]?.groupStart && "border-l-border border-l",
+            )}
+            style={dayCellStyle(cell)}
+            role="gridcell"
+            aria-selected={isSelected || undefined}
+            aria-label={`${field.b_name}, ${dayLabels[index]}: ${dayCellDescription(cell)}`}
+          >
+            {cell.fertilizerEntries && (
+              <FertilizerDot
+                kind={cell.fertilizerEntries[0].p_type}
+                className="absolute top-1 left-1/2 size-1.5 -translate-x-1/2"
+              />
+            )}
+          </td>
+        )
+      })}
+    </tr>
+  )
+})
 
 /** Shows or hides the tooltip of the calendar at a day. */
 interface CalendarDayTooltipHandle {
