@@ -1,13 +1,16 @@
-import type { Polygon } from "geojson"
+import type { MultiPolygon, Polygon } from "geojson"
 import { describe, expect, it } from "vitest"
 import {
   type Area,
   areaHa,
+  clipFeedback,
   clipZoneToField,
   cutEqualPlots,
   cutStrip,
   cutStrips,
+  hasHoles,
   intersectAreas,
+  SNAP_TOLERANCE_PX,
   snapToEdges,
   toMultiPolygon,
   zoneAreaWithinField,
@@ -42,6 +45,52 @@ const lField: Polygon = {
     ],
   ],
 }
+
+/** Synthetic U-shaped field: two arms in the north, joined in the south. */
+const uField: Polygon = {
+  type: "Polygon",
+  coordinates: [
+    [
+      [5.0, 52.0],
+      [5.01, 52.0],
+      [5.01, 52.01],
+      [5.007, 52.01],
+      [5.007, 52.004],
+      [5.003, 52.004],
+      [5.003, 52.01],
+      [5.0, 52.01],
+      [5.0, 52.0],
+    ],
+  ],
+}
+
+/** Synthetic field with a hole in the middle, such as a farmyard. */
+const fieldWithHole: Polygon = {
+  type: "Polygon",
+  coordinates: [
+    field.coordinates[0],
+    [
+      [5.003, 52.003],
+      [5.003, 52.007],
+      [5.007, 52.007],
+      [5.007, 52.003],
+      [5.003, 52.003],
+    ],
+  ],
+}
+
+const rectangle = (west: number, south: number, east: number, north: number): Polygon => ({
+  type: "Polygon",
+  coordinates: [
+    [
+      [west, south],
+      [east, south],
+      [east, north],
+      [west, north],
+      [west, south],
+    ],
+  ],
+})
 
 const overlapHa = (a: Area, b: Area) => {
   const overlap = intersectAreas(a, b)
@@ -163,6 +212,30 @@ describe("snapToEdges", () => {
     const snapped = snapToEdges([5.0021, 52.005], [field, strip], project) as number[]
     expect(snapped[0]).toBeCloseTo(5.002, 6)
   })
+
+  it("snaps to the corner of the second part of a MultiPolygon field", () => {
+    const twoParts: MultiPolygon = {
+      type: "MultiPolygon",
+      coordinates: [field.coordinates, rectangle(5.02, 52.0, 5.03, 52.01).coordinates],
+    }
+    expect(snapToEdges([5.0205, 52.0005], [twoParts], project)).toEqual([5.02, 52.0])
+  })
+
+  it("snaps to the edge of a hole in the field", () => {
+    // 2 px north of the southern edge of the hole, 20 px from its corners
+    const snapped = snapToEdges([5.005, 52.0032], [fieldWithHole], project) as number[]
+    expect(snapped[0]).toBeCloseTo(5.005, 6)
+    expect(snapped[1]).toBeCloseTo(52.003, 6)
+  })
+
+  it("snaps at exactly the tolerance, but not beyond it", () => {
+    // Projection to whole pixels, so the distances are exact
+    const identity = (x: number, y: number) => ({ x, y })
+    const square = rectangle(0, 0, 100, 100)
+    expect(snapToEdges([50, SNAP_TOLERANCE_PX], [square], identity)).toEqual([50, 0])
+    expect(snapToEdges([50, SNAP_TOLERANCE_PX + 0.01], [square], identity)).toBeUndefined()
+    expect(snapToEdges([50, 5], [square], identity, 4)).toBeUndefined()
+  })
 })
 
 describe("clipZoneToField", () => {
@@ -214,6 +287,69 @@ describe("clipZoneToField", () => {
       ],
     }
     expect(clipZoneToField(outside, field)).toBeNull()
+  })
+
+  it("returns a MultiPolygon when the zone crosses a notch in the field", () => {
+    // A band across both arms of the U-shaped field
+    const band = rectangle(5.001, 52.006, 5.009, 52.008)
+    const clipped = clipZoneToField(band, uField) as Area
+    expect(clipped.type).toBe("MultiPolygon")
+    expect((clipped as MultiPolygon).coordinates).toHaveLength(2)
+    // Two arms of 0,002° wide each, out of a band of 0,008° wide
+    expect(areaHa(clipped)).toBeCloseTo(areaHa(band) / 2, 2)
+  })
+
+  it("ignores a part outside the field below 0,5 m² as rounding", () => {
+    // About 0,15 m² beyond the western edge: kept as drawn
+    const sliver = rectangle(5.0 - 2e-8, 52.001, 5.002, 52.002)
+    expect(clipZoneToField(sliver, field)).toBe(sliver)
+    // About 7,6 m² beyond the western edge: clipped
+    const strip = rectangle(5.0 - 1e-6, 52.001, 5.002, 52.002)
+    const clipped = clipZoneToField(strip, field)
+    expect(clipped).not.toBe(strip)
+    expect(areaHa(clipped as Area)).toBeLessThan(areaHa(strip))
+  })
+})
+
+describe("clipFeedback", () => {
+  it("reports a zone within the field as inside", () => {
+    const inside = rectangle(5.001, 52.001, 5.002, 52.002)
+    expect(clipFeedback(inside, clipZoneToField(inside, field))).toBe("inside")
+  })
+
+  it("reports a zone partly outside the field as clipped", () => {
+    const halfOutside = rectangle(4.995, 52.0, 5.005, 52.01)
+    expect(clipFeedback(halfOutside, clipZoneToField(halfOutside, field))).toBe("clipped")
+  })
+
+  it("reports a zone entirely outside the field as outside", () => {
+    const outside = rectangle(4.99, 52.0, 4.995, 52.01)
+    expect(clipFeedback(outside, clipZoneToField(outside, field))).toBe("outside")
+  })
+
+  it("treats a difference below 0,5 m² as inside", () => {
+    const sliver = rectangle(5.0 - 2e-8, 52.001, 5.002, 52.002)
+    const clipped = intersectAreas(sliver, field)
+    expect(clipFeedback(sliver, clipped)).toBe("inside")
+  })
+})
+
+describe("hasHoles", () => {
+  it("is false for a polygon without a hole", () => {
+    expect(hasHoles(field)).toBe(false)
+  })
+
+  it("is true for a polygon with a hole", () => {
+    expect(hasHoles(fieldWithHole)).toBe(true)
+  })
+
+  it("is true for a MultiPolygon with a hole in one of its parts", () => {
+    expect(hasHoles(toMultiPolygon(field))).toBe(false)
+    const multi: MultiPolygon = {
+      type: "MultiPolygon",
+      coordinates: [rectangle(4.98, 52.0, 4.99, 52.01).coordinates, fieldWithHole.coordinates],
+    }
+    expect(hasHoles(multi)).toBe(true)
   })
 })
 
