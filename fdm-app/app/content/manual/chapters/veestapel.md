@@ -37,7 +37,7 @@ Heeft je bedrijf nog geen dieren, dan zie je in het menu **Melkvee toevoegen**. 
 
 ## Het Melkvee-overzicht {#overzicht}
 
-Vanaf dat moment staat **Melkvee** in het menu. Het opent het Melkvee-overzicht. Met het pijltje ernaast klap je de onderdelen **Beweidingskalender**, **Weidegang** en **Vee** uit; op een Melkvee-pagina staan ze al open.
+Vanaf dat moment staat **Melkvee** in het menu. Het opent het Melkvee-overzicht. Met het pijltje ernaast klap je de onderdelen **Beweidingskalender**, **Beweidingsplanner**, **Weidegang** en **Vee** uit; op een Melkvee-pagina staan ze al open.
 
 Het overzicht heeft drie delen:
 
@@ -51,6 +51,8 @@ Bovenaan voeg je direct iets toe: **Beweiding toevoegen** (kies een perceel), **
 
 ## Koppels beheren {#koppels}
 
+Je beheert je koppels op het Melkvee-overzicht en bovenaan de pagina [Vee](#dieren):
+
 - _Aantal aanpassen:_ met de plus en min op de kaart. Met de plus voeg je dieren zonder oormerk toe. Met de min voer je een dier af; je bevestigt dat met **Afvoeren bevestigen**. Dieren zonder oormerk worden als eerste afgevoerd.
 - _Nog een koppel:_ klik op **Koppel toevoegen**, bijvoorbeeld voor droogstaande koeien of jongvee.
 - _Via het menu op de kaart:_ **Naam wijzigen**, **Dieren verplaatsen naar andere koppel** en **Koppel verwijderen**. Een koppel met dieren kun je pas verwijderen als je de dieren hebt afgevoerd of verplaatst.
@@ -59,11 +61,13 @@ Het aantal dieren in een koppel wordt niet apart opgeslagen: {{appName}} telt de
 
 ## Vee {#dieren}
 
-Met **Al het vee bekijken** of **Vee** in het menu open je de lijst van alle dieren op het bedrijf. Je zoekt op werknummer of levensnummer en filtert op koppel. Een dier zonder oormerk heeft het label _Geen oormerk_. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
+Met **Al het vee bekijken** of **Vee** in het menu open je de pagina Vee. Bovenaan staan je koppels, met dezelfde kaarten als op het overzicht; zo beheer je de [koppels](#koppels) en de dieren op één plek. Met **Koppel toevoegen** maak je een nieuwe koppel. Met _Dieren bekijken_ op een kaart toon je alleen de dieren van die koppel.
+
+Daaronder staat de lijst van alle dieren, op werknummer. Je zoekt in alle kolommen, zoals werknummer, levensnummer, koppel en datum, en filtert op koppel. Een dier zonder levensnummer heeft een streepje. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
 
 Klik op een dier om de details te openen. Daar:
 
-- vul je werknummer, oormerk, geslacht en geboortedatum aan en sla je ze op met **Wijzigingen opslaan**;
+- vul je werknummer, oormerk, geslacht en geboortedatum aan en sla je ze op met **Wijzigingen opslaan**. Is het geslacht nog niet bekend, dan staat er _Onbekend_;
 - verplaats je het dier naar een andere koppel met **Verplaats naar koppel**;
 - leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**;
 - zie je de beweidingshistorie van het dier en in welke koppels het heeft gelopen.
