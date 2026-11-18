@@ -5,7 +5,7 @@ section: Bodem
 order: 3
 inApp:
   - Indicatoren
-updated: 2026-11-17
+updated: 2026-11-18
 lastReviewed: 2026-11-05
 routes: []
 watch:
@@ -43,7 +43,7 @@ Elke indicator en elk thema krijgt een score van 0 tot 100.
 
 - De locatie van het perceel.
 - Het bodemtype en de grondwatertrap.
-- Bodemwaarden uit je analyses, waaronder organische stof, de C/N-ratio, totaal stikstof, P-Al, P-plantbeschikbaar, het Pw-getal, kalium, magnesium, calcium, zwavel, pH, CEC en de verdeling over klei, silt en zand. Per parameter telt de meest recente labwaarde tot en met het gekozen jaar. Alleen als er geen labwaarde is, wordt een schatting van NMI BodemSchat gebruikt.
+- Bodemwaarden uit je analyses, waaronder organische stof, de C/N-ratio, totaal stikstof, P-Al, P-plantbeschikbaar, het Pw-getal, kalium, magnesium, calcium, zwavel, pH, CEC en de verdeling over klei, silt en zand. Per parameter telt de meest recente labwaarde tot en met het gekozen jaar. Alleen als er geen labwaarde is, wordt een schatting van NMI BodemSchat gebruikt. Heeft een perceel analyses voor meerdere zones, dan telt net als bij [Bodem](/manual/bodem) het gemiddelde van die zones, naar oppervlakte gewogen. Voor het bodemtype en de grondwatertrap telt dan de waarde met de grootste oppervlakte.
 - De BodemConditieScore, als je die hebt ingevuld: beoordelingen van onder meer bodemstructuur, beworteling, regenwormen, verdichting en plasvorming.
 - De volledige teeltgeschiedenis van het perceel, over alle jaren die bekend zijn.
 - De maatregelen die je hebt vastgelegd en die in het gekozen jaar lopen.

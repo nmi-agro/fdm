@@ -1,5 +1,6 @@
 import type {
   Cultivation,
+  CurrentSoilData,
   FdmType,
   FertilizerApplication,
   Field,
@@ -11,6 +12,8 @@ import type {
 import {
   getCultivations,
   getCultivationsForFarm,
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getFertilizerApplications,
   getFertilizerApplicationsForFarm,
   getField,
@@ -36,6 +39,8 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     getFields: vi.fn(),
     getSoilAnalyses: vi.fn(),
     getSoilAnalysesForFarm: vi.fn(),
+    getCurrentSoilData: vi.fn(),
+    getCurrentSoilDataForFarm: vi.fn(),
     getCultivations: vi.fn(),
     getCultivationsForFarm: vi.fn(),
     getMeasures: vi.fn(),
@@ -59,6 +64,77 @@ const mockedGetSoilAnalysesForFarm = vi.mocked(getSoilAnalysesForFarm)
 const mockedGetCultivationsForFarm = vi.mocked(getCultivationsForFarm)
 const mockedGetMeasuresForFarm = vi.mocked(getMeasuresForFarm)
 const mockedGetFertilizerApplicationsForFarm = vi.mocked(getFertilizerApplicationsForFarm)
+const mockedGetCurrentSoilData = vi.mocked(getCurrentSoilData)
+const mockedGetCurrentSoilDataForFarm = vi.mocked(getCurrentSoilDataForFarm)
+
+/** Soil analysis keys that are not soil parameters of the current soil data. */
+const NON_PARAMETER_KEYS = new Set([
+  "a_id",
+  "a_date",
+  "a_source",
+  "b_id",
+  "b_sampling_date",
+  "a_depth_upper",
+  "a_depth_lower",
+  "b_sampling_geometry",
+  "b_sampling_geometry_zone",
+])
+
+/**
+ * Derives the current soil data of a field without sampling zones from its soil analyses
+ * (newest first): per parameter the value of the most recent analysis that has one. Like
+ * `getCurrentSoilData`, the BodemConditieScore parameters are not included.
+ */
+function toCurrentSoilData(soilAnalyses: SoilAnalysis[]): CurrentSoilData {
+  const items: CurrentSoilData = []
+  const records = soilAnalyses as unknown as Record<string, unknown>[]
+  const parameters = new Set(records.flatMap((analysis) => Object.keys(analysis)))
+  for (const parameter of parameters) {
+    if (NON_PARAMETER_KEYS.has(parameter) || parameter.endsWith("_bcs")) continue
+    const analysis = records.find((a) => a[parameter] != null)
+    if (!analysis) continue
+    items.push({
+      parameter: parameter as CurrentSoilData[number]["parameter"],
+      value: analysis[parameter] as number | string,
+      is_aggregated: false,
+      coverage: null,
+      has_coverage_warning: false,
+      sources: [],
+    })
+  }
+  return items
+}
+
+/**
+ * The tests describe soil data as soil analyses. The current soil data mocks derive their result
+ * from the soil analyses set up in a test, as for fields without sampling zones. A test can still
+ * set its own current soil data, for example for a field with sampling zones.
+ */
+function deriveCurrentSoilDataFromSoilAnalyses() {
+  mockedGetCurrentSoilData.mockImplementation(async () => {
+    const analyses = await mockedGetSoilAnalyses.getMockImplementation()?.(
+      mockFdm,
+      "",
+      "",
+      undefined,
+    )
+    return toCurrentSoilData(analyses ?? [])
+  })
+  mockedGetCurrentSoilDataForFarm.mockImplementation(async () => {
+    const analysesByField = await mockedGetSoilAnalysesForFarm.getMockImplementation()?.(
+      mockFdm,
+      "",
+      "",
+      undefined,
+    )
+    return new Map(
+      [...(analysesByField ?? new Map<string, SoilAnalysis[]>())].map(([id, analyses]) => [
+        id,
+        toCurrentSoilData(analyses),
+      ]),
+    )
+  })
+}
 
 // Minimal FdmType mock — collect functions don't use transactions
 const mockFdm = {} as FdmType
@@ -138,6 +214,7 @@ const mockMeasure: Measure = {
 describe("collectInputForBln3Score", () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    deriveCurrentSoilDataFromSoilAnalyses()
   })
 
   it("should return lat/lon from field centroid", async () => {
@@ -387,6 +464,10 @@ describe("collectInputForBln3Score", () => {
 
     await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
 
+    expect(mockedGetCurrentSoilData).toHaveBeenCalledWith(mockFdm, principal_id, b_id, {
+      start: undefined,
+      end: timeframe.end,
+    })
     expect(mockedGetSoilAnalyses).toHaveBeenCalledWith(mockFdm, principal_id, b_id, {
       start: undefined,
       end: timeframe.end,
@@ -394,6 +475,50 @@ describe("collectInputForBln3Score", () => {
     // Cultivations are fetched without timeframe to get the full history
     expect(mockedGetCultivations).toHaveBeenCalledWith(mockFdm, principal_id, b_id)
     expect(mockedGetMeasures).toHaveBeenCalledWith(mockFdm, principal_id, b_id, timeframe)
+  })
+
+  it("should take lab values, soil type and groundwater class from the current soil data", async () => {
+    // A field with two sampling zones: the current soil data holds the area-weighted mean and the
+    // soil type with the largest area, while the latest analysis alone says otherwise
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCurrentSoilData.mockResolvedValue([
+      { parameter: "a_p_al", value: 35.5, is_aggregated: true },
+      { parameter: "a_som_loi", value: 3.8, is_aggregated: true },
+      { parameter: "b_soiltype_agr", value: "zeeklei", is_aggregated: true },
+      { parameter: "b_gwl_class", value: "IV", is_aggregated: true },
+      // Not used by BLN3
+      { parameter: "a_zn_cc", value: 1, is_aggregated: false },
+    ] as CurrentSoilData)
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result).toMatchObject({
+      a_p_al: 35.5,
+      a_som_loi: 3.8,
+      b_soiltype_agr: "zeeklei",
+      b_gwl_class: "IV",
+    })
+    // Values of the latest analysis that the current soil data lacks are not added
+    expect(result).not.toHaveProperty("a_clay_mi")
+    expect(result).not.toHaveProperty("a_zn_cc")
+  })
+
+  it("should take the BodemConditieScore from the soil analyses, not the current soil data", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([
+      { ...mockSoilAnalysis, a_ss_bcs: 2, a_rd_bcs: 0 } as unknown as SoilAnalysis,
+    ])
+    mockedGetCurrentSoilData.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result).toMatchObject({ a_ss_bcs: 2, a_rd_bcs: 0 })
+    expect(result).not.toHaveProperty("a_p_al")
   })
 
   it("should assign years using the May 15–July 15 hoofdteelt rule, not b_lu_start year", async () => {
@@ -685,6 +810,7 @@ import { findHoofdteelt } from "../shared/hoofdteelt"
 describe("collectInputForBln3MeasureApplicability", () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    deriveCurrentSoilDataFromSoilAnalyses()
   })
 
   it("should collect applicability inputs including b_year and excluding measures", async () => {
@@ -709,6 +835,32 @@ describe("collectInputForBln3MeasureApplicability", () => {
     expect(result.a_som_loi).toBe(4.5)
     expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
     expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should read the soil values only from the current soil data", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetCurrentSoilData.mockResolvedValue([
+      { parameter: "a_som_loi", value: 3.8, is_aggregated: true },
+      { parameter: "b_gwl_class", value: "IV", is_aggregated: true },
+    ] as CurrentSoilData)
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+      timeframe,
+    )
+
+    expect(result).toMatchObject({ a_som_loi: 3.8, b_gwl_class: "IV" })
+    expect(mockedGetCurrentSoilData).toHaveBeenCalledWith(mockFdm, principal_id, b_id, {
+      start: undefined,
+      end: timeframe.end,
+    })
+    // The applicability needs no BodemConditieScore, so the soil analyses are not read
+    expect(mockedGetSoilAnalyses).not.toHaveBeenCalled()
   })
 
   it("should collect p_app_method from fertilizer applications", async () => {
@@ -998,6 +1150,7 @@ describe("farm collectors give the same inputs as the field collectors", () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
+    deriveCurrentSoilDataFromSoilAnalyses()
   })
 
   function mockFieldGetters(scenario: Scenario) {
@@ -1083,6 +1236,11 @@ describe("farm collectors give the same inputs as the field collectors", () => {
     await collectInputForBln3ScoreForFarm(farmFdm, principal_id, b_id_farm, timeframe)
 
     expect(mockedGetFields).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, timeframe)
+    expect(mockedGetCurrentSoilDataForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: timeframe.end,
+    })
+    // Only for the BodemConditieScore
     expect(mockedGetSoilAnalysesForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, {
       start: undefined,
       end: timeframe.end,
@@ -1091,6 +1249,46 @@ describe("farm collectors give the same inputs as the field collectors", () => {
     expect(mockedGetCultivationsForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm)
     expect(mockedGetMeasuresForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, timeframe)
     expect(mockedGetField).not.toHaveBeenCalled()
+  })
+
+  it("should read the farm's current soil data for the applicability, without soil analyses", async () => {
+    mockFarmGetters(scenarios[0])
+
+    await collectInputForBln3MeasureApplicabilityForFarm(
+      farmFdm,
+      principal_id,
+      b_id_farm,
+      2024,
+      timeframe,
+    )
+
+    expect(mockedGetCurrentSoilDataForFarm).toHaveBeenCalledWith(txFdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: timeframe.end,
+    })
+    expect(mockedGetSoilAnalysesForFarm).not.toHaveBeenCalled()
+  })
+
+  it("should give the same inputs with zone-weighted current soil data", async () => {
+    const zoned = [
+      { parameter: "a_p_al", value: 35.5, is_aggregated: true },
+      { parameter: "b_soiltype_agr", value: "zeeklei", is_aggregated: true },
+    ] as CurrentSoilData
+    mockFieldGetters(scenarios[0])
+    mockedGetCurrentSoilData.mockResolvedValue(zoned)
+    const expected = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+    mockFarmGetters(scenarios[0])
+    mockedGetCurrentSoilDataForFarm.mockResolvedValue(new Map([[b_id, zoned]]))
+
+    const { inputs } = await collectInputForBln3ScoreForFarm(
+      farmFdm,
+      principal_id,
+      b_id_farm,
+      timeframe,
+    )
+
+    expect(inputs.get(b_id)).toEqual(expected)
+    expect(inputs.get(b_id)).toMatchObject({ a_p_al: 35.5, b_soiltype_agr: "zeeklei" })
   })
 
   it("should keep the applicability inputs when the fertilizer applications cannot be read", async () => {

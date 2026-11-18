@@ -1,5 +1,6 @@
 import type {
   Cultivation,
+  CurrentSoilData,
   FdmType,
   FertilizerApplication,
   Field,
@@ -12,6 +13,8 @@ import type {
 import {
   getCultivations,
   getCultivationsForFarm,
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getFertilizerApplications,
   getFertilizerApplicationsForFarm,
   getField,
@@ -33,7 +36,7 @@ import { getBln3ExclusionReason } from "./exclusion"
 /** A timeframe shorter than this covers a single calendar year. */
 const MAX_SINGLE_YEAR_MS = 366 * 24 * 60 * 60 * 1000
 
-/** Numeric lab parameters taken from the latest soil analysis that has a value for them. */
+/** Numeric lab parameters, taken from the current soil data of the field. */
 const LAB_NUMERIC_FIELDS = [
   "a_ca_co_po",
   "a_cec_co",
@@ -113,24 +116,47 @@ function resolveBln3ScoreYear(
 }
 
 /**
- * Picks, for each numeric parameter, the value of the most recent soil analysis that has one.
+ * Reads the lab values, the soil type and the groundwater class of a field from its current soil
+ * data (`getCurrentSoilData`).
  *
- * Lab and BCS analyses are stored as separate records, so the latest analysis alone may lack
- * some parameters. fdm-core sorts soil analyses by `b_sampling_date DESC NULLS LAST`; NMI
- * BodemSchat estimates have no sampling date, so they are only used when no lab value exists.
+ * For each parameter the most recent analysis with a value counts; NMI BodemSchat estimates have
+ * no sampling date, so they are only used when no lab value exists. When the field has analyses
+ * for several sampling zones, numeric values are the area-weighted mean of the zones and the soil
+ * type and groundwater class the value with the largest area.
  */
-function selectLatestSoilValues(
-  soilAnalyses: SoilAnalysis[],
-  parameters: readonly (keyof SoilAnalysis)[],
-): Record<string, number> {
+function readCurrentSoilValues(currentSoilData: CurrentSoilData) {
   const soilData: Record<string, number> = {}
-  for (const parameter of parameters) {
-    const analysis = soilAnalyses.find((a) => typeof a[parameter] === "number")
-    if (analysis) {
-      soilData[parameter] = analysis[parameter] as number
+  let b_soiltype_agr: Bln3ScoreCollectedInputs["b_soiltype_agr"]
+  let b_gwl_class: Bln3ScoreCollectedInputs["b_gwl_class"]
+  for (const { parameter, value } of currentSoilData) {
+    if (parameter === "b_soiltype_agr" && typeof value === "string") {
+      b_soiltype_agr = value as Bln3ScoreCollectedInputs["b_soiltype_agr"]
+    } else if (parameter === "b_gwl_class" && typeof value === "string") {
+      b_gwl_class = value as Bln3ScoreCollectedInputs["b_gwl_class"]
+    } else if (
+      typeof value === "number" &&
+      (LAB_NUMERIC_FIELDS as readonly string[]).includes(parameter)
+    ) {
+      soilData[parameter] = value
     }
   }
-  return soilData
+  return { soilData, b_soiltype_agr, b_gwl_class }
+}
+
+/**
+ * Picks, for each BodemConditieScore parameter, the value of the most recent soil analysis that
+ * has one. The BCS scores are not part of the current soil data yet, so they are read from the
+ * soil analyses (sorted by `b_sampling_date DESC NULLS LAST`).
+ */
+function selectLatestBcsValues(soilAnalyses: SoilAnalysis[]): Record<string, number> {
+  const bcsData: Record<string, number> = {}
+  for (const parameter of BCS_NUMERIC_FIELDS) {
+    const analysis = soilAnalyses.find((a) => typeof a[parameter] === "number")
+    if (analysis) {
+      bcsData[parameter] = analysis[parameter] as number
+    }
+  }
+  return bcsData
 }
 
 /**
@@ -198,12 +224,15 @@ function resolveMainCultivationAndExclusion(
  */
 function deriveBln3ScoreInputs({
   field,
+  currentSoilData,
   soilAnalyses,
   cultivations,
   measures,
   timeframe,
 }: {
   field: Bln3Field
+  currentSoilData: CurrentSoilData
+  /** Only used for the BodemConditieScore, until it is part of the current soil data. */
   soilAnalyses: SoilAnalysis[]
   cultivations: Cultivation[]
   measures: Measure[]
@@ -212,14 +241,8 @@ function deriveBln3ScoreInputs({
   // b_centroid = [lon, lat] (ST_X = longitude, ST_Y = latitude)
   const [a_lon, a_lat] = field.b_centroid
 
-  const soilData = selectLatestSoilValues(soilAnalyses, [
-    ...LAB_NUMERIC_FIELDS,
-    ...BCS_NUMERIC_FIELDS,
-  ])
-
-  // Categorical soil fields: pick from the most recent analysis that has a value.
-  const latestWithSoiltype = soilAnalyses.find((a) => a.b_soiltype_agr != null)
-  const latestWithGwlClass = soilAnalyses.find((a) => a.b_gwl_class != null)
+  const { soilData, b_soiltype_agr, b_gwl_class } = readCurrentSoilValues(currentSoilData)
+  const bcsData = selectLatestBcsValues(soilAnalyses)
 
   const bln3Cultivations = buildBln3CultivationHistory(cultivations, timeframe)
   const b_year = resolveBln3ScoreYear(cultivations, timeframe)
@@ -244,10 +267,8 @@ function deriveBln3ScoreInputs({
     a_lat,
     a_lon,
     b_year,
-    b_soiltype_agr: (latestWithSoiltype?.b_soiltype_agr ??
-      undefined) as Bln3ScoreCollectedInputs["b_soiltype_agr"],
-    b_gwl_class: (latestWithGwlClass?.b_gwl_class ??
-      undefined) as Bln3ScoreCollectedInputs["b_gwl_class"],
+    b_soiltype_agr,
+    b_gwl_class,
     ...(field.b_bufferstrip != null && { b_bufferstrip: field.b_bufferstrip }),
     ...(targetMainCultivation?.b_lu_croprotation && {
       b_lu_croprotation: targetMainCultivation.b_lu_croprotation,
@@ -259,6 +280,7 @@ function deriveBln3ScoreInputs({
     }),
     ...(bln3Measures.length > 0 && { measures: bln3Measures }),
     ...soilData,
+    ...bcsData,
   }
 }
 
@@ -268,14 +290,14 @@ function deriveBln3ScoreInputs({
  */
 function deriveBln3MeasureApplicabilityInputs({
   field,
-  soilAnalyses,
+  currentSoilData,
   cultivations,
   fertilizerApplications,
   b_year,
   timeframe,
 }: {
   field: Bln3Field
-  soilAnalyses: SoilAnalysis[]
+  currentSoilData: CurrentSoilData
   cultivations: Cultivation[]
   fertilizerApplications: FertilizerApplication[]
   b_year: number
@@ -283,9 +305,7 @@ function deriveBln3MeasureApplicabilityInputs({
 }): Bln3MeasureApplicabilityCollectedInputs {
   const [a_lon, a_lat] = field.b_centroid
 
-  const soilData = selectLatestSoilValues(soilAnalyses, LAB_NUMERIC_FIELDS)
-  const latestWithSoiltype = soilAnalyses.find((a) => a.b_soiltype_agr != null)
-  const latestWithGwlClass = soilAnalyses.find((a) => a.b_gwl_class != null)
+  const { soilData, b_soiltype_agr, b_gwl_class } = readCurrentSoilValues(currentSoilData)
 
   const bln3Cultivations = buildBln3CultivationHistory(cultivations, timeframe)
 
@@ -304,8 +324,8 @@ function deriveBln3MeasureApplicabilityInputs({
     a_lat,
     a_lon,
     b_year,
-    b_soiltype_agr: latestWithSoiltype?.b_soiltype_agr ?? undefined,
-    b_gwl_class: latestWithGwlClass?.b_gwl_class ?? undefined,
+    b_soiltype_agr,
+    b_gwl_class,
     ...(field.b_bufferstrip != null && { b_bufferstrip: field.b_bufferstrip }),
     ...(targetMainCultivation?.b_lu_croprotation && {
       b_lu_croprotation: targetMainCultivation.b_lu_croprotation,
@@ -321,13 +341,15 @@ function deriveBln3MeasureApplicabilityInputs({
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
  *
- * Fetches field geometry (lat/lon), the most recent soil analysis, cultivations, and
- * adopted BLN measures for the field, then maps them to the shape expected by the
- * NMI BLN3 API. The caller is responsible for adding `nmiApiKey` before calling
- * `getBln3Score`.
+ * Fetches field geometry (lat/lon), the current soil data, cultivations, and adopted BLN
+ * measures for the field, then maps them to the shape expected by the NMI BLN3 API. The caller
+ * is responsible for adding `nmiApiKey` before calling `getBln3Score`.
  *
- * For soil analyses, the latest lab data for each relevant parameter is collected. Only if no lab
- * data  is found for a parameter, the latest available NMI BodemSchat estimate is used.
+ * The lab values, soil type and groundwater class come from the current soil data
+ * (`getCurrentSoilData`): per parameter the latest lab value counts, and only without one the
+ * latest NMI BodemSchat estimate. For a field with several sampling zones the zones are combined
+ * (area-weighted). The BodemConditieScore values are taken from the most recent soil analysis
+ * that has them.
  *
  * To collect the inputs of all fields of a farm, use {@link collectInputForBln3ScoreForFarm},
  * which gives the same result with farm-level queries.
@@ -335,8 +357,8 @@ function deriveBln3MeasureApplicabilityInputs({
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
- * @param timeframe - Optional timeframe applied to soil analyses and measures only.
- *   Start date is ignored when retrieving soil analyses.
+ * @param timeframe - Optional timeframe applied to soil data and measures only.
+ *   For soil data only its end counts: analyses sampled after the end are left out.
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 calculation.
  *   `b_year` is the year of a single-year timeframe. For a multi-year timeframe or none, it
@@ -353,14 +375,24 @@ export async function collectInputForBln3Score(
   timeframe?: Timeframe,
 ): Promise<Bln3ScoreCollectedInputs> {
   try {
-    // Fetch all cultivations without timeframe to cover multi-year history
-    const [field, soilAnalyses, cultivations, measures] = await Promise.all([
+    // Fetch all cultivations without timeframe to cover multi-year history. The soil analyses
+    // are only needed for the BodemConditieScore, which the current soil data lacks.
+    const soilTimeframe = { start: undefined, end: timeframe?.end }
+    const [field, currentSoilData, soilAnalyses, cultivations, measures] = await Promise.all([
       getField(fdm, principal_id, b_id),
-      getSoilAnalyses(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
+      getCurrentSoilData(fdm, principal_id, b_id, soilTimeframe),
+      getSoilAnalyses(fdm, principal_id, b_id, soilTimeframe),
       getCultivations(fdm, principal_id, b_id),
       getMeasures(fdm, principal_id, b_id, timeframe),
     ])
-    return deriveBln3ScoreInputs({ field, soilAnalyses, cultivations, measures, timeframe })
+    return deriveBln3ScoreInputs({
+      field,
+      currentSoilData,
+      soilAnalyses,
+      cultivations,
+      measures,
+      timeframe,
+    })
   } catch (error) {
     throw new Error(
       `Failed to collect BLN3 score inputs for field ${b_id}: ${error instanceof Error ? error.message : String(error)}`,
@@ -381,7 +413,7 @@ export async function collectInputForBln3Score(
  * @param principal_id - The principal making the request.
  * @param b_id_farm - The farm ID.
  * @param timeframe - Optional timeframe. It selects the fields of the farm and is applied to
- *   soil analyses (end date only) and measures, as in {@link collectInputForBln3Score}.
+ *   soil data (end date only) and measures, as in {@link collectInputForBln3Score}.
  *   Cultivations are always fetched without a timeframe.
  * @returns A promise resolving to the fields of the farm in the timeframe (as returned by
  *   `getFields`, so callers need not read them again) and the collected inputs (without
@@ -395,19 +427,24 @@ export async function collectInputForBln3ScoreForFarm(
   timeframe?: Timeframe,
 ): Promise<{ fields: Field[]; inputs: Map<string, Bln3ScoreCollectedInputs> }> {
   try {
-    // Fetch all cultivations without timeframe to cover multi-year history
-    const [fields, soilAnalysesByField, cultivationsByField, measuresByField] =
-      await fdm.transaction((tx: FdmType) =>
-        Promise.all([
-          getFields(tx, principal_id, b_id_farm, timeframe),
-          getSoilAnalysesForFarm(tx, principal_id, b_id_farm, {
-            start: undefined,
-            end: timeframe?.end,
-          }),
-          getCultivationsForFarm(tx, principal_id, b_id_farm),
-          getMeasuresForFarm(tx, principal_id, b_id_farm, timeframe),
-        ]),
-      )
+    // Fetch all cultivations without timeframe to cover multi-year history. The soil analyses
+    // are only needed for the BodemConditieScore, which the current soil data lacks.
+    const soilTimeframe = { start: undefined, end: timeframe?.end }
+    const [
+      fields,
+      currentSoilDataByField,
+      soilAnalysesByField,
+      cultivationsByField,
+      measuresByField,
+    ] = await fdm.transaction((tx: FdmType) =>
+      Promise.all([
+        getFields(tx, principal_id, b_id_farm, timeframe),
+        getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, soilTimeframe),
+        getSoilAnalysesForFarm(tx, principal_id, b_id_farm, soilTimeframe),
+        getCultivationsForFarm(tx, principal_id, b_id_farm),
+        getMeasuresForFarm(tx, principal_id, b_id_farm, timeframe),
+      ]),
+    )
 
     // The farm getters also return fields outside the timeframe, so follow the list of fields
     const inputs = new Map<string, Bln3ScoreCollectedInputs>()
@@ -416,6 +453,7 @@ export async function collectInputForBln3ScoreForFarm(
         field.b_id,
         deriveBln3ScoreInputs({
           field,
+          currentSoilData: currentSoilDataByField.get(field.b_id) ?? [],
           soilAnalyses: soilAnalysesByField.get(field.b_id) ?? [],
           cultivations: cultivationsByField.get(field.b_id) ?? [],
           measures: measuresByField.get(field.b_id) ?? [],
@@ -435,12 +473,14 @@ export async function collectInputForBln3ScoreForFarm(
 /**
  * Collects all field data needed for a BLN3 measure applicability check from the FDM database.
  *
- * Fetches field geometry (lat/lon), soil analysis, and cultivation history to populate GxG and
- * SOM potential fields. Note that `measures` is intentionally excluded per NMI applicability
- * endpoint requirements.
+ * Fetches field geometry (lat/lon), the current soil data, and cultivation history to populate
+ * GxG and SOM potential fields. Note that `measures` is intentionally excluded per NMI
+ * applicability endpoint requirements.
  *
- * For soil analyses, the latest lab data for each relevant parameter is collected. Only if no lab
- * data  is found for a parameter, the latest available NMI BodemSchat estimate is used.
+ * The lab values, soil type and groundwater class come from the current soil data
+ * (`getCurrentSoilData`): per parameter the latest lab value counts, and only without one the
+ * latest NMI BodemSchat estimate. For a field with several sampling zones the zones are combined
+ * (area-weighted).
  *
  * To collect the inputs of all fields of a farm, use
  * {@link collectInputForBln3MeasureApplicabilityForFarm}, which gives the same result with
@@ -450,8 +490,8 @@ export async function collectInputForBln3ScoreForFarm(
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
  * @param b_year - The calendar year for the applicability check.
- * @param timeframe - Optional timeframe applied to soil analyses and fertilizer applications.
- *   Start date is ignored when retrieving soil analyses.
+ * @param timeframe - Optional timeframe applied to soil data and fertilizer applications.
+ *   For soil data only its end counts: analyses sampled after the end are left out.
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 measure applicability estimation.
  * @returns A promise resolving to collected BLN3 measure applicability inputs.
@@ -466,15 +506,15 @@ export async function collectInputForBln3MeasureApplicability(
   timeframe?: Timeframe,
 ): Promise<Bln3MeasureApplicabilityCollectedInputs> {
   try {
-    const [field, soilAnalyses, cultivations, fertilizerApplications] = await Promise.all([
+    const [field, currentSoilData, cultivations, fertilizerApplications] = await Promise.all([
       getField(fdm, principal_id, b_id),
-      getSoilAnalyses(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
+      getCurrentSoilData(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
       getCultivations(fdm, principal_id, b_id),
       getFertilizerApplications(fdm, principal_id, b_id, timeframe).catch(() => []),
     ])
     return deriveBln3MeasureApplicabilityInputs({
       field,
-      soilAnalyses,
+      currentSoilData,
       cultivations,
       fertilizerApplications,
       b_year,
@@ -500,7 +540,7 @@ export async function collectInputForBln3MeasureApplicability(
  * @param b_id_farm - The farm ID.
  * @param b_year - The calendar year for the applicability check.
  * @param timeframe - Optional timeframe. It selects the fields of the farm and is applied to
- *   soil analyses (end date only) and fertilizer applications, as in
+ *   soil data (end date only) and fertilizer applications, as in
  *   {@link collectInputForBln3MeasureApplicability}. Cultivations are always fetched without a
  *   timeframe.
  * @returns A promise resolving to the collected inputs per field ID.
@@ -514,11 +554,11 @@ export async function collectInputForBln3MeasureApplicabilityForFarm(
   timeframe?: Timeframe,
 ): Promise<Map<string, Bln3MeasureApplicabilityCollectedInputs>> {
   try {
-    const [fields, soilAnalysesByField, cultivationsByField] = await fdm.transaction(
+    const [fields, currentSoilDataByField, cultivationsByField] = await fdm.transaction(
       (tx: FdmType) =>
         Promise.all([
           getFields(tx, principal_id, b_id_farm, timeframe),
-          getSoilAnalysesForFarm(tx, principal_id, b_id_farm, {
+          getCurrentSoilDataForFarm(tx, principal_id, b_id_farm, {
             start: undefined,
             end: timeframe?.end,
           }),
@@ -541,7 +581,7 @@ export async function collectInputForBln3MeasureApplicabilityForFarm(
         field.b_id,
         deriveBln3MeasureApplicabilityInputs({
           field,
-          soilAnalyses: soilAnalysesByField.get(field.b_id) ?? [],
+          currentSoilData: currentSoilDataByField.get(field.b_id) ?? [],
           cultivations: cultivationsByField.get(field.b_id) ?? [],
           fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
           b_year,
