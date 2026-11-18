@@ -23,6 +23,8 @@ export type {
   CatalogueAnimalCategoryName,
 } from "./animal-categories/d"
 export { hashAnimalCategory } from "./animal-categories/hash"
+export { parseCattleEartag } from "./animal-identification/cattle-eartag"
+export type { CattleEartagResult } from "./animal-identification/cattle-eartag"
 export { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "./cultivations"
 export type {
   CatalogueCultivation,

@@ -1,6 +1,6 @@
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { eq } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
-import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
@@ -8,6 +8,7 @@ import { addAnimal } from "./animal"
 import { createFdmAuth } from "./authentication"
 import { grantRole, listPrincipalsForResource } from "./authorization"
 import { addBarn, addHousing } from "./barn"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -34,7 +35,6 @@ import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
 import { addGrazing } from "./grazing"
 import { addHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { createId } from "./id"
 import { acceptInvitation, declineInvitation } from "./invitation"
 import { addExcreting, addManureDisposing, addManurePit } from "./manure"
@@ -336,33 +336,33 @@ describe("Farm Functions", () => {
   })
 
   it("should include livestock and dairy flags in the getFarm response", async () => {
-  const herdId = await addHerd(fdm, principal_id, b_id_farm, {
-    l_herd_name: "Status Kudde",
-    l_id_category: "rvo_100",
-  })
-  await addAnimal(fdm, principal_id, b_id_farm, herdId, {
-    l_id_eartag: "NL_STATUS_1",
-  })
+    const herdId = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Status Kudde",
+      l_id_category: "rvo_100",
+    })
+    await addAnimal(fdm, principal_id, b_id_farm, herdId, {
+      l_id_eartag: "NL700000089",
+    })
 
-  const farmAfterAnimals = await getFarm(fdm, principal_id, b_id_farm)
-  expect(farmAfterAnimals.b_farm_livestock).toBe(true)
-  expect(farmAfterAnimals.b_farm_dairy).toBe(false)
+    const farmAfterAnimals = await getFarm(fdm, principal_id, b_id_farm)
+    expect(farmAfterAnimals.b_farm_livestock).toBe(true)
+    expect(farmAfterAnimals.b_farm_dairy).toBe(false)
 
-  const l_id_milktank = await addMilkTank(fdm, principal_id, b_id_farm, {
-    l_milktank_name: "Status Tank",
-  })
-  await addMilkingHerd(
-    fdm,
-    principal_id,
-    herdId,
-    l_id_milktank,
-    new Date("2025-05-15T06:00:00.000Z"),
-    { l_milking_amount: 80 },
-  )
+    const l_id_milktank = await addMilkTank(fdm, principal_id, b_id_farm, {
+      l_milktank_name: "Status Tank",
+    })
+    await addMilkingHerd(
+      fdm,
+      principal_id,
+      herdId,
+      l_id_milktank,
+      new Date("2025-05-15T06:00:00.000Z"),
+      { l_milking_amount: 80 },
+    )
 
-  const farmAfterDairy = await getFarm(fdm, principal_id, b_id_farm)
-  expect(farmAfterDairy.b_farm_livestock).toBe(true)
-  expect(farmAfterDairy.b_farm_dairy).toBe(true)
+    const farmAfterDairy = await getFarm(fdm, principal_id, b_id_farm)
+    expect(farmAfterDairy.b_farm_livestock).toBe(true)
+    expect(farmAfterDairy.b_farm_dairy).toBe(true)
   })
 
   describe("grantRoleToFarm", () => {
@@ -865,7 +865,7 @@ describe("Farm Functions", () => {
         l_id_category: "rvo_100",
       })
       const l_id_animal = await addAnimal(fdm, testPrincipalId, livestockFarmId, l_id_herd, {
-        l_id_eartag: "NL_LIVESTOCK_TEST",
+        l_id_eartag: "NL700000096",
       })
 
       const b_id_barn = await addBarn(fdm, testPrincipalId, livestockFarmId, {
