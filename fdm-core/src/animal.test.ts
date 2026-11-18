@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import {
   addAnimal,
@@ -20,10 +20,10 @@ import {
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Animal Domain", () => {
   let fdm: FdmType
@@ -58,7 +58,7 @@ describe("Animal Domain", () => {
 
   it("should create, read, update, list, and remove an animal", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL123456789",
+      l_id_eartag: "NL123456782",
       l_id_worknumber: "0123",
       l_specie: "cattle",
       l_sex: "female",
@@ -67,7 +67,7 @@ describe("Animal Domain", () => {
     expect(l_id_animal).toBeDefined()
 
     const animal = await getAnimal(fdm, principal_id, l_id_animal)
-    expect(animal.l_id_eartag).toBe("NL123456789")
+    expect(animal.l_id_eartag).toBe("NL123456782")
     expect(animal.l_id_worknumber).toBe("0123")
     expect(animal.l_sex).toBe("female")
     expect(animal.l_id_herd).toBe(l_id_herd)
@@ -131,7 +131,7 @@ describe("Animal Domain", () => {
 
   it("should reassign an animal to a different existing herd via assignAnimalToHerd and preserve history", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL987654321",
+      l_id_eartag: "NL987654311",
     })
 
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
@@ -153,7 +153,7 @@ describe("Animal Domain", () => {
     expect(secondHerdSameCategory).not.toBe(targetHerdId)
 
     const l_id_animal2 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL987654322",
+      l_id_eartag: "NL987654328",
     })
     await assignAnimalToHerd(fdm, principal_id, l_id_animal2, secondHerdSameCategory)
     const updatedAnimal2 = await getAnimal(fdm, principal_id, l_id_animal2)
@@ -162,7 +162,7 @@ describe("Animal Domain", () => {
 
   it("should reject assignAnimalToHerd when the target herd belongs to another farm", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL987600001",
+      l_id_eartag: "NL987600004",
     })
 
     const otherFarmId = await addFarm(
@@ -199,7 +199,6 @@ describe("Animal Domain", () => {
     expect(herdAnimals.length).toBe(5)
     expect(herdAnimals.every((a) => a.l_specie === "cattle")).toBe(true)
     expect(herdAnimals.every((a) => a.l_arriving_method === "purchased")).toBe(true)
-
   })
 
   it("should correct an animal_assigning record via updateAnimalAssigning", async () => {
@@ -211,14 +210,9 @@ describe("Animal Domain", () => {
     const originalStart = before.l_arriving_date as Date
 
     const correctedStart = new Date(originalStart.getTime() - 60_000)
-    await updateAnimalAssigning(
-      fdm,
-      principal_id,
-      l_id_animal,
-      l_id_herd,
-      originalStart,
-      { l_assigning_start: correctedStart },
-    )
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, originalStart, {
+      l_assigning_start: correctedStart,
+    })
 
     const after = await getAnimal(fdm, principal_id, l_id_animal)
     expect(after.l_id_herd).toBe(l_id_herd)
@@ -246,7 +240,7 @@ describe("Animal Domain", () => {
 
   it("should hard-delete an animal_assigning record via removeAnimalAssigning", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL700000011",
+      l_id_eartag: "NL700000027",
     })
     const animal = await getAnimal(fdm, principal_id, l_id_animal)
     const assigningStart = animal.l_arriving_date as Date
@@ -270,7 +264,7 @@ describe("Animal Domain", () => {
 
   it("should keep herd in census with count 0 when all animals have left (soft) or been removed (hard)", async () => {
     const leftAnimal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL700000001",
+      l_id_eartag: "NL700000034",
     })
     // Record departure while preserving history
     await updateAnimal(fdm, principal_id, leftAnimal, {
@@ -285,7 +279,7 @@ describe("Animal Domain", () => {
     expect(herdAnimalsAfterLeaving.find((a) => a.l_id_animal === leftAnimal)).toBeUndefined()
 
     const removedAnimal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL700000002",
+      l_id_eartag: "NL700000041",
     })
     // Hard delete entirely
     await removeAnimal(fdm, principal_id, removedAnimal)
@@ -300,7 +294,7 @@ describe("Animal Domain", () => {
     const arrivingDate = new Date("2025-01-01T00:00:00.000Z")
     const leavingDate = new Date("2025-08-01T00:00:00.000Z")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL-HISTORY-1",
+      l_id_eartag: "NL700000058",
       l_arriving_date: arrivingDate,
       l_leaving_date: leavingDate,
       l_leaving_method: "sold",
@@ -334,13 +328,7 @@ describe("Animal Domain", () => {
     })
     const leavingDate = new Date(Date.now() + 60_000)
 
-    const leftAnimalIds = await leaveHerd(
-      fdm,
-      principal_id,
-      l_id_herd,
-      leavingDate,
-      "sold",
-    )
+    const leftAnimalIds = await leaveHerd(fdm, principal_id, l_id_herd, leavingDate, "sold")
 
     expect(leftAnimalIds.sort()).toEqual(animalIds.sort())
     expect(await getAnimalsForHerd(fdm, principal_id, l_id_herd)).toEqual([])
@@ -372,9 +360,9 @@ describe("Animal Domain", () => {
 
     expect(reassignedAnimalIds.sort()).toEqual(animalIds.sort())
     expect(await getAnimalsForHerd(fdm, principal_id, l_id_herd)).toEqual([])
-    expect((await getAnimalsForHerd(fdm, principal_id, targetHerdId)).map((a) => a.l_id_animal).sort()).toEqual(
-      animalIds.sort(),
-    )
+    expect(
+      (await getAnimalsForHerd(fdm, principal_id, targetHerdId)).map((a) => a.l_id_animal).sort(),
+    ).toEqual(animalIds.sort())
     for (const l_id_animal of animalIds) {
       const animal = await getAnimal(fdm, principal_id, l_id_animal)
       expect(animal.l_id_herd).toBe(targetHerdId)
@@ -398,7 +386,7 @@ describe("Animal Domain", () => {
 
     await expect(
       addAnimal(fdm, principal_id, b_id_farm, otherHerdId, {
-        l_id_eartag: "NL800000001",
+        l_id_eartag: "NL800000002",
       }),
     ).rejects.toThrowError("Exception for addAnimal")
   })
@@ -406,7 +394,7 @@ describe("Animal Domain", () => {
   it("should sync l_birth_date and l_arriving_date when l_arriving_method is 'born'", async () => {
     const birthdate = new Date("2025-03-15")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL555111222",
+      l_id_eartag: "NL555111220",
       l_arriving_method: "born",
       l_birth_date: birthdate,
     })
@@ -428,7 +416,7 @@ describe("Animal Domain", () => {
 
   it("should deny access to unauthorized principal", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL111111111",
+      l_id_eartag: "NL111111110",
     })
 
     const invalidUser = "unauthorized_user"
@@ -439,12 +427,12 @@ describe("Animal Domain", () => {
 
   it("should deny access to unauthorized principal for remaining animal functions", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL333333333",
+      l_id_eartag: "NL333333330",
     })
     const invalidUser = "unauthorized_user"
 
     await expect(
-      addAnimal(fdm, invalidUser, b_id_farm, l_id_herd, { l_id_eartag: "NL444444444" }),
+      addAnimal(fdm, invalidUser, b_id_farm, l_id_herd, { l_id_eartag: "NL444444440" }),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(
@@ -510,7 +498,7 @@ describe("Animal Domain", () => {
   it("should add an animal with a non-'born' arriving method", async () => {
     const arrivingDate = new Date("2025-02-10")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL666666666",
+      l_id_eartag: "NL666666660",
       l_arriving_method: "purchased",
       l_arriving_date: arrivingDate,
     })
@@ -558,11 +546,11 @@ describe("Animal Domain", () => {
   it("should lower herd count preserving history via removeAnimalsFromHerd", async () => {
     // Add 2 identified animals and 3 placeholder animals (5 total)
     const identified1 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL-KEEP-1",
+      l_id_eartag: "NL700000065",
       l_sex: "female",
     })
     const identified2 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL-KEEP-2",
+      l_id_eartag: "NL700000072",
       l_sex: "female",
     })
     const placeholderIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 3)
@@ -592,9 +580,128 @@ describe("Animal Domain", () => {
     expect(remainingAnimals.map((a) => a.l_id_animal)).toContain(identified2)
 
     // Should reject count exceeding remaining active census (3)
-    await expect(
-      removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 5),
-    ).rejects.toThrowError("Exception for removeAnimalsFromHerd")
+    await expect(removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 5)).rejects.toThrowError(
+      "Exception for removeAnimalsFromHerd",
+    )
   })
 
+  describe("life number and work number", () => {
+    const causeMessage = (message: string) => ({
+      cause: expect.objectContaining({ message: expect.stringContaining(message) }),
+    })
+
+    it("should normalize a Dutch life number and take the work number from it", async () => {
+      const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_eartag: "NL 1300001 0001 9",
+      })
+
+      const animal = await getAnimal(fdm, principal_id, l_id_animal)
+      expect(animal.l_id_eartag).toBe("NL130000100019")
+      expect(animal.l_id_worknumber).toBe("0001")
+    })
+
+    it("should prefer an explicit work number over the derived one", async () => {
+      const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_eartag: "NL101177210",
+        l_id_worknumber: "42",
+      })
+
+      const animal = await getAnimal(fdm, principal_id, l_id_animal)
+      expect(animal.l_id_worknumber).toBe("42")
+    })
+
+    it("should reject an invalid Dutch cattle life number", async () => {
+      await expect(
+        addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_eartag: "NL101177211" }),
+      ).rejects.toMatchObject(causeMessage("invalid check digit"))
+      await expect(
+        addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_eartag: "NL12345" }),
+      ).rejects.toMatchObject(causeMessage("not a valid Dutch cattle life number"))
+
+      const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+      await expect(
+        updateAnimal(fdm, principal_id, l_id_animal, { l_id_eartag: "NL130000100018" }),
+      ).rejects.toMatchObject(causeMessage("invalid check digit"))
+    })
+
+    it("should keep foreign life numbers and non-cattle life numbers as entered", async () => {
+      const foreign = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_eartag: " DE 01 234 56789 ",
+      })
+      const foreignAnimal = await getAnimal(fdm, principal_id, foreign)
+      expect(foreignAnimal.l_id_eartag).toBe("DE 01 234 56789")
+      expect(foreignAnimal.l_id_worknumber).toBe("10001")
+
+      const sheepHerd = await addHerd(fdm, principal_id, b_id_farm, {
+        l_herd_name: "Schapen",
+        l_id_category: "rvo_550",
+      })
+      const sheep = await addAnimal(fdm, principal_id, b_id_farm, sheepHerd, {
+        l_id_eartag: "NL 123456 7 89012",
+      })
+      expect((await getAnimal(fdm, principal_id, sheep)).l_id_eartag).toBe("NL 123456 7 89012")
+    })
+
+    it("should only block numbers that an animal still on the farm uses", async () => {
+      const first = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_eartag: "NL130000100019",
+      })
+      await expect(
+        addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_worknumber: "0001" }),
+      ).rejects.toMatchObject(causeMessage("Work number 0001 is already used"))
+      await expect(
+        addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+          l_id_eartag: "1300001 0001 9",
+          l_id_worknumber: "7777",
+        }),
+      ).rejects.toMatchObject(causeMessage("Life number NL130000100019 is already used"))
+
+      const second = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_worknumber: "0002",
+      })
+      await expect(
+        updateAnimal(fdm, principal_id, second, { l_id_worknumber: "0001" }),
+      ).rejects.toMatchObject(causeMessage("Work number 0001 is already used"))
+      // Saving an animal's own numbers again is fine
+      await updateAnimal(fdm, principal_id, first, {
+        l_id_eartag: "NL130000100019",
+        l_id_worknumber: "0001",
+      })
+
+      await updateAnimal(fdm, principal_id, first, {
+        l_leaving_date: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        l_leaving_method: "sold",
+      })
+
+      // Once the first animal has left, its numbers can be used again
+      const returned = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_eartag: "NL130000100019",
+      })
+      expect((await getAnimal(fdm, principal_id, returned)).l_id_worknumber).toBe("0001")
+    })
+
+    it("should keep auto-numbering after a placeholder animal gets its life number", async () => {
+      const placeholders = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 3)
+
+      await updateAnimal(fdm, principal_id, placeholders[0], {
+        l_id_eartag: "NL 1011 7721 0",
+        l_id_worknumber: "7721",
+      })
+      const identified = await getAnimal(fdm, principal_id, placeholders[0])
+      expect(identified.l_id_eartag).toBe("NL101177210")
+      expect(identified.l_id_worknumber).toBe("7721")
+
+      const next = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+      expect((await getAnimal(fdm, principal_id, next)).l_id_worknumber).toBe("10004")
+    })
+
+    it("should clear a life number with an empty value", async () => {
+      const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_id_eartag: "NL101177210",
+      })
+
+      await updateAnimal(fdm, principal_id, l_id_animal, { l_id_eartag: "" })
+      expect((await getAnimal(fdm, principal_id, l_id_animal)).l_id_eartag).toBeNull()
+    })
+  })
 })

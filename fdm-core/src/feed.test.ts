@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
+import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import type { Feeding } from "./feed.types"
 import { addAnimal, assignAnimalToHerd } from "./animal"
@@ -82,17 +82,10 @@ describe("Feed Domain", () => {
 
   it("should create feed batch, list batches, record herd feeding, and record animal feeding", async () => {
     // Batch 1: Own land grass silage (450 g/kg DM)
-    const f_id_batch_own = await addFeedBatch(
-      fdm,
-      principal_id,
-      b_id_farm,
-      "nmi_016",
-      "own_land",
-      {
-        f_dm: 450,
-        f_cp: 160,
-      },
-    )
+    const f_id_batch_own = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land", {
+      f_dm: 450,
+      f_cp: 160,
+    })
 
     // Batch 2: Purchased maize silage (350 g/kg DM)
     const f_id_batch_purchased = await addFeedBatch(
@@ -118,7 +111,7 @@ describe("Feed Domain", () => {
 
     // Animal supplemental feeding
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL101",
+      l_id_eartag: "NL101000000",
     })
     await addFeedingAnimal(fdm, principal_id, f_id_batch_purchased, l_id_animal, startDate, {
       f_amount: 50,
@@ -133,7 +126,7 @@ describe("Feed Domain", () => {
       f_sampling_date: new Date("2025-07-01"),
     })
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL303",
+      l_id_eartag: "NL303000000",
     })
     const feedingStart = new Date("2025-07-10")
 
@@ -188,7 +181,7 @@ describe("Feed Domain", () => {
   it("should allow farm-wide Feeding union arrays from herd and animal records", async () => {
     const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL-FEED-UNION-1",
+      l_id_eartag: "NL700000104",
     })
     const start = new Date("2025-07-11T00:00:00.000Z")
 
@@ -212,7 +205,7 @@ describe("Feed Domain", () => {
   it("should deny access to unauthorized principal for remaining feed functions", async () => {
     const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL202",
+      l_id_eartag: "NL202000000",
     })
     const invalidUser = "unauthorized_user"
 
@@ -286,11 +279,13 @@ describe("Feed Domain", () => {
     const supplementBatch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_001", "purchased")
 
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
-      l_id_eartag: "NL404",
+      l_id_eartag: "NL404000000",
       l_arriving_date: beforeReassign,
     })
 
-    await addFeedingHerd(fdm, principal_id, primaryBatch, l_id_herd, beforeReassign, { f_amount: 100 })
+    await addFeedingHerd(fdm, principal_id, primaryBatch, l_id_herd, beforeReassign, {
+      f_amount: 100,
+    })
     await addFeedingAnimal(fdm, principal_id, supplementBatch, l_id_animal, beforeReassign, {
       f_amount: 20,
     })
@@ -301,7 +296,9 @@ describe("Feed Domain", () => {
     })
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
 
-    await addFeedingHerd(fdm, principal_id, primaryBatch, l_id_herd, afterReassign, { f_amount: 200 })
+    await addFeedingHerd(fdm, principal_id, primaryBatch, l_id_herd, afterReassign, {
+      f_amount: 200,
+    })
     await addFeedingHerd(fdm, principal_id, primaryBatch, targetHerdId, afterReassign, {
       f_amount: 70,
     })
@@ -328,11 +325,11 @@ describe("Feed Domain", () => {
       "herd",
     ])
     expect(
-      events.filter((row) => row.l_feeding_type === "herd").map((row) => row.l_id_herd).sort(),
-    ).toEqual([
-      l_id_herd,
-      targetHerdId,
-    ].sort())
+      events
+        .filter((row) => row.l_feeding_type === "herd")
+        .map((row) => row.l_id_herd)
+        .sort(),
+    ).toEqual([l_id_herd, targetHerdId].sort())
     expect(
       events
         .filter((row) => row.l_feeding_type === "animal")
@@ -357,9 +354,6 @@ describe("Feed Domain", () => {
       end: undefined,
     })
     expect(eventsAfterOnly).toHaveLength(2)
-    expect(eventsAfterOnly.map((row) => row.l_feeding_type).sort()).toEqual([
-      "animal",
-      "herd",
-    ])
+    expect(eventsAfterOnly.map((row) => row.l_feeding_type).sort()).toEqual(["animal", "herd"])
   })
 })
