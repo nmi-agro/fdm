@@ -6,10 +6,11 @@ import {
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
 } from "@nmi-agro/fdm-calculator/browser"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { Eraser, PenLine, Pencil, Rows3 } from "lucide-react"
-import { lazy, Suspense, useEffect, useMemo, useState } from "react"
+import { Eraser, PenLine, Pencil, Rows3, Undo2 } from "lucide-react"
+import { type ComponentProps, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher } from "react-router"
 import { Button } from "~/components/ui/button"
 import { Field, FieldLabel } from "~/components/ui/field"
@@ -22,11 +23,46 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Skeleton } from "~/components/ui/skeleton"
-import { type Area, cutStrip, zoneAreaWithinField } from "~/lib/grazing-strip"
-import type { ZoneEditorMode } from "./zone-editor-map"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { type Area, cutStrip, hasHoles, zoneAreaWithinField } from "~/lib/grazing-strip"
+import { pushUndo } from "~/lib/undo-history"
+import type { ZoneEditorMode, ZoneMapControls, ZoneNotice } from "./zone-editor-map"
+import { OTHER_ZONE_COLOR, ZONE_COLOR, ZONE_OUTLINE_COLOR } from "./zone-colors"
 
 // Lazy-loaded to avoid SSR issues with maplibre-gl and terra-draw and to keep them out of the bundle
 const ZoneEditorMap = lazy(() => import("./zone-editor-map"))
+
+/** Height of the map, also used for its placeholders while it loads. */
+const MAP_HEIGHT_CLASS = "h-[min(420px,55vh)]"
+
+/** Number of earlier zones shown before "Meer tonen". */
+const EARLIER_ZONES_SHOWN = 8
+
+const DRAW_HINT =
+  "Klik de hoeken. Klik op het eerste punt of druk Enter om af te ronden; Esc stopt. Lijnen mogen elkaar niet kruisen. Houd Alt ingedrukt om niet te laten springen."
+const REPLACE_HINT = "De nieuwe zone vervangt de huidige."
+const EDIT_HINT =
+  "Sleep een hoek, klik op een middenpunt voor een extra hoek, rechtsklik op een hoek om hem te verwijderen."
+const NO_ZONE_REASON = "Teken eerst een zone"
+const HOLE_REASON = "Deze zone heeft een gat en kan niet worden aangepast; teken hem opnieuw"
+const NOTHING_TO_UNDO_REASON = "Er is nog niets om ongedaan te maken"
+
+const NOTICES: Record<ZoneNotice, Notice> = {
+  clipped: { tone: "info", text: "Het deel buiten het perceel is afgeknipt." },
+  outside: {
+    tone: "warning",
+    text: "De zone lag buiten het perceel; teken binnen de perceelsgrens.",
+  },
+}
+
+/** A message in the live region under the toolbar, in place of the hint for the mode. */
+interface Notice {
+  tone: "info" | "warning"
+  text: string
+}
+
+/** The mode to continue in with a zone: editing, unless there is no zone or it cannot be edited. */
+const modeFor = (zone: Area | null): ZoneEditorMode => (zone && !hasHoles(zone) ? "edit" : "draw")
 
 /**
  * Days before the start of a grazing in which earlier zones on the field count as recently grazed:
@@ -53,6 +89,8 @@ interface EarlierZone {
 interface ZonesData {
   b_geometry: Area
   zones: EarlierZone[]
+  /** The earlier zones could not be loaded; drawing still works. */
+  zonesFailed: boolean
 }
 
 const formatHa = (value: number) =>
@@ -104,8 +142,16 @@ export function ZoneEditor({
     void load(url)
   }, [load, url])
 
-  const [mode, setMode] = useState<ZoneEditorMode>(zone ? "edit" : "draw")
+  const [mode, setMode] = useState<ZoneEditorMode>(() => modeFor(zone))
   const [showStripBuilder, setShowStripBuilder] = useState(false)
+  // Earlier zones, newest last, for "Ongedaan maken"
+  const [history, setHistory] = useState<(Area | null)[]>([])
+  // Whether the user is drawing a zone: the first corner is placed, the zone is not finished yet
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [notice, setNotice] = useState<Notice | null>(null)
+  const [highlightedZone, setHighlightedZone] = useState<Area | null>(null)
+  const [showAllEarlier, setShowAllEarlier] = useState(false)
+  const mapControlsRef = useRef<ZoneMapControls | null>(null)
 
   const field = fetcher.data?.b_geometry ?? null
   const earlierZones = useMemo(
@@ -126,77 +172,130 @@ export function ZoneEditor({
   }, [earlierZones, startDate])
 
   const zoneArea = field && zone ? zoneAreaWithinField(zone, field) : null
+  const zoneHasHoles = zone !== null && hasHoles(zone)
+  const canUndo = isDrawing || history.length > 0
+
+  /** Changes the zone and remembers the previous one for "Ongedaan maken". */
+  const changeZone = (next: Area | null) => {
+    if (next !== zone && !sameZone(next, zone)) setHistory((h) => pushUndo(h, zone))
+    onZoneChange(next)
+  }
+
+  /** Switches the mode from the toolbar; leaving the draw mode cancels an unfinished drawing. */
+  const switchMode = (next: ZoneEditorMode) => {
+    if (next !== mode) setIsDrawing(false)
+    setMode(next)
+    setNotice(null)
+  }
+
+  const undo = () => {
+    // While drawing, undo removes the last corner
+    if (isDrawing) {
+      mapControlsRef.current?.undoCorner()
+      return
+    }
+    if (history.length === 0) return
+    const previous = history[history.length - 1]
+    setHistory(history.slice(0, -1))
+    onZoneChange(previous)
+    setMode(modeFor(previous))
+    setNotice({ tone: "info", text: "Laatste wijziging ongedaan gemaakt." })
+  }
 
   if (fetcher.data === undefined) {
-    return <Skeleton className="h-[320px] w-full rounded-lg" />
+    return <Skeleton className={cn(MAP_HEIGHT_CLASS, "w-full rounded-lg")} />
   }
+
+  const hint =
+    mode === "draw"
+      ? zone
+        ? `${REPLACE_HINT} ${DRAW_HINT}`
+        : DRAW_HINT
+      : mode === "edit"
+        ? EDIT_HINT
+        : ""
+  const startYear = new Date(startDate).getFullYear()
+  const shownEarlierZones = showAllEarlier
+    ? earlierZones
+    : earlierZones.slice(0, EARLIER_ZONES_SHOWN)
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === "draw" ? "default" : "outline"}
-            aria-pressed={mode === "draw"}
-            onClick={() => setMode("draw")}
-            className="gap-1.5 text-xs"
-          >
-            <PenLine className="h-3.5 w-3.5" />
-            <span>Tekenen</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === "edit" ? "default" : "outline"}
-            aria-pressed={mode === "edit"}
-            onClick={() => setMode("edit")}
-            disabled={!zone}
-            className="gap-1.5 text-xs"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            <span>Aanpassen</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={showStripBuilder ? "default" : "outline"}
-            aria-pressed={showStripBuilder}
-            onClick={() => setShowStripBuilder((show) => !show)}
-            className="gap-1.5 text-xs"
-          >
-            <Rows3 className="h-3.5 w-3.5" />
-            <span>Strook berekenen</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              onZoneChange(null)
-              setMode("draw")
-            }}
-            disabled={!zone}
-            className="gap-1.5 text-xs"
-          >
-            <Eraser className="h-3.5 w-3.5" />
-            <span>Wissen</span>
-          </Button>
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TooltipProvider>
+            <div className="flex flex-wrap gap-1.5">
+              <ToolbarButton
+                variant={mode === "draw" ? "default" : "outline"}
+                aria-pressed={mode === "draw"}
+                onClick={() => switchMode("draw")}
+              >
+                <PenLine className="h-3.5 w-3.5" />
+                <span>Tekenen</span>
+              </ToolbarButton>
+              <ToolbarButton
+                variant={mode === "edit" ? "default" : "outline"}
+                aria-pressed={mode === "edit"}
+                onClick={() => switchMode("edit")}
+                disabled={!zone || zoneHasHoles}
+                disabledReason={zoneHasHoles ? HOLE_REASON : NO_ZONE_REASON}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>Aanpassen</span>
+              </ToolbarButton>
+              <ToolbarButton
+                variant={showStripBuilder ? "default" : "outline"}
+                aria-pressed={showStripBuilder}
+                onClick={() => setShowStripBuilder((show) => !show)}
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+                <span>Strook berekenen</span>
+              </ToolbarButton>
+              <ToolbarButton
+                variant="ghost"
+                onClick={() => {
+                  changeZone(null)
+                  switchMode("draw")
+                }}
+                disabled={!zone}
+                disabledReason={NO_ZONE_REASON}
+              >
+                <Eraser className="h-3.5 w-3.5" />
+                <span>Wissen</span>
+              </ToolbarButton>
+              <ToolbarButton
+                variant="ghost"
+                onClick={undo}
+                disabled={!canUndo}
+                disabledReason={NOTHING_TO_UNDO_REASON}
+                aria-keyshortcuts="Control+Z"
+              >
+                <Undo2 className="h-3.5 w-3.5" />
+                <span>Ongedaan maken</span>
+              </ToolbarButton>
+            </div>
+          </TooltipProvider>
+          <p className="text-muted-foreground text-xs" aria-live="polite">
+            {zoneArea !== null ? (
+              <span key="area">
+                Zone: <strong className="text-foreground">{formatHa(zoneArea)} ha</strong> binnen
+                het perceel
+              </span>
+            ) : (
+              <span key="none">Nog geen zone.</span>
+            )}
+          </p>
         </div>
-        <p className="text-muted-foreground text-xs" aria-live="polite">
-          {zoneArea !== null ? (
-            <span key="area">
-              Zone: <strong className="text-foreground">{formatHa(zoneArea)} ha</strong> binnen het
-              perceel
-            </span>
-          ) : (
-            <span key="hint">
-              {mode === "draw"
-                ? "Klik op de kaart om de hoeken te zetten; dubbelklik om af te ronden."
-                : "Nog geen zone."}
-            </span>
+        <p
+          className={cn(
+            "text-xs",
+            notice?.tone === "warning" ? "text-amber-700" : "text-muted-foreground",
           )}
+          aria-live="polite"
+        >
+          <span key={notice ? `notice-${notice.text}` : `hint-${mode}`}>
+            {notice ? notice.text : hint}
+          </span>
         </p>
       </div>
 
@@ -206,17 +305,30 @@ export function ZoneEditor({
       </p>
 
       {field ? (
-        <div className="overflow-hidden rounded-lg border">
-          <Suspense fallback={<Skeleton className="h-[320px] w-full" />}>
-            <ZoneEditorMap
-              fieldGeometry={field}
-              zone={zone}
-              onZoneChange={onZoneChange}
-              otherZones={recentZones}
-              mode={mode}
-              onDrawFinished={() => setMode("edit")}
-            />
-          </Suspense>
+        <div className="space-y-1.5">
+          <div className="overflow-hidden rounded-lg border">
+            <Suspense fallback={<Skeleton className={cn(MAP_HEIGHT_CLASS, "w-full")} />}>
+              <ZoneEditorMap
+                fieldGeometry={field}
+                zone={zone}
+                onZoneChange={(next) => {
+                  changeZone(next)
+                  setNotice(null)
+                  // A zone that can no longer be edited (deleted, or with a hole after clipping)
+                  if (mode === "edit" && modeFor(next) !== "edit") setMode("draw")
+                }}
+                otherZones={recentZones}
+                highlightedZone={highlightedZone}
+                mode={mode}
+                onDrawFinished={(drawn) => setMode(modeFor(drawn))}
+                onNotice={(kind) => setNotice(NOTICES[kind])}
+                onDrawingChange={setIsDrawing}
+                onUndo={undo}
+                controlsRef={mapControlsRef}
+              />
+            </Suspense>
+          </div>
+          <ZoneLegend showRecent={recentZones.length > 0} />
         </div>
       ) : (
         <p className="text-muted-foreground text-xs">
@@ -232,37 +344,136 @@ export function ZoneEditor({
           hoursPerDay={hoursPerDay}
           days={days}
           onStrip={(strip) => {
-            onZoneChange(strip)
-            setMode("edit")
+            const hadZone = zone !== null
+            changeZone(strip)
+            switchMode(modeFor(strip))
+            const made = `Strook van ${formatHa(zoneAreaWithinField(strip, field))} ha gemaakt`
+            setNotice({
+              tone: "info",
+              text: hadZone ? `${made}; Ongedaan maken zet de vorige zone terug.` : `${made}.`,
+            })
           }}
         />
+      )}
+
+      {fetcher.data.zonesFailed && (
+        <p className="text-xs text-amber-700">
+          Eerder gebruikte zones konden niet worden geladen. Je kunt wel een zone tekenen.
+        </p>
       )}
 
       {earlierZones.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-xs font-medium">Eerder gebruikte zones</p>
           <div className="flex flex-wrap gap-1.5">
-            {earlierZones.slice(0, 8).map((earlier) => (
+            {shownEarlierZones.map((earlier) => {
+              const isCurrent = sameZone(earlier.l_grazing_geometry_zone, zone)
+              const used = new Date(earlier.last_used)
+              const label = [
+                `${formatHa(earlier.l_grazing_area_grazed)} ha`,
+                format(used, used.getFullYear() === startYear ? "d MMM" : "d MMM yyyy", {
+                  locale: nl,
+                }),
+                earlier.l_herd_names.join(", "),
+                earlier.usage_count > 1 ? `${earlier.usage_count}×` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")
+              return (
+                <Button
+                  key={`${earlier.last_used}-${earlier.l_grazing_area_grazed}`}
+                  type="button"
+                  size="sm"
+                  variant={isCurrent ? "default" : "outline"}
+                  aria-pressed={isCurrent}
+                  onClick={() => {
+                    changeZone(earlier.l_grazing_geometry_zone)
+                    switchMode(modeFor(earlier.l_grazing_geometry_zone))
+                  }}
+                  onMouseEnter={() => setHighlightedZone(earlier.l_grazing_geometry_zone)}
+                  onMouseLeave={() => setHighlightedZone(null)}
+                  onFocus={() => setHighlightedZone(earlier.l_grazing_geometry_zone)}
+                  onBlur={() => setHighlightedZone(null)}
+                  className="h-auto px-2 py-1 text-left text-xs leading-tight"
+                >
+                  <span>{label}</span>
+                </Button>
+              )
+            })}
+            {earlierZones.length > EARLIER_ZONES_SHOWN && (
               <Button
-                key={`${earlier.last_used}-${earlier.l_grazing_area_grazed}`}
                 type="button"
                 size="sm"
-                variant={sameZone(earlier.l_grazing_geometry_zone, zone) ? "default" : "outline"}
-                onClick={() => {
-                  onZoneChange(earlier.l_grazing_geometry_zone)
-                  setMode("edit")
-                }}
-                className="h-auto px-2 py-1 text-left text-xs leading-tight"
+                variant="ghost"
+                aria-expanded={showAllEarlier}
+                onClick={() => setShowAllEarlier((show) => !show)}
+                className="h-auto px-2 py-1 text-xs leading-tight"
               >
-                <span>
-                  {formatHa(earlier.l_grazing_area_grazed)} ha ·{" "}
-                  {format(new Date(earlier.last_used), "d MMM", { locale: nl })}
-                  {earlier.usage_count > 1 ? ` · ${earlier.usage_count}×` : ""}
+                <span key={showAllEarlier ? "less" : "more"}>
+                  {showAllEarlier ? "Minder tonen" : "Meer tonen"}
                 </span>
               </Button>
-            ))}
+            )}
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A toolbar button. A disabled button stays focusable and explains in a tooltip why it is
+ * disabled.
+ */
+function ToolbarButton({
+  disabled,
+  disabledReason,
+  className,
+  ...props
+}: ComponentProps<typeof Button> & { disabledReason?: string }) {
+  return (
+    <Tooltip disabled={!disabled || !disabledReason}>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            size="sm"
+            disabled={disabled}
+            focusableWhenDisabled
+            className={cn(
+              "gap-1.5 text-xs aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+              className,
+            )}
+            {...props}
+          />
+        }
+      />
+      <TooltipContent>{disabledReason}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** Explains the colours on the zone map. */
+function ZoneLegend({ showRecent }: { showRecent: boolean }) {
+  return (
+    <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+      <span className="inline-flex items-center gap-1.5">
+        <span
+          aria-hidden="true"
+          className="size-3 rounded-sm border-2"
+          style={{ backgroundColor: `${ZONE_COLOR}4d`, borderColor: ZONE_OUTLINE_COLOR }}
+        />
+        <span>Zone</span>
+      </span>
+      {showRecent && (
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="size-3 rounded-sm border border-dashed"
+            style={{ backgroundColor: `${OTHER_ZONE_COLOR}2e`, borderColor: OTHER_ZONE_COLOR }}
+          />
+          <span>{`Stroken van de afgelopen ${STRIP_ROTATION_DAYS} dagen`}</span>
+        </span>
       )}
     </div>
   )

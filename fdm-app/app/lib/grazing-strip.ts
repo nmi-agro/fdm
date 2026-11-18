@@ -317,3 +317,32 @@ export function clipZoneToField(zone: Area, field: Area): Area | null {
   if (!clipped) return null
   return area(zone) - area(clipped) < NEGLIGIBLE_AREA_M2 ? zone : clipped
 }
+
+/** How clipping to the field changed a drawn zone. */
+export type ClipFeedback = "inside" | "clipped" | "outside"
+
+/**
+ * Tells how clipping to the field changed a drawn zone, so the user can be told when part of it,
+ * or all of it, was cut off. A difference below 0,5 m² counts as rounding, as in
+ * {@link clipZoneToField}.
+ *
+ * @param drawn - The zone as drawn.
+ * @param clipped - The zone after {@link clipZoneToField}.
+ * @returns `"inside"` when nothing was cut off, `"clipped"` when a part outside the field was cut
+ *   off, and `"outside"` when the zone lay entirely outside the field.
+ */
+export function clipFeedback(drawn: Area, clipped: Area | null): ClipFeedback {
+  if (!clipped) return "outside"
+  return area(drawn) - area(clipped) < NEGLIGIBLE_AREA_M2 ? "inside" : "clipped"
+}
+
+/**
+ * Whether an area has a hole: a polygon with an inner ring.
+ *
+ * @param target - A Polygon or MultiPolygon.
+ * @returns `true` when one of its polygons has more than one ring.
+ */
+export function hasHoles(target: Area): boolean {
+  const polygons = target.type === "Polygon" ? [target.coordinates] : target.coordinates
+  return polygons.some((rings) => rings.length > 1)
+}

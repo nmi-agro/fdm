@@ -7,7 +7,8 @@
 
 import type { FeatureCollection, MultiPolygon, Polygon, Position } from "geojson"
 import type { Map as MaplibreMap } from "maplibre-gl"
-import { useEffect, useMemo, useRef } from "react"
+import { Scan } from "lucide-react"
+import { type RefObject, useEffect, useMemo, useRef } from "react"
 import { Layer, type LayerProps, NavigationControl, Source, useMap } from "react-map-gl/maplibre"
 import {
   type GeoJSONStoreFeatures,
@@ -19,18 +20,49 @@ import {
 } from "terra-draw"
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { AtlasControls, SingleAtlasButton } from "~/components/blocks/atlas/atlas-controls"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { type Area, clipZoneToField, snapToEdges } from "~/lib/grazing-strip"
+import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import {
+  type Area,
+  clipFeedback,
+  clipZoneToField,
+  hasHoles,
+  snapToEdges,
+} from "~/lib/grazing-strip"
+import { OTHER_ZONE_COLOR, ZONE_COLOR, ZONE_OUTLINE_COLOR } from "./zone-colors"
 
 /** What the user is doing on the map. */
 export type ZoneEditorMode = "view" | "draw" | "edit"
 
-const ZONE_COLOR = "#10b981"
-const ZONE_OUTLINE_COLOR = "#047857"
-const OTHER_ZONE_COLOR = "#64748b"
+/**
+ * Feedback on a zone the user drew or edited: part of it lay outside the field and was cut off
+ * (`"clipped"`), or all of it lay outside the field and it was not used (`"outside"`).
+ */
+export type ZoneNotice = "clipped" | "outside"
+
+/** Actions the editor can run on the map from outside, such as from its toolbar. */
+export interface ZoneMapControls {
+  /** Removes the last corner of the zone being drawn; `false` when no zone is being drawn. */
+  undoCorner: () => boolean
+}
+
+type FeatureId = Parameters<TerraDraw["selectFeature"]>[0]
+
+/** The height of the map: taller on a laptop, but leaving room for the dialog on a small screen. */
+const DEFAULT_HEIGHT = "min(420px, 55vh)"
+
+/**
+ * Distance in screen pixels within which a click on the first or the last corner finishes a
+ * drawing. Just above the snap tolerance (12 px), so a corner that snaps to the field near the
+ * start of a narrow strip does not finish the strip early, as terra-draw's default of 40 px did.
+ */
+const FINISH_DISTANCE_PX = 16
+
+/** Property terra-draw sets on the polygon that is being drawn. */
+const CURRENTLY_DRAWING = "currentlyDrawing"
 
 const otherZonesFill: LayerProps = {
   id: "grazing-other-zones-fill",
@@ -42,6 +74,30 @@ const otherZonesOutline: LayerProps = {
   id: "grazing-other-zones-outline",
   type: "line",
   paint: { "line-color": OTHER_ZONE_COLOR, "line-width": 1.5, "line-dasharray": [2, 1] },
+}
+
+const highlightFill: LayerProps = {
+  id: "grazing-zone-highlight-fill",
+  type: "fill",
+  paint: { "fill-color": ZONE_COLOR, "fill-opacity": 0.2 },
+}
+
+const highlightOutline: LayerProps = {
+  id: "grazing-zone-highlight-outline",
+  type: "line",
+  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": 2.5, "line-dasharray": [2, 1] },
+}
+
+const staticZoneFill: LayerProps = {
+  id: "grazing-zone-static-fill",
+  type: "fill",
+  paint: { "fill-color": ZONE_COLOR, "fill-opacity": 0.3 },
+}
+
+const staticZoneOutline: LayerProps = {
+  id: "grazing-zone-static-outline",
+  type: "line",
+  paint: { "line-color": ZONE_OUTLINE_COLOR, "line-width": 2 },
 }
 
 function toFeatureCollection(geometries: Area[]): FeatureCollection {
@@ -107,9 +163,22 @@ export interface ZoneEditorMapProps {
   onZoneChange: (zone: Area | null) => void
   /** Other zones to show for reference, such as earlier strips. */
   otherZones?: Area[]
+  /** A zone to highlight, such as an earlier zone the user points at. */
+  highlightedZone?: Area | null
   mode: ZoneEditorMode
-  /** Called when the user finishes drawing, so the editor can switch to editing. */
-  onDrawFinished?: () => void
+  /**
+   * Called when the user finishes drawing a new zone, after `onZoneChange` with the same zone, so
+   * the editor can switch to editing.
+   */
+  onDrawFinished?: (zone: Area) => void
+  /** Called with feedback on a zone the user drew or edited. */
+  onNotice?: (notice: ZoneNotice) => void
+  /** Called when the user starts or stops drawing a zone (the first corner is placed, or the drawing is finished or cancelled). */
+  onDrawingChange?: (drawing: boolean) => void
+  /** Called on Ctrl+Z (or Cmd+Z) on the map while no zone is being drawn. */
+  onUndo?: () => void
+  /** Receives the actions the editor can run on the map. */
+  controlsRef?: RefObject<ZoneMapControls | null>
   height?: string
 }
 
@@ -118,12 +187,26 @@ export default function ZoneEditorMap({
   zone,
   onZoneChange,
   otherZones = [],
+  highlightedZone = null,
   mode,
   onDrawFinished,
-  height = "320px",
+  onNotice,
+  onDrawingChange,
+  onUndo,
+  controlsRef,
+  height = DEFAULT_HEIGHT,
 }: ZoneEditorMapProps) {
   const fieldData = useMemo(() => toFeatureCollection([fieldGeometry]), [fieldGeometry])
   const otherData = useMemo(() => toFeatureCollection(otherZones), [otherZones])
+  const highlightData = useMemo(
+    () => (highlightedZone ? toFeatureCollection([highlightedZone]) : null),
+    [highlightedZone],
+  )
+  // terra-draw does not accept a polygon with a hole, so such a zone is shown read-only
+  const staticZoneData = useMemo(
+    () => (zone && hasHoles(zone) ? toFeatureCollection([zone]) : null),
+    [zone],
+  )
   const initialViewState = useMemo(
     () => ({ ...getViewState(fieldData), fitBoundsOptions: { padding: 24 } }),
     [fieldData],
@@ -132,15 +215,18 @@ export default function ZoneEditorMap({
 
   return (
     // The editor is a drawing tool in a dialog, not a map on a scrolling page, so scrolling zooms
-    // the map (also with Ctrl) instead of needing the cooperative gestures of the other small maps
+    // the map (also with Ctrl) instead of needing the cooperative gestures of the other small maps.
+    // terra-draw sets the cursor (crosshair, pointer over a closing corner), so the map leaves it.
     <Atlas
       initialViewState={initialViewState}
       interactive={true}
       useStoredViewState={false}
       updateFromInitialViewState={true}
+      manageCursor={false}
       style={{ height, width: "100%" }}
     >
       <NavigationControl position="top-right" showCompass={false} />
+      <FitFieldControl viewState={initialViewState} />
       <MapTilerAttribution />
       <FieldsSourceNotClickable id="grazing-zone-field" fieldsData={fieldData}>
         <Layer {...fieldOutline} />
@@ -151,6 +237,18 @@ export default function ZoneEditorMap({
           <Layer {...otherZonesOutline} />
         </Source>
       )}
+      {staticZoneData && (
+        <Source id="grazing-zone-static" type="geojson" data={staticZoneData}>
+          <Layer {...staticZoneFill} />
+          <Layer {...staticZoneOutline} />
+        </Source>
+      )}
+      {highlightData && (
+        <Source id="grazing-zone-highlight" type="geojson" data={highlightData}>
+          <Layer {...highlightFill} />
+          <Layer {...highlightOutline} />
+        </Source>
+      )}
       <ZoneDrawing
         fieldGeometry={fieldGeometry}
         otherZones={otherZones}
@@ -158,18 +256,42 @@ export default function ZoneEditorMap({
         onZoneChange={onZoneChange}
         mode={mode}
         onDrawFinished={onDrawFinished}
+        onNotice={onNotice}
+        onDrawingChange={onDrawingChange}
+        onUndo={onUndo}
+        controlsRef={controlsRef}
       />
     </Atlas>
   )
 }
 
+/** Map button that brings the whole field back into view. */
+function FitFieldControl({ viewState }: { viewState: AtlasViewState }) {
+  const { current: map } = useMap()
+  return (
+    <AtlasControls position="top-right">
+      <SingleAtlasButton
+        label="Perceel in beeld"
+        Icon={Scan}
+        onClick={() => {
+          if (viewState.bounds) map?.fitBounds(viewState.bounds, viewState.fitBoundsOptions)
+        }}
+      />
+    </AtlasControls>
+  )
+}
+
 /**
  * Connects terra-draw to the map. terra-draw is an external system with its own state: the zone
- * is pushed into it when it changes from outside (reuse, strip builder), and read back from it when
- * the user finishes a drawing or an edit.
+ * is pushed into it when it changes from outside (reuse, strip builder, undo), and read back from
+ * it when the user finishes a drawing or an edit.
  *
- * Drawn and dragged points snap to the corners and edges of the field and of the other zones, and
- * a finished zone is clipped to the field, so a zone never extends beyond the field.
+ * Drawn and dragged points snap to the corners and edges of the field and of the other zones (and,
+ * while drawing, of the current zone), unless Alt is held down. A finished zone is clipped to the
+ * field, so a zone never extends beyond the field. A newly drawn zone replaces the current one.
+ *
+ * While a zone is being drawn, Escape cancels the drawing (instead of closing the dialog) and
+ * Ctrl+Z removes the last corner; otherwise Ctrl+Z on the map undoes the last zone change.
  */
 function ZoneDrawing({
   fieldGeometry,
@@ -178,50 +300,111 @@ function ZoneDrawing({
   onZoneChange,
   mode,
   onDrawFinished,
+  onNotice,
+  onDrawingChange,
+  onUndo,
+  controlsRef,
 }: Pick<
   ZoneEditorMapProps,
-  "fieldGeometry" | "otherZones" | "zone" | "onZoneChange" | "mode" | "onDrawFinished"
+  | "fieldGeometry"
+  | "otherZones"
+  | "zone"
+  | "onZoneChange"
+  | "mode"
+  | "onDrawFinished"
+  | "onNotice"
+  | "onDrawingChange"
+  | "onUndo"
+  | "controlsRef"
 >) {
   const { current: mapRef } = useMap()
   const drawRef = useRef<TerraDraw | null>(null)
-  // Runs a programmatic update of terra-draw without reading its changes back
-  const loadingRef = useRef<((load: () => void) => void) | null>(null)
+  // Loads a zone from outside into terra-draw without reading the resulting changes back
+  const applyZoneRef = useRef<((zone: Area | null) => void) | null>(null)
+  // Removes the last corner of the zone being drawn
+  const undoCornerRef = useRef<() => boolean>(() => false)
   // The zone terra-draw currently holds, so a zone read from it is not pushed back into it
   const loadedRef = useRef<Area | null>(null)
   // Latest props, read by the terra-draw callbacks and when terra-draw starts
-  const latestRef = useRef({ fieldGeometry, otherZones, zone, mode, onZoneChange, onDrawFinished })
+  const latestRef = useRef({
+    fieldGeometry,
+    otherZones,
+    zone,
+    mode,
+    onZoneChange,
+    onDrawFinished,
+    onNotice,
+    onDrawingChange,
+    onUndo,
+  })
   useEffect(() => {
-    latestRef.current = { fieldGeometry, otherZones, zone, mode, onZoneChange, onDrawFinished }
+    latestRef.current = {
+      fieldGeometry,
+      otherZones,
+      zone,
+      mode,
+      onZoneChange,
+      onDrawFinished,
+      onNotice,
+      onDrawingChange,
+      onUndo,
+    }
   })
 
   // Start terra-draw once the map is available
   useEffect(() => {
     const map = mapRef?.getMap()
     if (!map) return
+    const container = map.getContainer()
+
+    // Holding Alt switches snapping off. terra-draw only sees keys while the map has focus, so the
+    // key is also followed on the window.
+    let altDown = false
+    const onAltKey = (event: KeyboardEvent) => {
+      if (event.key !== "Alt") return
+      altDown = event.type === "keydown"
+      // Keep the browser from moving focus to its menu bar while Alt is used on the map
+      if (container.contains(event.target as Node)) event.preventDefault()
+    }
+    const onWindowBlur = () => {
+      altDown = false
+    }
 
     const snapToField: SnapToCustom = (event, context) => {
-      const { fieldGeometry, otherZones } = latestRef.current
-      const snapped = snapToEdges(
-        [event.lng, event.lat],
-        [fieldGeometry, ...otherZones],
-        context.project,
-      )
+      if (altDown || event.heldKeys.includes("Alt")) return undefined
+      const { fieldGeometry, otherZones, zone, mode } = latestRef.current
+      // While a new zone is drawn, the current zone stays visible as a reference to snap to
+      const targets =
+        mode === "draw" && zone
+          ? [fieldGeometry, ...otherZones, zone]
+          : [fieldGeometry, ...otherZones]
+      const snapped = snapToEdges([event.lng, event.lat], targets, context.project)
       return snapped ? roundPosition(snapped) : undefined
     }
+
+    const polygonMode = new TerraDrawPolygonMode({
+      pointerDistance: FINISH_DISTANCE_PX,
+      // Escape is handled below, so that it cancels the drawing without closing the dialog
+      keyEvents: { cancel: null, finish: "Enter" },
+      styles: {
+        fillColor: ZONE_COLOR,
+        fillOpacity: 0.3,
+        outlineColor: ZONE_OUTLINE_COLOR,
+        outlineWidth: 2,
+        // The point a corner snaps to, clearly visible on aerial photos and maps alike
+        snappingPointColor: "#ffffff",
+        snappingPointWidth: 6,
+        snappingPointOutlineColor: ZONE_OUTLINE_COLOR,
+        snappingPointOutlineWidth: 3,
+      },
+      validation: (feature) => ValidateNotSelfIntersecting(feature),
+      snapping: { toCustom: snapToField },
+    })
 
     const draw = new TerraDraw({
       adapter: new TerraDrawMapLibreGLAdapter({ map }),
       modes: [
-        new TerraDrawPolygonMode({
-          styles: {
-            fillColor: ZONE_COLOR,
-            fillOpacity: 0.3,
-            outlineColor: ZONE_OUTLINE_COLOR,
-            outlineWidth: 2,
-          },
-          validation: (feature) => ValidateNotSelfIntersecting(feature),
-          snapping: { toCustom: snapToField },
-        }),
+        polygonMode,
         new TerraDrawSelectMode({
           flags: {
             polygon: {
@@ -247,52 +430,169 @@ function ZoneDrawing({
 
     // True while a zone from outside is loaded, so the resulting changes are not read back
     let loading = false
+    // Number of polygons of the zone in terra-draw, to recognise a part deleted in the select mode
+    let zoneCount = 0
+    // The polygon being drawn, if any
+    let drawingId: FeatureId | undefined
 
-    const readZone = () => {
-      if (loading) return
-      const polygons = draw
-        .getSnapshot()
-        .filter((feature) => feature.geometry.type === "Polygon")
-        .map((feature) => feature.geometry as Polygon)
-      const drawn = fromPolygons(polygons)
-      loadedRef.current = drawn
-      // When the zone extends beyond the field, the clipped zone differs from what terra-draw
-      // holds, so the zone effect below loads the clipped shape into terra-draw
-      const clipped = drawn ? clipZoneToField(drawn, latestRef.current.fieldGeometry) : null
-      latestRef.current.onZoneChange(clipped)
+    const isStarted = () => drawRef.current === draw
+    const isDrawing = () => isStarted() && draw.getModeState() === "drawing"
+
+    const setDrawingId = (id: FeatureId | undefined) => {
+      const changed = (id === undefined) !== (drawingId === undefined)
+      drawingId = id
+      if (changed) latestRef.current.onDrawingChange?.(id !== undefined)
     }
 
-    draw.on("finish", (_id, context) => {
-      readZone()
-      if (context.action === "draw") latestRef.current.onDrawFinished?.()
+    /** The polygons of the zone in terra-draw, without one that is still being drawn. */
+    const zonePolygons = () =>
+      draw
+        .getSnapshot()
+        .filter(
+          (feature) =>
+            feature.geometry.type === "Polygon" && !feature.properties[CURRENTLY_DRAWING],
+        )
+        .map((feature) => feature.geometry as Polygon)
+
+    const applyZone = (next: Area | null) => {
+      loading = true
+      try {
+        loadZone(draw, next)
+      } finally {
+        loading = false
+      }
+      loadedRef.current = next
+      zoneCount = zonePolygons().length
+      // Keep the zone selected, also after it was clipped and reloaded, so it can be edited at once
+      if (latestRef.current.mode === "edit") selectZone(draw)
+    }
+
+    // Reads the zone back after an edit in the select mode
+    const readZone = () => {
+      const polygons = zonePolygons()
+      zoneCount = polygons.length
+      const drawn = fromPolygons(polygons)
+      const { fieldGeometry, onZoneChange, onNotice } = latestRef.current
+      const clipped = drawn ? clipZoneToField(drawn, fieldGeometry) : null
+      if (drawn && !clipped) {
+        // Moved entirely outside the field: keep the zone as it was. terra-draw is still handling
+        // the edit, so reload the zone once it is done.
+        queueMicrotask(() => {
+          if (isStarted()) applyZone(latestRef.current.zone)
+        })
+        onNotice?.("outside")
+        return
+      }
+      // When the zone extends beyond the field, the clipped zone differs from what terra-draw
+      // holds, so the zone effect below loads the clipped shape into terra-draw
+      loadedRef.current = drawn
+      onZoneChange(clipped)
+      if (drawn && clipFeedback(drawn, clipped) === "clipped") onNotice?.("clipped")
+    }
+
+    // Reads a newly drawn polygon, which replaces the zone
+    const readDrawn = (id: FeatureId) => {
+      const feature = draw.getSnapshotFeature(id)
+      if (feature?.geometry.type !== "Polygon") return
+      const drawn = feature.geometry as Polygon
+      const { fieldGeometry, onZoneChange, onDrawFinished, onNotice } = latestRef.current
+      const clipped = clipZoneToField(drawn, fieldGeometry)
+      if (!clipped) {
+        // Entirely outside the field: keep the current zone and let the user draw again. terra-draw
+        // is still finishing the drawing, so remove it once that is done.
+        queueMicrotask(() => {
+          if (!isStarted() || !draw.hasFeature(id)) return
+          loading = true
+          try {
+            draw.removeFeatures([id])
+          } finally {
+            loading = false
+          }
+        })
+        onNotice?.("outside")
+        return
+      }
+      // terra-draw still holds the previous zone next to the new one. `loadedRef` keeps pointing at
+      // the previous zone, so the zone effect below loads only the new zone into terra-draw.
+      onZoneChange(clipped)
+      if (clipFeedback(drawn, clipped) === "clipped") onNotice?.("clipped")
+      onDrawFinished?.(clipped)
+    }
+
+    draw.on("finish", (id, context) => {
+      if (loading) return
+      if (context.action === "draw") {
+        if (id === drawingId) setDrawingId(undefined)
+        readDrawn(id)
+      } else {
+        readZone()
+      }
     })
-    draw.on("change", (_ids, type) => {
-      if (type === "delete") readZone()
+    draw.on("change", (ids, type) => {
+      if (type === "create" && drawingId === undefined) {
+        const id = ids.find((id) => draw.getSnapshotFeature(id)?.properties[CURRENTLY_DRAWING])
+        if (id !== undefined) setDrawingId(id)
+      } else if (type === "delete") {
+        if (drawingId !== undefined && ids.includes(drawingId)) {
+          // The drawing was cancelled or its last corner undone
+          setDrawingId(undefined)
+        } else if (!loading && draw.getMode() === "select" && zonePolygons().length !== zoneCount) {
+          // A part of the zone was deleted; guidance points come and go all the time
+          readZone()
+        }
+      }
     })
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isDrawing()) {
+        // The dialog closes on Escape at the document; stop the key here, so it only cancels the
+        // drawing. Without a drawing, Escape still closes the dialog.
+        event.preventDefault()
+        event.stopPropagation()
+        draw.setMode("polygon")
+        return
+      }
+      const isUndo =
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "z"
+      if (!isUndo || !isStarted() || !container.contains(event.target as Node)) return
+      event.preventDefault()
+      if (isDrawing()) polygonMode.undo()
+      else latestRef.current.onUndo?.()
+    }
+
+    undoCornerRef.current = () => {
+      if (!isDrawing()) return false
+      polygonMode.undo()
+      return true
+    }
 
     const start = () => {
       draw.start()
       drawRef.current = draw
-      loading = true
-      loadZone(draw, latestRef.current.zone)
-      loading = false
-      loadedRef.current = latestRef.current.zone
       draw.setMode(toDrawMode(latestRef.current.mode))
+      applyZone(latestRef.current.zone)
     }
-    loadingRef.current = (load: () => void) => {
-      loading = true
-      try {
-        load()
-      } finally {
-        loading = false
-      }
-    }
+    applyZoneRef.current = applyZone
     if (map.loaded()) start()
     else map.once("load", start)
 
+    // Capture phase on the document, so Escape is seen before the dialog sees it
+    document.addEventListener("keydown", onKeyDown, true)
+    window.addEventListener("keydown", onAltKey)
+    window.addEventListener("keyup", onAltKey)
+    window.addEventListener("blur", onWindowBlur)
+
     return () => {
       map.off("load", start)
-      loadingRef.current = null
+      document.removeEventListener("keydown", onKeyDown, true)
+      window.removeEventListener("keydown", onAltKey)
+      window.removeEventListener("keyup", onAltKey)
+      window.removeEventListener("blur", onWindowBlur)
+      applyZoneRef.current = null
+      undoCornerRef.current = () => false
       if (drawRef.current === draw) {
         drawRef.current = null
         // When the dialog closes, the map removes its sources before this cleanup runs; stopping
@@ -305,17 +605,27 @@ function ZoneDrawing({
     }
   }, [mapRef])
 
-  // Push a zone that changed from outside (reuse, strip builder) into terra-draw
+  // Let the editor undo the last corner from its toolbar
   useEffect(() => {
-    const draw = drawRef.current
-    if (!draw || zone === loadedRef.current) return
-    loadedRef.current = zone
-    loadingRef.current?.(() => loadZone(draw, zone))
+    if (!controlsRef) return
+    controlsRef.current = { undoCorner: () => undoCornerRef.current() }
+    return () => {
+      controlsRef.current = null
+    }
+  }, [controlsRef])
+
+  // Push a zone that changed from outside (reuse, strip builder, undo) into terra-draw
+  useEffect(() => {
+    if (!drawRef.current || zone === loadedRef.current) return
+    applyZoneRef.current?.(zone)
   }, [zone])
 
-  // Follow the mode chosen in the toolbar
+  // Follow the mode chosen in the toolbar; in edit mode, select the zone so it can be edited at once
   useEffect(() => {
-    drawRef.current?.setMode(toDrawMode(mode))
+    const draw = drawRef.current
+    if (!draw) return
+    draw.setMode(toDrawMode(mode))
+    if (mode === "edit") selectZone(draw)
   }, [mode])
 
   return null
@@ -325,17 +635,28 @@ function toDrawMode(mode: ZoneEditorMode): string {
   return mode === "draw" ? "polygon" : mode === "edit" ? "select" : "static"
 }
 
-/** Replaces what terra-draw holds with the polygons of the zone. */
+/**
+ * Replaces what terra-draw holds with the polygons of the zone. terra-draw does not accept a
+ * polygon with a hole, so such a zone is not loaded; the map shows it read-only instead.
+ */
 function loadZone(draw: TerraDraw, zone: Area | null): void {
   draw.clear()
+  if (!zone || hasHoles(zone)) return
   const features = toPolygons(zone).map(
     (geometry) =>
       ({ type: "Feature", geometry, properties: { mode: "polygon" } }) as GeoJSONStoreFeatures,
   )
-  if (features.length === 0) return
   // terra-draw silently skips a feature it does not accept; report it, so a zone that does not
   // appear on the map can be traced
   for (const result of draw.addFeatures(features)) {
     if (!result.valid) console.warn("Zone not shown on the map:", result.reason)
   }
+}
+
+/** Selects the (first part of the) zone, so its corners can be dragged without clicking it first. */
+function selectZone(draw: TerraDraw): void {
+  const first = draw
+    .getSnapshot()
+    .find((feature) => feature.geometry.type === "Polygon" && feature.properties.mode === "polygon")
+  if (first?.id !== undefined) draw.selectFeature(first.id)
 }
