@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   Clock,
   FileQuestion,
-  Info,
-  Landmark,
   LandPlot,
   Scale,
 } from "lucide-react"
@@ -361,90 +359,64 @@ export default function GrazingInsightsPage() {
               </CardContent>
             </Card>
 
-            {/* Aandachtspunten */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Aandachtspunten</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {metrics.overbeweidingAlerts.length > 0 && (
-                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900">
-                    <AlertTriangle
-                      aria-hidden="true"
-                      className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
-                    />
-                    <div className="space-y-1.5">
-                      <p className="font-semibold">Rustperiode korter dan de richtlijn</p>
-                      <ul className="list-disc space-y-0.5 pl-4">
-                        {metrics.overbeweidingAlerts.map((alert, idx) => (
-                          <li key={idx}>
-                            {formatRestAlert({
-                              b_id: alert.b_id,
-                              b_name: alert.b_name ?? null,
-                              restDays: alert.restDays,
-                              thresholdDays: alert.thresholdDays,
-                            })}
-                          </li>
-                        ))}
-                      </ul>
-                      <p>
-                        De richtlijn van {REST_PERIOD_THRESHOLD_DAYS} dagen rust houdt geen rekening
-                        met de werkelijke grasgroei. Als richtwaarde voor inscharen geldt ±{" "}
-                        {INSCHAREN_DRY_MATTER_TARGET_KG_HA.toLocaleString("nl-NL")} kg ds/ha; dat
-                        kost minstens {REST_PERIOD_THRESHOLD_DAYS} groeidagen (Handboek
-                        Melkveehouderij, tabel 3.8).
-                      </p>
+            {/* Aandachtspunten, only when there is something to look at */}
+            {(metrics.overbeweidingAlerts.length > 0 || metrics.incompleteRecords.count > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Aandachtspunten</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {metrics.overbeweidingAlerts.length > 0 && (
+                    <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900">
+                      <AlertTriangle
+                        aria-hidden="true"
+                        className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                      />
+                      <div className="space-y-1.5">
+                        <p className="font-semibold">Rustperiode korter dan de richtlijn</p>
+                        <ul className="list-disc space-y-0.5 pl-4">
+                          {metrics.overbeweidingAlerts.map((alert, idx) => (
+                            <li key={idx}>
+                              {formatRestAlert({
+                                b_id: alert.b_id,
+                                b_name: alert.b_name ?? null,
+                                restDays: alert.restDays,
+                                thresholdDays: alert.thresholdDays,
+                              })}
+                            </li>
+                          ))}
+                        </ul>
+                        <p>
+                          De richtlijn van {REST_PERIOD_THRESHOLD_DAYS} dagen rust houdt geen
+                          rekening met de werkelijke grasgroei. Als richtwaarde voor inscharen geldt
+                          ± {INSCHAREN_DRY_MATTER_TARGET_KG_HA.toLocaleString("nl-NL")} kg ds/ha;
+                          dat kost minstens {REST_PERIOD_THRESHOLD_DAYS} groeidagen (Handboek
+                          Melkveehouderij, tabel 3.8).
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {metrics.incompleteRecords.count > 0 && (
-                  <div className="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg border p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileQuestion className="text-muted-foreground h-4 w-4" />
-                      <span>
-                        Van <strong>{metrics.incompleteRecords.count}</strong> beweidingen ontbreekt
-                        het aantal uren per dag.
-                      </span>
+                  {metrics.incompleteRecords.count > 0 && (
+                    <div className="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg border p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileQuestion className="text-muted-foreground h-4 w-4" />
+                        <span>
+                          Van <strong>{metrics.incompleteRecords.count}</strong> beweidingen
+                          ontbreekt het aantal uren per dag.
+                        </span>
+                      </div>
+                      <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`}
+                        className="text-primary flex items-center gap-1 font-medium hover:underline"
+                      >
+                        Aanvullen in kalender →
+                      </NavLink>
                     </div>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`}
-                      className="text-primary flex items-center gap-1 font-medium hover:underline"
-                    >
-                      Aanvullen in kalender →
-                    </NavLink>
-                  </div>
-                )}
-
-                <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-900 dark:text-blue-200">
-                  <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-                  <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                    <div>
-                      <p className="font-semibold">Stikstofgebruiksnorm</p>
-                      <p className="mt-0.5">
-                        Beweiding {calendar} staat aan. In de stikstofgebruiksnorm rekent dit als
-                        beweid grasland in plaats van geheel maaien.
-                      </p>
-                    </div>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/norms`}
-                      className="text-primary shrink-0 text-xs font-medium hover:underline"
-                    >
-                      Bekijk Gebruiksruimte →
-                    </NavLink>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Where the figures come from */}
-            <div className="text-muted-foreground flex items-center gap-1.5 border-t pt-4 text-xs">
-              <Info aria-hidden="true" className="text-primary h-3.5 w-3.5 shrink-0" />
-              <span>
-                Berekend uit je beweidingen en maaisneden, met de GVE per dier van de diercategorie
-                en de stikstofgebruiksnormen van {calendar}.
-              </span>
-            </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </FarmContent>
       </main>

@@ -598,16 +598,20 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   {loaderData.hasHerds && (
-                    <NavLink to={`${calendar}/livestock/grazing/insights`}>
+                    <NavLink to={`${calendar}/livestock/grazing`}>
                       <Card className="h-full transition-all hover:shadow-md">
                         <CardHeader>
-                          <div className="flex items-center gap-4">
-                            <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
+                          <div className="flex min-w-0 items-center gap-4">
+                            <div className="bg-primary text-primary-foreground shrink-0 rounded-lg p-3.5">
                               <Icon iconNode={cowHead} className="h-7 w-7" />
                             </div>
-                            <div>
-                              <CardTitle className="text-lg">Weidegang</CardTitle>
-                              <CardDescription>Weidedagen, uren en veebezetting.</CardDescription>
+                            {/* A soft hyphen breaks the long title as Beweidings-kalender in a
+                                narrow card; browsers lack a Dutch hyphenation dictionary */}
+                            <div className="min-w-0">
+                              <CardTitle className="text-lg">Beweidings&shy;kalender</CardTitle>
+                              <CardDescription>
+                                Beweiding, maaien en bemesting per perceel, dag voor dag.
+                              </CardDescription>
                             </div>
                           </div>
                         </CardHeader>
