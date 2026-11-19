@@ -4,7 +4,9 @@
 
 Add the livestock and dairy domain: Drizzle schema tables and enums, CRUD functions, authorization rules and tests for animals, herds, barns and housing, milking, milk tanks and deliveries, feed batches and feeding, manure pits and excretion, and grazing. The action tables are named after their asset: `herd_housing`, `herd_milking`, `animal_milking`, `herd_feeding`, `animal_feeding`, `herd_excreting` and `herd_grazing`. Every herd has an animal category (`l_id_category`), so `addHerd` and `createHerdWithAnimals` require one.
 
-`setAnimalCategory` moves an animal into the herd of another animal category, for example when a heifer becomes a dairy cow. It closes the current herd assignment, opens a new one in the active herd of that category, and creates that herd when the farm has none.
+An animal takes the animal category of its herd. `assignAnimalToHerd` moves an animal to a herd that the caller chooses, optionally on a date in the past, for example when a heifer calves and joins the dairy cows. It closes the current herd assignment on that date and opens a new one, so the history is kept.
+
+A new herd has no start date unless one is given, and then counts as running from the beginning. Assigning an animal to another herd (`assignAnimalToHerd`, `reassignHerdAnimals`, `updateAnimalAssigning`) is rejected when that herd has not started yet or has already ended on the date of the assignment.
 
 `getMilkProductionForHerd` and `getMilkingSummaryForAnimal` count milk once: when animal-level milking records exist in the timeframe, only those are summed; otherwise the herd-level records are used. Feed is summed: `getFeedingSummaryForAnimal` adds the herd-level and animal-level feedings together.
 
