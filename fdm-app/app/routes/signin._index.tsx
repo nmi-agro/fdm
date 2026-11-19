@@ -124,12 +124,12 @@ export default function SignIn() {
       <main>
         <LandingHero redirectTo={redirectTo} redirectError={redirectError} />
         <LandingHowItWorks />
-        <LandingRecord />
         <LandingBalances />
         <LandingNormsAndAdvice />
         <LandingSoilQuality />
         <LandingAtlas />
         <LandingPlan />
+        <LandingRecord />
         <LandingCollaborate />
         <LandingAbout />
         <LandingCallToAction />

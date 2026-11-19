@@ -33,7 +33,7 @@ const NITROGEN_FLOW = [
 /** Nitrogen balance (the basis for doelsturing) and the organic-matter balance. */
 export function LandingBalances() {
   return (
-    <LandingSection>
+    <LandingSection tone="muted">
       <div className="grid items-center gap-12 lg:grid-cols-2">
         <SectionHeading label="Balansen" title="De stikstofbalans als basis voor doelsturing">
           <p>
@@ -78,7 +78,7 @@ export function LandingBalances() {
 /** Legal usage norms next to the agronomic fertilizer advice, with the advice table as evidence. */
 export function LandingNormsAndAdvice() {
   return (
-    <LandingSection tone="muted">
+    <LandingSection>
       <SectionHeading
         label="Normen en advies"
         title="Binnen de wettelijke ruimte, volgens het landbouwkundig advies"
@@ -124,7 +124,7 @@ export function LandingNormsAndAdvice() {
 /** Soil quality: BLN indicators, measures, the recognised methods and how a score is calculated. */
 export function LandingSoilQuality() {
   return (
-    <LandingSection>
+    <LandingSection tone="muted">
       <div className="grid items-start gap-12 lg:grid-cols-2">
         <SectionHeading label="Bodemkwaliteit" title="Bodemindicatoren vertaald naar maatregelen">
           <p>
@@ -217,7 +217,7 @@ export function LandingSoilQuality() {
 /** The atlas: crop rotation, crop history, elevation, regional norms and soil data on the map. */
 export function LandingAtlas() {
   return (
-    <LandingSection tone="muted">
+    <LandingSection>
       <SectionHeading label="Atlas" title="Percelen, hoogte en bodem op de kaart">
         <p>
           Verken agrarisch Nederland op de kaart. Blader door de jaren en zie de perceelshistorie,

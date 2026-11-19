@@ -10,16 +10,16 @@ import {
 
 const STEPS = [
   {
-    title: "Vastleggen",
-    text: "Haal uw percelen op bij RVO en vul gewassen, bemesting, oogsten en bodemanalyses aan. U voert alleen in wat u zelf weet.",
+    title: "Gegevens ophalen",
+    text: "Haal uw percelen op bij RVO en uw bodemanalyses uit de pdf. U vult alleen aan wat u zelf weet: gewassen, bemesting en oogst.",
   },
   {
     title: "Doorrekenen",
-    text: `${clientConfig.name} leidt daar de balansen, normen, adviezen en bodemindicatoren uit af. Bij elk resultaat ziet u hoe het is opgebouwd.`,
+    text: `${clientConfig.name} leidt daar de balansen, emissies, normen, adviezen en bodemindicatoren uit af. Bij elk resultaat ziet u hoe het is opgebouwd.`,
   },
   {
-    title: "Gebruiken",
-    text: "Vergelijk percelen en jaren, maak een bemestingsplan als pdf en deel het bedrijf met uw adviseur.",
+    title: "Bijsturen",
+    text: "Vergelijk percelen en jaren, zie waar het knelt en kies de bemesting en maatregelen die daarbij passen.",
   },
 ]
 
@@ -27,13 +27,11 @@ const STEPS = [
 export function LandingHowItWorks() {
   return (
     <LandingSection id="mogelijkheden">
-      <SectionHeading
-        label="Zo werkt het"
-        title="Eén keer vastleggen, alles in samenhang doorgerekend"
-      >
+      <SectionHeading label="Zo werkt het" title="Inzicht in productie en milieu, in één beeld">
         <p>
-          Dezelfde bedrijfsgegevens voeden elke berekening. U hoeft niets over te tikken in losse
-          rekentools en u voert geen afgeleide waarden in.
+          {clientConfig.name} is geen administratiepakket. Het gebruikt de gegevens die u al heeft
+          om te laten zien wat goede landbouwpraktijk op uw percelen is, en wat dat betekent voor
+          bodem, water en lucht. Dezelfde gegevens voeden elke berekening.
         </p>
       </SectionHeading>
       <ol className="mt-12 grid gap-8 md:grid-cols-3 md:gap-0 md:divide-x">
@@ -54,11 +52,11 @@ export function LandingHowItWorks() {
 /** Shows how farm data gets into the app: imports, tables, the timeline and field assessment. */
 export function LandingRecord() {
   return (
-    <LandingSection tone="muted">
-      <SectionHeading label="Gegevens vastleggen" title="Snel op orde, zonder overtikken">
+    <LandingSection>
+      <SectionHeading label="Uw gegevens" title="Weinig invoeren, veel ophalen">
         <p>
-          Invoeren is het meeste werk. Daarom haalt {clientConfig.name} zoveel mogelijk op uit wat u
-          al heeft, en ziet u in één beeld wat er nog ontbreekt.
+          Het inzicht is zo goed als de gegevens eronder. Daarom haalt {clientConfig.name} zoveel
+          mogelijk op uit wat u al heeft, en ziet u in één beeld wat er nog ontbreekt.
         </p>
       </SectionHeading>
       <ProductShot
@@ -80,9 +78,9 @@ export function LandingRecord() {
               de waarden uit en koppelt ze aan het perceel. Geen analyse? Dan rekent{" "}
               {clientConfig.name} met bodemwaarden die het NMI schat.
             </FeatureItem>
-            <FeatureItem icon={Table2} title="Tabellen voor het hele bedrijf">
-              Beheer bouwplan, bemesting en oogst in tabellen en voer een actie uit voor meerdere
-              percelen of gewassen tegelijk.
+            <FeatureItem icon={Table2} title="Aanvullen in tabellen">
+              Vul bouwplan, bemesting en oogst aan in tabellen, voor meerdere percelen of gewassen
+              tegelijk.
             </FeatureItem>
             <FeatureItem icon={GanttChart} title="Tijdlijn">
               Zie het hele jaar in één beeld: per perceel de gewassen als balken en de bemestingen,

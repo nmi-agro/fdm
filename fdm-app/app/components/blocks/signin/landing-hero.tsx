@@ -59,13 +59,13 @@ export function LandingHero({
           transition={{ duration: 0.5, ease: EASE_OUT }}
         >
           <h1 className="max-w-xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl xl:text-5xl xl:leading-[1.1]">
-            Van perceelsgegevens naar inzicht in bodem, bemesting en emissies
+            Agronomisch inzicht in nutriënten, bodem en emissies
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-white/80 lg:text-lg">
-            Leg percelen, gewassen, bemesting en bodemanalyses één keer vast. {clientConfig.name}{" "}
-            rekent daarmee de stikstofbalans met ammoniakemissie en nitraatuitspoeling, de
-            gebruiksruimte, het bemestingsadvies en de bodemkwaliteit door, en u koppelt er
-            maatregelen aan. De rekenregels kunt u nalezen.
+            {clientConfig.name} laat per perceel en voor het hele bedrijf zien hoe het staat met de
+            nutriënten: de stikstof- en organische-stofbalans, de emissies, de gebruiksruimte, het
+            bemestingsadvies en de bodemkwaliteit, met de maatregelen die daarbij passen. In
+            samenhang, en met rekenregels die u kunt nalezen.
           </p>
           <HeroFacts className="mt-6 hidden flex-wrap gap-x-6 gap-y-2 text-sm text-white/80 lg:flex" />
           <a

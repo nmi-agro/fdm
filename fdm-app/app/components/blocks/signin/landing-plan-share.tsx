@@ -5,7 +5,7 @@ import { FeatureItem, LandingSection, ManualLink, SectionHeading } from "./landi
 /** From insight to a plan: the bemestingsplan PDF and the two Labs features. */
 export function LandingPlan() {
   return (
-    <LandingSection>
+    <LandingSection tone="muted">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
         <SectionHeading
           label="Van inzicht naar plan"
