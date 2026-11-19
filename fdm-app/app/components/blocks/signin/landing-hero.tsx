@@ -49,8 +49,8 @@ export function LandingHero({
         </div>
         <motion.div
           className="flex flex-col px-4 py-8 sm:px-8 lg:px-14 lg:py-12"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ y: 16 }}
+          animate={{ y: 0 }}
           transition={{ duration: 0.5, ease: EASE_OUT }}
         >
           <h1 className="max-w-xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl xl:text-5xl xl:leading-[1.1]">
