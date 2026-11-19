@@ -29,9 +29,9 @@ export function LandingHowItWorks() {
     <LandingSection id="mogelijkheden">
       <SectionHeading label="Zo werkt het" title="Inzicht in productie en milieu, in één beeld">
         <p>
-          {clientConfig.name} is geen administratiepakket. Het gebruikt de gegevens die u al heeft
-          om te laten zien wat goede landbouwpraktijk op uw percelen is, en wat dat betekent voor
-          bodem, water en lucht. Dezelfde gegevens voeden elke berekening.
+          {clientConfig.name} gebruikt de gegevens die u al heeft om te laten zien wat goede
+          landbouwpraktijk op uw percelen is, en wat dat betekent voor bodem, water en lucht.
+          Dezelfde gegevens voeden elke berekening.
         </p>
       </SectionHeading>
       <ol className="mt-12 grid gap-8 md:grid-cols-3 md:gap-0 md:divide-x">

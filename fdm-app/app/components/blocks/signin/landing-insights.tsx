@@ -13,20 +13,29 @@ import {
 
 const NITROGEN_FLOW = [
   {
+    operator: null,
     title: "Aanvoer",
     text: "Kunstmest, dierlijke mest, compost, overige meststoffen, bodemlevering en depositie.",
   },
   {
-    title: "Afvoer en emissie",
-    text: "Oogst, gewasresten, ammoniak en nitraat.",
+    operator: "−",
+    title: "Afvoer",
+    text: "Oogst en gewasresten.",
   },
   {
+    operator: "−",
+    title: "Emissie naar de lucht",
+    text: "Ammoniak en lachgas, uit bemesting en gewasresten.",
+  },
+  {
+    operator: "=",
     title: "Stikstofbodemoverschot",
-    text: "Laat zien hoe efficiënt stikstof wordt gebruikt.",
+    text: "Laat zien hoe efficiënt stikstof wordt gebruikt, naast het doel per perceel.",
   },
   {
-    title: "Waterkwaliteit",
-    text: "Nitraatuitspoeling, berekend als fractie van het overschot.",
+    operator: "→",
+    title: "Nitraatuitspoeling",
+    text: "Berekend als fractie van het overschot.",
   },
 ]
 
@@ -61,16 +70,29 @@ export function LandingBalances() {
           caption="De stikstofbalans: aanvoer, afvoer en emissie voor het bedrijf, en per perceel het overschot naast het doel."
         />
       </div>
-      <dl className="mt-14 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-        {NITROGEN_FLOW.map((part) => (
-          <div key={part.title} className="border-t pt-4">
-            <dt className="font-semibold">{part.title}</dt>
-            <dd className="text-muted-foreground mt-1 text-[0.9375rem] leading-relaxed">
-              {part.text}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <div className="mt-14">
+        <h3 className="text-muted-foreground text-sm font-medium">
+          De rekensom achter de stikstofbalans
+        </h3>
+        <dl className="mt-3 grid gap-x-6 gap-y-6 border-t pt-5 sm:grid-cols-2 lg:grid-cols-[1fr_0.9fr_1fr_1.35fr_1fr]">
+          {NITROGEN_FLOW.map((part) => (
+            <div key={part.title} className="flex min-w-0 gap-3">
+              <span
+                aria-hidden="true"
+                className="text-muted-foreground w-4 shrink-0 text-xl leading-6 font-medium tabular-nums"
+              >
+                {part.operator}
+              </span>
+              <div className="min-w-0">
+                <dt className="font-semibold break-words">{part.title}</dt>
+                <dd className="text-muted-foreground mt-1 text-[0.9375rem] leading-relaxed">
+                  {part.text}
+                </dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+      </div>
     </LandingSection>
   )
 }

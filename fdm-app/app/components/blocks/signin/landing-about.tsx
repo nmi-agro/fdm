@@ -42,8 +42,9 @@ export function LandingAbout() {
           >
             <p>
               {clientConfig.name} is een initiatief van het Nutriënten Management Instituut (NMI).
-              De code en de rekenregels zijn open source: iedereen kan ze nalezen en verbeteringen
-              voorstellen.
+              {clientConfig.name} is open source: iedereen kan de code inzien en verbeteringen
+              voorstellen. Veel van de rekenregels zijn dat ook, en hoe de berekeningen werken leest
+              u in de handleiding.
             </p>
             <p>
               {clientConfig.name} is volop in ontwikkeling, maar nu al inzetbaar voor uw bedrijf. We

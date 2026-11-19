@@ -1,19 +1,26 @@
 import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { cn } from "cn"
+import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import { Link } from "react-router"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { MANUAL_EVENTS } from "~/lib/manual/analytics"
 import { getScreenshot } from "~/lib/manual/screenshots"
 
-/** Brand dark of the public pages (see DESIGN.md, "Unauthenticated pages"). */
-export const BRAND_DARK = "#122023"
+const SECTION_TONES = {
+  plain: "bg-background",
+  muted: "bg-muted/50 border-y",
+  // Brand dark of the public pages (see DESIGN.md, "Unauthenticated pages")
+  dark: "bg-[#122023] text-white",
+}
 
 /**
  * A full-width band of the public landing page with a centred content column.
+ * The content rises into place once, when the section scrolls into view.
  *
- * @param tone - `plain` for the white surface, `muted` for the second neutral layer.
+ * @param tone - `plain` for the white surface, `muted` for the second neutral layer,
+ * `dark` for the brand dark.
  */
 export function LandingSection({
   id,
@@ -22,20 +29,21 @@ export function LandingSection({
   children,
 }: {
   id?: string
-  tone?: "plain" | "muted"
+  tone?: keyof typeof SECTION_TONES
   className?: string
   children: ReactNode
 }) {
   return (
-    <section
-      id={id}
-      className={cn(
-        "scroll-mt-14 py-16 lg:py-24",
-        tone === "muted" ? "bg-muted/50 border-y" : "bg-background",
-        className,
-      )}
-    >
-      <div className="mx-auto w-full max-w-6xl px-4 lg:px-8">{children}</div>
+    <section id={id} className={cn("scroll-mt-14 py-16 lg:py-24", SECTION_TONES[tone], className)}>
+      <motion.div
+        className="mx-auto w-full max-w-6xl px-4 lg:px-8"
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {children}
+      </motion.div>
     </section>
   )
 }
@@ -70,10 +78,13 @@ export function ManualLink({
   to,
   children,
   className,
+  onDark = false,
 }: {
   to: string
   children: ReactNode
   className?: string
+  /** Set on the brand dark surface, where the link is white. */
+  onDark?: boolean
 }) {
   const { capture } = useAnalytics()
   return (
@@ -87,7 +98,8 @@ export function ManualLink({
         })
       }
       className={cn(
-        "text-foreground inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:no-underline",
+        "inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:no-underline",
+        onDark ? "text-white" : "text-foreground",
         className,
       )}
     >

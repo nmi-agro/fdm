@@ -14,6 +14,7 @@ import {
   LandingFaq,
   LandingFooter,
 } from "~/components/blocks/signin/landing-about"
+import { LandingEngine } from "~/components/blocks/signin/landing-engine"
 import { LandingHeader } from "~/components/blocks/signin/landing-header"
 import { HERO_PHOTO_URL, LandingHero } from "~/components/blocks/signin/landing-hero"
 import {
@@ -129,6 +130,7 @@ export default function SignIn() {
         <LandingSoilQuality />
         <LandingAtlas />
         <LandingPlan />
+        <LandingEngine />
         <LandingRecord />
         <LandingCollaborate />
         <LandingAbout />

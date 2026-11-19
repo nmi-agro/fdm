@@ -9,29 +9,11 @@ export const HERO_PHOTO_URL =
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const
 
-/** Facts a visitor can check: each one is backed by the repository, the pilot or the access model. */
-function HeroFacts({ className }: { className?: string }) {
-  return (
-    <ul className={className}>
-      <li>
-        <a
-          href="https://github.com/nmi-agro/fdm"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:no-underline"
-        >
-          Open source
-        </a>
-      </li>
-      <li>Gratis tijdens de pilot</li>
-      <li>U blijft eigenaar van uw data</li>
-    </ul>
-  )
-}
-
 /**
  * First screen of the public landing page: the sign-in card next to the hero photo
  * and a brand panel that says what the product does.
+ *
+ * Below `lg` the card comes first, on the photo, and the panel follows it.
  */
 export function LandingHero({
   redirectTo,
@@ -41,8 +23,21 @@ export function LandingHero({
   redirectError: string | null
 }) {
   return (
-    <div className="flex flex-col lg:grid lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <div className="order-2 flex flex-col bg-[#122023] text-white">
+    <div className="lg:grid lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="lg:bg-background relative flex flex-col items-center justify-center bg-[#122023] px-4 py-8 lg:py-12">
+        {/* Below lg the photo sits behind the card; the card is opaque, so nothing is read on the photo */}
+        <img
+          src={HERO_PHOTO_URL}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 size-full object-cover lg:hidden"
+        />
+        <div className="relative w-full max-w-sm">
+          <SignInCard redirectTo={redirectTo} redirectError={redirectError} />
+        </div>
+      </div>
+
+      <div className="flex flex-col bg-[#122023] text-white">
         {/* The photo keeps its own area, so the text below never depends on its contrast */}
         <div className="relative hidden lg:block lg:min-h-48 lg:flex-1">
           <img
@@ -65,9 +60,23 @@ export function LandingHero({
             {clientConfig.name} rekent per perceel en voor het hele bedrijf de balansen, de
             emissies, de gebruiksruimte, het bemestingsadvies en de bodemkwaliteit door. Zo ziet u
             wat goede landbouwpraktijk op uw percelen vraagt en kunt u sturen op doelen, met de
-            stikstofbalans als basis voor doelsturing. De rekenregels kunt u nalezen.
+            stikstofbalans als basis voor doelsturing.
           </p>
-          <HeroFacts className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80" />
+          {/* Facts a visitor can check: the repository, the pilot and the access model */}
+          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80">
+            <li>
+              <a
+                href="https://github.com/nmi-agro/fdm"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:no-underline"
+              >
+                Open source
+              </a>
+            </li>
+            <li>Gratis tijdens de pilot</li>
+            <li>U blijft eigenaar van uw data</li>
+          </ul>
           <a
             href="#mogelijkheden"
             className="mt-6 inline-flex items-center gap-2 self-start text-sm font-medium text-white underline underline-offset-4 hover:no-underline"
@@ -76,19 +85,6 @@ export function LandingHero({
             <ArrowDown className="size-4" aria-hidden="true" />
           </a>
         </motion.div>
-      </div>
-
-      <div className="lg:bg-background relative order-1 flex flex-col items-center justify-center bg-[#122023] px-4 py-8 lg:py-12">
-        {/* Below lg the photo sits behind the card; the card is opaque, so nothing is read on the photo */}
-        <img
-          src={HERO_PHOTO_URL}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 size-full object-cover lg:hidden"
-        />
-        <div className="relative w-full max-w-sm">
-          <SignInCard redirectTo={redirectTo} redirectError={redirectError} />
-        </div>
       </div>
     </div>
   )

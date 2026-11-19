@@ -31,9 +31,10 @@ export const SIGN_IN_EMAIL_INPUT_ID = "email"
 
 type SocialProvider = "microsoft" | "google"
 
-const SOCIAL_PROVIDERS: { id: SocialProvider; name: string }[] = [
-  { id: "microsoft", name: "Microsoft" },
-  { id: "google", name: "Google" },
+// The labels are written out in full: the user manual quotes them, and its label test looks them up
+const SOCIAL_PROVIDERS: { id: SocialProvider; name: string; label: string }[] = [
+  { id: "microsoft", name: "Microsoft", label: "Aanmelden met Microsoft" },
+  { id: "google", name: "Google", label: "Aanmelden met Google" },
 ]
 
 function MicrosoftLogo() {
@@ -170,7 +171,7 @@ export function SignInCard({
               ) : (
                 <span className="flex items-center gap-2">
                   {provider.id === "microsoft" ? <MicrosoftLogo /> : <GoogleLogo />}
-                  <span>Aanmelden met {provider.name}</span>
+                  <span>{provider.label}</span>
                 </span>
               )}
             </Button>
