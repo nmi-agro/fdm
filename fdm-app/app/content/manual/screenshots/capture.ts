@@ -296,6 +296,8 @@ export const captures = {
       { click: { role: "button", name: "Beweiding toevoegen" } },
       { click: { text: "Zone op de kaart", exact: true } },
       { waitFor: { text: "Eerder gebruikte zones" } },
+      // Move the pointer off the drawing toolbar, whose disabled buttons explain themselves in a tooltip
+      { hover: { text: "Leg de beweidingsperiode en uren vast voor dit perceel." } },
     ],
     element: { role: "dialog", name: "Beweiding" },
     map: true,
@@ -324,18 +326,22 @@ export const captures = {
     steps: [
       { click: { selector: 'a[href$="/livestock"]' } },
       { click: { selector: 'a[href$="/livestock/grazing"]' } },
-      { click: { role: "link", name: "Graslandgebruiksysteem planner" } },
+      { click: { role: "link", name: "Beweidingsplanner" } },
       { click: { text: "Stripgrazen", exact: true } },
       { click: { role: "button", name: "Stroken op de kaart" } },
       { waitFor: { text: "Strook op de kaart", exact: true } },
     ],
   },
   "beweiding-vandaag": {
-    route: "/farm/{farm}/{year}/atlas/grazing",
-    ready: { selector: ".maplibregl-canvas" },
-    // The demo farm grazes the home plot in mid-June
+    // The map reads "today" from the browser when it first loads, so it opens through the
+    // dashboard action after the clock is fixed. The demo farm grazes the home plot in mid-June.
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
     clock: "{year}-06-15T12:00:00+02:00",
-    steps: [{ waitFor: { text: "Nog niet gebruikt" } }],
+    steps: [
+      { click: { role: "link", name: "Beweiding vandaag" } },
+      { waitFor: { text: "maandag 15 juni" } },
+    ],
     map: true,
   },
   "beweiding-inzichten": {
@@ -343,7 +349,9 @@ export const captures = {
     ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
     clock: "{year}-06-15T12:00:00+02:00",
     steps: [
-      { click: { role: "link", name: "Weidegang" } },
+      // The farm page links to the grazing calendar; Weidegang opens from the Melkvee overview
+      { click: { selector: 'a[href$="/livestock"]' } },
+      { click: { role: "link", name: "Weidegang", exact: true } },
       { waitFor: { text: "Weidemelk · 120 dagen × 6 uur" } },
     ],
   },
