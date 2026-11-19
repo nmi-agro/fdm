@@ -667,7 +667,7 @@ export function CalendarGrid({
 
 /**
  * A one-line notice for the fields used again before the rest guideline: the first field, how many
- * more, and a link to the Kengetallen page that explains the guideline.
+ * other fields, and a link to the Kengetallen page that explains the guideline.
  */
 export function RestAlertNotice({
   alerts,
@@ -677,7 +677,8 @@ export function RestAlertNotice({
   insightsHref: string
 }) {
   if (alerts.length === 0) return null
-  const more = alerts.length - 1
+  // One alert per early reuse, so a field can have several; count the other fields
+  const more = new Set(alerts.map((a) => a.b_id).filter((id) => id !== alerts[0].b_id)).size
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-900">
       <AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-700" />
