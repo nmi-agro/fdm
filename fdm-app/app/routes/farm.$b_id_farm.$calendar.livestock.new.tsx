@@ -43,6 +43,7 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { formText } from "~/lib/form"
 
 export const handle: HelpHandle = { help: "veestapel" }
 
@@ -127,9 +128,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const formData = await request.formData()
-    const l_id_category = String(formData.get("l_id_category") ?? "")
-    const l_herd_name = String(formData.get("l_herd_name") ?? "Melkkoeien").trim()
-    const count = parseInt(String(formData.get("count") ?? "0"), 10)
+    const l_id_category = formText(formData, "l_id_category")
+    const l_herd_name = formText(formData, "l_herd_name", "Melkkoeien").trim()
+    const count = Number.parseInt(formText(formData, "count", "0"), 10)
 
     if (!l_id_category) {
       throw data("Diercategorie is verplicht.", { status: 400 })

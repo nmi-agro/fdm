@@ -8,6 +8,7 @@ import { addGrazing, removeGrazing, updateGrazing } from "@nmi-agro/fdm-core"
 import { data } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { fdm } from "~/lib/fdm.server"
+import { formText } from "~/lib/form"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD, parseGrazingExtent } from "~/lib/grazing-zone"
 
 const GRAZING_INTENTS = ["add_grazing", "update_grazing", "remove_grazing"]
@@ -29,23 +30,23 @@ export async function handleGrazingEvent(
   formData: FormData,
   context: { principal_id: string; calendar: string },
 ) {
-  const intent = String(formData.get("intent") ?? "")
-  const hoursVal = formData.get("l_grazing_hours")
-  const l_grazing_hours = hoursVal ? Number.parseFloat(String(hoursVal)) : undefined
-  const startVal = formData.get("l_grazing_start")
-  const endVal = formData.get("l_grazing_end")
+  const intent = formText(formData, "intent")
+  const hoursVal = formText(formData, "l_grazing_hours")
+  const l_grazing_hours = hoursVal ? Number.parseFloat(hoursVal) : undefined
+  const startVal = formText(formData, "l_grazing_start")
+  const endVal = formText(formData, "l_grazing_end")
 
   if (intent === "add_grazing") {
-    const b_id = String(formData.get("b_id") ?? "")
+    const b_id = formText(formData, "b_id")
     await addGrazing(
       fdm,
       context.principal_id,
-      String(formData.get("l_id_herd") ?? ""),
-      new Date(String(startVal)),
+      formText(formData, "l_id_herd"),
+      new Date(startVal),
       {
         b_id: b_id || undefined,
         // Without an end date the grazing runs until it gets one
-        l_grazing_end: endVal ? new Date(String(endVal)) : undefined,
+        l_grazing_end: endVal ? new Date(endVal) : undefined,
         l_grazing_hours,
         ...parseGrazingExtent(formData),
       },
@@ -60,10 +61,10 @@ export async function handleGrazingEvent(
 
   if (intent === "update_grazing") {
     const extent = parseGrazingExtent(formData)
-    await updateGrazing(fdm, context.principal_id, String(formData.get("l_id_grazing") ?? ""), {
-      l_grazing_start: startVal ? new Date(String(startVal)) : undefined,
+    await updateGrazing(fdm, context.principal_id, formText(formData, "l_id_grazing"), {
+      l_grazing_start: startVal ? new Date(startVal) : undefined,
       // An empty end keeps the stored end, so a grazing that still runs keeps running
-      l_grazing_end: endVal ? new Date(String(endVal)) : undefined,
+      l_grazing_end: endVal ? new Date(endVal) : undefined,
       l_grazing_hours,
       // Only change the grazed part when the form sends it
       ...(formData.has(GRAZING_ZONE_FIELD)
@@ -75,7 +76,7 @@ export async function handleGrazingEvent(
   }
 
   if (intent === "remove_grazing") {
-    await removeGrazing(fdm, context.principal_id, String(formData.get("l_id_grazing") ?? ""))
+    await removeGrazing(fdm, context.principal_id, formText(formData, "l_id_grazing"))
     return dataWithSuccess({}, { message: "Beweiding verwijderd." })
   }
 
