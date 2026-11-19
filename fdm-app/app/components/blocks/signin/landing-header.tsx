@@ -22,7 +22,7 @@ export function LandingHeader() {
   return (
     <header className="bg-background sticky top-0 z-40 h-14 border-b">
       <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between gap-4 px-4 lg:px-8">
-        <a href="/signin" className="flex items-center gap-2 rounded-md">
+        <a href="#top" className="flex items-center gap-2 rounded-md">
           <span className="flex size-8 items-center justify-center rounded-lg bg-[#122023]">
             <img className="size-6" src={clientConfig.logomark} alt="" />
           </span>

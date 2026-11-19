@@ -37,8 +37,9 @@ export function LandingSection({
     <section id={id} className={cn("scroll-mt-14 py-16 lg:py-24", SECTION_TONES[tone], className)}>
       <motion.div
         className="mx-auto w-full max-w-6xl px-4 lg:px-8"
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        // Only the offset animates: the content stays visible without JavaScript
+        initial={{ y: 24 }}
+        whileInView={{ y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
