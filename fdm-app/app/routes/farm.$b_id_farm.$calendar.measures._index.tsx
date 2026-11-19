@@ -31,7 +31,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import { dataWithError, dataWithSuccess } from "remix-toast"
+import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
@@ -70,7 +70,12 @@ import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
+import {
+  handleActionError,
+  handleLoaderError,
+  isMeasureOverlapError,
+  reportError,
+} from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getFarmBestVariantIds, isExcludedFromBln3 } from "~/lib/indicators"
@@ -638,22 +643,40 @@ export async function action({ request, params }: ActionFunctionArgs) {
           ? new Date(m_end_str)
           : undefined
 
-      await Promise.all(
+      // Each field is saved in its own transaction, so settle all of them and report fields that
+      // already have this measure in the period instead of failing the whole request.
+      const results = await Promise.allSettled(
         eligibleBIds.map((b_id) =>
           addMeasure(fdm, session.principal_id, b_id, m_id, m_start, m_end),
         ),
       )
-
-      const count = eligibleBIds.length
-      return dataWithSuccess(
-        { result: "Maatregelen toegevoegd" },
-        {
-          message:
-            count === 1
-              ? "Maatregel toegevoegd voor 1 perceel."
-              : `Maatregel toegevoegd voor ${count} percelen.`,
-        },
+      const otherFailure = results.find(
+        (result) => result.status === "rejected" && !isMeasureOverlapError(result.reason),
       )
+      if (otherFailure?.status === "rejected") throw otherFailure.reason
+
+      const count = results.filter((result) => result.status === "fulfilled").length
+      const skipped = results.length - count
+      const fieldsLabel = (n: number) => (n === 1 ? "1 perceel" : `${n} percelen`)
+
+      if (count === 0) {
+        return dataWithWarning(
+          { result: "Geen maatregelen toegevoegd" },
+          skipped === 1
+            ? "Deze maatregel loopt al op dit perceel in (een deel van) deze periode."
+            : `Deze maatregel loopt al op alle ${skipped} percelen in (een deel van) deze periode.`,
+        )
+      }
+
+      const added = `Maatregel toegevoegd voor ${fieldsLabel(count)}.`
+      if (skipped > 0) {
+        return dataWithWarning(
+          { result: "Maatregelen deels toegevoegd" },
+          `${added} Overgeslagen: ${fieldsLabel(skipped)} waar deze maatregel al loopt in (een deel van) deze periode.`,
+        )
+      }
+
+      return dataWithSuccess({ result: "Maatregelen toegevoegd" }, { message: added })
     }
 
     if (intent === "update") {

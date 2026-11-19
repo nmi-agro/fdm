@@ -284,6 +284,20 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
 }
 
 /**
+ * Checks whether fdm-core refused to add or update a measure because the same measure already
+ * runs on that field in an overlapping period.
+ *
+ * @param error - The caught value.
+ * @returns `true` if the error (or one of its causes) is the overlap validation of a measure.
+ */
+export function isMeasureOverlapError(error: unknown): boolean {
+  return containsErrorMessage(
+    error,
+    "already exists for this field with an overlapping time window",
+  )
+}
+
+/**
  * Returns the first error in the cause chain (the error itself included) with the given `name`.
  *
  * @param error - The caught value.
@@ -396,6 +410,16 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(
       null,
       "Een bedrijf moet minimaal één eigenaar hebben. Wijs eerst een andere eigenaar aan voordat je deze rol wijzigt.",
+    )
+  }
+
+  // Validation: the same measure already runs on the field in an overlapping period
+  if (isMeasureOverlapError(error)) {
+    console.warn("Overlapping measure refused:", error)
+    return dataWithWarning(
+      null,
+      "Deze maatregel loopt al op dit perceel in (een deel van) deze periode. Pas de bestaande maatregel aan of kies een andere periode.",
+      { status: 400 },
     )
   }
 
