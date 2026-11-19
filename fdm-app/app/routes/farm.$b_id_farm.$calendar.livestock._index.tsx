@@ -485,7 +485,7 @@ function GrazingWindow({
       </CardHeader>
       <CardContent className="space-y-4">
         {rows.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground max-w-prose text-sm">
             {outsideSeason
               ? `Deze twee weken vallen buiten het weideseizoen van de beweidingskalender (${GRAZING_SEASON_LABEL}). Beweiding op deze dagen telt wel mee en staat op de tab Beweiding van het perceel.`
               : "Geen beweiding of maaisnede in deze twee weken."}

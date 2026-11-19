@@ -314,14 +314,15 @@ export default function FieldGrazingPage() {
       {/* Headline Summary Card */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm">
+          {/* Two by two until the four figures fit on one line; the dots only show on that line */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm xl:flex xl:flex-wrap xl:items-center">
             <div>
               <span className="text-muted-foreground">Dit jaar: </span>
               <strong className="text-foreground font-semibold">
                 {countOf(summary.totalDays, "weidedag", "weidedagen")}
               </strong>
             </div>
-            <span aria-hidden="true" className="text-muted-foreground">
+            <span aria-hidden="true" className="text-muted-foreground hidden xl:inline">
               ·
             </span>
             <div>
@@ -329,7 +330,7 @@ export default function FieldGrazingPage() {
                 {countOf(summary.totalHours, "weide-uur", "weide-uren")}
               </strong>
             </div>
-            <span aria-hidden="true" className="text-muted-foreground">
+            <span aria-hidden="true" className="text-muted-foreground hidden xl:inline">
               ·
             </span>
             <div>
@@ -337,7 +338,7 @@ export default function FieldGrazingPage() {
                 {countOf(summary.periodsCount, "beweidingsperiode", "beweidingsperioden")}
               </strong>
             </div>
-            <span aria-hidden="true" className="text-muted-foreground">
+            <span aria-hidden="true" className="text-muted-foreground hidden xl:inline">
               ·
             </span>
             <div>

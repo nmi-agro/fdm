@@ -197,17 +197,21 @@ export default function LivestockOnboarding() {
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
-        <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Melkvee
-        </BreadcrumbLink>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+            Melkvee
+          </BreadcrumbLink>
+        </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Melkvee toevoegen</BreadcrumbItem>
       </Header>
 
-      <main className="container max-w-2xl py-8">
+      {/* The side padding of FarmContent, so the card lines up with the other Melkvee pages */}
+      <main className="max-w-2xl px-2 py-6 md:px-4 md:py-8 lg:px-6">
         <Card className="shadow-sm">
-          <form method="post">
+          {/* The form is the card's only child, so it carries the card's spacing itself */}
+          <form method="post" className="flex flex-col gap-(--card-spacing)">
             <CardHeader>
               <CardTitle className="text-2xl">Melkvee toevoegen</CardTitle>
               <CardDescription className="text-sm">
@@ -283,15 +287,15 @@ export default function LivestockOnboarding() {
                 </p>
                 <p className="text-foreground text-sm font-medium">
                   Dit levert op:{" "}
-                  <span className="font-bold">
+                  <span className="font-semibold tabular-nums">
                     {count} {count === 1 ? "dier" : "dieren"}
                   </span>{" "}
-                  · <span className="font-bold">{totalGve} GVE</span>
+                  · <span className="font-semibold tabular-nums">{totalGve} GVE</span>
                 </p>
               </div>
             </CardContent>
 
-            <CardFooter className="flex justify-between border-t pt-6">
+            <CardFooter className="flex justify-between border-t">
               <Button
                 variant="outline"
                 nativeButton={false}

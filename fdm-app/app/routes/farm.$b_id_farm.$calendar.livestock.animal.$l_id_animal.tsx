@@ -384,16 +384,20 @@ export default function AnimalDetailPage() {
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
-        <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Melkvee
-        </BreadcrumbLink>
-        <BreadcrumbSeparator />
-        <BreadcrumbLink
-          render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
-        >
-          Vee
-        </BreadcrumbLink>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+            Melkvee
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink
+            render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/animals`} />}
+          >
+            Vee
+          </BreadcrumbLink>
+        </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>{animalName}</BreadcrumbItem>
       </Header>
@@ -543,7 +547,7 @@ export default function AnimalDetailPage() {
                 {/* Beweidingshistorie Card */}
                 <Card>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-1">
                         <CardTitle className="flex items-center gap-2 text-base">
                           <CalendarDays aria-hidden="true" className="h-4 w-4 text-emerald-700" />
@@ -561,7 +565,8 @@ export default function AnimalDetailPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <Table>
+                    {/* The outer columns line up with the card title */}
+                    <Table className="[&_tr>*:first-child]:pl-(--card-spacing) [&_tr>*:last-child]:pr-(--card-spacing)">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Periode</TableHead>
@@ -755,7 +760,8 @@ export default function AnimalDetailPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <Table>
+                    {/* The outer columns line up with the card title */}
+                    <Table className="[&_tr>*:first-child]:pl-(--card-spacing) [&_tr>*:last-child]:pr-(--card-spacing)">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Koppel</TableHead>
