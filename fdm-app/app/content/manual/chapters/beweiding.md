@@ -27,7 +27,7 @@ related:
   - gebruiksruimte
 ---
 
-Op de **Beweidingskalender**, onder **Melkvee** in het menu, leg je vast welke koppel wanneer op welk perceel heeft geweid, en hoeveel uur per dag. {{appName}} rekent daaruit je weidedagen, de voortgang naar Weidemelk (120 dagen × 6 uur) en de veebezetting op het beweidingsplatform. De beweiding van deze dagen zie je ook op het [Melkvee-overzicht](/manual/veestapel#overzicht). Je hebt hiervoor minstens één koppel nodig (zie [Melkvee](/manual/veestapel)) en percelen met grasland in je [bouwplan](/manual/bouwplan).
+Op de **Beweidingskalender**, onder **Melkvee** in het menu of via de kaart onder **Overzichten** op het bedrijfsdashboard, leg je vast welke koppel wanneer op welk perceel heeft geweid, en hoeveel uur per dag. {{appName}} rekent daaruit je weidedagen, de voortgang naar Weidemelk (120 dagen × 6 uur) en de veebezetting op het beweidingsplatform. De beweiding van deze dagen zie je ook op het [Melkvee-overzicht](/manual/veestapel#overzicht). Je hebt hiervoor minstens één koppel nodig (zie [Melkvee](/manual/veestapel)) en percelen met grasland in je [bouwplan](/manual/bouwplan).
 
 ## De beweidingskalender {#kalender}
 
@@ -141,12 +141,12 @@ De rust telt per deel van het perceel: bij stripgrazen krijgt elke strook zijn e
 
 ## Inzichten in je weidegang {#inzichten}
 
-Met **Weidegang** in het menu onder Melkvee of op het Melkvee-overzicht, of met de kaart **Weidegang** op het bedrijfsdashboard, open je de inzichten van het jaar:
+Met **Weidegang** in het menu onder Melkvee of op het Melkvee-overzicht open je de inzichten van het jaar:
 
 - weidedagen, gemiddelde weide-uren per dag, het beweidingsplatform en de veebezetting op dat platform;
 - de voortgang naar Weidemelk: 120 dagen met minstens 6 uur weidegang van de melkkoeien;
 - de weidedagen per maand, gerealiseerd en gepland;
-- **Aandachtspunten**, zoals percelen die te kort hebben gerust, met de uitleg van de richtlijn voor rust, of beweidingen zonder uren per dag.
+- **Aandachtspunten**, als die er zijn: percelen die te kort hebben gerust, met de uitleg van de richtlijn voor rust, of beweidingen zonder uren per dag.
 
 De veebezetting staat er twee keer: op het beweidingsplatform en op al het grasland. Het Melkvee-overzicht en de kalender tonen de veebezetting op het platform.
 
