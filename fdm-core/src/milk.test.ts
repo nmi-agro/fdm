@@ -592,4 +592,90 @@ describe("Milk Domain", () => {
       removeMilkDelivery(fdm, invalidUser, delivery.l_id_milkdelivery!),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
+
+  it("should reject milking into a tank of another farm", async () => {
+    const otherFarm = await addFarm(fdm, principal_id, "Other Farm", "654321", "Road 2", "1234AB")
+    const otherTank = await addMilkTank(fdm, principal_id, otherFarm)
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+
+    await expect(
+      addMilkingHerd(fdm, principal_id, l_id_herd, otherTank, new Date("2025-05-01")),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("belongs to another farm") },
+    })
+    await expect(
+      addMilkingAnimal(fdm, principal_id, l_id_animal, otherTank, new Date("2025-05-01")),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("belongs to another farm") },
+    })
+  })
+
+  it("should refuse to remove a milk tank with milking records", async () => {
+    const start = new Date("2025-05-10")
+    await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, start, {
+      l_milking_amount: 100,
+    })
+    await expect(removeMilkTank(fdm, principal_id, l_id_milktank)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("a herd_milking record references it") },
+    })
+    await removeMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, start)
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    await addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, start, {
+      l_milking_amount: 20,
+    })
+    await expect(removeMilkTank(fdm, principal_id, l_id_milktank)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("an animal_milking record references it") },
+    })
+  })
+
+  it("should report records that do not exist", async () => {
+    const missingStart = new Date("2020-01-01")
+    const notFound = { cause: { message: expect.stringContaining("not found") } }
+    await expect(
+      updateMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, missingStart, {
+        l_milking_amount: 1,
+      }),
+    ).rejects.toMatchObject(notFound)
+    await expect(
+      removeMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, missingStart),
+    ).rejects.toMatchObject(notFound)
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    await expect(
+      updateMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, missingStart, {
+        l_milking_amount: 1,
+      }),
+    ).rejects.toMatchObject(notFound)
+    await expect(
+      removeMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, missingStart),
+    ).rejects.toMatchObject(notFound)
+  })
+
+  it("should update the date and an existing analysis of a milk delivery", async () => {
+    const l_id_milkdelivery = await addMilkDelivery(
+      fdm,
+      principal_id,
+      l_id_milktank,
+      new Date("2025-05-01"),
+      900,
+      { l_milk_fat: 4.1, l_milk_protein: 3.4, l_milksampling_date: new Date("2025-05-02") },
+    )
+
+    await updateMilkDelivery(fdm, principal_id, l_id_milkdelivery, {
+      l_milkdelivery_date: new Date("2025-05-03"),
+      l_milk_fat: 4.5,
+      l_milk_lactose: 4.6,
+      l_milk_urea: 22,
+      l_milk_scc: 150,
+    })
+
+    const delivery = await getMilkDelivery(fdm, principal_id, l_id_milkdelivery)
+    expect(delivery.l_milkdelivery_date).toEqual(new Date("2025-05-03"))
+    expect(delivery.l_milk_fat).toBe(4.5)
+    expect(delivery.l_milk_protein).toBe(3.4)
+    expect(delivery.l_milk_lactose).toBe(4.6)
+    expect(delivery.l_milk_urea).toBe(22)
+    expect(delivery.l_milk_scc).toBe(150)
+  })
 })

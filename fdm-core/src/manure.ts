@@ -8,6 +8,7 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
+import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
 /**
@@ -223,6 +224,7 @@ export async function addExcreting(
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addExcreting")
+      await assertSameFarm(tx, { l_id_herd }, { b_id_manurepit })
 
       const l_excreting_start = properties?.l_excreting_start ?? new Date()
       const l_excreting_end = properties?.l_excreting_end ?? null
@@ -389,6 +391,13 @@ export async function updateExcreting(
       )
 
       const nextManurePit = properties.b_id_manurepit ?? existing[0].b_id_manurepit
+      if (properties.b_id_manurepit) {
+        await assertSameFarm(
+          tx,
+          { l_id_herd: existing[0].l_id_herd },
+          { b_id_manurepit: properties.b_id_manurepit },
+        )
+      }
       const nextStart = properties.l_excreting_start ?? existing[0].l_excreting_start
       const nextEnd =
         properties.l_excreting_end === undefined

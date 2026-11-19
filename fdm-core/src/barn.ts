@@ -7,6 +7,7 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
+import { assertSameFarm, lockHerd } from "./livestock-checks"
 
 /**
  * Adds a new barn asset to a farm and records its construction/acquisition event.
@@ -113,7 +114,7 @@ export async function getBarn(
       throw new Error("Barn does not exist")
     }
 
-    return rows[0] as Barn
+    return rows[0]
   } catch (err) {
     throw handleError(err, "Exception for getBarn", { b_id_barn })
   }
@@ -164,7 +165,7 @@ export async function getBarnsForFarm(
       )
       .orderBy(desc(schema.barns.created))
 
-    return rows as Barn[]
+    return rows
   } catch (err) {
     throw handleError(err, "Exception for getBarnsForFarm", { b_id_farm })
   }
@@ -289,6 +290,9 @@ export async function addHousing(
   try {
     await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addHousing")
+      await assertSameFarm(tx, { l_id_herd }, { b_id_barn })
+      // Serialize housing changes of this herd, so the overlap check below holds
+      await lockHerd(tx, l_id_herd)
       assertIntervalEndNotBeforeStart(b_housing_start, b_housing_end, "b_housing")
       await assertNoOverlappingHousingForHerd(tx, l_id_herd, b_housing_start, b_housing_end ?? null)
 
@@ -328,6 +332,8 @@ export async function updateHousing(
   try {
     await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "updateHousing")
+      // Serialize housing changes of this herd, so the overlap check below holds
+      await lockHerd(tx, l_id_herd)
 
       const existingRows = await tx
         .select({
@@ -484,7 +490,7 @@ export async function getHousingForHerd(
       .where(eq(schema.herdHousing.l_id_herd, l_id_herd))
       .orderBy(desc(schema.herdHousing.b_housing_start))
 
-    return rows as Housing[]
+    return rows
   } catch (err) {
     throw handleError(err, "Exception for getHousingForHerd", { l_id_herd })
   }
@@ -523,7 +529,7 @@ export async function getHousingForFarm(
       .where(eq(schema.barnConstructing.b_id_farm, b_id_farm))
       .orderBy(desc(schema.herdHousing.b_housing_start))
 
-    return rows as Housing[]
+    return rows
   } catch (err) {
     throw handleError(err, "Exception for getHousingForFarm", { b_id_farm })
   }

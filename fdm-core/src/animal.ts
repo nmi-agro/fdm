@@ -1,5 +1,19 @@
 import { parseCattleEartag } from "@nmi-agro/fdm-data"
-import { and, asc, count, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm"
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm"
 import type {
   Animal,
   AnimalAssignmentHistory,
@@ -15,6 +29,8 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { assertHerdRunsOn, insertHerd } from "./herd"
 import { createId } from "./id"
+import { overlapsHalfOpen } from "./interval"
+import { lockAnimal, lockFarm, lockHerd } from "./livestock-checks"
 
 /**
  * Retrieves animal categories from the catalogues selected for a farm.
@@ -63,6 +79,28 @@ export async function getAnimalCategoriesFromCatalogues(
 }
 
 /**
+ * SQL condition: the herd assignment runs on `date`, so it started on or before that date and has
+ * not ended by then. An animal with a departure in the future is still in its herd until that date.
+ */
+function activeAssignmentOn(date: Date): SQL {
+  return and(
+    lte(schema.animalAssigning.l_assigning_start, date),
+    or(
+      isNull(schema.animalAssigning.l_assigning_end),
+      gt(schema.animalAssigning.l_assigning_end, date),
+    ),
+  ) as SQL
+}
+
+/** SQL condition: the animal has not left the farm by `date`. */
+function presentOn(date: Date): SQL {
+  return or(
+    isNull(schema.animalLeaving.l_leaving_date),
+    gt(schema.animalLeaving.l_leaving_date, date),
+  ) as SQL
+}
+
+/**
  * Adds a single individual animal asset to a farm and assigns it to an active herd.
  * For animals born on the farm,
  * l_birth_date and l_arriving_date must be equal.
@@ -104,13 +142,31 @@ export async function addAnimal(
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "addAnimal")
 
     return await fdm.transaction(async (tx) => {
-      const herdFarm = await tx
-        .select({ b_id_farm: schema.herdStarting.b_id_farm })
-        .from(schema.herdStarting)
-        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
-        .limit(1)
+      // Take the farm lock before reading the herd category, so a concurrent category change of
+      // the herd (updateHerd takes the same lock) cannot slip in between
+      await lockFarm(tx, b_id_farm)
 
-      if (herdFarm.length === 0 || herdFarm[0].b_id_farm !== b_id_farm) {
+      const arrivingMethod = properties?.l_arriving_method ?? "born"
+      let birthdate = properties?.l_birth_date ?? null
+      let arrivingDate = properties?.l_arriving_date ?? birthdate ?? new Date()
+      if (arrivingMethod === "born") {
+        if (birthdate && properties?.l_arriving_date) {
+          if (new Date(birthdate).getTime() !== new Date(properties.l_arriving_date).getTime()) {
+            throw new Error(
+              "l_birth_date and l_arriving_date must be equal when l_arriving_method is 'born'",
+            )
+          }
+        }
+        if (!birthdate) {
+          birthdate = arrivingDate
+        } else {
+          arrivingDate = birthdate
+        }
+      }
+
+      // The animal joins the herd on its arrival date, so the herd must run on that date
+      const herdFarm = await assertHerdRunsOn(tx, l_id_herd, arrivingDate)
+      if (herdFarm !== b_id_farm) {
         throw new Error(`Herd ${l_id_herd} does not belong to farm ${b_id_farm}`)
       }
 
@@ -119,11 +175,7 @@ export async function addAnimal(
       const l_sex = properties?.l_sex ?? null
       assertAnimalMatchesCategory(category, l_specie, l_sex)
 
-      await lockFarmWorknumbers(tx, b_id_farm)
       const l_id_animal = createId()
-      const arrivingMethod = properties?.l_arriving_method ?? "born"
-      let birthdate = properties?.l_birth_date ?? null
-      let arrivingDate = properties?.l_arriving_date ?? birthdate ?? new Date()
       const eartag = properties?.l_id_eartag
         ? normalizeEartag(properties.l_id_eartag, l_specie)
         : null
@@ -139,21 +191,6 @@ export async function addAnimal(
         await assertIdentifierAvailable(tx, b_id_farm, "l_id_worknumber", l_id_worknumber)
         if (eartag?.l_id_eartag) {
           await assertIdentifierAvailable(tx, b_id_farm, "l_id_eartag", eartag.l_id_eartag)
-        }
-      }
-
-      if (arrivingMethod === "born") {
-        if (birthdate && properties?.l_arriving_date) {
-          if (new Date(birthdate).getTime() !== new Date(properties.l_arriving_date).getTime()) {
-            throw new Error(
-              "l_birth_date and l_arriving_date must be equal when l_arriving_method is 'born'",
-            )
-          }
-        }
-        if (!birthdate) {
-          birthdate = arrivingDate
-        } else {
-          arrivingDate = birthdate
         }
       }
 
@@ -175,11 +212,12 @@ export async function addAnimal(
         l_arriving_method: arrivingMethod,
       })
 
+      // An animal stays in its herd until it leaves the farm
       await tx.insert(schema.animalAssigning).values({
         l_id_animal,
         l_id_herd,
         l_assigning_start: arrivingDate,
-        l_assigning_end: null,
+        l_assigning_end: properties?.l_leaving_date ?? null,
       })
 
       if (properties?.l_leaving_date) {
@@ -213,6 +251,8 @@ export async function getAnimal(
   try {
     await checkPermission(fdm, "animal", "read", l_id_animal, principal_id, "getAnimal")
 
+    // The herd the animal is in now; an animal with a departure in the future is still in it
+    const now = new Date()
     const rows = await fdm
       .select({
         l_id_animal: schema.animals.l_id_animal,
@@ -249,7 +289,7 @@ export async function getAnimal(
         schema.animalAssigning,
         and(
           eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
-          isNull(schema.animalAssigning.l_assigning_end),
+          activeAssignmentOn(now),
         ),
       )
       .leftJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
@@ -286,6 +326,8 @@ export async function getAnimalsForHerd(
   try {
     await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "getAnimalsForHerd")
 
+    // Animals in the herd now; an animal with a departure in the future is still in it
+    const now = new Date()
     const rows = await fdm
       .select({
         l_id_animal: schema.animals.l_id_animal,
@@ -319,7 +361,7 @@ export async function getAnimalsForHerd(
         and(
           eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
           eq(schema.animalAssigning.l_id_herd, l_id_herd),
-          isNull(schema.animalAssigning.l_assigning_end),
+          activeAssignmentOn(now),
         ),
       )
       .innerJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
@@ -331,7 +373,7 @@ export async function getAnimalsForHerd(
         schema.animalLeaving,
         eq(schema.animals.l_id_animal, schema.animalLeaving.l_id_animal),
       )
-      .where(isNull(schema.animalLeaving.l_leaving_date))
+      .where(presentOn(now))
       .orderBy(desc(schema.animals.created))
 
     return rows as Animal[]
@@ -397,11 +439,7 @@ export async function getAnimalsForFarm(
         schema.animalAssigning,
         and(
           eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
-          lte(schema.animalAssigning.l_assigning_start, atDate),
-          or(
-            isNull(schema.animalAssigning.l_assigning_end),
-            gt(schema.animalAssigning.l_assigning_end, atDate),
-          ),
+          activeAssignmentOn(atDate),
         ),
       )
       .leftJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
@@ -415,10 +453,7 @@ export async function getAnimalsForFarm(
             isNull(schema.animalArriving.l_arriving_date),
             lte(schema.animalArriving.l_arriving_date, atDate),
           ),
-          or(
-            isNull(schema.animalLeaving.l_leaving_date),
-            gt(schema.animalLeaving.l_leaving_date, atDate),
-          ),
+          presentOn(atDate),
         ),
       )
       .orderBy(desc(schema.animals.created))
@@ -548,10 +583,17 @@ export async function updateAnimal(
         }
       }
 
-      if (properties.l_id_eartag !== undefined || properties.l_id_worknumber !== undefined) {
+      const identifiersChange =
+        properties.l_id_eartag !== undefined || properties.l_id_worknumber !== undefined
+      const leavingDateChanges = l_leaving_date !== undefined
+      let previousLeavingDate: Date | null = null
+
+      if (identifiersChange || leavingDateChanges) {
         const current = await tx
           .select({
             l_specie: schema.animals.l_specie,
+            l_id_eartag: schema.animals.l_id_eartag,
+            l_id_worknumber: schema.animals.l_id_worknumber,
             b_id_farm: schema.animalArriving.b_id_farm,
             l_leaving_date: schema.animalLeaving.l_leaving_date,
           })
@@ -572,6 +614,7 @@ export async function updateAnimal(
         }
 
         const { b_id_farm } = current[0]
+        previousLeavingDate = current[0].l_leaving_date
         if (properties.l_id_eartag !== undefined) {
           // An empty or null life number clears it
           animalProperties.l_id_eartag = properties.l_id_eartag
@@ -580,28 +623,31 @@ export async function updateAnimal(
             : null
         }
 
-        const leavingDate =
-          l_leaving_date !== undefined ? l_leaving_date : current[0].l_leaving_date
+        const leavingDate = leavingDateChanges ? l_leaving_date : current[0].l_leaving_date
         const isPresent = !leavingDate || new Date(leavingDate) > new Date()
+        // Check the numbers that the animal will have, also when a corrected departure makes it
+        // present again with its stored numbers
         if (isPresent) {
-          await lockFarmWorknumbers(tx, b_id_farm)
-          if (properties.l_id_worknumber) {
+          await lockFarm(tx, b_id_farm)
+          const worknumber =
+            properties.l_id_worknumber !== undefined
+              ? properties.l_id_worknumber
+              : current[0].l_id_worknumber
+          const eartag =
+            properties.l_id_eartag !== undefined
+              ? animalProperties.l_id_eartag
+              : current[0].l_id_eartag
+          if (worknumber) {
             await assertIdentifierAvailable(
               tx,
               b_id_farm,
               "l_id_worknumber",
-              properties.l_id_worknumber,
+              worknumber,
               l_id_animal,
             )
           }
-          if (animalProperties.l_id_eartag) {
-            await assertIdentifierAvailable(
-              tx,
-              b_id_farm,
-              "l_id_eartag",
-              animalProperties.l_id_eartag,
-              l_id_animal,
-            )
+          if (eartag) {
+            await assertIdentifierAvailable(tx, b_id_farm, "l_id_eartag", eartag, l_id_animal)
           }
         }
       }
@@ -624,14 +670,19 @@ export async function updateAnimal(
             set: { l_leaving_date, l_leaving_method, updated },
           })
 
-        if (l_leaving_date) {
+        // The herd assignment ends when the animal leaves. Moving or clearing the departure moves
+        // or clears that end: the assignment that ended on the old departure date, or the open
+        // assignment when there was no departure yet
+        if (leavingDateChanges) {
           await tx
             .update(schema.animalAssigning)
-            .set({ l_assigning_end: l_leaving_date, updated })
+            .set({ l_assigning_end: l_leaving_date ?? null, updated })
             .where(
               and(
                 eq(schema.animalAssigning.l_id_animal, l_id_animal),
-                isNull(schema.animalAssigning.l_assigning_end),
+                previousLeavingDate
+                  ? eq(schema.animalAssigning.l_assigning_end, previousLeavingDate)
+                  : isNull(schema.animalAssigning.l_assigning_end),
               ),
             )
         }
@@ -703,24 +754,15 @@ export async function addAnimalsToHerd(
 ): Promise<string[]> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addAnimalsToHerd")
+    assertAnimalCount(count)
 
     return await fdm.transaction(async (tx) => {
-      const herdRow = await tx
-        .select({ b_id_farm: schema.herdStarting.b_id_farm })
-        .from(schema.herdStarting)
-        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
-        .limit(1)
-
-      if (herdRow.length === 0) {
-        throw new Error("Herd does not exist")
-      }
-
-      const b_id_farm = herdRow[0].b_id_farm
+      const now = new Date()
+      const b_id_farm = await assertHerdRunsOn(tx, l_id_herd, now)
+      await lockFarm(tx, b_id_farm)
       const category = await getHerdCategory(tx, l_id_herd)
       const l_specie = defaults?.l_specie ?? category.l_specie
       assertAnimalMatchesCategory(category, l_specie, null)
-      const now = new Date()
-      await lockFarmWorknumbers(tx, b_id_farm)
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
 
       const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, {
@@ -765,18 +807,27 @@ async function getNextWorknumber(
   let nextWorknumber = 10001
   for (const row of rows) {
     if (row.l_id_worknumber && /^\d+$/.test(row.l_id_worknumber)) {
-      nextWorknumber = Math.max(nextWorknumber, Number(row.l_id_worknumber) + 1)
+      const worknumber = Number(row.l_id_worknumber)
+      // A number too large to count from exactly (typed in by hand) is skipped
+      if (Number.isSafeInteger(worknumber + 1)) {
+        nextWorknumber = Math.max(nextWorknumber, worknumber + 1)
+      }
     }
   }
 
   return nextWorknumber
 }
 
-async function lockFarmWorknumbers(
-  tx: FdmType,
-  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${b_id_farm}))`)
+/**
+ * Checks the number of animals for a bulk operation.
+ *
+ * @param count - The number of animals.
+ * @throws When the count is not a whole number of 0 or more.
+ */
+function assertAnimalCount(count: number): void {
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new Error(`Invalid number of animals: ${count}`)
+  }
 }
 
 /**
@@ -929,10 +980,15 @@ export async function removeAnimalsFromHerd(
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "removeAnimalsFromHerd")
-
-      if (count <= 0) {
+      assertAnimalCount(count)
+      if (count === 0) {
         return []
       }
+
+      // Serialize reductions of this herd, so two at once don't pick the same animals.
+      // Animals that already have a departure (also one in the future) are leaving anyway and are
+      // not picked again.
+      await lockHerd(tx, l_id_herd)
 
       const activeAssignments = await tx
         .select({
@@ -1109,14 +1165,15 @@ export async function assignAnimalToHerd(
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "assignAnimalToHerd")
 
     await fdm.transaction(async (tx) => {
+      // Serialize moves of this animal, so two at once can't both open an assignment
+      await lockAnimal(tx, l_id_animal)
+
       const rows = await tx
         .select({
           b_id_farm: schema.animalArriving.b_id_farm,
           l_specie: schema.animals.l_specie,
           l_sex: schema.animals.l_sex,
           l_leaving_date: schema.animalLeaving.l_leaving_date,
-          current_l_id_herd: schema.animalAssigning.l_id_herd,
-          current_l_assigning_start: schema.animalAssigning.l_assigning_start,
         })
         .from(schema.animals)
         .innerJoin(
@@ -1126,13 +1183,6 @@ export async function assignAnimalToHerd(
         .leftJoin(
           schema.animalLeaving,
           eq(schema.animals.l_id_animal, schema.animalLeaving.l_id_animal),
-        )
-        .leftJoin(
-          schema.animalAssigning,
-          and(
-            eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
-            isNull(schema.animalAssigning.l_assigning_end),
-          ),
         )
         .where(eq(schema.animals.l_id_animal, l_id_animal))
         .limit(1)
@@ -1144,14 +1194,27 @@ export async function assignAnimalToHerd(
       if (animal.l_leaving_date && animal.l_leaving_date <= l_assigning_start) {
         throw new Error("Animal has left the farm")
       }
-      if (animal.current_l_id_herd === target_l_id_herd) {
-        throw new Error(`Animal already belongs to herd ${target_l_id_herd}`)
-      }
-      if (
-        animal.current_l_assigning_start &&
-        l_assigning_start < animal.current_l_assigning_start
-      ) {
+
+      // The assignment the animal is in on the date of the move; for a move in the past this is
+      // not always the open one (a departure in the future or a later move may have ended it)
+      const assignments = await tx
+        .select({
+          l_id_herd: schema.animalAssigning.l_id_herd,
+          l_assigning_start: schema.animalAssigning.l_assigning_start,
+          l_assigning_end: schema.animalAssigning.l_assigning_end,
+        })
+        .from(schema.animalAssigning)
+        .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+      const current = assignments.find(
+        (row) =>
+          row.l_assigning_start <= l_assigning_start &&
+          (row.l_assigning_end === null || row.l_assigning_end > l_assigning_start),
+      )
+      if (!current && assignments.length > 0) {
         throw new Error("Move cannot be before the current herd assignment")
+      }
+      if (current?.l_id_herd === target_l_id_herd) {
+        throw new Error(`Animal already belongs to herd ${target_l_id_herd}`)
       }
 
       const herdFarm = await assertHerdRunsOn(tx, target_l_id_herd, l_assigning_start)
@@ -1162,21 +1225,25 @@ export async function assignAnimalToHerd(
       const category = await getHerdCategory(tx, target_l_id_herd)
       assertAnimalMatchesCategory(category, animal.l_specie, animal.l_sex)
 
-      await tx
-        .update(schema.animalAssigning)
-        .set({ l_assigning_end: l_assigning_start, updated: new Date() })
-        .where(
-          and(
-            eq(schema.animalAssigning.l_id_animal, l_id_animal),
-            isNull(schema.animalAssigning.l_assigning_end),
-          ),
-        )
+      if (current) {
+        await tx
+          .update(schema.animalAssigning)
+          .set({ l_assigning_end: l_assigning_start, updated: new Date() })
+          .where(
+            and(
+              eq(schema.animalAssigning.l_id_animal, l_id_animal),
+              eq(schema.animalAssigning.l_id_herd, current.l_id_herd),
+              eq(schema.animalAssigning.l_assigning_start, current.l_assigning_start),
+            ),
+          )
+      }
 
+      // The new assignment keeps the end the old one had, such as a departure in the future
       await tx.insert(schema.animalAssigning).values({
         l_id_animal,
         l_id_herd: target_l_id_herd,
         l_assigning_start,
-        l_assigning_end: null,
+        l_assigning_end: current ? current.l_assigning_end : (animal.l_leaving_date ?? null),
       })
     })
   } catch (err) {
@@ -1224,6 +1291,10 @@ export async function leaveHerd(
         throw new Error("Herd leaving date cannot be before the herd start date")
       }
 
+      await lockHerd(tx, l_id_herd)
+
+      // The animals in the herd on the leaving date, including those with a departure after it;
+      // their departure moves forward to the herd's leaving date
       const activeAssignments = await tx
         .select({
           l_id_animal: schema.animalAssigning.l_id_animal,
@@ -1237,8 +1308,11 @@ export async function leaveHerd(
         .where(
           and(
             eq(schema.animalAssigning.l_id_herd, l_id_herd),
-            isNull(schema.animalAssigning.l_assigning_end),
-            isNull(schema.animalLeaving.l_leaving_date),
+            or(
+              isNull(schema.animalAssigning.l_assigning_end),
+              gt(schema.animalAssigning.l_assigning_end, l_leaving_date),
+            ),
+            presentOn(l_leaving_date),
           ),
         )
 
@@ -1275,7 +1349,10 @@ export async function leaveHerd(
             and(
               eq(schema.animalAssigning.l_id_herd, l_id_herd),
               inArray(schema.animalAssigning.l_id_animal, animalIds),
-              isNull(schema.animalAssigning.l_assigning_end),
+              or(
+                isNull(schema.animalAssigning.l_assigning_end),
+                gt(schema.animalAssigning.l_assigning_end, l_leaving_date),
+              ),
             ),
           )
       }
@@ -1350,10 +1427,15 @@ export async function reassignHerdAnimals(
         throw new Error("Source and target herd must belong to the same farm")
       }
 
+      await lockHerd(tx, source_l_id_herd)
+
+      // The animals in the source herd on the reassignment date, including those with a departure
+      // after it; they keep that departure in the target herd
       const activeAssignments = await tx
         .select({
           l_id_animal: schema.animalAssigning.l_id_animal,
           l_assigning_start: schema.animalAssigning.l_assigning_start,
+          l_assigning_end: schema.animalAssigning.l_assigning_end,
           l_specie: schema.animals.l_specie,
           l_sex: schema.animals.l_sex,
         })
@@ -1369,8 +1451,11 @@ export async function reassignHerdAnimals(
         .where(
           and(
             eq(schema.animalAssigning.l_id_herd, source_l_id_herd),
-            isNull(schema.animalAssigning.l_assigning_end),
-            isNull(schema.animalLeaving.l_leaving_date),
+            or(
+              isNull(schema.animalAssigning.l_assigning_end),
+              gt(schema.animalAssigning.l_assigning_end, l_reassign_date),
+            ),
+            presentOn(l_reassign_date),
           ),
         )
 
@@ -1396,16 +1481,19 @@ export async function reassignHerdAnimals(
           and(
             eq(schema.animalAssigning.l_id_herd, source_l_id_herd),
             inArray(schema.animalAssigning.l_id_animal, animalIds),
-            isNull(schema.animalAssigning.l_assigning_end),
+            or(
+              isNull(schema.animalAssigning.l_assigning_end),
+              gt(schema.animalAssigning.l_assigning_end, l_reassign_date),
+            ),
           ),
         )
 
       await tx.insert(schema.animalAssigning).values(
-        animalIds.map((l_id_animal) => ({
-          l_id_animal,
+        activeAssignments.map((row) => ({
+          l_id_animal: row.l_id_animal,
           l_id_herd: target_l_id_herd,
           l_assigning_start: l_reassign_date,
-          l_assigning_end: null,
+          l_assigning_end: row.l_assigning_end,
         })),
       )
 
@@ -1458,24 +1546,61 @@ export async function updateAnimalAssigning(
     )
 
     await fdm.transaction(async (tx) => {
-      if (properties.l_id_herd) {
+      // Serialize changes to this animal's assignments, so the overlap check below holds
+      await lockAnimal(tx, l_id_animal)
+
+      const assignments = await tx
+        .select({
+          l_id_herd: schema.animalAssigning.l_id_herd,
+          l_assigning_start: schema.animalAssigning.l_assigning_start,
+          l_assigning_end: schema.animalAssigning.l_assigning_end,
+        })
+        .from(schema.animalAssigning)
+        .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+      const isRecord = (row: (typeof assignments)[number]) =>
+        row.l_id_herd === l_id_herd &&
+        row.l_assigning_start.getTime() === l_assigning_start.getTime()
+      const record = assignments.find(isRecord)
+      if (!record) {
+        throw new Error("Animal assignment record not found")
+      }
+
+      const nextHerd = properties.l_id_herd ?? l_id_herd
+      const nextStart = properties.l_assigning_start ?? l_assigning_start
+      const nextEnd =
+        properties.l_assigning_end === undefined
+          ? record.l_assigning_end
+          : properties.l_assigning_end
+      if (nextEnd && nextEnd <= nextStart) {
+        throw new Error("Assignment end must be after its start")
+      }
+      // An animal is in one herd at a time
+      if (
+        assignments.some(
+          (row) =>
+            !isRecord(row) &&
+            overlapsHalfOpen(nextStart, nextEnd, row.l_assigning_start, row.l_assigning_end),
+        )
+      ) {
+        throw new Error("Assignment overlaps another assignment of this animal")
+      }
+
+      if (properties.l_id_herd || properties.l_assigning_start) {
         const arriving = await tx
           .select({ b_id_farm: schema.animalArriving.b_id_farm })
           .from(schema.animalArriving)
           .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
           .limit(1)
 
-        // The new herd must run when the (corrected) assignment starts
-        const herdFarm = await assertHerdRunsOn(
-          tx,
-          properties.l_id_herd,
-          properties.l_assigning_start ?? l_assigning_start,
-        )
+        // The herd must run when the (corrected) assignment starts
+        const herdFarm = await assertHerdRunsOn(tx, nextHerd, nextStart)
 
         if (arriving.length === 0 || herdFarm !== arriving[0].b_id_farm) {
-          throw new Error(`Herd ${properties.l_id_herd} does not belong to the animal's farm`)
+          throw new Error(`Herd ${nextHerd} does not belong to the animal's farm`)
         }
+      }
 
+      if (properties.l_id_herd) {
         const animal = await tx
           .select({
             l_specie: schema.animals.l_specie,
@@ -1603,13 +1728,18 @@ export async function createHerdWithAnimals(
 ): Promise<{ l_id_herd: string; l_id_animals: string[] }> {
   try {
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "createHerdWithAnimals")
+    assertAnimalCount(count)
 
     return await fdm.transaction(async (tx) => {
       const now = new Date()
-      await lockFarmWorknumbers(tx, b_id_farm)
+      await lockFarm(tx, b_id_farm)
 
       const category = await getAnimalCategory(tx, herdProperties.l_id_category, b_id_farm)
       const l_id_herd = await insertHerd(tx, b_id_farm, herdProperties)
+      // The animals join the herd now, so a herd that only starts later cannot get them yet
+      if (count > 0) {
+        await assertHerdRunsOn(tx, l_id_herd, now)
+      }
 
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
       const l_specie = animalProperties?.l_specie ?? category.l_specie
@@ -1678,11 +1808,7 @@ export async function getCensusForFarm(
         schema.animalAssigning,
         and(
           eq(schema.herds.l_id_herd, schema.animalAssigning.l_id_herd),
-          lte(schema.animalAssigning.l_assigning_start, atDate),
-          or(
-            isNull(schema.animalAssigning.l_assigning_end),
-            gt(schema.animalAssigning.l_assigning_end, atDate),
-          ),
+          activeAssignmentOn(atDate),
         ),
       )
       .leftJoin(
@@ -1692,7 +1818,14 @@ export async function getCensusForFarm(
           lte(schema.animalLeaving.l_leaving_date, atDate),
         ),
       )
-      .where(and(eq(schema.herdStarting.b_id_farm, b_id_farm), isNull(schema.herdEnding.l_end)))
+      .where(
+        and(
+          eq(schema.herdStarting.b_id_farm, b_id_farm),
+          // The herds that run on the census date
+          or(isNull(schema.herdStarting.l_start), lte(schema.herdStarting.l_start, atDate)),
+          or(isNull(schema.herdEnding.l_end), gt(schema.herdEnding.l_end, atDate)),
+        ),
+      )
       .groupBy(
         schema.herds.l_id_herd,
         schema.herds.l_herd_name,

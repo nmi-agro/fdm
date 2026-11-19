@@ -52,6 +52,11 @@ describe("getCatalogueRvo", () => {
       l_specie: "cattle",
       l_sex_options: ["male"],
     })
+    // RVO counts animals of the other sex in these categories too (oxen and fattened heifers,
+    // breeding bucks, stags and young animals)
+    for (const id of ["rvo_122", "rvo_600", "rvo_971", "rvo_981"]) {
+      expect([...(byId.get(id)?.l_sex_options ?? [])].sort()).toEqual(["female", "male"])
+    }
     expect(byId.get("rvo_101")).toMatchObject({
       l_specie: "cattle",
       l_lsu: 0.4,

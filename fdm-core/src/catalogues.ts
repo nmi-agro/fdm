@@ -17,7 +17,7 @@ import {
   hashFertilizer,
   hashMeasure,
 } from "@nmi-agro/fdm-data"
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
@@ -844,7 +844,8 @@ export async function syncCatalogues(
   options?: { nmiApiKey?: string },
 ): Promise<void> {
   await syncAnimalCategoryCatalogue(fdm)
-  await ensureAnimalCategoryCatalogueSelection(fdm)
+  // Farms get the RVO animal categories when they are added (addFarm); the sync doesn't enable
+  // them again, so a farm can turn them off
   await syncFertilizerCatalogue(fdm)
   await syncFeedCatalogue(fdm)
   await syncCultivationCatalogue(fdm)
@@ -886,31 +887,6 @@ export async function syncFeedCatalogueArray(
       }
     } catch (error) {
       throw handleError(error, "Exception for syncFeedCatalogue")
-    }
-  })
-}
-
-async function ensureAnimalCategoryCatalogueSelection(fdm: FdmType): Promise<void> {
-  await fdm.transaction(async (tx) => {
-    try {
-      // One INSERT ... SELECT that locks the farms it reads: a farm removed at the same time is
-      // skipped instead of breaking the sync on the foreign key
-      await tx
-        .insert(schema.animalCategoryCatalogueSelecting)
-        .select(
-          tx
-            .select({
-              b_id_farm: schema.farms.b_id_farm,
-              l_category_source: sql<string>`'rvo'`.as("l_category_source"),
-              created: sql<Date>`now()`.as("created"),
-              updated: sql<Date | null>`NULL::timestamptz`.as("updated"),
-            })
-            .from(schema.farms)
-            .for("key share"),
-        )
-        .onConflictDoNothing()
-    } catch (error) {
-      throw handleError(error, "Exception for ensureAnimalCategoryCatalogueSelection")
     }
   })
 }

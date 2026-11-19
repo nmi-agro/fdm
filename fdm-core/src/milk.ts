@@ -15,6 +15,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
 /**
@@ -230,6 +231,7 @@ export async function addMilkingHerd(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addMilkingHerd")
+    await assertSameFarm(fdm, { l_id_herd }, { l_id_milktank })
 
     await fdm.insert(schema.herdMilking).values({
       l_id_herd,
@@ -403,6 +405,7 @@ export async function addMilkingAnimal(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "addMilkingAnimal")
+    await assertSameFarm(fdm, { l_id_animal }, { l_id_milktank })
 
     await fdm.insert(schema.animalMilking).values({
       l_id_animal,
@@ -658,6 +661,16 @@ export async function updateMilkDelivery(
   },
 ): Promise<void> {
   try {
+    // Check access first, so an unknown delivery and one of another farm give the same answer
+    await checkPermission(
+      fdm,
+      "milk",
+      "write",
+      l_id_milkdelivery,
+      principal_id,
+      "updateMilkDelivery",
+    )
+
     const existing = await fdm
       .select({
         l_id_milktank: schema.milkDelivering.l_id_milktank,
@@ -671,15 +684,6 @@ export async function updateMilkDelivery(
     if (existing.length === 0) {
       throw new Error("Milk delivering record not found")
     }
-
-    await checkPermission(
-      fdm,
-      "milk",
-      "write",
-      existing[0].l_id_milktank,
-      principal_id,
-      "updateMilkDelivery",
-    )
 
     await fdm.transaction(async (tx) => {
       const updated = new Date()
