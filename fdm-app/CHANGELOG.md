@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.39.10
+
+### Patch Changes
+
+- [#964](https://github.com/nmi-agro/fdm/pull/964) [`fe28324`](https://github.com/nmi-agro/fdm/commit/fe28324b3d98a90a3703bb888bfd39e3829eae1a) Thanks [@SvenVw](https://github.com/SvenVw)! - Adding or changing a measure that already runs on the field in an overlapping period now shows a clear warning instead of an unexpected error with an error code. When a measure is added to several fields at once, the fields that already have it are skipped and the message says how many fields got the measure and how many were skipped.
+
 ## 0.39.9
 
 ### Patch Changes
