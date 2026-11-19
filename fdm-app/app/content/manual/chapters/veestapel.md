@@ -1,6 +1,6 @@
 ---
 title: Melkvee
-description: Het Melkvee-overzicht met koppels, beweiding en kengetallen. Leg je melkvee vast in koppels en registreer per dier oormerk, koppel en afvoer.
+description: Het Melkvee-overzicht met koppels, beweiding en kengetallen. Leg je melkvee vast in koppels en registreer per dier levensnummer, koppel en afvoer.
 section: Gegevens vastleggen
 order: 8
 inApp:

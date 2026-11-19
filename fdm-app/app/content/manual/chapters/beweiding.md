@@ -31,7 +31,7 @@ Op de **Beweidingskalender**, onder **Melkvee** in het menu of via de kaart onde
 
 ## De beweidingskalender {#kalender}
 
-De kalender toont per graslandperceel elke dag van het weideseizoen, van 1 maart tot en met 31 oktober. De dagen staan smal naast elkaar; op een kleiner scherm schuif je de kalender opzij. Percelen die in het gekozen jaar zijn beweid staan bovenaan, daarna de grootste percelen eerst. Een groene dag is beweid, een donkergroene gemaaid; geplande beweiding is groen gestreept. Dezelfde kleuren zie je op het Melkvee-overzicht, op de kaart en bij het perceel. Een bemesting is een stip in de kleur van de meststof: bruin voor dierlijke mest, blauw voor kunstmest. Ga met de muis over een dag, of loop er met het toetsenbord langs, en een venstertje toont de datum, het perceel en de koppel, de maaisnede of de bemesting van die dag. Vandaag is gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform. Is een perceel eerder opnieuw gebruikt dan de richtlijn voor rust, dan staat daar ook een korte melding met een link naar de uitleg op [Weidegang](#inzichten).
+De kalender toont per graslandperceel elke dag van het weideseizoen, van 1 maart tot en met 31 oktober. De dagen staan smal naast elkaar; op een kleiner scherm schuif je de kalender opzij. Percelen die in het gekozen jaar zijn beweid staan bovenaan, daarna de grootste percelen eerst. Een groene dag is beweid, een donkergroene gemaaid, en een dag die boven groen en onder donkergroen is, is beweid én gemaaid; geplande beweiding is groen gestreept. Dezelfde kleuren zie je op het Melkvee-overzicht, op de kaart en bij het perceel. Een bemesting is een stip in de kleur van de meststof: bruin voor dierlijke mest, blauw voor kunstmest. Ga met de muis over een dag, of loop er met het toetsenbord langs, en een venstertje toont de datum, het perceel en de koppel, de maaisnede of de bemesting van die dag. Vandaag is gemarkeerd. Achter elk perceel staat hoeveel dagen het al rust: vanaf het laatste gebruik in het gekozen jaar tot vandaag, of tot 31 december als je een eerder jaar bekijkt. Een gebruik in een ander jaar telt niet mee, en geplande beweiding ook niet. Onder de kalender zie je de weidedagen, de gemiddelde weide-uren per dag, de voortgang naar Weidemelk en het beweidingsplatform. Is een perceel eerder opnieuw gebruikt dan de richtlijn voor rust, dan staat daar ook een korte melding met een link naar de uitleg op [Weidegang](#inzichten).
 
 Een beweiding buiten 1 maart tot en met 31 oktober telt gewoon mee, maar staat niet in de kalender. Je vindt haar op het tabblad Beweiding van het [perceel](#perceel), en het venster van de beweiding waarschuwt als een datum buiten de kalender valt.
 
@@ -55,7 +55,7 @@ Een bemesting telt niet mee als gebruik voor de dagen rust; een maaisnede wel.
 
 Een beweiding leg je overal in {{appName}} met hetzelfde venster vast: vanuit de kalender, met **Beweiding toevoegen** op de kalender of op de kaart, en op de beweidingspagina van een perceel.
 
-In het venster kies je eerst of de koppel **1 dag** of **Meerdere dagen** weidt. Bij één dag vul je alleen de datum in; bij meerdere dagen de eerste en de laatste dag. Daarna kies je de koppel en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** (de standaard) of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan. Onder in het venster zie je hoeveel weidedagen en weide-uren je vastlegt, en dat een beweiding Beweiding aanzet voor de stikstofgebruiksnorm (zie [hieronder](#gebruiksnorm)).
+In het venster kies je eerst of de koppel **1 dag** of **Meerdere dagen** weidt. Bij één dag vul je alleen de datum in; bij meerdere dagen de eerste en de laatste dag. Daarna kies je de koppel en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** (de standaard) of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan. Onder in het venster zie je hoeveel weidedagen en weide-uren je vastlegt, en dat je met een beweiding de instelling _Beweiding_ voor de stikstofgebruiksnorm aanzet (zie [hieronder](#gebruiksnorm)).
 
 Een koppel staat op één dag maar één keer op hetzelfde perceel. Weidt de koppel op een van die dagen al op het perceel, dan krijg je een melding. Pas dan de bestaande beweiding aan, bijvoorbeeld met een grotere zone, of kies een andere datum. Op dezelfde dag naar een ander perceel kan wel.
 
@@ -92,7 +92,7 @@ Bij stripgrazen of rantsoenbeweiding krijgen je koeien steeds een nieuwe strook 
 2. Controleer het aantal dieren, de grasopname per dier en het grasaanbod. {{appName}} vult ze in met richtwaarden; pas ze aan voor je eigen bedrijf.
 3. Klik op **Strook maken**.
 
-De nieuwe strook sluit aan op de stroken die je de afgelopen 28 dagen op dit perceel hebt beweid; die zie je grijs op de kaart. Is het perceel rond, dan begin je weer vooraan. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
+De nieuwe strook sluit aan op de stroken die je de afgelopen 28 dagen op dit perceel hebt beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
 
 ![De strook berekenen: richting, dieren, grasopname en grasaanbod, met de berekende strook op de kaart](screenshot:beweiding-strook)
 
@@ -106,7 +106,7 @@ De kaart kleurt je percelen naar hun gebruik op één dag, in de kleuren van de 
 - _Perceel bekijken_: ga met de muis over een perceel voor de koppel en de uren per dag, de opbrengst van een maaisnede of het aantal dagen rust. De dagen rust tellen alleen vanaf een gebruik in het gekozen jaar. Klik op een graslandperceel om de beweidingspagina van dat perceel te openen; op een telefoon tik je op het perceel en daarna op **Bekijk beweiding**.
 - _Beweiding toevoegen_: met **Beweiding toevoegen** in het paneel links boven kies je een perceel en leg je een beweiding vast op de getoonde dag.
 
-Heeft je bedrijf nog geen koppel, dan staat de kaartlaag grijs in de lijst. Voeg eerst een koppel toe bij [Veestapel](/manual/veestapel).
+Heeft je bedrijf nog geen koppel, dan staat de kaartlaag grijs in de lijst. Voeg eerst een koppel toe bij [Melkvee](/manual/veestapel).
 
 ![De kaartlaag Beweiding: de status per perceel, de beweide zone en de legenda](screenshot:beweiding-vandaag)
 

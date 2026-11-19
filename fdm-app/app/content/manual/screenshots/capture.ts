@@ -3,7 +3,30 @@
  * needs an entry here, and every entry must be used; `pnpm --filter @nmi-agro/fdm-app test:unit`
  * checks both. See the README in the manual folder for how to add one and run the capture.
  */
-import type { CaptureDefinition } from "~/lib/manual/capture-types"
+import type { CaptureDefinition, CaptureStep } from "~/lib/manual/capture-types"
+
+// Shared parts of the livestock and grazing captures. These pages depend on "today" (grazing
+// status, rest days, default dates), so they start on the dashboard with the fixed clock and open
+// the page through the menu. The seed grazes strips on the home plot on 13, 14 and 15 June.
+const GRAZING_DASHBOARD_START = {
+  route: "/farm/{farm}?calendar={year}",
+  ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+  clock: "{year}-06-15T12:00:00+02:00",
+} satisfies Partial<CaptureDefinition>
+const GRAZING_FIELD_START = {
+  route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
+  ready: { text: "Perceelskaart", exact: true },
+  clock: "{year}-06-15T12:00:00+02:00",
+} satisfies Partial<CaptureDefinition>
+const OPEN_MELKVEE: CaptureStep = { click: { selector: 'a[href$="/livestock"]' } }
+const OPEN_GRAZING_CALENDAR: CaptureStep = { click: { selector: 'a[href$="/livestock/grazing"]' } }
+const OPEN_ZONE_EDITOR: CaptureStep[] = [
+  { click: { role: "link", name: "Beweiding", exact: true } },
+  { waitFor: { text: "Gebruikshistorie", exact: false } },
+  { click: { role: "button", name: "Beweiding toevoegen" } },
+  { click: { text: "Zone op de kaart", exact: true } },
+  { waitFor: { text: "Eerder gebruikte zones" } },
+]
 
 export const captures = {
   "bedrijf-dashboard": {
@@ -264,38 +287,18 @@ export const captures = {
       { click: { role: "button", name: "Aandacht nodig" } },
     ],
   },
-  // The livestock and grazing pages depend on "today" (grazing status, rest days, default dates),
-  // so they start on the dashboard with the fixed clock and open the page through the menu. The
-  // seed grazes strips on the home plot on 13, 14 and 15 June.
   "veestapel-overzicht": {
-    route: "/farm/{farm}?calendar={year}",
-    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
-    clock: "{year}-06-15T12:00:00+02:00",
-    steps: [
-      { click: { selector: 'a[href$="/livestock"]' } },
-      { waitFor: { text: "Al het vee bekijken" } },
-    ],
+    ...GRAZING_DASHBOARD_START,
+    steps: [OPEN_MELKVEE, { waitFor: { text: "Al het vee bekijken" } }],
   },
   "beweiding-kalender": {
-    route: "/farm/{farm}?calendar={year}",
-    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
-    clock: "{year}-06-15T12:00:00+02:00",
-    steps: [
-      { click: { selector: 'a[href$="/livestock"]' } },
-      { click: { selector: 'a[href$="/livestock/grazing"]' } },
-      { waitFor: { text: "Koppels:" } },
-    ],
+    ...GRAZING_DASHBOARD_START,
+    steps: [OPEN_MELKVEE, OPEN_GRAZING_CALENDAR, { waitFor: { text: "Koppels:" } }],
   },
   "beweiding-zone-tekenen": {
-    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
-    ready: { text: "Perceelskaart", exact: true },
-    clock: "{year}-06-15T12:00:00+02:00",
+    ...GRAZING_FIELD_START,
     steps: [
-      { click: { role: "link", name: "Beweiding", exact: true } },
-      { waitFor: { text: "Gebruikshistorie", exact: false } },
-      { click: { role: "button", name: "Beweiding toevoegen" } },
-      { click: { text: "Zone op de kaart", exact: true } },
-      { waitFor: { text: "Eerder gebruikte zones" } },
+      ...OPEN_ZONE_EDITOR,
       // Move the pointer off the drawing toolbar, whose disabled buttons explain themselves in a tooltip
       { hover: { text: "Leg de beweidingsperiode en uren vast voor dit perceel." } },
     ],
@@ -303,15 +306,9 @@ export const captures = {
     map: true,
   },
   "beweiding-strook": {
-    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
-    ready: { text: "Perceelskaart", exact: true },
-    clock: "{year}-06-15T12:00:00+02:00",
+    ...GRAZING_FIELD_START,
     steps: [
-      { click: { role: "link", name: "Beweiding", exact: true } },
-      { waitFor: { text: "Gebruikshistorie", exact: false } },
-      { click: { role: "button", name: "Beweiding toevoegen" } },
-      { click: { text: "Zone op de kaart", exact: true } },
-      { waitFor: { text: "Eerder gebruikte zones" } },
+      ...OPEN_ZONE_EDITOR,
       { click: { role: "button", name: "Strook berekenen" } },
       { click: { role: "button", name: "Strook maken" } },
       { waitFor: { text: "binnen het perceel" } },
@@ -320,12 +317,10 @@ export const captures = {
     map: true,
   },
   beweidingsplan: {
-    route: "/farm/{farm}?calendar={year}",
-    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
-    clock: "{year}-06-15T12:00:00+02:00",
+    ...GRAZING_DASHBOARD_START,
     steps: [
-      { click: { selector: 'a[href$="/livestock"]' } },
-      { click: { selector: 'a[href$="/livestock/grazing"]' } },
+      OPEN_MELKVEE,
+      OPEN_GRAZING_CALENDAR,
       { click: { role: "link", name: "Beweidingsplanner" } },
       { click: { text: "Stripgrazen", exact: true } },
       { click: { role: "button", name: "Stroken op de kaart" } },
@@ -335,9 +330,7 @@ export const captures = {
   "beweiding-vandaag": {
     // The map reads "today" from the browser when it first loads, so it opens through the
     // dashboard action after the clock is fixed. The demo farm grazes the home plot in mid-June.
-    route: "/farm/{farm}?calendar={year}",
-    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
-    clock: "{year}-06-15T12:00:00+02:00",
+    ...GRAZING_DASHBOARD_START,
     steps: [
       { click: { role: "link", name: "Beweiding vandaag" } },
       { waitFor: { text: "maandag 15 juni" } },
@@ -345,12 +338,10 @@ export const captures = {
     map: true,
   },
   "beweiding-inzichten": {
-    route: "/farm/{farm}?calendar={year}",
-    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
-    clock: "{year}-06-15T12:00:00+02:00",
+    ...GRAZING_DASHBOARD_START,
     steps: [
       // The farm page links to the grazing calendar; Weidegang opens from the Melkvee overview
-      { click: { selector: 'a[href$="/livestock"]' } },
+      OPEN_MELKVEE,
       { click: { role: "link", name: "Weidegang", exact: true } },
       { waitFor: { text: "Weidemelk · 120 dagen × 6 uur" } },
     ],

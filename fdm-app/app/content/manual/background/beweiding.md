@@ -5,7 +5,7 @@ section: Vee en beweiding
 order: 1
 inApp:
   - Melkvee
-  - Beweiding
+  - Weidegang
 lastReviewed: 2026-11-17
 routes: []
 watch:
@@ -86,14 +86,14 @@ Een nieuwe strook sluit aan op de stroken die de afgelopen 28 dagen op het perce
 
 De planner gebruikt per systeem een standaard aantal dagen per perceel, volgens het Handboek Melkveehouderij §3.10.2 en, voor Nieuw Nederlands Weiden, de brochure van Stichting Weidegang:
 
-| Systeem                 | Dagen per perceel of blok | Toelichting                                                    |
-| ----------------------- | ------------------------- | -------------------------------------------------------------- |
-| Omweiden                | 4                         | Inscharen bij ongeveer 1.700 kg ds/ha                          |
-| Standweiden             | 21                        | Drie weken tot drie maanden op een perceel                     |
-| Modern standweiden      | 21                        | Na drie tot zes weken naar het volgende blok                   |
-| Nieuw Nederlands Weiden | 1                         | Elke dag een nieuw perceel van gelijke grootte, kort gras      |
-| Stripgrazen             | 1                         | Elke beweiding een nieuwe strook                               |
-| Rantsoenbeweiding       | 1                         | Een nieuwe strook aansluitend op het eerder beweide land       |
+| Systeem                 | Dagen per perceel of blok | Toelichting                                               |
+| ----------------------- | ------------------------- | --------------------------------------------------------- |
+| Omweiden                | 4                         | Inscharen bij ongeveer 1.700 kg ds/ha                     |
+| Standweiden             | 21                        | Drie weken tot drie maanden op een perceel                |
+| Modern standweiden      | 21                        | Na drie tot zes weken naar het volgende blok              |
+| Nieuw Nederlands Weiden | 1                         | Elke dag een nieuw perceel van gelijke grootte, kort gras |
+| Stripgrazen             | 1                         | Elke beweiding een nieuwe strook                          |
+| Rantsoenbeweiding       | 1                         | Een nieuwe strook aansluitend op het eerder beweide land  |
 
 Bij Nieuw Nederlands Weiden deel je de huiskavel eenmalig op in percelen van gelijke grootte. In alle voorbeelden van de brochure zijn dat percelen van 2,5 ha voor 120 koeien; de planner rekent die grootte om naar het aantal dieren in je koppel (een aanname). De koeien krijgen elke dag een nieuw perceel, en bij dag en nacht weiden (meer dan 12 uur) 's ochtends en 's avonds. Je schaart in bij 10 tot 12 cm graslengte en uit bij 9 tot 11 cm. De rust telt per perceel, omdat elk perceel als zone wordt vastgelegd. Groen Kennisnet beschrijft daarnaast een indeling van de percelen in drie blokken, waarbij de koeien na vier weken naar het volgende blok gaan. Die wisseling tussen blokken neemt de planner niet mee: hij laat de koeien elke dag naar het volgende perceel op de gekozen percelen gaan. Kies daarom de percelen van het blok dat je wilt beweiden.
 

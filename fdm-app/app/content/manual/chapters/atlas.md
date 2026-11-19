@@ -20,7 +20,7 @@ keywords:
 related:
   - bodem
   - bodemkwaliteit
-updated: 2026-11-16
+updated: 2026-11-19
 ---
 
 De Atlas is de kaartomgeving van {{appName}}. Je bekijkt er je eigen percelen, maar ook die van heel Nederland, met informatie over gewashistorie, bodem, hoogte en bodemkwaliteit. Een deel van de Atlas werkt zelfs zonder eigen bedrijf, dus ook handig als je een perceel wilt bekijken voordat je het pacht of koopt.
@@ -75,7 +75,7 @@ Kies een parameter, bijvoorbeeld organische stof, pH of P-Al. Je percelen kleure
 
 ## Beweiding op de kaart {#beweiding-op-de-kaart}
 
-Met melkvee laat de kaartlaag _Beweiding_ per dag zien welke percelen worden beweid, gemaaid of rusten, en waar je koeien in een zone lopen. Hoe je de dag kiest en koeien naar buiten of binnen stuurt, lees je in [Beweiding](/manual/beweiding#vandaag).
+Met melkvee laat de kaartlaag _Beweiding_ per dag zien welke percelen worden beweid, gemaaid of rusten, en waar je koeien in een zone lopen. Hoe je de dag kiest en vanaf de kaart een beweiding vastlegt, lees je in [Beweiding](/manual/beweiding#vandaag).
 
 ## Indicatoren op de kaart {#indicatoren-op-de-kaart}
 
