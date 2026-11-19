@@ -1,4 +1,4 @@
-import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
 import { eq } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
@@ -8,7 +8,7 @@ import { addAnimal } from "./animal"
 import { createFdmAuth } from "./authentication"
 import { grantRole, listPrincipalsForResource } from "./authorization"
 import { addBarn, addHousing } from "./barn"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { syncAnimalCategoryCatalogueArray, syncFeedCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -64,6 +64,8 @@ describe("Farm Functions", () => {
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
     await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+    // The livestock tests add a feed batch, which needs the feed catalogue
+    await syncFeedCatalogueArray(fdm, await getFeedCatalogue("nmi"))
 
     const googleAuth = {
       clientId: "mock_google_client_id",
