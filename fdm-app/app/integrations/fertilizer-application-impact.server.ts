@@ -261,47 +261,75 @@ async function loadSelectionAdvice(
     ])
   const nmiApiKey = getNmiApiKey()
 
+  // First the dose and the main cultivation of each field, then the advice of all fields with
+  // a main cultivation, with one cache lookup
   const rows: BulkFieldAdvice[] = []
-  for (const batch of chunk(fields, NUTRIENT_ADVICE_CONCURRENCY)) {
-    const results = await Promise.all(
-      batch.map(async (field): Promise<BulkFieldAdvice> => {
-        const base = {
-          b_id: field.b_id,
-          b_area: field.b_area ?? 0,
-          b_bufferstrip: field.b_bufferstrip ?? false,
-        }
-        try {
-          const doses = calculateDose({
-            applications: applicationsByField.get(field.b_id) ?? [],
-            fertilizers,
-          })
-          const dose = pickNutrients(doses.dose)
-          const cultivations = cultivationsByField.get(field.b_id) ?? []
-          if (cultivations.length === 0) {
-            return { ...base, dose, errorMessage: "Geen gewas geregistreerd voor dit perceel." }
-          }
-          const mainCultivation = getMainCultivation(cultivations, calendar)
-          if (!mainCultivation) {
-            return { ...base, dose, errorMessage: "Geen hoofdteelt bepaald voor dit jaar." }
-          }
-          const advice = await getNutrientAdvice(fdm, {
-            b_lu_catalogue: mainCultivation.b_lu_catalogue,
-            b_centroid: field.b_centroid,
-            currentSoilData: soilDataByField.get(field.b_id) ?? [],
-            nmiApiKey,
-            b_bufferstrip: field.b_bufferstrip,
-          })
-          return {
+  const adviceRequests: {
+    index: number
+    dose: BulkNutrientValues
+    input: Parameters<typeof getNutrientAdvice>[1]
+  }[] = []
+  for (const field of fields) {
+    const base = {
+      b_id: field.b_id,
+      b_area: field.b_area ?? 0,
+      b_bufferstrip: field.b_bufferstrip ?? false,
+    }
+    try {
+      const doses = calculateDose({
+        applications: applicationsByField.get(field.b_id) ?? [],
+        fertilizers,
+      })
+      const dose = pickNutrients(doses.dose)
+      const cultivations = cultivationsByField.get(field.b_id) ?? []
+      if (cultivations.length === 0) {
+        rows.push({ ...base, dose, errorMessage: "Geen gewas geregistreerd voor dit perceel." })
+        continue
+      }
+      const mainCultivation = getMainCultivation(cultivations, calendar)
+      if (!mainCultivation) {
+        rows.push({ ...base, dose, errorMessage: "Geen hoofdteelt bepaald voor dit jaar." })
+        continue
+      }
+      adviceRequests.push({
+        index: rows.length,
+        dose,
+        input: {
+          b_lu_catalogue: mainCultivation.b_lu_catalogue,
+          b_centroid: field.b_centroid,
+          currentSoilData: soilDataByField.get(field.b_id) ?? [],
+          nmiApiKey,
+          b_bufferstrip: field.b_bufferstrip,
+        },
+      })
+      rows.push(base) // Completed below with the advice
+    } catch (error) {
+      rows.push({ ...base, errorMessage: toFriendlyAdviceError(error) })
+    }
+  }
+
+  const advices = await Promise.allSettled(
+    getNutrientAdvice.many(
+      fdm,
+      adviceRequests.map(({ input }) => input),
+      { concurrency: NUTRIENT_ADVICE_CONCURRENCY },
+    ),
+  )
+  for (const [i, { index, dose }] of adviceRequests.entries()) {
+    const result = advices[i]
+    const base = rows[index]
+    rows[index] =
+      result.status === "fulfilled"
+        ? {
             ...base,
             dose,
-            advice: { n: advice.d_n_req, p: advice.d_p_req, k: advice.d_k_req },
+            advice: {
+              n: result.value.d_n_req,
+              p: result.value.d_p_req,
+              k: result.value.d_k_req,
+            },
           }
-        } catch (error) {
-          return { ...base, errorMessage: toFriendlyAdviceError(error) }
-        }
-      }),
-    )
-    rows.push(...results)
+        : { ...base, errorMessage: toFriendlyAdviceError(result.reason) }
   }
   return rows
 }

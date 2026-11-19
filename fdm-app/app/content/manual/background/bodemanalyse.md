@@ -6,6 +6,7 @@ order: 2
 inApp:
   - Percelen
   - Bodem
+updated: 2026-11-18
 lastReviewed: 2026-11-05
 routes: []
 watch:
@@ -70,7 +71,7 @@ Dat zijn vuistregels. Een gemeten waarde is altijd beter.
 
 ## De actuele waarde per parameter {#actuele-waarde}
 
-Je hebt vaak meerdere analyses van een perceel, van verschillende jaren en soms voor verschillende delen van het perceel. Voor de bodempagina, het bemestingsadvies, de gebruiksnormen, de stikstofbalans, de organische-stofbalans en Dyna bepaalt {{appName}} daarom per parameter apart welke waarde actueel is:
+Je hebt vaak meerdere analyses van een perceel, van verschillende jaren en soms voor verschillende delen van het perceel. Voor de bodempagina, het bemestingsadvies, de gebruiksnormen, de stikstofbalans, de organische-stofbalans, Dyna en BLN3 bepaalt {{appName}} daarom per parameter apart welke waarde actueel is:
 
 1. De meest recente analyse met een waarde voor die parameter beslist.
 2. Geldt die analyse voor het hele perceel, dan wordt die waarde gebruikt.
@@ -84,7 +85,7 @@ Omdat dit per parameter gebeurt, vervangt een nieuwe analyse alleen de waarden d
 
 De balansen kijken naar alle analyses tot en met het einde van de periode die je in de kalender hebt gekozen. Een analyse van vóór die periode telt dus ook mee; een analyse van na die periode niet.
 
-BLN3 gebruikt een eenvoudiger regel: per parameter de meest recente waarde tot en met het gekozen jaar, zonder zones te combineren.
+BLN3 kijkt naar alle analyses tot en met het gekozen jaar. De BodemConditieScore komt niet uit deze regel: die komt uit de meest recente analyse waarin hij is ingevuld.
 
 ## Nmin: stikstof in de bodem op dit moment {#nmin}
 

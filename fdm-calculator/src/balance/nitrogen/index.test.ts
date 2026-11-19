@@ -1,6 +1,6 @@
 import type { FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type {
   NitrogenBalanceFieldInput,
   NitrogenBalanceFieldResultNumeric,
@@ -644,5 +644,69 @@ describe("getNitrogenBalanceField", () => {
     expect(cachedHashes).toHaveLength(3)
     expect(cachedHashes[1]).toBe(cachedHashes[0])
     expect(cachedHashes[2]).not.toBe(cachedHashes[0])
+  })
+
+  it("should use the same cache entry for a field in the farm balance as for a single field", async () => {
+    // Record the hash of every cache write (always a cache miss), for single and batched writes
+    const cachedHashes: string[] = []
+    const emptyRows = {
+      limit: async () => [],
+      // eslint-disable-next-line unicorn/no-thenable -- simulates awaiting a Drizzle query
+      then: (resolve: (rows: unknown[]) => unknown) => Promise.resolve(resolve([])),
+    }
+    const recordingFdm = {
+      select: () => recordingFdm,
+      from: () => recordingFdm,
+      where: () => emptyRows,
+      insert: () => recordingFdm,
+      values: (rows: { calculation_hash: string } | { calculation_hash: string }[]) => {
+        for (const row of Array.isArray(rows) ? rows : [rows]) {
+          cachedHashes.push(row.calculation_hash)
+        }
+        return { onConflictDoNothing: async () => undefined }
+      },
+    } as unknown as FdmType
+
+    const fieldInput: NitrogenBalanceFieldInput["fieldInput"] = {
+      field: {
+        b_id: "field1",
+        b_centroid: [5.0, 52.0],
+        b_area: 1,
+        b_start: new Date("2023-01-01"),
+        b_end: null,
+        b_bufferstrip: true,
+      },
+      cultivations: [],
+      harvests: [],
+      currentSoilData: [],
+      fertilizerApplications: [],
+      depositionSupply: { total: new Decimal(0) },
+    }
+    const timeFrame = { start: new Date("2023-01-01"), end: new Date("2023-12-31") }
+    const farmInput: NitrogenBalanceInput = {
+      fields: [fieldInput],
+      fertilizerDetails: [],
+      cultivationDetails: [],
+      timeFrame,
+    }
+
+    // The farm balance adds the farm ID to the input of each field
+    await getNitrogenBalanceField(recordingFdm, {
+      b_id_farm: "farm",
+      fieldInput,
+      fertilizerDetails: [],
+      cultivationDetails: [],
+      timeFrame,
+      useEffectiveNitrogen: false,
+    } as NitrogenBalanceFieldInput)
+    await calculateNitrogenBalance(recordingFdm, farmInput)
+    await calculateNitrogenBalance(recordingFdm, { ...farmInput, useEffectiveNitrogen: false })
+    await calculateNitrogenBalance(recordingFdm, { ...farmInput, useEffectiveNitrogen: true })
+
+    // The batched writes are fire-and-forget
+    await vi.waitFor(() => expect(cachedHashes).toHaveLength(4))
+    expect(cachedHashes[1]).toBe(cachedHashes[0])
+    expect(cachedHashes[2]).toBe(cachedHashes[0])
+    expect(cachedHashes[3]).not.toBe(cachedHashes[0])
   })
 })
