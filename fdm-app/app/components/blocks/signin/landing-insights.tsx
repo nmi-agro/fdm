@@ -55,10 +55,10 @@ export function LandingBalances() {
           </div>
         </SectionHeading>
         <ProductShot
-          manualId="balans-organische-stof"
+          manualId="balans-stikstof"
           frameClassName="aspect-[16/9]"
-          alt={`De organische-stofbalans van een demobedrijf in ${clientConfig.name}: aanvoer en afbraak voor het bedrijf en de balans per perceel`}
-          caption="De organische-stofbalans: aanvoer en afbraak voor het bedrijf, en per perceel of de balans positief is."
+          alt={`De stikstofbalans van een demobedrijf in ${clientConfig.name}: aanvoer, afvoer, emissie en het overschot per perceel`}
+          caption="De stikstofbalans: aanvoer, afvoer en emissie voor het bedrijf, en per perceel het overschot naast het doel."
         />
       </div>
       <dl className="mt-14 grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">

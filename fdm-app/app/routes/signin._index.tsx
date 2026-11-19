@@ -15,7 +15,7 @@ import {
   LandingFooter,
 } from "~/components/blocks/signin/landing-about"
 import { LandingHeader } from "~/components/blocks/signin/landing-header"
-import { LandingHero } from "~/components/blocks/signin/landing-hero"
+import { HERO_PHOTO_URL, LandingHero } from "~/components/blocks/signin/landing-hero"
 import {
   LandingAtlas,
   LandingBalances,
@@ -33,13 +33,14 @@ import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
 import { getSafeRedirect } from "~/lib/url-utils"
 import { extractFormValuesFromRequest } from "../lib/form"
 
-/** Product screenshot used as the social preview image. */
-const SOCIAL_IMAGE_PATH = "/fdm-screenshot-atlas-cultivations.png"
+/** The hero photo at the size social previews expect. */
+const SOCIAL_IMAGE_URL =
+  "https://images.unsplash.com/photo-1717702576954-c07131c54169?q=80&w=1200&auto=format&fit=crop"
 
 export const meta: MetaFunction = () => {
   const title = `${clientConfig.name}: Bemestingsadvies, Doelsturing & Perceelsdata`
   const description = `Faciliteert datagedreven inzicht in bodem en bemesting voor ondernemers en adviseurs. ${clientConfig.name} ondersteunt doelsturing via de stikstofbalans, optimalisatie van de organische stofbalans, bemestingsadvies, wettelijke gebruiksruimte en BLN-bodemindicatoren (waaronder Open Bodem Index/OBI en BedrijfsBodemWaterPlan/BBWP) met maatregelen voor bodemgezondheid, aangevuld met gedetailleerde perceelsdata zoals AHN4 en gewashistorie.`
-  const ogImage = new URL(SOCIAL_IMAGE_PATH, clientConfig.url).toString()
+  const ogImage = SOCIAL_IMAGE_URL
 
   return [
     { title },
@@ -57,7 +58,10 @@ export const meta: MetaFunction = () => {
 }
 
 export const links: LinksFunction = () => {
-  return [{ rel: "canonical", href: clientConfig.url }]
+  return [
+    { rel: "canonical", href: clientConfig.url },
+    { rel: "preload", as: "image", href: HERO_PHOTO_URL },
+  ]
 }
 
 /**

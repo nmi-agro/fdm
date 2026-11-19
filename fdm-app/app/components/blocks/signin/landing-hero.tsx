@@ -1,8 +1,11 @@
 import { motion } from "framer-motion"
 import { ArrowDown } from "lucide-react"
 import { clientConfig } from "~/lib/config"
-import { getScreenshot } from "~/lib/manual/screenshots"
 import { SignInCard } from "./sign-in-card"
+
+/** The hero photo of the landing page; the route preloads the same URL. */
+export const HERO_PHOTO_URL =
+  "https://images.unsplash.com/photo-1717702576954-c07131c54169?q=80&w=1974&auto=format&fit=crop"
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const
 
@@ -27,8 +30,8 @@ function HeroFacts({ className }: { className?: string }) {
 }
 
 /**
- * First screen of the public landing page: the sign-in card next to a brand panel
- * that says what the product does and shows a real screen of it.
+ * First screen of the public landing page: the sign-in card next to the hero photo
+ * and a brand panel that says what the product does.
  */
 export function LandingHero({
   redirectTo,
@@ -37,13 +40,20 @@ export function LandingHero({
   redirectTo: string
   redirectError: string | null
 }) {
-  const screenshot = getScreenshot("balans-stikstof")
-
   return (
     <div className="lg:grid lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <div className="relative overflow-hidden bg-[#122023] text-white lg:order-2">
+      <div className="flex flex-col bg-[#122023] text-white lg:order-2">
+        {/* The photo keeps its own area, so the text below never depends on its contrast */}
+        <div className="relative h-28 sm:h-40 lg:h-auto lg:min-h-48 lg:flex-1">
+          <img
+            src={HERO_PHOTO_URL}
+            alt="Een trekker bewerkt een akker bij zonsondergang"
+            fetchPriority="high"
+            className="absolute inset-0 size-full object-cover"
+          />
+        </div>
         <motion.div
-          className="flex h-full flex-col px-4 pt-10 pb-10 sm:px-8 lg:px-14 lg:pt-20 lg:pb-0"
+          className="flex flex-col px-4 py-8 sm:px-8 lg:px-14 lg:py-12"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: EASE_OUT }}
@@ -64,26 +74,6 @@ export function LandingHero({
             <span>Bekijk wat u ermee kunt</span>
             <ArrowDown className="size-4" aria-hidden="true" />
           </a>
-          {screenshot ? (
-            <motion.div
-              className="relative mt-12 hidden min-h-56 flex-1 lg:block"
-              initial={{ opacity: 0, y: 32 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15, ease: EASE_OUT }}
-            >
-              {/* Bleeds off the right and bottom edge; the app sidebar is cropped away */}
-              <div className="absolute top-0 left-0 w-[125%] overflow-hidden rounded-tl-xl border-t border-l border-white/15 bg-white">
-                <img
-                  src={screenshot.src}
-                  alt={`De stikstofbalans van een demobedrijf in ${clientConfig.name}: aanvoer, afvoer, emissie en het overschot per perceel`}
-                  width={screenshot.width}
-                  height={screenshot.height}
-                  fetchPriority="high"
-                  className="ml-[-17.7%] block h-auto w-[117.7%] max-w-none"
-                />
-              </div>
-            </motion.div>
-          ) : null}
         </motion.div>
       </div>
 
