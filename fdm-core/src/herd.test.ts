@@ -1,7 +1,7 @@
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
-import { addAnimal } from "./animal"
+import { addAnimal, updateAnimal } from "./animal"
 import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -104,9 +104,9 @@ describe("Herd Domain", () => {
       l_id_eartag: "NL900000001",
     })
 
-    await expect(removeHerd(fdm, principal_id, l_id_herd)).rejects.toThrowError(
-      "Exception for removeHerd",
-    )
+    await expect(removeHerd(fdm, principal_id, l_id_herd)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("an animal is assigned to it") },
+    })
   })
 
   it("should deny access to unauthorized principal", async () => {
@@ -154,7 +154,9 @@ describe("Herd Domain", () => {
         l_herd_name: "Unknown category",
         l_id_category: "missing_category",
       }),
-    ).rejects.toThrowError("Exception for addHerd")
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("missing_category is not enabled") },
+    })
 
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Known category",
@@ -163,11 +165,35 @@ describe("Herd Domain", () => {
 
     await expect(
       updateHerd(fdm, principal_id, l_id_herd, { l_id_category: "missing_category" }),
-    ).rejects.toThrowError("Exception for updateHerd")
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("missing_category is not enabled") },
+    })
+  })
 
-    await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+  it("should only change the category of a herd that never had animals", async () => {
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Nieuwe koppel",
+      l_id_category: "rvo_100",
+    })
+
+    // Without animals the category can still change
+    await updateHerd(fdm, principal_id, l_id_herd, { l_id_category: "rvo_101" })
+    expect((await getHerd(fdm, principal_id, l_id_herd)).l_id_category).toBe("rvo_101")
+
+    // Once an animal has been in it, even one that has left, the category is fixed
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    await updateAnimal(fdm, principal_id, l_id_animal, {
+      l_leaving_date: new Date("2025-02-01"),
+      l_leaving_method: "sold",
+    })
     await expect(
-      updateHerd(fdm, principal_id, l_id_herd, { l_id_category: "rvo_550" }),
-    ).rejects.toThrowError("Exception for updateHerd")
+      updateHerd(fdm, principal_id, l_id_herd, { l_id_category: "rvo_102" }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("has or had animals") },
+    })
+    // Passing the same category is fine
+    await updateHerd(fdm, principal_id, l_id_herd, { l_id_category: "rvo_101" })
   })
 })

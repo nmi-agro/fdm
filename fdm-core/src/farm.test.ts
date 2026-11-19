@@ -992,6 +992,44 @@ describe("Farm Functions", () => {
       ).toEqual([])
     })
 
+    it("should remove a farm whose fertilizer acquisition names its own manure pit", async () => {
+      const farmId = await addFarm(
+        fdm,
+        testPrincipalId,
+        "Farm with own manure",
+        "777777",
+        "Manure Lane",
+        "77777",
+      )
+      const b_id_manurepit = await addManurePit(fdm, testPrincipalId, farmId)
+      const p_id = createId()
+      await fdm.transaction(async (tx) => {
+        await tx.insert(schema.fertilizers).values({ p_id })
+        await tx.insert(schema.fertilizerAcquiring).values({
+          b_id_farm: farmId,
+          p_id,
+          p_acquiring_amount: 15000,
+          p_acquiring_date: new Date("2025-03-15"),
+          b_id_manurepit,
+        })
+      })
+
+      await removeFarm(fdm, testPrincipalId, farmId)
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.manurePits)
+          .where(eq(schema.manurePits.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.fertilizerAcquiring)
+          .where(eq(schema.fertilizerAcquiring.p_id, p_id)),
+      ).toEqual([])
+    })
+
     it("should throw an error if the principal does not have write access", async () => {
       const other_principal_id = createId()
       const newFarmId = await addFarm(

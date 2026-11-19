@@ -396,4 +396,60 @@ describe("Manure Domain", () => {
       removeManureDisposing(fdm, invalidUser, disposal.p_id_disposing!),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
+
+  it("should reject excretion into a manure pit of another farm", async () => {
+    const otherFarm = await addFarm(fdm, principal_id, "Other Farm", "654321", "Road 2", "1234AB")
+    const otherPit = await addManurePit(fdm, principal_id, otherFarm)
+    const ownPit = await addManurePit(fdm, principal_id, b_id_farm)
+    const otherFarmError = {
+      cause: { message: expect.stringContaining("belongs to another farm") },
+    }
+
+    await expect(
+      addExcreting(fdm, principal_id, l_id_herd, otherPit, {
+        l_excreting_start: new Date("2025-01-01"),
+      }),
+    ).rejects.toMatchObject(otherFarmError)
+
+    const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, ownPit, {
+      l_excreting_start: new Date("2025-01-01"),
+    })
+    await expect(
+      updateExcreting(fdm, principal_id, l_id_excreting, { b_id_manurepit: otherPit }),
+    ).rejects.toMatchObject(otherFarmError)
+  })
+
+  it("should refuse to remove a manure pit with disposals", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
+    await addManureDisposing(fdm, principal_id, b_id_manurepit, new Date("2025-03-01"), 500)
+    await expect(removeManurePit(fdm, principal_id, b_id_manurepit)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("a manure disposing record references it") },
+    })
+  })
+
+  it("should report excretion records that do not exist", async () => {
+    const notFound = { cause: { message: expect.stringContaining("Excreting record not found") } }
+    await expect(
+      updateExcreting(fdm, principal_id, "missing_excreting", { l_excreting_amount: 1 }),
+    ).rejects.toMatchObject(notFound)
+    await expect(removeExcreting(fdm, principal_id, "missing_excreting")).rejects.toMatchObject(
+      notFound,
+    )
+  })
+
+  it("should update the date of a manure disposal", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
+    const p_id_disposing = await addManureDisposing(
+      fdm,
+      principal_id,
+      b_id_manurepit,
+      new Date("2025-03-01"),
+      500,
+    )
+    await updateManureDisposing(fdm, principal_id, p_id_disposing, {
+      p_disposing_date: new Date("2025-03-05"),
+    })
+    const disposal = await getManureDisposing(fdm, principal_id, p_id_disposing)
+    expect(disposal.p_disposing_date).toEqual(new Date("2025-03-05"))
+  })
 })

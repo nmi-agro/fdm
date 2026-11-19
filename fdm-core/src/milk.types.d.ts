@@ -30,17 +30,16 @@ export interface MilkingAnimal {
 
 export interface MilkDelivery {
   l_id_milkdelivery: schema.milkDeliveriesTypeSelect["l_id_milkdelivery"]
-  l_id_milktank?: schema.milkDeliveriesTypeSelect["l_id_milktank"]
-  l_id_milkdelivery?: schema.milkDeliveriesTypeSelect["l_id_milkdelivery"]
-  l_milkdelivery_date?: schema.milkDeliveriesTypeSelect["l_milkdelivery_date"]
-  l_milkdelivery_amount?: schema.milkDeliveriesTypeSelect["l_milkdelivery_amount"]
+  l_id_milktank?: schema.milkDeliveringTypeSelect["l_id_milktank"]
+  l_milkdelivery_date?: schema.milkDeliveringTypeSelect["l_milkdelivery_date"]
+  l_milkdelivery_amount?: schema.milkDeliveringTypeSelect["l_milkdelivery_amount"]
   l_id_milkanalysis?: schema.milkAnalysesTypeSelect["l_id_milkanalysis"]
   l_milk_fat?: schema.milkAnalysesTypeSelect["l_milk_fat"]
   l_milk_protein?: schema.milkAnalysesTypeSelect["l_milk_protein"]
   l_milk_lactose?: schema.milkAnalysesTypeSelect["l_milk_lactose"]
   l_milk_urea?: schema.milkAnalysesTypeSelect["l_milk_urea"]
   l_milk_scc?: schema.milkAnalysesTypeSelect["l_milk_scc"]
-  b_sampling_date?: schema.milkSamplingTypeSelect["b_sampling_date"]
+  l_milksampling_date?: schema.milkSamplingTypeSelect["l_milksampling_date"]
   created: schema.milkDeliveriesTypeSelect["created"]
   updated?: schema.milkDeliveriesTypeSelect["updated"]
 }

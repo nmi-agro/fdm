@@ -1252,6 +1252,13 @@ async function removeLivestockDataForFarm(
         .where(inArray(schema.manureDeliveries.p_id_delivery, manureDeliveryIds))
     }
 
+    // A fertilizer acquisition may name the pit the manure came from; drop that link first, the
+    // acquisitions themselves are removed with the farm's fertilizers below
+    await tx
+      .update(schema.fertilizerAcquiring)
+      .set({ b_id_manurepit: null })
+      .where(inArray(schema.fertilizerAcquiring.b_id_manurepit, manurePitIds))
+
     await tx
       .delete(schema.manurePits)
       .where(inArray(schema.manurePits.b_id_manurepit, manurePitIds))
