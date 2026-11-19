@@ -8,14 +8,14 @@ import type * as schema from "./db/schema"
 export type GrazingZoneInput = GeoJSON.Polygon | GeoJSON.MultiPolygon | null
 
 export interface Grazing {
-  l_id_grazing: schema.grazingTypeSelect["l_id_grazing"]
-  b_id?: schema.grazingTypeSelect["b_id"]
-  l_id_herd: schema.grazingTypeSelect["l_id_herd"]
-  l_grazing_start: schema.grazingTypeSelect["l_grazing_start"]
-  l_grazing_end?: schema.grazingTypeSelect["l_grazing_end"]
-  l_grazing_hours?: schema.grazingTypeSelect["l_grazing_hours"]
+  l_id_grazing: schema.herdGrazingTypeSelect["l_id_grazing"]
+  b_id?: schema.herdGrazingTypeSelect["b_id"]
+  l_id_herd: schema.herdGrazingTypeSelect["l_id_herd"]
+  l_grazing_start: schema.herdGrazingTypeSelect["l_grazing_start"]
+  l_grazing_end?: schema.herdGrazingTypeSelect["l_grazing_end"]
+  l_grazing_hours?: schema.herdGrazingTypeSelect["l_grazing_hours"]
   /** Grazed part of the field without a known location (ha), as recorded. Only set without a zone. */
-  l_grazing_area?: schema.grazingTypeSelect["l_grazing_area"]
+  l_grazing_area?: schema.herdGrazingTypeSelect["l_grazing_area"]
   /** Grazed part of the field as a geometry, as recorded. `null` means no zone. */
   l_grazing_geometry_zone?: GeoJSON.MultiPolygon | null
   /**
@@ -23,8 +23,8 @@ export interface Grazing {
    * area, else the field area. `null` when the grazing has no field and no area.
    */
   l_grazing_area_grazed: number | null
-  created: schema.grazingTypeSelect["created"]
-  updated?: schema.grazingTypeSelect["updated"]
+  created: schema.herdGrazingTypeSelect["created"]
+  updated?: schema.herdGrazingTypeSelect["updated"]
 }
 
 export interface GrazingCalendarEntry extends Grazing {

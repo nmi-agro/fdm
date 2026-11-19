@@ -1,3 +1,4 @@
+/** End of a period; `null` or `undefined` means the period has not ended. */
 export type IntervalEnd = Date | null | undefined
 
 /**

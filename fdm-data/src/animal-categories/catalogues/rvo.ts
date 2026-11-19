@@ -22,7 +22,7 @@ const femaleAndMale = ["female", "male"] as const
  * LSU coefficients follow the closest matching Eurostat livestock-unit
  * category for the stated production stage.
  *
- * @see https://www.rvo.nl/sites/default/files/2026-03/Tabel-4-Diergebonden-normen-2026.pdf"
+ * @see https://www.rvo.nl/sites/default/files/2026-03/Tabel-4-Diergebonden-normen-2026.pdf
  * @see https://ec.europa.eu/eurostat/statistics-explained/SEPDF/cache/1246.pdf
  */
 const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
@@ -395,14 +395,12 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
 ]
 
 export async function getCatalogueRvo(): Promise<CatalogueAnimalCategories> {
-  return rvoAnimalCategories.map(
-    (category): CatalogueAnimalCategory => ({
-      l_category_source: "rvo",
-      l_id_category: category.l_id_category,
-      l_category: category.l_category,
-      l_specie: category.l_specie,
-      l_sex_options: [...category.l_sex_options],
-      l_lsu: category.l_lsu,
-    }),
-  )
+  return rvoAnimalCategories.map((category): CatalogueAnimalCategory => ({
+    l_category_source: "rvo",
+    l_id_category: category.l_id_category,
+    l_category: category.l_category,
+    l_specie: category.l_specie,
+    l_sex_options: [...category.l_sex_options],
+    l_lsu: category.l_lsu,
+  }))
 }

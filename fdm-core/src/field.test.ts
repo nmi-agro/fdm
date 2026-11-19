@@ -1,12 +1,9 @@
-import { eq } from "drizzle-orm"
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
-import {
-  enableCultivationCatalogue,
-  syncAnimalCategoryCatalogueArray,
-} from "./catalogues"
+import { enableCultivationCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
 import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
@@ -931,8 +928,8 @@ describe("Farm Data Model", () => {
 
       const remainingGrazing = await fdm
         .select()
-        .from(schema.grazing)
-        .where(eq(schema.grazing.b_id, fieldId))
+        .from(schema.herdGrazing)
+        .where(eq(schema.herdGrazing.b_id, fieldId))
       expect(remainingGrazing.length).toBe(0)
 
       const remainingSoilAnalyses = await fdm

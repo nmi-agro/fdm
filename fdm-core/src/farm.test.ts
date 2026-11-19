@@ -925,7 +925,10 @@ describe("Farm Functions", () => {
         await fdm.select().from(schema.barns).where(eq(schema.barns.b_id_barn, b_id_barn)),
       ).toEqual([])
       expect(
-        await fdm.select().from(schema.housing).where(eq(schema.housing.b_id_barn, b_id_barn)),
+        await fdm
+          .select()
+          .from(schema.herdHousing)
+          .where(eq(schema.herdHousing.b_id_barn, b_id_barn)),
       ).toEqual([])
 
       expect(
@@ -937,8 +940,8 @@ describe("Farm Functions", () => {
       expect(
         await fdm
           .select()
-          .from(schema.milkingHerd)
-          .where(eq(schema.milkingHerd.l_id_milktank, l_id_milktank)),
+          .from(schema.herdMilking)
+          .where(eq(schema.herdMilking.l_id_milktank, l_id_milktank)),
       ).toEqual([])
       expect(
         await fdm
@@ -956,8 +959,8 @@ describe("Farm Functions", () => {
       expect(
         await fdm
           .select()
-          .from(schema.excreting)
-          .where(eq(schema.excreting.b_id_manurepit, b_id_manurepit)),
+          .from(schema.herdExcreting)
+          .where(eq(schema.herdExcreting.b_id_manurepit, b_id_manurepit)),
       ).toEqual([])
       expect(
         await fdm
@@ -975,12 +978,15 @@ describe("Farm Functions", () => {
       expect(
         await fdm
           .select()
-          .from(schema.feedingHerd)
-          .where(eq(schema.feedingHerd.f_id_batch, f_id_batch)),
+          .from(schema.herdFeeding)
+          .where(eq(schema.herdFeeding.f_id_batch, f_id_batch)),
       ).toEqual([])
 
       expect(
-        await fdm.select().from(schema.grazing).where(eq(schema.grazing.l_id_herd, l_id_herd)),
+        await fdm
+          .select()
+          .from(schema.herdGrazing)
+          .where(eq(schema.herdGrazing.l_id_herd, l_id_herd)),
       ).toEqual([])
     })
 

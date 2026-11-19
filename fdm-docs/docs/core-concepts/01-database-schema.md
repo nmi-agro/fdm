@@ -590,8 +590,8 @@ This schema holds the primary data related to farm operations.
 
 #### Herds and animals
 
-- **`herds.l_id_category`**: optional reference to `animal_categories_catalogue.l_id_category`. Use this to classify a herd by a standard category.
-- **`animals.l_specie`**: species enum used on animal rows (default `cattle`). Note the singular column name `l_specie` (schema) — older documentation or integrations may have used `l_species`.
+- **`herds.l_id_category`**: required reference to `animal_categories_catalogue.l_id_category`. Every herd has a standard category, and the animals in it must fit the category's species and sex options.
+- **`animals.l_specie`**: species enum used on animal rows (default `cattle`). Note the singular column name `l_specie`.
 - **`l_sex` / `l_sex_options`**: `l_sex` is an enum for animal sex; category rows enumerate allowed `l_sex_options` that animals in that category may use.
 - **`l_lsu`**: livestock units per animal stored on the catalogue row; calculators sum `count * l_lsu` to obtain total LSU for a herd or farm.
 
@@ -599,11 +599,44 @@ This schema holds the primary data related to farm operations.
 
 - The Dutch Rijksdienst voor Ondernemend Nederland (RVO) publishes official conversion tables and normative category definitions used by Dutch reporting and calculators. The bundled RVO catalogue uses `l_category_source = "rvo"`. Use the `l_category_source` column to record provenance for additional sources.
 
-**Breaking rename note:**
+**Naming note:**
 
-- The schema intentionally uses the plural `animal_categories_catalogue` for the catalogue table but the singular `animal_category_catalogue_selecting` for the farm-selection table. Additionally the database column name for species is `l_specie` (singular) — this was an intentional, breaking rename. Integrations and queries must use the exact schema names above to avoid runtime errors.
+- The catalogue table has the plural name `animal_categories_catalogue`, while the farm-selection table has the singular name `animal_category_catalogue_selecting`. Integrations and queries must use these exact names.
 
-#### **`grazing`**
+#### Herds, animals and barns
+
+The livestock assets and their actions follow the asset–action model: an asset table holds what a thing is, and action tables named `<asset>_<verb>ing` record what happened to it over time.
+
+| Table                                                | Kind   | Purpose                                                                                                                           |
+| ---------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| **`herds`**                                          | Asset  | A group of animals of one animal category (`l_id_category`, required), with an optional name (`l_herd_name`).                     |
+| **`herd_starting`** / **`herd_ending`**              | Action | When a herd starts and ends on a farm (`b_id_farm`, `l_start`, `l_end`).                                                          |
+| **`animals`**                                        | Asset  | An individual animal: life number (`l_id_eartag`), work number (`l_id_worknumber`), species, breed, coat colour, birth date, sex. |
+| **`animal_arriving`** / **`animal_leaving`**         | Action | When and how an animal arrives on (born, purchased, imported) or leaves (died, sold, slaughtered, exported) a farm.               |
+| **`animal_assigning`**                               | Action | Which herd an animal belongs to over time (`l_assigning_start`, `l_assigning_end`; `null` end means current).                     |
+| **`barns`**                                          | Asset  | A barn with an optional name, floor area (`b_floor_area`, m²) and outline (`b_barn_geometry`).                                    |
+| **`barn_constructing`** / **`barn_decommissioning`** | Action | When a barn is built on and taken out of use on a farm.                                                                           |
+| **`herd_housing`**                                   | Action | A herd housed in a barn for a period (`b_housing_start`, `b_housing_end`).                                                        |
+
+#### Milk, feed and manure
+
+| Table                                           | Kind   | Purpose                                                                                       |
+| ----------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| **`milk_tanks`**                                | Asset  | A milk tank on a farm.                                                                        |
+| **`herd_milking`** / **`animal_milking`**       | Action | Milk (`l_milking_amount`, kg) from a herd or a single animal into a tank over a period.       |
+| **`milk_deliveries`**, **`milk_delivering`**    | Action | Milk delivered from a tank (`l_milkdelivery_date`, `l_milkdelivery_amount`).                  |
+| **`milk_sampling`**, **`milk_analyses`**        | Action | Analysis of a delivery: fat, protein, lactose, urea and somatic cell count.                   |
+| **`feed_batches`**                              | Asset  | A batch of feed on a farm, linked to a feed catalogue item (`f_id_catalogue`) and its origin. |
+| **`feed_sampling`**, **`feed_analyses`**        | Action | Analysis of a feed batch: dry matter, crude protein, VEM, OEB and NDF.                        |
+| **`herd_feeding`** / **`animal_feeding`**       | Action | Feed from a batch given to a herd or a single animal over a period (`f_amount`).              |
+| **`manure_pits`**                               | Asset  | A manure pit on a farm, with an optional area (`b_pit_area`).                                 |
+| **`herd_excreting`**                            | Action | Manure a herd excretes into a pit over a period (`l_excreting_amount`).                       |
+| **`manure_deliveries`**, **`manure_disposing`** | Action | Manure taken out of a pit (`p_disposing_date`, `p_disposing_amount`, kg).                     |
+| **`manure_sampling`**, **`manure_analyses`**    | Action | Analysis of a manure delivery: total N, phosphate, dry matter and organic matter.             |
+
+Milk can be recorded both per herd and per animal. `getMilkProductionForHerd` counts it once: when animal-level records exist in the timeframe, only those are summed; otherwise the herd-level records are used. Feed works the other way round: feed given to a single animal comes on top of the herd's feed, so `getFeedingSummaryForAnimal` adds herd-level and animal-level feedings together.
+
+#### **`herd_grazing`**
 
 **Purpose**: Records a period in which a herd grazed, on a field or without a known field.
 

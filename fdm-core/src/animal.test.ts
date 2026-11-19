@@ -17,6 +17,7 @@ import {
   removeAnimalAssigning,
   removeAnimals,
   removeAnimalsFromHerd,
+  setAnimalCategory,
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
@@ -158,6 +159,89 @@ describe("Animal Domain", () => {
     await assignAnimalToHerd(fdm, principal_id, l_id_animal2, secondHerdSameCategory)
     const updatedAnimal2 = await getAnimal(fdm, principal_id, l_id_animal2)
     expect(updatedAnimal2.l_id_herd).toBe(secondHerdSameCategory)
+  })
+
+  it("should move an animal to the existing herd of its new category via setAnimalCategory", async () => {
+    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_id_category: "rvo_101",
+    })
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, youngstockHerd, {
+      l_sex: "female",
+      l_arriving_date: new Date("2025-01-01"),
+    })
+
+    // The herd from beforeEach starts now, so change the category after that
+    const changeDate = new Date(Date.now() + 1000)
+    const l_id_target = await setAnimalCategory(
+      fdm,
+      principal_id,
+      l_id_animal,
+      "rvo_100",
+      changeDate,
+    )
+    expect(l_id_target).toBe(l_id_herd)
+
+    const animal = await getAnimal(fdm, principal_id, l_id_animal)
+    expect(animal.l_id_herd).toBe(l_id_herd)
+    expect(animal.l_id_category).toBe("rvo_100")
+
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history).toHaveLength(2)
+    expect(history.filter((row) => row.l_assigning_end === null)).toHaveLength(1)
+    const closed = history.find((row) => row.l_id_herd === youngstockHerd)
+    expect(closed?.l_assigning_end).toEqual(changeDate)
+  })
+
+  it("should create a herd for the new category when the farm has none via setAnimalCategory", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_sex: "female",
+      l_arriving_date: new Date("2025-01-01"),
+    })
+
+    const l_id_target = await setAnimalCategory(
+      fdm,
+      principal_id,
+      l_id_animal,
+      "rvo_102",
+      new Date("2025-03-01"),
+    )
+    expect(l_id_target).not.toBe(l_id_herd)
+
+    const animal = await getAnimal(fdm, principal_id, l_id_animal)
+    expect(animal.l_id_herd).toBe(l_id_target)
+    expect(animal.l_id_category).toBe("rvo_102")
+
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === l_id_target)?.l_herd_name).toBe(
+      animal.l_category,
+    )
+  })
+
+  it("should reject invalid category changes via setAnimalCategory", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_sex: "female",
+      l_arriving_date: new Date("2025-01-01"),
+    })
+
+    // Already in a herd of that category
+    await expect(setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_100")).rejects.toThrowError(
+      "Exception for setAnimalCategory",
+    )
+    // Before the current assignment started
+    await expect(
+      setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_101", new Date("2024-12-01")),
+    ).rejects.toThrowError("Exception for setAnimalCategory")
+    // Category of another species
+    await expect(setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_407")).rejects.toThrowError(
+      "Exception for setAnimalCategory",
+    )
+    await expect(
+      setAnimalCategory(fdm, "unauthorized_user", l_id_animal, "rvo_101"),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history).toHaveLength(1)
   })
 
   it("should reject assignAnimalToHerd when the target herd belongs to another farm", async () => {
@@ -469,7 +553,13 @@ describe("Animal Domain", () => {
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(
-      createHerdWithAnimals(fdm, invalidUser, b_id_farm, { l_herd_name: "Kudde" }, 2),
+      createHerdWithAnimals(
+        fdm,
+        invalidUser,
+        b_id_farm,
+        { l_herd_name: "Kudde", l_id_category: "rvo_101" },
+        2,
+      ),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(

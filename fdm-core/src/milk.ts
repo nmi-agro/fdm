@@ -153,8 +153,8 @@ export async function updateMilkTank(
 }
 
 /**
- * Hard-deletes a milk tank. Guarded: rejected if any milking_herd,
- * milking_animal, or milk_delivering record still references this tank —
+ * Hard-deletes a milk tank. Guarded: rejected if any herd_milking,
+ * animal_milking, or milk_delivering record still references this tank —
  * those represent other actions' history and must be cleaned up first.
  *
  * @param fdm - The FDM instance.
@@ -171,23 +171,23 @@ export async function removeMilkTank(
 
     await fdm.transaction(async (tx) => {
       const milkingHerdRecords = await tx
-        .select({ l_id_herd: schema.milkingHerd.l_id_herd })
-        .from(schema.milkingHerd)
-        .where(eq(schema.milkingHerd.l_id_milktank, l_id_milktank))
+        .select({ l_id_herd: schema.herdMilking.l_id_herd })
+        .from(schema.herdMilking)
+        .where(eq(schema.herdMilking.l_id_milktank, l_id_milktank))
         .limit(1)
 
       if (milkingHerdRecords.length > 0) {
-        throw new Error("Cannot remove milk tank: a milking_herd record references it")
+        throw new Error("Cannot remove milk tank: a herd_milking record references it")
       }
 
       const milkingAnimalRecords = await tx
-        .select({ l_id_animal: schema.milkingAnimal.l_id_animal })
-        .from(schema.milkingAnimal)
-        .where(eq(schema.milkingAnimal.l_id_milktank, l_id_milktank))
+        .select({ l_id_animal: schema.animalMilking.l_id_animal })
+        .from(schema.animalMilking)
+        .where(eq(schema.animalMilking.l_id_milktank, l_id_milktank))
         .limit(1)
 
       if (milkingAnimalRecords.length > 0) {
-        throw new Error("Cannot remove milk tank: a milking_animal record references it")
+        throw new Error("Cannot remove milk tank: an animal_milking record references it")
       }
 
       const deliveringRecords = await tx
@@ -224,14 +224,14 @@ export async function addMilkingHerd(
   l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"],
   l_milking_start = new Date(),
   properties?: {
-    l_milking_end?: schema.milkingHerdTypeInsert["l_milking_end"]
-    l_milking_amount?: schema.milkingHerdTypeInsert["l_milking_amount"]
+    l_milking_end?: schema.herdMilkingTypeInsert["l_milking_end"]
+    l_milking_amount?: schema.herdMilkingTypeInsert["l_milking_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addMilkingHerd")
 
-    await fdm.insert(schema.milkingHerd).values({
+    await fdm.insert(schema.herdMilking).values({
       l_id_herd,
       l_id_milktank,
       l_milking_start,
@@ -263,26 +263,26 @@ export async function updateMilkingHerd(
   principal_id: PrincipalId,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"],
-  l_milking_start: schema.milkingHerdTypeSelect["l_milking_start"],
+  l_milking_start: schema.herdMilkingTypeSelect["l_milking_start"],
   properties: {
-    l_milking_end?: schema.milkingHerdTypeInsert["l_milking_end"]
-    l_milking_amount?: schema.milkingHerdTypeInsert["l_milking_amount"]
+    l_milking_end?: schema.herdMilkingTypeInsert["l_milking_end"]
+    l_milking_amount?: schema.herdMilkingTypeInsert["l_milking_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "updateMilkingHerd")
 
     const result = await fdm
-      .update(schema.milkingHerd)
+      .update(schema.herdMilking)
       .set({ ...properties, updated: new Date() })
       .where(
         and(
-          eq(schema.milkingHerd.l_id_herd, l_id_herd),
-          eq(schema.milkingHerd.l_id_milktank, l_id_milktank),
-          eq(schema.milkingHerd.l_milking_start, l_milking_start),
+          eq(schema.herdMilking.l_id_herd, l_id_herd),
+          eq(schema.herdMilking.l_id_milktank, l_id_milktank),
+          eq(schema.herdMilking.l_milking_start, l_milking_start),
         ),
       )
-      .returning({ l_id_herd: schema.milkingHerd.l_id_herd })
+      .returning({ l_id_herd: schema.herdMilking.l_id_herd })
 
     if (result.length === 0) {
       throw new Error("Milking herd record not found")
@@ -311,21 +311,21 @@ export async function removeMilkingHerd(
   principal_id: PrincipalId,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"],
-  l_milking_start: schema.milkingHerdTypeSelect["l_milking_start"],
+  l_milking_start: schema.herdMilkingTypeSelect["l_milking_start"],
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "removeMilkingHerd")
 
     const result = await fdm
-      .delete(schema.milkingHerd)
+      .delete(schema.herdMilking)
       .where(
         and(
-          eq(schema.milkingHerd.l_id_herd, l_id_herd),
-          eq(schema.milkingHerd.l_id_milktank, l_id_milktank),
-          eq(schema.milkingHerd.l_milking_start, l_milking_start),
+          eq(schema.herdMilking.l_id_herd, l_id_herd),
+          eq(schema.herdMilking.l_id_milktank, l_id_milktank),
+          eq(schema.herdMilking.l_milking_start, l_milking_start),
         ),
       )
-      .returning({ l_id_herd: schema.milkingHerd.l_id_herd })
+      .returning({ l_id_herd: schema.herdMilking.l_id_herd })
 
     if (result.length === 0) {
       throw new Error("Milking herd record not found")
@@ -357,22 +357,22 @@ export async function getMilkingHerd(
   try {
     await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "getMilkingHerd")
 
-    let dateWhere: SQL | undefined = eq(schema.milkingHerd.l_id_herd, l_id_herd)
-    dateWhere = withTimeframe(dateWhere, schema.milkingHerd.l_milking_start, timeframe)
+    let dateWhere: SQL | undefined = eq(schema.herdMilking.l_id_herd, l_id_herd)
+    dateWhere = withTimeframe(dateWhere, schema.herdMilking.l_milking_start, timeframe)
 
     const rows = await fdm
       .select({
-        l_id_herd: schema.milkingHerd.l_id_herd,
-        l_id_milktank: schema.milkingHerd.l_id_milktank,
-        l_milking_start: schema.milkingHerd.l_milking_start,
-        l_milking_end: schema.milkingHerd.l_milking_end,
-        l_milking_amount: schema.milkingHerd.l_milking_amount,
-        created: schema.milkingHerd.created,
-        updated: schema.milkingHerd.updated,
+        l_id_herd: schema.herdMilking.l_id_herd,
+        l_id_milktank: schema.herdMilking.l_id_milktank,
+        l_milking_start: schema.herdMilking.l_milking_start,
+        l_milking_end: schema.herdMilking.l_milking_end,
+        l_milking_amount: schema.herdMilking.l_milking_amount,
+        created: schema.herdMilking.created,
+        updated: schema.herdMilking.updated,
       })
-      .from(schema.milkingHerd)
+      .from(schema.herdMilking)
       .where(dateWhere)
-      .orderBy(desc(schema.milkingHerd.l_milking_start))
+      .orderBy(desc(schema.herdMilking.l_milking_start))
 
     return rows as MilkingHerd[]
   } catch (err) {
@@ -397,14 +397,14 @@ export async function addMilkingAnimal(
   l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"],
   l_milking_start = new Date(),
   properties?: {
-    l_milking_end?: schema.milkingAnimalTypeInsert["l_milking_end"]
-    l_milking_amount?: schema.milkingAnimalTypeInsert["l_milking_amount"]
+    l_milking_end?: schema.animalMilkingTypeInsert["l_milking_end"]
+    l_milking_amount?: schema.animalMilkingTypeInsert["l_milking_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "addMilkingAnimal")
 
-    await fdm.insert(schema.milkingAnimal).values({
+    await fdm.insert(schema.animalMilking).values({
       l_id_animal,
       l_id_milktank,
       l_milking_start,
@@ -436,26 +436,26 @@ export async function updateMilkingAnimal(
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
   l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"],
-  l_milking_start: schema.milkingAnimalTypeSelect["l_milking_start"],
+  l_milking_start: schema.animalMilkingTypeSelect["l_milking_start"],
   properties: {
-    l_milking_end?: schema.milkingAnimalTypeInsert["l_milking_end"]
-    l_milking_amount?: schema.milkingAnimalTypeInsert["l_milking_amount"]
+    l_milking_end?: schema.animalMilkingTypeInsert["l_milking_end"]
+    l_milking_amount?: schema.animalMilkingTypeInsert["l_milking_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "updateMilkingAnimal")
 
     const result = await fdm
-      .update(schema.milkingAnimal)
+      .update(schema.animalMilking)
       .set({ ...properties, updated: new Date() })
       .where(
         and(
-          eq(schema.milkingAnimal.l_id_animal, l_id_animal),
-          eq(schema.milkingAnimal.l_id_milktank, l_id_milktank),
-          eq(schema.milkingAnimal.l_milking_start, l_milking_start),
+          eq(schema.animalMilking.l_id_animal, l_id_animal),
+          eq(schema.animalMilking.l_id_milktank, l_id_milktank),
+          eq(schema.animalMilking.l_milking_start, l_milking_start),
         ),
       )
-      .returning({ l_id_animal: schema.milkingAnimal.l_id_animal })
+      .returning({ l_id_animal: schema.animalMilking.l_id_animal })
 
     if (result.length === 0) {
       throw new Error("Milking animal record not found")
@@ -484,21 +484,21 @@ export async function removeMilkingAnimal(
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
   l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"],
-  l_milking_start: schema.milkingAnimalTypeSelect["l_milking_start"],
+  l_milking_start: schema.animalMilkingTypeSelect["l_milking_start"],
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "removeMilkingAnimal")
 
     const result = await fdm
-      .delete(schema.milkingAnimal)
+      .delete(schema.animalMilking)
       .where(
         and(
-          eq(schema.milkingAnimal.l_id_animal, l_id_animal),
-          eq(schema.milkingAnimal.l_id_milktank, l_id_milktank),
-          eq(schema.milkingAnimal.l_milking_start, l_milking_start),
+          eq(schema.animalMilking.l_id_animal, l_id_animal),
+          eq(schema.animalMilking.l_id_milktank, l_id_milktank),
+          eq(schema.animalMilking.l_milking_start, l_milking_start),
         ),
       )
-      .returning({ l_id_animal: schema.milkingAnimal.l_id_animal })
+      .returning({ l_id_animal: schema.animalMilking.l_id_animal })
 
     if (result.length === 0) {
       throw new Error("Milking animal record not found")
@@ -530,22 +530,22 @@ export async function getMilkingAnimal(
   try {
     await checkPermission(fdm, "animal", "read", l_id_animal, principal_id, "getMilkingAnimal")
 
-    let dateWhere: SQL | undefined = eq(schema.milkingAnimal.l_id_animal, l_id_animal)
-    dateWhere = withTimeframe(dateWhere, schema.milkingAnimal.l_milking_start, timeframe)
+    let dateWhere: SQL | undefined = eq(schema.animalMilking.l_id_animal, l_id_animal)
+    dateWhere = withTimeframe(dateWhere, schema.animalMilking.l_milking_start, timeframe)
 
     const rows = await fdm
       .select({
-        l_id_animal: schema.milkingAnimal.l_id_animal,
-        l_id_milktank: schema.milkingAnimal.l_id_milktank,
-        l_milking_start: schema.milkingAnimal.l_milking_start,
-        l_milking_end: schema.milkingAnimal.l_milking_end,
-        l_milking_amount: schema.milkingAnimal.l_milking_amount,
-        created: schema.milkingAnimal.created,
-        updated: schema.milkingAnimal.updated,
+        l_id_animal: schema.animalMilking.l_id_animal,
+        l_id_milktank: schema.animalMilking.l_id_milktank,
+        l_milking_start: schema.animalMilking.l_milking_start,
+        l_milking_end: schema.animalMilking.l_milking_end,
+        l_milking_amount: schema.animalMilking.l_milking_amount,
+        created: schema.animalMilking.created,
+        updated: schema.animalMilking.updated,
       })
-      .from(schema.milkingAnimal)
+      .from(schema.animalMilking)
       .where(dateWhere)
-      .orderBy(desc(schema.milkingAnimal.l_milking_start))
+      .orderBy(desc(schema.animalMilking.l_milking_start))
 
     return rows as MilkingAnimal[]
   } catch (err) {
@@ -561,7 +561,7 @@ export async function getMilkingAnimal(
  * @param principal_id - Identifier of the principal recording the delivery.
  * @param l_id_milktank - Identifier of the source milk tank.
  * @param l_milkdelivery_date - Delivery date.
- * @param l_milking_amount - Delivered milk volume (kg).
+ * @param l_milkdelivery_amount - Delivered milk volume (kg).
  * @param properties - Optional quality parameters and sampling date.
  * @returns Unique identifier of the created milk delivery.
  */
@@ -1003,9 +1003,24 @@ function sumMilkAmounts(rows: Array<{ l_milking_amount?: number | null }>): numb
 }
 
 /**
+ * Totals milk from herd-level and animal-level records without counting the same milk twice:
+ * when any animal-level record exists, only the animal-level records are summed; otherwise the
+ * herd-level records are summed.
+ */
+function totalMilkWithoutDoubleCounting(
+  herdRows: Array<{ l_milking_amount?: number | null }>,
+  animalRows: Array<{ l_milking_amount?: number | null }>,
+): number {
+  return animalRows.length > 0 ? sumMilkAmounts(animalRows) : sumMilkAmounts(herdRows)
+}
+
+/**
  * Calculates total milk yield (in kg) for a herd over a specified timeframe.
- * Animal-level rows are additive supplements and are summed on top of herd-level rows
- * for animals that were assigned to this herd at the milking timestamp.
+ *
+ * Milk can be recorded per herd and per animal. To avoid counting the same milk twice, the
+ * animal-level records are used when any exist in the timeframe for animals that were assigned to
+ * this herd at the milking timestamp; otherwise the herd-level records are used. This preference is
+ * a modelling choice: animal-level records are assumed to be the more detailed source.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal requesting the calculation.
@@ -1023,37 +1038,37 @@ export async function getMilkProductionForHerd(
     await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "getMilkProductionForHerd")
 
     return await fdm.transaction(async (tx) => {
-      let herdWhere: SQL | undefined = eq(schema.milkingHerd.l_id_herd, l_id_herd)
-      herdWhere = withTimeframe(herdWhere, schema.milkingHerd.l_milking_start, timeframe)
+      let herdWhere: SQL | undefined = eq(schema.herdMilking.l_id_herd, l_id_herd)
+      herdWhere = withTimeframe(herdWhere, schema.herdMilking.l_milking_start, timeframe)
 
       const herdRows = await tx
-        .select({ l_milking_amount: schema.milkingHerd.l_milking_amount })
-        .from(schema.milkingHerd)
+        .select({ l_milking_amount: schema.herdMilking.l_milking_amount })
+        .from(schema.herdMilking)
         .where(herdWhere)
 
       // Scope milking_animal rows to assignments in this herd whose interval
       // covers the milking date, so a reassigned animal's later milkings are
       // attributed to its new herd only.
       let animalWhere: SQL | undefined = eq(schema.animalAssigning.l_id_herd, l_id_herd)
-      animalWhere = withTimeframe(animalWhere, schema.milkingAnimal.l_milking_start, timeframe)
+      animalWhere = withTimeframe(animalWhere, schema.animalMilking.l_milking_start, timeframe)
 
       const animalRows = await tx
-        .select({ l_milking_amount: schema.milkingAnimal.l_milking_amount })
-        .from(schema.milkingAnimal)
+        .select({ l_milking_amount: schema.animalMilking.l_milking_amount })
+        .from(schema.animalMilking)
         .innerJoin(
           schema.animalAssigning,
           and(
-            eq(schema.milkingAnimal.l_id_animal, schema.animalAssigning.l_id_animal),
-            lte(schema.animalAssigning.l_assigning_start, schema.milkingAnimal.l_milking_start),
+            eq(schema.animalMilking.l_id_animal, schema.animalAssigning.l_id_animal),
+            lte(schema.animalAssigning.l_assigning_start, schema.animalMilking.l_milking_start),
             or(
               isNull(schema.animalAssigning.l_assigning_end),
-              gte(schema.animalAssigning.l_assigning_end, schema.milkingAnimal.l_milking_start),
+              gte(schema.animalAssigning.l_assigning_end, schema.animalMilking.l_milking_start),
             ),
           ),
         )
         .where(animalWhere)
 
-      return sumMilkAmounts(herdRows) + sumMilkAmounts(animalRows)
+      return totalMilkWithoutDoubleCounting(herdRows, animalRows)
     })
   } catch (err) {
     throw handleError(err, "Exception for getMilkProductionForHerd", { l_id_herd })
@@ -1066,47 +1081,47 @@ async function listMilkingEventsForAnimal(
   timeframe?: Timeframe,
 ): Promise<MilkingEventForAnimal[]> {
   let herdWhere: SQL | undefined = eq(schema.animalAssigning.l_id_animal, l_id_animal)
-  herdWhere = withTimeframe(herdWhere, schema.milkingHerd.l_milking_start, timeframe)
+  herdWhere = withTimeframe(herdWhere, schema.herdMilking.l_milking_start, timeframe)
 
   const herdRows = await tx
     .select({
-      l_id_herd: schema.milkingHerd.l_id_herd,
-      l_id_milktank: schema.milkingHerd.l_id_milktank,
-      l_milking_start: schema.milkingHerd.l_milking_start,
-      l_milking_end: schema.milkingHerd.l_milking_end,
-      l_milking_amount: schema.milkingHerd.l_milking_amount,
-      created: schema.milkingHerd.created,
-      updated: schema.milkingHerd.updated,
+      l_id_herd: schema.herdMilking.l_id_herd,
+      l_id_milktank: schema.herdMilking.l_id_milktank,
+      l_milking_start: schema.herdMilking.l_milking_start,
+      l_milking_end: schema.herdMilking.l_milking_end,
+      l_milking_amount: schema.herdMilking.l_milking_amount,
+      created: schema.herdMilking.created,
+      updated: schema.herdMilking.updated,
     })
-    .from(schema.milkingHerd)
+    .from(schema.herdMilking)
     .innerJoin(
       schema.animalAssigning,
       and(
-        eq(schema.milkingHerd.l_id_herd, schema.animalAssigning.l_id_herd),
+        eq(schema.herdMilking.l_id_herd, schema.animalAssigning.l_id_herd),
         eq(schema.animalAssigning.l_id_animal, l_id_animal),
-        lte(schema.animalAssigning.l_assigning_start, schema.milkingHerd.l_milking_start),
+        lte(schema.animalAssigning.l_assigning_start, schema.herdMilking.l_milking_start),
         or(
           isNull(schema.animalAssigning.l_assigning_end),
-          gte(schema.animalAssigning.l_assigning_end, schema.milkingHerd.l_milking_start),
+          gte(schema.animalAssigning.l_assigning_end, schema.herdMilking.l_milking_start),
         ),
       ),
     )
     .where(herdWhere)
 
-  let animalWhere: SQL | undefined = eq(schema.milkingAnimal.l_id_animal, l_id_animal)
-  animalWhere = withTimeframe(animalWhere, schema.milkingAnimal.l_milking_start, timeframe)
+  let animalWhere: SQL | undefined = eq(schema.animalMilking.l_id_animal, l_id_animal)
+  animalWhere = withTimeframe(animalWhere, schema.animalMilking.l_milking_start, timeframe)
 
   const animalRows = await tx
     .select({
-      l_id_animal: schema.milkingAnimal.l_id_animal,
-      l_id_milktank: schema.milkingAnimal.l_id_milktank,
-      l_milking_start: schema.milkingAnimal.l_milking_start,
-      l_milking_end: schema.milkingAnimal.l_milking_end,
-      l_milking_amount: schema.milkingAnimal.l_milking_amount,
-      created: schema.milkingAnimal.created,
-      updated: schema.milkingAnimal.updated,
+      l_id_animal: schema.animalMilking.l_id_animal,
+      l_id_milktank: schema.animalMilking.l_id_milktank,
+      l_milking_start: schema.animalMilking.l_milking_start,
+      l_milking_end: schema.animalMilking.l_milking_end,
+      l_milking_amount: schema.animalMilking.l_milking_amount,
+      created: schema.animalMilking.created,
+      updated: schema.animalMilking.updated,
     })
-    .from(schema.milkingAnimal)
+    .from(schema.animalMilking)
     .where(animalWhere)
 
   return [
@@ -1117,8 +1132,8 @@ async function listMilkingEventsForAnimal(
 
 /**
  * Returns source-tagged milking events for an animal and timeframe.
- * Herd-level events are included when the herd assignment was active at the milking timestamp.
- * Animal-level events are additive supplements and are returned with `type = "animal"`.
+ * Herd-level events are included when the herd assignment was active at the milking timestamp and
+ * are returned with `type = "herd"`; animal-level events are returned with `type = "animal"`.
  */
 export async function getMilkingEventsForAnimal(
   fdm: FdmType,
@@ -1145,6 +1160,8 @@ export async function getMilkingEventsForAnimal(
 
 /**
  * Returns a milking summary for an animal and timeframe based on source-tagged events.
+ * The milk amount uses the animal-level events when any exist in the timeframe, and otherwise the
+ * herd-level events of the animal's herd, so the same milk is not counted twice.
  * Milk-quality fields are null until quality measurements are associated with milking events.
  */
 export async function getMilkingSummaryForAnimal(
@@ -1165,15 +1182,10 @@ export async function getMilkingSummaryForAnimal(
 
     return await fdm.transaction(async (tx) => {
       const events = await listMilkingEventsForAnimal(tx, l_id_animal, timeframe)
-      const totalMilkProduction = events
-        .reduce(
-          (total, row) =>
-            row.l_milking_amount !== null && row.l_milking_amount !== undefined
-              ? total.plus(new Decimal(row.l_milking_amount))
-              : total,
-          new Decimal(0),
-        )
-        .toNumber()
+      const totalMilkProduction = totalMilkWithoutDoubleCounting(
+        events.filter((row) => row.type === "herd"),
+        events.filter((row) => row.type === "animal"),
+      )
 
       return {
         l_milking_amount: totalMilkProduction,

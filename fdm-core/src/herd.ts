@@ -2,6 +2,7 @@ import { and, desc, eq, gt, isNull, lte, or } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Herd } from "./herd.types"
+import { assertAnimalMatchesCategory, getAnimalCategory } from "./animal-category"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
@@ -16,16 +17,17 @@ import { createId } from "./id"
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal creating the herd.
  * @param b_id_farm - Identifier of the farm acquiring the herd.
- * @param properties - Optional properties for the herd.
+ * @param properties - Properties of the herd. The animal category (`l_id_category`) is required and
+ *   must come from an animal category catalogue enabled for the farm.
  * @returns Unique identifier of the newly created herd.
  */
 export async function addHerd(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-  properties?: {
+  properties: {
     l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
-    l_id_category?: schema.herdsTypeInsert["l_id_category"]
+    l_id_category: schema.herdsTypeInsert["l_id_category"]
     l_start?: schema.herdStartingTypeInsert["l_start"]
     l_end?: schema.herdEndingTypeInsert["l_end"]
   },
@@ -34,25 +36,10 @@ export async function addHerd(
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "addHerd")
 
     return await fdm.transaction(async (tx) => {
-      const l_id_herd = createId()
+      await getAnimalCategory(tx, properties.l_id_category, b_id_farm)
+      const l_id_herd = await insertHerd(tx, b_id_farm, properties)
 
-      if (properties?.l_id_category) {
-        await getAnimalCategory(tx, properties.l_id_category, b_id_farm)
-      }
-
-      await tx.insert(schema.herds).values({
-        l_id_herd,
-        l_herd_name: properties?.l_herd_name ?? null,
-        l_id_category: properties?.l_id_category ?? null,
-      })
-
-      await tx.insert(schema.herdStarting).values({
-        l_id_herd,
-        b_id_farm,
-        l_start: properties?.l_start ?? new Date(),
-      })
-
-      if (properties?.l_end) {
+      if (properties.l_end) {
         await tx.insert(schema.herdEnding).values({
           l_id_herd,
           l_end: properties.l_end,
@@ -67,6 +54,41 @@ export async function addHerd(
       properties,
     })
   }
+}
+
+/**
+ * Inserts a herd and its starting event. Callers check permissions and validate the animal
+ * category, and run this inside their transaction.
+ *
+ * @param tx - The transaction to insert in.
+ * @param b_id_farm - Identifier of the farm the herd starts on.
+ * @param properties - Name, animal category and start date of the herd.
+ * @returns Unique identifier of the new herd.
+ */
+export async function insertHerd(
+  tx: FdmType,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  properties: {
+    l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
+    l_id_category: schema.herdsTypeInsert["l_id_category"]
+    l_start?: schema.herdStartingTypeInsert["l_start"]
+  },
+): Promise<schema.herdsTypeSelect["l_id_herd"]> {
+  const l_id_herd = createId()
+
+  await tx.insert(schema.herds).values({
+    l_id_herd,
+    l_herd_name: properties.l_herd_name ?? null,
+    l_id_category: properties.l_id_category,
+  })
+
+  await tx.insert(schema.herdStarting).values({
+    l_id_herd,
+    b_id_farm,
+    l_start: properties.l_start ?? new Date(),
+  })
+
+  return l_id_herd
 }
 
 /**
@@ -259,67 +281,6 @@ export async function updateHerd(
   }
 }
 
-type AnimalCategory = Pick<
-  schema.animalCategoriesCatalogueTypeSelect,
-  "l_id_category" | "l_specie" | "l_sex_options"
->
-
-async function getAnimalCategory(
-  fdm: FdmType,
-  l_id_category: schema.animalCategoriesCatalogueTypeSelect["l_id_category"],
-  b_id_farm?: schema.farmsTypeSelect["b_id_farm"],
-): Promise<AnimalCategory> {
-  const query = fdm
-    .select({
-      l_id_category: schema.animalCategoriesCatalogue.l_id_category,
-      l_specie: schema.animalCategoriesCatalogue.l_specie,
-      l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
-    })
-    .from(schema.animalCategoriesCatalogue)
-  const categories = b_id_farm
-    ? await query
-        .innerJoin(
-          schema.animalCategoryCatalogueSelecting,
-          eq(
-            schema.animalCategoriesCatalogue.l_category_source,
-            schema.animalCategoryCatalogueSelecting.l_category_source,
-          ),
-        )
-        .where(
-          and(
-            eq(schema.animalCategoriesCatalogue.l_id_category, l_id_category),
-            eq(schema.animalCategoryCatalogueSelecting.b_id_farm, b_id_farm),
-          ),
-        )
-        .limit(1)
-    : await query.where(eq(schema.animalCategoriesCatalogue.l_id_category, l_id_category)).limit(1)
-
-  if (categories.length === 0) {
-    throw new Error(
-      b_id_farm
-        ? `Animal category ${l_id_category} is not enabled for farm ${b_id_farm}`
-        : `Animal category ${l_id_category} does not exist`,
-    )
-  }
-
-  return categories[0]
-}
-
-function assertAnimalMatchesCategory(
-  category: AnimalCategory,
-  l_specie: schema.animalsTypeSelect["l_specie"],
-  l_sex: schema.animalsTypeSelect["l_sex"],
-): void {
-  if (l_specie !== category.l_specie) {
-    throw new Error(
-      `Animal species ${l_specie} does not match category ${category.l_id_category} species ${category.l_specie}`,
-    )
-  }
-  if (l_sex && !category.l_sex_options.includes(l_sex)) {
-    throw new Error(`Animal sex ${l_sex} is not allowed for category ${category.l_id_category}`)
-  }
-}
-
 /**
  * Hard-deletes a herd asset and its own lifecycle rows (`herd_starting`,
  * `herd_ending`). Guarded: rejected if any animal is currently or was ever
@@ -351,9 +312,9 @@ export async function removeHerd(
       }
 
       const housingRecords = await tx
-        .select({ l_id_herd: schema.housing.l_id_herd })
-        .from(schema.housing)
-        .where(eq(schema.housing.l_id_herd, l_id_herd))
+        .select({ l_id_herd: schema.herdHousing.l_id_herd })
+        .from(schema.herdHousing)
+        .where(eq(schema.herdHousing.l_id_herd, l_id_herd))
         .limit(1)
 
       if (housingRecords.length > 0) {

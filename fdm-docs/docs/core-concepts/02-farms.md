@@ -14,10 +14,10 @@ A `Farm` has the following properties, which are stored in the `farms` table:
 - **`b_address_farm`**: The physical address of the farm.
 - **`b_postalcode_farm`**: The postal code of the farm address.
 
-Livestock and milk-production status are **derived** from recorded domain data rather than stored on the farm row. In `fdm-core`, use `getFarmLivestockStatus`:
+Livestock and milk-production status are **derived** from recorded domain data rather than stored on the farm row. `getFarm` in `fdm-core` returns them as:
 
-- `hasLivestock`: true when at least one herd or animal arrival exists for the farm.
-- `hasMilking`: true when at least one milk tank, herd-level milking row, animal-level milking row, or milk delivery row exists for the farm.
+- `b_farm_livestock`: true when at least one herd or animal arrival exists for the farm.
+- `b_farm_dairy`: true when at least one milk tank, herd-level milking row, animal-level milking row, or milk delivery row exists for the farm.
 
 ### Looking up farm details in the KvK Handelsregister
 
