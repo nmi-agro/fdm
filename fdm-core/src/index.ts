@@ -32,9 +32,14 @@ export {
   getAnimalCategoriesFromCatalogues,
 } from "./animal"
 export {
+  type CachedCalculation,
+  type CachedCalculationManyOptions,
+  type CachedCalculationRow,
   generateCalculationHash,
   getCachedCalculation,
+  getCachedCalculations,
   setCachedCalculation,
+  setCachedCalculations,
   setCalculationError,
   withCalculationCache,
 } from "./calculator"
