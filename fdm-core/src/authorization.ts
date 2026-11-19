@@ -1244,15 +1244,15 @@ async function getResourceChain(
         fdm
           .select({
             farm: schema.herdStarting.b_id_farm,
-            herd: schema.milkingHerd.l_id_herd,
-            milk: schema.milkingHerd.l_id_herd,
+            herd: schema.herdMilking.l_id_herd,
+            milk: schema.herdMilking.l_id_herd,
           })
-          .from(schema.milkingHerd)
+          .from(schema.herdMilking)
           .leftJoin(
             schema.herdStarting,
-            eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+            eq(schema.herdMilking.l_id_herd, schema.herdStarting.l_id_herd),
           )
-          .where(eq(schema.milkingHerd.l_id_herd, resource_id))
+          .where(eq(schema.herdMilking.l_id_herd, resource_id))
           .limit(1),
         fdm
           .select({
@@ -1269,15 +1269,15 @@ async function getResourceChain(
         fdm
           .select({
             farm: schema.animalArriving.b_id_farm,
-            animal: schema.milkingAnimal.l_id_animal,
-            milk: schema.milkingAnimal.l_id_animal,
+            animal: schema.animalMilking.l_id_animal,
+            milk: schema.animalMilking.l_id_animal,
           })
-          .from(schema.milkingAnimal)
+          .from(schema.animalMilking)
           .leftJoin(
             schema.animalArriving,
-            eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+            eq(schema.animalMilking.l_id_animal, schema.animalArriving.l_id_animal),
           )
-          .where(eq(schema.milkingAnimal.l_id_animal, resource_id))
+          .where(eq(schema.animalMilking.l_id_animal, resource_id))
           .limit(1),
       ])
 
@@ -1309,15 +1309,15 @@ async function getResourceChain(
         const feedingResult = await fdm
           .select({
             farm: schema.herdStarting.b_id_farm,
-            herd: schema.feedingHerd.l_id_herd,
-            feed: schema.feedingHerd.l_id_herd,
+            herd: schema.herdFeeding.l_id_herd,
+            feed: schema.herdFeeding.l_id_herd,
           })
-          .from(schema.feedingHerd)
+          .from(schema.herdFeeding)
           .leftJoin(
             schema.herdStarting,
-            eq(schema.feedingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+            eq(schema.herdFeeding.l_id_herd, schema.herdStarting.l_id_herd),
           )
-          .where(eq(schema.feedingHerd.l_id_herd, resource_id))
+          .where(eq(schema.herdFeeding.l_id_herd, resource_id))
           .limit(1)
 
         if (feedingResult.length > 0 && feedingResult[0].farm) {
@@ -1326,15 +1326,15 @@ async function getResourceChain(
           const feedingAnimalResult = await fdm
             .select({
               farm: schema.animalArriving.b_id_farm,
-              animal: schema.feedingAnimal.l_id_animal,
-              feed: schema.feedingAnimal.l_id_animal,
+              animal: schema.animalFeeding.l_id_animal,
+              feed: schema.animalFeeding.l_id_animal,
             })
-            .from(schema.feedingAnimal)
+            .from(schema.animalFeeding)
             .leftJoin(
               schema.animalArriving,
-              eq(schema.feedingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+              eq(schema.animalFeeding.l_id_animal, schema.animalArriving.l_id_animal),
             )
-            .where(eq(schema.feedingAnimal.l_id_animal, resource_id))
+            .where(eq(schema.animalFeeding.l_id_animal, resource_id))
             .limit(1)
 
           if (feedingAnimalResult.length > 0 && feedingAnimalResult[0].farm) {
@@ -1360,15 +1360,15 @@ async function getResourceChain(
         const excretingResult = await fdm
           .select({
             farm: schema.herdStarting.b_id_farm,
-            herd: schema.excreting.l_id_herd,
-            manure: schema.excreting.l_id_excreting,
+            herd: schema.herdExcreting.l_id_herd,
+            manure: schema.herdExcreting.l_id_excreting,
           })
-          .from(schema.excreting)
+          .from(schema.herdExcreting)
           .leftJoin(
             schema.herdStarting,
-            eq(schema.excreting.l_id_herd, schema.herdStarting.l_id_herd),
+            eq(schema.herdExcreting.l_id_herd, schema.herdStarting.l_id_herd),
           )
-          .where(eq(schema.excreting.l_id_excreting, resource_id))
+          .where(eq(schema.herdExcreting.l_id_excreting, resource_id))
           .limit(1)
 
         if (excretingResult.length > 0 && excretingResult[0].farm) {

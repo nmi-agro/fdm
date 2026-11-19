@@ -16,5 +16,3 @@ export async function getAnimalCategoriesCatalogue(
 
   throw new Error(`catalogue ${String(catalogueName)} is not recognized`)
 }
-
-export const getAnimalCategoryCatalogue = getAnimalCategoriesCatalogue

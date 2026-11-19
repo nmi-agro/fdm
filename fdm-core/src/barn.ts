@@ -243,9 +243,9 @@ export async function removeBarn(
 
     await fdm.transaction(async (tx) => {
       const housingRecords = await tx
-        .select({ b_id_barn: schema.housing.b_id_barn })
-        .from(schema.housing)
-        .where(eq(schema.housing.b_id_barn, b_id_barn))
+        .select({ b_id_barn: schema.herdHousing.b_id_barn })
+        .from(schema.herdHousing)
+        .where(eq(schema.herdHousing.b_id_barn, b_id_barn))
         .limit(1)
 
       if (housingRecords.length > 0) {
@@ -290,14 +290,9 @@ export async function addHousing(
     await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addHousing")
       assertIntervalEndNotBeforeStart(b_housing_start, b_housing_end, "b_housing")
-      await assertNoOverlappingHousingForHerd(
-        tx,
-        l_id_herd,
-        b_housing_start,
-        b_housing_end ?? null,
-      )
+      await assertNoOverlappingHousingForHerd(tx, l_id_herd, b_housing_start, b_housing_end ?? null)
 
-      await tx.insert(schema.housing).values({
+      await tx.insert(schema.herdHousing).values({
         l_id_herd,
         b_id_barn,
         b_housing_start,
@@ -325,9 +320,9 @@ export async function updateHousing(
   principal_id: PrincipalId,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   b_id_barn: schema.barnsTypeSelect["b_id_barn"],
-  b_housing_start: schema.housingTypeSelect["b_housing_start"],
+  b_housing_start: schema.herdHousingTypeSelect["b_housing_start"],
   properties: {
-    b_housing_end?: schema.housingTypeInsert["b_housing_end"]
+    b_housing_end?: schema.herdHousingTypeInsert["b_housing_end"]
   },
 ): Promise<void> {
   try {
@@ -336,14 +331,14 @@ export async function updateHousing(
 
       const existingRows = await tx
         .select({
-          b_housing_end: schema.housing.b_housing_end,
+          b_housing_end: schema.herdHousing.b_housing_end,
         })
-        .from(schema.housing)
+        .from(schema.herdHousing)
         .where(
           and(
-            eq(schema.housing.l_id_herd, l_id_herd),
-            eq(schema.housing.b_id_barn, b_id_barn),
-            eq(schema.housing.b_housing_start, b_housing_start),
+            eq(schema.herdHousing.l_id_herd, l_id_herd),
+            eq(schema.herdHousing.b_id_barn, b_id_barn),
+            eq(schema.herdHousing.b_housing_start, b_housing_start),
           ),
         )
         .limit(1)
@@ -353,7 +348,9 @@ export async function updateHousing(
       }
 
       const nextEnd =
-        properties.b_housing_end === undefined ? existingRows[0].b_housing_end : properties.b_housing_end
+        properties.b_housing_end === undefined
+          ? existingRows[0].b_housing_end
+          : properties.b_housing_end
 
       assertIntervalEndNotBeforeStart(b_housing_start, nextEnd, "b_housing")
       await assertNoOverlappingHousingForHerd(tx, l_id_herd, b_housing_start, nextEnd, {
@@ -362,13 +359,13 @@ export async function updateHousing(
       })
 
       await tx
-        .update(schema.housing)
+        .update(schema.herdHousing)
         .set({ ...properties, updated: new Date() })
         .where(
           and(
-            eq(schema.housing.l_id_herd, l_id_herd),
-            eq(schema.housing.b_id_barn, b_id_barn),
-            eq(schema.housing.b_housing_start, b_housing_start),
+            eq(schema.herdHousing.l_id_herd, l_id_herd),
+            eq(schema.herdHousing.b_id_barn, b_id_barn),
+            eq(schema.herdHousing.b_housing_start, b_housing_start),
           ),
         )
     })
@@ -389,17 +386,17 @@ async function assertNoOverlappingHousingForHerd(
   b_housing_end: Date | null,
   exclude?: {
     b_id_barn: schema.barnsTypeSelect["b_id_barn"]
-    b_housing_start: schema.housingTypeSelect["b_housing_start"]
+    b_housing_start: schema.herdHousingTypeSelect["b_housing_start"]
   },
 ): Promise<void> {
   const housingRows = await tx
     .select({
-      b_id_barn: schema.housing.b_id_barn,
-      b_housing_start: schema.housing.b_housing_start,
-      b_housing_end: schema.housing.b_housing_end,
+      b_id_barn: schema.herdHousing.b_id_barn,
+      b_housing_start: schema.herdHousing.b_housing_start,
+      b_housing_end: schema.herdHousing.b_housing_end,
     })
-    .from(schema.housing)
-    .where(eq(schema.housing.l_id_herd, l_id_herd))
+    .from(schema.herdHousing)
+    .where(eq(schema.herdHousing.l_id_herd, l_id_herd))
 
   for (const row of housingRows) {
     if (
@@ -430,21 +427,21 @@ export async function removeHousing(
   principal_id: PrincipalId,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   b_id_barn: schema.barnsTypeSelect["b_id_barn"],
-  b_housing_start: schema.housingTypeSelect["b_housing_start"],
+  b_housing_start: schema.herdHousingTypeSelect["b_housing_start"],
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "removeHousing")
 
     const result = await fdm
-      .delete(schema.housing)
+      .delete(schema.herdHousing)
       .where(
         and(
-          eq(schema.housing.l_id_herd, l_id_herd),
-          eq(schema.housing.b_id_barn, b_id_barn),
-          eq(schema.housing.b_housing_start, b_housing_start),
+          eq(schema.herdHousing.l_id_herd, l_id_herd),
+          eq(schema.herdHousing.b_id_barn, b_id_barn),
+          eq(schema.herdHousing.b_housing_start, b_housing_start),
         ),
       )
-      .returning({ l_id_herd: schema.housing.l_id_herd })
+      .returning({ l_id_herd: schema.herdHousing.l_id_herd })
 
     if (result.length === 0) {
       throw new Error("Housing record not found")
@@ -476,16 +473,16 @@ export async function getHousingForHerd(
 
     const rows = await fdm
       .select({
-        l_id_herd: schema.housing.l_id_herd,
-        b_id_barn: schema.housing.b_id_barn,
-        b_housing_start: schema.housing.b_housing_start,
-        b_housing_end: schema.housing.b_housing_end,
-        created: schema.housing.created,
-        updated: schema.housing.updated,
+        l_id_herd: schema.herdHousing.l_id_herd,
+        b_id_barn: schema.herdHousing.b_id_barn,
+        b_housing_start: schema.herdHousing.b_housing_start,
+        b_housing_end: schema.herdHousing.b_housing_end,
+        created: schema.herdHousing.created,
+        updated: schema.herdHousing.updated,
       })
-      .from(schema.housing)
-      .where(eq(schema.housing.l_id_herd, l_id_herd))
-      .orderBy(desc(schema.housing.b_housing_start))
+      .from(schema.herdHousing)
+      .where(eq(schema.herdHousing.l_id_herd, l_id_herd))
+      .orderBy(desc(schema.herdHousing.b_housing_start))
 
     return rows as Housing[]
   } catch (err) {
@@ -511,20 +508,20 @@ export async function getHousingForFarm(
 
     const rows = await fdm
       .select({
-        l_id_herd: schema.housing.l_id_herd,
-        b_id_barn: schema.housing.b_id_barn,
-        b_housing_start: schema.housing.b_housing_start,
-        b_housing_end: schema.housing.b_housing_end,
-        created: schema.housing.created,
-        updated: schema.housing.updated,
+        l_id_herd: schema.herdHousing.l_id_herd,
+        b_id_barn: schema.herdHousing.b_id_barn,
+        b_housing_start: schema.herdHousing.b_housing_start,
+        b_housing_end: schema.herdHousing.b_housing_end,
+        created: schema.herdHousing.created,
+        updated: schema.herdHousing.updated,
       })
-      .from(schema.housing)
+      .from(schema.herdHousing)
       .innerJoin(
         schema.barnConstructing,
-        eq(schema.housing.b_id_barn, schema.barnConstructing.b_id_barn),
+        eq(schema.herdHousing.b_id_barn, schema.barnConstructing.b_id_barn),
       )
       .where(eq(schema.barnConstructing.b_id_farm, b_id_farm))
-      .orderBy(desc(schema.housing.b_housing_start))
+      .orderBy(desc(schema.herdHousing.b_housing_start))
 
     return rows as Housing[]
   } catch (err) {

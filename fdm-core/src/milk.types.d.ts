@@ -9,23 +9,23 @@ export interface MilkTank {
 }
 
 export interface MilkingHerd {
-  l_id_herd: schema.milkingHerdTypeSelect["l_id_herd"]
-  l_id_milktank: schema.milkingHerdTypeSelect["l_id_milktank"]
-  l_milking_start: schema.milkingHerdTypeSelect["l_milking_start"]
-  l_milking_end?: schema.milkingHerdTypeSelect["l_milking_end"]
-  l_milking_amount?: schema.milkingHerdTypeSelect["l_milking_amount"]
-  created: schema.milkingHerdTypeSelect["created"]
-  updated?: schema.milkingHerdTypeSelect["updated"]
+  l_id_herd: schema.herdMilkingTypeSelect["l_id_herd"]
+  l_id_milktank: schema.herdMilkingTypeSelect["l_id_milktank"]
+  l_milking_start: schema.herdMilkingTypeSelect["l_milking_start"]
+  l_milking_end?: schema.herdMilkingTypeSelect["l_milking_end"]
+  l_milking_amount?: schema.herdMilkingTypeSelect["l_milking_amount"]
+  created: schema.herdMilkingTypeSelect["created"]
+  updated?: schema.herdMilkingTypeSelect["updated"]
 }
 
 export interface MilkingAnimal {
-  l_id_animal: schema.milkingAnimalTypeSelect["l_id_animal"]
-  l_id_milktank: schema.milkingAnimalTypeSelect["l_id_milktank"]
-  l_milking_start: schema.milkingAnimalTypeSelect["l_milking_start"]
-  l_milking_end?: schema.milkingAnimalTypeSelect["l_milking_end"]
-  l_milking_amount?: schema.milkingAnimalTypeSelect["l_milking_amount"]
-  created: schema.milkingAnimalTypeSelect["created"]
-  updated?: schema.milkingAnimalTypeSelect["updated"]
+  l_id_animal: schema.animalMilkingTypeSelect["l_id_animal"]
+  l_id_milktank: schema.animalMilkingTypeSelect["l_id_milktank"]
+  l_milking_start: schema.animalMilkingTypeSelect["l_milking_start"]
+  l_milking_end?: schema.animalMilkingTypeSelect["l_milking_end"]
+  l_milking_amount?: schema.animalMilkingTypeSelect["l_milking_amount"]
+  created: schema.animalMilkingTypeSelect["created"]
+  updated?: schema.animalMilkingTypeSelect["updated"]
 }
 
 export interface MilkDelivery {
@@ -47,24 +47,24 @@ export interface MilkDelivery {
 
 export interface MilkingEventFromHerd {
   type: "herd"
-  l_id_herd: schema.milkingHerdTypeSelect["l_id_herd"]
-  l_id_milktank: schema.milkingHerdTypeSelect["l_id_milktank"]
-  l_milking_start: schema.milkingHerdTypeSelect["l_milking_start"]
-  l_milking_end?: schema.milkingHerdTypeSelect["l_milking_end"]
-  l_milking_amount?: schema.milkingHerdTypeSelect["l_milking_amount"]
-  created: schema.milkingHerdTypeSelect["created"]
-  updated?: schema.milkingHerdTypeSelect["updated"]
+  l_id_herd: schema.herdMilkingTypeSelect["l_id_herd"]
+  l_id_milktank: schema.herdMilkingTypeSelect["l_id_milktank"]
+  l_milking_start: schema.herdMilkingTypeSelect["l_milking_start"]
+  l_milking_end?: schema.herdMilkingTypeSelect["l_milking_end"]
+  l_milking_amount?: schema.herdMilkingTypeSelect["l_milking_amount"]
+  created: schema.herdMilkingTypeSelect["created"]
+  updated?: schema.herdMilkingTypeSelect["updated"]
 }
 
 export interface MilkingEventFromAnimal {
   type: "animal"
-  l_id_animal: schema.milkingAnimalTypeSelect["l_id_animal"]
-  l_id_milktank: schema.milkingAnimalTypeSelect["l_id_milktank"]
-  l_milking_start: schema.milkingAnimalTypeSelect["l_milking_start"]
-  l_milking_end?: schema.milkingAnimalTypeSelect["l_milking_end"]
-  l_milking_amount?: schema.milkingAnimalTypeSelect["l_milking_amount"]
-  created: schema.milkingAnimalTypeSelect["created"]
-  updated?: schema.milkingAnimalTypeSelect["updated"]
+  l_id_animal: schema.animalMilkingTypeSelect["l_id_animal"]
+  l_id_milktank: schema.animalMilkingTypeSelect["l_id_milktank"]
+  l_milking_start: schema.animalMilkingTypeSelect["l_milking_start"]
+  l_milking_end?: schema.animalMilkingTypeSelect["l_milking_end"]
+  l_milking_amount?: schema.animalMilkingTypeSelect["l_milking_amount"]
+  created: schema.animalMilkingTypeSelect["created"]
+  updated?: schema.animalMilkingTypeSelect["updated"]
 }
 
 export type MilkingEventForAnimal = MilkingEventFromHerd | MilkingEventFromAnimal

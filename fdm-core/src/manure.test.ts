@@ -1,14 +1,14 @@
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
-import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmType } from "./fdm.types"
 import { checkPermission } from "./authorization"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
 import { createId } from "./id"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import {
   addExcreting,
   addManureDisposing,
@@ -299,8 +299,8 @@ describe("Manure Domain", () => {
   it("should throw an error when adding excreting with a non-existent manure pit", async () => {
     const countBefore = await fdm
       .select()
-      .from(schema.excreting)
-      .where(eq(schema.excreting.l_id_herd, l_id_herd))
+      .from(schema.herdExcreting)
+      .where(eq(schema.herdExcreting.l_id_herd, l_id_herd))
 
     await expect(
       addExcreting(fdm, principal_id, l_id_herd, "non_existent_pit_id", {
@@ -310,8 +310,8 @@ describe("Manure Domain", () => {
 
     const countAfter = await fdm
       .select()
-      .from(schema.excreting)
-      .where(eq(schema.excreting.l_id_herd, l_id_herd))
+      .from(schema.herdExcreting)
+      .where(eq(schema.herdExcreting.l_id_herd, l_id_herd))
     expect(countAfter.length).toBe(countBefore.length)
   })
 

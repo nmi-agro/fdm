@@ -1,6 +1,5 @@
 import { feedTypeOptions, hashFeed } from "@nmi-agro/fdm-data"
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, type SQL } from "drizzle-orm"
-import { getEnabledFeedCatalogues } from "./catalogues"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type {
@@ -13,6 +12,7 @@ import type {
 } from "./feed.types"
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
+import { getEnabledFeedCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -494,21 +494,21 @@ export async function removeFeedBatch(
 
     await fdm.transaction(async (tx) => {
       const feedingHerdRows = await tx
-        .select({ f_id_batch: schema.feedingHerd.f_id_batch })
-        .from(schema.feedingHerd)
-        .where(eq(schema.feedingHerd.f_id_batch, f_id_batch))
+        .select({ f_id_batch: schema.herdFeeding.f_id_batch })
+        .from(schema.herdFeeding)
+        .where(eq(schema.herdFeeding.f_id_batch, f_id_batch))
         .limit(1)
       if (feedingHerdRows.length > 0) {
-        throw new Error("Cannot remove feed batch: a feeding_herd record references it")
+        throw new Error("Cannot remove feed batch: a herd_feeding record references it")
       }
 
       const feedingAnimalRows = await tx
-        .select({ f_id_batch: schema.feedingAnimal.f_id_batch })
-        .from(schema.feedingAnimal)
-        .where(eq(schema.feedingAnimal.f_id_batch, f_id_batch))
+        .select({ f_id_batch: schema.animalFeeding.f_id_batch })
+        .from(schema.animalFeeding)
+        .where(eq(schema.animalFeeding.f_id_batch, f_id_batch))
         .limit(1)
       if (feedingAnimalRows.length > 0) {
-        throw new Error("Cannot remove feed batch: a feeding_animal record references it")
+        throw new Error("Cannot remove feed batch: an animal_feeding record references it")
       }
 
       const feedSamplingRows = await tx
@@ -548,14 +548,14 @@ export async function addFeedingHerd(
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   f_feeding_start = new Date(),
   properties?: {
-    f_feeding_end?: schema.feedingHerdTypeInsert["f_feeding_end"]
-    f_amount?: schema.feedingHerdTypeInsert["f_amount"]
+    f_feeding_end?: schema.herdFeedingTypeInsert["f_feeding_end"]
+    f_amount?: schema.herdFeedingTypeInsert["f_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addFeedingHerd")
 
-    await fdm.insert(schema.feedingHerd).values({
+    await fdm.insert(schema.herdFeeding).values({
       f_id_batch,
       l_id_herd,
       f_feeding_start,
@@ -587,26 +587,26 @@ export async function updateFeedingHerd(
   principal_id: PrincipalId,
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"],
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
-  f_feeding_start: schema.feedingHerdTypeSelect["f_feeding_start"],
+  f_feeding_start: schema.herdFeedingTypeSelect["f_feeding_start"],
   properties: {
-    f_feeding_end?: schema.feedingHerdTypeInsert["f_feeding_end"]
-    f_amount?: schema.feedingHerdTypeInsert["f_amount"]
+    f_feeding_end?: schema.herdFeedingTypeInsert["f_feeding_end"]
+    f_amount?: schema.herdFeedingTypeInsert["f_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "updateFeedingHerd")
 
     const result = await fdm
-      .update(schema.feedingHerd)
+      .update(schema.herdFeeding)
       .set({ ...properties, updated: new Date() })
       .where(
         and(
-          eq(schema.feedingHerd.f_id_batch, f_id_batch),
-          eq(schema.feedingHerd.l_id_herd, l_id_herd),
-          eq(schema.feedingHerd.f_feeding_start, f_feeding_start),
+          eq(schema.herdFeeding.f_id_batch, f_id_batch),
+          eq(schema.herdFeeding.l_id_herd, l_id_herd),
+          eq(schema.herdFeeding.f_feeding_start, f_feeding_start),
         ),
       )
-      .returning({ l_id_herd: schema.feedingHerd.l_id_herd })
+      .returning({ l_id_herd: schema.herdFeeding.l_id_herd })
 
     if (result.length === 0) {
       throw new Error("Feeding herd record not found")
@@ -635,21 +635,21 @@ export async function removeFeedingHerd(
   principal_id: PrincipalId,
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"],
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
-  f_feeding_start: schema.feedingHerdTypeSelect["f_feeding_start"],
+  f_feeding_start: schema.herdFeedingTypeSelect["f_feeding_start"],
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "removeFeedingHerd")
 
     const result = await fdm
-      .delete(schema.feedingHerd)
+      .delete(schema.herdFeeding)
       .where(
         and(
-          eq(schema.feedingHerd.f_id_batch, f_id_batch),
-          eq(schema.feedingHerd.l_id_herd, l_id_herd),
-          eq(schema.feedingHerd.f_feeding_start, f_feeding_start),
+          eq(schema.herdFeeding.f_id_batch, f_id_batch),
+          eq(schema.herdFeeding.l_id_herd, l_id_herd),
+          eq(schema.herdFeeding.f_feeding_start, f_feeding_start),
         ),
       )
-      .returning({ l_id_herd: schema.feedingHerd.l_id_herd })
+      .returning({ l_id_herd: schema.herdFeeding.l_id_herd })
 
     if (result.length === 0) {
       throw new Error("Feeding herd record not found")
@@ -681,21 +681,21 @@ export async function getFeedingHerdForFarm(
 
     const rows = await fdm
       .select({
-        f_id_batch: schema.feedingHerd.f_id_batch,
-        l_id_herd: schema.feedingHerd.l_id_herd,
-        f_feeding_start: schema.feedingHerd.f_feeding_start,
-        f_feeding_end: schema.feedingHerd.f_feeding_end,
-        f_amount: schema.feedingHerd.f_amount,
-        created: schema.feedingHerd.created,
-        updated: schema.feedingHerd.updated,
+        f_id_batch: schema.herdFeeding.f_id_batch,
+        l_id_herd: schema.herdFeeding.l_id_herd,
+        f_feeding_start: schema.herdFeeding.f_feeding_start,
+        f_feeding_end: schema.herdFeeding.f_feeding_end,
+        f_amount: schema.herdFeeding.f_amount,
+        created: schema.herdFeeding.created,
+        updated: schema.herdFeeding.updated,
       })
-      .from(schema.feedingHerd)
+      .from(schema.herdFeeding)
       .innerJoin(
         schema.herdStarting,
-        eq(schema.feedingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+        eq(schema.herdFeeding.l_id_herd, schema.herdStarting.l_id_herd),
       )
       .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
-      .orderBy(desc(schema.feedingHerd.f_feeding_start))
+      .orderBy(desc(schema.herdFeeding.f_feeding_start))
 
     return rows as FeedingHerd[]
   } catch (err) {
@@ -720,14 +720,14 @@ export async function addFeedingAnimal(
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
   f_feeding_start = new Date(),
   properties?: {
-    f_feeding_end?: schema.feedingAnimalTypeInsert["f_feeding_end"]
-    f_amount?: schema.feedingAnimalTypeInsert["f_amount"]
+    f_feeding_end?: schema.animalFeedingTypeInsert["f_feeding_end"]
+    f_amount?: schema.animalFeedingTypeInsert["f_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "addFeedingAnimal")
 
-    await fdm.insert(schema.feedingAnimal).values({
+    await fdm.insert(schema.animalFeeding).values({
       f_id_batch,
       l_id_animal,
       f_feeding_start,
@@ -758,26 +758,26 @@ export async function updateFeedingAnimal(
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"],
-  f_feeding_start: schema.feedingAnimalTypeSelect["f_feeding_start"],
+  f_feeding_start: schema.animalFeedingTypeSelect["f_feeding_start"],
   properties: {
-    f_feeding_end?: schema.feedingAnimalTypeInsert["f_feeding_end"]
-    f_amount?: schema.feedingAnimalTypeInsert["f_amount"]
+    f_feeding_end?: schema.animalFeedingTypeInsert["f_feeding_end"]
+    f_amount?: schema.animalFeedingTypeInsert["f_amount"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "updateFeedingAnimal")
 
     const result = await fdm
-      .update(schema.feedingAnimal)
+      .update(schema.animalFeeding)
       .set({ ...properties, updated: new Date() })
       .where(
         and(
-          eq(schema.feedingAnimal.l_id_animal, l_id_animal),
-          eq(schema.feedingAnimal.f_id_batch, f_id_batch),
-          eq(schema.feedingAnimal.f_feeding_start, f_feeding_start),
+          eq(schema.animalFeeding.l_id_animal, l_id_animal),
+          eq(schema.animalFeeding.f_id_batch, f_id_batch),
+          eq(schema.animalFeeding.f_feeding_start, f_feeding_start),
         ),
       )
-      .returning({ l_id_animal: schema.feedingAnimal.l_id_animal })
+      .returning({ l_id_animal: schema.animalFeeding.l_id_animal })
 
     if (result.length === 0) {
       throw new Error("Feeding animal record not found")
@@ -806,21 +806,21 @@ export async function removeFeedingAnimal(
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"],
-  f_feeding_start: schema.feedingAnimalTypeSelect["f_feeding_start"],
+  f_feeding_start: schema.animalFeedingTypeSelect["f_feeding_start"],
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "removeFeedingAnimal")
 
     const result = await fdm
-      .delete(schema.feedingAnimal)
+      .delete(schema.animalFeeding)
       .where(
         and(
-          eq(schema.feedingAnimal.l_id_animal, l_id_animal),
-          eq(schema.feedingAnimal.f_id_batch, f_id_batch),
-          eq(schema.feedingAnimal.f_feeding_start, f_feeding_start),
+          eq(schema.animalFeeding.l_id_animal, l_id_animal),
+          eq(schema.animalFeeding.f_id_batch, f_id_batch),
+          eq(schema.animalFeeding.f_feeding_start, f_feeding_start),
         ),
       )
-      .returning({ l_id_animal: schema.feedingAnimal.l_id_animal })
+      .returning({ l_id_animal: schema.animalFeeding.l_id_animal })
 
     if (result.length === 0) {
       throw new Error("Feeding animal record not found")
@@ -852,21 +852,21 @@ export async function getFeedingAnimalForFarm(
 
     const rows = await fdm
       .select({
-        l_id_animal: schema.feedingAnimal.l_id_animal,
-        f_id_batch: schema.feedingAnimal.f_id_batch,
-        f_feeding_start: schema.feedingAnimal.f_feeding_start,
-        f_feeding_end: schema.feedingAnimal.f_feeding_end,
-        f_amount: schema.feedingAnimal.f_amount,
-        created: schema.feedingAnimal.created,
-        updated: schema.feedingAnimal.updated,
+        l_id_animal: schema.animalFeeding.l_id_animal,
+        f_id_batch: schema.animalFeeding.f_id_batch,
+        f_feeding_start: schema.animalFeeding.f_feeding_start,
+        f_feeding_end: schema.animalFeeding.f_feeding_end,
+        f_amount: schema.animalFeeding.f_amount,
+        created: schema.animalFeeding.created,
+        updated: schema.animalFeeding.updated,
       })
-      .from(schema.feedingAnimal)
+      .from(schema.animalFeeding)
       .innerJoin(
         schema.animalArriving,
-        eq(schema.feedingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+        eq(schema.animalFeeding.l_id_animal, schema.animalArriving.l_id_animal),
       )
       .where(eq(schema.animalArriving.b_id_farm, b_id_farm))
-      .orderBy(desc(schema.feedingAnimal.f_feeding_start))
+      .orderBy(desc(schema.animalFeeding.f_feeding_start))
 
     return rows as FeedingAnimal[]
   } catch (err) {
@@ -880,47 +880,47 @@ async function listFeedingEventsForAnimal(
   timeframe?: Timeframe,
 ): Promise<FeedingEventForAnimal[]> {
   let herdWhere: SQL | undefined = eq(schema.animalAssigning.l_id_animal, l_id_animal)
-  herdWhere = withTimeframe(herdWhere, schema.feedingHerd.f_feeding_start, timeframe)
+  herdWhere = withTimeframe(herdWhere, schema.herdFeeding.f_feeding_start, timeframe)
 
   const herdRows = await tx
     .select({
-      l_id_herd: schema.feedingHerd.l_id_herd,
-      f_id_batch: schema.feedingHerd.f_id_batch,
-      f_feeding_start: schema.feedingHerd.f_feeding_start,
-      f_feeding_end: schema.feedingHerd.f_feeding_end,
-      f_amount: schema.feedingHerd.f_amount,
-      created: schema.feedingHerd.created,
-      updated: schema.feedingHerd.updated,
+      l_id_herd: schema.herdFeeding.l_id_herd,
+      f_id_batch: schema.herdFeeding.f_id_batch,
+      f_feeding_start: schema.herdFeeding.f_feeding_start,
+      f_feeding_end: schema.herdFeeding.f_feeding_end,
+      f_amount: schema.herdFeeding.f_amount,
+      created: schema.herdFeeding.created,
+      updated: schema.herdFeeding.updated,
     })
-    .from(schema.feedingHerd)
+    .from(schema.herdFeeding)
     .innerJoin(
       schema.animalAssigning,
       and(
-        eq(schema.feedingHerd.l_id_herd, schema.animalAssigning.l_id_herd),
+        eq(schema.herdFeeding.l_id_herd, schema.animalAssigning.l_id_herd),
         eq(schema.animalAssigning.l_id_animal, l_id_animal),
-        lte(schema.animalAssigning.l_assigning_start, schema.feedingHerd.f_feeding_start),
+        lte(schema.animalAssigning.l_assigning_start, schema.herdFeeding.f_feeding_start),
         or(
           isNull(schema.animalAssigning.l_assigning_end),
-          gte(schema.animalAssigning.l_assigning_end, schema.feedingHerd.f_feeding_start),
+          gte(schema.animalAssigning.l_assigning_end, schema.herdFeeding.f_feeding_start),
         ),
       ),
     )
     .where(herdWhere)
 
-  let animalWhere: SQL | undefined = eq(schema.feedingAnimal.l_id_animal, l_id_animal)
-  animalWhere = withTimeframe(animalWhere, schema.feedingAnimal.f_feeding_start, timeframe)
+  let animalWhere: SQL | undefined = eq(schema.animalFeeding.l_id_animal, l_id_animal)
+  animalWhere = withTimeframe(animalWhere, schema.animalFeeding.f_feeding_start, timeframe)
 
   const animalRows = await tx
     .select({
-      l_id_animal: schema.feedingAnimal.l_id_animal,
-      f_id_batch: schema.feedingAnimal.f_id_batch,
-      f_feeding_start: schema.feedingAnimal.f_feeding_start,
-      f_feeding_end: schema.feedingAnimal.f_feeding_end,
-      f_amount: schema.feedingAnimal.f_amount,
-      created: schema.feedingAnimal.created,
-      updated: schema.feedingAnimal.updated,
+      l_id_animal: schema.animalFeeding.l_id_animal,
+      f_id_batch: schema.animalFeeding.f_id_batch,
+      f_feeding_start: schema.animalFeeding.f_feeding_start,
+      f_feeding_end: schema.animalFeeding.f_feeding_end,
+      f_amount: schema.animalFeeding.f_amount,
+      created: schema.animalFeeding.created,
+      updated: schema.animalFeeding.updated,
     })
-    .from(schema.feedingAnimal)
+    .from(schema.animalFeeding)
     .where(animalWhere)
 
   return [
@@ -941,8 +941,17 @@ export async function getFeedingEventsForAnimal(
   timeframe?: Timeframe,
 ): Promise<FeedingEventForAnimal[]> {
   try {
-    await checkPermission(fdm, "animal", "read", l_id_animal, principal_id, "getFeedingEventsForAnimal")
-    return await fdm.transaction(async (tx) => listFeedingEventsForAnimal(tx, l_id_animal, timeframe))
+    await checkPermission(
+      fdm,
+      "animal",
+      "read",
+      l_id_animal,
+      principal_id,
+      "getFeedingEventsForAnimal",
+    )
+    return await fdm.transaction(async (tx) =>
+      listFeedingEventsForAnimal(tx, l_id_animal, timeframe),
+    )
   } catch (err) {
     throw handleError(err, "Exception for getFeedingEventsForAnimal", { l_id_animal, timeframe })
   }
@@ -950,6 +959,9 @@ export async function getFeedingEventsForAnimal(
 
 /**
  * Returns a feeding summary for an animal and timeframe based on source-tagged events.
+ * The feed amount is the sum of the herd-level feedings of the animal's herd and the animal-level
+ * feedings: feed given to a single animal comes on top of what the herd gets. (Milk is counted
+ * differently, see `getMilkProductionForHerd`.)
  * Feed-analysis fields are null until analysis measurements are associated with feeding events.
  */
 export async function getFeedingSummaryForAnimal(
@@ -959,7 +971,14 @@ export async function getFeedingSummaryForAnimal(
   timeframe?: Timeframe,
 ): Promise<FeedingSummaryForAnimal> {
   try {
-    await checkPermission(fdm, "animal", "read", l_id_animal, principal_id, "getFeedingSummaryForAnimal")
+    await checkPermission(
+      fdm,
+      "animal",
+      "read",
+      l_id_animal,
+      principal_id,
+      "getFeedingSummaryForAnimal",
+    )
 
     return await fdm.transaction(async (tx) => {
       const events = await listFeedingEventsForAnimal(tx, l_id_animal, timeframe)

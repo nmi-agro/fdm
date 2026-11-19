@@ -26,11 +26,7 @@ export {
   writeAuditEntry,
 } from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
-export {
-  getAnimalCategoriesForFarm,
-  getAnimalCategoriesFromCatalogue,
-  getAnimalCategoriesFromCatalogues,
-} from "./animal"
+export { getAnimalCategoriesForFarm, getAnimalCategoriesFromCatalogues } from "./animal"
 export {
   type CachedCalculation,
   type CachedCalculationManyOptions,
@@ -354,6 +350,7 @@ export {
   removeAnimalAssigning,
   removeAnimals,
   removeAnimalsFromHerd,
+  setAnimalCategory,
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"

@@ -171,13 +171,13 @@ export async function removeManurePit(
 
     await fdm.transaction(async (tx) => {
       const excretingRecords = await tx
-        .select({ l_id_excreting: schema.excreting.l_id_excreting })
-        .from(schema.excreting)
-        .where(eq(schema.excreting.b_id_manurepit, b_id_manurepit))
+        .select({ l_id_excreting: schema.herdExcreting.l_id_excreting })
+        .from(schema.herdExcreting)
+        .where(eq(schema.herdExcreting.b_id_manurepit, b_id_manurepit))
         .limit(1)
 
       if (excretingRecords.length > 0) {
-        throw new Error("Cannot remove manure pit: an excreting record references it")
+        throw new Error("Cannot remove manure pit: a herd_excreting record references it")
       }
 
       const disposingRecords = await tx
@@ -215,11 +215,11 @@ export async function addExcreting(
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   b_id_manurepit: schema.manurePitsTypeSelect["b_id_manurepit"],
   properties?: {
-    l_excreting_start?: schema.excretingTypeInsert["l_excreting_start"]
-    l_excreting_end?: schema.excretingTypeInsert["l_excreting_end"]
-    l_excreting_amount?: schema.excretingTypeInsert["l_excreting_amount"]
+    l_excreting_start?: schema.herdExcretingTypeInsert["l_excreting_start"]
+    l_excreting_end?: schema.herdExcretingTypeInsert["l_excreting_end"]
+    l_excreting_amount?: schema.herdExcretingTypeInsert["l_excreting_amount"]
   },
-): Promise<schema.excretingTypeSelect["l_id_excreting"]> {
+): Promise<schema.herdExcretingTypeSelect["l_id_excreting"]> {
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addExcreting")
@@ -238,7 +238,7 @@ export async function addExcreting(
 
       const l_id_excreting = createId()
 
-      await tx.insert(schema.excreting).values({
+      await tx.insert(schema.herdExcreting).values({
         l_id_excreting,
         l_id_herd,
         b_id_manurepit,
@@ -265,22 +265,22 @@ export async function addExcreting(
 export async function getExcreting(
   fdm: FdmType,
   principal_id: PrincipalId,
-  l_id_excreting: schema.excretingTypeSelect["l_id_excreting"],
+  l_id_excreting: schema.herdExcretingTypeSelect["l_id_excreting"],
 ): Promise<Excreting> {
   try {
     const rows = await fdm
       .select({
-        l_id_excreting: schema.excreting.l_id_excreting,
-        l_id_herd: schema.excreting.l_id_herd,
-        b_id_manurepit: schema.excreting.b_id_manurepit,
-        l_excreting_start: schema.excreting.l_excreting_start,
-        l_excreting_end: schema.excreting.l_excreting_end,
-        l_excreting_amount: schema.excreting.l_excreting_amount,
-        created: schema.excreting.created,
-        updated: schema.excreting.updated,
+        l_id_excreting: schema.herdExcreting.l_id_excreting,
+        l_id_herd: schema.herdExcreting.l_id_herd,
+        b_id_manurepit: schema.herdExcreting.b_id_manurepit,
+        l_excreting_start: schema.herdExcreting.l_excreting_start,
+        l_excreting_end: schema.herdExcreting.l_excreting_end,
+        l_excreting_amount: schema.herdExcreting.l_excreting_amount,
+        created: schema.herdExcreting.created,
+        updated: schema.herdExcreting.updated,
       })
-      .from(schema.excreting)
-      .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+      .from(schema.herdExcreting)
+      .where(eq(schema.herdExcreting.l_id_excreting, l_id_excreting))
       .limit(1)
 
     if (rows.length === 0) {
@@ -314,23 +314,26 @@ export async function getExcretingsForFarm(
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getExcretingsForFarm")
 
     let whereClause: SQL | undefined = eq(schema.herdStarting.b_id_farm, b_id_farm)
-    whereClause = withTimeframe(whereClause, schema.excreting.l_excreting_start, timeframe)
+    whereClause = withTimeframe(whereClause, schema.herdExcreting.l_excreting_start, timeframe)
 
     const rows = await fdm
       .select({
-        l_id_excreting: schema.excreting.l_id_excreting,
-        l_id_herd: schema.excreting.l_id_herd,
-        b_id_manurepit: schema.excreting.b_id_manurepit,
-        l_excreting_start: schema.excreting.l_excreting_start,
-        l_excreting_end: schema.excreting.l_excreting_end,
-        l_excreting_amount: schema.excreting.l_excreting_amount,
-        created: schema.excreting.created,
-        updated: schema.excreting.updated,
+        l_id_excreting: schema.herdExcreting.l_id_excreting,
+        l_id_herd: schema.herdExcreting.l_id_herd,
+        b_id_manurepit: schema.herdExcreting.b_id_manurepit,
+        l_excreting_start: schema.herdExcreting.l_excreting_start,
+        l_excreting_end: schema.herdExcreting.l_excreting_end,
+        l_excreting_amount: schema.herdExcreting.l_excreting_amount,
+        created: schema.herdExcreting.created,
+        updated: schema.herdExcreting.updated,
       })
-      .from(schema.excreting)
-      .innerJoin(schema.herdStarting, eq(schema.excreting.l_id_herd, schema.herdStarting.l_id_herd))
+      .from(schema.herdExcreting)
+      .innerJoin(
+        schema.herdStarting,
+        eq(schema.herdExcreting.l_id_herd, schema.herdStarting.l_id_herd),
+      )
       .where(whereClause)
-      .orderBy(desc(schema.excreting.l_excreting_start))
+      .orderBy(desc(schema.herdExcreting.l_excreting_start))
 
     return rows as Excreting[]
   } catch (err) {
@@ -351,25 +354,25 @@ export async function getExcretingsForFarm(
 export async function updateExcreting(
   fdm: FdmType,
   principal_id: PrincipalId,
-  l_id_excreting: schema.excretingTypeSelect["l_id_excreting"],
+  l_id_excreting: schema.herdExcretingTypeSelect["l_id_excreting"],
   properties: {
-    b_id_manurepit?: schema.excretingTypeInsert["b_id_manurepit"]
-    l_excreting_start?: schema.excretingTypeInsert["l_excreting_start"]
-    l_excreting_end?: schema.excretingTypeInsert["l_excreting_end"]
-    l_excreting_amount?: schema.excretingTypeInsert["l_excreting_amount"]
+    b_id_manurepit?: schema.herdExcretingTypeInsert["b_id_manurepit"]
+    l_excreting_start?: schema.herdExcretingTypeInsert["l_excreting_start"]
+    l_excreting_end?: schema.herdExcretingTypeInsert["l_excreting_end"]
+    l_excreting_amount?: schema.herdExcretingTypeInsert["l_excreting_amount"]
   },
 ): Promise<void> {
   try {
     await fdm.transaction(async (tx) => {
       const existing = await tx
         .select({
-          l_id_herd: schema.excreting.l_id_herd,
-          b_id_manurepit: schema.excreting.b_id_manurepit,
-          l_excreting_start: schema.excreting.l_excreting_start,
-          l_excreting_end: schema.excreting.l_excreting_end,
+          l_id_herd: schema.herdExcreting.l_id_herd,
+          b_id_manurepit: schema.herdExcreting.b_id_manurepit,
+          l_excreting_start: schema.herdExcreting.l_excreting_start,
+          l_excreting_end: schema.herdExcreting.l_excreting_end,
         })
-        .from(schema.excreting)
-        .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+        .from(schema.herdExcreting)
+        .where(eq(schema.herdExcreting.l_id_excreting, l_id_excreting))
         .limit(1)
 
       if (existing.length === 0) {
@@ -407,9 +410,9 @@ export async function updateExcreting(
       )
 
       await tx
-        .update(schema.excreting)
+        .update(schema.herdExcreting)
         .set({ ...properties, updated: new Date() })
-        .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+        .where(eq(schema.herdExcreting.l_id_excreting, l_id_excreting))
     })
   } catch (err) {
     throw handleError(err, "Exception for updateExcreting", { l_id_excreting, properties })
@@ -422,19 +425,19 @@ async function assertNoOverlappingExcretingForHerdPit(
   b_id_manurepit: schema.manurePitsTypeSelect["b_id_manurepit"],
   l_excreting_start: Date,
   l_excreting_end: Date | null,
-  excludeExcretingId?: schema.excretingTypeSelect["l_id_excreting"],
+  excludeExcretingId?: schema.herdExcretingTypeSelect["l_id_excreting"],
 ): Promise<void> {
   const excretingRows = await tx
     .select({
-      l_id_excreting: schema.excreting.l_id_excreting,
-      l_excreting_start: schema.excreting.l_excreting_start,
-      l_excreting_end: schema.excreting.l_excreting_end,
+      l_id_excreting: schema.herdExcreting.l_id_excreting,
+      l_excreting_start: schema.herdExcreting.l_excreting_start,
+      l_excreting_end: schema.herdExcreting.l_excreting_end,
     })
-    .from(schema.excreting)
+    .from(schema.herdExcreting)
     .where(
       and(
-        eq(schema.excreting.l_id_herd, l_id_herd),
-        eq(schema.excreting.b_id_manurepit, b_id_manurepit),
+        eq(schema.herdExcreting.l_id_herd, l_id_herd),
+        eq(schema.herdExcreting.b_id_manurepit, b_id_manurepit),
       ),
     )
 
@@ -471,13 +474,13 @@ async function assertNoOverlappingExcretingForHerdPit(
 export async function removeExcreting(
   fdm: FdmType,
   principal_id: PrincipalId,
-  l_id_excreting: schema.excretingTypeSelect["l_id_excreting"],
+  l_id_excreting: schema.herdExcretingTypeSelect["l_id_excreting"],
 ): Promise<void> {
   try {
     const existing = await fdm
-      .select({ l_id_herd: schema.excreting.l_id_herd })
-      .from(schema.excreting)
-      .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+      .select({ l_id_herd: schema.herdExcreting.l_id_herd })
+      .from(schema.herdExcreting)
+      .where(eq(schema.herdExcreting.l_id_excreting, l_id_excreting))
       .limit(1)
 
     if (existing.length === 0) {
@@ -493,7 +496,9 @@ export async function removeExcreting(
       "removeExcreting",
     )
 
-    await fdm.delete(schema.excreting).where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+    await fdm
+      .delete(schema.herdExcreting)
+      .where(eq(schema.herdExcreting.l_id_excreting, l_id_excreting))
   } catch (err) {
     throw handleError(err, "Exception for removeExcreting", { l_id_excreting })
   }

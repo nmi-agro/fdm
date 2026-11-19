@@ -2,7 +2,11 @@
 "@nmi-agro/fdm-core": minor
 ---
 
-Add CRUD functions, authorization rules, and unit tests for livestock and dairy domain assets and actions (animals, herds, housing, milking, feed, manure, and grazing).
+Add the livestock and dairy domain: Drizzle schema tables and enums, CRUD functions, authorization rules and tests for animals, herds, barns and housing, milking, milk tanks and deliveries, feed batches and feeding, manure pits and excretion, and grazing. The action tables are named after their asset: `herd_housing`, `herd_milking`, `animal_milking`, `herd_feeding`, `animal_feeding`, `herd_excreting` and `herd_grazing`. Every herd has an animal category (`l_id_category`), so `addHerd` and `createHerdWithAnimals` require one.
+
+`setAnimalCategory` moves an animal into the herd of another animal category, for example when a heifer becomes a dairy cow. It closes the current herd assignment, opens a new one in the active herd of that category, and creates that herd when the farm has none.
+
+`getMilkProductionForHerd` and `getMilkingSummaryForAnimal` count milk once: when animal-level milking records exist in the timeframe, only those are summed; otherwise the herd-level records are used. Feed is summed: `getFeedingSummaryForAnimal` adds the herd-level and animal-level feedings together.
 
 A grazing record covers the whole field, a zone within the field (`l_grazing_geometry_zone`, a Polygon or MultiPolygon clipped to the field when read), or an area without a known location (`l_grazing_area`). The grazing functions return the derived grazed area `l_grazing_area_grazed`. `getGrazingZonesForField` lists earlier zones on a field for reuse, and `getGrazedAreaForFarm` combines all zones per field into one grazed area.
 

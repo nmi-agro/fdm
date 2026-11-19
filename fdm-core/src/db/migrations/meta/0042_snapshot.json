@@ -1,5 +1,5 @@
 {
-  "id": "60f81d7b-6e9c-4a13-bd03-86450c7a9886",
+  "id": "6cc3e4aa-512e-47a5-ab17-5667bfb59a58",
   "prevId": "0ec73bcf-252b-4562-8440-c399a38110fb",
   "version": "7",
   "dialect": "postgresql",
@@ -343,6 +343,100 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "fdm.animal_feeding": {
+      "name": "animal_feeding",
+      "schema": "fdm",
+      "columns": {
+        "l_id_animal": {
+          "name": "l_id_animal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_id_batch": {
+          "name": "f_id_batch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_feeding_start": {
+          "name": "f_feeding_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_feeding_end": {
+          "name": "f_feeding_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_amount": {
+          "name": "f_amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "animal_feeding_l_id_animal_animals_l_id_animal_fk": {
+          "name": "animal_feeding_l_id_animal_animals_l_id_animal_fk",
+          "tableFrom": "animal_feeding",
+          "tableTo": "animals",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_animal"
+          ],
+          "columnsTo": [
+            "l_id_animal"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "animal_feeding_f_id_batch_feed_batches_f_id_batch_fk": {
+          "name": "animal_feeding_f_id_batch_feed_batches_f_id_batch_fk",
+          "tableFrom": "animal_feeding",
+          "tableTo": "feed_batches",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "f_id_batch"
+          ],
+          "columnsTo": [
+            "f_id_batch"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "animal_feeding_l_id_animal_f_id_batch_f_feeding_start_pk": {
+          "name": "animal_feeding_l_id_animal_f_id_batch_f_feeding_start_pk",
+          "columns": [
+            "l_id_animal",
+            "f_id_batch",
+            "f_feeding_start"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "fdm.animal_leaving": {
       "name": "animal_leaving",
       "schema": "fdm",
@@ -398,6 +492,100 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.animal_milking": {
+      "name": "animal_milking",
+      "schema": "fdm",
+      "columns": {
+        "l_id_animal": {
+          "name": "l_id_animal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_id_milktank": {
+          "name": "l_id_milktank",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_milking_start": {
+          "name": "l_milking_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_milking_end": {
+          "name": "l_milking_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_milking_amount": {
+          "name": "l_milking_amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "animal_milking_l_id_animal_animals_l_id_animal_fk": {
+          "name": "animal_milking_l_id_animal_animals_l_id_animal_fk",
+          "tableFrom": "animal_milking",
+          "tableTo": "animals",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_animal"
+          ],
+          "columnsTo": [
+            "l_id_animal"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "animal_milking_l_id_milktank_milk_tanks_l_id_milktank_fk": {
+          "name": "animal_milking_l_id_milktank_milk_tanks_l_id_milktank_fk",
+          "tableFrom": "animal_milking",
+          "tableTo": "milk_tanks",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_milktank"
+          ],
+          "columnsTo": [
+            "l_id_milktank"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "animal_milking_l_id_animal_l_id_milktank_l_milking_start_pk": {
+          "name": "animal_milking_l_id_animal_l_id_milktank_l_milking_start_pk",
+          "columns": [
+            "l_id_animal",
+            "l_id_milktank",
+            "l_milking_start"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -1414,113 +1602,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "fdm.excreting": {
-      "name": "excreting",
-      "schema": "fdm",
-      "columns": {
-        "l_id_excreting": {
-          "name": "l_id_excreting",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "l_id_herd": {
-          "name": "l_id_herd",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "b_id_manurepit": {
-          "name": "b_id_manurepit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_excreting_start": {
-          "name": "l_excreting_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_excreting_end": {
-          "name": "l_excreting_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_excreting_amount": {
-          "name": "l_excreting_amount",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "l_id_excreting_idx": {
-          "name": "l_id_excreting_idx",
-          "columns": [
-            {
-              "expression": "l_id_excreting",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "excreting_l_id_herd_herds_l_id_herd_fk": {
-          "name": "excreting_l_id_herd_herds_l_id_herd_fk",
-          "tableFrom": "excreting",
-          "tableTo": "herds",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_herd"
-          ],
-          "columnsTo": [
-            "l_id_herd"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "excreting_b_id_manurepit_manure_pits_b_id_manurepit_fk": {
-          "name": "excreting_b_id_manurepit_manure_pits_b_id_manurepit_fk",
-          "tableFrom": "excreting",
-          "tableTo": "manure_pits",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "b_id_manurepit"
-          ],
-          "columnsTo": [
-            "b_id_manurepit"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "fdm.farm_group_joining": {
       "name": "farm_group_joining",
       "schema": "fdm",
@@ -2146,194 +2227,6 @@
           "columns": [
             "f_id_batch",
             "f_id_feed_analysis"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.feeding_animal": {
-      "name": "feeding_animal",
-      "schema": "fdm",
-      "columns": {
-        "l_id_animal": {
-          "name": "l_id_animal",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "f_id_batch": {
-          "name": "f_id_batch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "f_feeding_start": {
-          "name": "f_feeding_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "f_feeding_end": {
-          "name": "f_feeding_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "f_amount": {
-          "name": "f_amount",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "feeding_animal_l_id_animal_animals_l_id_animal_fk": {
-          "name": "feeding_animal_l_id_animal_animals_l_id_animal_fk",
-          "tableFrom": "feeding_animal",
-          "tableTo": "animals",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_animal"
-          ],
-          "columnsTo": [
-            "l_id_animal"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "feeding_animal_f_id_batch_feed_batches_f_id_batch_fk": {
-          "name": "feeding_animal_f_id_batch_feed_batches_f_id_batch_fk",
-          "tableFrom": "feeding_animal",
-          "tableTo": "feed_batches",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "f_id_batch"
-          ],
-          "columnsTo": [
-            "f_id_batch"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "feeding_animal_l_id_animal_f_id_batch_f_feeding_start_pk": {
-          "name": "feeding_animal_l_id_animal_f_id_batch_f_feeding_start_pk",
-          "columns": [
-            "l_id_animal",
-            "f_id_batch",
-            "f_feeding_start"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.feeding_herd": {
-      "name": "feeding_herd",
-      "schema": "fdm",
-      "columns": {
-        "f_id_batch": {
-          "name": "f_id_batch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_id_herd": {
-          "name": "l_id_herd",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "f_feeding_start": {
-          "name": "f_feeding_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "f_feeding_end": {
-          "name": "f_feeding_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "f_amount": {
-          "name": "f_amount",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "feeding_herd_f_id_batch_feed_batches_f_id_batch_fk": {
-          "name": "feeding_herd_f_id_batch_feed_batches_f_id_batch_fk",
-          "tableFrom": "feeding_herd",
-          "tableTo": "feed_batches",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "f_id_batch"
-          ],
-          "columnsTo": [
-            "f_id_batch"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "feeding_herd_l_id_herd_herds_l_id_herd_fk": {
-          "name": "feeding_herd_l_id_herd_herds_l_id_herd_fk",
-          "tableFrom": "feeding_herd",
-          "tableTo": "herds",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_herd"
-          ],
-          "columnsTo": [
-            "l_id_herd"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "feeding_herd_f_id_batch_l_id_herd_f_feeding_start_pk": {
-          "name": "feeding_herd_f_id_batch_l_id_herd_f_feeding_start_pk",
-          "columns": [
-            "f_id_batch",
-            "l_id_herd",
-            "f_feeding_start"
           ]
         }
       },
@@ -3613,140 +3506,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "fdm.grazing": {
-      "name": "grazing",
-      "schema": "fdm",
-      "columns": {
-        "l_id_grazing": {
-          "name": "l_id_grazing",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "b_id": {
-          "name": "b_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_id_herd": {
-          "name": "l_id_herd",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_grazing_start": {
-          "name": "l_grazing_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_grazing_end": {
-          "name": "l_grazing_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_grazing_hours": {
-          "name": "l_grazing_hours",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_grazing_area": {
-          "name": "l_grazing_area",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_grazing_geometry_zone": {
-          "name": "l_grazing_geometry_zone",
-          "type": "geometry(MultiPolygon,4326)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "grazing_l_id_herd_idx": {
-          "name": "grazing_l_id_herd_idx",
-          "columns": [
-            {
-              "expression": "l_id_herd",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "grazing_zone_idx": {
-          "name": "grazing_zone_idx",
-          "columns": [
-            {
-              "expression": "l_grazing_geometry_zone",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "gist",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "grazing_b_id_fields_b_id_fk": {
-          "name": "grazing_b_id_fields_b_id_fk",
-          "tableFrom": "grazing",
-          "tableTo": "fields",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "b_id"
-          ],
-          "columnsTo": [
-            "b_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "grazing_l_id_herd_herds_l_id_herd_fk": {
-          "name": "grazing_l_id_herd_herds_l_id_herd_fk",
-          "tableFrom": "grazing",
-          "tableTo": "herds",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_herd"
-          ],
-          "columnsTo": [
-            "l_id_herd"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "fdm.harvestable_analyses": {
       "name": "harvestable_analyses",
       "schema": "fdm",
@@ -4061,6 +3820,538 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "fdm.herd_excreting": {
+      "name": "herd_excreting",
+      "schema": "fdm",
+      "columns": {
+        "l_id_excreting": {
+          "name": "l_id_excreting",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "l_id_herd": {
+          "name": "l_id_herd",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "b_id_manurepit": {
+          "name": "b_id_manurepit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_excreting_start": {
+          "name": "l_excreting_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_excreting_end": {
+          "name": "l_excreting_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_excreting_amount": {
+          "name": "l_excreting_amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "l_id_excreting_idx": {
+          "name": "l_id_excreting_idx",
+          "columns": [
+            {
+              "expression": "l_id_excreting",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "herd_excreting_l_id_herd_herds_l_id_herd_fk": {
+          "name": "herd_excreting_l_id_herd_herds_l_id_herd_fk",
+          "tableFrom": "herd_excreting",
+          "tableTo": "herds",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_herd"
+          ],
+          "columnsTo": [
+            "l_id_herd"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "herd_excreting_b_id_manurepit_manure_pits_b_id_manurepit_fk": {
+          "name": "herd_excreting_b_id_manurepit_manure_pits_b_id_manurepit_fk",
+          "tableFrom": "herd_excreting",
+          "tableTo": "manure_pits",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "b_id_manurepit"
+          ],
+          "columnsTo": [
+            "b_id_manurepit"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.herd_feeding": {
+      "name": "herd_feeding",
+      "schema": "fdm",
+      "columns": {
+        "f_id_batch": {
+          "name": "f_id_batch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_id_herd": {
+          "name": "l_id_herd",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_feeding_start": {
+          "name": "f_feeding_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_feeding_end": {
+          "name": "f_feeding_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_amount": {
+          "name": "f_amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "herd_feeding_f_id_batch_feed_batches_f_id_batch_fk": {
+          "name": "herd_feeding_f_id_batch_feed_batches_f_id_batch_fk",
+          "tableFrom": "herd_feeding",
+          "tableTo": "feed_batches",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "f_id_batch"
+          ],
+          "columnsTo": [
+            "f_id_batch"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "herd_feeding_l_id_herd_herds_l_id_herd_fk": {
+          "name": "herd_feeding_l_id_herd_herds_l_id_herd_fk",
+          "tableFrom": "herd_feeding",
+          "tableTo": "herds",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_herd"
+          ],
+          "columnsTo": [
+            "l_id_herd"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "herd_feeding_f_id_batch_l_id_herd_f_feeding_start_pk": {
+          "name": "herd_feeding_f_id_batch_l_id_herd_f_feeding_start_pk",
+          "columns": [
+            "f_id_batch",
+            "l_id_herd",
+            "f_feeding_start"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.herd_grazing": {
+      "name": "herd_grazing",
+      "schema": "fdm",
+      "columns": {
+        "l_id_grazing": {
+          "name": "l_id_grazing",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "b_id": {
+          "name": "b_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_id_herd": {
+          "name": "l_id_herd",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_grazing_start": {
+          "name": "l_grazing_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_grazing_end": {
+          "name": "l_grazing_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_grazing_hours": {
+          "name": "l_grazing_hours",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_grazing_area": {
+          "name": "l_grazing_area",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_grazing_geometry_zone": {
+          "name": "l_grazing_geometry_zone",
+          "type": "geometry(MultiPolygon,4326)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "l_id_grazing_idx": {
+          "name": "l_id_grazing_idx",
+          "columns": [
+            {
+              "expression": "l_id_grazing",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "herd_grazing_l_id_herd_idx": {
+          "name": "herd_grazing_l_id_herd_idx",
+          "columns": [
+            {
+              "expression": "l_id_herd",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "herd_grazing_zone_idx": {
+          "name": "herd_grazing_zone_idx",
+          "columns": [
+            {
+              "expression": "l_grazing_geometry_zone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "herd_grazing_b_id_fields_b_id_fk": {
+          "name": "herd_grazing_b_id_fields_b_id_fk",
+          "tableFrom": "herd_grazing",
+          "tableTo": "fields",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "b_id"
+          ],
+          "columnsTo": [
+            "b_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "herd_grazing_l_id_herd_herds_l_id_herd_fk": {
+          "name": "herd_grazing_l_id_herd_herds_l_id_herd_fk",
+          "tableFrom": "herd_grazing",
+          "tableTo": "herds",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_herd"
+          ],
+          "columnsTo": [
+            "l_id_herd"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.herd_housing": {
+      "name": "herd_housing",
+      "schema": "fdm",
+      "columns": {
+        "l_id_herd": {
+          "name": "l_id_herd",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "b_id_barn": {
+          "name": "b_id_barn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "b_housing_start": {
+          "name": "b_housing_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "b_housing_end": {
+          "name": "b_housing_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "herd_housing_l_id_herd_herds_l_id_herd_fk": {
+          "name": "herd_housing_l_id_herd_herds_l_id_herd_fk",
+          "tableFrom": "herd_housing",
+          "tableTo": "herds",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_herd"
+          ],
+          "columnsTo": [
+            "l_id_herd"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "herd_housing_b_id_barn_barns_b_id_barn_fk": {
+          "name": "herd_housing_b_id_barn_barns_b_id_barn_fk",
+          "tableFrom": "herd_housing",
+          "tableTo": "barns",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "b_id_barn"
+          ],
+          "columnsTo": [
+            "b_id_barn"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "herd_housing_l_id_herd_b_id_barn_b_housing_start_pk": {
+          "name": "herd_housing_l_id_herd_b_id_barn_b_housing_start_pk",
+          "columns": [
+            "l_id_herd",
+            "b_id_barn",
+            "b_housing_start"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.herd_milking": {
+      "name": "herd_milking",
+      "schema": "fdm",
+      "columns": {
+        "l_id_herd": {
+          "name": "l_id_herd",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_id_milktank": {
+          "name": "l_id_milktank",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_milking_start": {
+          "name": "l_milking_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "l_milking_end": {
+          "name": "l_milking_end",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "l_milking_amount": {
+          "name": "l_milking_amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "herd_milking_l_id_herd_herds_l_id_herd_fk": {
+          "name": "herd_milking_l_id_herd_herds_l_id_herd_fk",
+          "tableFrom": "herd_milking",
+          "tableTo": "herds",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_herd"
+          ],
+          "columnsTo": [
+            "l_id_herd"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "herd_milking_l_id_milktank_milk_tanks_l_id_milktank_fk": {
+          "name": "herd_milking_l_id_milktank_milk_tanks_l_id_milktank_fk",
+          "tableFrom": "herd_milking",
+          "tableTo": "milk_tanks",
+          "schemaTo": "fdm",
+          "columnsFrom": [
+            "l_id_milktank"
+          ],
+          "columnsTo": [
+            "l_id_milktank"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "herd_milking_l_id_herd_l_id_milktank_l_milking_start_pk": {
+          "name": "herd_milking_l_id_herd_l_id_milktank_l_milking_start_pk",
+          "columns": [
+            "l_id_herd",
+            "l_id_milktank",
+            "l_milking_start"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "fdm.herd_starting": {
       "name": "herd_starting",
       "schema": "fdm",
@@ -4162,7 +4453,7 @@
           "name": "l_id_category",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created": {
           "name": "created",
@@ -4212,94 +4503,6 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.housing": {
-      "name": "housing",
-      "schema": "fdm",
-      "columns": {
-        "l_id_herd": {
-          "name": "l_id_herd",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "b_id_barn": {
-          "name": "b_id_barn",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "b_housing_start": {
-          "name": "b_housing_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "b_housing_end": {
-          "name": "b_housing_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "housing_l_id_herd_herds_l_id_herd_fk": {
-          "name": "housing_l_id_herd_herds_l_id_herd_fk",
-          "tableFrom": "housing",
-          "tableTo": "herds",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_herd"
-          ],
-          "columnsTo": [
-            "l_id_herd"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "housing_b_id_barn_barns_b_id_barn_fk": {
-          "name": "housing_b_id_barn_barns_b_id_barn_fk",
-          "tableFrom": "housing",
-          "tableTo": "barns",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "b_id_barn"
-          ],
-          "columnsTo": [
-            "b_id_barn"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "housing_l_id_herd_b_id_barn_b_housing_start_pk": {
-          "name": "housing_l_id_herd_b_id_barn_b_housing_start_pk",
-          "columns": [
-            "l_id_herd",
-            "b_id_barn",
-            "b_housing_start"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -5434,194 +5637,6 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.milking_animal": {
-      "name": "milking_animal",
-      "schema": "fdm",
-      "columns": {
-        "l_id_animal": {
-          "name": "l_id_animal",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_id_milktank": {
-          "name": "l_id_milktank",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_milking_start": {
-          "name": "l_milking_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_milking_end": {
-          "name": "l_milking_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_milking_amount": {
-          "name": "l_milking_amount",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "milking_animal_l_id_animal_animals_l_id_animal_fk": {
-          "name": "milking_animal_l_id_animal_animals_l_id_animal_fk",
-          "tableFrom": "milking_animal",
-          "tableTo": "animals",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_animal"
-          ],
-          "columnsTo": [
-            "l_id_animal"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "milking_animal_l_id_milktank_milk_tanks_l_id_milktank_fk": {
-          "name": "milking_animal_l_id_milktank_milk_tanks_l_id_milktank_fk",
-          "tableFrom": "milking_animal",
-          "tableTo": "milk_tanks",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_milktank"
-          ],
-          "columnsTo": [
-            "l_id_milktank"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "milking_animal_l_id_animal_l_id_milktank_l_milking_start_pk": {
-          "name": "milking_animal_l_id_animal_l_id_milktank_l_milking_start_pk",
-          "columns": [
-            "l_id_animal",
-            "l_id_milktank",
-            "l_milking_start"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "fdm.milking_herd": {
-      "name": "milking_herd",
-      "schema": "fdm",
-      "columns": {
-        "l_id_herd": {
-          "name": "l_id_herd",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_id_milktank": {
-          "name": "l_id_milktank",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_milking_start": {
-          "name": "l_milking_start",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "l_milking_end": {
-          "name": "l_milking_end",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "l_milking_amount": {
-          "name": "l_milking_amount",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated": {
-          "name": "updated",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "milking_herd_l_id_herd_herds_l_id_herd_fk": {
-          "name": "milking_herd_l_id_herd_herds_l_id_herd_fk",
-          "tableFrom": "milking_herd",
-          "tableTo": "herds",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_herd"
-          ],
-          "columnsTo": [
-            "l_id_herd"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "milking_herd_l_id_milktank_milk_tanks_l_id_milktank_fk": {
-          "name": "milking_herd_l_id_milktank_milk_tanks_l_id_milktank_fk",
-          "tableFrom": "milking_herd",
-          "tableTo": "milk_tanks",
-          "schemaTo": "fdm",
-          "columnsFrom": [
-            "l_id_milktank"
-          ],
-          "columnsTo": [
-            "l_id_milktank"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "milking_herd_l_id_herd_l_id_milktank_l_milking_start_pk": {
-          "name": "milking_herd_l_id_herd_l_id_milktank_l_milking_start_pk",
-          "columns": [
-            "l_id_herd",
-            "l_id_milktank",
-            "l_milking_start"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

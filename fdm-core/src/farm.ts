@@ -274,20 +274,20 @@ async function deriveFarmFlags(
       .where(eq(schema.milkTanks.b_id_farm, b_id_farm))
       .limit(1),
     tx
-      .select({ l_id_herd: schema.milkingHerd.l_id_herd })
-      .from(schema.milkingHerd)
+      .select({ l_id_herd: schema.herdMilking.l_id_herd })
+      .from(schema.herdMilking)
       .innerJoin(
         schema.herdStarting,
-        eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+        eq(schema.herdMilking.l_id_herd, schema.herdStarting.l_id_herd),
       )
       .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
       .limit(1),
     tx
-      .select({ l_id_animal: schema.milkingAnimal.l_id_animal })
-      .from(schema.milkingAnimal)
+      .select({ l_id_animal: schema.animalMilking.l_id_animal })
+      .from(schema.animalMilking)
       .innerJoin(
         schema.animalArriving,
-        eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+        eq(schema.animalMilking.l_id_animal, schema.animalArriving.l_id_animal),
       )
       .where(eq(schema.animalArriving.b_id_farm, b_id_farm))
       .limit(1),
@@ -1152,19 +1152,19 @@ async function removeLivestockDataForFarm(
   // Milk: milking records, deliveries (+ sampling/analyses), tanks
   if (animalIds.length > 0) {
     await tx
-      .delete(schema.milkingAnimal)
-      .where(inArray(schema.milkingAnimal.l_id_animal, animalIds))
+      .delete(schema.animalMilking)
+      .where(inArray(schema.animalMilking.l_id_animal, animalIds))
   }
   if (herdIds.length > 0) {
-    await tx.delete(schema.milkingHerd).where(inArray(schema.milkingHerd.l_id_herd, herdIds))
+    await tx.delete(schema.herdMilking).where(inArray(schema.herdMilking.l_id_herd, herdIds))
   }
   if (milkTankIds.length > 0) {
     await tx
-      .delete(schema.milkingAnimal)
-      .where(inArray(schema.milkingAnimal.l_id_milktank, milkTankIds))
+      .delete(schema.animalMilking)
+      .where(inArray(schema.animalMilking.l_id_milktank, milkTankIds))
     await tx
-      .delete(schema.milkingHerd)
-      .where(inArray(schema.milkingHerd.l_id_milktank, milkTankIds))
+      .delete(schema.herdMilking)
+      .where(inArray(schema.herdMilking.l_id_milktank, milkTankIds))
 
     const deliveringRows = await tx
       .select({ l_id_milkdelivery: schema.milkDelivering.l_id_milkdelivery })
@@ -1209,10 +1209,12 @@ async function removeLivestockDataForFarm(
 
   // Manure: excreting, disposing (+ deliveries/sampling/analyses), pits
   if (herdIds.length > 0) {
-    await tx.delete(schema.excreting).where(inArray(schema.excreting.l_id_herd, herdIds))
+    await tx.delete(schema.herdExcreting).where(inArray(schema.herdExcreting.l_id_herd, herdIds))
   }
   if (manurePitIds.length > 0) {
-    await tx.delete(schema.excreting).where(inArray(schema.excreting.b_id_manurepit, manurePitIds))
+    await tx
+      .delete(schema.herdExcreting)
+      .where(inArray(schema.herdExcreting.b_id_manurepit, manurePitIds))
 
     const disposingRows = await tx
       .select({ p_id_delivery: schema.manureDisposing.p_id_delivery })
@@ -1258,17 +1260,17 @@ async function removeLivestockDataForFarm(
   // Feed: feeding records (+ sampling/analyses), batches
   if (animalIds.length > 0) {
     await tx
-      .delete(schema.feedingAnimal)
-      .where(inArray(schema.feedingAnimal.l_id_animal, animalIds))
+      .delete(schema.animalFeeding)
+      .where(inArray(schema.animalFeeding.l_id_animal, animalIds))
   }
   if (herdIds.length > 0) {
-    await tx.delete(schema.feedingHerd).where(inArray(schema.feedingHerd.l_id_herd, herdIds))
+    await tx.delete(schema.herdFeeding).where(inArray(schema.herdFeeding.l_id_herd, herdIds))
   }
   if (feedBatchIds.length > 0) {
     await tx
-      .delete(schema.feedingAnimal)
-      .where(inArray(schema.feedingAnimal.f_id_batch, feedBatchIds))
-    await tx.delete(schema.feedingHerd).where(inArray(schema.feedingHerd.f_id_batch, feedBatchIds))
+      .delete(schema.animalFeeding)
+      .where(inArray(schema.animalFeeding.f_id_batch, feedBatchIds))
+    await tx.delete(schema.herdFeeding).where(inArray(schema.herdFeeding.f_id_batch, feedBatchIds))
 
     const feedSamplingRows = await tx
       .select({ f_id_feed_analysis: schema.feedSampling.f_id_feed_analysis })
@@ -1293,15 +1295,15 @@ async function removeLivestockDataForFarm(
 
   // Grazing (must happen before fields are removed by the caller)
   if (herdIds.length > 0) {
-    await tx.delete(schema.grazing).where(inArray(schema.grazing.l_id_herd, herdIds))
+    await tx.delete(schema.herdGrazing).where(inArray(schema.herdGrazing.l_id_herd, herdIds))
   }
 
   // Housing and barns
   if (herdIds.length > 0) {
-    await tx.delete(schema.housing).where(inArray(schema.housing.l_id_herd, herdIds))
+    await tx.delete(schema.herdHousing).where(inArray(schema.herdHousing.l_id_herd, herdIds))
   }
   if (barnIds.length > 0) {
-    await tx.delete(schema.housing).where(inArray(schema.housing.b_id_barn, barnIds))
+    await tx.delete(schema.herdHousing).where(inArray(schema.herdHousing.b_id_barn, barnIds))
     await tx
       .delete(schema.barnDecommissioning)
       .where(inArray(schema.barnDecommissioning.b_id_barn, barnIds))
@@ -1314,8 +1316,8 @@ async function removeLivestockDataForFarm(
   // Animals (own history + the asset itself)
   if (animalIds.length > 0) {
     await tx
-      .delete(schema.milkingAnimal)
-      .where(inArray(schema.milkingAnimal.l_id_animal, animalIds))
+      .delete(schema.animalMilking)
+      .where(inArray(schema.animalMilking.l_id_animal, animalIds))
     await tx
       .delete(schema.animalLeaving)
       .where(inArray(schema.animalLeaving.l_id_animal, animalIds))
