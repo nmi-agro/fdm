@@ -413,6 +413,21 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
   }
 
+  if (containsErrorMessage(error, "has not started yet") && containsErrorMessage(error, "Herd")) {
+    console.warn("Herd not started on the date of the move:", error)
+    return dataWithWarning(null, "Deze koppel is op die datum nog niet begonnen.")
+  }
+
+  if (containsErrorMessage(error, "has already ended") && containsErrorMessage(error, "Herd")) {
+    console.warn("Herd ended before the date of the move:", error)
+    return dataWithWarning(null, "Deze koppel is op die datum al beëindigd.")
+  }
+
+  if (containsErrorMessage(error, "Animal already belongs to herd")) {
+    console.warn("Animal already in the target herd:", error)
+    return dataWithWarning(null, "Dit dier zit al in deze koppel.")
+  }
+
   // Validation: life number and work number of an animal (checked by fdm-core)
   if (
     containsErrorMessage(error, "has an invalid check digit") ||

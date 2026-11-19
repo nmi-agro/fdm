@@ -607,16 +607,16 @@ This schema holds the primary data related to farm operations.
 
 The livestock assets and their actions follow the asset–action model: an asset table holds what a thing is, and action tables named `<asset>_<verb>ing` record what happened to it over time.
 
-| Table                                                | Kind   | Purpose                                                                                                                           |
-| ---------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **`herds`**                                          | Asset  | A group of animals of one animal category (`l_id_category`, required), with an optional name (`l_herd_name`).                     |
-| **`herd_starting`** / **`herd_ending`**              | Action | When a herd starts and ends on a farm (`b_id_farm`, `l_start`, `l_end`).                                                          |
-| **`animals`**                                        | Asset  | An individual animal: life number (`l_id_eartag`), work number (`l_id_worknumber`), species, breed, coat colour, birth date, sex. |
-| **`animal_arriving`** / **`animal_leaving`**         | Action | When and how an animal arrives on (born, purchased, imported) or leaves (died, sold, slaughtered, exported) a farm.               |
-| **`animal_assigning`**                               | Action | Which herd an animal belongs to over time (`l_assigning_start`, `l_assigning_end`; `null` end means current).                     |
-| **`barns`**                                          | Asset  | A barn with an optional name, floor area (`b_floor_area`, m²) and outline (`b_barn_geometry`).                                    |
-| **`barn_constructing`** / **`barn_decommissioning`** | Action | When a barn is built on and taken out of use on a farm.                                                                           |
-| **`herd_housing`**                                   | Action | A herd housed in a barn for a period (`b_housing_start`, `b_housing_end`).                                                        |
+| Table                                                | Kind   | Purpose                                                                                                                                                                                                                  |
+| ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`herds`**                                          | Asset  | A group of animals of one animal category (`l_id_category`, required), with an optional name (`l_herd_name`).                                                                                                            |
+| **`herd_starting`** / **`herd_ending`**              | Action | When a herd starts and ends on a farm (`b_id_farm`, `l_start`, `l_end`). No `l_start` means no known start: the herd runs from the beginning. An animal can only be moved into a herd that runs on the date of the move. |
+| **`animals`**                                        | Asset  | An individual animal: life number (`l_id_eartag`), work number (`l_id_worknumber`), species, breed, coat colour, birth date, sex.                                                                                        |
+| **`animal_arriving`** / **`animal_leaving`**         | Action | When and how an animal arrives on (born, purchased, imported) or leaves (died, sold, slaughtered, exported) a farm.                                                                                                      |
+| **`animal_assigning`**                               | Action | Which herd an animal belongs to over time (`l_assigning_start`, `l_assigning_end`; `null` end means current).                                                                                                            |
+| **`barns`**                                          | Asset  | A barn with an optional name, floor area (`b_floor_area`, m²) and outline (`b_barn_geometry`).                                                                                                                           |
+| **`barn_constructing`** / **`barn_decommissioning`** | Action | When a barn is built on and taken out of use on a farm.                                                                                                                                                                  |
+| **`herd_housing`**                                   | Action | A herd housed in a barn for a period (`b_housing_start`, `b_housing_end`).                                                                                                                                               |
 
 #### Milk, feed and manure
 

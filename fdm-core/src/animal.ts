@@ -13,7 +13,7 @@ import { checkPermission } from "./authorization"
 import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import { insertHerd } from "./herd"
+import { assertHerdRunsOn, insertHerd } from "./herd"
 import { createId } from "./id"
 
 /**
@@ -1079,126 +1079,44 @@ export async function removeAnimals(
 }
 
 /**
- * Reassigns an animal to a different, already-existing herd: closes the
- * animal's current active assignment (if any) and opens a new one in the
- * caller-specified target herd. The target herd must belong to the same farm
- * the animal currently belongs to. Does not inspect or match herd category —
- * the caller decides which herd to use (a farm may have multiple herds
- * sharing a category).
+ * Moves an animal to another herd: closes the animal's current herd assignment (if any) at
+ * `l_assigning_start` and opens a new one in the target herd, so the history of the animal is
+ * kept. The caller chooses the herd, also when the farm has several herds of the same category.
+ *
+ * An animal has no category of its own; it takes the category of its herd. Moving it to a herd of
+ * another category, for example a heifer that calves and joins the dairy cows, changes its
+ * category. The animal must fit the category of the target herd.
  *
  * @param fdm - The FDM instance providing connection to the database.
- * @param principal_id - Identifier of the principal reassigning the animal.
+ * @param principal_id - Identifier of the principal moving the animal.
  * @param l_id_animal - Unique identifier of the animal.
  * @param target_l_id_herd - Identifier of the herd to move the animal into.
+ * @param l_assigning_start - Moment of the move. Defaults to now; a date in the past records a
+ *   move that already happened.
+ * @throws When the animal does not exist or has left the farm by then, is already in the target
+ *   herd, or does not fit its category; when the target herd belongs to another farm, has not
+ *   started yet or has already ended on that date; or when the date is before the animal's current
+ *   herd assignment.
  */
 export async function assignAnimalToHerd(
   fdm: FdmType,
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
   target_l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_assigning_start: Date = new Date(),
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "assignAnimalToHerd")
 
     await fdm.transaction(async (tx) => {
-      const arriving = await tx
-        .select({ b_id_farm: schema.animalArriving.b_id_farm })
-        .from(schema.animalArriving)
-        .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
-        .limit(1)
-
-      if (arriving.length === 0) {
-        throw new Error("Animal farm association not found")
-      }
-
-      const herdFarm = await tx
-        .select({ b_id_farm: schema.herdStarting.b_id_farm })
-        .from(schema.herdStarting)
-        .where(eq(schema.herdStarting.l_id_herd, target_l_id_herd))
-        .limit(1)
-
-      if (herdFarm.length === 0 || herdFarm[0].b_id_farm !== arriving[0].b_id_farm) {
-        throw new Error(`Herd ${target_l_id_herd} does not belong to the animal's farm`)
-      }
-
-      const animal = await tx
-        .select({
-          l_specie: schema.animals.l_specie,
-          l_sex: schema.animals.l_sex,
-        })
-        .from(schema.animals)
-        .where(eq(schema.animals.l_id_animal, l_id_animal))
-        .limit(1)
-
-      if (animal.length === 0) {
-        throw new Error("Animal does not exist")
-      }
-
-      const category = await getHerdCategory(tx, target_l_id_herd)
-      assertAnimalMatchesCategory(category, animal[0].l_specie, animal[0].l_sex)
-
-      const now = new Date()
-
-      await tx
-        .update(schema.animalAssigning)
-        .set({ l_assigning_end: now, updated: now })
-        .where(
-          and(
-            eq(schema.animalAssigning.l_id_animal, l_id_animal),
-            isNull(schema.animalAssigning.l_assigning_end),
-          ),
-        )
-
-      await tx.insert(schema.animalAssigning).values({
-        l_id_animal,
-        l_id_herd: target_l_id_herd,
-        l_assigning_start: now,
-        l_assigning_end: null,
-      })
-    })
-  } catch (err) {
-    throw handleError(err, "Exception for assignAnimalToHerd", { l_id_animal, target_l_id_herd })
-  }
-}
-
-/**
- * Moves an animal into the herd of another animal category, for example when a heifer calves and
- * becomes a dairy cow.
- *
- * The animal joins the active herd of that category on its farm; when there are several, the herd
- * that started first. When the farm has no active herd of that category, one is created, named
- * after the category. The current herd assignment is closed and a new one is opened at `l_date`,
- * so the history of the animal is kept.
- *
- * @param fdm - The FDM instance.
- * @param principal_id - Principal changing the category.
- * @param l_id_animal - Identifier of the animal.
- * @param l_id_category - Identifier of the new animal category; must be enabled for the farm.
- * @param l_date - Moment of the change. Defaults to now.
- * @returns Identifier of the herd the animal now belongs to.
- * @throws When the animal has left the farm or has no current herd, already belongs to a herd of
- *   this category, does not fit the category, or when `l_date` is before its current assignment.
- */
-export async function setAnimalCategory(
-  fdm: FdmType,
-  principal_id: PrincipalId,
-  l_id_animal: schema.animalsTypeSelect["l_id_animal"],
-  l_id_category: schema.herdsTypeSelect["l_id_category"],
-  l_date: Date = new Date(),
-): Promise<schema.herdsTypeSelect["l_id_herd"]> {
-  try {
-    await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "setAnimalCategory")
-
-    return await fdm.transaction(async (tx) => {
-      const current = await tx
+      const rows = await tx
         .select({
           b_id_farm: schema.animalArriving.b_id_farm,
           l_specie: schema.animals.l_specie,
           l_sex: schema.animals.l_sex,
           l_leaving_date: schema.animalLeaving.l_leaving_date,
-          l_id_herd: schema.animalAssigning.l_id_herd,
-          l_id_category: schema.herds.l_id_category,
-          l_assigning_start: schema.animalAssigning.l_assigning_start,
+          current_l_id_herd: schema.animalAssigning.l_id_herd,
+          current_l_assigning_start: schema.animalAssigning.l_assigning_start,
         })
         .from(schema.animals)
         .innerJoin(
@@ -1209,62 +1127,44 @@ export async function setAnimalCategory(
           schema.animalLeaving,
           eq(schema.animals.l_id_animal, schema.animalLeaving.l_id_animal),
         )
-        .innerJoin(
+        .leftJoin(
           schema.animalAssigning,
           and(
             eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
             isNull(schema.animalAssigning.l_assigning_end),
           ),
         )
-        .innerJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
         .where(eq(schema.animals.l_id_animal, l_id_animal))
         .limit(1)
 
-      if (current.length === 0) {
-        throw new Error("Animal does not exist or has no current herd")
+      if (rows.length === 0) {
+        throw new Error("Animal does not exist")
       }
-      const animal = current[0]
-      if (animal.l_leaving_date) {
+      const animal = rows[0]
+      if (animal.l_leaving_date && animal.l_leaving_date <= l_assigning_start) {
         throw new Error("Animal has left the farm")
       }
-      if (animal.l_id_category === l_id_category) {
-        throw new Error(`Animal already belongs to a herd of category ${l_id_category}`)
+      if (animal.current_l_id_herd === target_l_id_herd) {
+        throw new Error(`Animal already belongs to herd ${target_l_id_herd}`)
       }
-      if (l_date < animal.l_assigning_start) {
-        throw new Error("Category change cannot be before the current herd assignment")
+      if (
+        animal.current_l_assigning_start &&
+        l_assigning_start < animal.current_l_assigning_start
+      ) {
+        throw new Error("Move cannot be before the current herd assignment")
       }
 
-      const category = await getAnimalCategory(tx, l_id_category, animal.b_id_farm)
+      const herdFarm = await assertHerdRunsOn(tx, target_l_id_herd, l_assigning_start)
+      if (herdFarm !== animal.b_id_farm) {
+        throw new Error(`Herd ${target_l_id_herd} does not belong to the animal's farm`)
+      }
+
+      const category = await getHerdCategory(tx, target_l_id_herd)
       assertAnimalMatchesCategory(category, animal.l_specie, animal.l_sex)
-
-      const targetHerds = await tx
-        .select({ l_id_herd: schema.herds.l_id_herd })
-        .from(schema.herds)
-        .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
-        .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
-        .where(
-          and(
-            eq(schema.herdStarting.b_id_farm, animal.b_id_farm),
-            eq(schema.herds.l_id_category, l_id_category),
-            or(isNull(schema.herdStarting.l_start), lte(schema.herdStarting.l_start, l_date)),
-            or(isNull(schema.herdEnding.l_end), gt(schema.herdEnding.l_end, l_date)),
-          ),
-        )
-        .orderBy(asc(schema.herdStarting.l_start), asc(schema.herds.created))
-        .limit(1)
-
-      const target_l_id_herd =
-        targetHerds.length > 0
-          ? targetHerds[0].l_id_herd
-          : await insertHerd(tx, animal.b_id_farm, {
-              l_herd_name: category.l_category,
-              l_id_category,
-              l_start: l_date,
-            })
 
       await tx
         .update(schema.animalAssigning)
-        .set({ l_assigning_end: l_date, updated: new Date() })
+        .set({ l_assigning_end: l_assigning_start, updated: new Date() })
         .where(
           and(
             eq(schema.animalAssigning.l_id_animal, l_id_animal),
@@ -1275,17 +1175,15 @@ export async function setAnimalCategory(
       await tx.insert(schema.animalAssigning).values({
         l_id_animal,
         l_id_herd: target_l_id_herd,
-        l_assigning_start: l_date,
+        l_assigning_start,
         l_assigning_end: null,
       })
-
-      return target_l_id_herd
     })
   } catch (err) {
-    throw handleError(err, "Exception for setAnimalCategory", {
+    throw handleError(err, "Exception for assignAnimalToHerd", {
       l_id_animal,
-      l_id_category,
-      l_date,
+      target_l_id_herd,
+      l_assigning_start,
     })
   }
 }
@@ -1444,24 +1342,12 @@ export async function reassignHerdAnimals(
         .from(schema.herdStarting)
         .where(eq(schema.herdStarting.l_id_herd, source_l_id_herd))
         .limit(1)
-      const targetRows = await tx
-        .select({
-          b_id_farm: schema.herdStarting.b_id_farm,
-          l_end: schema.herdEnding.l_end,
-        })
-        .from(schema.herdStarting)
-        .leftJoin(schema.herdEnding, eq(schema.herdStarting.l_id_herd, schema.herdEnding.l_id_herd))
-        .where(eq(schema.herdStarting.l_id_herd, target_l_id_herd))
-        .limit(1)
-
-      if (sourceRows.length === 0 || targetRows.length === 0) {
+      if (sourceRows.length === 0) {
         throw new Error("Source or target herd does not exist")
       }
-      if (sourceRows[0].b_id_farm !== targetRows[0].b_id_farm) {
+      const targetFarm = await assertHerdRunsOn(tx, target_l_id_herd, l_reassign_date)
+      if (sourceRows[0].b_id_farm !== targetFarm) {
         throw new Error("Source and target herd must belong to the same farm")
-      }
-      if (targetRows[0].l_end !== null) {
-        throw new Error("Target herd has already ended")
       }
 
       const activeAssignments = await tx
@@ -1579,17 +1465,14 @@ export async function updateAnimalAssigning(
           .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
           .limit(1)
 
-        const herdFarm = await tx
-          .select({ b_id_farm: schema.herdStarting.b_id_farm })
-          .from(schema.herdStarting)
-          .where(eq(schema.herdStarting.l_id_herd, properties.l_id_herd))
-          .limit(1)
+        // The new herd must run when the (corrected) assignment starts
+        const herdFarm = await assertHerdRunsOn(
+          tx,
+          properties.l_id_herd,
+          properties.l_assigning_start ?? l_assigning_start,
+        )
 
-        if (
-          arriving.length === 0 ||
-          herdFarm.length === 0 ||
-          herdFarm[0].b_id_farm !== arriving[0].b_id_farm
-        ) {
+        if (arriving.length === 0 || herdFarm !== arriving[0].b_id_farm) {
           throw new Error(`Herd ${properties.l_id_herd} does not belong to the animal's farm`)
         }
 
@@ -1697,7 +1580,7 @@ export async function removeAnimalAssigning(
  * @param principal_id - Principal creating the herd and animals.
  * @param b_id_farm - Farm to create the herd on.
  * @param herdProperties - Herd properties: the animal category (required, enabled for the farm),
- *   and optionally the name and start date.
+ *   and optionally the name and start date. Without a start date the herd has no known start.
  * @param count - Number of new animals to create in the herd.
  * @param animalProperties - Optional default attributes shared by all newly created animals.
  * @returns The new herd ID and the IDs of the newly created animals.
@@ -1726,10 +1609,7 @@ export async function createHerdWithAnimals(
       await lockFarmWorknumbers(tx, b_id_farm)
 
       const category = await getAnimalCategory(tx, herdProperties.l_id_category, b_id_farm)
-      const l_id_herd = await insertHerd(tx, b_id_farm, {
-        ...herdProperties,
-        l_start: herdProperties.l_start ?? now,
-      })
+      const l_id_herd = await insertHerd(tx, b_id_farm, herdProperties)
 
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
       const l_specie = animalProperties?.l_specie ?? category.l_specie

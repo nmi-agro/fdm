@@ -18,7 +18,8 @@ import { createId } from "./id"
  * @param principal_id - Identifier of the principal creating the herd.
  * @param b_id_farm - Identifier of the farm acquiring the herd.
  * @param properties - Properties of the herd. The animal category (`l_id_category`) is required and
- *   must come from an animal category catalogue enabled for the farm.
+ *   must come from an animal category catalogue enabled for the farm. Without a start date
+ *   (`l_start`) the herd has no known start and counts as running from the beginning.
  * @returns Unique identifier of the newly created herd.
  */
 export async function addHerd(
@@ -62,7 +63,8 @@ export async function addHerd(
  *
  * @param tx - The transaction to insert in.
  * @param b_id_farm - Identifier of the farm the herd starts on.
- * @param properties - Name, animal category and start date of the herd.
+ * @param properties - Name, animal category and start date of the herd. Without a start date the
+ *   herd has no known start.
  * @returns Unique identifier of the new herd.
  */
 export async function insertHerd(
@@ -85,10 +87,50 @@ export async function insertHerd(
   await tx.insert(schema.herdStarting).values({
     l_id_herd,
     b_id_farm,
-    l_start: properties.l_start ?? new Date(),
+    l_start: properties.l_start ?? null,
   })
 
   return l_id_herd
+}
+
+/**
+ * Checks that an animal can be assigned to a herd on a date: the herd exists and runs on that
+ * date. A herd runs from its start (no start date means from the beginning) up to its end (no end
+ * date means it still runs). Callers run this inside their transaction.
+ *
+ * @param tx - The transaction to read in.
+ * @param l_id_herd - Identifier of the herd.
+ * @param date - Start of the assignment.
+ * @returns The farm the herd belongs to.
+ * @throws When the herd does not exist, has not started yet on the date, or has ended by then.
+ */
+export async function assertHerdRunsOn(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  date: Date,
+): Promise<schema.farmsTypeSelect["b_id_farm"]> {
+  const rows = await tx
+    .select({
+      b_id_farm: schema.herdStarting.b_id_farm,
+      l_start: schema.herdStarting.l_start,
+      l_end: schema.herdEnding.l_end,
+    })
+    .from(schema.herdStarting)
+    .leftJoin(schema.herdEnding, eq(schema.herdStarting.l_id_herd, schema.herdEnding.l_id_herd))
+    .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+    .limit(1)
+
+  if (rows.length === 0) {
+    throw new Error(`Herd ${l_id_herd} does not exist`)
+  }
+  const { b_id_farm, l_start, l_end } = rows[0]
+  if (l_start && l_start > date) {
+    throw new Error(`Herd ${l_id_herd} has not started yet on ${date.toISOString()}`)
+  }
+  if (l_end && l_end <= date) {
+    throw new Error(`Herd ${l_id_herd} has already ended on ${date.toISOString()}`)
+  }
+  return b_id_farm
 }
 
 /**
