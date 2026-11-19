@@ -41,10 +41,10 @@ export function LandingHero({
   redirectError: string | null
 }) {
   return (
-    <div className="lg:grid lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-      <div className="flex flex-col bg-[#122023] text-white lg:order-2">
+    <div className="flex flex-col lg:grid lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="order-2 flex flex-col bg-[#122023] text-white">
         {/* The photo keeps its own area, so the text below never depends on its contrast */}
-        <div className="relative h-28 sm:h-40 lg:h-auto lg:min-h-48 lg:flex-1">
+        <div className="relative hidden lg:block lg:min-h-48 lg:flex-1">
           <img
             src={HERO_PHOTO_URL}
             alt="Een trekker bewerkt een akker bij zonsondergang"
@@ -67,10 +67,10 @@ export function LandingHero({
             wat goede landbouwpraktijk op uw percelen vraagt en kunt u sturen op doelen, met de
             stikstofbalans als basis voor doelsturing. De rekenregels kunt u nalezen.
           </p>
-          <HeroFacts className="mt-6 hidden flex-wrap gap-x-6 gap-y-2 text-sm text-white/80 lg:flex" />
+          <HeroFacts className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80" />
           <a
             href="#mogelijkheden"
-            className="mt-6 hidden items-center gap-2 self-start text-sm font-medium text-white underline underline-offset-4 hover:no-underline lg:inline-flex"
+            className="mt-6 inline-flex items-center gap-2 self-start text-sm font-medium text-white underline underline-offset-4 hover:no-underline"
           >
             <span>Bekijk wat u ermee kunt</span>
             <ArrowDown className="size-4" aria-hidden="true" />
@@ -78,17 +78,16 @@ export function LandingHero({
         </motion.div>
       </div>
 
-      <div className="bg-background flex flex-col items-center justify-center px-4 py-10 lg:order-1 lg:py-12">
-        <div className="w-full max-w-sm">
+      <div className="lg:bg-background relative order-1 flex flex-col items-center justify-center bg-[#122023] px-4 py-8 lg:py-12">
+        {/* Below lg the photo sits behind the card; the card is opaque, so nothing is read on the photo */}
+        <img
+          src={HERO_PHOTO_URL}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 size-full object-cover lg:hidden"
+        />
+        <div className="relative w-full max-w-sm">
           <SignInCard redirectTo={redirectTo} redirectError={redirectError} />
-          <HeroFacts className="text-muted-foreground mt-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm lg:hidden" />
-          <a
-            href="#mogelijkheden"
-            className="text-foreground mt-6 flex items-center justify-center gap-2 text-sm font-medium underline underline-offset-4 hover:no-underline lg:hidden"
-          >
-            <span>Bekijk wat u ermee kunt</span>
-            <ArrowDown className="size-4" aria-hidden="true" />
-          </a>
         </div>
       </div>
     </div>
