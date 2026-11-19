@@ -38,6 +38,7 @@ import {
 } from "~/components/ui/select"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useToday } from "~/hooks/use-today"
+import { formatHa } from "~/lib/format"
 import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
 import { type Area, areaHa } from "~/lib/grazing-strip"
 import { GRAZING_AREA_FIELD, GRAZING_ZONE_FIELD } from "~/lib/grazing-zone"
@@ -555,7 +556,9 @@ export function GrazingPopover({
                   !canWrite || zoneMissing || (areaMode === "partial" && !(partialArea > 0))
                 }
               >
-                {existingGrazing ? "Opslaan" : "Vastleggen"}
+                <span key={existingGrazing ? "save" : "record"}>
+                  {existingGrazing ? "Opslaan" : "Vastleggen"}
+                </span>
               </Button>
             </div>
           </DialogFooter>
@@ -587,9 +590,4 @@ export function GrazingPopover({
       </AlertDialog>
     </Dialog>
   )
-}
-
-/** An area in hectares with a decimal comma, e.g. "9,5". */
-function formatHa(value: number): string {
-  return value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
 }

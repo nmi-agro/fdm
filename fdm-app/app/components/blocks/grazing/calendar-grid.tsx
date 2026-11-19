@@ -24,6 +24,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useToday } from "~/hooks/use-today"
+import { formatHa } from "~/lib/format"
 import {
   formatRestAlert,
   GRAZING_SEASON_LABEL,
@@ -48,8 +49,6 @@ const PAGE_DAYS = 7
 
 const formatLongDay = (day: string) =>
   format(new Date(`${day}T12:00:00`), "EEEE d MMMM", { locale: nl })
-
-const formatHa = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
 
 /** A position in the calendar: the index of the field row and of the day column. */
 interface GridPosition {
@@ -415,7 +414,7 @@ export function CalendarGrid({
                     className="text-xs"
                     onClick={() => moveFocus(activeCell.row, activeCell.col)}
                   >
-                    <span>
+                    <span key={todayIndex >= 0 ? "today" : "calendar"}>
                       {todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}
                     </span>
                   </Button>

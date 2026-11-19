@@ -22,7 +22,7 @@ import {
   getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
-import { format } from "date-fns"
+import { eachDayOfInterval, format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { AlertTriangle, CheckCircle2, Info, Save } from "lucide-react"
 import { lazy, Suspense, useMemo, useState } from "react"
@@ -36,6 +36,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import z from "zod"
 import type { PlanPreviewZone } from "~/components/blocks/grazing/plan-preview-map"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -76,11 +77,12 @@ import {
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
+import { formatHa } from "~/lib/format"
 import { type Area, areaHa, cutEqualPlots, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
 import { grazingZoneSchema } from "~/lib/grazing-zone"
 
@@ -110,7 +112,7 @@ export const meta: MetaFunction = () => {
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
     const calendarYear = parseInt(calendar, 10) || new Date().getFullYear()
 
     if (!b_id_farm) {
@@ -174,7 +176,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       herds: herds.map((h) => ({
         l_id_herd: h.l_id_herd,
         l_herd_name: h.l_herd_name ?? "Koppel",
-        l_id_category: h.l_id_category ?? "rvo_100",
+        l_id_category: h.l_id_category,
         l_lsu: h.l_lsu ?? 1.0,
         count: censusMap.get(h.l_id_herd) ?? 0,
       })),
@@ -191,10 +193,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+const planDateSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(new Date(value).getTime()), "Ongeldige datum")
+
+/** A period of the plan as the planner sends it; every period is on a field. */
+const planRowsSchema = z.array(
+  z.object({
+    l_id_herd: z.string().min(1),
+    b_id: z.string().min(1),
+    l_grazing_start: planDateSchema,
+    l_grazing_end: planDateSchema,
+    l_grazing_hours: z.number().positive(),
+    l_grazing_area: z.number().positive().optional(),
+    l_grazing_geometry_zone: grazingZoneSchema.nullish(),
+  }),
+)
+
+/**
+ * Reads the planned periods from the submitted JSON.
+ *
+ * @param value - The JSON text of the periods.
+ * @returns The periods.
+ * @throws A 400 response when the text is not a valid list of periods.
+ */
+function parsePlanRows(value: string): z.infer<typeof planRowsSchema> {
+  try {
+    return planRowsSchema.parse(JSON.parse(value))
+  } catch {
+    throw data("Ongeldig beweidingsplan", { status: 400 })
+  }
+}
+
 export async function action({ request, params }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
     if (!b_id_farm) {
       throw data("Farm ID is required", { status: 400 })
     }
@@ -214,16 +248,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const formData = await request.formData()
-    const rowsJson = formText(formData, "plan_rows", "[]")
-    const rows = JSON.parse(rowsJson) as Array<{
-      l_id_herd: string
-      b_id: string
-      l_grazing_start: string
-      l_grazing_end: string
-      l_grazing_hours: number
-      l_grazing_area?: number
-      l_grazing_geometry_zone?: unknown
-    }>
+    const rows = parsePlanRows(formText(formData, "plan_rows", "[]"))
 
     if (rows.length === 0) {
       throw data("Geen perioden om vast te leggen.", { status: 400 })
@@ -239,9 +264,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
         l_grazing_end: new Date(r.l_grazing_end),
         l_grazing_hours: r.l_grazing_hours,
         l_grazing_area: r.l_grazing_area,
-        l_grazing_geometry_zone: r.l_grazing_geometry_zone
-          ? (grazingZoneSchema.parse(r.l_grazing_geometry_zone) as Polygon | MultiPolygon)
-          : null,
+        l_grazing_geometry_zone: (r.l_grazing_geometry_zone ?? null) as
+          | Polygon
+          | MultiPolygon
+          | null,
       })),
     )
 
@@ -259,9 +285,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 /** A day of the plan, e.g. "3 mei". */
 const formatPlanDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
-
-/** An area in hectares with a decimal comma, e.g. "2,43". */
-const formatPlanHa = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
 
 export default function GrazingPlanAssistent() {
   const {
@@ -596,10 +619,20 @@ export default function GrazingPlanAssistent() {
   // The strip under the pointer, in the table or on the map
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null)
 
-  // Grazing days: with Nieuw Nederlands Weiden every day has its own plot(s)
-  const totalWeidedagen = isNnw
-    ? new Set(generatedRows.map((row) => row.l_grazing_start)).size
-    : generatedRows.length * periodDays
+  // Grazing days: the distinct days the plan covers, so a shorter last period and several plots on
+  // one day (Nieuw Nederlands Weiden) are counted right
+  const totalWeidedagen = useMemo(() => {
+    const days = new Set<string>()
+    for (const row of generatedRows) {
+      for (const day of eachDayOfInterval({
+        start: new Date(`${row.l_grazing_start}T12:00:00`),
+        end: new Date(`${row.l_grazing_end}T12:00:00`),
+      })) {
+        days.add(format(day, "yyyy-MM-dd"))
+      }
+    }
+    return days.size
+  }, [generatedRows])
 
   return (
     <SidebarInset>
@@ -1200,10 +1233,10 @@ export default function GrazingPlanAssistent() {
                                       (
                                       {row.zoneArea !== undefined
                                         ? // A part never shows as larger than its rounded field
-                                          `${formatPlanHa(Math.min(row.zoneArea, row.fieldArea))} ha van ${formatPlanHa(row.fieldArea)} ha`
+                                          `${formatHa(Math.min(row.zoneArea, row.fieldArea))} ha van ${formatHa(row.fieldArea)} ha`
                                         : row.l_grazing_area
-                                          ? `${formatPlanHa(row.l_grazing_area)} ha van ${formatPlanHa(row.fieldArea)} ha`
-                                          : `${formatPlanHa(row.fieldArea)} ha`}
+                                          ? `${formatHa(row.l_grazing_area)} ha van ${formatHa(row.fieldArea)} ha`
+                                          : `${formatHa(row.fieldArea)} ha`}
                                       )
                                     </span>
                                   </TableCell>

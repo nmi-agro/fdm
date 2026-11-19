@@ -39,6 +39,7 @@ import {
 } from "~/components/ui/select"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
+import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -57,7 +58,7 @@ export const meta: MetaFunction = () => {
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
     if (!b_id_farm) {
       throw data("Farm ID is required", { status: 400 })
     }
@@ -104,7 +105,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export async function action({ request, params }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
     if (!b_id_farm) {
       throw data("Farm ID is required", { status: 400 })
     }
@@ -145,10 +146,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         l_id_category,
       },
       count,
-      {
-        l_specie: "cattle",
-        l_arriving_method: "born",
-      },
+      { l_arriving_method: "born" },
     )
 
     return redirectWithSuccess(

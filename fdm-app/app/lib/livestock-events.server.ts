@@ -12,6 +12,7 @@ import {
   removeHerd,
   updateHerd,
 } from "@nmi-agro/fdm-core"
+import { data } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
@@ -84,11 +85,15 @@ export async function handleLivestockEvent(
 
   if (intent === "add_herd") {
     const l_herd_name = formText(formData, "l_herd_name", "Koppel").trim()
+    const l_id_category = formText(formData, "l_id_category")
+    if (!l_id_category) {
+      throw data("Kies een diercategorie", { status: 400 })
+    }
     await createHerdWithAnimals(
       fdm,
       principal_id,
       b_id_farm,
-      { l_herd_name, l_id_category: formText(formData, "l_id_category") },
+      { l_herd_name, l_id_category },
       Number.parseInt(formText(formData, "count", "0"), 10),
     )
     return dataWithSuccess({ l_herd_name }, { message: `Koppel ${l_herd_name} aangemaakt.` })
@@ -111,7 +116,10 @@ export async function handleLivestockEvent(
     return dataWithSuccess({}, { message: "Dieren succesvol overgezet naar de nieuwe koppel." })
   }
 
-  // remove_herd
-  await removeHerd(fdm, principal_id, formText(formData, "l_id_herd"))
-  return dataWithSuccess({}, { message: "Koppel verwijderd." })
+  if (intent === "remove_herd") {
+    await removeHerd(fdm, principal_id, formText(formData, "l_id_herd"))
+    return dataWithSuccess({}, { message: "Koppel verwijderd." })
+  }
+
+  throw data("Ongeldige actie", { status: 400 })
 }

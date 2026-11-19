@@ -35,7 +35,7 @@ import { Progress } from "~/components/ui/progress"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -64,7 +64,7 @@ const DAYS_AHEAD = 7
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
     const calendarYear = Number.parseInt(calendar, 10) || new Date().getFullYear()
     if (!b_id_farm) {
       throw data("Farm ID is required", { status: 400 })
@@ -157,7 +157,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (isGrazingIntent(intent)) {
       return await handleGrazingEvent(formData, {
         principal_id: session.principal_id,
-        calendar: params.calendar ?? String(new Date().getFullYear()),
+        calendar: getCalendar(params),
       })
     }
     throw data("Ongeldige actie", { status: 400 })

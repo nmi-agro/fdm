@@ -24,6 +24,7 @@ import {
 } from "~/components/ui/select"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { formatHa } from "~/lib/format"
 import { type Area, cutStrip, hasHoles, zoneAreaWithinField } from "~/lib/grazing-strip"
 import { pushUndo } from "~/lib/undo-history"
 import type { ZoneEditorMode, ZoneMapControls, ZoneNotice } from "./zone-editor-map"
@@ -98,8 +99,8 @@ interface ZonesData {
   zonesFailed: boolean
 }
 
-const formatHa = (value: number) =>
-  value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+/** An area in hectares with at least one decimal, e.g. "2,0". */
+const formatZoneHa = (value: number) => formatHa(value, 1)
 
 const sameZone = (a: Area | null | undefined, b: Area | null | undefined) =>
   Boolean(a && b && JSON.stringify(a) === JSON.stringify(b))
@@ -283,8 +284,8 @@ export function ZoneEditor({
           <p className="text-muted-foreground text-xs" aria-live="polite">
             {zoneArea !== null ? (
               <span key="area">
-                Zone: <strong className="text-foreground">{formatHa(zoneArea)} ha</strong> binnen
-                het perceel
+                Zone: <strong className="text-foreground">{formatZoneHa(zoneArea)} ha</strong>{" "}
+                binnen het perceel
               </span>
             ) : (
               <span key="none">Nog geen zone.</span>
@@ -352,7 +353,7 @@ export function ZoneEditor({
             const hadZone = zone !== null
             changeZone(strip)
             switchMode(modeFor(strip))
-            const made = `Strook van ${formatHa(zoneAreaWithinField(strip, field))} ha gemaakt`
+            const made = `Strook van ${formatZoneHa(zoneAreaWithinField(strip, field))} ha gemaakt`
             setNotice({
               tone: "info",
               text: hadZone ? `${made}; Ongedaan maken zet de vorige zone terug.` : `${made}.`,
@@ -375,7 +376,7 @@ export function ZoneEditor({
               const isCurrent = sameZone(earlier.l_grazing_geometry_zone, zone)
               const used = new Date(earlier.last_used)
               const label = [
-                `${formatHa(earlier.l_grazing_area_grazed)} ha`,
+                `${formatZoneHa(earlier.l_grazing_area_grazed)} ha`,
                 format(used, used.getFullYear() === startYear ? "d MMM" : "d MMM yyyy", {
                   locale: nl,
                 }),
@@ -617,7 +618,7 @@ function StripBuilder({
           {allocation ? (
             <span key="allocation">
               Strook van{" "}
-              <strong className="text-foreground">{formatHa(allocation.areaHa)} ha</strong> voor{" "}
+              <strong className="text-foreground">{formatZoneHa(allocation.areaHa)} ha</strong> voor{" "}
               {days} {days === 1 ? "dag" : "dagen"}: {animalCount} dieren × {intake} kg ds × {days}{" "}
               ÷ {allocation.grassOnOfferKgDmPerHa.toLocaleString("nl-NL")} kg ds/ha ({offer} bij
               inscharen + {GROWTH_DURING_GRAZING_KG_DM_HA_DAY} bijgroei per weidedag).

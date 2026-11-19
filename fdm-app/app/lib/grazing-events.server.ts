@@ -38,13 +38,17 @@ export async function handleGrazingEvent(
 
   if (intent === "add_grazing") {
     const b_id = formText(formData, "b_id")
+    // A grazing is always on a field; fdm-core allows an unknown field, the app does not
+    if (!b_id) {
+      throw data("Kies een perceel", { status: 400 })
+    }
     await addGrazing(
       fdm,
       context.principal_id,
       formText(formData, "l_id_herd"),
       new Date(startVal),
       {
-        b_id: b_id || undefined,
+        b_id,
         // Without an end date the grazing runs until it gets one
         l_grazing_end: endVal ? new Date(endVal) : undefined,
         l_grazing_hours,
