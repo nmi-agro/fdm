@@ -1,0 +1,195 @@
+import type { LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
+import { cn } from "cn"
+import { ArrowRight } from "lucide-react"
+import { Link } from "react-router"
+import { useAnalytics } from "~/hooks/use-analytics"
+import { MANUAL_EVENTS } from "~/lib/manual/analytics"
+import { getScreenshot } from "~/lib/manual/screenshots"
+
+/** Brand dark of the public pages (see DESIGN.md, "Unauthenticated pages"). */
+export const BRAND_DARK = "#122023"
+
+/**
+ * A full-width band of the public landing page with a centred content column.
+ *
+ * @param tone - `plain` for the white surface, `muted` for the second neutral layer.
+ */
+export function LandingSection({
+  id,
+  tone = "plain",
+  className,
+  children,
+}: {
+  id?: string
+  tone?: "plain" | "muted"
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <section
+      id={id}
+      className={cn(
+        "scroll-mt-14 py-16 lg:py-24",
+        tone === "muted" ? "bg-muted/50 border-y" : "bg-background",
+        className,
+      )}
+    >
+      <div className="mx-auto w-full max-w-6xl px-4 lg:px-8">{children}</div>
+    </section>
+  )
+}
+
+/** Left-aligned heading block of a landing section: small label, title and lead. */
+export function SectionHeading({
+  label,
+  title,
+  children,
+  className,
+}: {
+  label: string
+  title: string
+  children?: ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn("max-w-2xl", className)}>
+      <p className="text-muted-foreground mb-3 text-sm font-medium">{label}</p>
+      <h2 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{title}</h2>
+      {children ? (
+        <div className="text-muted-foreground mt-4 space-y-4 text-lg leading-relaxed text-pretty">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** Link from the landing page to a page of the public manual, with analytics. */
+export function ManualLink({
+  to,
+  children,
+  className,
+}: {
+  to: string
+  children: ReactNode
+  className?: string
+}) {
+  const { capture } = useAnalytics()
+  return (
+    <Link
+      to={to}
+      onClick={() =>
+        capture(MANUAL_EVENTS.helpLinkClicked, {
+          help_target: to,
+          source: "signin",
+          from_path: "/signin",
+        })
+      }
+      className={cn(
+        "text-foreground inline-flex items-center gap-1.5 text-sm font-medium underline underline-offset-4 hover:no-underline",
+        className,
+      )}
+    >
+      <span>{children}</span>
+      <ArrowRight className="size-4" aria-hidden="true" />
+    </Link>
+  )
+}
+
+/** One item of a feature list: a quiet icon, a title and a short explanation. */
+export function FeatureItem({
+  icon: Icon,
+  title,
+  badge,
+  children,
+}: {
+  icon: LucideIcon
+  title: string
+  badge?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex gap-4">
+      <Icon className="text-foreground mt-0.5 size-5 shrink-0" aria-hidden="true" />
+      <div>
+        <h3 className="flex flex-wrap items-center gap-2 text-base font-semibold">
+          <span>{title}</span>
+          {badge ? (
+            <span className="text-muted-foreground rounded-md border px-1.5 py-0.5 text-xs font-medium">
+              {badge}
+            </span>
+          ) : null}
+        </h3>
+        <div className="text-muted-foreground mt-1 text-[0.9375rem] leading-relaxed">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A product screenshot in a hairline frame, with an optional caption.
+ *
+ * `manualId` shows a screenshot of the user manual and hides the app sidebar,
+ * so the picture starts at the content of the screen.
+ */
+export function ProductShot({
+  src,
+  manualId,
+  alt,
+  caption,
+  className,
+  imageClassName,
+  frameClassName,
+  eager = false,
+}: {
+  src?: string
+  manualId?: string
+  alt: string
+  caption?: ReactNode
+  className?: string
+  imageClassName?: string
+  /** Classes for the frame, for example an aspect ratio that crops empty space below the content. */
+  frameClassName?: string
+  eager?: boolean
+}) {
+  const manual = manualId ? getScreenshot(manualId) : undefined
+  const source = manual?.src ?? src
+  if (!source) return null
+
+  return (
+    <figure className={className}>
+      <div
+        className={cn("bg-background overflow-hidden rounded-xl border shadow-xs", frameClassName)}
+      >
+        {manual ? (
+          // The sidebar takes the first 15% of a manual screenshot
+          <img
+            src={source}
+            alt={alt}
+            width={manual.width}
+            height={manual.height}
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            className={cn("ml-[-17.7%] block h-auto w-[117.7%] max-w-none", imageClassName)}
+          />
+        ) : (
+          <img
+            src={source}
+            alt={alt}
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            className={cn("block h-auto w-full", imageClassName)}
+          />
+        )}
+      </div>
+      {caption ? (
+        <figcaption className="text-muted-foreground mt-3 text-sm leading-relaxed">
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  )
+}

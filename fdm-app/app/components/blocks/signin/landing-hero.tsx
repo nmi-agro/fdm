@@ -1,0 +1,105 @@
+import { motion } from "framer-motion"
+import { ArrowDown } from "lucide-react"
+import { clientConfig } from "~/lib/config"
+import { getScreenshot } from "~/lib/manual/screenshots"
+import { SignInCard } from "./sign-in-card"
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const
+
+/** Facts a visitor can check: each one is backed by the repository, the pilot or the access model. */
+function HeroFacts({ className }: { className?: string }) {
+  return (
+    <ul className={className}>
+      <li>
+        <a
+          href="https://github.com/nmi-agro/fdm"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-4 hover:no-underline"
+        >
+          Open source
+        </a>
+      </li>
+      <li>Gratis tijdens de pilot</li>
+      <li>U blijft eigenaar van uw data</li>
+    </ul>
+  )
+}
+
+/**
+ * First screen of the public landing page: the sign-in card next to a brand panel
+ * that says what the product does and shows a real screen of it.
+ */
+export function LandingHero({
+  redirectTo,
+  redirectError,
+}: {
+  redirectTo: string
+  redirectError: string | null
+}) {
+  const screenshot = getScreenshot("balans-stikstof")
+
+  return (
+    <div className="lg:grid lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="relative overflow-hidden bg-[#122023] text-white lg:order-2">
+        <motion.div
+          className="flex h-full flex-col px-4 pt-10 pb-10 sm:px-8 lg:px-14 lg:pt-20 lg:pb-0"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE_OUT }}
+        >
+          <h1 className="max-w-xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl xl:text-5xl xl:leading-[1.1]">
+            Van perceelsgegevens naar bemestingsinzicht
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-white/80 lg:text-lg">
+            Leg percelen, gewassen, bemesting en bodemanalyses één keer vast. {clientConfig.name}{" "}
+            rekent daarmee de stikstofbalans, de gebruiksruimte, het bemestingsadvies en de
+            bodemkwaliteit door, met rekenregels die u kunt nalezen.
+          </p>
+          <HeroFacts className="mt-6 hidden flex-wrap gap-x-6 gap-y-2 text-sm text-white/80 lg:flex" />
+          <a
+            href="#mogelijkheden"
+            className="mt-6 hidden items-center gap-2 self-start text-sm font-medium text-white underline underline-offset-4 hover:no-underline lg:inline-flex"
+          >
+            <span>Bekijk wat u ermee kunt</span>
+            <ArrowDown className="size-4" aria-hidden="true" />
+          </a>
+          {screenshot ? (
+            <motion.div
+              className="relative mt-12 hidden min-h-56 flex-1 lg:block"
+              initial={{ opacity: 0, y: 32 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.15, ease: EASE_OUT }}
+            >
+              {/* Bleeds off the right and bottom edge; the app sidebar is cropped away */}
+              <div className="absolute top-0 left-0 w-[125%] overflow-hidden rounded-tl-xl border-t border-l border-white/15 bg-white">
+                <img
+                  src={screenshot.src}
+                  alt={`De stikstofbalans van een demobedrijf in ${clientConfig.name}: aanvoer, afvoer, emissie en het overschot per perceel`}
+                  width={screenshot.width}
+                  height={screenshot.height}
+                  fetchPriority="high"
+                  className="ml-[-17.7%] block h-auto w-[117.7%] max-w-none"
+                />
+              </div>
+            </motion.div>
+          ) : null}
+        </motion.div>
+      </div>
+
+      <div className="bg-background flex flex-col items-center justify-center px-4 py-10 lg:order-1 lg:py-12">
+        <div className="w-full max-w-sm">
+          <SignInCard redirectTo={redirectTo} redirectError={redirectError} />
+          <HeroFacts className="text-muted-foreground mt-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm lg:hidden" />
+          <a
+            href="#mogelijkheden"
+            className="text-foreground mt-6 flex items-center justify-center gap-2 text-sm font-medium underline underline-offset-4 hover:no-underline lg:hidden"
+          >
+            <span>Bekijk wat u ermee kunt</span>
+            <ArrowDown className="size-4" aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
