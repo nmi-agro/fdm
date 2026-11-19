@@ -14,6 +14,15 @@ describe("getFeedCatalogue", () => {
     expect(catalogue.some((item) => item.f_type_rvo === "overig")).toBe(false)
   })
 
+  it("binds each catalogue ID to its feed type, not to the row position", async () => {
+    const catalogue = await getCatalogueNmi()
+    const idByType = new Map(catalogue.map((item) => [item.f_type_rvo, item.f_id_catalogue]))
+    expect(idByType.get("snijmais")).toBe("nmi_001")
+    expect(idByType.get("krachtvoer")).toBe("nmi_024")
+    expect(idByType.get("mineralen")).toBe("nmi_025")
+    expect(new Set(catalogue.map((item) => item.f_id_catalogue)).size).toBe(catalogue.length)
+  })
+
   it("preserves null defaults where RVO values are unavailable", async () => {
     const catalogue = await getCatalogueNmi()
     const byType = new Map(catalogue.map((item) => [item.f_type_rvo, item]))

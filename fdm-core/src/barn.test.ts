@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import {
   addBarn,
@@ -13,10 +13,10 @@ import {
   updateBarn,
   updateHousing,
 } from "./barn"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Barn Domain", () => {
   let fdm: FdmType
@@ -162,9 +162,9 @@ describe("Barn Domain", () => {
     await updateHousing(fdm, principal_id, l_id_herd, b_id_barn, hStart, {
       b_housing_end: correctedEnd,
     })
-    expect((await getHousingForHerd(fdm, principal_id, l_id_herd))[0].b_housing_end?.toISOString()).toBe(
-      correctedEnd.toISOString(),
-    )
+    expect(
+      (await getHousingForHerd(fdm, principal_id, l_id_herd))[0].b_housing_end?.toISOString(),
+    ).toBe(correctedEnd.toISOString())
 
     await removeHousing(fdm, principal_id, l_id_herd, b_id_barn, hStart)
     expect(await getHousingForHerd(fdm, principal_id, l_id_herd)).toEqual([])
@@ -260,9 +260,9 @@ describe("Barn Domain", () => {
     })
     const invalidUser = "unauthorized_user"
 
-    await expect(
-      addBarn(fdm, invalidUser, b_id_farm, { b_floor_area: 500 }),
-    ).rejects.toThrowError("Principal does not have permission to perform this action")
+    await expect(addBarn(fdm, invalidUser, b_id_farm, { b_floor_area: 500 })).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
 
     await expect(getBarnsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
@@ -297,8 +297,24 @@ describe("Barn Domain", () => {
       }),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
-    await expect(removeHousing(fdm, invalidUser, l_id_herd, b_id_barn, hStart)).rejects.toThrowError(
-      "Principal does not have permission to perform this action",
-    )
+    await expect(
+      removeHousing(fdm, invalidUser, l_id_herd, b_id_barn, hStart),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+  })
+
+  it("should reject housing a herd in a barn of another farm", async () => {
+    const otherFarm = await addFarm(fdm, principal_id, "Other Farm", "654321", "Road 2", "1234AB")
+    const otherBarn = await addBarn(fdm, principal_id, otherFarm, { b_barn_name: "Andere stal" })
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_id_category: "rvo_100",
+    })
+
+    await expect(
+      addHousing(fdm, principal_id, l_id_herd, otherBarn, new Date("2025-01-01")),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("belongs to another farm") },
+    })
+    expect(await getHousingForHerd(fdm, principal_id, l_id_herd)).toEqual([])
   })
 })

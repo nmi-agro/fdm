@@ -2,11 +2,12 @@ import { and, desc, eq, gt, isNull, lte, or } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Herd } from "./herd.types"
-import { assertAnimalMatchesCategory, getAnimalCategory } from "./animal-category"
+import { getAnimalCategory } from "./animal-category"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { lockFarm } from "./livestock-checks"
 
 /**
  * Adds a new herd asset to a farm and records its initial starting event.
@@ -279,30 +280,26 @@ export async function updateHerd(
       }
 
       if (herdProperties.l_id_category) {
-        const category = await getAnimalCategory(
-          tx,
-          herdProperties.l_id_category,
-          herdStart[0].b_id_farm,
-        )
-        const assignedAnimals = await tx
-          .select({
-            l_specie: schema.animals.l_specie,
-            l_sex: schema.animals.l_sex,
-          })
-          .from(schema.animalAssigning)
-          .innerJoin(
-            schema.animals,
-            eq(schema.animalAssigning.l_id_animal, schema.animals.l_id_animal),
-          )
-          .where(
-            and(
-              eq(schema.animalAssigning.l_id_herd, l_id_herd),
-              isNull(schema.animalAssigning.l_assigning_end),
-            ),
-          )
+        // Same lock as adding animals, so no animal joins while the category changes
+        await lockFarm(tx, herdStart[0].b_id_farm)
+        await getAnimalCategory(tx, herdProperties.l_id_category, herdStart[0].b_id_farm)
 
-        for (const animal of assignedAnimals) {
-          assertAnimalMatchesCategory(category, animal.l_specie, animal.l_sex)
+        const current = await tx
+          .select({ l_id_category: schema.herds.l_id_category })
+          .from(schema.herds)
+          .where(eq(schema.herds.l_id_herd, l_id_herd))
+          .limit(1)
+        if (current[0]?.l_id_category !== herdProperties.l_id_category) {
+          // The category of a herd is part of the history of its animals (census, LSU), so it is
+          // fixed once the herd has had animals: move them to a herd of the new category instead
+          const everAssigned = await tx
+            .select({ l_id_animal: schema.animalAssigning.l_id_animal })
+            .from(schema.animalAssigning)
+            .where(eq(schema.animalAssigning.l_id_herd, l_id_herd))
+            .limit(1)
+          if (everAssigned.length > 0) {
+            throw new Error("Cannot change the category of a herd that has or had animals")
+          }
         }
       }
 

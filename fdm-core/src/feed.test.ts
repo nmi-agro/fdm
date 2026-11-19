@@ -20,6 +20,7 @@ import {
   getFeedBatch,
   getFeedBatchesForFarm,
   getFeedsFromCatalogue,
+  getFeedsFromCatalogues,
   getFeedingAnimalForFarm,
   getFeedingHerdForFarm,
   removeFeedBatch,
@@ -355,5 +356,106 @@ describe("Feed Domain", () => {
     })
     expect(eventsAfterOnly).toHaveLength(2)
     expect(eventsAfterOnly.map((row) => row.l_feeding_type).sort()).toEqual(["animal", "herd"])
+  })
+
+  it("should reject feeding from a batch of another farm", async () => {
+    const otherFarm = await addFarm(fdm, principal_id, "Other Farm", "654321", "Road 2", "1234AB")
+    const otherBatch = await addFeedBatch(fdm, principal_id, otherFarm, "snijmais", "own_land")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    const otherFarmError = {
+      cause: { message: expect.stringContaining("belongs to another farm") },
+    }
+
+    await expect(
+      addFeedingHerd(fdm, principal_id, otherBatch, l_id_herd, new Date("2025-05-01")),
+    ).rejects.toMatchObject(otherFarmError)
+    await expect(
+      addFeedingAnimal(fdm, principal_id, otherBatch, l_id_animal, new Date("2025-05-01")),
+    ).rejects.toMatchObject(otherFarmError)
+  })
+
+  it("should reject a feed batch with an unknown catalogue item", async () => {
+    await expect(
+      addFeedBatch(fdm, principal_id, b_id_farm, "unknown_feed", "purchased"),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("Feed catalogue item not found") },
+    })
+  })
+
+  it("should list feeds only from catalogue sources the principal can use", async () => {
+    expect(await getFeedsFromCatalogues(fdm, principal_id, [])).toEqual([])
+    // No farm of this principal has the source enabled
+    expect(await getFeedsFromCatalogues(fdm, "someone_else", ["nmi"])).toEqual([])
+
+    await enableFeedCatalogue(fdm, principal_id, b_id_farm, "nmi")
+    const feeds = await getFeedsFromCatalogues(fdm, principal_id, ["nmi"])
+    expect(feeds.length).toBeGreaterThan(0)
+    expect(feeds.every((feed) => feed.f_source === "nmi")).toBe(true)
+  })
+
+  it("should add an analysis to a batch without one and update all its values", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+
+    // A batch without an analysis gets one
+    await updateFeedBatch(fdm, principal_id, f_id_batch, {
+      f_dm: 350,
+      f_vem: 950,
+      f_sampling_date: new Date("2025-06-01"),
+    })
+    let batch = await getFeedBatch(fdm, principal_id, f_id_batch)
+    expect(batch.f_dm).toBe(350)
+    expect(batch.f_vem).toBe(950)
+
+    // The existing analysis is updated, and the catalogue item can be set by its RVO type
+    await updateFeedBatch(fdm, principal_id, f_id_batch, {
+      f_batch_type: "korrelmais",
+      f_cp: 80,
+      f_oeb: -20,
+      f_ndf: 400,
+      f_sampling_date: new Date("2025-06-15"),
+    })
+    batch = await getFeedBatch(fdm, principal_id, f_id_batch)
+    expect(batch.f_cp).toBe(80)
+    expect(batch.f_oeb).toBe(-20)
+    expect(batch.f_ndf).toBe(400)
+    expect(batch.f_vem).toBe(950)
+  })
+
+  it("should refuse to remove a feed batch that is still fed", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+    const start = new Date("2025-05-01")
+    await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start)
+    await expect(removeFeedBatch(fdm, principal_id, f_id_batch)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("a herd_feeding record references it") },
+    })
+    await removeFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start)
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    await addFeedingAnimal(fdm, principal_id, f_id_batch, l_id_animal, start)
+    await expect(removeFeedBatch(fdm, principal_id, f_id_batch)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("an animal_feeding record references it") },
+    })
+  })
+
+  it("should report feeding records that do not exist", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    const missingStart = new Date("2020-01-01")
+    const notFound = { cause: { message: expect.stringContaining("not found") } }
+
+    await expect(
+      updateFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, missingStart, { f_amount: 1 }),
+    ).rejects.toMatchObject(notFound)
+    await expect(
+      removeFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, missingStart),
+    ).rejects.toMatchObject(notFound)
+    await expect(
+      updateFeedingAnimal(fdm, principal_id, l_id_animal, f_id_batch, missingStart, {
+        f_amount: 1,
+      }),
+    ).rejects.toMatchObject(notFound)
+    await expect(
+      removeFeedingAnimal(fdm, principal_id, l_id_animal, f_id_batch, missingStart),
+    ).rejects.toMatchObject(notFound)
   })
 })

@@ -6,7 +6,11 @@ Add the livestock and dairy domain: Drizzle schema tables and enums, CRUD functi
 
 An animal takes the animal category of its herd. `assignAnimalToHerd` moves an animal to a herd that the caller chooses, optionally on a date in the past, for example when a heifer calves and joins the dairy cows. It closes the current herd assignment on that date and opens a new one, so the history is kept.
 
-A new herd has no start date unless one is given, and then counts as running from the beginning. Assigning an animal to another herd (`assignAnimalToHerd`, `reassignHerdAnimals`, `updateAnimalAssigning`) is rejected when that herd has not started yet or has already ended on the date of the assignment.
+A new herd has no start date unless one is given, and then counts as running from the beginning. Adding or assigning an animal to a herd (`addAnimal`, `addAnimalsToHerd`, `createHerdWithAnimals`, `assignAnimalToHerd`, `reassignHerdAnimals`, `updateAnimalAssigning`) is rejected when that herd has not started yet or has already ended on the date of the assignment. Corrections with `updateAnimalAssigning` may not end before they start or overlap another assignment of the animal. The category of a herd can no longer change once the herd has had animals. The census (`getCensusForFarm`) counts the herds that run on its date.
+
+An animal with a departure in the future stays in its herd until that date: `getAnimal`, `getAnimalsForHerd`, the census and the bulk moves (`reassignHerdAnimals`, `leaveHerd`) treat it as present until then, and a move keeps the departure. Moving or clearing a departure with `updateAnimal` moves or clears the end of the herd assignment, and an animal that becomes present again must have unique numbers.
+
+Milk, feed, excretion and housing records can only link a herd or animal to a milk tank, feed batch, manure pit or barn of the same farm. Moves, reductions and housing changes of the same animal or herd run one after another.
 
 `getMilkProductionForHerd` and `getMilkingSummaryForAnimal` count milk once: when animal-level milking records exist in the timeframe, only those are summed; otherwise the herd-level records are used. Feed is summed: `getFeedingSummaryForAnimal` adds the herd-level and animal-level feedings together.
 

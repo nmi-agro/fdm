@@ -296,7 +296,8 @@ describe("Grazing Domain", () => {
     expect(records.length).toBe(2)
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2027)).toBe(true)
 
-    // Rollback test: if one row in batch is invalid, none are inserted
+    // Pre-flight rejection: every row is checked before the first write, so when one row is
+    // invalid none are inserted
     const countBefore = (await getGrazingForFarm(fdm, principal_id, b_id_farm)).length
     await expect(
       addGrazings(fdm, principal_id, [

@@ -18,6 +18,7 @@ import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
 type FeedCatalogueReference = string
@@ -554,6 +555,7 @@ export async function addFeedingHerd(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addFeedingHerd")
+    await assertSameFarm(fdm, { l_id_herd }, { f_id_batch })
 
     await fdm.insert(schema.herdFeeding).values({
       f_id_batch,
@@ -726,6 +728,7 @@ export async function addFeedingAnimal(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "addFeedingAnimal")
+    await assertSameFarm(fdm, { l_id_animal }, { f_id_batch })
 
     await fdm.insert(schema.animalFeeding).values({
       f_id_batch,

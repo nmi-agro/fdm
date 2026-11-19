@@ -95,7 +95,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_122",
     l_category: "122 - Roodvleesstieren ca. 3 maanden tot de slacht",
     l_specie: "cattle",
-    l_sex_options: male,
+    // Includes oxen and female animals fattened the same way
+    l_sex_options: femaleAndMale,
     l_lsu: 0.7,
   },
   {
@@ -123,7 +124,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_600",
     l_category: "600 - Melkgeiten ≥1 jaar",
     l_specie: "goat",
-    l_sex_options: female,
+    // Includes newborn kids and the breeding bucks
+    l_sex_options: femaleAndMale,
     l_lsu: 0.1,
   },
   {
@@ -165,7 +167,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_971",
     l_category: "971 - Hinden (edelhert) voor de fokkerij",
     l_specie: "other",
-    l_sex_options: female,
+    // Includes calves younger than 6 months and the associated stags
+    l_sex_options: femaleAndMale,
     l_lsu: 0,
   },
   {
@@ -186,7 +189,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_981",
     l_category: "981 - Hinden (damhert) voor de fokkerij",
     l_specie: "other",
-    l_sex_options: female,
+    // Includes calves younger than 3 months and the associated bucks
+    l_sex_options: femaleAndMale,
     l_lsu: 0,
   },
   {

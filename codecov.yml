@@ -1,0 +1,4 @@
+# Codecov reads this file from the repository root only.
+ignore:
+  # Declarative Drizzle schema and generated migrations: no logic to cover
+  - "fdm-core/src/db/**"
