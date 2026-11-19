@@ -52,7 +52,7 @@ Farm selection: `animal_category_catalogue_selecting`
 
 - Links `b_id_farm` to a chosen `l_category_source`. Use this to declare which catalogue sources a farm trusts and uses for conversions and UI lists. Primary key: (`b_id_farm`, `l_category_source`).
 
-Note on naming: the catalogue table uses the plural name `animal_categories_catalogue` while the selecting table intentionally uses the singular `animal_category_catalogue_selecting`. This name mismatch is deliberate and is a documented breaking rename — integrations should reference the schema names above exactly.
+Note on naming: the catalogue table uses the plural name `animal_categories_catalogue` while the selecting table intentionally uses the singular `animal_category_catalogue_selecting`. Integrations should reference the schema names above exactly.
 
 The bundled `rvo` source uses RVO category definitions and documents the LSU
 mapping alongside the source data in `fdm-data`; additional catalogue sources

@@ -249,7 +249,7 @@ export async function fetchGrazingCalendarMatrix(
     return {
       l_id_herd: h.l_id_herd,
       l_herd_name: h.l_herd_name ?? "Koppel",
-      l_id_category: h.l_id_category ?? "rvo_100",
+      l_id_category: h.l_id_category,
       l_lsu: h.l_lsu ?? 1.0,
       count: censusMap.get(h.l_id_herd) ?? 0,
       colorIndex: idx % 6,

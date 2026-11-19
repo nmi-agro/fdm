@@ -1,6 +1,7 @@
 import type { MultiPolygon, Polygon } from "geojson"
 import { data } from "react-router"
 import z from "zod"
+import { formText } from "~/lib/form"
 
 /** Form field with the grazing zone as GeoJSON; empty means no zone (the whole field). */
 export const GRAZING_ZONE_FIELD = "l_grazing_geometry_zone"
@@ -33,11 +34,9 @@ export interface GrazingExtent {
  * @throws A 400 response when the zone is not a Polygon or MultiPolygon, or the area is not a positive number.
  */
 export function parseGrazingExtent(formData: FormData): GrazingExtent {
-  const zoneValue = formData.get(GRAZING_ZONE_FIELD)
-  const areaValue = formData.get(GRAZING_AREA_FIELD)
   return {
-    l_grazing_geometry_zone: parseGrazingZone(typeof zoneValue === "string" ? zoneValue : ""),
-    l_grazing_area: parseGrazingArea(typeof areaValue === "string" ? areaValue : ""),
+    l_grazing_geometry_zone: parseGrazingZone(formText(formData, GRAZING_ZONE_FIELD)),
+    l_grazing_area: parseGrazingArea(formText(formData, GRAZING_AREA_FIELD)),
   }
 }
 

@@ -47,7 +47,7 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -72,7 +72,7 @@ const formatAnimalDate = (iso: string) => format(new Date(iso), "d MMM yyyy", { 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
 
     if (!b_id_farm) {
       throw data("Farm ID is required", { status: 400 })

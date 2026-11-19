@@ -66,7 +66,7 @@ import {
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -92,7 +92,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     const l_id_animal = params.l_id_animal
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
 
     if (!b_id_farm || !l_id_animal) {
       throw data("Farm ID and Animal ID are required", { status: 400 })
@@ -208,7 +208,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       herds: herds.map((h) => ({
         l_id_herd: h.l_id_herd,
         l_herd_name: h.l_herd_name ?? "Koppel",
-        l_id_category: h.l_id_category ?? "rvo_100",
+        l_id_category: h.l_id_category,
         l_category: h.l_category,
       })),
       // Dutch labels of the leaving methods, for the departure form and the status

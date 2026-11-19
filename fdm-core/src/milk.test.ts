@@ -225,43 +225,40 @@ describe("Milk Domain", () => {
     expect(farmWideRows).toHaveLength(2)
   })
 
-  it("should resolve milk production for herd-only, animal-only, and mixed additive cases", async () => {
+  it("should resolve milk production for herd-only, animal-only, and mixed cases without double counting", async () => {
     const startDate = new Date("2025-06-01")
+    const timeframe = { start: startDate, end: startDate }
 
-    // Case 1: Herd-only milking
+    // Case 1: herd-level records only
     await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, startDate, {
       l_milking_amount: 800,
     })
+    expect(await getMilkProductionForHerd(fdm, principal_id, l_id_herd, timeframe)).toBe(800)
 
-    let totalHerdMilk = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
-      start: startDate,
-      end: startDate,
-    })
-    expect(totalHerdMilk).toBe(800)
-
-    // Case 2: Animal-level milking is an additive supplement on top of herd-level milking
+    // Case 2: herd-level and animal-level records: the animal-level records win, no double count
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL555555550",
       l_arriving_date: startDate,
     })
-
+    const l_id_animal_2 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: startDate,
+    })
     await addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, startDate, {
       l_milking_amount: 35,
     })
-
-    // Combined herd production now combines herd-level + animal-level rows.
-    totalHerdMilk = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
-      start: startDate,
-      end: startDate,
+    await addMilkingAnimal(fdm, principal_id, l_id_animal_2, l_id_milktank, startDate, {
+      l_milking_amount: 30,
     })
-    expect(totalHerdMilk).toBe(835)
+    expect(await getMilkProductionForHerd(fdm, principal_id, l_id_herd, timeframe)).toBe(65)
 
-    const milkingSummary = await getMilkingSummaryForAnimal(fdm, principal_id, l_id_animal, {
-      start: startDate,
-      end: startDate,
-    })
+    const milkingSummary = await getMilkingSummaryForAnimal(
+      fdm,
+      principal_id,
+      l_id_animal,
+      timeframe,
+    )
     expect(milkingSummary).toEqual({
-      l_milking_amount: 835,
+      l_milking_amount: 35,
       l_milk_fat: null,
       l_milk_protein: null,
       l_milk_lactose: null,
@@ -275,6 +272,10 @@ describe("Milk Domain", () => {
     })
     expect(milkingEvents).toHaveLength(2)
     expect(milkingEvents.map((row) => row.type).sort()).toEqual(["animal", "herd"])
+
+    // Case 3: animal-level records only
+    await removeMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, startDate)
+    expect(await getMilkProductionForHerd(fdm, principal_id, l_id_herd, timeframe)).toBe(65)
   })
 
   it("should filter milk deliveries by timeframe and handle farm without tanks", async () => {
@@ -396,7 +397,7 @@ describe("Milk Domain", () => {
     expect(targetHerdTotal).toBe(18)
   })
 
-  it("should calculate combined milk production for an animal as herd + animal supplements", async () => {
+  it("should calculate milk production for an animal from animal-level records when present", async () => {
     const beforeReassignDate = new Date(Date.now() - 120_000)
     const afterReassignDate = new Date(Date.now() + 120_000)
 
@@ -428,9 +429,10 @@ describe("Milk Domain", () => {
       l_milking_amount: 15,
     })
 
+    // Animal-level records exist, so only those count (20 + 15); herd-level milk is not added
     const summary = await getMilkingSummaryForAnimal(fdm, principal_id, l_id_animal)
     expect(summary).toEqual({
-      l_milking_amount: 835,
+      l_milking_amount: 35,
       l_milk_fat: null,
       l_milk_protein: null,
       l_milk_lactose: null,
@@ -456,7 +458,7 @@ describe("Milk Domain", () => {
       end: undefined,
     })
     expect(summaryAfterOnly).toEqual({
-      l_milking_amount: 315,
+      l_milking_amount: 15,
       l_milk_fat: null,
       l_milk_protein: null,
       l_milk_lactose: null,

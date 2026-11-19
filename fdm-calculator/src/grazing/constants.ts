@@ -27,15 +27,21 @@ export const REST_PERIOD_THRESHOLD_DAYS = 21
  * it.
  */
 export const GROWING_SEASON_START_MONTH = 1 // 0-based month (February)
+
+/** Day of the month on which the period with rest-period checks starts; see `GROWING_SEASON_START_MONTH`. */
 export const GROWING_SEASON_START_DAY = 15
 
 /**
  * Weidemelk criteria: at least 120 days of grazing with at least 6 hours per day for the dairy
- * cows (category RVO 100).
+ * cows (category RVO 100). This constant is the number of days.
  * Source: Weidemelk definition of the Convenant Weidegang / ZuivelNL.
  */
 export const WEIDEMELK_TARGET_DAYS = 120
+
+/** Weidemelk: the least grazing hours a day must have to count; see `WEIDEMELK_TARGET_DAYS`. */
 export const WEIDEMELK_MIN_HOURS_PER_DAY = 6
+
+/** Weidemelk: the animal category whose grazing counts (dairy cows, RVO 100). */
 export const WEIDEMELK_CATEGORY_CODE = "rvo_100"
 
 /**

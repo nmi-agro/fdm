@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, inject, it } from "vitest"
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import { addAnimal } from "./animal"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Herd Domain", () => {
   let fdm: FdmType
@@ -129,7 +129,10 @@ describe("Herd Domain", () => {
     const invalidUser = "unauthorized_user"
 
     await expect(
-      addHerd(fdm, invalidUser, b_id_farm, { l_herd_name: "Should Fail" }),
+      addHerd(fdm, invalidUser, b_id_farm, {
+        l_herd_name: "Should Fail",
+        l_id_category: "rvo_101",
+      }),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(getHerdsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(

@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -67,7 +67,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     const b_id = params.b_id
-    const calendar = params.calendar ?? String(new Date().getFullYear())
+    const calendar = getCalendar(params)
 
     if (!b_id_farm || !b_id) {
       throw data("Farm ID and Field ID are required", { status: 400 })
@@ -202,7 +202,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       herds: herds.map((h) => ({
         l_id_herd: h.l_id_herd,
         l_herd_name: h.l_herd_name ?? "Koppel",
-        l_id_category: h.l_id_category ?? "rvo_100",
+        l_id_category: h.l_id_category,
         l_lsu: h.l_lsu ?? 1.0,
         count: censusMap.get(h.l_id_herd) ?? 0,
       })),
@@ -252,7 +252,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     formData.set("b_id", b_id)
     return await handleGrazingEvent(formData, {
       principal_id: session.principal_id,
-      calendar: params.calendar ?? String(new Date().getFullYear()),
+      calendar: getCalendar(params),
     })
   } catch (error) {
     return handleActionError(error)
@@ -455,9 +455,10 @@ export default function FieldGrazingPage() {
                             {ev.isShortRest && (
                               <AlertTriangle aria-hidden="true" className="h-3 w-3" />
                             )}
-                            <span>
-                              {countOf(ev.restDays, "dag", "dagen")}
-                              {ev.isShortRest ? " (kort)" : ""}
+                            <span key={ev.isShortRest ? "short" : "normal"}>
+                              {ev.isShortRest
+                                ? `${countOf(ev.restDays, "dag", "dagen")} (kort)`
+                                : countOf(ev.restDays, "dag", "dagen")}
                             </span>
                           </span>
                         ) : (

@@ -1356,7 +1356,9 @@ export const herds = fdmSchema.table(
   {
     l_id_herd: text().primaryKey(),
     l_herd_name: text(),
-    l_id_category: text().references(() => animalCategoriesCatalogue.l_id_category),
+    l_id_category: text()
+      .notNull()
+      .references(() => animalCategoriesCatalogue.l_id_category),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1483,7 +1485,7 @@ export const barns = fdmSchema.table(
   {
     b_id_barn: text().primaryKey(),
     b_barn_name: text(),
-    b_floor_area: numericCasted(),
+    b_floor_area: numericCasted(), // m2
     b_barn_geometry: geometry<"Polygon" | "MultiPolygon">("b_barn_geometry", {
       type: "Polygon",
     }),
@@ -1531,8 +1533,8 @@ export const barnDecommissioning = fdmSchema.table("barn_decommissioning", {
 export type barnDecommissioningTypeSelect = typeof barnDecommissioning.$inferSelect
 export type barnDecommissioningTypeInsert = typeof barnDecommissioning.$inferInsert
 
-export const housing = fdmSchema.table(
-  "housing",
+export const herdHousing = fdmSchema.table(
+  "herd_housing",
   {
     l_id_herd: text()
       .notNull()
@@ -1548,8 +1550,8 @@ export const housing = fdmSchema.table(
   (table) => [primaryKey({ columns: [table.l_id_herd, table.b_id_barn, table.b_housing_start] })],
 )
 
-export type housingTypeSelect = typeof housing.$inferSelect
-export type housingTypeInsert = typeof housing.$inferInsert
+export type herdHousingTypeSelect = typeof herdHousing.$inferSelect
+export type herdHousingTypeInsert = typeof herdHousing.$inferInsert
 
 // Milk
 export const milkTanks = fdmSchema.table(
@@ -1569,8 +1571,8 @@ export const milkTanks = fdmSchema.table(
 export type milkTanksTypeSelect = typeof milkTanks.$inferSelect
 export type milkTanksTypeInsert = typeof milkTanks.$inferInsert
 
-export const milkingHerd = fdmSchema.table(
-  "milking_herd",
+export const herdMilking = fdmSchema.table(
+  "herd_milking",
   {
     l_id_herd: text()
       .notNull()
@@ -1580,7 +1582,7 @@ export const milkingHerd = fdmSchema.table(
       .references(() => milkTanks.l_id_milktank),
     l_milking_start: timestamp({ withTimezone: true }).notNull(),
     l_milking_end: timestamp({ withTimezone: true }),
-    l_milking_amount: numericCasted(),
+    l_milking_amount: numericCasted(), // kg
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1591,11 +1593,11 @@ export const milkingHerd = fdmSchema.table(
   ],
 )
 
-export type milkingHerdTypeSelect = typeof milkingHerd.$inferSelect
-export type milkingHerdTypeInsert = typeof milkingHerd.$inferInsert
+export type herdMilkingTypeSelect = typeof herdMilking.$inferSelect
+export type herdMilkingTypeInsert = typeof herdMilking.$inferInsert
 
-export const milkingAnimal = fdmSchema.table(
-  "milking_animal",
+export const animalMilking = fdmSchema.table(
+  "animal_milking",
   {
     l_id_animal: text()
       .notNull()
@@ -1605,7 +1607,7 @@ export const milkingAnimal = fdmSchema.table(
       .references(() => milkTanks.l_id_milktank),
     l_milking_start: timestamp({ withTimezone: true }).notNull(),
     l_milking_end: timestamp({ withTimezone: true }),
-    l_milking_amount: numericCasted(),
+    l_milking_amount: numericCasted(), // kg
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1616,8 +1618,8 @@ export const milkingAnimal = fdmSchema.table(
   ],
 )
 
-export type milkingAnimalTypeSelect = typeof milkingAnimal.$inferSelect
-export type milkingAnimalTypeInsert = typeof milkingAnimal.$inferInsert
+export type animalMilkingTypeSelect = typeof animalMilking.$inferSelect
+export type animalMilkingTypeInsert = typeof animalMilking.$inferInsert
 
 export const milkDeliveries = fdmSchema.table(
   "milk_deliveries",
@@ -1708,8 +1710,8 @@ export const manurePits = fdmSchema.table(
 export type manurePitsTypeSelect = typeof manurePits.$inferSelect
 export type manurePitsTypeInsert = typeof manurePits.$inferInsert
 
-export const excreting = fdmSchema.table(
-  "excreting",
+export const herdExcreting = fdmSchema.table(
+  "herd_excreting",
   {
     l_id_excreting: text().primaryKey(),
     l_id_herd: text()
@@ -1727,8 +1729,8 @@ export const excreting = fdmSchema.table(
   (table) => [uniqueIndex("l_id_excreting_idx").on(table.l_id_excreting)],
 )
 
-export type excretingTypeSelect = typeof excreting.$inferSelect
-export type excretingTypeInsert = typeof excreting.$inferInsert
+export type herdExcretingTypeSelect = typeof herdExcreting.$inferSelect
+export type herdExcretingTypeInsert = typeof herdExcreting.$inferInsert
 
 export const manureDeliveries = fdmSchema.table(
   "manure_deliveries",
@@ -1753,7 +1755,7 @@ export const manureDisposing = fdmSchema.table(
       .notNull()
       .references(() => manureDeliveries.p_id_delivery),
     p_disposing_date: timestamp({ withTimezone: true }),
-    p_disposing_amount: numericCasted(),
+    p_disposing_amount: numericCasted(), // kg
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1858,8 +1860,8 @@ export const feedAnalyses = fdmSchema.table(
 export type feedAnalysesTypeSelect = typeof feedAnalyses.$inferSelect
 export type feedAnalysesTypeInsert = typeof feedAnalyses.$inferInsert
 
-export const feedingHerd = fdmSchema.table(
-  "feeding_herd",
+export const herdFeeding = fdmSchema.table(
+  "herd_feeding",
   {
     f_id_batch: text()
       .notNull()
@@ -1880,11 +1882,11 @@ export const feedingHerd = fdmSchema.table(
   ],
 )
 
-export type feedingHerdTypeSelect = typeof feedingHerd.$inferSelect
-export type feedingHerdTypeInsert = typeof feedingHerd.$inferInsert
+export type herdFeedingTypeSelect = typeof herdFeeding.$inferSelect
+export type herdFeedingTypeInsert = typeof herdFeeding.$inferInsert
 
-export const feedingAnimal = fdmSchema.table(
-  "feeding_animal",
+export const animalFeeding = fdmSchema.table(
+  "animal_feeding",
   {
     l_id_animal: text()
       .notNull()
@@ -1905,12 +1907,12 @@ export const feedingAnimal = fdmSchema.table(
   ],
 )
 
-export type feedingAnimalTypeSelect = typeof feedingAnimal.$inferSelect
-export type feedingAnimalTypeInsert = typeof feedingAnimal.$inferInsert
+export type animalFeedingTypeSelect = typeof animalFeeding.$inferSelect
+export type animalFeedingTypeInsert = typeof animalFeeding.$inferInsert
 
 // Grazing
-export const grazing = fdmSchema.table(
-  "grazing",
+export const herdGrazing = fdmSchema.table(
+  "herd_grazing",
   {
     l_id_grazing: text().primaryKey(),
     b_id: text().references(() => fields.b_id),
@@ -1931,10 +1933,11 @@ export const grazing = fdmSchema.table(
     updated: timestamp({ withTimezone: true }),
   },
   (table) => [
-    index("grazing_l_id_herd_idx").on(table.l_id_herd),
-    index("grazing_zone_idx").using("gist", table.l_grazing_geometry_zone),
+    uniqueIndex("l_id_grazing_idx").on(table.l_id_grazing),
+    index("herd_grazing_l_id_herd_idx").on(table.l_id_herd),
+    index("herd_grazing_zone_idx").using("gist", table.l_grazing_geometry_zone),
   ],
 )
 
-export type grazingTypeSelect = typeof grazing.$inferSelect
-export type grazingTypeInsert = typeof grazing.$inferInsert
+export type herdGrazingTypeSelect = typeof herdGrazing.$inferSelect
+export type herdGrazingTypeInsert = typeof herdGrazing.$inferInsert

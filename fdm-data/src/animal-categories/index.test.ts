@@ -1,17 +1,16 @@
 import { describe, expect, it } from "vitest"
 import { getCatalogueRvo } from "./catalogues/rvo"
-import { getAnimalCategoriesCatalogue, getAnimalCategoryCatalogue } from "./index"
+import { getAnimalCategoriesCatalogue } from "./index"
 
-describe("getAnimalCategoryCatalogue", () => {
+describe("getAnimalCategoriesCatalogue", () => {
   it("returns the RVO catalogue", async () => {
-    expect(await getAnimalCategoryCatalogue("rvo")).toEqual(await getCatalogueRvo())
     expect(await getAnimalCategoriesCatalogue("rvo")).toEqual(await getCatalogueRvo())
   })
 
   it("rejects an unsupported catalogue", async () => {
     await expect(
       // @ts-expect-error Testing runtime validation.
-      getAnimalCategoryCatalogue("unsupported"),
+      getAnimalCategoriesCatalogue("unsupported"),
     ).rejects.toThrowError("catalogue unsupported is not recognized")
   })
 })

@@ -13,10 +13,10 @@ export interface Barn {
 }
 
 export interface Housing {
-  l_id_herd: schema.housingTypeSelect["l_id_herd"]
-  b_id_barn: schema.housingTypeSelect["b_id_barn"]
-  b_housing_start: schema.housingTypeSelect["b_housing_start"]
-  b_housing_end?: schema.housingTypeSelect["b_housing_end"]
-  created: schema.housingTypeSelect["created"]
-  updated?: schema.housingTypeSelect["updated"]
+  l_id_herd: schema.herdHousingTypeSelect["l_id_herd"]
+  b_id_barn: schema.herdHousingTypeSelect["b_id_barn"]
+  b_housing_start: schema.herdHousingTypeSelect["b_housing_start"]
+  b_housing_end?: schema.herdHousingTypeSelect["b_housing_end"]
+  created: schema.herdHousingTypeSelect["created"]
+  updated?: schema.herdHousingTypeSelect["updated"]
 }

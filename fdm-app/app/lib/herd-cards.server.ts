@@ -73,7 +73,7 @@ export async function getHerdCards(
     return {
       l_id_herd: h.l_id_herd,
       l_herd_name: h.l_herd_name ?? "Koppel",
-      l_id_category: h.l_id_category ?? "rvo_100",
+      l_id_category: h.l_id_category,
       l_category: h.l_category ?? null,
       l_specie: h.l_specie ?? null,
       l_lsu: h.l_lsu ?? 1.0,

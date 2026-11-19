@@ -11,13 +11,12 @@
  * @packageDocumentation
  */
 
-export { getAnimalCategoriesCatalogue, getAnimalCategoryCatalogue } from "./animal-categories"
+export { getAnimalCategoriesCatalogue } from "./animal-categories"
 export type {
   AnimalCategorySex,
   AnimalCategorySpecies,
   CatalogueAnimalCategorySource,
   CatalogueAnimalCategories,
-  CatalogueAnimalCategoriesName,
   CatalogueAnimalCategory,
   CatalogueAnimalCategoryItem,
   CatalogueAnimalCategoryName,

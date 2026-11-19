@@ -26,4 +26,3 @@ export interface CatalogueAnimalCategory {
 
 export type CatalogueAnimalCategories = CatalogueAnimalCategory[]
 export type CatalogueAnimalCategoryItem = CatalogueAnimalCategory
-export type CatalogueAnimalCategoriesName = CatalogueAnimalCategorySource
