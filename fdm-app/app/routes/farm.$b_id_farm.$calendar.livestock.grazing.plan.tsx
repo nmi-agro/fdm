@@ -80,6 +80,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { formText } from "~/lib/form"
 import { type Area, areaHa, cutEqualPlots, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
 import { grazingZoneSchema } from "~/lib/grazing-zone"
 
@@ -213,7 +214,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const formData = await request.formData()
-    const rowsJson = String(formData.get("plan_rows") ?? "[]")
+    const rowsJson = formText(formData, "plan_rows", "[]")
     const rows = JSON.parse(rowsJson) as Array<{
       l_id_herd: string
       b_id: string

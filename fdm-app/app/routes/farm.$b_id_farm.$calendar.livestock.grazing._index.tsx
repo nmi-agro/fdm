@@ -36,7 +36,7 @@ import {
   handleFieldEvent,
   isFieldEventIntent,
 } from "~/lib/field-events.server"
-import { extractFormValuesFromRequest } from "~/lib/form"
+import { extractFormValuesFromRequest, formText } from "~/lib/form"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { defaultMapDay } from "~/lib/grazing-map"
@@ -131,7 +131,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Read a copy, so a mowing or fertilizing form can still be parsed from the request
     const formData = await request.clone().formData()
-    const intent = String(formData.get("intent") ?? "")
+    const intent = formText(formData, "intent")
 
     // Mowing and fertilizing, with the same forms and handling as the Tijdlijn
     if (isFieldEventIntent(intent)) {

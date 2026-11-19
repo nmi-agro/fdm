@@ -2,6 +2,26 @@ import type { z } from "zod"
 import { FormValidationError, handleActionError } from "./error"
 
 /**
+ * Reads a text field from form data. A missing field or a file upload gives the fallback, so a
+ * file never turns into the string "[object File]".
+ *
+ * @param formData - The parsed form data.
+ * @param name - The name of the field.
+ * @param fallback - The value when the field is missing or not text. Defaults to `""`.
+ * @returns The text value of the field, or the fallback.
+ *
+ * @example
+ * ```ts
+ * const intent = formText(formData, "intent")
+ * const count = Number.parseInt(formText(formData, "count", "0"), 10)
+ * ```
+ */
+export function formText(formData: FormData, name: string, fallback = ""): string {
+  const value = formData.get(name)
+  return typeof value === "string" ? value : fallback
+}
+
+/**
  * Extracts, validates, and transforms form data from a request using a Zod schema.
  *
  * This function is designed to simplify the process of handling form data in Remix

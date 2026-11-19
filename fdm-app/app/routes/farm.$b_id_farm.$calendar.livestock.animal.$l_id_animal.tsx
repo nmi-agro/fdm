@@ -69,6 +69,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { formText } from "~/lib/form"
 
 export const meta: MetaFunction = () => {
   return [
@@ -239,15 +240,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const formData = await request.formData()
-    const intent = String(formData.get("intent") ?? "")
+    const intent = formText(formData, "intent")
 
     if (intent === "update_details") {
       // An empty levensnummer removes it; fdm-core checks and normalizes a filled one
       const l_id_eartag = formData.has("l_id_eartag")
-        ? String(formData.get("l_id_eartag") ?? "").trim()
+        ? formText(formData, "l_id_eartag").trim()
         : undefined
-      const l_id_worknumber = String(formData.get("l_id_worknumber") ?? "").trim() || undefined
-      const birthDateVal = String(formData.get("l_birth_date") ?? "")
+      const l_id_worknumber = formText(formData, "l_id_worknumber").trim() || undefined
+      const birthDateVal = formText(formData, "l_birth_date")
       const l_sex = (formData.get("l_sex") as "female" | "male" | null) ?? undefined
 
       await updateAnimal(fdm, session.principal_id, l_id_animal, {
@@ -261,7 +262,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     if (intent === "reassign_herd") {
-      const target_l_id_herd = String(formData.get("target_l_id_herd") ?? "")
+      const target_l_id_herd = formText(formData, "target_l_id_herd")
       if (!target_l_id_herd) {
         throw data("Doelkoppel is verplicht.", { status: 400 })
       }
@@ -271,7 +272,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     if (intent === "record_departure") {
-      const leavingDateVal = String(formData.get("l_leaving_date") ?? "")
+      const leavingDateVal = formText(formData, "l_leaving_date")
       const l_leaving_method =
         (formData.get("l_leaving_method") as "died" | "sold" | "slaughtered" | "exported" | null) ??
         "sold"
