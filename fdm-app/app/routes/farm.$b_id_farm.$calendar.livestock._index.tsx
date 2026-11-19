@@ -317,7 +317,7 @@ export default function MelkveeOverview() {
                   </Card>
                   <StatTile
                     label="Beweidingsplatform"
-                    value={`${summary.platformArea.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} ha`}
+                    value={`${summary.platformArea.toLocaleString("nl-NL", { maximumFractionDigits: 2 })} ha`}
                     detail={
                       summary.platformGvePerHa !== null
                         ? `${summary.platformGvePerHa.toLocaleString("nl-NL")} GVE/ha op het platform`

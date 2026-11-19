@@ -82,7 +82,8 @@ export async function fetchGrazingInsightsData(
     .map((field) => ({
       b_id: field.b_id,
       b_name: field.b_name,
-      b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
+      // Unrounded, as in the grazing calendar, so both pages show the same platform area
+      b_area: field.b_area ?? 0,
     }))
 
   const harvests: Array<{ b_id: string; b_harvest_date: Date }> = []
