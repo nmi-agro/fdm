@@ -58,9 +58,9 @@ export function LandingHero({
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-pretty text-white/80 lg:text-lg">
             {clientConfig.name} rekent per perceel en voor het hele bedrijf de balansen, de
-            emissies, de gebruiksruimte, het bemestingsadvies en de bodemkwaliteit door. Zo ziet u
-            wat goede landbouwpraktijk op uw percelen vraagt en kunt u sturen op doelen, met de
-            stikstofbalans als basis voor doelsturing.
+            emissies, de gebruiksruimte, het bemestingsadvies en de bodemkwaliteit door. Dat helpt
+            bij goede landbouwpraktijk en bij sturen op doelen, met de stikstofbalans als basis voor
+            doelsturing.
           </p>
           {/* Facts a visitor can check: the repository, the pilot and the access model */}
           <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/80">

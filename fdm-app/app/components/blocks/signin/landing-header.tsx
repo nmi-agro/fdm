@@ -1,13 +1,47 @@
+import type { ComponentProps, MouseEvent } from "react"
 import { Link } from "react-router"
-import { Button, buttonVariants } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
-import { SIGN_IN_EMAIL_INPUT_ID } from "./sign-in-card"
+import { SIGN_IN_CARD_ID, SIGN_IN_EMAIL_INPUT_ID } from "./sign-in-card"
 
-/** Scrolls to the sign-in card at the top of the page and puts the cursor in the e-mail field. */
-export function goToSignIn() {
+/**
+ * Scrolls to the sign-in card at the top of the page and puts the cursor in the e-mail field.
+ * On a low screen it scrolls just far enough to bring the field into view.
+ */
+function goToSignIn() {
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
-  window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" })
-  document.getElementById(SIGN_IN_EMAIL_INPUT_ID)?.focus({ preventScroll: true })
+  const input = document.getElementById(SIGN_IN_EMAIL_INPUT_ID)
+  const fieldBottom = input ? input.getBoundingClientRect().bottom + window.scrollY + 24 : 0
+  window.scrollTo({
+    top: Math.max(0, fieldBottom - window.innerHeight),
+    behavior: reduce ? "instant" : "smooth",
+  })
+  input?.focus({ preventScroll: true })
+}
+
+/**
+ * A button-styled link to the sign-in card. Without JavaScript it is a plain fragment link;
+ * with JavaScript it also puts the cursor in the e-mail field.
+ */
+export function SignInLink({
+  className,
+  children,
+  ...props
+}: Omit<ComponentProps<"a">, "href" | "onClick">) {
+  return (
+    <a
+      {...props}
+      href={`#${SIGN_IN_CARD_ID}`}
+      onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        event.preventDefault()
+        goToSignIn()
+      }}
+      className={className}
+      data-slot="button"
+    >
+      {children}
+    </a>
+  )
 }
 
 const NAV_LINKS = [
@@ -48,9 +82,7 @@ export function LandingHeader() {
           >
             Handleiding
           </Link>
-          <Button size="sm" onClick={goToSignIn}>
-            Aanmelden
-          </Button>
+          <SignInLink className={buttonVariants({ size: "sm" })}>Aanmelden</SignInLink>
         </div>
       </div>
     </header>

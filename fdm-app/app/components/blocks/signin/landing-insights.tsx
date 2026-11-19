@@ -47,18 +47,18 @@ export function LandingBalances() {
         <SectionHeading label="Balansen" title="De stikstofbalans als basis voor doelsturing">
           <p>
             Doelsturing geeft u de ruimte om zelf maatregelen te kiezen voor waterkwaliteit en
-            ammoniakemissie. Dat vraagt veel en gedetailleerde data. {clientConfig.name} maakt die
-            berekening zo eenvoudig mogelijk, zonder in te leveren op nauwkeurigheid.
+            ammoniakemissie. Dat vraagt veel en gedetailleerde data. {clientConfig.name} streeft
+            ernaar die berekening zo eenvoudig mogelijk te maken.
           </p>
           <p>
             Daarnaast rekent {clientConfig.name} de organische-stofbalans door: de aanvoer en
             afbraak van organische stof, per perceel en voor het bedrijf.
           </p>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <ManualLink to="/manual/background/stikstofbalans">
+            <ManualLink target="achtergrond-stikstofbalans">
               Zo wordt de stikstofbalans berekend
             </ManualLink>
-            <ManualLink to="/manual/background/organische-stofbalans">
+            <ManualLink target="achtergrond-organische-stofbalans">
               Zo wordt de organische-stofbalans berekend
             </ManualLink>
           </div>
@@ -103,21 +103,21 @@ export function LandingNormsAndAdvice() {
     <LandingSection>
       <SectionHeading
         label="Normen en advies"
-        title="Binnen de wettelijke ruimte, volgens het landbouwkundig advies"
+        title="Wettelijke gebruiksruimte en landbouwkundig advies naast elkaar"
       />
       <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <h3 className="text-xl font-semibold tracking-tight">Gebruiksruimte</h3>
           <p className="text-muted-foreground mt-2 leading-relaxed">
             {clientConfig.name} berekent de gebruiksruimte voor stikstof, fosfaat en dierlijke mest
-            per perceel en telt die op naar het bedrijf. U ziet de opbouw van de berekening, met
-            alle correcties en normen die voor uw situatie gelden.
+            per perceel en telt die op naar het bedrijf. U ziet de opbouw van de berekening, met de
+            correcties en normen die daarin zijn meegenomen.
           </p>
           <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
             De getallen zijn indicatief en bedoeld als ondersteuning. Voor definitieve opgaven
             verwijzen we u naar RVO en uw adviseur.
           </p>
-          <ManualLink to="/manual/background/gebruiksruimte" className="mt-4">
+          <ManualLink target="achtergrond-gebruiksruimte" className="mt-4">
             Zo wordt de gebruiksruimte berekend
           </ManualLink>
         </div>
@@ -128,7 +128,7 @@ export function LandingNormsAndAdvice() {
             (Bemestingsadvies) en de CBAV (Handboek Bodem en Bemesting): voor N, P en K, organische
             stof, secundaire nutriënten en micronutriënten. Ernaast staat wat u al heeft gegeven.
           </p>
-          <ManualLink to="/manual/background/bemestingsadvies" className="mt-4">
+          <ManualLink target="achtergrond-bemestingsadvies" className="mt-4">
             Zo wordt het bemestingsadvies berekend
           </ManualLink>
         </div>
@@ -154,7 +154,7 @@ export function LandingSoilQuality() {
             van waterkwaliteit en klimaat tot productie. Met Maatregelen koppelt u daar acties aan
             per perceel, zodat u ziet waar de bodem aandacht vraagt en wat u eraan doet.
           </p>
-          <ManualLink to="/manual/background/bln3-bodemkwaliteit">
+          <ManualLink target="achtergrond-bln3-bodemkwaliteit">
             Zo worden de indicatoren berekend
           </ManualLink>
         </SectionHeading>

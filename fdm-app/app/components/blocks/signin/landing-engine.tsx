@@ -45,10 +45,10 @@ export function LandingEngine() {
           Rekenmodellen, landelijke data en open techniek
         </h2>
         <p className="mt-4 text-lg leading-relaxed text-pretty text-white/80">
-          Achter elk getal staat een beschreven rekenmodel, gevoed met uw eigen gegevens en met
-          landelijke datasets. Hoe de berekeningen werken, staat in de handleiding.
+          De berekeningen gebruiken beschreven rekenmodellen, uw eigen gegevens en landelijke
+          datasets. Hoe ze werken en waar hun beperkingen liggen, staat in de handleiding.
         </p>
-        <ManualLink to="/manual/background" className="mt-5" onDark>
+        <ManualLink overview="background" className="mt-5" onDark>
           Lees de achtergrond bij de berekeningen
         </ManualLink>
       </div>

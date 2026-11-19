@@ -24,7 +24,7 @@ export function LandingPlan() {
                 organische-stofbalans en per perceel de geplande bemestingen. Handig om mee te geven
                 aan een teler of controleur.
               </p>
-              <ManualLink to="/manual/bemestingsplan" className="mt-2">
+              <ManualLink target="bemestingsplan" className="mt-2">
                 Lees meer over het bemestingsplan
               </ManualLink>
             </FeatureItem>
@@ -35,7 +35,7 @@ export function LandingPlan() {
                 bemestingsadvies, de stikstofbalans en uw eigen wensen mee. Het blijft een voorstel:
                 u of uw adviseur beoordeelt het voordat het wordt toegepast.
               </p>
-              <ManualLink to="/manual/gerrit" className="mt-2">
+              <ManualLink target="gerrit" className="mt-2">
                 Lees meer over Gerrit
               </ManualLink>
             </FeatureItem>
@@ -45,7 +45,7 @@ export function LandingPlan() {
                 gewasresten, hoeveel het gewas opneemt en hoeveel er uitspoelt. Het deel na vandaag
                 is een verwachting op basis van het weer.
               </p>
-              <ManualLink to="/manual/labs" className="mt-2">
+              <ManualLink target="mineralisatie" className="mt-2">
                 Lees meer over Mineralisatie
               </ManualLink>
             </FeatureItem>
@@ -76,7 +76,7 @@ export function LandingCollaborate() {
             Nodig iemand uit per e-mail en kies de rol: eigenaar, adviseur of onderzoeker. Een
             onderzoeker kan alleen meekijken.
           </p>
-          <ManualLink to="/manual/samenwerken" className="mt-2">
+          <ManualLink target="samenwerken" className="mt-2">
             Lees meer over samenwerken
           </ManualLink>
         </FeatureItem>
@@ -86,7 +86,7 @@ export function LandingCollaborate() {
             overzichten over al haar bedrijven: de balansen, de bodemindicatoren op de kaart en de
             maatregelen.
           </p>
-          <ManualLink to="/manual/samenwerken#overzichten" className="mt-2">
+          <ManualLink target="organisaties" className="mt-2">
             Lees meer over organisaties
           </ManualLink>
         </FeatureItem>
@@ -95,7 +95,7 @@ export function LandingCollaborate() {
             Koppel uw eigen software of dashboard aan {clientConfig.name} met een API-sleutel. De
             documentatie, rechten en limieten staan in de handleiding.
           </p>
-          <ManualLink to="/manual/api" className="mt-2">
+          <ManualLink target="api" className="mt-2">
             Lees meer over de API
           </ManualLink>
         </FeatureItem>
@@ -104,7 +104,7 @@ export function LandingCollaborate() {
             Koppel een AI-assistent via MCP, zodat die uw bedrijfsgegevens kan opzoeken, wijzigen en
             doorrekenen. De assistent werkt met uw eigen API-sleutel, en dus met uw rechten.
           </p>
-          <ManualLink to="/manual/ai-assistenten" className="mt-2">
+          <ManualLink target="ai-assistenten" className="mt-2">
             Lees meer over AI-assistenten
           </ManualLink>
         </FeatureItem>

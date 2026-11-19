@@ -7,10 +7,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion"
-import { Button, buttonVariants } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
+import { getHelpHref } from "~/lib/manual/help-targets"
 import { useCookieConsentStore } from "~/store/cookie-consent"
-import { goToSignIn } from "./landing-header"
+import { SignInLink } from "./landing-header"
 import { LandingSection, SectionHeading } from "./landing-primitives"
 
 const PROJECTS = [
@@ -41,7 +42,7 @@ export function LandingAbout() {
             title="Open source, ontwikkeld door het NMI"
           >
             <p>
-              {clientConfig.name} is een initiatief van het Nutriënten Management Instituut (NMI).
+              {clientConfig.name} is een initiatief van het Nutriënten Management Instituut (NMI).{" "}
               {clientConfig.name} is open source: iedereen kan de code inzien en verbeteringen
               voorstellen. Veel van de rekenregels zijn dat ook, en hoe de berekeningen werken leest
               u in de handleiding.
@@ -109,14 +110,13 @@ export function LandingCallToAction() {
           Probeer het met uw eigen bedrijf
         </h2>
         <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
-          Gratis tijdens de pilot en zonder installatie. Met een RVO-import staan uw percelen er
-          meteen in.
+          Gratis tijdens de pilot en zonder installatie. Uw percelen haalt u op met een RVO-import.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button size="lg" variant="secondary" onClick={goToSignIn}>
+          <SignInLink className={buttonVariants({ size: "lg", variant: "secondary" })}>
             <span>Aanmelden</span>
             <ArrowRight aria-hidden="true" />
-          </Button>
+          </SignInLink>
           <Link
             to="/manual"
             className={buttonVariants({
@@ -158,7 +158,7 @@ export function LandingFaq() {
               Alleen een account. Hoe u zich aanmeldt, uw eerste bedrijf aanmaakt en uw percelen
               importeert, leest u in{" "}
               <Link
-                to="/manual/aan-de-slag"
+                to={getHelpHref("aan-de-slag")}
                 className="text-foreground font-medium underline underline-offset-4"
               >
                 Aan de slag

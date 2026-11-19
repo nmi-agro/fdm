@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react"
 import { Link } from "react-router"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { MANUAL_EVENTS } from "~/lib/manual/analytics"
+import { getHelpHref, type HelpTargetId } from "~/lib/manual/help-targets"
 import { getScreenshot } from "~/lib/manual/screenshots"
 
 const SECTION_TONES = {
@@ -74,20 +75,34 @@ export function SectionHeading({
   )
 }
 
-/** Link from the landing page to a page of the public manual, with analytics. */
+/** Overview pages of the manual; they are not help targets of their own. */
+const MANUAL_OVERVIEWS = {
+  background: "/manual/background",
+}
+
+/**
+ * Link from the landing page to a page of the public manual, with analytics.
+ *
+ * @param target - A registered help target, so the manual tests catch a link that no longer resolves.
+ * @param overview - An overview page of the manual, instead of a help target.
+ */
 export function ManualLink({
-  to,
+  target,
+  overview,
   children,
   className,
   onDark = false,
 }: {
-  to: string
   children: ReactNode
   className?: string
   /** Set on the brand dark surface, where the link is white. */
   onDark?: boolean
-}) {
+} & (
+  | { target: HelpTargetId; overview?: never }
+  | { overview: keyof typeof MANUAL_OVERVIEWS; target?: never }
+)) {
   const { capture } = useAnalytics()
+  const to = target ? getHelpHref(target) : MANUAL_OVERVIEWS[overview]
   return (
     <Link
       to={to}

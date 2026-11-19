@@ -15,7 +15,7 @@ const STEPS = [
   },
   {
     title: "Doorrekenen",
-    text: `${clientConfig.name} leidt daar de balansen, emissies, normen, adviezen en bodemindicatoren uit af. Bij elk resultaat ziet u hoe het is opgebouwd.`,
+    text: `${clientConfig.name} leidt daar de balansen, emissies, normen, adviezen en bodemindicatoren uit af. Bij de resultaten ziet u hoe ze zijn opgebouwd.`,
   },
   {
     title: "Bijsturen",
@@ -29,9 +29,9 @@ export function LandingHowItWorks() {
     <LandingSection id="mogelijkheden">
       <SectionHeading label="Zo werkt het" title="Inzicht in productie en milieu, in één beeld">
         <p>
-          {clientConfig.name} gebruikt de gegevens die u al heeft om te laten zien wat goede
-          landbouwpraktijk op uw percelen is, en wat dat betekent voor bodem, water en lucht.
-          Dezelfde gegevens voeden elke berekening.
+          {clientConfig.name} gebruikt de gegevens die u al heeft om inzicht te geven in bemesting
+          en bodem op uw percelen, en in wat dat betekent voor water en lucht. Dezelfde gegevens
+          voeden de verschillende berekeningen.
         </p>
       </SectionHeading>
       <ol className="mt-12 grid gap-8 md:grid-cols-3 md:gap-0 md:divide-x">
@@ -71,12 +71,12 @@ export function LandingRecord() {
           <div className="grid gap-x-10 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
             <FeatureItem icon={FileUp} title="Percelen ophalen bij RVO">
               Lees uw percelen in via een RVO-shapefile of importeer ze direct bij RVO met
-              eHerkenning. De percelen staan er meteen goed in, inclusief het gewas.
+              eHerkenning. De percelen komen er met het gewas in te staan.
             </FeatureItem>
             <FeatureItem icon={ScanText} title="Bodemanalyses uit de pdf">
               Upload de pdf's van uw bodemanalyses, ook meerdere tegelijk. {clientConfig.name} leest
-              de waarden uit en koppelt ze aan het perceel. Geen analyse? Dan rekent{" "}
-              {clientConfig.name} met bodemwaarden die het NMI schat.
+              de waarden uit; u controleert ze en koppelt ze aan het perceel. Geen analyse? Dan
+              rekent {clientConfig.name} met bodemwaarden die het NMI schat.
             </FeatureItem>
             <FeatureItem icon={Table2} title="Aanvullen in tabellen">
               Vul bouwplan, bemesting en oogst aan in tabellen, voor meerdere percelen of gewassen
@@ -91,7 +91,7 @@ export function LandingRecord() {
               bereken de BodemConditieScore.
             </FeatureItem>
           </div>
-          <ManualLink to="/manual/aan-de-slag" className="mt-10">
+          <ManualLink target="aan-de-slag" className="mt-10">
             Aan de slag in de handleiding
           </ManualLink>
         </div>

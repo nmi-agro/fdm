@@ -26,6 +26,9 @@ export const SignInFormSchema = z.object({
 
 type SignInFormValues = z.infer<typeof SignInFormSchema>
 
+/** Id of the card, the target of the "Aanmelden" links elsewhere on the page. */
+export const SIGN_IN_CARD_ID = "aanmelden"
+
 /** Id of the e-mail input, so other parts of the page can move focus to it. */
 export const SIGN_IN_EMAIL_INPUT_ID = "email"
 
@@ -141,7 +144,7 @@ export function SignInCard({
   const emailIsValid = emailValue.length > 0 && emailIsTouched && !emailHasError
 
   return (
-    <Card className="shadow-sm">
+    <Card id={SIGN_IN_CARD_ID} className="scroll-mt-20 shadow-sm">
       <CardHeader className="text-center">
         <div className="mb-3 flex justify-center">
           <div className="flex size-12 items-center justify-center rounded-lg bg-[#122023]">
