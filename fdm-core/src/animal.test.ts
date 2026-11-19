@@ -17,14 +17,13 @@ import {
   removeAnimalAssigning,
   removeAnimals,
   removeAnimalsFromHerd,
-  setAnimalCategory,
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
 import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import { addHerd } from "./herd"
+import { addHerd, getHerdsForFarm } from "./herd"
 
 describe("Animal Domain", () => {
   let fdm: FdmType
@@ -161,84 +160,120 @@ describe("Animal Domain", () => {
     expect(updatedAnimal2.l_id_herd).toBe(secondHerdSameCategory)
   })
 
-  it("should move an animal to the existing herd of its new category via setAnimalCategory", async () => {
+  it("should move an animal on a past date to the chosen herd of another category via assignAnimalToHerd", async () => {
     const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Jongvee",
       l_id_category: "rvo_101",
+    })
+    // A second dairy herd: the caller chooses which one the heifer joins
+    const secondDairyHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien 2",
+      l_id_category: "rvo_100",
     })
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, youngstockHerd, {
       l_sex: "female",
       l_arriving_date: new Date("2025-01-01"),
     })
 
-    // The herd from beforeEach starts now, so change the category after that
-    const changeDate = new Date(Date.now() + 1000)
-    const l_id_target = await setAnimalCategory(
-      fdm,
-      principal_id,
-      l_id_animal,
-      "rvo_100",
-      changeDate,
-    )
-    expect(l_id_target).toBe(l_id_herd)
+    // A calving recorded afterwards: the herds have no start date, so they run on that date
+    const calvingDate = new Date("2025-03-01")
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, secondDairyHerd, calvingDate)
 
     const animal = await getAnimal(fdm, principal_id, l_id_animal)
-    expect(animal.l_id_herd).toBe(l_id_herd)
+    expect(animal.l_id_herd).toBe(secondDairyHerd)
     expect(animal.l_id_category).toBe("rvo_100")
 
     const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
     expect(history).toHaveLength(2)
     expect(history.filter((row) => row.l_assigning_end === null)).toHaveLength(1)
     const closed = history.find((row) => row.l_id_herd === youngstockHerd)
-    expect(closed?.l_assigning_end).toEqual(changeDate)
+    expect(closed?.l_assigning_end).toEqual(calvingDate)
+    expect(history.find((row) => row.l_id_herd === secondDairyHerd)?.l_assigning_start).toEqual(
+      calvingDate,
+    )
   })
 
-  it("should create a herd for the new category when the farm has none via setAnimalCategory", async () => {
+  it("should reject assignAnimalToHerd when the target herd does not run on the date", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_sex: "female",
       l_arriving_date: new Date("2025-01-01"),
     })
+    const laterHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Pinken",
+      l_id_category: "rvo_102",
+      l_start: new Date("2025-04-01"),
+    })
+    const endedHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Oude koppel",
+      l_id_category: "rvo_102",
+      l_end: new Date("2025-02-01"),
+    })
 
-    const l_id_target = await setAnimalCategory(
-      fdm,
-      principal_id,
-      l_id_animal,
-      "rvo_102",
-      new Date("2025-03-01"),
-    )
-    expect(l_id_target).not.toBe(l_id_herd)
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, laterHerd, new Date("2025-03-01")),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("has not started yet") } })
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, endedHerd, new Date("2025-03-01")),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("has already ended") } })
+
+    // From its start date on, the herd can be chosen
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, laterHerd, new Date("2025-04-01"))
+    expect((await getAnimal(fdm, principal_id, l_id_animal)).l_id_herd).toBe(laterHerd)
+  })
+
+  it("should give a new herd no start date and reject assigning to a herd before it starts", async () => {
+    const herd = await getHerdsForFarm(fdm, principal_id, b_id_farm)
+    expect(herd.find((h) => h.l_id_herd === l_id_herd)?.l_start).toBeNull()
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_sex: "female",
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const futureHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Nieuwe koppel",
+      l_id_category: "rvo_100",
+      l_start: new Date(Date.now() + 30 * 86_400_000),
+    })
+
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, futureHerd),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("has not started yet") } })
+    await expect(
+      reassignHerdAnimals(fdm, principal_id, l_id_herd, futureHerd),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("has not started yet") } })
 
     const animal = await getAnimal(fdm, principal_id, l_id_animal)
-    expect(animal.l_id_herd).toBe(l_id_target)
-    expect(animal.l_id_category).toBe("rvo_102")
-
-    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
-    expect(history.find((row) => row.l_id_herd === l_id_target)?.l_herd_name).toBe(
-      animal.l_category,
-    )
+    expect(animal.l_id_herd).toBe(l_id_herd)
   })
 
-  it("should reject invalid category changes via setAnimalCategory", async () => {
+  it("should reject invalid moves via assignAnimalToHerd", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_sex: "female",
       l_arriving_date: new Date("2025-01-01"),
     })
+    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_id_category: "rvo_101",
+    })
+    const pigHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Varkens",
+      l_id_category: "rvo_407",
+    })
 
-    // Already in a herd of that category
-    await expect(setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_100")).rejects.toThrowError(
-      "Exception for setAnimalCategory",
-    )
+    // Already in that herd
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, l_id_herd),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("already belongs") } })
     // Before the current assignment started
     await expect(
-      setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_101", new Date("2024-12-01")),
-    ).rejects.toThrowError("Exception for setAnimalCategory")
-    // Category of another species
-    await expect(setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_407")).rejects.toThrowError(
-      "Exception for setAnimalCategory",
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, new Date("2024-12-01")),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("before the current herd assignment") },
+    })
+    // A herd of another species
+    await expect(assignAnimalToHerd(fdm, principal_id, l_id_animal, pigHerd)).rejects.toThrowError(
+      "Exception for assignAnimalToHerd",
     )
-    await expect(
-      setAnimalCategory(fdm, "unauthorized_user", l_id_animal, "rvo_101"),
-    ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
     expect(history).toHaveLength(1)

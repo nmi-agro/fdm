@@ -350,7 +350,6 @@ export {
   removeAnimalAssigning,
   removeAnimals,
   removeAnimalsFromHerd,
-  setAnimalCategory,
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
