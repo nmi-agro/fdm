@@ -498,7 +498,8 @@ export function CalendarGrid({
             >
               <thead>
                 <tr className="bg-muted/40 text-muted-foreground border-b font-medium">
-                  <th className="bg-muted text-foreground sticky left-0 z-20 min-w-44 p-3">
+                  {/* Narrower on a phone, so the pinned names leave room for the days */}
+                  <th className="bg-muted text-foreground sticky left-0 z-20 min-w-32 p-3 sm:min-w-44">
                     Perceel
                   </th>
                   <th className="text-foreground w-16 p-3 text-right">ha</th>
@@ -732,7 +733,7 @@ const CalendarRow = memo(function CalendarRow({
         scope="row"
         className="bg-card sticky left-0 z-10 border-r px-3 py-2 text-left font-medium"
       >
-        <div className="max-w-40 truncate">{field.b_name}</div>
+        <div className="max-w-26 truncate sm:max-w-40">{field.b_name}</div>
         {field.recentRestDays !== null && (
           <div className="text-muted-foreground text-xs font-normal">
             {field.recentRestDays === 1 ? "1 dag rust" : `${field.recentRestDays} dagen rust`}

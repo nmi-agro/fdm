@@ -1,7 +1,7 @@
 import {
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   REST_PERIOD_THRESHOLD_DAYS,
-} from "@nmi-agro/fdm-calculator"
+} from "@nmi-agro/fdm-calculator/browser"
 import { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import {
   AlertTriangle,
@@ -130,10 +130,12 @@ export default function GrazingInsightsPage() {
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
-        <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Melkvee
-        </BreadcrumbLink>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+            Melkvee
+          </BreadcrumbLink>
+        </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Weidegang</BreadcrumbItem>
       </Header>
@@ -147,10 +149,11 @@ export default function GrazingInsightsPage() {
         <FarmContent>
           <div className="space-y-8">
             {/* Top KPI Cards Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Two by two on a phone, like the key figures on the Melkvee page */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 [&>[data-slot=card]]:[--card-spacing:--spacing(4)] sm:[&>[data-slot=card]]:[--card-spacing:--spacing(6)]">
               <Card>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-muted-foreground text-xs font-medium">
                       Weidedagen
                     </CardTitle>
@@ -158,7 +161,7 @@ export default function GrazingInsightsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold tabular-nums">
+                  <div className="text-2xl font-semibold tabular-nums">
                     {metrics.weidedagen.total.toLocaleString("nl-NL")}
                   </div>
                   <p className="text-muted-foreground mt-1 text-xs">
@@ -171,7 +174,7 @@ export default function GrazingInsightsPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-muted-foreground text-xs font-medium">
                       Weide-uren per dag
                     </CardTitle>
@@ -179,7 +182,7 @@ export default function GrazingInsightsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold tabular-nums">
+                  <div className="text-2xl font-semibold tabular-nums">
                     {formatNumber(metrics.weideUren.averageHoursPerDay)} uur
                   </div>
                   <p className="text-muted-foreground mt-1 text-xs">
@@ -190,7 +193,7 @@ export default function GrazingInsightsPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-muted-foreground text-xs font-medium">
                       Beweidingsplatform
                     </CardTitle>
@@ -198,7 +201,7 @@ export default function GrazingInsightsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold tabular-nums">
+                  <div className="text-2xl font-semibold tabular-nums">
                     {formatNumber(metrics.beweidingsplatform.areaHa)} ha
                   </div>
                   <p className="text-muted-foreground mt-1 text-xs">
@@ -210,7 +213,7 @@ export default function GrazingInsightsPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-muted-foreground text-xs font-medium">
                       Veebezetting platform
                     </CardTitle>
@@ -218,8 +221,8 @@ export default function GrazingInsightsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold tabular-nums">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-2xl font-semibold tabular-nums">
                       {metrics.veebezetting.platformGvePerHa !== null
                         ? `${formatNumber(metrics.veebezetting.platformGvePerHa)} GVE/ha`
                         : "—"}
@@ -242,7 +245,7 @@ export default function GrazingInsightsPage() {
             {/* Weidemelk 120 x 6 Card */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-base">
                       <Award className="h-5 w-5 text-amber-500" />
@@ -279,7 +282,7 @@ export default function GrazingInsightsPage() {
                   <span>{weidemelkProgressPercent}%</span>
                 </div>
                 <Progress value={weidemelkProgressPercent} className="h-3" />
-                <div className="text-muted-foreground flex items-center justify-between pt-1 text-xs">
+                <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-1 text-xs">
                   <span>Start weideseizoen</span>
                   <span>Doel: 120 dagen met ≥ 6 uur</span>
                   {metrics.weidemelk.plannedQualifyingDays > 0 && (
@@ -396,7 +399,7 @@ export default function GrazingInsightsPage() {
                 )}
 
                 {metrics.incompleteRecords.count > 0 && (
-                  <div className="bg-muted/40 text-muted-foreground flex items-center justify-between rounded-lg border p-3 text-xs">
+                  <div className="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg border p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                       <FileQuestion className="text-muted-foreground h-4 w-4" />
                       <span>
@@ -415,7 +418,7 @@ export default function GrazingInsightsPage() {
 
                 <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-900 dark:text-blue-200">
                   <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-                  <div className="flex flex-1 items-center justify-between">
+                  <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <div>
                       <p className="font-semibold">Stikstofgebruiksnorm</p>
                       <p className="mt-0.5">
@@ -425,7 +428,7 @@ export default function GrazingInsightsPage() {
                     </div>
                     <NavLink
                       to={`/farm/${b_id_farm}/${calendar}/norms`}
-                      className="text-primary ml-4 shrink-0 text-xs font-medium hover:underline"
+                      className="text-primary shrink-0 text-xs font-medium hover:underline"
                     >
                       Bekijk Gebruiksruimte →
                     </NavLink>

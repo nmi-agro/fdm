@@ -610,16 +610,20 @@ export default function GrazingPlanAssistent() {
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
-        <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Melkvee
-        </BreadcrumbLink>
-        <BreadcrumbSeparator />
-        <BreadcrumbLink
-          render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
-        >
-          Beweidingskalender
-        </BreadcrumbLink>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+            Melkvee
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink
+            render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
+          >
+            Beweidingskalender
+          </BreadcrumbLink>
+        </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Beweidingsplanner</BreadcrumbItem>
       </Header>
@@ -642,7 +646,7 @@ export default function GrazingPlanAssistent() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {(Object.keys(GRAZING_SYSTEMS) as GrazingSystemKey[]).map((key) => {
                     const sys = GRAZING_SYSTEMS[key]
                     const isSelected = systemKey === key
@@ -706,7 +710,8 @@ export default function GrazingPlanAssistent() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <FieldGroup>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      {/* The herd and the period share a row only when both dates fit in full */}
+                      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <Field>
                           <FieldLabel htmlFor="plan-herd">Koppel</FieldLabel>
                           <Select
@@ -729,7 +734,7 @@ export default function GrazingPlanAssistent() {
                           </Select>
                         </Field>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-2">
                           <DatePicker
                             label="Periode vanaf"
                             field={{
@@ -785,7 +790,7 @@ export default function GrazingPlanAssistent() {
 
                       <Field>
                         <FieldLabel>Percelen om te beweiden in dit plan</FieldLabel>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           {grasslandFields.map((field) => {
                             const isChecked = selectedFieldIds.includes(field.b_id)
                             return (
@@ -1227,7 +1232,9 @@ export default function GrazingPlanAssistent() {
                       grasgroei.
                     </p>
                   </CardContent>
-                  <CardFooter className="flex justify-between border-t pt-4">
+                  {/* On a phone both buttons span the width, the confirm button on top (as in the
+                      dialog footers) */}
+                  <CardFooter className="flex flex-col-reverse items-stretch gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <Button
                       variant="outline"
                       nativeButton={false}
@@ -1241,7 +1248,7 @@ export default function GrazingPlanAssistent() {
                       <Button
                         type="submit"
                         disabled={generatedRows.length === 0 || fetcher.state !== "idle"}
-                        className="gap-1.5"
+                        className="w-full gap-1.5 sm:w-auto"
                       >
                         <Save aria-hidden="true" className="h-4 w-4" />
                         Plan bevestigen en vastleggen ({generatedRows.length})

@@ -238,10 +238,12 @@ export default function AnimalsOverviewPage() {
         }}
       >
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
-        <BreadcrumbSeparator />
-        <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
-          Melkvee
-        </BreadcrumbLink>
+        <BreadcrumbSeparator className="hidden xl:block" />
+        <BreadcrumbItem className="hidden xl:block">
+          <BreadcrumbLink render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock`} />}>
+            Melkvee
+          </BreadcrumbLink>
+        </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>Vee</BreadcrumbItem>
       </Header>
@@ -365,7 +367,8 @@ export default function AnimalsOverviewPage() {
 
               {/* Animals Table */}
               <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
-                <Table>
+                {/* On a phone the table scrolls sideways instead of breaking dates over lines */}
+                <Table className="whitespace-nowrap">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-24">Werknr</TableHead>

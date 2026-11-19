@@ -157,7 +157,7 @@ export function HerdCard({
   return (
     <>
       <Card className="flex flex-col justify-between">
-        <CardHeader className="space-y-1.5 pb-2">
+        <CardHeader>
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-base leading-none font-semibold">
@@ -197,7 +197,7 @@ export function HerdCard({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4 pt-2">
+        <CardContent className="space-y-4">
           {/* Count Stepper */}
           <div className="bg-muted/40 flex items-center justify-between rounded-lg p-3">
             <Button
@@ -212,7 +212,7 @@ export function HerdCard({
               <span className="sr-only">Dier minder</span>
             </Button>
             <div className="text-center">
-              <span className="text-2xl font-bold tracking-tight">{count}</span>
+              <span className="text-2xl font-semibold tracking-tight tabular-nums">{count}</span>
               <span className="text-muted-foreground ml-1.5 text-xs">dieren</span>
             </div>
             <Button
