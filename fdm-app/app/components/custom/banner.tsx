@@ -30,10 +30,14 @@ export function Banner() {
     <div>
       {isVisible && (
         <div className="fixed right-0 bottom-0 left-0 z-200 w-full translate-y-0 opacity-100 transition-[opacity,transform] duration-700 sm:bottom-4 sm:left-4 sm:max-w-md">
-          <div className="dark:bg-card bg-background border-border m-3 rounded-md border shadow-lg">
-            <div className="grid gap-2">
-              <div className="border-border flex h-14 items-center justify-between border-b p-4">
-                <h1 className="text-lg font-medium">{`Cookies op ${clientConfig.name}`}</h1>
+          {/* Compact below sm, so the banner leaves most of a phone screen free */}
+          <section
+            aria-label="Cookies"
+            className="bg-background border-border m-2 rounded-md border shadow-lg sm:m-3"
+          >
+            <div className="grid sm:gap-2">
+              <div className="border-border flex h-11 items-center justify-between border-b px-3 sm:h-14 sm:p-4">
+                <h2 className="text-base font-medium sm:text-lg">{`Cookies op ${clientConfig.name}`}</h2>
                 <div className="flex items-center gap-2">
                   <Cookie className="h-5 w-5" />
                   {(consentGiven === "yes" || consentGiven === "no") && (
@@ -49,33 +53,31 @@ export function Banner() {
                   )}
                 </div>
               </div>
-              <div className="p-4">
+              <div className="px-3 py-2.5 sm:p-4">
                 <p className="text-start text-sm font-normal">
-                  {`Wij gebruiken cookies enkel om ${clientConfig.name} te
-                                    verbeteren, zodat we weten wat er goed en
-                                    fout gaat.`}
-                  <br />
-                  Geen zorgen, we gebruiken ze niet voor advertenties en ook niet om je online te
-                  volgen.
-                  <br />
-                  <br />
-                  <span className="text-xs">
+                  <span>
+                    {`Wij gebruiken cookies enkel om ${clientConfig.name} te verbeteren, zodat we weten wat er goed en fout gaat.`}
+                  </span>{" "}
+                  <span className="sm:mt-1 sm:block">
+                    Geen zorgen, we gebruiken ze niet voor advertenties en ook niet om je online te
+                    volgen.
+                  </span>{" "}
+                  <span className="mt-4 hidden text-xs sm:block">
                     Klik op "<span className="font-medium opacity-80">Accepteren</span>" om cookies
                     toe te staan.
                   </span>
-                  <br />
                   <a
                     href="/privacy"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Naar privacybeleid (opent in nieuw tabblad)"
-                    className="text-xs underline"
+                    className="text-xs underline sm:block"
                   >
                     Meer over cookies.
                   </a>
                 </p>
               </div>
-              <div className="border-border dark:bg-background/20 flex gap-2 border-t p-4 py-5">
+              <div className="border-border flex gap-2 border-t px-3 py-2.5 sm:p-4 sm:py-5">
                 {consentGiven === "yes" ? (
                   <Button onClick={resetCookieConsent} className="w-full" variant="outline">
                     Reset keuze: Geaccepteerd
@@ -96,7 +98,7 @@ export function Banner() {
                 )}
               </div>
             </div>
-          </div>
+          </section>
         </div>
       )}
     </div>
