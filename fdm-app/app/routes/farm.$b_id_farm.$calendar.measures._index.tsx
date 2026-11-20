@@ -59,10 +59,13 @@ import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
+import { useStreamedRows } from "~/hooks/use-streamed-rows"
 import {
+  collectFarmMeasureInputs,
   getMeasureApplicabilityForFields,
   getIndicatorsForFarm,
   getFarmMeasureOpportunities,
+  type FarmMeasureInputs,
   type FieldTopOpportunity,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
@@ -105,6 +108,8 @@ async function getFarmNextSteps({
   timeframe,
   measuresMap,
   catalogue,
+  measureInputs,
+  applicabilityByField,
 }: {
   principal_id: PrincipalId
   b_id_farm: string
@@ -113,11 +118,17 @@ async function getFarmNextSteps({
   timeframe?: Timeframe
   measuresMap: Map<string, { m_id: string }[]>
   catalogue: { m_id: string; m_name: string }[]
+  measureInputs: Promise<FarmMeasureInputs>
+  applicabilityByField: ReturnType<typeof getMeasureApplicabilityForFields>
 }): Promise<FarmRecommendationsData> {
   const b_ids = fields.map((f) => f.b_id)
-  const scores = await getIndicatorsForFarm({ principal_id, b_id_farm, timeframe })
+  // The scores are only needed after the NMI requests, so they run at the same time
+  const scoreByBid = getIndicatorsForFarm({ principal_id, b_id_farm, timeframe }).then(
+    (scores) => new Map(scores.map((s) => [s.b_id, s.score])),
+  )
+  // Avoid an unhandled rejection when the opportunities fail first; it is awaited there
+  scoreByBid.catch(() => undefined)
   const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
-  const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
   const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
   const activeMeasureIdsByField = new Map(
     b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
@@ -131,6 +142,8 @@ async function getFarmNextSteps({
     scoreByBid,
     activeMeasureIdsByField,
     measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+    measureInputs,
+    applicabilityByField,
   })
 
   // Show one variant per measure family farm-wide: the variant with the highest
@@ -397,20 +410,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
-    const [applicabilityByField, cultivationsByField] = await Promise.all([
-      getMeasureApplicabilityForFields({
-        principal_id: session.principal_id,
-        b_id_farm,
-        b_ids: fieldIds,
-        b_year,
-        timeframe,
-      }).catch((error) => {
+    // The measure inputs serve the applicability (for the add dialog) and the recommendations.
+    // Both may call the NMI API, so they are streamed and never block the page.
+    const measureInputs = collectFarmMeasureInputs({
+      principal_id: session.principal_id,
+      b_id_farm,
+      b_ids: fieldIds,
+      b_year,
+      timeframe,
+    })
+    const applicabilityByField = measureInputs
+      .then(getMeasureApplicabilityForFields)
+      .catch((error) => {
         reportError(error, { page: "farm measures applicability" })
         return {}
-      }),
-      // All cultivations of each field, not only those in the calendar year
-      getCultivationsForFarm(fdm, session.principal_id, b_id_farm),
-    ])
+      })
+
+    // All cultivations of each field, not only those in the calendar year
+    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm)
 
     const fieldsWithCultivations = fields.map((f) => {
       const cultivations = cultivationsByField.get(f.b_id) ?? []
@@ -444,6 +461,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       measuresMap,
       catalogue,
+      measureInputs,
+      applicabilityByField,
     }).catch((error) => {
       reportError(error, { page: "farm measures recommendations" })
       return {
@@ -894,6 +913,9 @@ export default function MeasuresFarmIndex() {
     farmWritePermission,
     asyncInsights,
   } = useLoaderData<typeof loader>()
+  // The applicability is streamed; until it arrives the add dialog shows every measure
+  const applicabilityPromises = useMemo(() => [applicabilityByField], [applicabilityByField])
+  const applicability = useStreamedRows(applicabilityPromises).rows[0]
   const { b_id_farm, calendar } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -1129,7 +1151,7 @@ export default function MeasuresFarmIndex() {
         }}
         catalogue={catalogue}
         activeMeasures={[]}
-        applicabilityByField={applicabilityByField ?? undefined}
+        applicabilityByField={applicability}
         fields={fieldList}
         initialFieldIds={initialFieldIds}
         topOpportunities={recommendationsData?.topOpportunities}
