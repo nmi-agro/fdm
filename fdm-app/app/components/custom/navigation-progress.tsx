@@ -56,7 +56,8 @@ export function NavigationProgress() {
   const destination = navigation.location?.pathname ?? pathname
 
   // The navigation key each timer last fired for. Comparing against the current navigation's key
-  // means an overlapping navigation is never shown using a stale timer.
+  // means an overlapping navigation is never shown using a stale timer. The timers' cleanup resets
+  // it, so Back or Forward to an earlier history entry, which restores its key, starts hidden.
   const [barShownFor, setBarShownFor] = useState<string | null>(null)
   const [overlayShownFor, setOverlayShownFor] = useState<string | null>(null)
   const barVisible = active && barShownFor === navigationKey
@@ -64,7 +65,7 @@ export function NavigationProgress() {
   const trackedRef = useRef<TrackedNavigation | null>(null)
 
   // Start the timers. The delays count from the moment the router left the idle state, so a
-  // redirect after a submission (a new navigation key) shows the progress again right away.
+  // redirect after a submission (a new navigation attempt) shows the progress again right away.
   useEffect(() => {
     if (!active) return
     if (trackedRef.current === null) {
@@ -87,7 +88,10 @@ export function NavigationProgress() {
       Math.max(0, BAR_DELAY_MS - elapsed),
     )
     if (isSubmission) {
-      return () => clearTimeout(barTimer)
+      return () => {
+        clearTimeout(barTimer)
+        setBarShownFor(null)
+      }
     }
     const overlayTimer = setTimeout(
       () => {
@@ -105,6 +109,8 @@ export function NavigationProgress() {
     return () => {
       clearTimeout(barTimer)
       clearTimeout(overlayTimer)
+      setBarShownFor(null)
+      setOverlayShownFor(null)
     }
   }, [active, navigationKey, isSubmission, pathname, destination])
 
@@ -172,7 +178,7 @@ function ProgressBar() {
   return (
     <motion.div
       role="status"
-      className="bg-primary/15 pointer-events-none fixed inset-x-0 top-0 z-9999 h-0.5 overflow-hidden"
+      className="bg-primary/15 pointer-events-none fixed inset-x-0 top-0 z-9999 h-1 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
