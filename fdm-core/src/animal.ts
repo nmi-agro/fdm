@@ -179,10 +179,12 @@ export async function addAnimal(
       const eartag = properties?.l_id_eartag
         ? normalizeEartag(properties.l_id_eartag, l_specie)
         : null
-      const l_id_worknumber =
-        properties?.l_id_worknumber ??
-        eartag?.worknumber ??
-        String(await getNextWorknumber(tx, b_id_farm))
+      let l_id_worknumber = properties?.l_id_worknumber ?? eartag?.worknumber
+      if (l_id_worknumber === undefined || l_id_worknumber === null) {
+        const next = await getNextWorknumber(tx, b_id_farm)
+        assertWorknumberRange(next, 1)
+        l_id_worknumber = String(next)
+      }
 
       // Departed animals don't block a number, so an animal recorded as already gone isn't checked
       const isPresent =
@@ -687,7 +689,12 @@ export async function updateAnimal(
             })
             .from(schema.animalAssigning)
             .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
-            .orderBy(desc(schema.animalAssigning.l_assigning_start))
+            // Two moves on one day give two assignments with the same start; the one opened last
+            // (the latest move, so the later `created`) is the animal's last assignment
+            .orderBy(
+              desc(schema.animalAssigning.l_assigning_start),
+              desc(schema.animalAssigning.created),
+            )
             .limit(1)
           if (last) {
             await tx
@@ -823,10 +830,14 @@ async function getNextWorknumber(
 
   let nextWorknumber = 10001
   for (const row of rows) {
-    // A number of 16 digits or more (typed in by hand) is skipped: counting on from it would not
-    // be exact, and automatic numbers are much shorter
-    if (row.l_id_worknumber && /^\d{1,15}$/.test(row.l_id_worknumber)) {
-      nextWorknumber = Math.max(nextWorknumber, Number(row.l_id_worknumber) + 1)
+    // Every number that can be counted exactly counts, also one the allocator made itself. A number
+    // typed in by hand that is too large to count exactly is skipped: the allocator never makes it.
+    // When the next number is no longer exact, the callers refuse to allocate (assertWorknumberRange)
+    if (row.l_id_worknumber && /^\d+$/.test(row.l_id_worknumber)) {
+      const worknumber = Number(row.l_id_worknumber)
+      if (Number.isSafeInteger(worknumber)) {
+        nextWorknumber = Math.max(nextWorknumber, worknumber + 1)
+      }
     }
   }
 
@@ -853,7 +864,12 @@ function assertAnimalCount(count: number): void {
  * @throws When the last number of the range is too large to count from exactly.
  */
 function assertWorknumberRange(firstWorknumber: number, count: number): void {
-  if (count > 0 && !Number.isSafeInteger(firstWorknumber + count - 1)) {
+  // Check the first number itself, and add `count - 1` in one step: past the largest exact
+  // number, adding 1 and subtracting 1 again can round back into the exact range
+  if (
+    count > 0 &&
+    (!Number.isSafeInteger(firstWorknumber) || !Number.isSafeInteger(firstWorknumber + (count - 1)))
+  ) {
     throw new Error("No automatic work numbers left for this many animals")
   }
 }

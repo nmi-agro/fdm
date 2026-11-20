@@ -789,6 +789,55 @@ describe("Animal Domain", () => {
     })
   })
 
+  it("should count automatic work numbers of 16 digits when numbering on", async () => {
+    await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_worknumber: "999999999999999",
+    })
+    const [first] = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 1)
+    const [second] = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 1)
+    expect((await getAnimal(fdm, principal_id, first)).l_id_worknumber).toBe("1000000000000000")
+    expect((await getAnimal(fdm, principal_id, second)).l_id_worknumber).toBe("1000000000000001")
+
+    // Past the largest exact number, numbering is refused instead of reusing a number
+    await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_worknumber: String(Number.MAX_SAFE_INTEGER),
+    })
+    await expect(addAnimal(fdm, principal_id, b_id_farm, l_id_herd)).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("No automatic work numbers left") },
+    })
+  })
+
+  it("should take the latest move as the last assignment when two moves share a day", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const herdB = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "B",
+      l_id_category: "rvo_100",
+    })
+    const herdC = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "C",
+      l_id_category: "rvo_100",
+    })
+    const moveDate = new Date("2025-02-01")
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdB, moveDate)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdC, moveDate)
+
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-03-01") })
+    let history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === herdB)?.l_assigning_end).toEqual(moveDate)
+    expect(history.find((row) => row.l_id_herd === herdC)?.l_assigning_end).toEqual(
+      new Date("2025-03-01"),
+    )
+
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-04-01") })
+    history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === herdB)?.l_assigning_end).toEqual(moveDate)
+    expect(history.find((row) => row.l_id_herd === herdC)?.l_assigning_end).toEqual(
+      new Date("2025-04-01"),
+    )
+  })
+
   it("should reject assigning an animal to a herd belonging to another farm", async () => {
     const otherFarmId = await addFarm(
       fdm,
