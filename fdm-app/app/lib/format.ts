@@ -63,3 +63,21 @@ export function formatBalanceDifference(value: number): string {
   const formatted = formatBalanceValue(value)
   return value > 0 && formatted !== "0" ? `+${formatted}` : formatted
 }
+
+/**
+ * Formats an area in hectares with Dutch separators and at most two decimals, without the unit.
+ *
+ * @param value - The area in hectares.
+ * @param minimumFractionDigits - The least number of decimals to show. Defaults to 0.
+ * @returns The formatted area.
+ *
+ * @example
+ * ```ts
+ * formatHa(9.5) // "9,5"
+ * formatHa(2.4567) // "2,46"
+ * formatHa(2, 1) // "2,0"
+ * ```
+ */
+export function formatHa(value: number, minimumFractionDigits = 0): string {
+  return value.toLocaleString("nl-NL", { minimumFractionDigits, maximumFractionDigits: 2 })
+}

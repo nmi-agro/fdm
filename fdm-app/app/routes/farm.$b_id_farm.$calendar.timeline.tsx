@@ -1,23 +1,12 @@
 import {
   addCultivation,
-  addFertilizerApplication,
-  addHarvest,
   checkPermission,
-  getAppAmountDisplayRange,
-  getCultivation,
   getCultivationsFromCatalogue,
   getFarms,
   getFertilizerApplication,
-  getFertilizerParametersDescription,
-  getFertilizers,
-  getHarvests,
-  getParametersForHarvestCat,
   getSoilAnalysis,
   getSoilImages,
-  HarvestParameters,
   removeCultivation,
-  removeFertilizerApplication,
-  removeHarvest,
   removeSoilAnalysis,
   removeSoilImage,
   updateCultivation,
@@ -25,12 +14,12 @@ import {
   updateHarvest,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { ApplicationMethods, getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
-import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
+import { dataWithError, dataWithSuccess } from "remix-toast"
 import z from "zod"
 import type { Range } from "@/app/components/kibo-ui/gantt"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
@@ -42,13 +31,6 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import {
-  FormSchema as FertilizerApplicationFormSchema,
-  FormSchemaModify as FertilizerApplicationFormSchemaModify,
-} from "~/components/blocks/fertilizer-applications/formschema"
-import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
-import { FormSchema as HarvestFormSchema } from "~/components/blocks/harvest/schema"
-import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
@@ -67,6 +49,12 @@ import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import {
+  FIELD_EVENT_SCHEMAS,
+  getFertilizerOptions,
+  handleFieldEvent,
+  isFieldEvent,
+} from "~/lib/field-events.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump, useCalendarStore } from "~/store/calendar"
@@ -140,49 +128,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     // TIMELINE_START_YEAR/END_YEAR in gantt-view.tsx), so it fetches that same full range up
     // front rather than just the single selected year — otherwise scrolling into any other year
     // always looked empty, even when it genuinely had data.
-    const [timelineFields, fertilizers, cultivationsCatalogue] = await Promise.all([
+    const [timelineFields, fertilizerOptions, cultivationsCatalogue] = await Promise.all([
       fetchTimelineFields(
         session.principal_id,
         b_id_farm,
         getTimeframeForYears(TIMELINE_START_YEAR, TIMELINE_END_YEAR),
       ),
-      getFertilizers(fdm, session.principal_id, b_id_farm),
+      getFertilizerOptions(session.principal_id, b_id_farm),
       getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
     ])
-
-    const fertilizerParameterDescription = getFertilizerParametersDescription()
-    const applicationMethods = fertilizerParameterDescription.find(
-      (x: { parameter: string }) => x.parameter === "p_app_method_options",
-    )
-    if (!applicationMethods) throw new Error("Parameter metadata missing")
-    const applicationMethodOptions = (applicationMethods.options ?? [])
-      .filter(
-        (option): option is { value: ApplicationMethods; label: string } => option.value !== null,
-      )
-      .map((option) => ({
-        value: option.value,
-        label: option.label,
-      }))
-
-    const fertilizerOptions = fertilizers.map((fertilizer) => ({
-      value: fertilizer.p_id,
-      label: fertilizer.p_name_nl ?? "",
-      p_type: fertilizer.p_type,
-      p_type_rvo: fertilizer.p_type_rvo,
-      applicationMethodOptions: (fertilizer.p_app_method_options ?? [])
-        .map((opt) => applicationMethodOptions.find((x) => x.value === opt))
-        .filter(
-          (
-            option,
-          ): option is {
-            value: ApplicationMethods
-            label: string
-          } => option !== undefined,
-        ),
-      p_app_amount_unit: fertilizer.p_app_amount_unit,
-      p_app_amount_display_max:
-        getAppAmountDisplayRange(fertilizer.p_app_amount_unit, fertilizer.p_density)?.max ?? null,
-    }))
 
     // Map catalogue cultivations to options for the add-cultivation combobox
     const cultivationOptions = cultivationsCatalogue.map((cultivation) => {
@@ -226,14 +180,7 @@ const ActionSchema = z.discriminatedUnion("intent", [
   CultivationAddFormSchema.safeExtend({
     intent: z.literal("update_cultivation"),
   }),
-  HarvestFormSchema.safeExtend({ intent: z.literal("single_harvest") }),
-  HarvestFormSchema.safeExtend({ intent: z.literal("update_single_harvest") }),
-  FertilizerApplicationFormSchema.safeExtend({
-    intent: z.literal("add_fertilizer"),
-  }),
-  FertilizerApplicationFormSchemaModify.safeExtend({
-    intent: z.literal("update_fertilizer"),
-  }),
+  ...FIELD_EVENT_SCHEMAS,
   z.object({
     intent: z.literal("update_fertilizer_date"),
     p_app_id: z.string(),
@@ -252,14 +199,6 @@ const ActionSchema = z.discriminatedUnion("intent", [
   z.object({
     intent: z.literal("remove_cultivation"),
     b_lu: z.string(),
-  }),
-  z.object({
-    intent: z.literal("remove_harvest"),
-    b_id_harvesting: z.string(),
-  }),
-  z.object({
-    intent: z.literal("remove_fertilizer"),
-    p_app_id: z.string(),
   }),
   z.object({
     intent: z.literal("remove_soil_analysis"),
@@ -343,228 +282,17 @@ export async function action({ request, params }: Route.LoaderArgs) {
       return dataWithSuccess({ closeSheet: true }, { message: "Gewas is bijgewerkt." })
     }
 
-    if (formValues.intent === "add_fertilizer") {
-      const { b_id_farm, calendar } = params
-      if (!b_id_farm) {
+    // Harvests and fertilizer applications, shared with the grazing calendar
+    if (isFieldEvent(formValues)) {
+      if (!params.b_id_farm) {
         throw new Error("Farm ID is missing")
       }
-
-      await addFertilizerApplication(
-        fdm,
-        session.principal_id,
-        formValues.b_id ?? "",
-        formValues.p_id,
-        formValues.p_app_amount_display,
-        formValues.p_app_method,
-        formValues.p_app_date,
-      )
-
-      captureEvent(session.principal_id, "fertilizer_application_added", {
-        b_id_farm,
-        b_id: formValues.b_id,
-        p_id: formValues.p_id,
-        calendar: String(calendar),
+      return await handleFieldEvent(formValues, {
+        principal_id: session.principal_id,
+        b_id_farm: params.b_id_farm,
+        calendar: String(params.calendar),
         source: "rotation_table",
       })
-
-      return dataWithSuccess(
-        { closeSheet: true },
-        {
-          message: `Bemesting succesvol toegevoegd aan het perceel.`,
-        },
-      )
-    }
-
-    if (formValues.intent === "update_fertilizer") {
-      const { b_id_farm } = params
-      if (!b_id_farm) {
-        throw new Error("Farm ID is missing")
-      }
-
-      await updateFertilizerApplication(
-        fdm,
-        session.principal_id,
-        formValues.p_app_id,
-        formValues.p_id,
-        formValues.p_app_amount_display,
-        formValues.p_app_method,
-        formValues.p_app_date,
-      )
-
-      return dataWithSuccess(
-        { closeSheet: true },
-        {
-          message: `Bemesting succesvol bijgewerkt.`,
-        },
-      )
-    }
-
-    if (formValues.intent === "single_harvest") {
-      const targetCultivationInstance = await getCultivation(
-        fdm,
-        session.principal_id,
-        formValues.b_lu ?? "",
-      )
-
-      const termCapitalizedSingular = getHarvestTerm(
-        targetCultivationInstance.b_lu_croprotation,
-        false,
-        targetCultivationInstance.b_lu_harvestable,
-        true,
-      )
-
-      // Get required harvest parameters for the cultivation's harvest category
-      const requiredHarvestParameters = getParametersForHarvestCat(
-        targetCultivationInstance.b_lu_harvestcat,
-      )
-
-      // Check if all required parameters are present
-      const missingParameters: HarvestParameters = []
-      for (const param of requiredHarvestParameters) {
-        if (
-          (formValues as Record<string, any>)[param] === undefined ||
-          (formValues as Record<string, any>)[param] === null
-        ) {
-          missingParameters.push(param)
-        }
-      }
-
-      const missingParameterLabels = missingParameters.map((param) => {
-        return getHarvestParameterLabel(param)
-      })
-
-      if (missingParameters.length > 0) {
-        return dataWithWarning(
-          {
-            warning: `Missing required harvest parameters: ${missingParameters.join(", ")}`,
-          },
-          `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(", ")}`,
-        )
-      }
-
-      // Filter form values to include only required parameters for updateHarvest
-      const harvestProperties: Record<string, number> = {}
-      for (const param of requiredHarvestParameters) {
-        if (formValues[param] !== undefined) {
-          harvestProperties[param] = formValues[param]
-        }
-      }
-
-      const effectiveHarvestable = getEffectiveHarvestable(
-        targetCultivationInstance.b_lu_harvestable ?? "once",
-        targetCultivationInstance.b_lu_croprotation,
-      )
-
-      await fdm.transaction(async (tx) => {
-        if (effectiveHarvestable === "once") {
-          // Check for existing harvests for this specific cultivation instance
-          const existingHarvests = await getHarvests(
-            tx,
-            session.principal_id,
-            targetCultivationInstance.b_lu,
-          )
-
-          if (existingHarvests.length > 0) {
-            // If there are existing harvests, remove them before adding new ones
-            for (const harvest of existingHarvests) {
-              await removeHarvest(tx, session.principal_id, harvest.b_id_harvesting)
-            }
-          }
-        }
-
-        await addHarvest(
-          tx,
-          session.principal_id,
-          targetCultivationInstance.b_lu,
-          formValues.b_lu_harvest_date,
-          harvestProperties,
-        )
-      })
-
-      return dataWithSuccess(
-        { closeSheet: true },
-        {
-          message: `${termCapitalizedSingular} succesvol toegevoegd aan het perceel.`,
-        },
-      )
-    }
-
-    if (formValues.intent === "update_single_harvest") {
-      const targetCultivationInstance = await getCultivation(
-        fdm,
-        session.principal_id,
-        formValues.b_lu ?? "",
-      )
-
-      const termCapitalizedSingular = getHarvestTerm(
-        targetCultivationInstance.b_lu_croprotation,
-        false,
-        targetCultivationInstance.b_lu_harvestable,
-        true,
-      )
-
-      if (!formValues.b_lu_harvest_date) {
-        const errors = [
-          {
-            path: "b_lu_harvest_date",
-            message: "Selecteer een oogstdatum",
-          },
-        ]
-
-        throw new Error(JSON.stringify(errors))
-      }
-
-      // Get required harvest parameters for the cultivation's harvest category
-      const requiredHarvestParameters = getParametersForHarvestCat(
-        targetCultivationInstance.b_lu_harvestcat,
-      )
-
-      // Check if all required parameters are present
-      const missingParameters: HarvestParameters = []
-      for (const param of requiredHarvestParameters) {
-        if (
-          (formValues as Record<string, any>)[param] === undefined ||
-          (formValues as Record<string, any>)[param] === null
-        ) {
-          missingParameters.push(param)
-        }
-      }
-
-      const missingParameterLabels = missingParameters.map((param) => {
-        return getHarvestParameterLabel(param)
-      })
-
-      if (missingParameters.length > 0) {
-        return dataWithWarning(
-          {
-            warning: `Missing required harvest parameters: ${missingParameters.join(", ")}`,
-          },
-          `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(", ")}`,
-        )
-      }
-
-      // Filter form values to include only required parameters for updateHarvest
-      const harvestProperties: Record<string, any> = {}
-      for (const param of requiredHarvestParameters) {
-        if ((formValues as Record<string, any>)[param] !== undefined) {
-          harvestProperties[param] = (formValues as Record<string, any>)[param]
-        }
-      }
-
-      await updateHarvest(
-        fdm,
-        session.principal_id,
-        formValues.b_id_harvesting ?? "",
-        formValues.b_lu_harvest_date,
-        harvestProperties,
-      )
-
-      return dataWithSuccess(
-        { closeSheet: true },
-        {
-          message: `${termCapitalizedSingular} succesvol bijgewerkt aan het perceel.`,
-        },
-      )
     }
 
     if (formValues.intent === "update_fertilizer_date") {
@@ -649,18 +377,6 @@ export async function action({ request, params }: Route.LoaderArgs) {
       await removeCultivation(fdm, session.principal_id, formValues.b_lu)
 
       return dataWithSuccess({ closeSheet: true }, { message: "Gewas is verwijderd." })
-    }
-
-    if (formValues.intent === "remove_harvest") {
-      await removeHarvest(fdm, session.principal_id, formValues.b_id_harvesting)
-
-      return dataWithSuccess({ closeSheet: true }, { message: "Oogst is verwijderd." })
-    }
-
-    if (formValues.intent === "remove_fertilizer") {
-      await removeFertilizerApplication(fdm, session.principal_id, formValues.p_app_id)
-
-      return dataWithSuccess({ closeSheet: true }, { message: "Bemesting is verwijderd." })
     }
   } catch (err) {
     // extractFormValuesFromRequest already turned validation errors into a toast response

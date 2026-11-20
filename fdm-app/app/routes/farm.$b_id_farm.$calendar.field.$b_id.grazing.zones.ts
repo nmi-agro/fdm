@@ -1,0 +1,71 @@
+import { getField, getGrazingZonesForField } from "@nmi-agro/fdm-core"
+import { data, type LoaderFunctionArgs } from "react-router"
+import { getSession } from "~/lib/auth.server"
+import { handleLoaderError, reportError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import { STRIP_ROTATION_DAYS } from "~/lib/grazing-strip"
+
+const MS_PER_DAY = 86_400_000
+
+/**
+ * Resource route with what the grazing zone editor needs for a field: the field outline, the
+ * zones used earlier on the field to reuse them, and the zones in use around a date, so a new
+ * strip connects to them.
+ *
+ * Loaded by the zone editor when the user chooses to draw a zone, so the calendar does not have to
+ * load every field outline up front. When the earlier zones fail to load, the outline is still
+ * returned with `zonesFailed`, so the user can draw a zone.
+ *
+ * Search parameters:
+ * - `date` (`YYYY-MM-DD`): the start of the grazing. The zones of grazings that start in the
+ *   {@link STRIP_ROTATION_DAYS} days up to and including it are returned as `occupied`.
+ * - `exclude`: the grazing being edited, which does not occupy its own zone. Other grazings of the
+ *   same zone still do.
+ */
+export async function loader({ params, request }: LoaderFunctionArgs) {
+  try {
+    const b_id = params.b_id
+    if (!b_id) {
+      throw data("missing: b_id", { status: 400, statusText: "missing: b_id" })
+    }
+
+    const searchParams = new URL(request.url).searchParams
+    const dateParam = searchParams.get("date") ?? ""
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+      ? new Date(`${dateParam}T00:00:00.000Z`)
+      : null
+    const exclude = searchParams.get("exclude") || undefined
+
+    const session = await getSession(request)
+    const onFailure = (error: unknown) => {
+      reportError(error, { scope: "grazing-zones" })
+      return null
+    }
+    const [field, zones, occupied] = await Promise.all([
+      getField(fdm, session.principal_id, b_id),
+      getGrazingZonesForField(fdm, session.principal_id, b_id).catch(onFailure),
+      date && !Number.isNaN(date.getTime())
+        ? getGrazingZonesForField(fdm, session.principal_id, b_id, 100, {
+            from: new Date(date.getTime() - STRIP_ROTATION_DAYS * MS_PER_DAY),
+            to: date,
+            exclude_l_id_grazing: exclude,
+          }).catch(onFailure)
+        : Promise.resolve([]),
+    ])
+
+    return {
+      b_geometry: field.b_geometry,
+      zones: (zones ?? []).map((zone) => ({
+        l_grazing_geometry_zone: zone.l_grazing_geometry_zone,
+        l_grazing_area_grazed: zone.l_grazing_area_grazed,
+        last_used: zone.last_used.toISOString(),
+        usage_count: zone.usage_count,
+        l_herd_names: zone.l_herd_names,
+      })),
+      occupied: (occupied ?? []).map((zone) => zone.l_grazing_geometry_zone),
+      zonesFailed: zones === null || occupied === null,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
+}

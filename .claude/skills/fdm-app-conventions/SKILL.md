@@ -1,7 +1,7 @@
 ---
 name: fdm-app-conventions
 description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this large, lightly tested package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
-version: 1.1.0
+version: 1.3.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
@@ -84,7 +84,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 - **The principal from the session** is passed to every `fdm-core` call. Never trust a principal id from params, the body, or a hidden form field.
 - **Permission checks are explicit.** Reads are enforced by the core functions, but anything that renders or gates a write uses `checkPermission(fdm, resource, action, id, session.principal_id, "<caller>")` and either hides the affordance or throws 403.
 - **Missing or invalid params throw `data(message, { status })`**, which is the dominant convention in the route modules (288 uses against 20 raw `Response` throws). The error helpers understand both shapes, but `data()` keeps status and statusText where the rest of the codebase expects them.
-- **Wrap the body in `try/catch`** and re-throw through `handleLoaderError(error)` in loaders and `handleActionError(error)` in actions. These map 400/401/403/404 to Dutch user-facing messages, redirect to sign-in on 401, and for anything unexpected generate a short error id, report it to Sentry, and surface that id to the user. Never render a raw error message.
+- **Wrap the body in `try/catch`**: loaders `throw handleLoaderError(error)`, actions `return handleActionError(error)` (it resolves to a toast response with the error, so the action returns it instead of throwing). These map 400/401/403/404 to Dutch user-facing messages, redirect to sign-in on 401, and for anything unexpected generate a short error id, report it to Sentry, and surface that id to the user. Never render a raw error message.
 - **Actions branch on an intent field** and end with `throw data("Ongeldige actie", { status: 400 })` for an unrecognised branch.
 - **Successful actions return `dataWithSuccess(...)`** from `remix-toast` so the user gets feedback; `dataWithError` / `dataWithWarning` are the failure equivalents.
 - **Bound external calls.** Loaders that fan out to an external API per field limit concurrency with an explicit constant rather than issuing unbounded `Promise.all`.
@@ -98,7 +98,7 @@ Server-only modules end in `.server.ts` (29 of them) and client-only modules in 
 - Database access, secrets, and `serverConfig` are reachable only from `.server.ts` files and from loaders/actions. `app/lib/fdm.server.tsx` holds the single Drizzle connection; never construct another.
 - `~/lib/config.server` is server-only; the browser-safe subset is `~/lib/clientConfig` from `~/lib/config`.
 - External integrations live in `app/integrations/*.server.ts` and are called from loaders and actions, never from a component.
-- A component may not import a `.server` module, directly or transitively. If a component needs server data, the route loader fetches it and passes it down.
+- A component may not import a value from a `.server` module, directly or transitively. If a component needs server data, the route loader fetches it and passes it down. `import type` from a `.server` module is fine: types are erased from the client bundle, and components use it for the shape of loader data.
 
 ## Components
 
@@ -110,9 +110,11 @@ Decide placement before writing:
 | `components/blocks/<domain>/` | Feature components (306 files) | The default home for new UI. Group by domain: `farm/`, `field/`, `fertilizer-applications/`, `soil/`, `norms/`, … |
 | `components/custom/` | Cross-feature shared components | Only when a component is genuinely used across domains and is not a shadcn primitive. |
 
-Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep relative paths. Class names compose through `cn()` from `~/lib/utils`.
+Imports use the `~/` alias (`~/components/ui/button`, `~/lib/format`), never deep relative paths. Class names compose through `cn()` from the `cn` package (`import { cn } from "cn"`).
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
+
+The app runs under the name each deployment configures, so never write "FDM" (or another product name) in UI copy. Use `clientConfig.name` from `~/lib/config`, which comes from `PUBLIC_FDM_NAME`, as the `meta` titles already do: `` `${clientConfig.name} schat de oppervlakte…` ``. Code comments, package names and identifiers are not UI copy.
 
 ### Consistency across the app
 
@@ -201,7 +203,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 |---|---|
 | `import { … } from "react-router-dom"` | `react-router` — this repo is on v8 |
 | `useMatches()` match `.data` | `.loaderData` |
-| A component importing `~/lib/*.server` | Load in the route loader, pass as props |
+| A component importing a value from `~/lib/*.server` | Load in the route loader, pass as props (`import type` is fine) |
 | `new Drizzle(...)` or a second db connection | The shared `fdm` from `~/lib/fdm.server` |
 | Reading a principal id from params or a form field | `(await getSession(request)).principal_id` |
 | `throw new Response("...", { status })` in a route | `throw data("...", { status })` |
@@ -216,6 +218,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Ref-compare against a "previous value", or a `setTimeout`-deferred `setState`, to dodge a compiler lint error | Pick the matching pattern from "Client-side state and the React Compiler" |
 | A lazy `useState(() => window…)` initializer for a client-only value | `useSyncExternalStore` with an explicit server snapshot |
 | English UI strings | Dutch |
+| "FDM" written in UI copy | `clientConfig.name` (from `PUBLIC_FDM_NAME`) |
 | A new page or component that looks or behaves differently from its siblings | Follow the nearest existing screen; reuse its blocks (see "Consistency across the app") |
 | `<input type="date">` | `DatePicker` from `~/components/custom/date-picker-v2` |
 | Local advice thresholds or colours | `computeAdviceProgress` and the maps in `progress-bar.tsx` |

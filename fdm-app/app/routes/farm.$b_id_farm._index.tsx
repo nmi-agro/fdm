@@ -6,6 +6,7 @@ import {
   getFarm,
   getFarms,
   getFields,
+  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { format } from "date-fns"
@@ -78,6 +79,7 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useToday } from "~/hooks/use-today"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -238,6 +240,9 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
     // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
+    const herds = await getHerdsForFarm(fdm, session.principal_id, b_id_farm)
+    const hasHerds = herds.length > 0
+
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
 
@@ -257,6 +262,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
       // farmVerification,
       isRvoConfigured,
+      hasHerds,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -455,6 +461,8 @@ export default function FarmDashboardIndex() {
   const fetcher = useFetcher()
 
   const calendar = useCalendarStore((state) => state.calendar)
+  // "Today" is only known on the client
+  const today = useToday()
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const [searchParams, setSearchParams] = useSearchParams()
   const years = getCalendarSelection()
@@ -552,9 +560,9 @@ export default function FarmDashboardIndex() {
               {/* Quick Actions - primary, most-used destinations get the most visual weight */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzichten</h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <NavLink to={`${calendar}/field`}>
-                    <Card className="transition-all hover:shadow-md">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
                           <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
@@ -572,7 +580,7 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <NavLink to={`${calendar}/rotation`}>
-                    <Card className="transition-all hover:shadow-md">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
                           <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
@@ -589,6 +597,27 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
+                  {loaderData.hasHerds && (
+                    <NavLink to={`${calendar}/livestock/grazing`}>
+                      <Card className="h-full transition-all hover:shadow-md">
+                        <CardHeader>
+                          <div className="flex min-w-0 items-center gap-4">
+                            <div className="bg-primary text-primary-foreground shrink-0 rounded-lg p-3.5">
+                              <Icon iconNode={cowHead} className="h-7 w-7" />
+                            </div>
+                            {/* A soft hyphen breaks the long title as Beweidings-kalender in a
+                                narrow card; browsers lack a Dutch hyphenation dictionary */}
+                            <div className="min-w-0">
+                              <CardTitle className="text-lg">Beweidings&shy;kalender</CardTitle>
+                              <CardDescription>
+                                Beweiding, maaien en bemesting per perceel, dag voor dag.
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </NavLink>
+                  )}
                 </div>
               </div>
 
@@ -709,6 +738,17 @@ export default function FarmDashboardIndex() {
                 <h2 className="text-2xl font-semibold tracking-tight">Acties</h2>
                 <Card className="py-0">
                   <CardContent className="divide-border divide-y p-0">
+                    {loaderData.hasHerds && (
+                      <ActionLink
+                        // Today's grazing is always in the current year, whatever year is selected
+                        to={`${today ? today.getFullYear() : calendar}/atlas/grazing`}
+                        icon={<Icon iconNode={cowHead} className="text-primary h-5 w-5" />}
+                        title="Beweiding vandaag"
+                        description="Leg vast op welk perceel de koppels vandaag weiden."
+                        disabledDescription="U heeft geen schrijfrechten om beweiding vast te leggen."
+                        disabled={!loaderData.farmWritePermission}
+                      />
+                    )}
                     <NavLink
                       to={"soil-analysis/bulk"}
                       className="hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl"

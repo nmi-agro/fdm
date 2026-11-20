@@ -399,6 +399,104 @@ export async function handleActionError(error: unknown) {
     )
   }
 
+  // Validation: animal sex or species incompatible with category
+  if (containsErrorMessage(error, "is not allowed for category")) {
+    console.warn("Animal sex incompatible with category:", error)
+    return dataWithWarning(
+      null,
+      "Het geslacht kan niet worden gewijzigd omdat dit dier is ingedeeld (of ingedeeld is geweest) in een koppel/categorie die dit geslacht niet toestaat.",
+    )
+  }
+
+  if (containsErrorMessage(error, "does not match category")) {
+    console.warn("Animal species incompatible with category:", error)
+    return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
+  }
+
+  if (containsErrorMessage(error, "has not started yet") && containsErrorMessage(error, "Herd")) {
+    console.warn("Herd not started on the date of the move:", error)
+    return dataWithWarning(null, "Deze koppel is op die datum nog niet begonnen.")
+  }
+
+  if (containsErrorMessage(error, "has already ended") && containsErrorMessage(error, "Herd")) {
+    console.warn("Herd ended before the date of the move:", error)
+    return dataWithWarning(null, "Deze koppel is op die datum al beëindigd.")
+  }
+
+  if (containsErrorMessage(error, "Animal already belongs to herd")) {
+    console.warn("Animal already in the target herd:", error)
+    return dataWithWarning(null, "Dit dier zit al in deze koppel.")
+  }
+
+  // Validation: the count was changed elsewhere since the page was loaded (checked by fdm-core)
+  if (containsErrorMessage(error, "Number of animals in the herd has changed")) {
+    console.warn("Herd count changed since it was loaded:", error)
+    return dataWithWarning(
+      null,
+      "Het aantal dieren is intussen gewijzigd. Laad de pagina opnieuw en pas het aantal dan aan.",
+    )
+  }
+
+  // Validation: grazing hours and grazing zones (checked by fdm-core, also for clients that skip
+  // the checks of the app)
+  if (containsErrorMessage(error, "Invalid grazing hours")) {
+    console.warn("Invalid grazing hours:", error)
+    return dataWithWarning(null, "Kies meer dan 0 en hoogstens 24 uur per dag.")
+  }
+
+  if (
+    containsErrorMessage(error, "l_grazing_geometry_zone") &&
+    (containsErrorMessage(error, "contains an invalid") ||
+      containsErrorMessage(error, "must have WGS84 coordinates") ||
+      containsErrorMessage(error, "must be a Polygon or MultiPolygon"))
+  ) {
+    console.warn("Invalid grazing zone:", error)
+    return dataWithWarning(null, "Ongeldige zone. Teken de zone opnieuw.")
+  }
+
+  // Validation: life number and work number of an animal (checked by fdm-core)
+  if (
+    containsErrorMessage(error, "has an invalid check digit") ||
+    containsErrorMessage(error, "is not a valid Dutch cattle life number")
+  ) {
+    console.warn("Invalid life number:", error)
+    return dataWithWarning(
+      null,
+      "Dit levensnummer klopt niet. Controleer de cijfers op het oormerk: een Nederlands levensnummer heeft 9 of 12 cijfers.",
+    )
+  }
+
+  if (
+    containsErrorMessage(error, "Work number") &&
+    containsErrorMessage(error, "is already used")
+  ) {
+    console.warn("Work number in use:", error)
+    return dataWithWarning(
+      null,
+      "Een ander dier op dit bedrijf heeft dit werknummer al. Kies een ander werknummer.",
+    )
+  }
+
+  if (
+    containsErrorMessage(error, "Life number") &&
+    containsErrorMessage(error, "is already used")
+  ) {
+    console.warn("Life number in use:", error)
+    return dataWithWarning(null, "Een ander dier op dit bedrijf heeft dit levensnummer al.")
+  }
+
+  // Validation: a herd can be on the same field only once a day (checked by fdm-core)
+  if (
+    containsErrorMessage(error, "overlaps an existing grazing interval") ||
+    containsErrorMessage(error, "overlaps another grazing interval")
+  ) {
+    console.warn("Grazing overlaps another grazing of the herd:", error)
+    return dataWithWarning(
+      null,
+      "Deze koppel weidt op die dag al op dit perceel. Een koppel kan maar één keer per dag op hetzelfde perceel staan. Pas de datum aan of kies een ander perceel.",
+    )
+  }
+
   // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)
   const amountError = findErrorByName(error, "AppAmountOutOfRangeError")
   if (amountError) {
