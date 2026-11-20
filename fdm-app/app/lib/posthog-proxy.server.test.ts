@@ -1,5 +1,6 @@
 import type { AddressInfo } from "node:net"
 import express from "express"
+import { createServer } from "node:http"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createPosthogProxyMiddleware, proxyToPosthog } from "./posthog-proxy.server"
 
@@ -140,6 +141,74 @@ describe("proxyToPosthog", () => {
       POSTHOG_HOST,
     )
     expect(response.status).toBe(413)
+  })
+
+  it("answers 413 when a real upstream sends its headers before a too large upload ends", async () => {
+    // A local HTTP server that sends its response headers at once and then reads the upload
+    const upstream = createServer((req, res) => {
+      res.writeHead(200, { "content-type": "text/plain" })
+      res.flushHeaders()
+      req.on("error", () => undefined)
+      req.resume()
+      req.on("end", () => res.end("ok"))
+    })
+    await new Promise<void>((resolve) => upstream.listen(0, "127.0.0.1", resolve))
+    const { port } = upstream.address() as AddressInfo
+    vi.stubGlobal("fetch", (url: URL, init: RequestInit) =>
+      realFetch(`http://127.0.0.1:${port}${url.pathname}${url.search}`, init),
+    )
+    try {
+      const chunk = new Uint8Array(1024 * 1024)
+      const body = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          for (let i = 0; i < 11; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 10))
+            controller.enqueue(chunk)
+          }
+          controller.close()
+        },
+      })
+      const response = await proxyToPosthog(
+        {
+          method: "POST",
+          url: new URL("http://localhost/ingest/s/"),
+          headers: new Headers(),
+          body,
+        },
+        POSTHOG_HOST,
+      )
+      expect(response.status).toBe(413)
+    } finally {
+      upstream.closeAllConnections()
+      upstream.close()
+    }
+  })
+
+  it("answers 504 when the timeout ends an upload after PostHog has answered", async () => {
+    vi.useFakeTimers()
+    try {
+      // PostHog answers at once, but the upload never ends
+      vi.stubGlobal("fetch", async () => new Response("ok", { status: 200 }))
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(10))
+        },
+      })
+      const responsePromise = proxyToPosthog(
+        {
+          method: "POST",
+          url: new URL("http://localhost/ingest/s/"),
+          headers: new Headers(),
+          body,
+        },
+        POSTHOG_HOST,
+      )
+      vi.spyOn(console, "error").mockImplementation(() => undefined)
+      await vi.advanceTimersByTimeAsync(60_000)
+      expect((await responsePromise).status).toBe(504)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("does not forward hop-by-hop headers or headers that Connection names", async () => {

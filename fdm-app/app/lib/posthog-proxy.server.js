@@ -190,13 +190,21 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
   // PostHog may answer before it has read the whole upload. Wait until the body has been read, so
   // an upload that turns out too large is still answered with 413 instead of PostHog's response.
   if (upload) {
-    const aborted = new Promise((resolve) => {
-      controller.signal.addEventListener("abort", () => resolve(false), { once: true })
+    /** @type {Promise<"timeout">} */
+    const timedOut = new Promise((resolve) => {
+      if (controller.signal.aborted) resolve("timeout")
+      controller.signal.addEventListener("abort", () => resolve("timeout"), { once: true })
     })
-    if (await Promise.race([upload.tooLarge, aborted])) {
+    const outcome = await Promise.race([
+      upload.tooLarge.then((tooLarge) => (tooLarge ? "too-large" : "read")),
+      timedOut,
+    ])
+    if (outcome !== "read") {
       clearTimeout(timeoutId)
       response.body?.cancel().catch(() => undefined)
-      return new Response("Request too large", { status: 413 })
+      if (outcome === "too-large") return new Response("Request too large", { status: 413 })
+      console.error("PostHog proxy timeout after 60s")
+      return new Response("PostHog proxy timeout", { status: 504, statusText: "Gateway Timeout" })
     }
   }
 
