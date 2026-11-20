@@ -92,6 +92,15 @@ function activeAssignmentOn(date: Date): SQL {
   ) as SQL
 }
 
+/**
+ * SQL value for the moment a row is actually written. A column default (`now()`) is the start of
+ * the transaction; two moves that wait for the farm lock can start in one order and write in the
+ * other, so moves record this instead and `created` follows the order in which they happened.
+ */
+function writtenAt(): SQL<Date> {
+  return sql<Date>`clock_timestamp()`
+}
+
 /** SQL condition: the animal has not left the farm by `date`. */
 function presentOn(date: Date): SQL {
   return or(
@@ -897,15 +906,15 @@ async function assertNoMoveAfter(
     })
     .from(schema.animalAssigning)
     .where(inArray(schema.animalAssigning.l_id_animal, l_id_animals))
-    .orderBy(asc(schema.animalAssigning.l_assigning_start))
+    .orderBy(asc(schema.animalAssigning.l_assigning_start), asc(schema.animalAssigning.created))
 
-  // A move is any assignment after the animal's first one (its arrival in a herd)
-  const firstStart = new Map<string, number>()
+  // A move is any assignment after the animal's first one (its arrival in a herd), also one that
+  // starts at the same moment as the arrival
+  const seen = new Set<string>()
   for (const row of assignments) {
-    const start = row.l_assigning_start.getTime()
-    if (!firstStart.has(row.l_id_animal)) {
-      firstStart.set(row.l_id_animal, start)
-    } else if (start > firstStart.get(row.l_id_animal)! && start > date.getTime()) {
+    if (!seen.has(row.l_id_animal)) {
+      seen.add(row.l_id_animal)
+    } else if (row.l_assigning_start.getTime() > date.getTime()) {
       throw new Error(
         `Departure cannot be before the move to another herd on ${row.l_assigning_start.toISOString()}`,
       )
@@ -1324,6 +1333,7 @@ export async function assignAnimalToHerd(
         l_id_herd: target_l_id_herd,
         l_assigning_start,
         l_assigning_end: current ? current.l_assigning_end : (animal.l_leaving_date ?? null),
+        created: writtenAt(),
       })
     })
   } catch (err) {
@@ -1572,6 +1582,7 @@ export async function reassignHerdAnimals(
           l_id_herd: target_l_id_herd,
           l_assigning_start: l_reassign_date,
           l_assigning_end: row.l_assigning_end,
+          created: writtenAt(),
         })),
       )
 
