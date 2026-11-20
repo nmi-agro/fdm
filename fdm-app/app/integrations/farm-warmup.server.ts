@@ -11,7 +11,7 @@ import { getFields } from "@nmi-agro/fdm-core"
 import { getTimeframe } from "~/lib/calendar"
 import { reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { startFarmNutrientAdviceRows } from "~/lib/nutrient-advice.server"
+import { startFarmNutrientAdviceCalculation } from "~/lib/nutrient-advice.server"
 import { withTiming } from "~/lib/timing.server"
 import {
   collectFarmMeasureInputs,
@@ -45,7 +45,7 @@ const running = new Map<string, Promise<void>>()
  *
  * The calculations use the same input collectors and helpers as the pages, because a cached
  * result is only found when the inputs are exactly the same. The groups run one after another,
- * so the farm never has more NMI API requests open at the same time than a page itself:
+ * so a warm-up never has more NMI API requests open at the same time than a page itself:
  *
  * 1. Nutrient advice, usage norms (only for the years that have them), and the nitrogen (total
  *    nitrogen, the page's default) and organic matter balances.
@@ -106,12 +106,19 @@ async function runWarmup({ principal_id, b_id_farm, calendar }: WarmFarmCalculat
     step("organic-matter-balance", () =>
       getOrganicMatterBalanceForFarm({ fdm, principal_id, b_id_farm, timeframe }),
     ),
-    // As on the nutrient advice page; the rows never reject
-    step("nutrient-advice", () =>
-      Promise.all(
-        startFarmNutrientAdviceRows({ principal_id, b_id_farm, calendar, timeframe }, fields),
-      ),
-    ),
+    // As on the nutrient advice page. The rows never reject: a field without a crop and a failed
+    // NMI request (which the cache records) are rows with an error code. Only a failed read of
+    // the farm data is reported here, because then nothing was warmed.
+    step("nutrient-advice", async () => {
+      const rows = await Promise.all(
+        startFarmNutrientAdviceCalculation(
+          { principal_id, b_id_farm, calendar, timeframe },
+          fields,
+        ),
+      )
+      const failed = rows.find((row) => row.error?.code === "farm_data_unavailable")
+      if (failed?.error) throw new Error(failed.error.message)
+    }),
     // As on the usage norms page
     step("norms", async () => {
       if (!isNormsCalendar(calendar)) return

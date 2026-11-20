@@ -68,6 +68,30 @@ function toFieldNutrientRow(
 }
 
 /**
+ * Starts the calculation of `fdm-calculator` for every field of a farm, with the input that the
+ * nutrient advice pages use, and returns its rows with their error codes. The pages show them
+ * through {@link startFarmNutrientAdviceRows}; the calculation warm-up uses them directly.
+ *
+ * @param args - Session principal, farm, calendar year and timeframe.
+ * @param fields - Fields of the farm, as returned by `getFields`.
+ * @returns One promise of a row per field, in the same order as `fields`. The promises never reject.
+ */
+export function startFarmNutrientAdviceCalculation(
+  args: FarmNutrientAdviceArgs,
+  fields: FarmField[],
+): Promise<FarmNutrientAdviceRow>[] {
+  return startRows({
+    fdm,
+    principal_id: args.principal_id,
+    b_id_farm: args.b_id_farm,
+    year: Number(args.calendar),
+    timeframe: args.timeframe,
+    fields,
+    nmiApiKey: getNmiApiKey(),
+  })
+}
+
+/**
  * Starts calculating the nutrient advice and the already applied dose for every field of a farm,
  * and returns one promise per field, so React Router can stream each field when it is ready.
  * The calculation itself lives in `fdm-calculator` (`startFarmNutrientAdviceRows`), so the app
@@ -105,15 +129,7 @@ export function startFarmNutrientAdviceRows(
     return false
   })
 
-  return startRows({
-    fdm,
-    principal_id: args.principal_id,
-    b_id_farm: args.b_id_farm,
-    year: Number(args.calendar),
-    timeframe: args.timeframe,
-    fields,
-    nmiApiKey: getNmiApiKey(),
-  }).map(async (row) => {
+  return startFarmNutrientAdviceCalculation(args, fields).map(async (row) => {
     const resolved = await row
     // Only rows with a crop suggestion need the permission, for the accept flow.
     const has_write_permission = resolved.cultivationSuggestion

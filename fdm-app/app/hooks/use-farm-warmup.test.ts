@@ -19,8 +19,16 @@ describe("claimFarmWarmup", () => {
 
   it("claims again after a failed warm-up released its claim", () => {
     claimFarmWarmup(KEY, 1_000)
-    releaseFarmWarmup(KEY)
+    releaseFarmWarmup(KEY, 1_000)
     expect(claimFarmWarmup(KEY, 2_000)).toBe(true)
+  })
+
+  it("keeps a later claim when an earlier warm-up fails", () => {
+    claimFarmWarmup(KEY, 1_000)
+    const later = 1_000 + FARM_WARMUP_INTERVAL_MS
+    claimFarmWarmup(KEY, later)
+    releaseFarmWarmup(KEY, 1_000)
+    expect(store.get(KEY)).toBe(String(later))
   })
 
   afterEach(() => {

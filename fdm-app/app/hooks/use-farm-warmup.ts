@@ -27,12 +27,16 @@ export function claimFarmWarmup(key: string, now: number): boolean {
 
 /**
  * Removes the claim of a warm-up that did not reach the server, so the next visit tries again.
+ * A claim made since then, by a later warm-up of the same farm and year, is kept.
  *
  * @param key - The storage key of the farm and year.
+ * @param claimedAt - The moment passed to {@link claimFarmWarmup} for this warm-up.
  */
-export function releaseFarmWarmup(key: string): void {
+export function releaseFarmWarmup(key: string, claimedAt: number): void {
   try {
-    window.localStorage.removeItem(key)
+    if (window.localStorage.getItem(key) === String(claimedAt)) {
+      window.localStorage.removeItem(key)
+    }
   } catch {
     // Without storage there is no claim to remove
   }
@@ -57,15 +61,16 @@ export function useFarmWarmup(b_id_farm: string, calendar: string, enabled: bool
   useEffect(() => {
     if (!enabled) return
     const key = `${STORAGE_PREFIX}:${b_id_farm}:${calendar}`
-    if (!claimFarmWarmup(key, Date.now())) return
+    const claimedAt = Date.now()
+    if (!claimFarmWarmup(key, claimedAt)) return
     fetch(`/api/farm/${encodeURIComponent(b_id_farm)}/warm`, {
       method: "POST",
       body: new URLSearchParams({ calendar }),
       keepalive: true,
     })
       .then((response) => {
-        if (!response.ok) releaseFarmWarmup(key)
+        if (!response.ok) releaseFarmWarmup(key, claimedAt)
       })
-      .catch(() => releaseFarmWarmup(key))
+      .catch(() => releaseFarmWarmup(key, claimedAt))
   }, [b_id_farm, calendar, enabled])
 }

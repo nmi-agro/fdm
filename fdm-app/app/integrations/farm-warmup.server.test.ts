@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   getFields: vi.fn(),
-  startFarmNutrientAdviceRows: vi.fn(),
+  startFarmNutrientAdviceCalculation: vi.fn(),
   collectFarmNormsContext: vi.fn(),
   calculateFarmNorms: vi.fn(),
   getIndicatorsForFarm: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock("~/lib/timing.server", () => ({
   withTiming: (_id: string, _event: string, _props: unknown, fn: () => Promise<unknown>) => fn(),
 }))
 vi.mock("~/lib/nutrient-advice.server", () => ({
-  startFarmNutrientAdviceRows: mocks.startFarmNutrientAdviceRows,
+  startFarmNutrientAdviceCalculation: mocks.startFarmNutrientAdviceCalculation,
 }))
 vi.mock("./farm-norms.server", () => ({
   isNormsCalendar: (calendar: string) => calendar === "2025" || calendar === "2026",
@@ -47,7 +47,10 @@ const args = { principal_id: "principal-1", b_id_farm: "farm-1", calendar: "2026
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.getFields.mockResolvedValue(fields)
-  mocks.startFarmNutrientAdviceRows.mockReturnValue([Promise.resolve({}), Promise.resolve({})])
+  mocks.startFarmNutrientAdviceCalculation.mockReturnValue([
+    Promise.resolve({}),
+    Promise.resolve({}),
+  ])
   mocks.collectFarmNormsContext.mockResolvedValue({})
   mocks.calculateFarmNorms.mockResolvedValue({})
   mocks.getIndicatorsForFarm.mockResolvedValue([])
@@ -62,7 +65,7 @@ describe("warmFarmCalculations", () => {
   it("runs every calculation of the farm and year", async () => {
     await warmFarmCalculations(args)
 
-    expect(mocks.startFarmNutrientAdviceRows).toHaveBeenCalledWith(
+    expect(mocks.startFarmNutrientAdviceCalculation).toHaveBeenCalledWith(
       expect.objectContaining({ b_id_farm: "farm-1", calendar: "2026" }),
       fields,
     )
@@ -106,7 +109,7 @@ describe("warmFarmCalculations", () => {
   it("does nothing for a farm without fields", async () => {
     mocks.getFields.mockResolvedValue([])
     await warmFarmCalculations(args)
-    expect(mocks.startFarmNutrientAdviceRows).not.toHaveBeenCalled()
+    expect(mocks.startFarmNutrientAdviceCalculation).not.toHaveBeenCalled()
     expect(mocks.getIndicatorsForFarm).not.toHaveBeenCalled()
   })
 
@@ -119,6 +122,26 @@ describe("warmFarmCalculations", () => {
       expect.anything(),
     )
     expect(mocks.getMeasureAdviceForFields).toHaveBeenCalledOnce()
+  })
+
+  it("reports a failed read of the farm data for the nutrient advice, not a missing crop", async () => {
+    mocks.startFarmNutrientAdviceCalculation.mockReturnValue([
+      Promise.resolve({ error: { code: "no_cultivation", message: "No cultivation" } }),
+    ])
+    await warmFarmCalculations(args)
+    expect(mocks.reportError).not.toHaveBeenCalled()
+
+    mocks.startFarmNutrientAdviceCalculation.mockReturnValue([
+      Promise.resolve({ error: { code: "farm_data_unavailable", message: "Connection lost" } }),
+      Promise.resolve({ error: { code: "farm_data_unavailable", message: "Connection lost" } }),
+    ])
+    await warmFarmCalculations(args)
+    expect(mocks.reportError).toHaveBeenCalledOnce()
+    expect(mocks.reportError).toHaveBeenCalledWith(
+      new Error("Connection lost"),
+      { scope: "farm-warmup", step: "nutrient-advice" },
+      expect.anything(),
+    )
   })
 
   it("reports a failure to read the fields and never rejects", async () => {
