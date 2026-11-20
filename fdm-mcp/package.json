@@ -43,7 +43,7 @@
     "@sentry/node": "^11.14.0",
     "@sentry/profiling-node": "^11.14.0",
     "hono": "^4.13.19",
-    "posthog-node": "^5.74.0",
+    "posthog-node": "^6.0.4",
     "zod": "catalog:"
   },
   "devDependencies": {

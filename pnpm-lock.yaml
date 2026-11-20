@@ -258,13 +258,13 @@ importers:
         version: link:../fdm-data
       '@posthog/ai':
         specifier: ^8.21.1
-        version: 8.21.1(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))
+        version: 8.21.1(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))
       langchain:
         specifier: ^1.6.7
         version: 1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3)
       posthog-node:
-        specifier: ^5.74.0
-        version: 5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
+        specifier: ^6.0.4
+        version: 6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -464,7 +464,7 @@ importers:
         version: link:../fdm-storage
       '@posthog/ai':
         specifier: ^8.21.1
-        version: 8.21.1(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))
+        version: 8.21.1(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))
       '@react-email/ui':
         specifier: ^6.11.16
         version: 6.11.16(@babel/core@7.29.13(supports-color@8.1.1))(@opentelemetry/api@1.10.0)(@playwright/test@1.65.1)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -616,8 +616,8 @@ importers:
         specifier: ^1.451.2
         version: 1.451.2(@types/react@19.3.0)(react@19.3.1)
       posthog-node:
-        specifier: ^5.74.0
-        version: 5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
+        specifier: ^6.0.4
+        version: 6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       postmark:
         specifier: ^5.1.1
         version: 5.1.1
@@ -1091,7 +1091,7 @@ importers:
         version: link:../fdm-core
       '@posthog/mcp':
         specifier: ^1.6.0
-        version: 1.6.0(@modelcontextprotocol/server@2.4.0)(posthog-node@5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))
+        version: 1.6.0(@modelcontextprotocol/server@2.4.0)(posthog-node@6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))
       '@sentry/node':
         specifier: ^11.14.0
         version: 11.14.0(webpack@5.112.2(@swc/core@1.16.22(@swc/helpers@0.5.23))(@swc/html@1.16.22)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.33))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.33)(sharp@0.35.5(@types/node@26.6.6))(svgo@3.3.5))
@@ -1102,8 +1102,8 @@ importers:
         specifier: ^4.13.19
         version: 4.13.19
       posthog-node:
-        specifier: ^5.74.0
-        version: 5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
+        specifier: ^6.0.4
+        version: 6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -10578,8 +10578,8 @@ packages:
       react:
         optional: true
 
-  posthog-node@5.74.0:
-    resolution: {integrity: sha512-lAnGzPVobruQ7rZe45kzcXKZAcCK3J+1dMNS3WOOdx9mnM4ECRc2WRxBdS1ncBO/h/vDtHIEmcuIr/LUxxze5w==}
+  posthog-node@6.0.4:
+    resolution: {integrity: sha512-jl3NX7LNWu5il7Rqmpoj/tUGLLEyUw4d7ym3lgZ5VHcSz35UK4SPoKTR9S+RAVBxGBRo6mzUPYyk/ZLCyuFNcQ==}
     engines: {node: ^20.20.0 || >=22.22.0}
     peerDependencies:
       '@opentelemetry/api': ^1.2.0
@@ -16837,10 +16837,10 @@ snapshots:
 
   '@popperjs/core@2.11.8': {}
 
-  '@posthog/ai@8.21.1(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))':
+  '@posthog/ai@8.21.1(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(langchain@1.6.7(@langchain/core@1.4.2(@opentelemetry/api@1.10.0)(ws@8.21.3))(@opentelemetry/api@1.10.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(ws@8.21.3))(posthog-node@6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))':
     dependencies:
       '@posthog/core': 1.69.1
-      posthog-node: 5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
+      posthog-node: 6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       uuid: 11.1.1
       zod: 4.6.7
     optionalDependencies:
@@ -16861,10 +16861,10 @@ snapshots:
     dependencies:
       '@posthog/types': 1.425.1
 
-  '@posthog/mcp@1.6.0(@modelcontextprotocol/server@2.4.0)(posthog-node@5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))':
+  '@posthog/mcp@1.6.0(@modelcontextprotocol/server@2.4.0)(posthog-node@6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)))':
     dependencies:
       '@posthog/core': 1.69.1
-      posthog-node: 5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
+      posthog-node: 6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
     optionalDependencies:
       '@modelcontextprotocol/server': 2.4.0
 
@@ -22940,7 +22940,7 @@ snapshots:
     transitivePeerDependencies:
       - preact-render-to-string
 
-  posthog-node@5.74.0(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)):
+  posthog-node@6.0.4(@opentelemetry/api@1.10.0)(@react-email/render@2.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)):
     dependencies:
       '@posthog/core': 1.69.1
     optionalDependencies:

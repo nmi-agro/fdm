@@ -165,7 +165,7 @@ export default function PostHogClient(): PostHog | null {
         // Send events one at a time to avoid batch payload spikes
         maxBatchSize: 1,
         // Intercept events before sending to prevent 413s from large LLM payloads
-        before_send: sanitizePostHogEvent,
+        beforeSend: sanitizePostHogEvent,
       })
     }
   }
