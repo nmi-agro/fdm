@@ -1,21 +1,44 @@
 import * as Sentry from "@sentry/react-router"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useMatches, useNavigation } from "react-router"
 import { clientConfig } from "~/lib/config"
 import { normalizePage } from "~/lib/url-utils"
 
+/** Delay before the slim progress bar at the top of the page appears. */
+const BAR_DELAY_MS = 300
+/** Delay before a page navigation also blurs the page with the "Even geduld…" card. */
+const OVERLAY_DELAY_MS = 2000
+/** Delay before a form submission blurs the page, which also prevents a second submit. */
+const SUBMIT_OVERLAY_DELAY_MS = 500
+
+/** The navigation that is being measured, from the moment the router left the idle state. */
+interface TrackedNavigation {
+  startedAt: number
+  fromPage: string
+  page: string
+  overlayShown: boolean
+}
+
 /**
- * Shows a blurred overlay with a loading card when navigation takes longer than 500ms.
- * Fast navigations never trigger the indicator.
- * Tracks show frequency and duration as Sentry metrics, tagged with the source page pathname.
+ * Shows progress while the router navigates or submits a form.
+ *
+ * Fast navigations show nothing. After {@link BAR_DELAY_MS} a slim bar appears at the top of the
+ * page, so the current page stays readable. Only when a navigation takes longer than
+ * {@link OVERLAY_DELAY_MS}, or a form submission longer than {@link SUBMIT_OVERLAY_DELAY_MS}, the
+ * page is blurred and the "Even geduld…" card is shown.
+ *
+ * Sends two Sentry metrics with the normalized destination (`page`) and source (`from_page`)
+ * pages as attributes:
+ * - `navigation_progress.shown`: counted when the blurred overlay appears.
+ * - `navigation_progress.duration_ms`: the duration of every navigation that showed the bar, with
+ *   `overlay` telling whether the overlay was shown as well.
  *
  * Routes can opt out by exporting `export const handle = { hideNavigationProgress: true }`.
  */
 export function NavigationProgress() {
   const navigation = useNavigation()
-  const { state } = navigation
   const { pathname } = useLocation()
   const matches = useMatches()
   const hideProgress = matches.some(
@@ -24,80 +47,139 @@ export function NavigationProgress() {
       typeof m.handle === "object" &&
       (m.handle as Record<string, unknown>).hideNavigationProgress === true,
   )
-  // The navigation key the 500ms timer last fired for. Comparing against the current
-  // navigation's key means an overlapping navigation is never shown using a stale timer.
-  const [shownFor, setShownFor] = useState<string | null>(null)
-  const startTimeRef = useRef<number | null>(null)
-  const startPathnameRef = useRef<string | null>(null)
-  const visible =
-    state !== "idle" && !hideProgress && shownFor === (navigation.location?.key ?? null)
+  const active = navigation.state !== "idle" && !hideProgress
+  const isSubmission =
+    navigation.formMethod !== undefined && navigation.formMethod.toUpperCase() !== "GET"
+  const navigationKey = navigation.location?.key ?? null
+  const destination = navigation.location?.pathname ?? pathname
 
-  // Show after 500ms — emit a count metric when it appears
+  // The navigation key each timer last fired for. Comparing against the current navigation's key
+  // means an overlapping navigation is never shown using a stale timer.
+  const [barShownFor, setBarShownFor] = useState<string | null>(null)
+  const [overlayShownFor, setOverlayShownFor] = useState<string | null>(null)
+  const barVisible = active && barShownFor === navigationKey
+  const overlayVisible = active && overlayShownFor === navigationKey
+  const trackedRef = useRef<TrackedNavigation | null>(null)
+
+  // Start the timers. The delays count from the moment the router left the idle state, so a
+  // redirect after a submission (a new navigation key) shows the progress again right away.
   useEffect(() => {
-    if (state !== "idle" && !hideProgress) {
-      if (startTimeRef.current === null) {
-        startTimeRef.current = Date.now()
-        startPathnameRef.current = pathname
+    if (!active) return
+    if (trackedRef.current === null) {
+      trackedRef.current = {
+        startedAt: Date.now(),
+        fromPage: normalizePage(pathname),
+        page: normalizePage(destination),
+        overlayShown: false,
       }
-      const key = navigation.location?.key ?? null
-      const timer = setTimeout(() => {
-        setShownFor(key)
+    }
+    const tracked = trackedRef.current
+    const elapsed = Date.now() - tracked.startedAt
+    const overlayDelay = isSubmission ? SUBMIT_OVERLAY_DELAY_MS : OVERLAY_DELAY_MS
+
+    const barTimer = setTimeout(
+      () => setBarShownFor(navigationKey),
+      Math.max(0, BAR_DELAY_MS - elapsed),
+    )
+    const overlayTimer = setTimeout(
+      () => {
+        setOverlayShownFor(navigationKey)
+        if (tracked.overlayShown) return
+        tracked.overlayShown = true
         if (clientConfig.analytics.sentry) {
-          Sentry.withScope((scope) => {
-            scope.setTag("page", normalizePage(startPathnameRef.current ?? pathname))
-            Sentry.metrics.count("navigation_progress.shown", 1)
+          Sentry.metrics.count("navigation_progress.shown", 1, {
+            attributes: { page: tracked.page, from_page: tracked.fromPage },
           })
         }
-      }, 500)
-      return () => clearTimeout(timer)
+      },
+      Math.max(0, overlayDelay - elapsed),
+    )
+    return () => {
+      clearTimeout(barTimer)
+      clearTimeout(overlayTimer)
     }
+  }, [active, navigationKey, isSubmission, pathname, destination])
 
-    // Navigation finished — emit duration metric
-    if (visible && startTimeRef.current !== null) {
-      const duration = Date.now() - startTimeRef.current
-      if (clientConfig.analytics.sentry) {
-        Sentry.withScope((scope) => {
-          scope.setTag("page", normalizePage(startPathnameRef.current ?? pathname))
-          Sentry.metrics.distribution("navigation_progress.duration_ms", duration)
-        })
-      }
-    }
-    startTimeRef.current = null
-    startPathnameRef.current = null
-  }, [state, visible, hideProgress, pathname, navigation.location])
+  // Navigation finished: record how long a navigation that showed progress took
+  useEffect(() => {
+    if (active) return
+    const tracked = trackedRef.current
+    trackedRef.current = null
+    if (!tracked) return
+    const duration = Date.now() - tracked.startedAt
+    if (duration < BAR_DELAY_MS || !clientConfig.analytics.sentry) return
+    Sentry.metrics.distribution("navigation_progress.duration_ms", duration, {
+      unit: "millisecond",
+      attributes: {
+        page: tracked.page,
+        from_page: tracked.fromPage,
+        overlay: tracked.overlayShown,
+      },
+    })
+  }, [active])
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <>
-          {/* Backdrop blur */}
-          <motion.div
-            key="nav-backdrop"
-            className="bg-background/50 fixed inset-0 z-9998 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-          />
+    <>
+      <AnimatePresence>{barVisible && <ProgressBar key="nav-bar" />}</AnimatePresence>
+      <AnimatePresence>
+        {overlayVisible && (
+          <>
+            {/* Backdrop blur */}
+            <motion.div
+              key="nav-backdrop"
+              className="bg-background/50 fixed inset-0 z-9998 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            />
 
-          {/* Loading card */}
-          <motion.div
-            key="nav-card"
-            className="border-border bg-background fixed top-1/2 left-1/2 z-9999 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 rounded-xl border px-8 py-6 shadow-xl"
-            initial={{ opacity: 0, scale: 0.92, y: "-48%" }}
-            animate={{ opacity: 1, scale: 1, y: "-50%" }}
-            exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
-            transition={{
-              type: "spring",
-              stiffness: 420,
-              damping: 28,
-            }}
-          >
-            <Loader2 className="text-primary h-6 w-6 animate-spin" />
-            <p className="text-muted-foreground text-sm">Even geduld…</p>
-          </motion.div>
-        </>
+            {/* Loading card */}
+            <motion.div
+              key="nav-card"
+              className="border-border bg-background fixed top-1/2 left-1/2 z-9999 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 rounded-xl border px-8 py-6 shadow-xl"
+              initial={{ opacity: 0, scale: 0.92, y: "-48%" }}
+              animate={{ opacity: 1, scale: 1, y: "-50%" }}
+              exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
+              transition={{
+                type: "spring",
+                stiffness: 420,
+                damping: 28,
+              }}
+            >
+              <Loader2 className="text-primary h-6 w-6 animate-spin" />
+              <p className="text-muted-foreground text-sm">Even geduld…</p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+/** A slim, indeterminate progress bar along the top edge of the viewport. */
+function ProgressBar() {
+  const reduceMotion = useReducedMotion()
+  return (
+    <motion.div
+      role="status"
+      className="bg-primary/15 pointer-events-none fixed inset-x-0 top-0 z-9999 h-0.5 overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+    >
+      <span className="sr-only">Pagina wordt geladen</span>
+      {reduceMotion ? (
+        <div className="bg-primary h-full w-1/3" />
+      ) : (
+        <motion.div
+          className="bg-primary h-full w-1/3"
+          initial={{ x: "-100%" }}
+          animate={{ x: "300%" }}
+          transition={{ duration: 1.2, ease: "easeInOut", repeat: Infinity }}
+        />
       )}
-    </AnimatePresence>
+    </motion.div>
   )
 }
