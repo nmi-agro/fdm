@@ -2,7 +2,7 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-The calculation pages of a farm open faster after the farm dashboard has been visited. Once the dashboard has rendered, the app fills the calculation cache of the farm and the selected year in the background, through the new route `POST /api/farm/:b_id_farm/warm`. By the time the user opens "Indicatoren", "Maatregelen", "Bemestingsadvies" or "Gebruiksruimte", their results are usually already calculated, also right after creating a farm.
+The calculation pages of a farm open faster after the farm dashboard has been visited. Once the dashboard has rendered, the app fills the calculation cache of the farm and the selected year in the background, through the new route `POST /api/farm/:b_id_farm/warm`. By the time the user opens "Indicatoren", "Maatregelen", "Bemestingsadvies", "Gebruiksruimte" or the nitrogen and organic matter balances ("Balans"), their results are usually already calculated, also right after creating a farm. The nitrogen balance is warmed for total nitrogen, the page's default.
 
 - The warm-up uses the same inputs and helpers as these pages, so the pages find its results in the cache. The calculations run one group at a time, so a farm never has more NMI API requests open at once than the pages themselves.
 - Nobody waits for the warm-up and a failure is only reported, never shown. The route checks the session and read permission on the farm.

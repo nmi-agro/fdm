@@ -40,7 +40,8 @@ export function releaseFarmWarmup(key: string): void {
 
 /**
  * Asks the server to fill the calculation cache of a farm for a calendar year, after the page
- * has rendered, so the indicators, measures, nutrient advice and usage norms pages open faster.
+ * has rendered, so the indicators, measures, nutrient advice, usage norms and balance pages open
+ * faster.
  *
  * The request is fire-and-forget: nothing waits for it, and a failure is not shown (the server
  * reports it). It is a plain `fetch` rather than a fetcher, so it does not revalidate the

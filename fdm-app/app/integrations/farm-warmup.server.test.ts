@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   collectFarmMeasureInputs: vi.fn(),
   getMeasureApplicabilityForFields: vi.fn(),
   getMeasureAdviceForFields: vi.fn(),
+  getNitrogenBalanceForFarm: vi.fn(),
+  getOrganicMatterBalanceForFarm: vi.fn(),
   reportError: vi.fn(),
 }))
 
@@ -32,6 +34,10 @@ vi.mock("./bln3.server", () => ({
   getMeasureApplicabilityForFields: mocks.getMeasureApplicabilityForFields,
   getMeasureAdviceForFields: mocks.getMeasureAdviceForFields,
 }))
+vi.mock("./calculator", () => ({
+  getNitrogenBalanceForFarm: mocks.getNitrogenBalanceForFarm,
+  getOrganicMatterBalanceForFarm: mocks.getOrganicMatterBalanceForFarm,
+}))
 
 const { warmFarmCalculations } = await import("./farm-warmup.server")
 
@@ -48,6 +54,8 @@ beforeEach(() => {
   mocks.collectFarmMeasureInputs.mockResolvedValue(new Map())
   mocks.getMeasureApplicabilityForFields.mockResolvedValue({})
   mocks.getMeasureAdviceForFields.mockResolvedValue({})
+  mocks.getNitrogenBalanceForFarm.mockResolvedValue({})
+  mocks.getOrganicMatterBalanceForFarm.mockResolvedValue({})
 })
 
 describe("warmFarmCalculations", () => {
@@ -67,6 +75,13 @@ describe("warmFarmCalculations", () => {
     )
     expect(mocks.getMeasureApplicabilityForFields).toHaveBeenCalledOnce()
     expect(mocks.getMeasureAdviceForFields).toHaveBeenCalledOnce()
+    // The nitrogen balance page's default: total nitrogen
+    expect(mocks.getNitrogenBalanceForFarm).toHaveBeenCalledWith(
+      expect.not.objectContaining({ useEffectiveNitrogen: true }),
+    )
+    expect(mocks.getOrganicMatterBalanceForFarm).toHaveBeenCalledWith(
+      expect.objectContaining({ b_id_farm: "farm-1" }),
+    )
   })
 
   it("joins a warm-up of the same farm and year that is still running", async () => {

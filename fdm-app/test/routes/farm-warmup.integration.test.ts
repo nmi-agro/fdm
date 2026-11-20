@@ -1,7 +1,7 @@
 /**
  * The calculation warm-up of a farm (`api.farm.$b_id_farm.warm`): access checks, and that a
- * warmed farm opens its indicators, measures, nutrient advice and usage norms pages without
- * requests to the NMI API and without new cache entries.
+ * warmed farm opens its indicators, measures, nutrient advice, usage norms, nitrogen balance and
+ * organic matter balance pages without requests to the NMI API and without new cache entries.
  *
  * The NMI API is replaced by a stub that answers every endpoint with a small valid response.
  */
@@ -9,6 +9,8 @@ import { sql } from "drizzle-orm"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { fdm } from "~/lib/fdm.server"
 import { action } from "~/routes/api.farm.$b_id_farm.warm"
+import { loader as nitrogenBalanceLoader } from "~/routes/farm.$b_id_farm.$calendar.balance.nitrogen._index"
+import { loader as organicMatterBalanceLoader } from "~/routes/farm.$b_id_farm.$calendar.balance.organic-matter._index"
 import { loader as indicatorsLoader } from "~/routes/farm.$b_id_farm.$calendar.indicators._index"
 import { loader as measuresLoader } from "~/routes/farm.$b_id_farm.$calendar.measures._index"
 import { loader as normsLoader } from "~/routes/farm.$b_id_farm.$calendar.norms._index"
@@ -85,12 +87,12 @@ const warm = (b_id_farm: string, form: Record<string, string>) =>
   runRoute(() => action(actionArgs(`/api/farm/${b_id_farm}/warm`, { b_id_farm }, form)))
 
 /**
- * The cache entries of the calculations on these pages: the NMI requests and the norms. Other
- * test files that run at the same time do not use them.
+ * The cache entries of the calculations on these pages: the NMI requests, the norms and the
+ * balances. Other test files that run at the same time do not use them.
  */
 const pageCacheEntries = sql`calculation_function in (
     'requestBln3Score', 'requestBln3MeasureApplicability', 'requestBln3MeasureAdvice',
-    'requestNutrientAdvice'
+    'requestNutrientAdvice', 'calculateNitrogenBalanceField', 'calculateOrganicMatterBalanceField'
   ) or calculation_function like 'calculateNL%'`
 
 async function countCacheEntries(): Promise<number> {
@@ -164,6 +166,14 @@ describe("action", () => {
     // Every calculation that calls the NMI API ran
     expect(new Set(nmiRequests)).toEqual(new Set(Object.keys(NMI_RESPONSES)))
     const entriesAfterWarmup = await waitForCacheWrites()
+    // The balances call no external API; check that they were calculated and cached too
+    const balanceRows = await fdm.execute<{ calculation_function: string }>(
+      sql`select distinct calculation_function from "fdm-calculator".calculation_cache
+        where calculation_function in ('calculateNitrogenBalanceField', 'calculateOrganicMatterBalanceField')`,
+    )
+    expect(new Set(balanceRows.map((row) => row.calculation_function))).toEqual(
+      new Set(["calculateNitrogenBalanceField", "calculateOrganicMatterBalanceField"]),
+    )
 
     nmiRequests.length = 0
     const params = { b_id_farm, calendar }
@@ -172,6 +182,8 @@ describe("action", () => {
       ["measures", measuresLoader],
       ["nutrient_advice", nutrientAdviceLoader],
       ["norms", normsLoader],
+      ["balance/nitrogen", nitrogenBalanceLoader],
+      ["balance/organic-matter", organicMatterBalanceLoader],
     ] as const) {
       const { status: pageStatus, data } = await runRoute(() =>
         loader(loaderArgs(`/farm/${b_id_farm}/${calendar}/${page}`, params)),

@@ -8,7 +8,8 @@ import { fdm } from "~/lib/fdm.server"
 
 /**
  * API route: fill the calculation cache of a farm for a calendar year, so its indicators,
- * measures, nutrient advice and usage norms pages open without waiting for the NMI API.
+ * measures, nutrient advice, usage norms and balance pages open without waiting for the
+ * calculations.
  *
  * The farm dashboard posts here after it has rendered. The calculations run inside this request,
  * so they do not depend on work that continues after a response. Nobody waits for the answer,

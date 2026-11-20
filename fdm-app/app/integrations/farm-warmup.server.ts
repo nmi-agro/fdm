@@ -1,10 +1,11 @@
 /**
  * Fills the calculation cache of a farm before the user opens its calculation pages.
  *
- * The indicators, measures, nutrient advice and usage norms ("gebruiksruimte") pages read their
- * results through `withCalculationCache`. On a cache miss they call the NMI API per field, which
- * takes tens of seconds on larger farms. The warm-up runs the same farm-level calculations ahead
- * of time, so these pages usually find their results in the cache.
+ * The indicators, measures, nutrient advice, usage norms ("gebruiksruimte") and balance pages
+ * read their results through `withCalculationCache`. On a cache miss the first four call the NMI
+ * API per field, which takes tens of seconds on larger farms, and the balances are calculated
+ * per field. The warm-up runs the same farm-level calculations ahead of time, so these pages
+ * usually find their results in the cache.
  */
 import { getFields } from "@nmi-agro/fdm-core"
 import { getTimeframe } from "~/lib/calendar"
@@ -18,6 +19,7 @@ import {
   getMeasureAdviceForFields,
   getMeasureApplicabilityForFields,
 } from "./bln3.server"
+import { getNitrogenBalanceForFarm, getOrganicMatterBalanceForFarm } from "./calculator"
 import { calculateFarmNorms, collectFarmNormsContext, isNormsCalendar } from "./farm-norms.server"
 
 /** Name of the PostHog event that records how long a warm-up took. */
@@ -37,14 +39,16 @@ export interface WarmFarmCalculationsArgs {
 const running = new Map<string, Promise<void>>()
 
 /**
- * Runs the farm-level calculations of the indicators, measures, nutrient advice and usage norms
- * pages, so their results are in the calculation cache when the user opens these pages.
+ * Runs the farm-level calculations of the indicators, measures, nutrient advice, usage norms,
+ * nitrogen balance and organic matter balance pages, so their results are in the calculation
+ * cache when the user opens these pages.
  *
  * The calculations use the same input collectors and helpers as the pages, because a cached
  * result is only found when the inputs are exactly the same. The groups run one after another,
  * so the farm never has more NMI API requests open at the same time than a page itself:
  *
- * 1. Nutrient advice and usage norms (the norms only for the years that have them).
+ * 1. Nutrient advice, usage norms (only for the years that have them), and the nitrogen (total
+ *    nitrogen, the page's default) and organic matter balances.
  * 2. BLN3 scores.
  * 3. BLN3 measure applicability and advice.
  *
@@ -52,9 +56,8 @@ const running = new Map<string, Promise<void>>()
  * returned promise never rejects. When a warm-up of the same farm and year is already running
  * on this instance, the returned promise waits for that one instead of starting another; that
  * warm-up may have collected its inputs before a recent edit, which the pages then calculate on
- * their first visit. Other
- * instances do not see it, so two instances can warm the same farm at the same time; that only
- * repeats work, because both write the same results.
+ * their first visit. Other instances do not see it, so two instances can warm the same farm at
+ * the same time; that only repeats work, because both write the same results.
  *
  * The caller must check that the principal may read the farm.
  *
@@ -95,6 +98,14 @@ async function runWarmup({ principal_id, b_id_farm, calendar }: WarmFarmCalculat
   }
 
   await Promise.all([
+    // As on the balance pages; they call no external API. The nitrogen balance page shows total
+    // nitrogen unless the user switches to effective nitrogen, so only the default is warmed
+    step("nitrogen-balance", () =>
+      getNitrogenBalanceForFarm({ fdm, principal_id, b_id_farm, timeframe }),
+    ),
+    step("organic-matter-balance", () =>
+      getOrganicMatterBalanceForFarm({ fdm, principal_id, b_id_farm, timeframe }),
+    ),
     // As on the nutrient advice page; the rows never reject
     step("nutrient-advice", () =>
       Promise.all(
