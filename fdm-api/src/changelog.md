@@ -70,6 +70,13 @@ For fields without sampling zones, `sources` holds exactly one analysis and the 
 - Soil analyses return `b_sampling_geometry` (GeoJSON `MultiPoint`, the locations of the subsamples) and `b_sampling_geometry_zone` (GeoJSON `MultiPolygon`, the area the analysis represents; `null` for the whole field). `POST /fields/{b_id}/soil-analyses` and `PATCH /soil-analyses/{a_id}` accept both; a zone may also be a `Polygon`.
 - `GET /fields/{b_id}/current-soil-data/zones` returns the current soil data per sampling zone, with the zone geometry clipped to the field and its area in hectares.
 
+## 0.3.3
+
+### Indicators: fields without a main cultivation
+
+- A field without a main cultivation in the requested year now gets no indicator scores and no measure options. `GET /fields/{b_id}/indicators` and `GET /fields/{b_id}/measures/catalogue` return it with `is_excluded: true` and empty lists, and `GET /farms/{b_id_farm}/indicators` leaves it out of `fields` and the farm scores.
+- Both field endpoints return the new `exclusion_reason`: `bufferstrip`, `nature`, `no_main_cultivation`, or `null` when the field is not excluded.
+
 ## 0.3.1
 
 ### Every field documented

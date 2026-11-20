@@ -286,13 +286,13 @@
   ],
   "narrative": {
     "northStar": "The Agronomist's Workbench",
-    "overview": "fdm-app is a quiet, expert tool that disappears into the task. Users bring raw farm data they already know and leave with connected agronomic insight. A calm near-monochrome slate surface, a single Inter voice, and consistent shadcn/Radix components keep attention on the data and the decision, never on the chrome. The personality is calm, trustworthy, and modern; density is honest but never cluttered, and color is earned, never sprayed.",
+    "overview": "fdm-app is a quiet, expert tool that disappears into the task. Users bring raw farm data they already know and leave with connected agronomic insight. A calm near-monochrome slate surface, a single Inter voice, and consistent shadcn/Base UI components keep attention on the data and the decision, never on the chrome. The personality is calm, trustworthy, and modern; density is honest but never cluttered, and color is earned, never sprayed.",
     "keyCharacteristics": [
       "Near-monochrome slate surface; hue reserved for data and state.",
       "One typeface (Inter) across headings, labels, body, and data.",
       "Flat by default; subtle shadows only as a response to state.",
       "Full light/dark parity via CSS custom properties.",
-      "Standard, consistent component vocabulary (shadcn new-york + Radix)."
+      "Standard, consistent component vocabulary (shadcn base-vega + Base UI)."
     ],
     "rules": [
       {

@@ -38,7 +38,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -535,9 +535,16 @@ export default function FarmRotationHarvestAddIndex() {
                             ) && (
                               <TooltipProvider>
                                 <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                  </TooltipTrigger>
+                                  <TooltipTrigger
+                                    render={
+                                      <button
+                                        type="button"
+                                        aria-label="Dit perceel heeft het geselecteerde gewas niet"
+                                      >
+                                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                      </button>
+                                    }
+                                  />
                                   <TooltipContent>
                                     <p>Dit perceel heeft het geselecteerde gewas niet</p>
                                   </TooltipContent>
@@ -557,19 +564,25 @@ export default function FarmRotationHarvestAddIndex() {
                         Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
                         filtermogelijkheden.
                       </p>
-                      <Button asChild variant="link" className="mt-4">
-                        <NavLink to={backlink}>{backlinkLabel}</NavLink>
-                      </Button>
+                      <NavLink
+                        to={backlink}
+                        className={buttonVariants({ variant: "link", className: "mt-4" })}
+                        data-slot="button"
+                      >
+                        {backlinkLabel}
+                      </NavLink>
                     </div>
                   )}
                 </CardContent>
                 <CardFooter>
                   <Dialog open={open} onOpenChange={handleSelectionDialogOpenChange}>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" className="w-full">
-                        Wijzig selectie
-                      </Button>
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={
+                        <Button variant="secondary" className="w-full">
+                          Wijzig selectie
+                        </Button>
+                      }
+                    />
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
                         <DialogTitle>Percelen selecteren</DialogTitle>

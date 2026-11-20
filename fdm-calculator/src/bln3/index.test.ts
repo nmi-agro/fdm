@@ -9,7 +9,12 @@ import {
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Bln3Score } from "./types"
-import { getBln3MeasureAdvice, getBln3MeasureApplicability, getBln3Score } from "./api"
+import {
+  getBln3MeasureAdvice,
+  getBln3MeasureApplicability,
+  getBln3Score,
+  getBln3Scores,
+} from "./api"
 import { IndicatorsUnavailableError } from "./errors"
 import {
   getFarmIndicators,
@@ -17,7 +22,11 @@ import {
   getFieldMeasureOptions,
   getYearTimeframe,
 } from "./index"
-import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
+import {
+  collectInputForBln3MeasureApplicability,
+  collectInputForBln3Score,
+  collectInputForBln3ScoreForFarm,
+} from "./input"
 
 vi.mock("@nmi-agro/fdm-core", async () => {
   const actual = await vi.importActual("@nmi-agro/fdm-core")
@@ -35,14 +44,18 @@ vi.mock("./api", () => ({
   getBln3MeasureAdvice: vi.fn(),
   getBln3MeasureApplicability: vi.fn(),
   getBln3Score: vi.fn(),
+  getBln3Scores: vi.fn(),
 }))
 
 vi.mock("./input", () => ({
   collectInputForBln3MeasureApplicability: vi.fn(),
   collectInputForBln3Score: vi.fn(),
+  collectInputForBln3ScoreForFarm: vi.fn(),
 }))
 
 const mockedGetBln3Score = vi.mocked(getBln3Score)
+const mockedGetBln3Scores = vi.mocked(getBln3Scores)
+const mockedCollectScoreForFarm = vi.mocked(collectInputForBln3ScoreForFarm)
 const mockedGetBln3MeasureApplicability = vi.mocked(getBln3MeasureApplicability)
 const mockedGetBln3MeasureAdvice = vi.mocked(getBln3MeasureAdvice)
 const mockedCollectScore = vi.mocked(collectInputForBln3Score)
@@ -66,12 +79,14 @@ const score = (value: number): Bln3Score => ({
   aggregations: [{ aggregation_id: "S_BLN", score: value }],
 })
 
-const scoreInputs = { a_lat: 51.6, a_lon: 5.2 } as Awaited<
+const scoreInputs = { a_lat: 51.6, a_lon: 5.2, b_year: 2026 } as Awaited<
   ReturnType<typeof collectInputForBln3Score>
 >
-const excludedScoreInputs = { ...scoreInputs, isExcluded: true } as Awaited<
-  ReturnType<typeof collectInputForBln3Score>
->
+const excludedScoreInputs = {
+  ...scoreInputs,
+  isExcluded: true,
+  exclusionReason: "nature",
+} as Awaited<ReturnType<typeof collectInputForBln3Score>>
 
 describe("getYearTimeframe", () => {
   it("should start at 1 January 00:00 in Europe/Amsterdam", () => {
@@ -100,7 +115,13 @@ describe("getFieldIndicators", () => {
 
     const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey)
 
-    expect(result).toEqual({ b_id: "field-1", year, is_excluded: false, score: score(0.5) })
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: false,
+      exclusion_reason: null,
+      score: score(0.5),
+    })
     expect(mockedCollectScore).toHaveBeenCalledWith(
       mockFdm,
       principal_id,
@@ -115,7 +136,32 @@ describe("getFieldIndicators", () => {
 
     const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, undefined)
 
-    expect(result).toEqual({ b_id: "field-1", year, is_excluded: true, score: null })
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "nature",
+      score: null,
+    })
+    expect(mockedGetBln3Score).not.toHaveBeenCalled()
+  })
+
+  it("should not score a year without a main cultivation", async () => {
+    mockedCollectScore.mockResolvedValueOnce({
+      ...scoreInputs,
+      isExcluded: true,
+      exclusionReason: "no_main_cultivation",
+    })
+
+    const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey)
+
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "no_main_cultivation",
+      score: null,
+    })
     expect(mockedGetBln3Score).not.toHaveBeenCalled()
   })
 
@@ -161,23 +207,54 @@ describe("getFarmIndicators", () => {
     vi.clearAllMocks()
   })
 
-  it("should score all eligible fields across batches and weight the farm scores by area", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields)
-    // Six fields span two batches; field-6 is excluded
-    mockedCollectScore.mockImplementation(async (_fdm, _principal, b_id) =>
-      b_id === "field-6" ? excludedScoreInputs : scoreInputs,
+  /** Sets the fields of the farm and their inputs, as returned by the farm collector. */
+  function mockFarmInputs(
+    entries: [string, Awaited<ReturnType<typeof collectInputForBln3Score>>][],
+  ) {
+    mockedCollectScoreForFarm.mockResolvedValueOnce({
+      fields: entries.map(([b_id]) => fields.find((field) => field.b_id === b_id)!),
+      inputs: new Map(entries),
+    })
+  }
+
+  /** Lets `getBln3Scores` return the given scores, in order. */
+  function mockScores(values: (Bln3Score | null | Error)[]) {
+    mockedGetBln3Scores.mockResolvedValueOnce(
+      values.map((value) =>
+        value instanceof Error
+          ? { status: "rejected", reason: value }
+          : { status: "fulfilled", value },
+      ),
     )
-    mockedGetBln3Score.mockResolvedValue(score(0.5))
+  }
+
+  it("should score all eligible fields at once and weight the farm scores by area", async () => {
+    // field-6 is excluded
+    mockFarmInputs(
+      fields.map((field) => [
+        field.b_id,
+        field.b_id === "field-6" ? excludedScoreInputs : scoreInputs,
+      ]),
+    )
+    mockScores(Array.from({ length: 5 }, () => score(0.5)))
 
     const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
 
-    expect(mockedGetFields).toHaveBeenCalledWith(
+    // The collector reads the fields, so they are not read separately
+    expect(mockedGetFields).not.toHaveBeenCalled()
+    expect(mockedCollectScoreForFarm).toHaveBeenCalledWith(
       mockFdm,
       principal_id,
       "farm-1",
       getYearTimeframe(year),
     )
-    expect(mockedCollectScore).toHaveBeenCalledTimes(6)
+    expect(mockedCollectScore).not.toHaveBeenCalled()
+    expect(mockedGetBln3Scores).toHaveBeenCalledTimes(1)
+    expect(mockedGetBln3Scores).toHaveBeenCalledWith(
+      mockFdm,
+      Array.from({ length: 5 }, () => ({ ...scoreInputs, nmiApiKey })),
+      { concurrency: 5 },
+    )
     expect(result.b_id_farm).toBe("farm-1")
     expect(result.year).toBe(year)
     expect(result.fields.map((f) => f.b_id)).toEqual([
@@ -194,10 +271,12 @@ describe("getFarmIndicators", () => {
   })
 
   it("should weight the farm scores by field area", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
-    mockedCollectScore.mockResolvedValue(scoreInputs)
+    mockFarmInputs([
+      ["field-1", scoreInputs],
+      ["field-2", scoreInputs],
+    ])
     // field-1 (1 ha) scores 0.2, field-2 (2 ha) scores 0.8
-    mockedGetBln3Score.mockResolvedValueOnce(score(0.2)).mockResolvedValueOnce(score(0.8))
+    mockScores([score(0.2), score(0.8)])
 
     const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
 
@@ -205,7 +284,7 @@ describe("getFarmIndicators", () => {
   })
 
   it("should return empty scores for a farm without fields", async () => {
-    mockedGetFields.mockResolvedValueOnce([])
+    mockFarmInputs([])
 
     const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
 
@@ -215,12 +294,36 @@ describe("getFarmIndicators", () => {
       fields: [],
       farm: { indicators: [], aggregations: [] },
     })
+    expect(mockedGetBln3Scores).not.toHaveBeenCalled()
+  })
+
+  it("should not need an API key when all fields are excluded", async () => {
+    mockFarmInputs([["field-1", excludedScoreInputs]])
+
+    const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, undefined)
+
+    expect(result.fields).toEqual([])
+    expect(mockedGetBln3Scores).not.toHaveBeenCalled()
   })
 
   it("should fail as a whole when one eligible field cannot be scored", async () => {
-    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
-    mockedCollectScore.mockResolvedValue(scoreInputs)
-    mockedGetBln3Score.mockResolvedValueOnce(score(0.5)).mockResolvedValueOnce(null)
+    mockFarmInputs([
+      ["field-1", scoreInputs],
+      ["field-2", scoreInputs],
+    ])
+    mockScores([score(0.5), null])
+
+    await expect(
+      getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey),
+    ).rejects.toThrow(IndicatorsUnavailableError)
+  })
+
+  it("should fail as a whole when the request for one field fails", async () => {
+    mockFarmInputs([
+      ["field-1", scoreInputs],
+      ["field-2", scoreInputs],
+    ])
+    mockScores([new Error("NMI API is down"), score(0.5)])
 
     await expect(
       getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey),
@@ -293,6 +396,7 @@ describe("getFieldMeasureOptions", () => {
     expect(result.b_id).toBe("field-1")
     expect(result.year).toBe(year)
     expect(result.is_excluded).toBe(false)
+    expect(result.exclusion_reason).toBeNull()
     expect(mockedGetEnabledMeasureCatalogues).toHaveBeenCalledWith(mockFdm, principal_id, "farm-1")
     expect(mockedGetMeasures).toHaveBeenCalledWith(
       mockFdm,
@@ -320,11 +424,42 @@ describe("getFieldMeasureOptions", () => {
     mockedCollectApplicability.mockResolvedValueOnce({
       ...applicabilityInputs,
       isExcluded: true,
+      exclusionReason: "bufferstrip",
     })
 
     const result = await getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, undefined)
 
-    expect(result).toEqual({ b_id: "field-1", year, is_excluded: true, data: [] })
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "bufferstrip",
+      data: [],
+    })
+    expect(mockedGetBln3MeasureApplicability).not.toHaveBeenCalled()
+    expect(mockedGetBln3MeasureAdvice).not.toHaveBeenCalled()
+  })
+
+  it("should return no options for a year without a main cultivation", async () => {
+    mockedGetField.mockResolvedValueOnce({ b_id: "field-1", b_id_farm: "farm-1" } as Awaited<
+      ReturnType<typeof getField>
+    >)
+    mockedCollectApplicability.mockResolvedValueOnce({
+      ...applicabilityInputs,
+      isExcluded: true,
+      exclusionReason: "no_main_cultivation",
+    })
+
+    const result = await getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, nmiApiKey)
+
+    expect(result).toEqual({
+      b_id: "field-1",
+      year,
+      is_excluded: true,
+      exclusion_reason: "no_main_cultivation",
+      data: [],
+    })
+    expect(mockedGetBln3Score).not.toHaveBeenCalled()
     expect(mockedGetBln3MeasureApplicability).not.toHaveBeenCalled()
     expect(mockedGetBln3MeasureAdvice).not.toHaveBeenCalled()
   })

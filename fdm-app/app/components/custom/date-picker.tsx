@@ -4,17 +4,16 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import React from "react"
-import { useWatch } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { useKeyedState } from "~/hooks/use-keyed-state"
@@ -132,20 +131,24 @@ export function DatePicker<TFieldValues extends FieldValues>({
   const effectiveOpen = open && !disabled
 
   return (
-    <FormField
+    <Controller
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <FormLabel>{label}</FormLabel>
+      render={({ field, fieldState }) => (
+        <Field className="flex flex-col" data-invalid={!isInputValid || fieldState.invalid}>
+          <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
           <div className="relative flex gap-2">
-            <FormControl>
+            <FieldContent>
               <Input
                 id={field.name}
                 value={value}
                 placeholder="Kies een datum"
                 className="bg-background pr-10"
                 disabled={disabled}
+                aria-invalid={!isInputValid || fieldState.invalid}
+                aria-describedby={
+                  !isInputValid || fieldState.error ? `${field.name}-error` : undefined
+                }
                 onChange={(e) => setValue(e.target.value)}
                 onBlur={(e) => {
                   const text = e.target.value
@@ -180,19 +183,21 @@ export function DatePicker<TFieldValues extends FieldValues>({
                   }
                 }}
               />
-            </FormControl>
+            </FieldContent>
             <Popover open={effectiveOpen} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  id={`${field.name}-picker`}
-                  variant="ghost"
-                  className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
-                  disabled={disabled}
-                >
-                  <CalendarIcon className="size-3.5" />
-                  <span className="sr-only">Kies een datum</span>
-                </Button>
-              </PopoverTrigger>
+              <PopoverTrigger
+                render={
+                  <Button
+                    id={`${field.name}-picker`}
+                    variant="ghost"
+                    className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
+                    disabled={disabled}
+                  >
+                    <CalendarIcon className="size-3.5" />
+                    <span className="sr-only">Kies een datum</span>
+                  </Button>
+                }
+              />
               <PopoverContent
                 className="w-auto overflow-hidden p-0"
                 align="end"
@@ -219,9 +224,11 @@ export function DatePicker<TFieldValues extends FieldValues>({
               </PopoverContent>
             </Popover>
           </div>
-          <FormDescription>{description}</FormDescription>
-          <FormMessage>{!isInputValid ? "Ongeldige datum" : null}</FormMessage>
-        </FormItem>
+          <FieldDescription>{description}</FieldDescription>
+          <FieldError id={`${field.name}-error`}>
+            {!isInputValid ? "Ongeldige datum" : (fieldState.error?.message ?? null)}
+          </FieldError>
+        </Field>
       )}
     />
   )

@@ -487,20 +487,22 @@ export default function RvoImportReviewPage() {
                 <div className="bg-background sticky top-0 z-20 flex items-center justify-end gap-4 border-b py-3">
                   <CustomValueButtonsToggle />
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <Button disabled={isApplying || hasIssues}>
-                        {isApplying ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            <span>Verwerken...</span>
-                          </>
-                        ) : hasChanges ? (
-                          <span key="apply">Wijzigingen toepassen</span>
-                        ) : (
-                          <span key="continue">Doorgaan</span>
-                        )}
-                      </Button>
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={
+                        <Button disabled={isApplying || hasIssues}>
+                          {isApplying ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <span>Verwerken...</span>
+                            </>
+                          ) : hasChanges ? (
+                            <span key="apply">Wijzigingen toepassen</span>
+                          ) : (
+                            <span key="continue">Doorgaan</span>
+                          )}
+                        </Button>
+                      }
+                    />
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Wijzigingen toepassen</DialogTitle>
@@ -518,9 +520,7 @@ export default function RvoImportReviewPage() {
                         )}
                       </div>
                       <DialogFooter>
-                        <DialogClose asChild>
-                          <Button variant="outline">Annuleren</Button>
-                        </DialogClose>
+                        <DialogClose render={<Button variant="outline">Annuleren</Button>} />
                         <Form method="post" action={`/farm/${b_id_farm}/${calendar}/rvo`}>
                           <input type="hidden" name="intent" value="apply_changes" />
                           <input

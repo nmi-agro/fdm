@@ -224,10 +224,10 @@ export default function Respond() {
         <CardFooter>
           <Form method="post" className="flex flex-row gap-2">
             <input type="hidden" name="invitation_id" value={invitation.id} />
-            <Button variant="destructive" name="intent" value="reject">
+            <Button type="submit" variant="destructive" name="intent" value="reject">
               Ja, afwijzen
             </Button>
-            <Button variant="secondary" name="intent" value="do_nothing">
+            <Button type="submit" variant="secondary" name="intent" value="do_nothing">
               Nee, terug naar Mijn Uitnodigingen
             </Button>
           </Form>
@@ -324,7 +324,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
             <CardFooter>
               <Form method="post" className="flex flex-row gap-2">
                 <input type="hidden" name="invitation_id" value={props.params.invitation_id} />
-                <Button variant="secondary" name="intent" value="do_nothing">
+                <Button type="submit" variant="secondary" name="intent" value="do_nothing">
                   Terug naar mijn organisaties
                 </Button>
               </Form>

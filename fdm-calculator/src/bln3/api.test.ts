@@ -1,3 +1,4 @@
+import { generateCalculationHash } from "@nmi-agro/fdm-core"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import type {
   Bln3MeasureAdviceInputs,
@@ -10,10 +11,12 @@ import type {
   Bln3ScoreInputs,
   Bln3ScoreResponse,
 } from "./types"
+import pkg from "../package"
 import {
   getBln3MeasureAdvice,
   getBln3MeasureApplicability,
   getBln3Score,
+  getBln3Scores,
   requestBln3MeasureAdvice,
   requestBln3MeasureApplicability,
   requestBln3Score,
@@ -54,6 +57,7 @@ describe("BLN3 score", () => {
     nmiApiKey: "mock-api-key",
     a_lat: 51.613,
     a_lon: 5.2,
+    b_year: 2025,
   }
 
   describe("requestBln3Score", () => {
@@ -145,6 +149,7 @@ describe("BLN3 score", () => {
           body: JSON.stringify({
             a_lat: 51.613,
             a_lon: 5.2,
+            b_year: 2025,
             cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
             measures: [{ measure_id: "BM3", year: 2025 }],
           }),
@@ -395,6 +400,98 @@ describe("BLN3 score", () => {
         expect.stringContaining("Failed to read from calculation cache"),
       )
       spyConsole.mockRestore()
+    })
+  })
+
+  describe("getBln3Scores", () => {
+    let cachedRows: { calculation_hash: string; result: unknown }[] = []
+    const mockFdm = {
+      select: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      // One query for all inputs
+      where: vi.fn(() => ({
+        // eslint-disable-next-line unicorn/no-thenable -- simulates awaiting a Drizzle query
+        then: (cb: (rows: unknown[]) => unknown) => Promise.resolve(cb(cachedRows)),
+      })),
+      insert: vi.fn().mockReturnThis(),
+      values: vi.fn().mockReturnThis(),
+      onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+    } as any
+
+    const hitInputs: Bln3ScoreInputs = { ...baseInputs, a_lat: 52.1 }
+    const missInputs: Bln3ScoreInputs = { ...baseInputs, a_lat: 52.2 }
+    const failingInputs: Bln3ScoreInputs = { ...baseInputs, a_lat: 52.3 }
+    const excludedInputs: Bln3ScoreInputs = { ...baseInputs, a_lat: 52.4, isExcluded: true }
+
+    beforeAll(() => {
+      vi.stubGlobal("fetch", vi.fn())
+    })
+
+    afterEach(() => {
+      cachedRows = []
+      vi.clearAllMocks()
+    })
+
+    afterAll(() => {
+      vi.restoreAllMocks()
+    })
+
+    it("should read the cache once and request only the fields without a cached score", async () => {
+      cachedRows = [
+        {
+          // The API key is redacted in the cache key
+          calculation_hash: generateCalculationHash("requestBln3Score", pkg.calculatorVersion, {
+            ...hitInputs,
+            nmiApiKey: "REDACTED",
+          }),
+          result: {
+            indicators: mockBln3ScoreResponse.data.indicator,
+            aggregations: [
+              { aggregation_id: "B_ID", score: "field" },
+              { aggregation_id: "S_BLN", score: 0.7 },
+            ],
+          },
+        },
+      ]
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({ ok: true, json: async () => mockBln3ScoreResponse } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ ...mockBln3ScoreResponse, success: false, message: "Invalid" }),
+        } as Response)
+
+      const results = await getBln3Scores(mockFdm, [
+        hitInputs,
+        missInputs,
+        failingInputs,
+        excludedInputs,
+      ])
+
+      expect(mockFdm.select).toHaveBeenCalledTimes(1)
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(results.map((result) => result.status)).toEqual([
+        "fulfilled",
+        "fulfilled",
+        "rejected",
+        "fulfilled",
+      ])
+      // Aggregations without a numeric score are dropped from cached results
+      expect((results[0] as PromiseFulfilledResult<Bln3Score>).value.aggregations).toEqual([
+        { aggregation_id: "S_BLN", score: 0.7 },
+      ])
+      expect((results[1] as PromiseFulfilledResult<Bln3Score>).value.indicators).toEqual(
+        mockBln3ScoreResponse.data.indicator,
+      )
+      expect(String((results[2] as PromiseRejectedResult).reason)).toContain("Invalid")
+      expect((results[3] as PromiseFulfilledResult<Bln3Score | null>).value).toBeNull()
+
+      // Only the new score is stored, in one insert; the other insert records the failed request
+      await vi.waitFor(() => expect(mockFdm.values).toHaveBeenCalledTimes(2))
+      const cacheWrites = mockFdm.values.mock.calls.filter(
+        ([rows]: [{ calculation_hash?: string }[]]) => rows[0]?.calculation_hash !== undefined,
+      )
+      expect(cacheWrites).toHaveLength(1)
+      expect(cacheWrites[0][0]).toHaveLength(1)
     })
   })
 

@@ -1,5 +1,6 @@
 import type { Field } from "@nmi-agro/fdm-core"
 import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
+import { cn } from "cn"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Form, useActionData, useLoaderData, useLocation, useNavigation } from "react-router"
@@ -13,8 +14,7 @@ import {
   RvoImportReviewTable,
   useRvoImportForm,
 } from "~/components/blocks/rvo/import-review-table"
-import { Button } from "~/components/ui/button"
-import { cn } from "~/lib/utils"
+import { Button, buttonVariants } from "~/components/ui/button"
 import type { genericAction, loader } from "./loader-and-action.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
@@ -165,17 +165,19 @@ export function UploadMijnPercelenPage({
 
                   <CustomValueButtonsToggle />
 
-                  <Button asChild variant="outline" className={cn(isSaving && "opacity-50")}>
-                    {/* Vanilla anchor triggers refresh behavior */}
-                    <a
-                      href={`${location.pathname}${location.search}`}
-                      onClick={(e) => {
-                        if (isSaving) e.preventDefault()
-                      }}
-                    >
-                      Terug naar uploaden
-                    </a>
-                  </Button>
+                  <a
+                    href={`${location.pathname}${location.search}`}
+                    onClick={(e) => {
+                      if (isSaving) e.preventDefault()
+                    }}
+                    className={buttonVariants({
+                      variant: "outline",
+                      className: cn(isSaving && "opacity-50"),
+                    })}
+                    data-slot="button"
+                  >
+                    Terug naar uploaden
+                  </a>
 
                   <Button
                     type="submit"

@@ -1,4 +1,5 @@
 import type { SoilParameterDescription, SoilAnalysis } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { Trash2 } from "lucide-react"
@@ -18,7 +19,6 @@ import {
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
 import { Dialog, DialogTrigger } from "../../ui/dialog"
 import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "./download"
 
@@ -128,9 +128,9 @@ export function SoilAnalysesList({
               <div className="flex flex-wrap items-center gap-2">
                 {analysis.a_file_path && (
                   <Dialog>
-                    <DialogTrigger asChild>
-                      <ViewPdfButton variant="outline" className="pointer-coarse:h-10" />
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={<ViewPdfButton variant="outline" className="pointer-coarse:h-10" />}
+                    />
                     <PdfViewerDialogContent
                       downloadUrl={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
                       filename={getSoilAnalysisDownloadName(
@@ -142,33 +142,41 @@ export function SoilAnalysesList({
                     />
                   </Dialog>
                 )}
-                <Button asChild size="sm" variant="outline" className="pointer-coarse:h-10">
-                  <NavLink to={`./analysis/${analysis.a_id}`}>
-                    {canModify ? "Bewerk" : "Bekijk"}
-                  </NavLink>
-                </Button>
+                <NavLink
+                  to={`./analysis/${analysis.a_id}`}
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "sm",
+                    className: "pointer-coarse:h-10",
+                  })}
+                  data-slot="button"
+                >
+                  {canModify ? "Bewerk" : "Bekijk"}
+                </NavLink>
                 {canModify && (
                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 pointer-coarse:h-10"
-                        disabled={fetcher.state !== "idle"}
-                      >
-                        {isDeleting ? (
-                          <>
-                            <Spinner />
-                            <span>Verwijderen…</span>
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 aria-hidden />
-                            <span>Verwijder</span>
-                          </>
-                        )}
-                      </Button>
-                    </AlertDialogTrigger>
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 pointer-coarse:h-10"
+                          disabled={fetcher.state !== "idle"}
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Spinner />
+                              <span>Verwijderen…</span>
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 aria-hidden />
+                              <span>Verwijder</span>
+                            </>
+                          )}
+                        </Button>
+                      }
+                    />
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Bodemanalyse verwijderen?</AlertDialogTitle>

@@ -1,6 +1,11 @@
 import { createGcsStorage, type GcsStorage } from "@nmi-agro/fdm-storage"
 
-export { buildObjectKey, FileNotFoundError, isGcsConfigured } from "@nmi-agro/fdm-storage"
+export {
+  buildObjectKey,
+  FileNotFoundError,
+  isGcsConfigured,
+  isGcsNotFoundError,
+} from "@nmi-agro/fdm-storage"
 
 /**
  * Shared Google Cloud Storage instance of the app. Bucket and credentials come from the

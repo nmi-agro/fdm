@@ -5,6 +5,7 @@ section: Bodem
 order: 3
 inApp:
   - Indicatoren
+updated: 2026-11-18
 lastReviewed: 2026-11-05
 routes: []
 watch:
@@ -42,9 +43,9 @@ Elke indicator en elk thema krijgt een score van 0 tot 100.
 
 - De locatie van het perceel.
 - Het bodemtype en de grondwatertrap.
-- Bodemwaarden uit je analyses, waaronder organische stof, de C/N-ratio, totaal stikstof, P-Al, P-plantbeschikbaar, het Pw-getal, kalium, magnesium, calcium, zwavel, pH, CEC en de verdeling over klei, silt en zand. Per parameter telt de meest recente labwaarde tot en met het gekozen jaar. Alleen als er geen labwaarde is, wordt een schatting van NMI BodemSchat gebruikt.
+- Bodemwaarden uit je analyses, waaronder organische stof, de C/N-ratio, totaal stikstof, P-Al, P-plantbeschikbaar, het Pw-getal, kalium, magnesium, calcium, zwavel, pH, CEC en de verdeling over klei, silt en zand. Per parameter telt de meest recente labwaarde tot en met het gekozen jaar. Alleen als er geen labwaarde is, wordt een schatting van NMI BodemSchat gebruikt. Heeft een perceel analyses voor zones, dan worden de zone-analyses gecombineerd die tot een maand vóór de nieuwste zijn genomen: voor getallen het oppervlaktegewogen gemiddelde, voor het bodemtype en de grondwatertrap de waarde met de grootste oppervlakte. Dat is dezelfde regel als op de bodempagina; zie [De actuele waarde per parameter](/manual/background/bodemanalyse#actuele-waarde).
 - De BodemConditieScore, als je die hebt ingevuld: beoordelingen van onder meer bodemstructuur, beworteling, regenwormen, verdichting en plasvorming.
-- De volledige teeltgeschiedenis van het perceel, over alle jaren die bekend zijn.
+- De teeltgeschiedenis van het perceel: de hoofdteelt per jaar, vanaf het eerste jaar met een bekende teelt tot en met het gekozen jaar. Een jaar zonder hoofdteelt telt als groene braak. Teelten na het gekozen jaar tellen niet mee.
 - De maatregelen die je hebt vastgelegd en die in het gekozen jaar lopen.
 
 ## Hoe wordt het berekend? {#berekening}
@@ -74,6 +75,7 @@ Kijk eerst naar de thema's met de laagste score en daarna naar de indicatoren da
 - BLN3 is nog in ontwikkeling. De scores, de indicatoren en de lijst met maatregelen zijn nog niet definitief en kunnen veranderen.
 - De berekening van de impact van maatregelen is experimenteel.
 - Bufferstroken en percelen met een natuur- of niet-landbouwkundig hoofdgewas, zoals sloten en natuurterreinen, krijgen geen score. BLN3 is ontworpen voor productieve landbouwgrond.
+- Een perceel zonder hoofdteelt in het gekozen jaar krijgt geen score en geen maatregelen. De hoofdteelt is de teelt die tussen 15 mei en 15 juli het langst op het perceel staat.
 - Geschatte bodemwaarden maken de scores minder zeker dan gemeten waarden.
 - Als de rekendienst niet bereikbaar is, kunnen er geen scores worden berekend.
 

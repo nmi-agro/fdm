@@ -3,6 +3,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import { cn } from "cn"
 import imageSize from "image-size"
 import { User } from "lucide-react"
 import crypto from "node:crypto"
@@ -32,7 +33,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
-import { cn } from "~/lib/utils"
 import { detectExistingProfilePictureObjectKey } from "../components/blocks/profile/detect-existing.server"
 
 export const meta: MetaFunction = () => {

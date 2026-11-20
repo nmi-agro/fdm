@@ -3,8 +3,8 @@ import {
   aggregateNutrientAdviceToFarmLevel,
   aggregateNormsToFarmLevel,
   calculateDose,
-  createFunctionsForFertilizerApplicationFilling,
-  createFunctionsForNorms,
+  calculateNormFillingsForFields,
+  calculateNormsForFields,
   fdmCalculator,
   type GebruiksnormResult,
   getMainCultivation,
@@ -14,6 +14,8 @@ import {
   NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
+  type CachedCalculation,
+  type CachedCalculationManyOptions,
   type FdmType,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
@@ -23,7 +25,6 @@ import {
   getFertilizers,
   getFields,
   getGrazingIntention,
-  getSoilAnalysesForFarm,
   isDerogationGrantedForYear,
   isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
@@ -70,6 +71,36 @@ function isNormYear(year: string): year is "2025" | "2026" {
   return year === "2025" || year === "2026"
 }
 
+/** Maximum number of nutrient advice requests to the NMI API at the same time. */
+const NUTRIENT_ADVICE_CONCURRENCY = 10
+
+/**
+ * Runs a cached calculation for the fields that have an input, with one cache lookup for all
+ * of them.
+ *
+ * @returns The outcome per field, in the order of `inputs`; `undefined` for a field without input.
+ */
+async function settleForFields<T_Input extends object, T_Output>(
+  fdm: FdmType,
+  calculation: CachedCalculation<T_Input, T_Output>,
+  inputs: (T_Input | undefined)[],
+  options?: CachedCalculationManyOptions,
+): Promise<(PromiseSettledResult<T_Output> | undefined)[]> {
+  const requested = inputs.flatMap((input, index) => (input ? [{ input, index }] : []))
+  const settled = await Promise.allSettled(
+    calculation.many(
+      fdm,
+      requested.map(({ input }) => input),
+      options,
+    ),
+  )
+  const results: (PromiseSettledResult<T_Output> | undefined)[] = inputs.map(() => undefined)
+  for (const [i, { index }] of requested.entries()) {
+    results[index] = settled[i]
+  }
+  return results
+}
+
 /**
  * Collects all data a fertilizer plan of a farm is based on: the farm, its fields with their
  * cultivations, fertilizer applications and soil data, the catalogues, and the derogation,
@@ -96,7 +127,6 @@ export async function collectFertilizerPlanInput(
     fertilizersCatalogue,
     cultivationsMap,
     fertilizerApplicationsMap,
-    soilAnalysesMap,
     currentSoilDataMap,
     derogationGranted,
     has_organic_certification,
@@ -108,7 +138,6 @@ export async function collectFertilizerPlanInput(
     getFertilizers(fdm, principal_id, b_id_farm),
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe),
     getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe),
     DEROGATION_GRANTED_NEEDED_FOR_YEARS.includes(year)
       ? isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year)
@@ -130,7 +159,6 @@ export async function collectFertilizerPlanInput(
       ...field,
       fertilizerApplications: fertilizerApplicationsMap.get(field.b_id) ?? [],
       cultivations: cultivationsMap.get(field.b_id) ?? [],
-      soilAnalyses: soilAnalysesMap.get(field.b_id) ?? [],
       currentSoilData: currentSoilDataMap.get(field.b_id) ?? [],
     })),
     fertilizersCatalogue: fertilizersCatalogue,
@@ -194,341 +222,365 @@ export async function computeFertilizerPlanData(
   const pdfFieldsData: FertilizerPlanData["fields"] = []
 
   const timeframe = getCalendarYearTimeframe(year)
+  const yearStr = String(year)
+  const normYear = isNormYear(yearStr) ? yearStr : undefined
 
-  const batchSize = 10
-  for (let batchStart = 0; batchStart < fields.length; batchStart += batchSize) {
-    await Promise.all(
-      fields.slice(batchStart, batchStart + batchSize).map(async (fieldExtended) => {
-        const { fertilizerApplications, cultivations, soilAnalyses, currentSoilData, ...field } =
-          fieldExtended
-        try {
-          // Main cultivation
-          const mainCultivation = getMainCultivation(cultivations, year)
-          const catchCrop = mainCultivation
-            ? cultivations.find((c) => c.b_lu !== mainCultivation.b_lu)
-            : undefined
-
-          // Soil parameters
-          const soilParams: Record<string, any> = {}
-          let samplingDate: Date | undefined
-          if (Array.isArray(currentSoilData)) {
-            for (const item of currentSoilData) {
-              soilParams[item.parameter] = item.value
-              for (const source of item.sources) {
-                if (
-                  source.b_sampling_date &&
-                  (!samplingDate || source.b_sampling_date > samplingDate)
-                ) {
-                  samplingDate = source.b_sampling_date
-                }
-              }
-            }
+  // The inputs of the cached calculations per field
+  const prepareField = (fieldExtended: (typeof fields)[number]) => {
+    const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
+    const mainCultivation = getMainCultivation(cultivations, year)
+    return {
+      inputsError: undefined as unknown,
+      fieldExtended,
+      field,
+      fertilizerApplications,
+      cultivations,
+      currentSoilData,
+      mainCultivation,
+      normInput: {
+        farm: {
+          ...((derogationGranted === null
+            ? {}
+            : { is_derogatie_bedrijf: derogationGranted }) as any),
+          has_grazing_intention: has_grazing_intention,
+        },
+        field: field,
+        cultivations: cultivations,
+        soilAnalysis: {
+          a_p_cc: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_cc")
+            ?.value as number | null,
+          a_p_al: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_al")
+            ?.value as number | null,
+        },
+      },
+      adviceInput: mainCultivation
+        ? {
+            b_lu_catalogue: mainCultivation.b_lu_catalogue,
+            b_centroid: field.b_centroid,
+            currentSoilData: currentSoilData,
+            nmiApiKey: options.nmiApiKey,
+            b_bufferstrip: field.b_bufferstrip,
           }
+        : undefined,
+      omInput: {
+        fieldInput: {
+          field: field,
+          cultivations: cultivations,
+          currentSoilData: currentSoilData,
+          fertilizerApplications: fertilizerApplications,
+        },
+        fertilizerDetails: fertilizersCatalogue,
+        cultivationDetails: cultivationsCatalogue,
+        timeFrame: timeframe,
+      },
+    }
+  }
+  // A field whose inputs cannot be built gets an error row, like a field whose calculation fails
+  const prepared = fields.map((fieldExtended) => {
+    try {
+      return prepareField(fieldExtended)
+    } catch (error) {
+      const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
+      return {
+        inputsError: error,
+        fieldExtended,
+        field,
+        fertilizerApplications,
+        cultivations,
+        currentSoilData,
+        mainCultivation: undefined,
+        normInput: undefined,
+        adviceInput: undefined,
+        omInput: undefined,
+      }
+    }
+  })
 
-          // Norms
-          let normsResult: { value: FieldNormValues; filling: FieldNormFillings } | undefined
-          const yearStr = String(year)
-          if (isNormYear(yearStr)) {
-            const normFunctions = createFunctionsForNorms("NL", yearStr)
-            const normFillingFunctions = createFunctionsForFertilizerApplicationFilling(
-              "NL",
-              yearStr,
-            )
-            const normInput = {
-              farm: {
-                ...((derogationGranted === null
-                  ? {}
-                  : { is_derogatie_bedrijf: derogationGranted }) as any),
-                has_grazing_intention: has_grazing_intention,
-              },
-              field: field,
-              cultivations: cultivations,
-              soilAnalysis: {
-                a_p_cc: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_cc")
-                  ?.value as number | null,
-                a_p_al: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_al")
-                  ?.value as number | null,
-              },
-            }
-
-            const renurePromise: Promise<GebruiksnormResult | undefined> =
-              "calculateNormForRenure" in normFunctions
-                ? normFunctions.calculateNormForRenure(fdm, normInput)
-                : Promise.resolve(undefined)
-
-            // All norms are awaited together, so a failing norm is handled by the catch below.
-            const [nitrogen, manure, phosphate, renure] = await Promise.all([
-              normFunctions.calculateNormForNitrogen(fdm, normInput),
-              normFunctions.calculateNormForManure(fdm, normInput),
-              normFunctions.calculateNormForPhosphate(fdm, normInput),
-              renurePromise,
-            ])
-
-            const fillingInput = {
-              cultivations: cultivations,
-              applications: fertilizerApplications,
+  // Each cached calculation looks up all fields in the cache with one query. The norms come
+  // first, because the fillings need the phosphate norm. A field whose norms fail gets an error
+  // row, so its other calculations are skipped.
+  const norms = normYear
+    ? await calculateNormsForFields(
+        fdm,
+        "NL",
+        normYear,
+        prepared.map((p) => p.normInput),
+      )
+    : undefined
+  const isCalculated = (index: number) => {
+    if (prepared[index].inputsError) return false
+    const normResult = norms?.[index]
+    return !norms || (normResult !== undefined && "values" in normResult)
+  }
+  const [fillings, advices, omBalances] = await Promise.all([
+    normYear
+      ? calculateNormFillingsForFields(
+          fdm,
+          "NL",
+          normYear,
+          prepared.map((p, index) => {
+            const normResult = norms?.[index]
+            if (!normResult || !("values" in normResult)) return undefined
+            return {
+              cultivations: p.cultivations,
+              applications: p.fertilizerApplications,
               fertilizers: fertilizersCatalogue,
               has_organic_certification: has_organic_certification,
               has_grazing_intention: has_grazing_intention,
-              fosfaatgebruiksnorm: phosphate.normValue,
-              b_centroid: field.b_centroid,
+              fosfaatgebruiksnorm: normResult.values.phosphate.normValue,
+              b_centroid: p.field.b_centroid,
             }
-            const renureFillingPromise: Promise<NormFilling | undefined> =
-              "calculateFertilizerApplicationFillingForRenure" in normFillingFunctions
-                ? normFillingFunctions.calculateFertilizerApplicationFillingForRenure(
-                    fdm,
-                    fillingInput,
-                  )
-                : Promise.resolve(undefined)
-            const [nitrogenFilling, phosphateFilling, manureFilling, renureFilling] =
-              await Promise.all([
-                normFillingFunctions.calculateFertilizerApplicationFillingForNitrogen(
-                  fdm,
-                  fillingInput,
-                ),
-                normFillingFunctions.calculateFertilizerApplicationFillingForPhosphate(
-                  fdm,
-                  fillingInput,
-                ),
-                normFillingFunctions.calculateFertilizerApplicationFillingForManure(
-                  fdm,
-                  fillingInput,
-                ),
-                renureFillingPromise,
-              ])
+          }),
+        )
+      : undefined,
+    settleForFields(
+      fdm,
+      getNutrientAdvice,
+      prepared.map((p, index) => (isCalculated(index) ? p.adviceInput : undefined)),
+      { concurrency: NUTRIENT_ADVICE_CONCURRENCY },
+    ),
+    settleForFields(
+      fdm,
+      getOrganicMatterBalanceField,
+      prepared.map((p, index) => (isCalculated(index) ? p.omInput : undefined)),
+    ),
+  ])
 
-            normsResult = {
-              value: {
-                nitrogen: nitrogen,
-                phosphate: phosphate,
-                manure: manure,
-                renure: renure,
-              },
-              filling: {
-                nitrogen: nitrogenFilling,
-                phosphate: phosphateFilling,
-                manure: manureFilling,
-                renure: renureFilling,
-              },
+  for (const [index, prepare] of prepared.entries()) {
+    const { fieldExtended, field, fertilizerApplications, cultivations, currentSoilData } = prepare
+    try {
+      if (prepare.inputsError) throw prepare.inputsError
+      // Main cultivation
+      const mainCultivation = prepare.mainCultivation
+      const catchCrop = mainCultivation
+        ? cultivations.find((c) => c.b_lu !== mainCultivation.b_lu)
+        : undefined
+
+      // Soil parameters
+      const soilParams: Record<string, any> = {}
+      let samplingDate: Date | undefined
+      if (Array.isArray(currentSoilData)) {
+        for (const item of currentSoilData) {
+          soilParams[item.parameter] = item.value
+          for (const source of item.sources) {
+            if (
+              source.b_sampling_date &&
+              (!samplingDate || source.b_sampling_date > samplingDate)
+            ) {
+              samplingDate = source.b_sampling_date
             }
           }
-
-          // Nutrient advice
-          let adviceKgHa = {
-            d_n_req: 0,
-            d_p_req: 0,
-            d_k_req: 0,
-            d_mg_req: 0,
-            d_s_req: 0,
-            d_c_req: 0,
-            d_ca_req: 0,
-            d_na_req: 0,
-            d_cu_req: 0,
-            d_zn_req: 0,
-            d_co_req: 0,
-            d_mn_req: 0,
-            d_mo_req: 0,
-            d_b_req: 0,
-          }
-          try {
-            if (mainCultivation) {
-              const result = await getNutrientAdvice(fdm, {
-                b_lu_catalogue: mainCultivation.b_lu_catalogue,
-                b_centroid: field.b_centroid,
-                currentSoilData: currentSoilData,
-                nmiApiKey: options.nmiApiKey,
-                b_bufferstrip: field.b_bufferstrip,
-              })
-
-              if (result) {
-                adviceKgHa = {
-                  d_n_req: result.d_n_req || 0,
-                  d_p_req: result.d_p_req || 0,
-                  d_k_req: result.d_k_req || 0,
-                  d_mg_req: result.d_mg_req || 0,
-                  d_s_req: result.d_s_req || 0,
-                  d_c_req: result.d_c_req || 0,
-                  d_ca_req: result.d_ca_req || 0,
-                  d_na_req: result.d_na_req || 0,
-                  d_cu_req: result.d_cu_req || 0,
-                  d_zn_req: result.d_zn_req || 0,
-                  d_co_req: result.d_co_req || 0,
-                  d_mn_req: result.d_mn_req || 0,
-                  d_mo_req: result.d_mo_req || 0,
-                  d_b_req: result.d_b_req || 0,
-                }
-              }
-            }
-          } catch (e) {
-            console.error(`Failed to get nutrient advice for field ${field.b_id}:`, e)
-          }
-
-          // Calculate Doses (Planned)
-          const { dose: plannedDose, applications: plannedApplicationDoses } = calculateDose({
-            applications: fertilizerApplications,
-            fertilizers: fertilizersCatalogue,
-          })
-
-          // Organic matter balance
-          const omInput = {
-            fieldInput: {
-              field: field,
-              cultivations: cultivations,
-              soilAnalyses: soilAnalyses,
-              fertilizerApplications: fertilizerApplications,
-            },
-            fertilizerDetails: fertilizersCatalogue,
-            cultivationDetails: cultivationsCatalogue,
-            timeFrame: timeframe,
-          }
-          const omBalanceResult = await getOrganicMatterBalanceField(fdm, omInput)
-
-          const fieldData: (typeof pdfFieldsData)[number] = {
-            id: field.b_id,
-            name: field.b_name,
-            area: field.b_area || 0,
-            isBufferstrip: field.b_bufferstrip,
-            mainCrop: mainCultivation?.b_lu_name || "Geen gewas",
-            catchCrop: catchCrop?.b_lu_name,
-            soil: {
-              b_sampling_date: formatDate(samplingDate),
-              a_ph_cc: soilParams.a_ph_cc,
-              a_p_al: soilParams.a_p_al,
-              a_p_cc: soilParams.a_p_cc,
-              a_k_cc: soilParams.a_k_cc,
-              a_som_loi: soilParams.a_som_loi,
-              b_soiltype_agr: soilParams.b_soiltype_agr,
-              a_clay_mi: soilParams.a_clay_mi,
-              a_sand_mi: soilParams.a_sand_mi,
-              a_silt_mi: soilParams.a_silt_mi,
-            },
-            norms: normsResult
-              ? {
-                  nitrogen: normsResult.value.nitrogen.normValue,
-                  manure: normsResult.value.manure.normValue,
-                  phosphate: normsResult.value.phosphate.normValue,
-                  renure: normsResult.value.renure?.normValue,
-                }
-              : { nitrogen: 0, manure: 0, phosphate: 0, renure: 0 },
-            normsFilling: normsResult
-              ? {
-                  nitrogen: normsResult.filling.nitrogen.normFilling,
-                  manure: normsResult.filling.manure.normFilling,
-                  phosphate: normsResult.filling.phosphate.normFilling,
-                  renure: normsResult.filling.renure?.normFilling,
-                }
-              : { nitrogen: 0, manure: 0, phosphate: 0 },
-            advice: adviceKgHa,
-            planned: plannedDose,
-            omBalance: omBalanceResult
-              ? {
-                  balance: omBalanceResult.balance,
-                  supply: omBalanceResult.supply.total,
-                  supplyManure: omBalanceResult.supply.fertilizers.manure.total,
-                  supplyCompost: omBalanceResult.supply.fertilizers.compost.total,
-                  supplyCultivations: omBalanceResult.supply.cultivations.total,
-                  supplyResidues: omBalanceResult.supply.residues.total,
-                  degradation: omBalanceResult.degradation.total,
-                }
-              : undefined,
-            applications: plannedApplicationDoses.map((plannedApp) => {
-              const appDose = plannedApp ?? {
-                p_dose_n: 0,
-                p_dose_nw: 0,
-                p_dose_p: 0,
-                p_dose_k: 0,
-                p_dose_eoc: 0,
-                p_dose_mg: 0,
-                p_dose_s: 0,
-                p_dose_ca: 0,
-                p_dose_na: 0,
-                p_dose_cu: 0,
-                p_dose_zn: 0,
-                p_dose_co: 0,
-                p_dose_mn: 0,
-                p_dose_mo: 0,
-                p_dose_b: 0,
-              }
-              const app = appDose.p_app_id
-                ? fertilizerApplications.find((p_app) => p_app.p_app_id === appDose.p_app_id)
-                : undefined
-              const fert = app ? fertilizersCatalogue.find((f) => f.p_id === app.p_id) : undefined
-
-              return {
-                date: formatDate(app?.p_app_date),
-                product: fert?.p_name_nl ?? app?.p_id ?? "onbekend",
-                quantity: app?.p_app_amount ?? 0,
-                quantity_display: app?.p_app_amount_display ?? 0,
-                quantity_unit: app?.p_app_amount_unit ?? "kg/ha",
-                p_dose_n: appDose.p_dose_n || 0,
-                p_dose_nw: appDose.p_dose_nw || 0,
-                p_dose_p: appDose.p_dose_p || 0,
-                p_dose_k: appDose.p_dose_k || 0,
-                p_dose_eoc: appDose.p_dose_eoc || 0,
-                p_dose_mg: appDose.p_dose_mg || 0,
-                p_dose_s: appDose.p_dose_s || 0,
-                p_dose_ca: appDose.p_dose_ca || 0,
-                p_dose_na: appDose.p_dose_na || 0,
-                p_dose_cu: appDose.p_dose_cu || 0,
-                p_dose_zn: appDose.p_dose_zn || 0,
-                p_dose_co: appDose.p_dose_co || 0,
-                p_dose_mn: appDose.p_dose_mn || 0,
-                p_dose_mo: appDose.p_dose_mo || 0,
-                p_dose_b: appDose.p_dose_b || 0,
-              }
-            }),
-          }
-
-          pdfFieldsData.push(fieldData)
-        } catch (error) {
-          console.error(`Error processing field ${fieldExtended.b_id}:`, error)
-          pdfFieldsData.push({
-            id: field.b_id,
-            name: field.b_name,
-            area: field.b_area || 0,
-            isBufferstrip: field.b_bufferstrip,
-            mainCrop: "Fout bij laden",
-            soil: {},
-            norms: { nitrogen: 0, manure: 0, phosphate: 0 },
-            normsFilling: { nitrogen: 0, manure: 0, phosphate: 0 },
-            advice: {
-              d_n_req: 0,
-              d_p_req: 0,
-              d_k_req: 0,
-              d_mg_req: 0,
-              d_s_req: 0,
-              d_c_req: 0,
-              d_ca_req: 0,
-              d_na_req: 0,
-              d_cu_req: 0,
-              d_zn_req: 0,
-              d_co_req: 0,
-              d_mn_req: 0,
-              d_mo_req: 0,
-              d_b_req: 0,
-            },
-            planned: {
-              p_dose_n: 0,
-              p_dose_nw: 0,
-              p_dose_p: 0,
-              p_dose_k: 0,
-              p_dose_eoc: 0,
-              p_dose_mg: 0,
-              p_dose_s: 0,
-              p_dose_ca: 0,
-              p_dose_na: 0,
-              p_dose_cu: 0,
-              p_dose_zn: 0,
-              p_dose_co: 0,
-              p_dose_mn: 0,
-              p_dose_mo: 0,
-              p_dose_b: 0,
-            },
-            applications: [],
-          })
         }
-      }),
-    )
+      }
+
+      // Norms; a failing norm or filling is handled by the catch below
+      let normsResult: { value: FieldNormValues; filling: FieldNormFillings } | undefined
+      if (norms) {
+        const normResult = norms[index]
+        if (!normResult) throw new Error("Norms were not calculated")
+        if ("error" in normResult) throw normResult.error
+        const fillingResult = fillings?.[index]
+        if (!fillingResult) throw new Error("Norm filling was not calculated")
+        if ("error" in fillingResult) throw fillingResult.error
+        normsResult = { value: normResult.values, filling: fillingResult.values }
+      }
+
+      // Nutrient advice
+      let adviceKgHa = {
+        d_n_req: 0,
+        d_p_req: 0,
+        d_k_req: 0,
+        d_mg_req: 0,
+        d_s_req: 0,
+        d_c_req: 0,
+        d_ca_req: 0,
+        d_na_req: 0,
+        d_cu_req: 0,
+        d_zn_req: 0,
+        d_co_req: 0,
+        d_mn_req: 0,
+        d_mo_req: 0,
+        d_b_req: 0,
+      }
+      const adviceResult = advices[index]
+      if (adviceResult?.status === "rejected") {
+        console.error(`Failed to get nutrient advice for field ${field.b_id}:`, adviceResult.reason)
+      } else if (adviceResult?.value) {
+        const result = adviceResult.value
+        adviceKgHa = {
+          d_n_req: result.d_n_req || 0,
+          d_p_req: result.d_p_req || 0,
+          d_k_req: result.d_k_req || 0,
+          d_mg_req: result.d_mg_req || 0,
+          d_s_req: result.d_s_req || 0,
+          d_c_req: result.d_c_req || 0,
+          d_ca_req: result.d_ca_req || 0,
+          d_na_req: result.d_na_req || 0,
+          d_cu_req: result.d_cu_req || 0,
+          d_zn_req: result.d_zn_req || 0,
+          d_co_req: result.d_co_req || 0,
+          d_mn_req: result.d_mn_req || 0,
+          d_mo_req: result.d_mo_req || 0,
+          d_b_req: result.d_b_req || 0,
+        }
+      }
+
+      // Calculate Doses (Planned)
+      const { dose: plannedDose, applications: plannedApplicationDoses } = calculateDose({
+        applications: fertilizerApplications,
+        fertilizers: fertilizersCatalogue,
+      })
+
+      // Organic matter balance; a failure is handled by the catch below
+      const omResult = omBalances[index]
+      if (!omResult) throw new Error("Organic matter balance was not calculated")
+      if (omResult.status === "rejected") throw omResult.reason
+      const omBalanceResult = omResult.value
+
+      const fieldData: (typeof pdfFieldsData)[number] = {
+        id: field.b_id,
+        name: field.b_name,
+        area: field.b_area || 0,
+        isBufferstrip: field.b_bufferstrip,
+        mainCrop: mainCultivation?.b_lu_name || "Geen gewas",
+        catchCrop: catchCrop?.b_lu_name,
+        soil: {
+          b_sampling_date: formatDate(samplingDate),
+          a_ph_cc: soilParams.a_ph_cc,
+          a_p_al: soilParams.a_p_al,
+          a_p_cc: soilParams.a_p_cc,
+          a_k_cc: soilParams.a_k_cc,
+          a_som_loi: soilParams.a_som_loi,
+          b_soiltype_agr: soilParams.b_soiltype_agr,
+          a_clay_mi: soilParams.a_clay_mi,
+          a_sand_mi: soilParams.a_sand_mi,
+          a_silt_mi: soilParams.a_silt_mi,
+        },
+        norms: normsResult
+          ? {
+              nitrogen: normsResult.value.nitrogen.normValue,
+              manure: normsResult.value.manure.normValue,
+              phosphate: normsResult.value.phosphate.normValue,
+              renure: normsResult.value.renure?.normValue,
+            }
+          : { nitrogen: 0, manure: 0, phosphate: 0, renure: 0 },
+        normsFilling: normsResult
+          ? {
+              nitrogen: normsResult.filling.nitrogen.normFilling,
+              manure: normsResult.filling.manure.normFilling,
+              phosphate: normsResult.filling.phosphate.normFilling,
+              renure: normsResult.filling.renure?.normFilling,
+            }
+          : { nitrogen: 0, manure: 0, phosphate: 0 },
+        advice: adviceKgHa,
+        planned: plannedDose,
+        omBalance: omBalanceResult
+          ? {
+              balance: omBalanceResult.balance,
+              supply: omBalanceResult.supply.total,
+              supplyManure: omBalanceResult.supply.fertilizers.manure.total,
+              supplyCompost: omBalanceResult.supply.fertilizers.compost.total,
+              supplyCultivations: omBalanceResult.supply.cultivations.total,
+              supplyResidues: omBalanceResult.supply.residues.total,
+              degradation: omBalanceResult.degradation.total,
+            }
+          : undefined,
+        applications: plannedApplicationDoses.map((plannedApp) => {
+          const appDose = plannedApp ?? {
+            p_dose_n: 0,
+            p_dose_nw: 0,
+            p_dose_p: 0,
+            p_dose_k: 0,
+            p_dose_eoc: 0,
+            p_dose_mg: 0,
+            p_dose_s: 0,
+            p_dose_ca: 0,
+            p_dose_na: 0,
+            p_dose_cu: 0,
+            p_dose_zn: 0,
+            p_dose_co: 0,
+            p_dose_mn: 0,
+            p_dose_mo: 0,
+            p_dose_b: 0,
+          }
+          const app = appDose.p_app_id
+            ? fertilizerApplications.find((p_app) => p_app.p_app_id === appDose.p_app_id)
+            : undefined
+          const fert = app ? fertilizersCatalogue.find((f) => f.p_id === app.p_id) : undefined
+
+          return {
+            date: formatDate(app?.p_app_date),
+            product: fert?.p_name_nl ?? app?.p_id ?? "onbekend",
+            quantity: app?.p_app_amount ?? 0,
+            quantity_display: app?.p_app_amount_display ?? 0,
+            quantity_unit: app?.p_app_amount_unit ?? "kg/ha",
+            p_dose_n: appDose.p_dose_n || 0,
+            p_dose_nw: appDose.p_dose_nw || 0,
+            p_dose_p: appDose.p_dose_p || 0,
+            p_dose_k: appDose.p_dose_k || 0,
+            p_dose_eoc: appDose.p_dose_eoc || 0,
+            p_dose_mg: appDose.p_dose_mg || 0,
+            p_dose_s: appDose.p_dose_s || 0,
+            p_dose_ca: appDose.p_dose_ca || 0,
+            p_dose_na: appDose.p_dose_na || 0,
+            p_dose_cu: appDose.p_dose_cu || 0,
+            p_dose_zn: appDose.p_dose_zn || 0,
+            p_dose_co: appDose.p_dose_co || 0,
+            p_dose_mn: appDose.p_dose_mn || 0,
+            p_dose_mo: appDose.p_dose_mo || 0,
+            p_dose_b: appDose.p_dose_b || 0,
+          }
+        }),
+      }
+
+      pdfFieldsData.push(fieldData)
+    } catch (error) {
+      console.error(`Error processing field ${fieldExtended.b_id}:`, error)
+      pdfFieldsData.push({
+        id: field.b_id,
+        name: field.b_name,
+        area: field.b_area || 0,
+        isBufferstrip: field.b_bufferstrip,
+        mainCrop: "Fout bij laden",
+        soil: {},
+        norms: { nitrogen: 0, manure: 0, phosphate: 0 },
+        normsFilling: { nitrogen: 0, manure: 0, phosphate: 0 },
+        advice: {
+          d_n_req: 0,
+          d_p_req: 0,
+          d_k_req: 0,
+          d_mg_req: 0,
+          d_s_req: 0,
+          d_c_req: 0,
+          d_ca_req: 0,
+          d_na_req: 0,
+          d_cu_req: 0,
+          d_zn_req: 0,
+          d_co_req: 0,
+          d_mn_req: 0,
+          d_mo_req: 0,
+          d_b_req: 0,
+        },
+        planned: {
+          p_dose_n: 0,
+          p_dose_nw: 0,
+          p_dose_p: 0,
+          p_dose_k: 0,
+          p_dose_eoc: 0,
+          p_dose_mg: 0,
+          p_dose_s: 0,
+          p_dose_ca: 0,
+          p_dose_na: 0,
+          p_dose_cu: 0,
+          p_dose_zn: 0,
+          p_dose_co: 0,
+          p_dose_mn: 0,
+          p_dose_mo: 0,
+          p_dose_b: 0,
+        },
+        applications: [],
+      })
+    }
   }
 
   // Aggregates for farm level (Total kg)

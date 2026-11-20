@@ -21,6 +21,8 @@ export type {
   NitrogenEmissionAmmoniaFertilizersNumeric,
   NitrogenEmissionAmmoniaNumeric,
   NitrogenEmissionAmmoniaResiduesNumeric,
+  NitrogenEmissionNitrousOxideFarmNumeric,
+  NitrogenEmissionNitrousOxideNumeric,
   NitrogenEmissionNumeric,
   NitrogenRemovalHarvestsNumeric,
   NitrogenRemovalNumeric,
@@ -133,10 +135,13 @@ export {
   getFieldMeasureOptions,
   getYearTimeframe,
   collectInputForBln3MeasureApplicability,
+  collectInputForBln3MeasureApplicabilityForFarm,
   collectInputForBln3Score,
+  collectInputForBln3ScoreForFarm,
   getBln3MeasureAdvice,
   getBln3MeasureApplicability,
   getBln3Score,
+  getBln3Scores,
   requestBln3MeasureAdvice,
   requestBln3MeasureApplicability,
   requestBln3Score,
@@ -237,6 +242,8 @@ export type {
   InputAggregateNormsToFarmLevel,
 } from "./norms/farm"
 export { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./norms/farm"
+export type { NormGroup, NormGroupResult } from "./norms/fields"
+export { calculateNormFillingsForFields, calculateNormsForFields } from "./norms/fields"
 export type {
   FertilizerApplicationFillingInputByYear,
   FertilizerApplicationFillings,

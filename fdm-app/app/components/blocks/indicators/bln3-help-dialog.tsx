@@ -15,16 +15,18 @@ import {
 export function Bln3HelpDialog() {
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground gap-1.5"
-        >
-          <HelpCircle className="h-4 w-4" />
-          Wat is BLN3?
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground gap-1.5"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Wat is BLN3?
+          </Button>
+        }
+      />
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Wat is BLN3?</DialogTitle>
@@ -87,7 +89,8 @@ export function Bln3HelpDialog() {
               sloten, schouwpaden en natuurterreinen) worden uitgesloten van de BLN3-berekeningen en
               het maatregelenadvies. Omdat BLN3 en de bodemmaatregelen specifiek zijn ontworpen voor
               productieve landbouwgronden, zijn deze voor dit type percelen (in het betreffende
-              teeltjaar) niet beschikbaar.
+              teeltjaar) niet beschikbaar. Dat geldt ook voor percelen zonder hoofdteelt in het
+              gekozen jaar.
             </p>
           </div>
 

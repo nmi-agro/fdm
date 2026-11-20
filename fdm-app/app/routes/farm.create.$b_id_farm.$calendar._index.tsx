@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { getFarm } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
 import type { HelpHandle } from "~/lib/manual/help-targets"
@@ -17,7 +18,6 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 import { getSession } from "../lib/auth.server"
 
 // Meta
@@ -86,7 +86,7 @@ export default function ChooseFieldImportMethod() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex grow flex-col justify-between">
-                  <Accordion type="single" collapsible className="w-full">
+                  <Accordion className="w-full">
                     <AccordionItem value="item-1">
                       <AccordionTrigger>
                         Wat heb ik nodig om percelen te importeren vanuit RVO?
@@ -118,7 +118,7 @@ export default function ChooseFieldImportMethod() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex grow flex-col justify-between">
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion className="w-full">
                   <AccordionItem value="item-1">
                     <AccordionTrigger>
                       Hoe download ik een shapefile van mijn.rvo.nl?

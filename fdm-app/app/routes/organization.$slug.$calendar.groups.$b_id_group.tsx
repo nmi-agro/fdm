@@ -7,6 +7,7 @@ import {
   renameFarmGroup,
   updateFarmGroupMembership,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { data, useFetcher, useLoaderData } from "react-router"
@@ -56,7 +57,6 @@ import {
 } from "~/lib/farm-groups"
 import { fdm } from "~/lib/fdm.server"
 import { getOrganizationForGroups, serializeGroup } from "~/lib/organization-groups.server"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.$calendar.groups.$b_id_group"
 
 // Meta
@@ -449,7 +449,20 @@ function AddFarmForm({
               <Label htmlFor="add-farm" className="text-sm">
                 Bedrijf
               </Label>
-              <Select name="b_id_farm" value={farm} onValueChange={setFarm} required>
+              <Select
+                name="b_id_farm"
+                value={farm}
+                items={farms.map((f) => ({
+                  value: f.b_id_farm,
+                  label: f.b_name_farm ?? "Onbekend",
+                }))}
+                onValueChange={(value) => {
+                  if (typeof value === "string") {
+                    setFarm(value)
+                  }
+                }}
+                required
+              >
                 <SelectTrigger id="add-farm">
                   <SelectValue placeholder="Kies een bedrijf" />
                 </SelectTrigger>
@@ -546,18 +559,20 @@ function DeleteMembershipButton({
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="text-destructive"
-          disabled={isSubmitting}
-          aria-label={`Periode van ${farmName} verwijderen`}
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </AlertDialogTrigger>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-destructive"
+            disabled={isSubmitting}
+            aria-label={`Periode van ${farmName} verwijderen`}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Periode van {farmName} verwijderen?</AlertDialogTitle>
@@ -593,12 +608,14 @@ function DeleteGroupCard({ group }: { group: { b_name_group: string } }) {
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline" className="text-destructive w-full">
-          <Trash2 className="size-4" />
-          Groep verwijderen
-        </Button>
-      </AlertDialogTrigger>
+      <AlertDialogTrigger
+        render={
+          <Button variant="outline" className="text-destructive w-full">
+            <Trash2 className="size-4" />
+            Groep verwijderen
+          </Button>
+        }
+      />
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Groep {group.b_name_group} verwijderen?</AlertDialogTitle>

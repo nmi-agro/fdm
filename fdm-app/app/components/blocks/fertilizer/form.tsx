@@ -13,7 +13,7 @@ import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer
 import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
@@ -123,7 +123,14 @@ export function FertilizerForm({
             ) : param.type === "enum" ? (
               <Select
                 onValueChange={field.onChange}
-                value={field.value ? String(field.value) : undefined}
+                value={field.value ? String(field.value) : null}
+                items={param.options?.map((option) => ({
+                  value: option.value ?? "",
+                  label:
+                    param.parameter === "p_app_amount_unit"
+                      ? option.label
+                      : `${option.label} (${option.value ?? ""})`,
+                }))}
                 disabled={!editable}
               >
                 <SelectTrigger className="h-9">
@@ -269,14 +276,18 @@ export function FertilizerForm({
                   sjabloon om een eigen variant aan te maken.
                 </span>
                 {p_id && (
-                  <Button variant="outline" size="sm" className="shrink-0 font-semibold" asChild>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Gebruik als sjabloon
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to={`/farm/${b_id_farm}/fertilizers/new/${p_id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`}
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                      className: "shrink-0 font-semibold",
+                    })}
+                    data-slot="button"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Gebruik als sjabloon
+                  </NavLink>
                 )}
               </AlertDescription>
             </Alert>
@@ -286,7 +297,7 @@ export function FertilizerForm({
             const isGeneral = category.name === "general"
             return (
               <Card key={category.name} className="shadow-sm">
-                <CardHeader className="pb-4">
+                <CardHeader>
                   <CardTitle className="text-lg font-bold">{category.title}</CardTitle>
                 </CardHeader>
                 <CardContent>

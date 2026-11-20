@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-calculator",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "private": false,
   "description": "Calculate various insights based on the Farm Data Model",
   "homepage": "https://github.com/nmi-agro/fdm",
@@ -56,7 +56,7 @@
     "date-fns": "^4.4.0",
     "decimal.js": "^10.6.0",
     "geotiff": "^3.0.5",
-    "proj4": "^2.22.0",
+    "proj4": "^2.23.0",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -65,7 +65,7 @@
     "@types/node": "catalog:",
     "@types/terraformer__wkt": "^2.0.3",
     "@vitest/coverage-v8": "catalog:",
-    "postgres": "^4.0.0",
+    "postgres": "^4.1.1",
     "tsdown": "catalog:",
     "typedoc": "catalog:",
     "typedoc-plugin-missing-exports": "catalog:",

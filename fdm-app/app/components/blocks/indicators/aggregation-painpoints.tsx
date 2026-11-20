@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { AlertCircle, ArrowRight, CheckCircle2, CornerDownRight, Sparkles } from "lucide-react"
 import { Suspense, useMemo, useState } from "react"
 import { Await, Link } from "react-router"
@@ -28,7 +29,6 @@ import {
   INDICATORS,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 type LeftMode = "themes" | "indicators"
 
@@ -185,7 +185,7 @@ export function AggregationPainpoints({
 
   return (
     <Card className="border-border border shadow-sm">
-      <CardHeader className="pb-3">
+      <CardHeader>
         <div className="flex items-center gap-2">
           <AlertCircle className="text-muted-foreground h-5 w-5" />
           <CardTitle className="text-base font-bold">Knelpunten</CardTitle>

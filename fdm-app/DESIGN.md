@@ -106,7 +106,7 @@ components:
 
 **Creative North Star: "The Agronomist's Workbench"**
 
-fdm-app is a quiet, expert tool that disappears into the task. The user comes with raw farm data they already know — fields, cultivations, soil analyses, fertilizer applications, harvests — and leaves with connected agronomic insight: nutrient balances, gebruiksruimte, advice, soil-health indicators, and spatial overviews. The interface earns trust by getting out of the way: a calm near-monochrome surface, a single well-tuned sans, and consistent shadcn/Radix components mean attention stays on the data and the decision, never on the chrome.
+fdm-app is a quiet, expert tool that disappears into the task. The user comes with raw farm data they already know — fields, cultivations, soil analyses, fertilizer applications, harvests — and leaves with connected agronomic insight: nutrient balances, gebruiksruimte, advice, soil-health indicators, and spatial overviews. The interface earns trust by getting out of the way: a calm near-monochrome surface, a single well-tuned sans, and consistent shadcn/Base UI components mean attention stays on the data and the decision, never on the chrome.
 
 The personality is calm, trustworthy, and modern. Density is honest — tables, panels, and forms carry real information without decoration — but never cluttered for its own sake. Color is earned, not sprayed: the surface is neutral slate so that the few moments of hue (chart series, status, the current selection) read instantly. This is the opposite of an overselling consumer app or a cluttered legacy agri-portal; it should feel available to an individual advisor or farmer, not gated behind an enterprise wall.
 
@@ -118,7 +118,7 @@ The system explicitly rejects: clutter that buries insight, hype and unsubstanti
 - One typeface (Inter) across headings, labels, body, and data.
 - Flat by default; subtle shadows only as a response to state.
 - Full light/dark parity via CSS custom properties.
-- Standard, consistent component vocabulary (shadcn "new-york" + Radix).
+- Standard, consistent component vocabulary (shadcn `base-vega` + Base UI).
 
 ## 2. Colors
 
@@ -182,7 +182,7 @@ Mostly flat. Surfaces sit at rest with hairline borders doing the separation; de
 
 ## 5. Components
 
-Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwind v4 tokens. Refined and restrained: standard affordances, consistent shape, every interactive state defined.
+Built on shadcn/ui (`base-vega` style) over Base UI primitives, styled with Tailwind v4 tokens. Refined and restrained: standard affordances, consistent shape, every interactive state defined.
 
 ### Buttons
 

@@ -12,6 +12,7 @@ import {
   updateField,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
+import { cn } from "cn"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -32,7 +33,7 @@ import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
@@ -46,7 +47,6 @@ import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
@@ -420,9 +420,12 @@ export default function FarmFieldIndex() {
                 </h1>
               </div>
               <div className="relative flex flex-col items-center">
-                <Button asChild className={cn(!loaderData.farmWritePermission ? "invisible" : "")}>
-                  <NavLink to="./new">Maak een perceel</NavLink>
-                </Button>
+                <NavLink
+                  to="./new"
+                  className={cn(buttonVariants(), !loaderData.farmWritePermission && "invisible")}
+                >
+                  Maak een perceel
+                </NavLink>
               </div>
               {/* <p className="px-8 text-center text-sm text-muted-foreground">
                             </p> */}

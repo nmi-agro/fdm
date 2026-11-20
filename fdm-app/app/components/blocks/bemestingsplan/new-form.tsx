@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useFetcher } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { Button } from "~/components/ui/button"
@@ -11,7 +12,6 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getCalendarSelection } from "~/lib/calendar"
-import { cn } from "~/lib/utils"
 
 export function NewBemestingsplanForm({ className }: { className?: string }) {
   const years = getCalendarSelection()
@@ -24,7 +24,16 @@ export function NewBemestingsplanForm({ className }: { className?: string }) {
     <fetcher.Form method="post">
       <input type="hidden" name="intent" value="establish_plan" />
       <div className={cn("flex items-center gap-2", className)}>
-        <Select name="year" value={year} onValueChange={setYear}>
+        <Select
+          name="year"
+          value={year}
+          items={years.map((y) => ({ value: y, label: `Teeltjaar ${y}` }))}
+          onValueChange={(y) => {
+            if (typeof y === "string") {
+              setYear(y)
+            }
+          }}
+        >
           <SelectTrigger className="w-44">
             <SelectValue placeholder="Selecteer teeltjaar" />
           </SelectTrigger>

@@ -70,20 +70,22 @@ export function PhotoUploadButton({
       {/* Mobile: single button → dropdown */}
       <div className="sm:hidden">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" size={size} disabled={inputsDisabled}>
-              {isUploading && <Spinner />}
-              <Camera className="size-4" />
-              {label}
-              <ChevronDown className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button type="button" size={size} disabled={inputsDisabled}>
+                {isUploading && <Spinner />}
+                <Camera className="size-4" />
+                {label}
+                <ChevronDown className="size-4" />
+              </Button>
+            }
+          />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => cameraRef.current?.click()}>
+            <DropdownMenuItem onClick={() => cameraRef.current?.click()}>
               <Camera className="size-4" />
               Camera
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => galleryRef.current?.click()}>
+            <DropdownMenuItem onClick={() => galleryRef.current?.click()}>
               <Upload className="size-4" />
               Galerij kiezen
             </DropdownMenuItem>

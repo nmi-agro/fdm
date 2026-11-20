@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import Autoplay from "embla-carousel-autoplay"
 import { AlertTriangle, Gauge, ClipboardList } from "lucide-react"
 import { useState, useSyncExternalStore } from "react"
@@ -9,7 +10,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "~/components/ui/carousel"
-import { cn } from "~/lib/utils"
 
 type IndicatorShowcaseSlide = {
   id: string

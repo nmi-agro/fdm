@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react"
-import { Fragment, type MouseEvent, type KeyboardEvent, type ReactNode } from "react"
+import { Fragment, type MouseEvent, type KeyboardEvent, type ReactElement } from "react"
 import { useNavigate } from "react-router"
 import {
   ContextMenu,
@@ -33,7 +33,7 @@ export type TimelineMenuSections = {
 }
 
 /**
- * Opens the surrounding `TimelineContextMenu` at the position of a left click. Radix' ContextMenu
+ * Opens the surrounding `TimelineContextMenu` at the position of a left click. The Base UI ContextMenu
  * only opens on a `contextmenu` event, so a left click is translated into one that bubbles up to
  * the nearest trigger. Keyboard activations (no pointer position) open at the element's center.
  */
@@ -73,7 +73,7 @@ export function TimelineContextMenu({
   children,
   sections,
 }: {
-  children: ReactNode
+  children: ReactElement
   sections: TimelineMenuSections
 }) {
   const navigate = useNavigate()
@@ -88,7 +88,7 @@ export function TimelineContextMenu({
   return (
     <ContextMenu>
       <ContextMenuTrigger
-        asChild
+        render={children}
         // Only the synthetic events created by `openMenuFromClick` may open the menu.
         onContextMenuCapture={(event) => {
           if (event.nativeEvent.isTrusted) {
@@ -98,9 +98,7 @@ export function TimelineContextMenu({
         }}
         // Keep nested menus (an icon on a cultivation bar) from opening their parent as well.
         onContextMenu={(event) => event.stopPropagation()}
-      >
-        {children}
-      </ContextMenuTrigger>
+      />
       <ContextMenuContent className="w-64">
         {hasHeader && (
           <ContextMenuGroup>
@@ -113,7 +111,7 @@ export function TimelineContextMenu({
               </div>
             )}
             {detailsHref && (
-              <ContextMenuItem onSelect={() => void navigate(detailsHref)}>
+              <ContextMenuItem onClick={() => void navigate(detailsHref)}>
                 Bekijk details
               </ContextMenuItem>
             )}
@@ -130,7 +128,7 @@ export function TimelineContextMenu({
                 <ContextMenuItem
                   className={destructive ? "text-destructive focus:text-destructive" : undefined}
                   key={key}
-                  onSelect={onSelect}
+                  onClick={onSelect}
                 >
                   {Icon && <Icon className="size-4" />}
                   {label}

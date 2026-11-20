@@ -1,13 +1,12 @@
 import type { TagSummary, Ticket, TicketFilters, TicketSorting } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { ArrowUpDown, ChevronLeft, Filter, Plus, X } from "lucide-react"
-import { Dialog } from "radix-ui"
 import { useCallback, useMemo, useState } from "react"
 import { NavLink, Outlet, useLocation, useParams, useSearchParams } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Paginator } from "~/components/custom/paginator"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -18,7 +17,7 @@ import {
 import { Empty, EmptyContent, EmptyDescription, EmptyTitle } from "~/components/ui/empty"
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
-import { Sheet, SheetClose, SheetPortal } from "~/components/ui/sheet"
+import { Sheet, SheetClose, SheetPopup, SheetPortal } from "~/components/ui/sheet"
 import { useIsXl } from "~/hooks/use-is-xl"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import type { HelpdeskUser } from "./types"
@@ -129,22 +128,24 @@ function TicketList({
           }}
         />
         <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              title="Filters"
-              className="relative ml-auto block size-auto has-[>svg]:p-2"
-            >
-              <Filter className="mx-auto" />
-              {countActiveFilters(filters) > 0 && (
-                <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center p-0 text-[10px]">
-                  {countActiveFilters(filters)}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
+          <PopoverTrigger
+            render={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                title="Filters"
+                className="relative ml-auto block size-auto has-[>svg]:p-2"
+              >
+                <Filter className="mx-auto" />
+                {countActiveFilters(filters) > 0 && (
+                  <Badge className="absolute -top-1.5 -right-1.5 size-4 justify-center p-0 text-[10px]">
+                    {countActiveFilters(filters)}
+                  </Badge>
+                )}
+              </Button>
+            }
+          />
           <PopoverContent className="p-2">
             <h2 className="mb-3 text-sm font-semibold">Filters wijzigen</h2>
             <TicketSearch
@@ -156,17 +157,19 @@ function TicketList({
           </PopoverContent>
         </Popover>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              title="Sorteren"
-              className="relative ml-auto block size-auto has-[>svg]:p-2"
-            >
-              <ArrowUpDown className="mx-auto" />
-            </Button>
-          </DropdownMenuTrigger>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                title="Sorteren"
+                className="relative ml-auto block size-auto has-[>svg]:p-2"
+              >
+                <ArrowUpDown className="mx-auto" />
+              </Button>
+            }
+          />
           <DropdownMenuContent className="p-2">
             <DropdownMenuLabel className="mb-3 text-sm font-semibold">Sorteren</DropdownMenuLabel>
             <DropdownMenuCheckboxItem
@@ -199,12 +202,14 @@ function TicketList({
                     U heeft nog geen tickets aangemaakt. Stel een vraag en een medewerker neemt
                     contact met u op.
                   </EmptyDescription>
-                  <Button asChild size="sm" className="mt-2">
-                    <NavLink to="/support/new">
-                      <Plus className="size-4" />
-                      Nieuw ticket aanmaken
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to="/support/new"
+                    className={buttonVariants({ size: "sm", className: "mt-2" })}
+                    data-slot="button"
+                  >
+                    <Plus className="size-4" />
+                    Nieuw ticket aanmaken
+                  </NavLink>
                 </>
               )}
             </EmptyContent>
@@ -283,27 +288,29 @@ export function TicketViewer({
       {!isXl && container && (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen} modal={false}>
           <SheetPortal container={container}>
-            <Dialog.Content
+            <SheetPopup
               aria-label="Tickets"
-              className="bg-background border-sidebar-border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left absolute inset-y-0 top-0 left-0 z-50 flex h-full w-full flex-col border-r transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500"
+              className="bg-background border-sidebar-border data-open:animate-in data-closed:animate-out data-closed:slide-out-to-left data-open:slide-in-from-left absolute inset-y-0 top-0 left-0 z-50 flex h-full w-full flex-col border-r transition ease-in-out data-closed:duration-300 data-open:duration-500"
             >
-              <SheetClose asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "absolute -top-8 right-8 translate-x-1/2 -translate-y-1/2",
-                    !params.ticket_id && "hidden",
-                  )}
-                >
-                  <X />
-                  <span className="sr-only">Sluit zijbalk</span>
-                </Button>
-              </SheetClose>
+              <SheetClose
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "absolute -top-8 right-8 translate-x-1/2 -translate-y-1/2",
+                      !params.ticket_id && "hidden",
+                    )}
+                  >
+                    <X />
+                    <span className="sr-only">Sluit zijbalk</span>
+                  </Button>
+                }
+              />
               <div className="min-h-0 flex-1">
                 <TicketList {...ticketListProps} />
               </div>
-            </Dialog.Content>
+            </SheetPopup>
           </SheetPortal>
         </Sheet>
       )}

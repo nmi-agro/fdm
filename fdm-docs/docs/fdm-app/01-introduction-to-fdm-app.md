@@ -30,7 +30,7 @@ The `fdm-app` is built with a technical stack that provides specific functionali
 
 - **UI & Styling:**
   - **Tailwind CSS 4:** A utility-first CSS framework for building custom designs.
-  - **shadcn/ui (Radix UI):** A collection of re-usable components built on Radix UI primitives and styled with Tailwind CSS, supporting accessibility and modularity.
+  - **shadcn/ui (Base UI):** A collection of re-usable components built on Base UI primitives and styled with Tailwind CSS, supporting accessibility and modularity.
   - **Framer Motion:** A motion library for React that supports animations and gestures in the UI.
   - **Lucide React:** An icon library that integrates with React applications.
   - **Sonner:** A toast component for displaying notifications and messages to the user.

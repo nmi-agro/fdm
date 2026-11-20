@@ -1,12 +1,20 @@
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect, useRef, useState } from "react"
-import { useWatch } from "react-hook-form"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Controller, useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  createComboboxItems,
+} from "~/components/ui/combobox"
 import {
   Dialog,
   DialogContent,
@@ -14,11 +22,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
+import { Field, FieldContent, FieldError, FieldLabel } from "~/components/ui/field"
 import { Spinner } from "~/components/ui/spinner"
 import type { CultivationsFormProps } from "./types"
 import { CultivationAvailabilityWarning } from "./availability-warning"
 import { CultivationAddFormSchema } from "./schema"
 
+/**
+ * Renders a dialog with a trigger button that holds the {@link CultivationAddForm}.
+ *
+ * The dialog opens right away when `defaultValues` are given, to confirm a suggested cultivation.
+ *
+ * @param props - The form props, plus `onClose`, which is called when the dialog closes.
+ * @returns The dialog element.
+ */
 export function CultivationAddFormDialog({
   options,
   lastCultivationAvailabilityYear,
@@ -37,9 +54,7 @@ export function CultivationAddFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button>Gewas toevoegen</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button>Gewas toevoegen</Button>} />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -57,6 +72,14 @@ export function CultivationAddFormDialog({
   )
 }
 
+/**
+ * Renders the form to add a cultivation, or to confirm a suggested one, with the crop, the sowing
+ * date and the end date.
+ *
+ * @param props - The form props, plus `editable` (default `true`), `onSuccess`, which is called
+ *   after a successful submission, and `action`, the route to submit to.
+ * @returns The form element.
+ */
 export function CultivationAddForm({
   options,
   lastCultivationAvailabilityYear,
@@ -84,6 +107,15 @@ export function CultivationAddForm({
     },
   })
 
+  const cultivationItems = useMemo(
+    () =>
+      createComboboxItems(options, {
+        getValue: (option) => option.value,
+        getLabel: (option) => option.label,
+      }),
+    [options],
+  )
+
   const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
   const current_b_lu_start = useWatch({ control: form.control, name: "b_lu_start" })
   const current_b_lu_end = useWatch({ control: form.control, name: "b_lu_end" })
@@ -107,20 +139,45 @@ export function CultivationAddForm({
           {typeof intent === "string" && <input type="hidden" name="intent" value={intent} />}
           {typeof b_id === "string" && <input type="hidden" name="b_id" value={b_id} />}
           <div className="grid gap-4">
-            <div className="col-span-1">
-              <Combobox
-                options={options}
-                form={form}
-                name="b_lu_catalogue"
-                label={
-                  <span>
+            <Controller
+              control={form.control}
+              name="b_lu_catalogue"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>
                     Gewas
                     <span className="text-red-500">*</span>
-                  </span>
-                }
-                disabled={!!b_lu}
-              />
-            </div>
+                  </FieldLabel>
+                  <FieldContent>
+                    <Combobox
+                      items={cultivationItems}
+                      value={field.value || null}
+                      // Clear to "" rather than undefined: the Controller shows the default
+                      // (suggested) crop again for undefined, while the form value is empty.
+                      onValueChange={(value) => field.onChange(value ?? "")}
+                      disabled={!!b_lu}
+                    >
+                      <ComboboxInput
+                        id={field.name}
+                        onBlur={field.onBlur}
+                        aria-invalid={fieldState.invalid}
+                      />
+                      <ComboboxContent>
+                        <ComboboxEmpty>Geen gewassen gevonden.</ComboboxEmpty>
+                        <ComboboxList>
+                          {(item) => (
+                            <ComboboxItem key={item.value} value={item.value}>
+                              {item.label}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </FieldContent>
+                  <FieldError errors={[fieldState.error]} />
+                </Field>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <DatePicker
                 form={form as any}

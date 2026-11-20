@@ -1,5 +1,4 @@
 import type { FeatureCollection, Geometry } from "geojson"
-import { GROENE_BRAAK, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivations,
@@ -322,7 +321,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fs = farmScores.find((s) => s.b_id === f.b_id)
         const scores = computeFieldScores(fs)
         const isBufferstrip = f.b_bufferstrip === true || fs?.isBufferstrip === true
-        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
+        const hasNoMainCultivation = !isBufferstrip && fs?.exclusionReason === "no_main_cultivation"
+        const isNature =
+          !hasNoMainCultivation &&
+          (fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true))
         return {
           type: "Feature" as const,
           properties: {
@@ -332,7 +334,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_bufferstrip: isBufferstrip,
             isBufferstrip,
             isNature,
-            isExcluded: isBufferstrip || isNature,
+            hasNoMainCultivation,
+            isExcluded: isBufferstrip || isNature || hasNoMainCultivation,
             avgScore: scores.avg, // kept for backward compat
             ...scores,
           },
@@ -396,33 +399,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Derive the current cultivation (FarmTitle badge) using the hoofdteelt rule.
     const currentCultivation = getMainCultivation(cultivations, calendar ?? "")
 
-    // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
-    // window) — exactly consistent with what is submitted to the BLN3 API.
-    // Only show years within the range of known cultivation data; gaps get groene braak.
-    const maxCalendarYear = calendarYear
-    const minCalendarYear = cultivations.reduce((min, c) => {
-      const y = c.b_lu_start?.getFullYear()
-      return y !== undefined && y < min ? y : min
-    }, maxCalendarYear)
-
-    // Build a lookup map from the BRP catalogue for fallback name resolution
-    // (e.g. nl_6794 = "groene braak, spontane opkomst" when no field record exists).
-    const brpNameByCode = new Map(brpCatalogue.map((item) => [item.b_lu_catalogue, item.b_lu_name]))
-
+    // Show the cultivation history exactly as it is submitted to the BLN3 API: the main
+    // cultivation (hoofdteelt) per year, with groene braak for years without one. Names and crop
+    // rotations come from the BRP catalogue.
+    const brpByCode = new Map(brpCatalogue.map((item) => [item.b_lu_catalogue, item]))
     const cultivationSummaries: Array<{
       name: string
       year: number
       croprotation: string | null
-    }> = []
-    for (let year = maxCalendarYear; year >= minCalendarYear; year--) {
-      const hoofdteelt = findHoofdteelt(cultivations, year, true)
-      const catalogue = hoofdteelt?.b_lu_catalogue ?? GROENE_BRAAK
-      cultivationSummaries.push({
-        name: hoofdteelt?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
-        year,
-        croprotation: hoofdteelt?.b_lu_croprotation ?? null,
-      })
-    }
+    }> = (bln3Inputs.cultivations ?? []).map(({ b_lu_brp, b_lu_year }) => {
+      const catalogue = `nl_${b_lu_brp}`
+      const item = brpByCode.get(catalogue)
+      return {
+        name: item?.b_lu_name ?? catalogue,
+        year: b_lu_year,
+        croprotation: item?.b_lu_croprotation ?? null,
+      }
+    })
 
     // Build per-indicator recommended measures: raw advice, cross-referenced
     // against a fresh applicability check and already-active measures (the
@@ -475,6 +468,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       indicatorAdvice,
       adviceUnavailable,
       isExcluded: bln3Result.inputs.isExcluded ?? false,
+      exclusionReason: bln3Result.inputs.exclusionReason ?? null,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -653,6 +647,7 @@ export default function IndicatorsFieldDetail() {
     indicatorAdvice,
     adviceUnavailable,
     isExcluded,
+    exclusionReason,
     soilData,
   } = loaderData
 
@@ -708,6 +703,7 @@ export default function IndicatorsFieldDetail() {
                     b_bufferstrip: field.b_bufferstrip,
                     cultivationName: currentCultivationName,
                     calendarYear: calendar,
+                    exclusionReason,
                   })}
                 </p>
               </div>
@@ -717,7 +713,7 @@ export default function IndicatorsFieldDetail() {
                 <div className="flex flex-col gap-4">
                   {fieldScore && (
                     <Card className="border-border shadow-sm">
-                      <CardHeader className="pb-3">
+                      <CardHeader>
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
@@ -831,7 +827,15 @@ export default function IndicatorsFieldDetail() {
             <div className="relative h-64 overflow-hidden rounded-lg border sm:h-80 lg:sticky lg:top-4 lg:h-[560px]">
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
-                <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
+                <Select
+                  value={mapScoreKey}
+                  items={MAP_SCORE_OPTION_GROUPS.flatMap((group) => group.options)}
+                  onValueChange={(value) => {
+                    if (typeof value === "string") {
+                      setMapScoreKey(value)
+                    }
+                  }}
+                >
                   <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>

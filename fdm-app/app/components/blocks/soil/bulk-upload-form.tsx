@@ -161,7 +161,7 @@ export function BulkSoilAnalysisUploadForm({
             <CollapsibleTrigger className="focus-visible:ring-ring/50 group flex items-center gap-2 rounded-sm text-sm font-medium focus-visible:ring-[3px] focus-visible:outline-none">
               <ChevronDown
                 aria-hidden
-                className="size-4 transition-transform group-data-[state=closed]:-rotate-90"
+                className="size-4 -rotate-90 transition-transform group-data-panel-open:rotate-0"
               />
               <span key={files.length}>
                 {files.length === 1 ? "1 PDF gekozen" : `${files.length} PDF's gekozen`}

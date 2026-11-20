@@ -5,7 +5,7 @@ import { Controller } from "react-hook-form"
 import { NavLink, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from "~/components/ui/field"
 import {
@@ -62,7 +62,7 @@ export function TicketComposer({
         onSubmit={form.handleSubmit}
       >
         <Card>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <Controller
               name="context_farm_id"
               render={({ field, fieldState }) => (
@@ -75,6 +75,13 @@ export function TicketComposer({
                   </FieldDescription>
                   <Select
                     value={field.value ?? "NO_SELECTION"}
+                    items={[
+                      { value: "NO_SELECTION", label: "Geen specifiek bedrijf" },
+                      ...(farmOptions ?? []).map((opt) => ({
+                        value: opt.b_id_farm,
+                        label: opt.b_name_farm,
+                      })),
+                    ]}
                     onValueChange={(value) => {
                       field.onChange(value === "NO_SELECTION" ? null : value)
                     }}
@@ -141,9 +148,13 @@ export function TicketComposer({
               }}
             />
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button variant="outline" asChild>
-                <NavLink to="/support">Annuleren</NavLink>
-              </Button>
+              <NavLink
+                to="/support"
+                className={buttonVariants({ variant: "outline" })}
+                data-slot="button"
+              >
+                Annuleren
+              </NavLink>
               <Button type="submit">Verzenden</Button>
             </div>
           </CardContent>

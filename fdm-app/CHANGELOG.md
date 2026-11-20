@@ -1,5 +1,20 @@
 # Changelog fdm-app
 
+## 0.39.9
+
+### Patch Changes
+
+- [#958](https://github.com/nmi-agro/fdm/pull/958) [`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae) Thanks [@SvenVw](https://github.com/SvenVw)! - Bodemkwaliteit (BLN) and bodemmaatregelen are no longer calculated for a field without a main cultivation in the selected year. The indicator and measure pages explain that the field has no main cultivation in that year, and the indicator maps no longer show such a field as a nature field.
+- Updated dependencies [[`284ba2f`](https://github.com/nmi-agro/fdm/commit/284ba2f56d43646de624f5de08bb8b646900abae)]:
+  - @nmi-agro/fdm-calculator@0.20.1
+  - @nmi-agro/fdm-agents@0.6.1
+
+## 0.39.8
+
+### Patch Changes
+
+- [#949](https://github.com/nmi-agro/fdm/pull/949) [`f0b796e`](https://github.com/nmi-agro/fdm/commit/f0b796e8e7b336f43a9ccd97922332b42c7d4e6f) Thanks [@SvenVw](https://github.com/SvenVw)! - Opening the soil analysis of a field in the atlas for a year in which the field is not part of the farm now shows the "page unavailable" message instead of the unexpected error page.
+
 ## 0.39.7
 
 ### Patch Changes

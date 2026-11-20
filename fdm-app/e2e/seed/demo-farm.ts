@@ -46,13 +46,39 @@ export type DemoFieldKey =
 /** Which data the seed creates: `minimal` for smoke tests, `demo` for the manual screenshots. */
 export type SeedVariant = "minimal" | "demo"
 
+/** The user that the seed signs up and that owns the farm. */
+export interface SeedUser {
+  email: string
+  username: string
+  firstname: string
+  surname: string
+}
+
+/** The records seeded on one field, by type. Each list follows the order of the seed data. */
+export interface SeededFieldRecords {
+  /** Cultivation ids (`b_lu`). */
+  cultivations: string[]
+  /** Harvest ids (`b_id_harvesting`) of all cultivations. */
+  harvests: string[]
+  /** Fertilizer application ids (`p_app_id`). */
+  applications: string[]
+  /** Soil analysis ids (`a_id`). */
+  soilAnalyses: string[]
+}
+
 /** What the seed created, read by the tests to fill in routes. */
 export interface DemoFarmIds {
   variant: SeedVariant
   farm: string
   /** Field ids by key; the `minimal` variant has only some of the fields. */
   fields: Partial<Record<DemoFieldKey, string>>
+  /** Records on each seeded field, by field key. */
+  records: Partial<Record<DemoFieldKey, SeededFieldRecords>>
+  /** Fertilizer ids (`p_id`) of the farm, by catalogue id (`p_id_catalogue`). */
+  fertilizers: Record<string, string>
   year: number
   /** The e-mail address of the demo user. */
   email: string
+  /** The id of the demo user, which is also its principal id. */
+  principalId: string
 }

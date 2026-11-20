@@ -27,6 +27,7 @@ const initializeRuntimeEnvMap = (): RuntimeConfig => {
     "PUBLIC_FDM_DATASETS_URL",
     "PUBLIC_FDM_DOCS_URL",
     "PUBLIC_FDM_API_URL",
+    "PUBLIC_FDM_MCP_URL",
     "PUBLIC_MAP_PROVIDER",
     "PUBLIC_MAPTILER_API_KEY",
     "PUBLIC_SENTRY_DSN",
@@ -107,6 +108,9 @@ export const clientConfig: ClientConfig = {
   url: String(getConfigValue("PUBLIC_FDM_URL")),
   apiUrl: getConfigValue("PUBLIC_FDM_API_URL")
     ? String(getConfigValue("PUBLIC_FDM_API_URL"))
+    : undefined,
+  mcpUrl: getConfigValue("PUBLIC_FDM_MCP_URL")
+    ? String(getConfigValue("PUBLIC_FDM_MCP_URL"))
     : undefined,
   datasets_url: String(
     getConfigValue("PUBLIC_FDM_DATASETS_URL", "https://storage.googleapis.com/fdm-public-data") ||

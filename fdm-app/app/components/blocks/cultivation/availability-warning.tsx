@@ -1,8 +1,8 @@
+import { cn } from "cn"
 import { AlertTriangle } from "lucide-react"
 import { Alert } from "~/components/ui/alert"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
-import { cn } from "~/lib/utils"
 
 /** Result of {@link isCultivationUnavailableInPeriod}: `null` when there is nothing to warn about. */
 export type CultivationAvailabilityResult = ReturnType<typeof isCultivationUnavailableInPeriod>
@@ -96,11 +96,13 @@ export function CultivationAvailabilityWarningIcon(props: CultivationAvailabilit
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={cn("inline-flex", props.className)} role="img" aria-label={message}>
-            <AlertTriangle className="size-3.5" aria-hidden="true" />
-          </span>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <span className={cn("inline-flex", props.className)} role="img" aria-label={message}>
+              <AlertTriangle className="size-3.5" aria-hidden="true" />
+            </span>
+          }
+        />
         <TooltipContent>{message}</TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -32,6 +32,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
+import { cn } from "cn"
 import { useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type {
@@ -87,7 +88,6 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getIndicatorInfo, getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   const fieldName = loaderData?.field?.b_name ?? "Perceel"
@@ -768,6 +768,11 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         })
 
         if (!result.score) {
+          if (result.inputs.exclusionReason === "no_main_cultivation") {
+            return buildEmptyResult(
+              "Dit perceel heeft dit jaar geen hoofdteelt en is uitgesloten van BLN3.",
+            )
+          }
           if (result.inputs.isExcluded) {
             return buildEmptyResult(
               "Dit perceel is een bufferstrook of natuurperceel en is uitgesloten van BLN3.",

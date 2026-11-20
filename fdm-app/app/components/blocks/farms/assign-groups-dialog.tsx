@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useState } from "react"
 import { NavLink, useFetcher } from "react-router"
 import { PeriodDateField } from "~/components/blocks/farm-groups/period-date-field"
@@ -13,7 +14,6 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { formatCalendarLabel, getPeriodError } from "~/lib/farm-groups"
-import { cn } from "~/lib/utils"
 import type { FarmExtended } from "./columns"
 
 type GroupOption = { b_id_group: string; b_name_group: string }
@@ -166,11 +166,13 @@ export function AssignGroupsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" disabled={farms.length === 0}>
-          Groep toewijzen…
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button variant="outline" disabled={farms.length === 0}>
+            Groep toewijzen…
+          </Button>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Groep toewijzen</DialogTitle>
@@ -224,7 +226,8 @@ export function AssignGroupsDialog({
                     <Checkbox
                       id={`group-${group.b_id_group}`}
                       className="mt-0.5"
-                      checked={current}
+                      checked={current === true}
+                      indeterminate={current === "indeterminate"}
                       aria-describedby={status ? statusId : undefined}
                       onCheckedChange={() =>
                         setState((previous) => ({

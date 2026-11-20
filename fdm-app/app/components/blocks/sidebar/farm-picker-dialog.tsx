@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -71,12 +71,14 @@ export function FarmPickerDialog({
           </Command>
         ) : (
           <div className="flex flex-col gap-4 p-6 pt-2">
-            <Button asChild className="w-full">
-              <NavLink to="/farm/create">
-                <Plus />
-                <span>Nieuw bedrijf aanmaken</span>
-              </NavLink>
-            </Button>
+            <NavLink
+              to="/farm/create"
+              className={buttonVariants({ className: "w-full" })}
+              data-slot="button"
+            >
+              <Plus />
+              <span>Nieuw bedrijf aanmaken</span>
+            </NavLink>
           </div>
         )}
       </DialogContent>

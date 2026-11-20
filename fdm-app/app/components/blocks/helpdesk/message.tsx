@@ -1,8 +1,8 @@
 import type { Message as MessageT } from "@nmi-agro/fdm-helpdesk"
 import type { ReactNode } from "react"
+import { cn } from "cn"
 import { formatDate, formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import { cn } from "@/app/lib/utils"
 import { Card } from "~/components/ui/card"
 import type { HelpdeskUser } from "./types"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
@@ -42,7 +42,7 @@ export function Message({
     >
       <div className="text-muted-foreground relative flex flex-row items-center gap-2 text-sm">
         <HelpdeskUserAvatar
-          className="md: static size-6 md:absolute! md:top-1/2 md:-left-10 md:-translate-y-1/2"
+          className="size-6 md:absolute! md:top-1/2 md:-left-10 md:-translate-y-1/2"
           type={senderType}
           user={principal}
         />

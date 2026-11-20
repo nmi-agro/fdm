@@ -7,27 +7,28 @@ packages:
   - fdm-rvo
   - fdm-agents
   - fdm-api
+  - fdm-mcp
   - fdm-helpdesk
   - fdm-storage
   - fdm-reports
 
 catalog:
-  "@better-auth/api-key": 1.7.18
-  "@better-auth/core": 1.7.18
+  "@better-auth/api-key": 1.7.26
+  "@better-auth/core": 1.7.26
   "@types/node": ^26.6.6
   "@dotenvx/dotenvx": ^2.38.2
-  jose: ^6.2.15
-  "@vitest/coverage-v8": 5.1.0
-  better-auth: 1.7.18
+  jose: ^6.2.18
+  "@vitest/coverage-v8": 5.1.1
+  better-auth: 1.7.26
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   nanoid: ^6.0.2
-  tsdown: 0.23.5
+  tsdown: 0.23.7
   typedoc: ^0.28.20
   typedoc-plugin-missing-exports: ^4.1.4
   typescript: ^7.0.2
   vite-tsconfig-paths: ^5.1.4
-  vitest: ^5.1.0
+  vitest: ^5.1.1
   zod: ^4.6.7
 
 strictDepBuilds: true
@@ -40,8 +41,6 @@ minimumReleaseAgeExclude:
   - "@better-auth/*"
   - better-call
 allowBuilds:
-  "@geomatico/maplibre-cog-protocol": true
-  "@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d": true
   "@google/genai": true
   "@nmi-agro/fdm-agents@file:fdm-agents": true
   "@nmi-agro/fdm-calculator@file:fdm-calculator": true

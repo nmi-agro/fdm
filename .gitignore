@@ -4,3 +4,5 @@
 .gemini/
 gemini.md
 .claude/settings.local.json
+# Drafts for issues, PR descriptions and notes (see the fdm-issue-workflow skill)
+.drafts/

@@ -131,8 +131,11 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
 
             const avgScore = computeFieldAvgScore(fieldScore)
             const isBufferstrip = fieldScore.isBufferstrip === true
+            const hasNoMainCultivation =
+              !isBufferstrip && fieldScore.exclusionReason === "no_main_cultivation"
             const isNature =
-              fieldScore.isNature === true || (!isBufferstrip && fieldScore.isExcluded === true)
+              !hasNoMainCultivation &&
+              (fieldScore.isNature === true || (!isBufferstrip && fieldScore.isExcluded === true))
 
             return {
               b_id: fieldScore.b_id,
@@ -141,7 +144,8 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
                 b_bufferstrip: isBufferstrip,
                 isBufferstrip,
                 isNature,
-                isExcluded: isBufferstrip || isNature,
+                hasNoMainCultivation,
+                isExcluded: isBufferstrip || isNature || hasNoMainCultivation,
                 ...aggProps,
                 ...indicatorProps,
               },

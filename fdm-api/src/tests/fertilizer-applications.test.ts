@@ -20,7 +20,10 @@ function validKey() {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 /** Mimics fdm-core: the range error wrapped by `handleError` as the `cause`. */
@@ -40,7 +43,7 @@ const baseApplication = {
   p_app_amount: 40,
   p_app_amount_unit: "m3/ha",
   p_app_amount_display: 40,
-  p_app_method: "injecteren",
+  p_app_method: "injection",
   p_app_date: new Date("2024-03-01"),
   p_app_id: "app-1",
 }
@@ -91,12 +94,31 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
       body: JSON.stringify({
         p_id: "fert-1",
         p_app_amount_display: 40,
-        p_app_method: "injecteren",
+        p_app_method: "injection",
         p_app_date: "2024-03-01",
       }),
     })
     expect(res.status).toBe(201)
     expect((await res.json()).p_app_id).toBe("app-new")
+  })
+
+  it("returns 400 with the allowed methods for an unknown application method", async () => {
+    const addFertilizerApplication = vi.fn()
+    const app = makeApp({ addFertilizerApplication })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: 40,
+        // The Dutch name instead of the code, a mistake an assistant can make.
+        p_app_method: "Zodenbemester / Sleepvoet",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(400)
+    expect(JSON.stringify(await res.json())).toContain("slotted coulter")
+    expect(addFertilizerApplication).not.toHaveBeenCalled()
   })
 
   it("returns 415 without Content-Type: application/json", async () => {
@@ -122,7 +144,7 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
       body: JSON.stringify({
         p_id: "fert-1",
         p_app_amount_display: 40,
-        p_app_method: "injecteren",
+        p_app_method: "injection",
         p_app_date: "2024-03-01",
       }),
     })
@@ -141,7 +163,7 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
       body: JSON.stringify({
         p_id: "fert-1",
         p_app_amount_display: amount,
-        p_app_method: "injecteren",
+        p_app_method: "injection",
         p_app_date: "2024-03-01",
       }),
     })
@@ -162,7 +184,7 @@ describe("POST /fields/:b_id/fertilizer-applications", () => {
       body: JSON.stringify({
         p_id: "fert-1",
         p_app_amount_display: 200,
-        p_app_method: "injecteren",
+        p_app_method: "injection",
         p_app_date: "2024-03-01",
       }),
     })
@@ -338,5 +360,47 @@ describe("DELETE /fertilizer-applications/:p_app_id", () => {
       headers: { "x-api-key": "valid" },
     })
     expect(res.status).toBe(403)
+  })
+})
+
+describe("Fertilizer application mutations — records that cannot be read back", () => {
+  beforeEach(validKey)
+
+  it("POST returns 500 when the created application cannot be retrieved", async () => {
+    const app = makeApp({
+      addFertilizerApplication: vi.fn().mockResolvedValue("app-new"),
+      getFertilizerApplication: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/field-1/fertilizer-applications", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({
+        p_id: "fert-1",
+        p_app_amount_display: 40,
+        p_app_method: "injection",
+        p_app_date: "2024-03-01",
+      }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH returns 404 when the application is gone after the update", async () => {
+    const updateFertilizerApplication = vi.fn().mockResolvedValue(undefined)
+    const app = makeApp({
+      getFertilizerApplication: vi
+        .fn()
+        .mockResolvedValueOnce(baseApplication)
+        .mockResolvedValueOnce(undefined),
+      updateFertilizerApplication,
+    })
+    const res = await app.request("/fertilizer-applications/app-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ p_app_amount_display: 45 }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+    expect(updateFertilizerApplication).toHaveBeenCalledOnce()
   })
 })

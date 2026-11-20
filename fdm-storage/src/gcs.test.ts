@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const gcs = vi.hoisted(() => {
-  class ApiError extends Error {
+  // Models the GaxiosError of @google-cloud/storage v9: `code` and `response.status` hold the HTTP status.
+  class HttpError extends Error {
     code: number
     constructor(message: string, code: number) {
       super(message)
@@ -26,10 +27,10 @@ const gcs = vi.hoisted(() => {
     }
     bucket = vi.fn(() => bucket)
   }
-  return { ApiError, Storage, file, bucket, constructorArgs }
+  return { HttpError, Storage, file, bucket, constructorArgs }
 })
 
-vi.mock("@google-cloud/storage", () => ({ ApiError: gcs.ApiError, Storage: gcs.Storage }))
+vi.mock("@google-cloud/storage", () => ({ Storage: gcs.Storage }))
 
 const { createGcsStorage, isGcsConfigured } = await import("./gcs")
 const { FileNotFoundError } = await import("./types")
@@ -86,7 +87,7 @@ describe("createGcsStorage", () => {
 
   it("does not retry an HTTP error or a non-network error", async () => {
     gcs.file.getMetadata.mockResolvedValue([{}])
-    gcs.file.download.mockRejectedValue(new gcs.ApiError("forbidden", 403))
+    gcs.file.download.mockRejectedValue(new gcs.HttpError("forbidden", 403))
     await expect(storage().download("a/1.pdf")).rejects.toThrow("forbidden")
     expect(gcs.file.download).toHaveBeenCalledTimes(1)
 
@@ -96,16 +97,16 @@ describe("createGcsStorage", () => {
   })
 
   it("turns a missing file into FileNotFoundError", async () => {
-    gcs.file.getMetadata.mockRejectedValue(new gcs.ApiError("not found", 404))
+    gcs.file.getMetadata.mockRejectedValue(new gcs.HttpError("not found", 404))
     gcs.file.download.mockResolvedValue([Buffer.from("x")])
     await expect(storage().download("missing")).rejects.toBeInstanceOf(FileNotFoundError)
 
-    gcs.file.move.mockRejectedValue(new gcs.ApiError("not found", 404))
+    gcs.file.move.mockRejectedValue(new gcs.HttpError("not found", 404))
     await expect(storage().move("missing", "b")).rejects.toBeInstanceOf(FileNotFoundError)
   })
 
   it("passes other move errors on", async () => {
-    gcs.file.move.mockRejectedValue(new gcs.ApiError("forbidden", 403))
+    gcs.file.move.mockRejectedValue(new gcs.HttpError("forbidden", 403))
     await expect(storage().move("a", "b")).rejects.toThrow("forbidden")
   })
 

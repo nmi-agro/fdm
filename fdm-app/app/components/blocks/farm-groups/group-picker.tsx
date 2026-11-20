@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { useSearchParams } from "react-router"
 import {
   Select,
@@ -7,7 +8,6 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { hasSameIds, type OrganizationFarmGroup } from "~/lib/farm-groups"
-import { cn } from "~/lib/utils"
 
 const ALL_FARMS = "__all"
 
@@ -45,6 +45,10 @@ export function GroupPicker({
   return (
     <Select
       value={value}
+      items={[
+        { value: ALL_FARMS, label: "Alle bedrijven" },
+        ...groups.map((item) => ({ value: item.b_id_group, label: item.b_name_group })),
+      ]}
       onValueChange={(newValue) => {
         setSearchParams((previous) => {
           const next = new URLSearchParams(previous)

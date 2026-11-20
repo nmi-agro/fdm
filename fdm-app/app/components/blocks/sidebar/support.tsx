@@ -86,50 +86,54 @@ export function SidebarSupport({
         <SidebarMenu>
           <ChangelogNotification />
           <SidebarMenuItem key="manual">
-            <SidebarMenuButton size="sm" asChild>
-              <a
-                href={helpTarget ? getHelpHref(helpTarget) : "/manual"}
-                target="_blank"
-                rel="noopener"
-                onClick={() =>
-                  capture(MANUAL_EVENTS.helpLinkClicked, {
-                    help_target: helpTarget ?? "manual",
-                    source: "sidebar",
-                    from_path: window.location.pathname,
-                  })
-                }
-              >
-                <BookOpen />
-                <span>Handleiding</span>
-              </a>
+            <SidebarMenuButton
+              size="sm"
+              render={
+                <a
+                  href={helpTarget ? getHelpHref(helpTarget) : "/manual"}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() =>
+                    capture(MANUAL_EVENTS.helpLinkClicked, {
+                      help_target: helpTarget ?? "manual",
+                      source: "sidebar",
+                      from_path: window.location.pathname,
+                    })
+                  }
+                />
+              }
+            >
+              <BookOpen />
+              <span>Handleiding</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem key="support">
-            <SidebarMenuButton size="sm" asChild>
-              <NavLink
-                to={modifySearchParams("/support/new", (searchParams) => {
-                  if (params.b_id_farm) {
-                    searchParams.set("context_farm_id", params.b_id_farm)
-                  }
-                })}
-              >
-                <LifeBuoy />
-                {hasNotification ? (
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <span className="relative">
+            <SidebarMenuButton
+              size="sm"
+              render={
+                <NavLink
+                  to={modifySearchParams("/support/new", (searchParams) => {
+                    if (params.b_id_farm) {
+                      searchParams.set("context_farm_id", params.b_id_farm)
+                    }
+                  })}
+                >
+                  <LifeBuoy />
+                  {hasNotification ? (
+                    <Tooltip>
+                      <TooltipTrigger render={<span className="relative" />}>
                         Ondersteuning
                         <span className="sr-only">, Er zijn nieuwe berichten te bekijken.</span>
-                        <div className="bg-destructive absolute -top-1 -right-2 size-2 rounded-full" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Er zijn nieuwe berichten te bekijken.</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <span>Ondersteuning</span>
-                )}
-              </NavLink>
-            </SidebarMenuButton>
+                        <span className="bg-destructive absolute -top-1 -right-2 size-2 rounded-full" />
+                      </TooltipTrigger>
+                      <TooltipContent>Er zijn nieuwe berichten te bekijken.</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span>Ondersteuning</span>
+                  )}
+                </NavLink>
+              }
+            />
           </SidebarMenuItem>
           {clientConfig.analytics.sentry ? (
             <SidebarMenuItem key="feedback">

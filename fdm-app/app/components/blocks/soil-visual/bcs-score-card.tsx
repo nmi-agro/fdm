@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { cn } from "cn"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import {
@@ -14,7 +15,6 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { BCS_INDICATORS } from "~/lib/bcs"
-import { cn } from "~/lib/utils"
 
 interface BcsScoreCardProps {
   scores: BcsScores
@@ -126,12 +126,18 @@ export function BcsScoreCard({
       <CardContent>
         {collapsibleIndicators ? (
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="h-auto w-full justify-between p-0">
-                <span className="text-sm font-medium">Deelscores ({BCS_INDICATORS.length})</span>
-                {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-              </Button>
-            </CollapsibleTrigger>
+            <CollapsibleTrigger
+              render={
+                <Button variant="ghost" className="h-auto w-full justify-between p-0">
+                  <span className="text-sm font-medium">Deelscores ({BCS_INDICATORS.length})</span>
+                  {isExpanded ? (
+                    <ChevronUp className="size-4" />
+                  ) : (
+                    <ChevronDown className="size-4" />
+                  )}
+                </Button>
+              }
+            />
             <CollapsibleContent className="mt-3">{indicatorList}</CollapsibleContent>
           </Collapsible>
         ) : (

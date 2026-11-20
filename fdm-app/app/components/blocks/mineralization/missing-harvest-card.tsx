@@ -7,7 +7,7 @@ import type {
 } from "~/lib/mineralization"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
@@ -74,12 +74,10 @@ export function MissingHarvestCard({
       </CardHeader>
       <CardContent>
         {multiple ? (
-          <Button asChild>
-            <NavLink to={bulkHarvestHref}>
-              Sneden invullen
-              <ArrowRight aria-hidden />
-            </NavLink>
-          </Button>
+          <NavLink to={bulkHarvestHref} className={buttonVariants({})} data-slot="button">
+            Sneden invullen
+            <ArrowRight aria-hidden />
+          </NavLink>
         ) : (
           <fetcher.Form method="post" className="space-y-4">
             <input type="hidden" name="intent" value="save_harvest" />

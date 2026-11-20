@@ -1,4 +1,5 @@
 import type { FertilizerApplication } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Trash2 } from "lucide-react"
@@ -32,7 +33,6 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { getCommonApplicationValues } from "~/lib/fertilizer-application-helpers"
-import { cn } from "~/lib/utils"
 import type { BulkCurrentState, BulkFieldOption } from "./types"
 import { FieldImpactTable } from "./field-impact-table"
 import { useImpactState } from "./impact-state"
@@ -250,17 +250,21 @@ export function ModifyFertilizerPage({
               }
             />
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={selected.length === 0 || removeFetcher.state !== "idle" || isSubmitting}
-                >
-                  <Trash2 className="size-4" />
-                  {applicationsLabel(selected.length)} verwijderen
-                </Button>
-              </AlertDialogTrigger>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={
+                      selected.length === 0 || removeFetcher.state !== "idle" || isSubmitting
+                    }
+                  >
+                    <Trash2 className="size-4" />
+                    {applicationsLabel(selected.length)} verwijderen
+                  </Button>
+                }
+              />
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
@@ -302,7 +306,8 @@ export function ModifyFertilizerPage({
               <label className="flex items-center gap-3 text-sm @3xl/apps:hidden">
                 <Checkbox
                   className="size-5"
-                  checked={allSelected ? true : selected.length > 0 ? "indeterminate" : false}
+                  checked={allSelected}
+                  indeterminate={!allSelected && selected.length > 0}
                   onCheckedChange={(checked) => setAll(checked === true)}
                 />
                 Alle giften selecteren
@@ -349,9 +354,8 @@ export function ModifyFertilizerPage({
                       <TableHead className="w-10">
                         <Checkbox
                           aria-label="Alle giften selecteren"
-                          checked={
-                            allSelected ? true : selected.length > 0 ? "indeterminate" : false
-                          }
+                          checked={allSelected}
+                          indeterminate={!allSelected && selected.length > 0}
                           onCheckedChange={(checked) => setAll(checked === true)}
                         />
                       </TableHead>
@@ -399,7 +403,7 @@ export function ModifyFertilizerPage({
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent>
               <FieldImpactTable
                 rows={state.rows}
                 loading={!state.adviceResult || !state.balanceResult}

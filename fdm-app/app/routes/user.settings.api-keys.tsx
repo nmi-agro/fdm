@@ -1,9 +1,16 @@
-import { BookOpenIcon, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
+import { BookOpenIcon, Bot, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import {
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  NavLink,
+  useLoaderData,
+  useSearchParams,
+} from "react-router"
 import { toast } from "sonner"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { CopyButton } from "~/components/custom/copy-button"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Dialog,
@@ -33,6 +40,7 @@ import { authClient } from "~/lib/auth-client"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import { getMcpEndpoint } from "~/lib/mcp-clients"
 
 export const handle: HelpHandle = { help: "api-sleutels" }
 
@@ -73,12 +81,18 @@ interface ApiKey {
  *
  * Allows users to list, create, update, and revoke their personal API keys.
  * The raw key value is shown only once upon creation and never stored or displayed again.
+ * With `?from=mcp` the dialog for a new key opens at once, and the dialog that shows the key
+ * links back to step 2 of the page "AI-assistenten koppelen".
  */
 export default function UserSettingsApiKeys() {
   const { firstname } = useLoaderData<typeof loader>()
+  const [searchParams] = useSearchParams()
+  // Coming from "AI-assistenten koppelen": open the dialog for a new key at once and offer a way back.
+  const mcpAvailable = Boolean(getMcpEndpoint(clientConfig.mcpUrl))
+  const fromMcp = mcpAvailable && searchParams.get("from") === "mcp"
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [isLoading, startLoadingKeys] = useTransition()
-  const [createOpen, setCreateOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(fromMcp)
   const [newKeyName, setNewKeyName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [rawKey, setRawKey] = useState<string | null>(null)
@@ -200,22 +214,36 @@ export default function UserSettingsApiKeys() {
         description={`Gebruik API-sleutels voor programmatische toegang tot ${clientConfig.name}. Behandel sleutels als wachtwoorden — deel ze nooit en sla ze veilig op.`}
       />
       <div className="space-y-6 px-4 pb-8 md:px-8">
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {mcpAvailable && (
+            <NavLink
+              to="/user/settings/mcp"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Bot className="h-4 w-4" />
+              <span>AI-assistenten koppelen</span>
+            </NavLink>
+          )}
           {clientConfig.apiUrl && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={`${clientConfig.apiUrl}/docs`} target="_blank" rel="noopener noreferrer">
-                <BookOpenIcon className="mr-2 h-4 w-4" />
-                API-documentatie
-              </a>
-            </Button>
+            <a
+              href={`${clientConfig.apiUrl}/docs`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <BookOpenIcon className="mr-2 h-4 w-4" />
+              API-documentatie
+            </a>
           )}
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Nieuwe sleutel
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger
+              render={
+                <Button size="sm">
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Nieuwe sleutel
+                </Button>
+              }
+            />
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>API-sleutel aanmaken</DialogTitle>
@@ -227,7 +255,7 @@ export default function UserSettingsApiKeys() {
                 <Label htmlFor="key-name">Naam</Label>
                 <Input
                   id="key-name"
-                  placeholder={`Dashboard van ${firstname}`}
+                  placeholder={fromMcp ? "Claude" : `Dashboard van ${firstname}`}
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   onKeyDown={(e) => {
@@ -261,18 +289,14 @@ export default function UserSettingsApiKeys() {
               {rawKey}
             </div>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (rawKey) {
-                    void navigator.clipboard.writeText(rawKey)
-                    toast.success("Gekopieerd naar klembord.")
-                  }
-                }}
-              >
-                Kopiëren
-              </Button>
-              <Button onClick={() => setRawKeyOpen(false)}>Sluiten</Button>
+              {rawKey && <CopyButton value={rawKey} context="API-sleutel" className="h-9" />}
+              {fromMcp ? (
+                <NavLink to="/user/settings/mcp#adres" className={buttonVariants()}>
+                  Terug naar AI-assistenten koppelen
+                </NavLink>
+              ) : (
+                <Button onClick={() => setRawKeyOpen(false)}>Sluiten</Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -363,16 +387,18 @@ export default function UserSettingsApiKeys() {
                     </div>
 
                     <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive shrink-0"
-                          title="Sleutel intrekken"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive shrink-0"
+                            title="Sleutel intrekken"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Sleutel intrekken?</AlertDialogTitle>

@@ -188,7 +188,7 @@ Read-only endpoints for indicator scores and the measure options of a field. All
 
 Scores are on the normalized indicator scale (0..1, higher is better).
 
-- **Excluded fields:** buffer strips and nature fields return `200` with `is_excluded: true` and empty `indicators`/`aggregations` (or `data: []`). A farm leaves them out of `fields` and weighting; a farm without eligible fields returns empty `fields` and empty farm aggregates.
+- **Excluded fields:** buffer strips, nature fields and fields without a main cultivation in `year` return `200` with `is_excluded: true` and empty `indicators`/`aggregations` (or `data: []`). `exclusion_reason` says why: `bufferstrip`, `nature` or `no_main_cultivation` (`null` when the field is not excluded). A farm leaves them out of `fields` and weighting; a farm without eligible fields returns empty `fields` and empty farm aggregates.
 - **Farm weighting:** each indicator and aggregation is weighted by the positive area of the eligible fields that have a score for it. Metrics without contributing fields are omitted. If any eligible field cannot be scored, the whole request fails with `503`.
 - **Measure options:** `/measures/catalogue` lists catalogue candidates, not adopted measures. Farm-only entries and sources not enabled for the farm are left out; inapplicable, active, conflicting and non-recommended field-level entries stay visible. `applicability.status` is `applicable`, `not yet applicable`, `inapplicable` or `unknown` (no result; never treated as applicable). `selectable` is a hint; creating the measure with `POST /fields/{b_id}/measures` is validated again.
 - **Predicted impacts:** `predicted_impacts` holds the positive impacts over all indicators, also for options that are not recommended. `recommendation` is `null` unless the option is among the top five applicable, not-yet-adopted, non-conflicting options; `indicator_impacts` then holds the impacts on the weak (non-green) indicators used for ranking, and `aggregate_impact` their sum. Predicted impacts are advice for this field and year, not stored on the measure. The upstream advice service is experimental.
@@ -218,6 +218,76 @@ Current soil data, per field and per farm, includes the nitrogen supplying capac
 | `POST`  | `/api/farms/{b_id_farm}/fertilizers/custom`   | Create a fertilizer with its own composition and acquire it         |
 | `PATCH` | `/api/fertilizers/{p_id}`                     | Update a custom fertilizer (`422` for a standard catalogue product) |
 | `GET`   | `/api/cultivations/{b_lu}/harvest-parameters` | Parameters a harvest needs and their default values                 |
+
+### RVO fertilizer codes
+
+The fertilizer catalogue returns `p_type_rvo`, the fertilizer type code of RVO. The web app shows the Dutch name.
+
+| `p_type_rvo` | Dutch name                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `10`         | Rundvee - Vaste mest                                                                             |
+| `11`         | Rundvee - Filtraat na mestscheiding                                                              |
+| `12`         | Rundvee - Gier                                                                                   |
+| `13`         | Rundvee - Koek na mestscheiding                                                                  |
+| `14`         | Rundvee - Drijfmest behalve van vleeskalveren                                                    |
+| `17`         | Rundvee - Bewerkte kalvergier                                                                    |
+| `18`         | Rundvee - Vleeskalveren, witvlees                                                                |
+| `19`         | Rundvee - Vleeskalveren, rosevlees                                                               |
+| `23`         | Kalkoenen - Mest, alle systemen                                                                  |
+| `30`         | Kippen - Drijfmest                                                                               |
+| `31`         | Kippen - Deeppitstal, kanalenstal                                                                |
+| `32`         | Kippen - Mestband                                                                                |
+| `33`         | Kippen - Mestband + nadroog                                                                      |
+| `35`         | Kippen - Geheel of gedeeltelijk strooiselstal (incl. volièrestal/scharrelstal)                   |
+| `39`         | Vleeskuikens en parelhoenders - Mest, alle systemen                                              |
+| `40`         | Varkens - Vaste mest                                                                             |
+| `41`         | Varkens - Filtraat na mestscheiding                                                              |
+| `42`         | Varkens - Gier                                                                                   |
+| `43`         | Varkens - Koek na mestscheiding                                                                  |
+| `46`         | Varkens - Drijfmest fokzeugen, incl. biggen, opfokzeugen/-beren, dekberen                        |
+| `50`         | Varkens - Drijfmest vleesvarkens                                                                 |
+| `56`         | Schapen - Mest, alle systemen                                                                    |
+| `60`         | Geiten - Drijfmest                                                                               |
+| `61`         | Geiten - Vaste mest                                                                              |
+| `75`         | Nertsen - Vaste mest                                                                             |
+| `76`         | Nertsen - Drijfmest                                                                              |
+| `80`         | Eenden - Vaste mest                                                                              |
+| `81`         | Eenden - Drijfmest                                                                               |
+| `90`         | Konijnen - Vaste mest                                                                            |
+| `91`         | Konijnen - Drijfmest met percentage droge stof < 2,5%                                            |
+| `92`         | Konijnen - Drijfmest                                                                             |
+| `25`         | Paarden - Vaste mest                                                                             |
+| `26`         | Ezels - Vaste mest                                                                               |
+| `27`         | Pony’s - Vaste mest                                                                              |
+| `95`         | Herten - Vaste mest                                                                              |
+| `96`         | Waterbuffels - Mest, alle systemen                                                               |
+| `97`         | Knobbelgans - Vaste mest                                                                         |
+| `98`         | Grauwe gans - Vaste mest                                                                         |
+| `99`         | Fazanten en patrijzen - Vaste mest                                                               |
+| `100`        | Struisvogels, emoes en nandoes - Vaste mest                                                      |
+| `101`        | Vleesduif - Vaste mest                                                                           |
+| `102`        | Bruine rat - Vaste mest                                                                          |
+| `103`        | Tamme muis - Vaste mest                                                                          |
+| `104`        | Cavia - Vaste mest                                                                               |
+| `105`        | Goudhamster - Vaste mest                                                                         |
+| `106`        | Gerbil - Vaste mest                                                                              |
+| `107`        | Fase 1 substraat                                                                                 |
+| `108`        | Fase 2 substraat                                                                                 |
+| `109`        | Fase 3 substraat                                                                                 |
+| `110`        | Champost                                                                                         |
+| `111`        | Compost                                                                                          |
+| `112`        | Zeer schone compost                                                                              |
+| `113`        | Zuiveringsslib vloeibaar                                                                         |
+| `114`        | Zuiveringsslib steekvast                                                                         |
+| `115`        | Kunstmest                                                                                        |
+| `116`        | Overige mestsoorten                                                                              |
+| `117`        | Gescheiden champost                                                                              |
+| `120`        | Mineralenconcentraat (alleen geldig voor 2025 en eerder; Kies Renure-variant voor 2026 en later) |
+| `130`        | Ammoniumsulfaat (Renure)                                                                         |
+| `131`        | Ammoniumnitraat (Renure)                                                                         |
+| `132`        | Mineralenconcentraat (Renure)                                                                    |
+| `133`        | Struviet (Renure)                                                                                |
+| `134`        | Ander ammoniumzout (Renure)                                                                      |
 
 ---
 

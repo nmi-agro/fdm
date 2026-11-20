@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import throttle from "lodash.throttle"
 import { X } from "lucide-react"
 import { Point, MapGeoJSONFeature, LngLat, Popup as MapPopup } from "maplibre-gl"
@@ -12,7 +13,6 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import { useMap, MapRef } from "react-map-gl/maplibre"
-import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardHeader, CardContent, CardFooter } from "~/components/ui/card"
 import { useMapContainer } from "./atlas-shell"
@@ -463,7 +463,7 @@ function AtlasNativePopupCard({
 
   return (
     <div ref={cardRef} className={cn("cursor-default", className)}>
-      <Card className="maplibregl-popup-native-card relative p-3 text-xs shadow-md">
+      <Card className="maplibregl-popup-native-card relative gap-0 p-3 text-xs shadow-md">
         {children}
       </Card>
     </div>
@@ -547,7 +547,7 @@ function AtlasTooltipCard({
                 : "none",
       }}
     >
-      <Card className="relative p-3 text-xs shadow-md">{children}</Card>
+      <Card className="relative gap-0 p-3 text-xs shadow-md">{children}</Card>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import {
   useTable,
 } from "@tanstack/react-table"
 import { area } from "@turf/area"
+import { cn } from "cn"
 import {
   AlertCircle,
   Archive,
@@ -50,7 +51,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { clientConfig } from "~/lib/config"
-import { cn } from "~/lib/utils"
 import { useActiveTableFormStore } from "~/store/active-table-form"
 import {
   useRvoFieldToAdd,
@@ -94,6 +94,12 @@ export type { ImportReviewFlags }
 interface ImportReviewTableMeta {
   ctx: ReviewFieldContext
 }
+
+/** Labels shown in the action select of a local field that RVO no longer lists. */
+const EXPIRED_ROW_ACTION_ITEMS = [
+  { value: "CLOSE_LOCAL", label: "Afsluiten" },
+  { value: "KEEP_LOCAL", label: "Behouden" },
+]
 
 const importReviewTableFeatures = tableFeatures({
   columnVisibilityFeature: columnVisibilityFeature,
@@ -173,6 +179,7 @@ function ActionInput({
           }
         }}
         value={typeof value === "string" ? value : ""}
+        items={options}
         onValueChange={(value) => {
           onChange?.(value)
           setInputActive(false)
@@ -462,10 +469,23 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
 
   if (item.status === "CONFLICT") {
     const action = getConflictRowAction(item, ctx, userChoices)
-
     return (
       <Select
         value={action}
+        items={[
+          {
+            value: "UPDATE_FROM_REMOTE",
+            label: "Gebruik RVO",
+          },
+          {
+            value: "KEEP_LOCAL",
+            label: `Gebruik ${clientConfig.name}`,
+          },
+          {
+            value: "CUSTOM",
+            label: "Aangepast",
+          },
+        ]}
         onValueChange={(val) => {
           if (val === "KEEP_LOCAL" || val === "UPDATE_FROM_REMOTE") {
             setUserChoices(id, getRowActionValues(val, item, ctx))
@@ -502,6 +522,10 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
     return (
       <Select
         value={field_to_add ? "ADD_REMOTE" : "IGNORE"}
+        items={[
+          { value: "ADD_REMOTE", label: "Toevoegen" },
+          { value: "IGNORE", label: "Negeren" },
+        ]}
         onValueChange={(val) => {
           setFieldToAdd(id, val === "ADD_REMOTE")
         }}
@@ -529,6 +553,10 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
     return (
       <Select
         value={field_to_remove ? "REMOVE_LOCAL" : "KEEP_LOCAL"}
+        items={[
+          { value: "REMOVE_LOCAL", label: "Verwijderen" },
+          { value: "KEEP_LOCAL", label: "Behouden" },
+        ]}
         onValueChange={(val) => {
           setFieldToRemove(id, val === "REMOVE_LOCAL")
         }}
@@ -556,6 +584,7 @@ function ActionsCell({ item, ctx }: { item: ReviewItem; ctx: ReviewFieldContext 
     return (
       <Select
         value={getExpiredRowAction(item, ctx, userChoices)}
+        items={EXPIRED_ROW_ACTION_ITEMS}
         onValueChange={(val) => {
           if (val === "CLOSE_LOCAL" || val === "KEEP_LOCAL") {
             setUserChoices(id, getExpiredRowValues(val, item, ctx))
@@ -695,15 +724,17 @@ const statusColumn: ColumnDef<typeof importReviewTableFeatures, ReviewItem> = {
     if (!info) return <Badge variant="secondary">{status}</Badge>
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge
-            variant={info.changesData ? "secondary" : "outline"}
-            className={cn("gap-1", !info.changesData && "text-muted-foreground")}
-          >
-            <info.icon className="size-3" aria-hidden="true" />
-            {info.label}
-          </Badge>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Badge
+              variant={info.changesData ? "secondary" : "outline"}
+              className={cn("gap-1", !info.changesData && "text-muted-foreground")}
+            >
+              <info.icon className="size-3" aria-hidden="true" />
+              {info.label}
+            </Badge>
+          }
+        />
         <TooltipContent>
           <div className="max-w-75">{info.description}</div>
         </TooltipContent>
@@ -777,20 +808,22 @@ export function CustomValueButtonsToggle() {
 
   return isMobile ? null : (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <label htmlFor={switchId} className="flex items-center gap-2 self-center text-sm">
-          <Switch
-            id={switchId}
-            aria-describedby={descriptionId}
-            checked={showCustomValueButtons}
-            onCheckedChange={setShowCustomValueButtons}
-          />
-          Waarden zelf aanpassen
-          <span id={descriptionId} className="sr-only">
-            Toont bij elke waarde een knop waarmee u zelf een waarde invult.
-          </span>
-        </label>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <label htmlFor={switchId} className="flex items-center gap-2 self-center text-sm">
+            <Switch
+              id={switchId}
+              aria-describedby={descriptionId}
+              checked={showCustomValueButtons}
+              onCheckedChange={setShowCustomValueButtons}
+            />
+            Waarden zelf aanpassen
+            <span id={descriptionId} className="sr-only">
+              Toont bij elke waarde een knop waarmee u zelf een waarde invult.
+            </span>
+          </label>
+        }
+      />
       <TooltipContent>
         Toont bij elke waarde een knop waarmee u zelf een waarde invult.
       </TooltipContent>

@@ -71,7 +71,7 @@ export function SoilAnalysisFormSelection({ uploadHref }: { uploadHref?: string 
         <CollapsibleTrigger className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 group flex items-center gap-1 rounded-sm text-sm font-medium focus-visible:ring-[3px] focus-visible:outline-none">
           <ChevronDown
             aria-hidden
-            className="size-4 transition-transform group-data-[state=closed]:-rotate-90"
+            className="size-4 -rotate-90 transition-transform group-data-panel-open:rotate-0"
           />
           Meer opties
         </CollapsibleTrigger>
