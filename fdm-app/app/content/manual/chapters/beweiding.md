@@ -39,9 +39,9 @@ Een beweiding buiten 1 maart tot en met 31 oktober telt gewoon mee, maar staat n
 
 Kies bovenaan de koppel waarvoor je wilt registreren. Daarna:
 
-- klik op een lege dag om een beweiding op die dag vast te leggen. Klik op een dag met een beweiding, maaisnede of bemesting om die te bekijken, aan te passen of te verwijderen;
-- sleep over meerdere dagen van één perceel om een langere periode in één keer vast te leggen;
-- klik met de rechtermuisknop op een dag om daar een beweiding, maaisnede of bemesting toe te voegen;
+- klik op een lege dag om een beweiding op die dag vast te leggen. Klik op een dag met een beweiding, maaisnede of bemesting om die te bekijken, aan te passen of te verwijderen. Staat er op die dag meer, bijvoorbeeld twee koppels of een beweiding en een maaisnede, dan kies je eerst wat je opent;
+- sleep over meerdere dagen van één perceel om een langere periode in één keer vast te leggen. Laat je de muisknop buiten de kalender los, dan wordt er niets vastgelegd;
+- klik met de rechtermuisknop op een dag om te openen wat er op die dag staat, of om daar een beweiding, maaisnede of bemesting toe te voegen;
 - met het toetsenbord: ga met Tab naar de kalender, of open **Uitleg** naast de legenda en klik op **ga naar vandaag in de kalender** (buiten het seizoen **ga naar de kalender**). Met de pijltjestoetsen loop je door de dagen en percelen, Enter opent de dag, en met Shift en pijl links of rechts kies je meerdere dagen voor één beweiding;
 - of gebruik **Beweiding toevoegen** boven de kalender en kies een perceel. De beweiding staat dan op vandaag, of op dezelfde dag in het gekozen jaar.
 
@@ -55,7 +55,9 @@ Een bemesting telt niet mee als gebruik voor de dagen rust; een maaisnede wel.
 
 Een beweiding leg je overal in {{appName}} met hetzelfde venster vast: vanuit de kalender, met **Beweiding toevoegen** op de kalender of op de kaart, en op de beweidingspagina van een perceel.
 
-In het venster kies je eerst of de koppel **1 dag** of **Meerdere dagen** weidt. Bij één dag vul je alleen de datum in; bij meerdere dagen de eerste en de laatste dag. Daarna kies je de koppel en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** (de standaard) of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan. Onder in het venster zie je hoeveel weidedagen en weide-uren je vastlegt, en dat je met een beweiding de instelling _Beweiding_ voor de stikstofgebruiksnorm aanzet (zie [hieronder](#gebruiksnorm)).
+In het venster kies je eerst of de koppel **1 dag** of **Meerdere dagen** weidt. Bij één dag vul je alleen de datum in; bij meerdere dagen de eerste en de laatste dag. Daarna kies je de koppel en het aantal uren per dag: **Dag & nacht (24u)**, **Beperkt (8u)** (de standaard) of **Aangepast**. Ligt de startdatum in de toekomst, dan legt {{appName}} de beweiding vast als plan. Onder in het venster zie je hoeveel weidedagen en weide-uren je vastlegt, en dat de eerste beweiding van een jaar de instelling _Beweiding_ voor de stikstofgebruiksnorm aanzet (zie [hieronder](#gebruiksnorm)).
+
+Heeft een bestaande beweiding geen uren per dag, dan blijven die open als je alleen iets anders aanpast. Hetzelfde geldt voor een deel van het perceel zonder kaart: dat blijft precies zo groot tot je het percentage verandert.
 
 Een koppel staat op één dag maar één keer op hetzelfde perceel. Weidt de koppel op een van die dagen al op het perceel, dan krijg je een melding. Pas dan de bestaande beweiding aan, bijvoorbeeld met een grotere zone, of kies een andere datum. Op dezelfde dag naar een ander perceel kan wel.
 
@@ -92,7 +94,7 @@ Bij stripgrazen of rantsoenbeweiding krijgen je koeien steeds een nieuwe strook 
 2. Controleer het aantal dieren, de grasopname per dier en het grasaanbod. {{appName}} vult ze in met richtwaarden; pas ze aan voor je eigen bedrijf.
 3. Klik op **Strook maken**.
 
-De nieuwe strook sluit aan op de stroken die je de afgelopen 28 dagen op dit perceel hebt beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
+De nieuwe strook sluit aan op de stroken die in de 28 dagen voor deze beweiding op dit perceel zijn beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Konden de eerder gebruikte zones niet worden geladen, dan kun je geen strook laten berekenen; probeer het dan nog eens met **Opnieuw laden**. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
 
 ![De strook berekenen: richting, dieren, grasopname en grasaanbod, met de berekende strook op de kaart](screenshot:beweiding-strook)
 
@@ -156,6 +158,6 @@ Hoe deze getallen worden berekend, lees je in de [achtergrond bij beweiding](/ma
 
 ## Beweiding en de gebruiksnorm {#gebruiksnorm}
 
-Leg je een beweiding vast, dan zet {{appName}} de beweiding voor dat jaar aan. In de stikstofgebruiksnorm telt je grasland dan als beweid grasland in plaats van alleen maaien. Wil je dat aanpassen, dan doe je dat bij de instellingen van je bedrijf onder **Beweiding**. Hoe dat de gebruiksruimte beïnvloedt, lees je bij [Gebruiksruimte](/manual/gebruiksruimte).
+Leg je de eerste beweiding van een jaar vast, dan zet {{appName}} de beweiding voor dat jaar aan. Dat gebeurt ook als je een beweiding verplaatst naar een jaar waarin nog geen beweiding stond. Latere beweidingen veranderen de instelling niet. In de stikstofgebruiksnorm telt je grasland dan als beweid grasland in plaats van alleen maaien. Wil je dat aanpassen, dan doe je dat bij de instellingen van je bedrijf onder **Beweiding**. Hoe dat de gebruiksruimte beïnvloedt, lees je bij [Gebruiksruimte](/manual/gebruiksruimte).
 
 > De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.

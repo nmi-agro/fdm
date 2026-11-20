@@ -30,7 +30,7 @@ Deze pagina legt uit hoe {{appName}} de getallen bij beweiding berekent: de weid
 
 Een weidedag is een kalenderdag waarop een koppel buiten heeft gelopen. Loopt een koppel op één dag op twee percelen, dan telt die dag één keer. Voor de weide-uren telt per koppel per dag het hoogste aantal uren, niet de som. Beweiding zonder uren per dag telt mee als weidedag, maar niet voor de uren; {{appName}} meldt welke beweidingen uren missen.
 
-Beweiding met een startdatum na vandaag is gepland. Die telt niet mee in de gerealiseerde weidedagen, maar staat er apart bij.
+Beweiding met een startdatum na vandaag is gepland. Die telt niet mee in de gerealiseerde weidedagen, maar staat er apart bij. Een beweiding zonder einddatum die al is begonnen, telt door tot en met vandaag. Vandaag is de kalenderdag in Nederland.
 
 ## Weidemelk {#weidemelk}
 
@@ -46,11 +46,13 @@ Het beweidingsplatform is de oppervlakte grasland die in het jaar tot en met van
 
 Een zone die buiten de perceelsgrens loopt, telt alleen voor het deel binnen het perceel.
 
-De veebezetting op het platform is de GVE van de koppels die er hebben geweid, gedeeld door de oppervlakte van het platform. De GVE per dier komt uit de diercategorieën van RVO. {{appName}} geeft de veebezetting een label: onder 2,0 GVE/ha _extensief_, van 2,0 tot 2,6 _gemiddeld_ en daarboven _intensief_. Dat label is indicatief: er is geen officiële indeling in extensieve en intensieve beweiding in GVE per hectare.
+De veebezetting op het platform is de GVE van de koppels die er hebben geweid, gedeeld door de oppervlakte van het platform. In een afgelopen jaar telt {{appName}} de dieren zoals ze op 31 december van dat jaar in de koppels zaten. De GVE per dier komt uit de diercategorieën van RVO. {{appName}} geeft de veebezetting een label: onder 2,0 GVE/ha _extensief_, van 2,0 tot 2,6 _gemiddeld_ en daarboven _intensief_. Dat label is indicatief: er is geen officiële indeling in extensieve en intensieve beweiding in GVE per hectare.
 
 ## Rustperiode {#rust}
 
 Na een weidebeurt of maaisnede heeft gras tijd nodig om terug te groeien. {{appName}} meldt een rustperiode van minder dan 21 dagen in het groeiseizoen als aandachtspunt. Volgens het Handboek Melkveehouderij (tabel 3.8) kost het minstens 21 groeidagen om de weidesnede van 1.700 kg droge stof per hectare te bereiken, in de tweede helft van april bij een hoge stikstofgift; later in het seizoen en bij minder stikstof duurt het langer.
+
+De rust is het aantal dagen tussen de laatste dag van het vorige gebruik en de eerste dag van het volgende: eindigt een beweiding op 4 mei en begint de volgende op 25 mei, dan is dat 21 dagen rust. Alleen een maaisnede van gras telt als gebruik, niet de oogst van een ander gewas op het perceel.
 
 De rust telt per deel van het perceel. Een beweiding wordt vergeleken met het laatste eerdere gebruik van hetzelfde deel: een maaisnede of een beweiding van het hele perceel raakt het hele perceel, een zone alleen de stroken die ermee overlappen. Bij stripgrazen krijgt elke strook dus zijn eigen rust.
 
