@@ -50,7 +50,9 @@ const running = new Map<string, Promise<void>>()
  *
  * A warm-up only fills the cache. A failing step is reported and the next step still runs; the
  * returned promise never rejects. When a warm-up of the same farm and year is already running
- * on this instance, the returned promise waits for that one instead of starting another. Other
+ * on this instance, the returned promise waits for that one instead of starting another; that
+ * warm-up may have collected its inputs before a recent edit, which the pages then calculate on
+ * their first visit. Other
  * instances do not see it, so two instances can warm the same farm at the same time; that only
  * repeats work, because both write the same results.
  *

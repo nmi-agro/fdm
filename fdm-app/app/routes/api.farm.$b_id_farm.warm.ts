@@ -26,9 +26,19 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   const b_id_farm = params.b_id_farm
-  const formData = await request.formData()
-  const calendar = formData.get("calendar")
-  if (!b_id_farm || typeof calendar !== "string" || !isSupportedYear(Number(calendar))) {
+  let calendar: FormDataEntryValue | null
+  try {
+    calendar = (await request.formData()).get("calendar")
+  } catch {
+    return new Response(null, { status: 400 })
+  }
+  // Only the plain year, as in the routes of the calculation pages, so the inputs are the same
+  if (
+    !b_id_farm ||
+    typeof calendar !== "string" ||
+    !/^\d{4}$/.test(calendar) ||
+    !isSupportedYear(Number(calendar))
+  ) {
     return new Response(null, { status: 400 })
   }
 

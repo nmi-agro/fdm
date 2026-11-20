@@ -84,9 +84,18 @@ afterAll(() => {
 const warm = (b_id_farm: string, form: Record<string, string>) =>
   runRoute(() => action(actionArgs(`/api/farm/${b_id_farm}/warm`, { b_id_farm }, form)))
 
+/**
+ * The cache entries of the calculations on these pages: the NMI requests and the norms. Other
+ * test files that run at the same time do not use them.
+ */
+const pageCacheEntries = sql`calculation_function in (
+    'requestBln3Score', 'requestBln3MeasureApplicability', 'requestBln3MeasureAdvice',
+    'requestNutrientAdvice'
+  ) or calculation_function like 'calculateNL%'`
+
 async function countCacheEntries(): Promise<number> {
   const rows = await fdm.execute<{ n: number }>(
-    sql`select count(*)::int as n from "fdm-calculator".calculation_cache`,
+    sql`select count(*)::int as n from "fdm-calculator".calculation_cache where ${pageCacheEntries}`,
   )
   return Number(rows[0]?.n ?? 0)
 }
@@ -133,7 +142,11 @@ describe("action", () => {
 
   it("rejects an unsupported year", async () => {
     signInAs(owner.user)
-    const { status } = await warm(owner.ids.farm, { calendar: "1900" })
+    for (const calendar of ["1900", "2026.0", " 2026", "all"]) {
+      const { status } = await warm(owner.ids.farm, { calendar })
+      expect(status, calendar).toBe(400)
+    }
+    const { status } = await warm(owner.ids.farm, {})
     expect(status).toBe(400)
   })
 
@@ -144,7 +157,7 @@ describe("action", () => {
 
     // The cache key depends only on the inputs, and every run seeds the same field data, so an
     // earlier run would already have warmed this farm
-    await fdm.execute(sql`delete from "fdm-calculator".calculation_cache`)
+    await fdm.execute(sql`delete from "fdm-calculator".calculation_cache where ${pageCacheEntries}`)
     nmiRequests.length = 0
     const { status } = await warm(b_id_farm, { calendar })
     expect(status).toBe(204)

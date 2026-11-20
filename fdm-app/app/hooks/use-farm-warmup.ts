@@ -26,13 +26,27 @@ export function claimFarmWarmup(key: string, now: number): boolean {
 }
 
 /**
+ * Removes the claim of a warm-up that did not reach the server, so the next visit tries again.
+ *
+ * @param key - The storage key of the farm and year.
+ */
+export function releaseFarmWarmup(key: string): void {
+  try {
+    window.localStorage.removeItem(key)
+  } catch {
+    // Without storage there is no claim to remove
+  }
+}
+
+/**
  * Asks the server to fill the calculation cache of a farm for a calendar year, after the page
  * has rendered, so the indicators, measures, nutrient advice and usage norms pages open faster.
  *
- * The request is fire-and-forget: nothing waits for it, and a failure is ignored (the server
+ * The request is fire-and-forget: nothing waits for it, and a failure is not shown (the server
  * reports it). It is a plain `fetch` rather than a fetcher, so it does not revalidate the
- * loaders of the page when it finishes. A farm and year are warmed at most once per
- * {@link FARM_WARMUP_INTERVAL_MS} per browser.
+ * loaders of the page when it finishes, and it uses `keepalive`, so it stays open when the user
+ * leaves the page. A farm and year are warmed at most once per {@link FARM_WARMUP_INTERVAL_MS}
+ * per browser; a request that fails releases its claim, so the next visit tries again.
  *
  * @param b_id_farm - The farm.
  * @param calendar - The calendar year (e.g. `"2026"`).
@@ -41,10 +55,16 @@ export function claimFarmWarmup(key: string, now: number): boolean {
 export function useFarmWarmup(b_id_farm: string, calendar: string, enabled: boolean): void {
   useEffect(() => {
     if (!enabled) return
-    if (!claimFarmWarmup(`${STORAGE_PREFIX}:${b_id_farm}:${calendar}`, Date.now())) return
+    const key = `${STORAGE_PREFIX}:${b_id_farm}:${calendar}`
+    if (!claimFarmWarmup(key, Date.now())) return
     fetch(`/api/farm/${encodeURIComponent(b_id_farm)}/warm`, {
       method: "POST",
       body: new URLSearchParams({ calendar }),
-    }).catch(() => undefined)
+      keepalive: true,
+    })
+      .then((response) => {
+        if (!response.ok) releaseFarmWarmup(key)
+      })
+      .catch(() => releaseFarmWarmup(key))
   }, [b_id_farm, calendar, enabled])
 }

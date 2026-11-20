@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { claimFarmWarmup, FARM_WARMUP_INTERVAL_MS } from "./use-farm-warmup"
+import { claimFarmWarmup, FARM_WARMUP_INTERVAL_MS, releaseFarmWarmup } from "./use-farm-warmup"
 
 const KEY = "fdm-farm-warmup:farm-1:2026"
 
@@ -12,8 +12,15 @@ describe("claimFarmWarmup", () => {
       localStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => store.set(key, value),
+        removeItem: (key: string) => store.delete(key),
       },
     })
+  })
+
+  it("claims again after a failed warm-up released its claim", () => {
+    claimFarmWarmup(KEY, 1_000)
+    releaseFarmWarmup(KEY)
+    expect(claimFarmWarmup(KEY, 2_000)).toBe(true)
   })
 
   afterEach(() => {
