@@ -11,6 +11,7 @@
     "app/routes/*.tsx",
     "app/components/**/*.tsx",
     "app/lib/fdm-migrate.server.js",
+    "app/lib/posthog-proxy.server.js",
     "app/types/public-env.d.ts"
   ],
   "compilerOptions": {
