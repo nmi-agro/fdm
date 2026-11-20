@@ -77,6 +77,8 @@ export function NavigationProgress() {
       }
     }
     const tracked = trackedRef.current
+    // A navigation that replaces a pending one keeps the start time, but measures the new page
+    tracked.page = normalizePage(destination)
     if (isSubmission) tracked.submission = true
     const elapsed = Date.now() - tracked.startedAt
 

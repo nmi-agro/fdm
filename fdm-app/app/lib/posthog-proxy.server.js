@@ -5,7 +5,7 @@
 // compression middleware and the React Router request handling. The `/ingest/*` route uses the
 // same function, for `react-router dev`, which does not run `server.js`.
 
-import { Readable } from "node:stream"
+import { pipeline, Readable } from "node:stream"
 
 /** Requests with a larger body are refused. */
 const MAX_BODY_SIZE = 10 * 1024 * 1024 // 10 MB
@@ -153,11 +153,11 @@ export function createPosthogProxyMiddleware(posthogHost) {
       res.end()
       return
     }
-    Readable.fromWeb(response.body)
-      .on("error", (error) => {
+    // `pipeline` also destroys the upstream body when the browser disconnects early
+    pipeline(Readable.fromWeb(response.body), res, (error) => {
+      if (error && error.code !== "ERR_STREAM_PREMATURE_CLOSE") {
         console.error("PostHog proxy response error:", error)
-        res.destroy(error)
-      })
-      .pipe(res)
+      }
+    })
   }
 }

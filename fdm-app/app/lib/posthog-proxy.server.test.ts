@@ -112,6 +112,35 @@ describe("proxyToPosthog", () => {
 })
 
 describe("createPosthogProxyMiddleware", () => {
+  it("cancels the PostHog response when the browser disconnects", async () => {
+    let cancelled = false
+    const upstream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("first chunk"))
+      },
+      cancel() {
+        cancelled = true
+      },
+    })
+    stubPosthog(new Response(upstream, { status: 200 }))
+    const app = express()
+    app.use("/ingest", createPosthogProxyMiddleware(POSTHOG_HOST))
+    const server = app.listen(0)
+    try {
+      const { port } = server.address() as AddressInfo
+      const controller = new AbortController()
+      const response = await realFetch(`http://127.0.0.1:${port}/ingest/static/array.js`, {
+        signal: controller.signal,
+      })
+      const reader = response.body!.getReader()
+      await reader.read()
+      controller.abort()
+      await vi.waitFor(() => expect(cancelled).toBe(true))
+    } finally {
+      server.close()
+    }
+  })
+
   it("proxies an Express request with its body and returns the PostHog response", async () => {
     const calls = stubPosthog(
       new Response('{"status":1}', {
