@@ -443,17 +443,62 @@ export async function getRolesOfPrincipalForResource(
   principal_id: PrincipalId,
 ): Promise<PrincipalWithRoles[]> {
   try {
-    return await fdm.transaction(async (tx) => {
-      // Validate input
-      if (!resources.includes(resource)) {
-        throw new Error("Invalid resource")
-      }
+    const rolesByResource = await getRolesOfPrincipalForResources(
+      fdm,
+      resource,
+      [resource_id],
+      principal_id,
+    )
+    return rolesByResource.get(resource_id) ?? []
+  } catch (err) {
+    throw handleError(err, "Exception for getRolesOfPrincipalForResource", {
+      resource: resource,
+      resource_id: resource_id,
+      principal_id: principal_id,
+    })
+  }
+}
 
+/**
+ * Retrieves the roles a principal has for each of several resources of the same type, in one query.
+ *
+ * This is the batched form of {@link getRolesOfPrincipalForResource}: it returns the same roles per
+ * resource, including roles the principal holds through its organizations.
+ *
+ * CAUTION: This function does not return roles inherited from related resources yet.
+ *
+ * @param fdm - The FDM instance providing the connection to the database.
+ * @param resource - The type of the resources to query for the principal's roles.
+ * @param resource_ids - The identifiers of the resource instances.
+ * @param principal_id - The identifier of the principal.
+ *   If an user id is supplied, the function can also retrieve roles for the user's organizations.
+ * @returns A promise that resolves to a map from resource id to the roles the principal has for
+ *   that resource. Resources for which the principal has no roles are missing from the map.
+ * @throws {Error} If the resource type is invalid or if the database operation fails.
+ */
+export async function getRolesOfPrincipalForResources(
+  fdm: FdmType,
+  resource: Resource,
+  resource_ids: ResourceId[],
+  principal_id: PrincipalId,
+): Promise<Map<ResourceId, PrincipalWithRoles[]>> {
+  try {
+    // Validate input
+    if (!resources.includes(resource)) {
+      throw new Error("Invalid resource")
+    }
+    const rolesByResource = new Map<ResourceId, PrincipalWithRoles[]>()
+    if (resource_ids.length === 0) {
+      return rolesByResource
+    }
+
+    return await fdm.transaction(async (tx) => {
       // Convert principal_id to array
       const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
       const rows = await tx
         .select({
+          resource_id: authZSchema.role.resource_id,
           role: authZSchema.role.role,
           principal_id: authZSchema.role.principal_id,
           as_organization_member: isNotNull(authNSchema.member.userId),
@@ -474,7 +519,7 @@ export async function getRolesOfPrincipalForResource(
         .where(
           and(
             eq(authZSchema.role.resource, resource),
-            eq(authZSchema.role.resource_id, resource_id),
+            inArray(authZSchema.role.resource_id, resource_ids),
             or(
               inArray(authZSchema.role.principal_id, principal_ids),
               and(
@@ -486,39 +531,27 @@ export async function getRolesOfPrincipalForResource(
           ),
         )
 
-      const result: RoleQueryRow[] = rows.map((row) => {
+      const seen = new Set<string>()
+      for (const row of rows) {
         if (!isRoleQueryRow(row)) {
-          throw new Error("Unexpected row shape in getRolesOfPrincipalForResource")
+          throw new Error("Unexpected row shape in getRolesOfPrincipalForResources")
         }
-        return row
-      })
-
-      const deduped = new Map<
-        string,
-        {
-          principal_id: string
-          role: Role
-          principal_type: "user" | "organization"
-        }
-      >()
-      for (const item of result) {
         const principal_type =
-          item.as_organization || item.as_organization_member ? "organization" : "user"
-        const key = `${principal_type}:${item.principal_id}:${item.role}`
-        if (!deduped.has(key)) {
-          deduped.set(key, {
-            principal_id: item.principal_id,
-            role: item.role,
-            principal_type,
-          })
-        }
+          row.as_organization || row.as_organization_member ? "organization" : "user"
+        const key = `${row.resource_id}:${principal_type}:${row.principal_id}:${row.role}`
+        if (seen.has(key)) continue
+        seen.add(key)
+
+        const roles = rolesByResource.get(row.resource_id) ?? []
+        roles.push({ principal_id: row.principal_id, role: row.role, principal_type })
+        rolesByResource.set(row.resource_id, roles)
       }
-      return [...deduped.values()]
+      return rolesByResource
     })
   } catch (err) {
-    throw handleError(err, "Exception for getRolesOfPrincipalForResource", {
+    throw handleError(err, "Exception for getRolesOfPrincipalForResources", {
       resource: resource,
-      resource_id: resource_id,
+      resource_ids: resource_ids,
       principal_id: principal_id,
     })
   }
