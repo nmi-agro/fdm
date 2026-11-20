@@ -26,6 +26,9 @@ function truncateLargeValues<T>(value: T, maxStringLength: number): T {
   return value
 }
 
+/** Maximum size of one serialized event in UTF-8 bytes (1 MB). */
+export const MAX_POSTHOG_EVENT_BYTES = 1_000_000
+
 /**
  * Sanitizes event messages before sending them to PostHog.
  * Prevents HTTP 413 / Kafka "maximum event size exceeded" errors caused by large
@@ -35,7 +38,7 @@ function truncateLargeValues<T>(value: T, maxStringLength: number): T {
 export function sanitizePostHogEvent(event: EventMessage | null): EventMessage | null {
   if (!event) return null
 
-  const MAX_EVENT_BYTES = 150_000 // Target 150 KB max JSON payload size in UTF-8 bytes
+  const MAX_EVENT_BYTES = MAX_POSTHOG_EVENT_BYTES
 
   const getByteLength = (str: string) => Buffer.byteLength(str, "utf8")
 
@@ -130,6 +133,10 @@ export function sanitizePostHogEvent(event: EventMessage | null): EventMessage |
       "$ai_latency",
       "$ai_http_status",
       "$ai_framework",
+      "$lib",
+      "$lib_version",
+      "$is_server",
+      "$geoip_disable",
       "$groups",
       "b_id_farm",
       "org_slug",
