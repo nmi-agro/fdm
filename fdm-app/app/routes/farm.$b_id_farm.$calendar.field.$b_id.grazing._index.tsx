@@ -41,6 +41,7 @@ import { fdm } from "~/lib/fdm.server"
 import { censusDateForYear, farmToday, farmTodayKey, fieldGrazingTotals } from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
+import { serverNow } from "~/lib/server-now.server"
 
 const formatNumber = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
 
@@ -76,8 +77,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // A single year, or null when the calendar shows all years
     const calendarYear = Number.isInteger(Number(calendar)) ? Number(calendar) : null
     // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
-    const today = farmToday()
-    const todayStart = new Date(`${farmTodayKey()}T00:00:00.000Z`)
+    const now = serverNow()
+    const today = farmToday(now)
+    const todayStart = new Date(`${farmTodayKey(now)}T00:00:00.000Z`)
 
     const [farm, field, herds, grazings, cultivationsByField, harvestsByCultivation, census] =
       await Promise.all([
