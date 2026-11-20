@@ -12,6 +12,7 @@ import {
 import { fdm } from "~/lib/fdm.server"
 import { getGrazedAreaByField } from "~/lib/grazing-calendar.server"
 import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
+import { serverNow } from "~/lib/server-now.server"
 
 export interface GrazingInsightsData {
   year: number
@@ -42,7 +43,7 @@ export async function fetchGrazingInsightsData(
   }
 
   // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
-  const today = farmToday()
+  const today = farmToday(serverNow())
   const [
     allFields,
     cultivationsByField,

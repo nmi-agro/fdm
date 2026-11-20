@@ -23,6 +23,7 @@ import {
   GRAZING_SEASON_LAST_MONTH,
   type RestAlert,
 } from "~/lib/grazing-status"
+import { serverNow } from "~/lib/server-now.server"
 
 /**
  * Grazed area per field (ha) of the grazings that started in the calendar year up to today, with
@@ -205,7 +206,7 @@ export async function fetchGrazingCalendarMatrix(
   const timeframe: Timeframe = { start: yearStart, end: yearEnd }
 
   // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
-  const today = farmToday()
+  const today = farmToday(serverNow())
   const todayKey = toIsoDate(today)
   // The day up to which rest is counted: today, or the last day of a past year
   const restReference = today < yearEnd ? today : yearEnd

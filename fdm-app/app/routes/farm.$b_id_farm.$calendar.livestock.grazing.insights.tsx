@@ -43,6 +43,7 @@ import {
   GRAZING_USE_COLORS,
   PLANNED_GRAZING_BACKGROUND,
 } from "~/lib/grazing-status"
+import { serverNow } from "~/lib/server-now.server"
 
 export const handle: HelpHandle = { help: "beweiding-inzichten" }
 
@@ -81,7 +82,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // After 31 October the grazing season of the year is over, so missing days can no longer be
     // made up
     const seasonOver =
-      new Date() > new Date(calendarYear, GRAZING_SEASON_LAST_MONTH, 0, 23, 59, 59, 999)
+      serverNow() > new Date(calendarYear, GRAZING_SEASON_LAST_MONTH, 0, 23, 59, 59, 999)
 
     return {
       b_id_farm,

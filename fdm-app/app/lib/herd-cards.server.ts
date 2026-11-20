@@ -3,6 +3,8 @@ import { getCensusForFarm, getGrazingCalendarForFarm, getHerdsForFarm } from "@n
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { fdm } from "~/lib/fdm.server"
+import { farmTodayKey } from "~/lib/grazing-dates"
+import { serverNow } from "~/lib/server-now.server"
 
 /** What a herd card shows about the grazing of its herd today. */
 export interface HerdGrazingStatus {
@@ -11,6 +13,44 @@ export interface HerdGrazingStatus {
   fieldName?: string | null
   /** The first day of the next planned grazing, e.g. "3 mei" (`planned`). */
   dateStr?: string | null
+}
+
+/**
+ * Whether a herd grazes today, and otherwise its next planned grazing. Grazing dates are calendar
+ * days (midnight UTC), so days are compared, not moments: a grazing of one day ends at the start
+ * of that day and still runs all day.
+ *
+ * @param grazings - The grazings of the herd.
+ * @param todayKey - Today's calendar day (`YYYY-MM-DD`) in the Netherlands.
+ * @returns The status for the herd card.
+ */
+export function herdGrazingStatus(
+  grazings: Array<{
+    l_grazing_start: Date | string
+    l_grazing_end?: Date | string | null
+    b_name?: string | null
+  }>,
+  todayKey: string,
+): HerdGrazingStatus {
+  const dayKey = (date: Date | string) => new Date(date).toISOString().slice(0, 10)
+  const current = grazings.find(
+    (g) =>
+      dayKey(g.l_grazing_start) <= todayKey &&
+      (!g.l_grazing_end || dayKey(g.l_grazing_end) >= todayKey),
+  )
+  if (current) return { type: "grazing_now", fieldName: current.b_name ?? "onbekend perceel" }
+  const planned = grazings
+    .filter((g) => dayKey(g.l_grazing_start) > todayKey)
+    .sort(
+      (a, b) => new Date(a.l_grazing_start).getTime() - new Date(b.l_grazing_start).getTime(),
+    )[0]
+  if (planned) {
+    return {
+      type: "planned",
+      dateStr: format(new Date(planned.l_grazing_start), "d MMM", { locale: nl }),
+    }
+  }
+  return { type: "idle" }
 }
 
 /** A herd as its card on the Melkvee overview and the Vee page shows it. */
@@ -44,32 +84,18 @@ export async function getHerdCards(
 ): Promise<HerdCardData[]> {
   const [herds, census, grazings] = await Promise.all([
     getHerdsForFarm(fdm, principal_id, b_id_farm),
+    // The animals now, as fdm-core counts them when a count is changed
     getCensusForFarm(fdm, principal_id, b_id_farm),
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
   ])
   const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
-  const now = new Date()
+  const todayKey = farmTodayKey(serverNow())
   return herds.map((h) => {
-    const herdGrazings = grazings.filter((g) => g.l_id_herd === h.l_id_herd)
-    const current = herdGrazings.find((g) => {
-      const start = new Date(g.l_grazing_start)
-      const end = g.l_grazing_end ? new Date(g.l_grazing_end) : null
-      return start <= now && (!end || end >= now)
-    })
-    const planned = herdGrazings
-      .filter((g) => new Date(g.l_grazing_start) > now)
-      .sort(
-        (a, b) => new Date(a.l_grazing_start).getTime() - new Date(b.l_grazing_start).getTime(),
-      )[0]
-    const status: HerdGrazingStatus = current
-      ? { type: "grazing_now", fieldName: current.b_name ?? "onbekend perceel" }
-      : planned
-        ? {
-            type: "planned",
-            dateStr: format(new Date(planned.l_grazing_start), "d MMM", { locale: nl }),
-          }
-        : { type: "idle" }
+    const status = herdGrazingStatus(
+      grazings.filter((g) => g.l_id_herd === h.l_id_herd),
+      todayKey,
+    )
     return {
       l_id_herd: h.l_id_herd,
       l_herd_name: h.l_herd_name ?? "Koppel",
