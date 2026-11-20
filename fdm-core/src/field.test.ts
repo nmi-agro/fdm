@@ -1,8 +1,9 @@
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
-import { enableCultivationCatalogue } from "./catalogues"
+import { enableCultivationCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
 import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
@@ -17,7 +18,9 @@ import {
   removeField,
   updateField,
 } from "./field"
+import { addGrazing } from "./grazing"
 import { addHarvest } from "./harvest"
+import { addHerd } from "./herd"
 import { createId } from "./id"
 import { addSoilAnalysis } from "./soil"
 
@@ -34,6 +37,7 @@ describe("Farm Data Model", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = createId()
   })
 
@@ -902,6 +906,14 @@ describe("Farm Data Model", () => {
         0,
       )
 
+      const l_id_herd = await addHerd(fdm, principal_id, farmId, {
+        l_herd_name: "Melkkoeien",
+        l_id_category: "rvo_100",
+      })
+      await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-01"), {
+        b_id: fieldId,
+      })
+
       // 2. Action: Remove the field
       await removeField(fdm, principal_id, fieldId)
 
@@ -913,6 +925,12 @@ describe("Farm Data Model", () => {
         .from(schema.cultivations)
         .where(eq(schema.cultivations.b_lu, cultivationId))
       expect(remainingCultivations.length).toBe(0)
+
+      const remainingGrazing = await fdm
+        .select()
+        .from(schema.herdGrazing)
+        .where(eq(schema.herdGrazing.b_id, fieldId))
+      expect(remainingGrazing.length).toBe(0)
 
       const remainingSoilAnalyses = await fdm
         .select()

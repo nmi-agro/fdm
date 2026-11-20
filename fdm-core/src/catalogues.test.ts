@@ -1,18 +1,31 @@
-import { getCultivationCatalogue, getFertilizersCatalogue } from "@nmi-agro/fdm-data"
+import {
+  getAnimalCategoriesCatalogue,
+  getCultivationCatalogue,
+  getFertilizersCatalogue,
+} from "@nmi-agro/fdm-data"
 import { and, eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { getAnimalCategoriesForFarm } from "./animal"
 import {
   disableCultivationCatalogue,
+  disableAnimalCategoryCatalogue,
+  disableFeedCatalogue,
   disableFertilizerCatalogue,
   disableMeasureCatalogue,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
+  enableFeedCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
+  getEnabledAnimalCategoryCatalogues,
   getEnabledCultivationCatalogues,
+  getEnabledFeedCatalogues,
   getEnabledFertilizerCatalogues,
   getEnabledMeasureCatalogues,
   isCultivationCatalogueEnabled,
+  isAnimalCategoryCatalogueEnabled,
+  isFeedCatalogueEnabled,
   isFertilizerCatalogueEnabled,
   isMeasureCatalogueEnabled,
   syncCatalogues,
@@ -341,6 +354,162 @@ describe("Catalogues syncing", () => {
 
     const brpCatalogueOriginal = await getCultivationCatalogue("brp")
     expect(brpCatalogue.length).toBe(brpCatalogueOriginal.length)
+
+    const animalCategories = await fdm
+      .select()
+      .from(schema.animalCategoriesCatalogue)
+      .where(eq(schema.animalCategoriesCatalogue.l_category_source, "rvo"))
+    const animalCategoriesOriginal = await getAnimalCategoriesCatalogue("rvo")
+    expect(animalCategories.length).toBe(animalCategoriesOriginal.length)
+  })
+
+  it("should enable the RVO animal catalogue for a new farm and keep an opt-out after sync", async () => {
+    const principal_id = "existing_farm_sync"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Existing Farm",
+      "123456",
+      "Farm Street 1",
+      "1234AB",
+    )
+    expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toContain("rvo")
+    expect((await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)).length).toBeGreaterThan(
+      0,
+    )
+
+    // A farm that turned RVO off keeps it off after a catalogue sync
+    await disableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
+    await syncCatalogues(fdm)
+    expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toEqual([])
+  })
+
+  it("should enable, disable, and check animal category catalogues", async () => {
+    const principal_id = "animal_category_catalogue"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Animal Category Farm",
+      "654321",
+      "Farm Street 2",
+      "2345BC",
+    )
+    await syncCatalogues(fdm)
+
+    await disableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
+    expect(await isAnimalCategoryCatalogueEnabled(fdm, principal_id, b_id_farm, "rvo")).toBe(false)
+
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
+    expect(await isAnimalCategoryCatalogueEnabled(fdm, principal_id, b_id_farm, "rvo")).toBe(true)
+
+    const categories = await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)
+    expect(categories.length).toBeGreaterThan(0)
+  })
+
+  it("should enable, disable, and check feed catalogues", async () => {
+    const principal_id = "feed_catalogue"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Feed Catalogue Farm",
+      "654321",
+      "Farm Street 3",
+      "3456CD",
+    )
+
+    expect(await isFeedCatalogueEnabled(fdm, principal_id, b_id_farm, "nmi")).toBe(false)
+    await enableFeedCatalogue(fdm, principal_id, b_id_farm, "nmi")
+    expect(await isFeedCatalogueEnabled(fdm, principal_id, b_id_farm, "nmi")).toBe(true)
+    expect(await getEnabledFeedCatalogues(fdm, principal_id, b_id_farm)).toEqual(["nmi"])
+
+    await disableFeedCatalogue(fdm, principal_id, b_id_farm, "nmi")
+    expect(await isFeedCatalogueEnabled(fdm, principal_id, b_id_farm, "nmi")).toBe(false)
+  })
+
+  it("should deny feed and animal category catalogue changes to an unauthorized principal", async () => {
+    const b_id_farm = await addFarm(
+      fdm,
+      "catalogue_owner",
+      "Catalogue Owner Farm",
+      "654321",
+      "Farm Street 4",
+      "4567DE",
+    )
+    const invalidUser = "unauthorized_user"
+    const denied = "Principal does not have permission to perform this action"
+
+    await expect(getEnabledFeedCatalogues(fdm, invalidUser, b_id_farm)).rejects.toThrowError(denied)
+    await expect(enableFeedCatalogue(fdm, invalidUser, b_id_farm, "nmi")).rejects.toThrowError(
+      denied,
+    )
+    await expect(disableFeedCatalogue(fdm, invalidUser, b_id_farm, "nmi")).rejects.toThrowError(
+      denied,
+    )
+    await expect(isFeedCatalogueEnabled(fdm, invalidUser, b_id_farm, "nmi")).rejects.toThrowError(
+      denied,
+    )
+    await expect(
+      getEnabledAnimalCategoryCatalogues(fdm, invalidUser, b_id_farm),
+    ).rejects.toThrowError(denied)
+    await expect(
+      enableAnimalCategoryCatalogue(fdm, invalidUser, b_id_farm, "rvo"),
+    ).rejects.toThrowError(denied)
+    await expect(
+      disableAnimalCategoryCatalogue(fdm, invalidUser, b_id_farm, "rvo"),
+    ).rejects.toThrowError(denied)
+    await expect(
+      isAnimalCategoryCatalogueEnabled(fdm, invalidUser, b_id_farm, "rvo"),
+    ).rejects.toThrowError(denied)
+  })
+
+  it("should update feed and animal category catalogue items when their hash changes", async () => {
+    await syncCatalogues(fdm)
+
+    const [feed] = await fdm
+      .select({
+        f_id_catalogue: schema.feedsCatalogue.f_id_catalogue,
+        hash: schema.feedsCatalogue.hash,
+      })
+      .from(schema.feedsCatalogue)
+      .where(and(eq(schema.feedsCatalogue.f_source, "nmi"), isNotNull(schema.feedsCatalogue.hash)))
+      .orderBy(schema.feedsCatalogue.f_id_catalogue)
+      .limit(1)
+    const [category] = await fdm
+      .select({
+        l_id_category: schema.animalCategoriesCatalogue.l_id_category,
+        hash: schema.animalCategoriesCatalogue.hash,
+      })
+      .from(schema.animalCategoriesCatalogue)
+      .where(
+        and(
+          eq(schema.animalCategoriesCatalogue.l_category_source, "rvo"),
+          isNotNull(schema.animalCategoriesCatalogue.hash),
+        ),
+      )
+      .orderBy(schema.animalCategoriesCatalogue.l_id_category)
+      .limit(1)
+
+    await fdm
+      .update(schema.feedsCatalogue)
+      .set({ hash: "Updated hash" })
+      .where(eq(schema.feedsCatalogue.f_id_catalogue, feed.f_id_catalogue))
+    await fdm
+      .update(schema.animalCategoriesCatalogue)
+      .set({ hash: "Updated hash" })
+      .where(eq(schema.animalCategoriesCatalogue.l_id_category, category.l_id_category))
+
+    await syncCatalogues(fdm)
+
+    const [feedSynced] = await fdm
+      .select({ hash: schema.feedsCatalogue.hash })
+      .from(schema.feedsCatalogue)
+      .where(eq(schema.feedsCatalogue.f_id_catalogue, feed.f_id_catalogue))
+    const [categorySynced] = await fdm
+      .select({ hash: schema.animalCategoriesCatalogue.hash })
+      .from(schema.animalCategoriesCatalogue)
+      .where(eq(schema.animalCategoriesCatalogue.l_id_category, category.l_id_category))
+    expect(feedSynced.hash).toBe(feed.hash)
+    expect(categorySynced.hash).toBe(category.hash)
   })
 
   it("should update fertilizer catalogue", async () => {

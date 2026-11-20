@@ -1,10 +1,10 @@
 # FDM Data (`fdm-data`)
 
-The `fdm-data` package extends the Farm Data Model (FDM) core functionality by providing predefined catalogues of data records, such as fertilizers and cultivations. This streamlines data entry and ensures consistency by allowing users to select from existing catalogues or easily create their own by submitting a PR to this package.
+The `fdm-data` package extends the Farm Data Model (FDM) core functionality by providing predefined catalogues of data records, such as fertilizers, cultivations, and RVO animal categories. This streamlines data entry and ensures consistency by allowing users to select from existing catalogues or easily create their own by submitting a PR to this package.
 
 ## Key Features
 
-- **Predefined Catalogues:** `fdm-data` includes ready-to-use catalogues for common agricultural data, such as fertilizers and cultivations, saving time and effort in data entry.
+- **Predefined Catalogues:** `fdm-data` includes ready-to-use catalogues for common agricultural data, such as fertilizers, cultivations, and livestock categories, saving time and effort in data entry.
 - **Simplified Data Entry:** Using predefined catalogues simplifies data entry and reduces errors by providing standardized options for common data points. This contributes to cleaner and more reliable data.
 - **Data Consistency:** Catalogues enforce consistent terminology and data structures, improving data quality and facilitating analysis.
 - **TypeScript Support:** Built with TypeScript, providing type safety and improved developer experience.
@@ -33,3 +33,15 @@ const baatCatalogue = getFertilizersCatalogue("baat")
 // Now you can use the baatCatalogue data
 console.log(baatCatalogue[0]) // Logs the first entry of the baat fertilizer catalogue
 ```
+
+### Animal categories
+
+```typescript
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+
+const rvoCatalogue = await getAnimalCategoriesCatalogue("rvo")
+console.log(rvoCatalogue[0].l_id_category, rvoCatalogue[0].l_lsu)
+```
+
+Animal-category rows include the RVO identifier and label, species, allowed
+sex codes, and livestock units per animal.

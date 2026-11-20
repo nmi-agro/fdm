@@ -12,6 +12,12 @@ export type Resource =
   | "fertilizer_plan"
   | "harvesting"
   | "farm_group"
+  | "barn"
+  | "herd"
+  | "animal"
+  | "milk"
+  | "feed"
+  | "manure"
 export type Role = "owner" | "advisor" | "researcher"
 export type Action = "read" | "write" | "list" | "share"
 

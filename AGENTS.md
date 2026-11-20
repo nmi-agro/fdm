@@ -46,7 +46,8 @@ Test isolation: `fdm-core` and the fdm-app integration project run with `isolate
 - **Domain column prefixes** in the `fdm` PG schema, not camelCase: `b_` (farms, fields, cultivations), `p_` (fertilizer products), `a_` (soil analyses), `m_` (measures), `l_` (livestock), `f_` (feed). Enforced by `pnpm check-schema`; details and exceptions in the `fdm-schema` skill. Generated schemas (`fdm-authn`) are exempt.
 - **`fdm-core` function conventions**:
   - Signature: `fn(fdm: FdmType, principal_id: string, ...)`.
-  - Mutations run inside `fdm.transaction(...)`, generate IDs via `createId()`, and enforce access via `src/authorization.ts` (`checkPermission`, `grantRole`).
+  - A mutation that writes more than once runs inside `fdm.transaction(...)`; a single insert, update or delete may run on `fdm` directly. Generate IDs via `createId()`.
+  - Access: call `checkPermission` (`src/authorization.ts`) before touching data, on `fdm` before the transaction or on `tx` inside it. `grantRole` only gives a principal access to a new top-level resource (such as a farm); other records get their access through their parent.
   - Errors: wrap exceptions with `handleError(err, message, context)`, which returns a `BaseError`.
 - **Feature logic in its own package**: put a new feature area in its own workspace package (like `fdm-rvo` or `fdm-reports`), not in `fdm-core`; only touch `fdm-core` for small, unavoidable changes.
 - **`fdm-app` UI**: Dutch-only user interface (keep copy i18n-ready).

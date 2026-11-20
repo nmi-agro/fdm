@@ -1,17 +1,5 @@
 import type * as GeoJSON from "geojson"
-import {
-  type AnyColumn,
-  and,
-  eq,
-  gte,
-  inArray,
-  isNotNull,
-  isNull,
-  lte,
-  or,
-  type SQL,
-  sql,
-} from "drizzle-orm"
+import { and, eq, gte, inArray, isNotNull, isNull, lte, or, type SQL, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
@@ -37,6 +25,7 @@ import {
   selectContributingAnalyses,
   type ZoneAreas,
 } from "./soil-aggregation"
+import { assertWgs84Positions, clippedZone, geographyArea, normalizeZone } from "./zone"
 
 /**
  * Adds a new soil analysis record along with its soil sampling details.
@@ -746,25 +735,6 @@ function toAggregationAnalyses(rows: CurrentSoilDataRow[]): AggregationAnalysis[
 }
 
 /**
- * SQL expression for a sampling zone clipped to the field boundary. Without a field geometry the
- * zone is used as is.
- *
- * @param zone - The sampling zone column.
- * @param fieldGeometry - The field geometry column of the same field.
- */
-function clippedZone(zone: AnyColumn, fieldGeometry: AnyColumn): SQL {
-  return sql`CASE WHEN ${fieldGeometry} IS NULL THEN ST_MakeValid(${zone})
-    ELSE ST_Intersection(ST_MakeValid(${zone}), ST_MakeValid(${fieldGeometry})) END`
-}
-
-/**
- * SQL expression for the area (m²) of a geometry, calculated on the spheroid.
- */
-function geographyArea(geometry: SQL): SQL<number> {
-  return sql<number>`ST_Area((${geometry})::geography)`.mapWith(Number)
-}
-
-/**
  * Retrieves the field areas, clipped zone areas and pairwise zone intersections for the given fields.
  *
  * @param fdm - The FDM instance.
@@ -1003,27 +973,7 @@ function normalizeSamplingGeometries(geometries: SoilSamplingGeometries): {
   b_sampling_geometry: GeoJSON.MultiPoint | null | undefined
   b_sampling_geometry_zone: GeoJSON.MultiPolygon | null | undefined
 } {
-  const { b_sampling_geometry_zone } = geometries
   let { b_sampling_geometry } = geometries
-
-  const assertPositions = (positions: unknown[], name: string) => {
-    for (const position of positions) {
-      if (!Array.isArray(position) || position.length < 2) {
-        throw new Error(`${name} contains an invalid position`)
-      }
-      const [lon, lat] = position as number[]
-      if (
-        !Number.isFinite(lon) ||
-        !Number.isFinite(lat) ||
-        lon < -180 ||
-        lon > 180 ||
-        lat < -90 ||
-        lat > 90
-      ) {
-        throw new Error(`${name} must have WGS84 coordinates`)
-      }
-    }
-  }
 
   if (b_sampling_geometry) {
     if (
@@ -1032,41 +982,20 @@ function normalizeSamplingGeometries(geometries: SoilSamplingGeometries): {
     ) {
       throw new Error("b_sampling_geometry must be a MultiPoint")
     }
-    assertPositions(b_sampling_geometry.coordinates, "b_sampling_geometry")
+    assertWgs84Positions(b_sampling_geometry.coordinates, "b_sampling_geometry")
     // No sample points is the same as unknown sample points
     if (b_sampling_geometry.coordinates.length === 0) b_sampling_geometry = null
   }
 
-  let zone: GeoJSON.MultiPolygon | null | undefined = b_sampling_geometry_zone as null | undefined
-  if (b_sampling_geometry_zone) {
-    if (
-      (b_sampling_geometry_zone.type !== "Polygon" &&
-        b_sampling_geometry_zone.type !== "MultiPolygon") ||
-      !Array.isArray(b_sampling_geometry_zone.coordinates)
-    ) {
-      throw new Error("b_sampling_geometry_zone must be a Polygon or MultiPolygon")
-    }
-    zone =
-      b_sampling_geometry_zone.type === "Polygon"
-        ? { type: "MultiPolygon", coordinates: [b_sampling_geometry_zone.coordinates] }
-        : b_sampling_geometry_zone
-    for (const polygon of zone.coordinates) {
-      if (!Array.isArray(polygon) || polygon.length === 0) {
-        throw new Error("b_sampling_geometry_zone contains an invalid polygon")
-      }
-      for (const ring of polygon) {
-        if (!Array.isArray(ring) || ring.length < 4) {
-          throw new Error("b_sampling_geometry_zone contains an invalid ring")
-        }
-        assertPositions(ring, "b_sampling_geometry_zone")
-      }
-    }
-    // An empty zone represents no area; storing it would let it replace whole-field data, so it is
-    // treated as no zone (the whole field)
-    if (zone.coordinates.length === 0) zone = null
+  // An empty zone represents no area; storing it would let it replace whole-field data, so
+  // normalizeZone treats it as no zone (the whole field)
+  return {
+    b_sampling_geometry,
+    b_sampling_geometry_zone: normalizeZone(
+      geometries.b_sampling_geometry_zone,
+      "b_sampling_geometry_zone",
+    ),
   }
-
-  return { b_sampling_geometry, b_sampling_geometry_zone: zone }
 }
 
 /**
