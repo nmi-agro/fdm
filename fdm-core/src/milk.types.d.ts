@@ -33,7 +33,7 @@ export interface MilkDelivery {
   l_id_milktank?: schema.milkDeliveringTypeSelect["l_id_milktank"]
   l_milkdelivery_date?: schema.milkDeliveringTypeSelect["l_milkdelivery_date"]
   l_milkdelivery_amount?: schema.milkDeliveringTypeSelect["l_milkdelivery_amount"]
-  l_id_milkanalysis?: schema.milkAnalysesTypeSelect["l_id_milkanalysis"]
+  l_id_milkanalysis?: schema.milkAnalysesTypeSelect["l_id_milkanalysis"] | null
   l_milk_fat?: schema.milkAnalysesTypeSelect["l_milk_fat"]
   l_milk_protein?: schema.milkAnalysesTypeSelect["l_milk_protein"]
   l_milk_lactose?: schema.milkAnalysesTypeSelect["l_milk_lactose"]

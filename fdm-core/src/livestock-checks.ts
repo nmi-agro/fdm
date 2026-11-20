@@ -95,9 +95,12 @@ export async function assertSameFarm(
 }
 
 /**
- * Takes a lock on the livestock of a farm until the end of the transaction. Adding animals (work
- * numbers, herd category) and changing the category of a herd take it, so they run one after
- * another. Postgres has no row to lock for "the next work number", so this is an advisory lock.
+ * Takes the livestock lock of a farm until the end of the transaction. Every change to the herds,
+ * animals, herd assignments, departures and housing of a farm takes this one lock before it reads
+ * anything, so such changes run one after another and always see each other's result. One lock per
+ * farm keeps the order simple (no deadlocks between herd and animal locks); a farm makes few
+ * changes at a time. It is an advisory lock, because there is no single row to lock (for example
+ * for "the next work number").
  *
  * @param tx - The transaction.
  * @param b_id_farm - Identifier of the farm.
@@ -110,37 +113,36 @@ export async function lockFarm(
 }
 
 /**
- * Locks a herd row until the end of the transaction, so concurrent changes to the herd and its
- * actions run one after another.
+ * Takes the livestock lock of the farm a herd belongs to; see {@link lockFarm}.
  *
  * @param tx - The transaction.
  * @param l_id_herd - Identifier of the herd.
+ * @returns The farm of the herd, or `undefined` when the herd does not exist (nothing is locked).
  */
-export async function lockHerd(
+export async function lockFarmOfHerd(
   tx: FdmType,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
-): Promise<void> {
-  await tx
-    .select({ l_id_herd: schema.herds.l_id_herd })
-    .from(schema.herds)
-    .where(eq(schema.herds.l_id_herd, l_id_herd))
-    .for("update")
+): Promise<string | undefined> {
+  // The farm of a herd never changes, so it can be read before the lock
+  const b_id_farm = await getOwnerFarm(tx, { l_id_herd })
+  if (b_id_farm) await lockFarm(tx, b_id_farm)
+  return b_id_farm
 }
 
 /**
- * Locks an animal row until the end of the transaction, so concurrent moves of the same animal run
- * one after another.
+ * Takes the livestock lock of the farm an animal belongs to; see {@link lockFarm}.
  *
  * @param tx - The transaction.
  * @param l_id_animal - Identifier of the animal.
+ * @returns The farm of the animal, or `undefined` when the animal does not exist (nothing is
+ *   locked).
  */
-export async function lockAnimal(
+export async function lockFarmOfAnimal(
   tx: FdmType,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
-): Promise<void> {
-  await tx
-    .select({ l_id_animal: schema.animals.l_id_animal })
-    .from(schema.animals)
-    .where(eq(schema.animals.l_id_animal, l_id_animal))
-    .for("update")
+): Promise<string | undefined> {
+  // The farm of an animal never changes, so it can be read before the lock
+  const b_id_farm = await getOwnerFarm(tx, { l_id_animal })
+  if (b_id_farm) await lockFarm(tx, b_id_farm)
+  return b_id_farm
 }

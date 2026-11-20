@@ -2,7 +2,7 @@ import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import { addAnimal, updateAnimal } from "./animal"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { disableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
@@ -195,5 +195,44 @@ describe("Herd Domain", () => {
     })
     // Passing the same category is fine
     await updateHerd(fdm, principal_id, l_id_herd, { l_id_category: "rvo_101" })
+  })
+
+  it("should rename a herd after the farm turned its category's catalogue off", async () => {
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_id_category: "rvo_100",
+    })
+    await disableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
+
+    // The form sends the unchanged category along with the new name
+    await updateHerd(fdm, principal_id, l_id_herd, {
+      l_herd_name: "Melkkoeien oost",
+      l_id_category: "rvo_100",
+    })
+    expect((await getHerd(fdm, principal_id, l_id_herd)).l_herd_name).toBe("Melkkoeien oost")
+  })
+
+  it("should only end a herd that has no animals on its end date", async () => {
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_id_category: "rvo_100",
+    })
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+
+    await expect(
+      updateHerd(fdm, principal_id, l_id_herd, { l_end: new Date("2025-06-01") }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("still has animals on its end date") },
+    })
+
+    // Once the animal has left before that date, the herd can end
+    await updateAnimal(fdm, principal_id, l_id_animal, {
+      l_leaving_date: new Date("2025-05-01"),
+      l_leaving_method: "sold",
+    })
+    await updateHerd(fdm, principal_id, l_id_herd, { l_end: new Date("2025-06-01") })
+    expect((await getHerd(fdm, principal_id, l_id_herd)).l_end).toEqual(new Date("2025-06-01"))
   })
 })

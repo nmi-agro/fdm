@@ -691,6 +691,104 @@ describe("Animal Domain", () => {
     ).rejects.toMatchObject({ cause: { message: expect.stringContaining("has not started yet") } })
   })
 
+  it("should reject a departure before a move that is already recorded", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_id_category: "rvo_101",
+    })
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, new Date("2025-03-01"))
+
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-02-01") }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("before the move to another herd") },
+    })
+    // A departure after the move closes the last assignment
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-04-01") })
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === youngstockHerd)?.l_assigning_end).toEqual(
+      new Date("2025-04-01"),
+    )
+  })
+
+  it("should only move the end of the last assignment when a departure is corrected", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_id_category: "rvo_101",
+    })
+    // A move and a departure on the same day: both assignments end on March 1
+    const moveDate = new Date("2025-03-01")
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, moveDate)
+    await removeAnimalsFromHerd(fdm, principal_id, youngstockHerd, 1, {
+      l_leaving_date: moveDate,
+      l_leaving_method: "sold",
+    })
+
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-04-01") })
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === l_id_herd)?.l_assigning_end).toEqual(moveDate)
+    expect(history.find((row) => row.l_id_herd === youngstockHerd)?.l_assigning_end).toEqual(
+      new Date("2025-04-01"),
+    )
+  })
+
+  it("should not count an empty assignment as an overlap", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const herdB = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "B",
+      l_id_category: "rvo_100",
+    })
+    const herdC = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "C",
+      l_id_category: "rvo_100",
+    })
+    // Two moves on one day leave B with an empty assignment [February 1, February 1)
+    const moveDate = new Date("2025-02-01")
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdB, moveDate)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdC, moveDate)
+
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, new Date("2025-01-01"), {
+      l_assigning_end: new Date("2025-01-20"),
+    })
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, herdC, moveDate, {
+      l_assigning_start: new Date("2025-01-25"),
+    })
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === herdC)?.l_assigning_start).toEqual(
+      new Date("2025-01-25"),
+    )
+  })
+
+  it("should not pick an animal that only arrives later in a reduction", async () => {
+    const present = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL700000065",
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    // An untagged animal would be picked first, but it only arrives next month
+    await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date(Date.now() + 30 * 86_400_000),
+    })
+
+    const removed = await removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 1)
+    expect(removed).toEqual([present])
+  })
+
+  it("should refuse a batch of automatic work numbers that cannot be counted exactly", async () => {
+    await expect(
+      addAnimalsToHerd(fdm, principal_id, l_id_herd, Number.MAX_SAFE_INTEGER - 5),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("No automatic work numbers left") },
+    })
+  })
+
   it("should reject assigning an animal to a herd belonging to another farm", async () => {
     const otherFarmId = await addFarm(
       fdm,
