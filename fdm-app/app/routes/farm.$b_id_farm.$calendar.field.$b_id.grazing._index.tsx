@@ -21,6 +21,7 @@ import {
   type MetaFunction,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -51,6 +52,8 @@ const countOf = (count: number, singular: string, plural: string) =>
 
 // Lazy-loaded to avoid SSR issues with maplibre-gl and to keep it out of the initial bundle
 const GrazingZonesMap = lazy(() => import("~/components/blocks/grazing/grazing-zones-map"))
+
+export const handle: HelpHandle = { help: "beweiding-perceel" }
 
 export const meta: MetaFunction = () => {
   return [

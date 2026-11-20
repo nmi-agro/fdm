@@ -19,6 +19,7 @@ import {
   useNavigate,
   useSearchParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -52,6 +53,8 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getHerdCards } from "~/lib/herd-cards.server"
 import { handleLivestockEvent, isLivestockIntent } from "~/lib/livestock-events.server"
+
+export const handle: HelpHandle = { help: "veestapel-dieren" }
 
 export const meta: MetaFunction = () => {
   return [

@@ -14,7 +14,9 @@
  * sign-in, page checks, settings).
  */
 import { defineConfig, devices, type Project } from "@playwright/test"
+import { GRAZING_CAPTURE_DAY } from "./app/content/manual/screenshots/capture"
 import { STORAGE_STATE_FILE as SCREENSHOTS_STATE } from "./e2e/screenshots/paths"
+import { demoYear } from "./e2e/seed/demo-farm"
 import { STORAGE_STATE_FILE as SMOKE_STATE } from "./e2e/smoke/paths"
 import { BASE_URL, OUTPUT_DIR, PORT } from "./e2e/support/env"
 
@@ -79,11 +81,15 @@ for (const name of [
 if (SUITE === "screenshots") {
   // The manual shows the app under the product name of the screenshots.
   appEnv.PUBLIC_FDM_NAME = "MINAS2"
+  // The grazing pages compute "today" on the server (grazing status, rest days); fix it to the
+  // day the captures fix the browser clock to, so the server and the browser agree
+  appEnv.FDM_FIXED_TODAY = `${demoYear()}-${GRAZING_CAPTURE_DAY}`
   // Always the KvK test environment, with the test key that KvK publishes for it: lookups then
   // return fictional test companies, never real ones.
   appEnv.KVK_API_KEY = "l7xx1f2691f2520d487b902f4e0b57a0b197"
   appEnv.KVK_API_BASE_URL = "https://api.kvk.nl/test/api"
 } else {
+  delete appEnv.FDM_FIXED_TODAY
   appEnv.PUBLIC_FDM_NAME = "FDM"
   // OpenStreetMap needs no key; the browser cannot load its tiles in the smoke suite anyway.
   appEnv.PUBLIC_MAP_PROVIDER = "osm"

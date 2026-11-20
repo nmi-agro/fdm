@@ -20,6 +20,7 @@ import {
   addFertilizer,
   addFertilizerApplication,
   addField,
+  addGrazings,
   addHarvest,
   addMeasure,
   addSoilAnalysis,
@@ -308,6 +309,20 @@ function outline(key: DemoFieldKey): Polygon {
 }
 
 /**
+ * Narrows a split part of a field to a single polygon.
+ *
+ * @param geometry - The part of the field.
+ * @returns The part as a polygon.
+ * @throws When the part falls apart into several polygons.
+ */
+function asPolygon(geometry: Polygon | MultiPolygon): Polygon {
+  if (geometry.type !== "Polygon") {
+    throw new Error("The split part of the field is not a single polygon")
+  }
+  return geometry
+}
+
+/**
  * Returns the id of a seeded demo field.
  *
  * @param fields - The seeded fields.
@@ -522,6 +537,20 @@ export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<Dem
     }
   }
 
+  // The animals of the farm's dairy herd
+  const animals: string[] = []
+
+  /** Adds a herd of the given animal category, born on the farm, from 1 January of the year. */
+  const addHerdOf = (l_herd_name: string, l_id_category: string, count: number) =>
+    createHerdWithAnimals(
+      fdm,
+      principal,
+      b_id_farm,
+      { l_herd_name, l_id_category, l_start: date(year, 1, 1) },
+      count,
+      { l_arriving_method: "born" },
+    )
+
   if (variant === "demo") {
     for (const measure of MEASURES) {
       await addMeasure(
@@ -546,22 +575,45 @@ export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<Dem
         assessment.scores,
       )
     }
+
+    // Livestock and grazing for the Veestapel and Beweiding chapters: a dairy herd and young
+    // stock, whole-field grazings in spring, and strips on the home plot in June, the last one on
+    // the day the screenshots are taken (the capture clock, 15 June).
+    const dairy = await addHerdOf("Melkkoeien", "rvo_100", 60)
+    animals.push(...dairy.l_id_animals)
+    await addHerdOf("Jongvee", "rvo_101", 20)
+    const homePlot = fieldId(fields, "grasland-huiskavel")
+    const backPlot = fieldId(fields, "grasland-achter")
+    // Strips of a quarter of the home plot, from west to east; the last quarter stays free, so the
+    // strip builder in the screenshots can cut the next strip there
+    const [westHalf, eastHalf] = splitWestEast(outline("grasland-huiskavel"))
+    const [strip1, strip2] = splitWestEast(asPolygon(westHalf))
+    const [strip3] = splitWestEast(asPolygon(eastHalf))
+    const grazing = (b_id: string, from: [number, number], to: [number, number]) => ({
+      l_id_herd: dairy.l_id_herd,
+      b_id,
+      l_grazing_start: date(year, from[0], from[1]),
+      l_grazing_end: date(year, to[0], to[1]),
+      l_grazing_hours: 8,
+    })
+    await addGrazings(fdm, principal, [
+      grazing(homePlot, [4, 20], [4, 24]),
+      grazing(backPlot, [5, 1], [5, 5]),
+      grazing(homePlot, [5, 20], [5, 24]),
+      grazing(backPlot, [6, 1], [6, 4]),
+      // A part of the field without a location on the map
+      { ...grazing(backPlot, [6, 8], [6, 9]), l_grazing_area: 2 },
+      { ...grazing(homePlot, [6, 13], [6, 13]), l_grazing_geometry_zone: strip1 },
+      { ...grazing(homePlot, [6, 14], [6, 14]), l_grazing_geometry_zone: strip2 },
+      { ...grazing(homePlot, [6, 15], [6, 15]), l_grazing_geometry_zone: strip3 },
+    ])
   }
 
   // A small dairy herd, so the smoke crawler can open the pages of an animal
-  const animals =
-    variant === "minimal"
-      ? (
-          await createHerdWithAnimals(
-            fdm,
-            principal,
-            b_id_farm,
-            { l_herd_name: "Melkkoeien", l_id_category: "rvo_100", l_start: date(year, 1, 1) },
-            3,
-            { l_specie: "cattle", l_arriving_method: "born" },
-          )
-        ).l_id_animals
-      : []
+  if (variant === "minimal") {
+    const herd = await addHerdOf("Melkkoeien", "rvo_100", 3)
+    animals.push(...herd.l_id_animals)
+  }
 
   return {
     variant,

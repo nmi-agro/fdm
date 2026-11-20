@@ -13,6 +13,7 @@ import {
   useLoaderData,
 } from "react-router"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { CalendarGrid } from "~/components/blocks/grazing/calendar-grid"
@@ -41,6 +42,8 @@ import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { defaultMapDay } from "~/lib/grazing-map"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
+
+export const handle: HelpHandle = { help: "beweiding" }
 
 export const meta: MetaFunction = () => {
   return [

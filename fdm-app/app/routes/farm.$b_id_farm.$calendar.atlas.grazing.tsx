@@ -22,6 +22,7 @@ import {
   useLoaderData,
   useNavigate,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import {
@@ -70,6 +71,8 @@ import {
   grazingEndDay,
   shiftDay,
 } from "~/lib/grazing-map"
+
+export const handle: HelpHandle = { help: "beweiding-vandaag" }
 
 export const meta: MetaFunction = () => {
   return [

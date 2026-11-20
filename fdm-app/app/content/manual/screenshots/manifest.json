@@ -99,6 +99,30 @@
     "width": 1920,
     "height": 1080
   },
+  "beweiding-inzichten": {
+    "width": 1920,
+    "height": 1080
+  },
+  "beweiding-kalender": {
+    "width": 1920,
+    "height": 1080
+  },
+  "beweiding-strook": {
+    "width": 576,
+    "height": 972
+  },
+  "beweiding-vandaag": {
+    "width": 1920,
+    "height": 1080
+  },
+  "beweiding-zone-tekenen": {
+    "width": 576,
+    "height": 972
+  },
+  "beweidingsplan": {
+    "width": 1920,
+    "height": 1080
+  },
   "bodem-perceel": {
     "width": 1920,
     "height": 1080
@@ -172,6 +196,10 @@
     "height": 1080
   },
   "toegang-delen": {
+    "width": 1920,
+    "height": 1080
+  },
+  "veestapel-overzicht": {
     "width": 1920,
     "height": 1080
   }

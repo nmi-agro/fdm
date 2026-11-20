@@ -44,7 +44,7 @@ lastReviewed: 2026-11-05 # required on background pages; last agronomic review
 ---
 ```
 
-Sections for chapters: `Aan de slag`, `Gegevens vastleggen`, `Resultaten`, `Samenwerken en account`. Sections for background pages: `Balansen`, `Normen en advies`, `Bodem`.
+Sections for chapters: `Aan de slag`, `Gegevens vastleggen`, `Resultaten`, `Samenwerken en account`. Sections for background pages: `Balansen`, `Normen en advies`, `Bodem`, `Vee en beweiding`.
 
 `routes` globs are relative to `fdm-app/app/routes/`; `watch` globs are relative to the repository root. Every glob must match at least one file. Escape `[` and `]` in globs (`sitemap\[.\]xml.ts`), because brackets are a character class.
 
@@ -86,7 +86,7 @@ Screenshots are never made by hand. A Playwright run captures them from the curr
    },
    ```
 
-   Choose a `ready` element that only appears when the page loaded correctly, so an error or empty state never ends up in the manual. Anything that depends on the moment of the run must be fixed, or the image changes on every run. The browser clock stops at the start of the run; a page that marks today, such as the timeline, needs a `clock` and must be opened through the menu (`steps`), because the fixed clock only applies after the first page has loaded. The time-of-day greeting is always "Goedemiddag". Field keys are in `fdm-app/e2e/seed/demo-farm.ts`; extend the seed (`e2e/seed/index.ts`) when a page needs data that the demo farm lacks.
+   Choose a `ready` element that only appears when the page loaded correctly, so an error or empty state never ends up in the manual. Anything that depends on the moment of the run must be fixed, or the image changes on every run. The browser clock stops at the start of the run; a page that marks today, such as the timeline, needs a `clock` and must be opened through the menu (`steps`), because the fixed clock only applies after the first page has loaded. The grazing pages also compute "today" on the server; the run fixes that day with `FDM_FIXED_TODAY`, set to `GRAZING_CAPTURE_DAY` from `screenshots/capture.ts`, so use that day for their `clock`. The time-of-day greeting is always "Goedemiddag". Field keys are in `fdm-app/e2e/seed/demo-farm.ts`; extend the seed (`e2e/seed/index.ts`) when a page needs data that the demo farm lacks.
 
 3. `pnpm --filter @nmi-agro/fdm-app test:unit` checks that every id has a definition and every definition is used. The capture run checks it again before it starts.
 

@@ -18,6 +18,7 @@ import {
   NavLink,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { GrazingDayCell, RestAlertNotice } from "~/components/blocks/grazing/calendar-grid"
@@ -48,6 +49,8 @@ import { defaultMapDay, shiftDay } from "~/lib/grazing-map"
 import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
 import { getHerdCards } from "~/lib/herd-cards.server"
 import { handleLivestockEvent, isLivestockIntent } from "~/lib/livestock-events.server"
+
+export const handle: HelpHandle = { help: "veestapel" }
 
 export const meta: MetaFunction = () => {
   return [

@@ -38,6 +38,7 @@ import {
 import { redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import type { PlanPreviewZone } from "~/components/blocks/grazing/plan-preview-map"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -97,6 +98,8 @@ const STRIP_DIRECTIONS = [
   { value: "180", label: "Naar het zuiden" },
   { value: "270", label: "Naar het westen" },
 ]
+
+export const handle: HelpHandle = { help: "beweidingsplan" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -686,6 +689,7 @@ export default function GrazingPlanAssistent() {
         <FarmTitle
           title="Beweidingsplanner"
           description="Genereer een rotatieschema voor de percelen die je wilt beweiden, passend bij je koppel en het gekozen graslandgebruikssysteem."
+          help="beweidingsplan"
         />
 
         <FarmContent>
