@@ -172,7 +172,7 @@ function ProgressBar() {
   return (
     <motion.div
       role="status"
-      className="bg-primary/15 pointer-events-none fixed inset-x-0 top-0 z-9999 h-0.5 overflow-hidden"
+      className="bg-primary/15 pointer-events-none fixed inset-x-0 top-0 z-9999 h-1 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

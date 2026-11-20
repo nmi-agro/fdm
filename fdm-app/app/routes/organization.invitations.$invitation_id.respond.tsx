@@ -8,6 +8,7 @@ import {
   type LoaderFunctionArgs,
   redirect,
   useLoaderData,
+  useNavigation,
   useSearchParams,
   useSubmit,
 } from "react-router"
@@ -17,7 +18,6 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { usePendingIntent } from "~/hooks/use-pending-intent"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -181,7 +181,10 @@ export default function Respond() {
   const intent = intentRaw != null ? intentRaw.toLowerCase() : null
 
   const submit = useSubmit()
-  const pendingIntent = usePendingIntent("invitation_id", invitation.id)
+  // This form leaves the page after saving, so the submission is a navigation
+  const navigation = useNavigation()
+  const pendingIntent =
+    navigation.state !== "idle" ? (navigation.formData?.get("intent") ?? null) : null
 
   useEffect(() => {
     if (intent && intent === "accept") {
