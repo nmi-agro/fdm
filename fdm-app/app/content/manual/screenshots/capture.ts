@@ -5,18 +5,25 @@
  */
 import type { CaptureDefinition, CaptureStep } from "~/lib/manual/capture-types"
 
+/**
+ * The day (`MM-DD` of the run's year) that the livestock and grazing captures show as today. The
+ * browser clock is fixed to it, and the run sets `FDM_FIXED_TODAY` to it for the server (see
+ * playwright.config.ts), so both agree on the grazing status and the rest days.
+ */
+export const GRAZING_CAPTURE_DAY = "06-15"
+
 // Shared parts of the livestock and grazing captures. These pages depend on "today" (grazing
 // status, rest days, default dates), so they start on the dashboard with the fixed clock and open
 // the page through the menu. The seed grazes strips on the home plot on 13, 14 and 15 June.
 const GRAZING_DASHBOARD_START = {
   route: "/farm/{farm}?calendar={year}",
   ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
-  clock: "{year}-06-15T12:00:00+02:00",
+  clock: `{year}-${GRAZING_CAPTURE_DAY}T12:00:00+02:00`,
 } satisfies Partial<CaptureDefinition>
 const GRAZING_FIELD_START = {
   route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
   ready: { text: "Perceelskaart", exact: true },
-  clock: "{year}-06-15T12:00:00+02:00",
+  clock: `{year}-${GRAZING_CAPTURE_DAY}T12:00:00+02:00`,
 } satisfies Partial<CaptureDefinition>
 const OPEN_MELKVEE: CaptureStep = { click: { selector: 'a[href$="/livestock"]' } }
 const OPEN_GRAZING_CALENDAR: CaptureStep = { click: { selector: 'a[href$="/livestock/grazing"]' } }
