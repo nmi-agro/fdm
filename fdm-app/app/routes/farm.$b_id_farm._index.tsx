@@ -78,6 +78,7 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useFarmWarmup } from "~/hooks/use-farm-warmup"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -453,6 +454,8 @@ function ActionLink({
 export default function FarmDashboardIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
+  // Fill the calculation cache in the background, so the calculation pages open faster
+  useFarmWarmup(loaderData.b_id_farm, loaderData.activeYear, loaderData.fieldsNumber > 0)
 
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
