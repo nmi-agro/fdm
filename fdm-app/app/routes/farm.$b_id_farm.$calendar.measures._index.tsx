@@ -913,9 +913,10 @@ export default function MeasuresFarmIndex() {
     farmWritePermission,
     asyncInsights,
   } = useLoaderData<typeof loader>()
-  // The applicability is streamed; until it arrives the add dialog shows every measure
+  // The applicability is streamed; until it arrives the add dialog waits with saving
   const applicabilityPromises = useMemo(() => [applicabilityByField], [applicabilityByField])
-  const applicability = useStreamedRows(applicabilityPromises).rows[0]
+  const streamedApplicability = useStreamedRows(applicabilityPromises)
+  const applicability = streamedApplicability.rows[0]
   const { b_id_farm, calendar } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -923,9 +924,12 @@ export default function MeasuresFarmIndex() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [initialFieldIds, setInitialFieldIds] = useState<string[]>([])
   const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
-  const [recommendationsData, setRecommendationsData] = useState<FarmRecommendationsData | null>(
-    null,
+  // The recommendations for the add dialog, from the streamed farm next steps
+  const nextStepsPromises = useMemo(
+    () => [asyncInsights.farmNextSteps],
+    [asyncInsights.farmNextSteps],
   )
+  const recommendationsData = useStreamedRows(nextStepsPromises).rows[0] ?? null
   const [editingRow, setEditingRow] = useState<MeasureTableRow | null>(null)
   const [closingRow, setClosingRow] = useState<MeasureTableRow | null>(null)
 
@@ -1077,9 +1081,6 @@ export default function MeasuresFarmIndex() {
             >
               <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
                 {(recData: FarmRecommendationsData) => {
-                  if (recData && recData !== recommendationsData && !recommendationsData) {
-                    setTimeout(() => setRecommendationsData(recData), 0)
-                  }
                   return (
                     recData?.steps &&
                     recData.steps.length > 0 && (
@@ -1152,6 +1153,7 @@ export default function MeasuresFarmIndex() {
         catalogue={catalogue}
         activeMeasures={[]}
         applicabilityByField={applicability}
+        applicabilityLoading={!streamedApplicability.complete}
         fields={fieldList}
         initialFieldIds={initialFieldIds}
         topOpportunities={recommendationsData?.topOpportunities}

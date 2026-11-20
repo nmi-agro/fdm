@@ -32,6 +32,7 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
+import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getIndicatorInfo } from "~/lib/indicators"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
@@ -78,6 +79,11 @@ type AddMeasureDialogProps = {
    * Multi-field applicability map (b_id -> m_id -> applicability info).
    */
   applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null | undefined>
+  /**
+   * `true` while the applicability is still loading (it is streamed on farm pages). Saving waits
+   * until it is known, so a measure that does not apply cannot be added in the meantime.
+   */
+  applicabilityLoading?: boolean
   /**
    * When provided, renders a field selector (checkboxes) so the user can
    * apply the measure to multiple fields at once. Posts multiple hidden
@@ -138,6 +144,7 @@ export function AddMeasureDialog({
   harvestDate,
   applicabilityMap,
   applicabilityByField,
+  applicabilityLoading = false,
   fields,
   initialFieldIds,
   action,
@@ -1240,8 +1247,20 @@ export function AddMeasureDialog({
                 </Field>
 
                 <div className="flex justify-end pt-1 pb-2">
-                  <Button type="submit" disabled={!canSubmit || isSubmitting}>
-                    {isSubmitting ? "Opslaan…" : "Opslaan"}
+                  <Button
+                    type="submit"
+                    disabled={!canSubmit || isSubmitting || applicabilityLoading}
+                  >
+                    {(isSubmitting || applicabilityLoading) && <Spinner />}
+                    <span
+                      key={isSubmitting ? "saving" : applicabilityLoading ? "checking" : "idle"}
+                    >
+                      {isSubmitting
+                        ? "Opslaan…"
+                        : applicabilityLoading
+                          ? "Toepasbaarheid controleren…"
+                          : "Opslaan"}
+                    </span>
                   </Button>
                 </div>
               </FieldGroup>

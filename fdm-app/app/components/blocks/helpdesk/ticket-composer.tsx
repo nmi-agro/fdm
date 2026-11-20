@@ -2,7 +2,7 @@ import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRef } from "react"
 import { Controller } from "react-hook-form"
-import { NavLink, useNavigation, useSubmit } from "react-router"
+import { NavLink, useFormAction, useNavigation, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { Button, buttonVariants } from "~/components/ui/button"
@@ -34,8 +34,12 @@ export function TicketComposer({
 }) {
   const submit = useSubmit()
   const navigation = useNavigation()
+  const formAction = useFormAction()
+  // Only this form's submission, not another POST such as signing out from the sidebar
   const isSubmitting =
-    navigation.state !== "idle" && navigation.formMethod?.toUpperCase() === "POST"
+    navigation.state !== "idle" &&
+    navigation.formMethod?.toUpperCase() === "POST" &&
+    navigation.formAction === formAction
   const formRef = useRef<HTMLFormElement>(null)
 
   const form = useRemixForm<z.infer<typeof TicketSchema>>({

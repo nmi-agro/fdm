@@ -13,6 +13,16 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024 // 10 MB
 /** A request to PostHog that takes longer is aborted. */
 const TIMEOUT_MS = 60_000
 
+/** Response headers that apply to one connection only and are not passed on. */
+const HOP_BY_HOP_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "transfer-encoding",
+  "upgrade",
+  "te",
+  "trailer",
+])
+
 /**
  * Forwards a request under `/ingest` to PostHog.
  *
@@ -130,8 +140,10 @@ export function createPosthogProxyMiddleware(posthogHost) {
     res.status(response.status)
     if (response.statusText) res.statusMessage = response.statusText
     response.headers.forEach((value, name) => {
-      // `set-cookie` may hold several values, which `forEach` joins
-      if (name !== "set-cookie") res.setHeader(name, value)
+      // `set-cookie` may hold several values, which `forEach` joins. Hop-by-hop headers describe
+      // the connection to PostHog, not the one to the browser.
+      if (name === "set-cookie" || HOP_BY_HOP_HEADERS.has(name) || name.startsWith("proxy-")) return
+      res.setHeader(name, value)
     })
     const cookies = response.headers.getSetCookie()
     if (cookies.length > 0) res.setHeader("set-cookie", cookies)

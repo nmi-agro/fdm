@@ -16,6 +16,8 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { Spinner } from "~/components/ui/spinner"
+import { usePendingIntent } from "~/hooks/use-pending-intent"
 import { measuresTableFeatures } from "./table-features"
 
 export type MeasureTableRow = {
@@ -174,17 +176,7 @@ export function getColumns(
           </Button>
           <AlertDialog>
             <AlertDialogTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive h-8 w-8"
-                  title="Verwijderen"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              }
+              render={<DeleteMeasureButton b_id_measure={row.original.fields[0]?.b_id_measure} />}
             />
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -230,4 +222,29 @@ export function getColumns(
   }
 
   return columns
+}
+
+/**
+ * The trash button of a measure row. It shows a spinner and is disabled while the delete of that
+ * measure is being submitted, so the delete can't be submitted twice.
+ */
+function DeleteMeasureButton({
+  b_id_measure,
+  ...props
+}: React.ComponentProps<typeof Button> & { b_id_measure: string | undefined }) {
+  const pendingIntent = usePendingIntent("b_id_measure", b_id_measure ?? "")
+  const isDeleting = b_id_measure !== undefined && pendingIntent === "delete"
+  return (
+    <Button
+      {...props}
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="text-muted-foreground hover:text-destructive h-8 w-8"
+      title="Verwijderen"
+      disabled={isDeleting}
+    >
+      {isDeleting ? <Spinner className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+    </Button>
+  )
 }

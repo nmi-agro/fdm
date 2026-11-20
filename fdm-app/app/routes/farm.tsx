@@ -185,7 +185,8 @@ async function getHasHelpdeskNotification(principal_id: string): Promise<boolean
 }
 
 // The sidebar data depends on the farm and the calendar year only, so switching between fields or
-// pages of the same farm keeps it
+// pages of the same farm keeps it. The helpdesk notification dot is refreshed at the same moments
+// (another farm or year, a submission, or opening a page outside /farm), not on every navigation.
 export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
 
 /**
