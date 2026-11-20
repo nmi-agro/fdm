@@ -714,6 +714,25 @@ describe("Animal Domain", () => {
     )
   })
 
+  it("should reject a departure before a move at the moment of arrival", async () => {
+    const arrival = new Date("2025-01-01")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: arrival,
+    })
+    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_id_category: "rvo_101",
+    })
+    // The move starts at the same moment as the arrival
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, arrival)
+
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2024-12-01") }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("before the move to another herd") },
+    })
+  })
+
   it("should only move the end of the last assignment when a departure is corrected", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_arriving_date: new Date("2025-01-01"),
