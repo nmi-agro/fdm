@@ -23,6 +23,8 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { Field } from "~/components/ui/field"
+import { Spinner } from "~/components/ui/spinner"
+import { usePendingIntent } from "~/hooks/use-pending-intent"
 import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 
 type Props = {
@@ -30,6 +32,7 @@ type Props = {
 }
 
 export function PendingOrganizationInvitationCard({ invitation }: Props) {
+  const pendingIntent = usePendingIntent("invitation_id", invitation.id)
   const organizationLabel = invitation.organizationName ?? invitation.organizationId
   const expiresText = formatDistanceToNow(invitation.expiresAt, {
     addSuffix: true,
@@ -64,17 +67,27 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
         <Form method="post" className="flex-1">
           <input type="hidden" name="intent" value="accept_organization_invitation" />
           <input type="hidden" name="invitation_id" value={invitation.id} />
-          <Button type="submit" size="sm" className="w-full">
-            <Check className="mr-1 h-3 w-3" />
-            Accepteren
+          <Button type="submit" size="sm" className="w-full" disabled={pendingIntent !== null}>
+            {pendingIntent === "accept_organization_invitation" ? (
+              <Spinner className="mr-1 h-3 w-3" />
+            ) : (
+              <Check className="mr-1 h-3 w-3" />
+            )}
+            <span>Accepteren</span>
           </Button>
         </Form>
         <Dialog>
           <DialogTrigger
             render={
-              <Button type="button" size="sm" variant="outline" className="flex-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                disabled={pendingIntent !== null}
+              >
                 <X className="mr-1 h-3 w-3" />
-                Weigeren
+                <span>Weigeren</span>
               </Button>
             }
           />
@@ -96,8 +109,10 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                     name="intent"
                     value="decline_organization_invitation"
                     size="sm"
+                    disabled={pendingIntent !== null}
                   >
-                    Ja, weigeren
+                    {pendingIntent === "decline_organization_invitation" && <Spinner />}
+                    <span>Ja, weigeren</span>
                   </Button>
                   <DialogClose
                     render={

@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import { Spinner } from "~/components/ui/spinner"
+import { usePendingIntent } from "~/hooks/use-pending-intent"
 
 type PendingInvitation = {
   invitation_id: string
@@ -39,6 +41,7 @@ export function PendingInvitationCard({
   principalType = "user",
   canAccept = true,
 }: Props) {
+  const pendingIntent = usePendingIntent("invitation_id", invitation.invitation_id)
   const farmLabel = invitation.farm_name ?? invitation.resource_id
   const expiresText = formatDistanceToNow(new Date(invitation.expires), {
     addSuffix: true,
@@ -83,17 +86,31 @@ export function PendingInvitationCard({
             <Form method="post" className="flex-1">
               <input type="hidden" name="intent" value="accept_farm_invitation" />
               <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
-              <Button type="submit" size="sm" className="w-full">
-                <Check className="mr-1 h-3 w-3" />
-                Accepteren
+              <Button type="submit" size="sm" className="w-full" disabled={pendingIntent !== null}>
+                {pendingIntent === "accept_farm_invitation" ? (
+                  <Spinner className="mr-1 h-3 w-3" />
+                ) : (
+                  <Check className="mr-1 h-3 w-3" />
+                )}
+                <span>Accepteren</span>
               </Button>
             </Form>
             <Form method="post" className="flex-1">
               <input type="hidden" name="intent" value="decline_farm_invitation" />
               <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
-              <Button type="submit" size="sm" variant="outline" className="w-full">
-                <X className="mr-1 h-3 w-3" />
-                Weigeren
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                className="w-full"
+                disabled={pendingIntent !== null}
+              >
+                {pendingIntent === "decline_farm_invitation" ? (
+                  <Spinner className="mr-1 h-3 w-3" />
+                ) : (
+                  <X className="mr-1 h-3 w-3" />
+                )}
+                <span>Weigeren</span>
               </Button>
             </Form>
           </>

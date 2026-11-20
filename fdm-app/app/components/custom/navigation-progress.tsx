@@ -10,8 +10,6 @@ import { normalizePage } from "~/lib/url-utils"
 const BAR_DELAY_MS = 300
 /** Delay before a page navigation also blurs the page with the "Even geduld…" card. */
 const OVERLAY_DELAY_MS = 2000
-/** Delay before a form submission blurs the page, which also prevents a second submit. */
-const SUBMIT_OVERLAY_DELAY_MS = 500
 
 /** The navigation that is being measured, from the moment the router left the idle state. */
 interface TrackedNavigation {
@@ -19,21 +17,25 @@ interface TrackedNavigation {
   fromPage: string
   page: string
   overlayShown: boolean
+  submission: boolean
 }
 
 /**
  * Shows progress while the router navigates or submits a form.
  *
  * Fast navigations show nothing. After {@link BAR_DELAY_MS} a slim bar appears at the top of the
- * page, so the current page stays readable. Only when a navigation takes longer than
- * {@link OVERLAY_DELAY_MS}, or a form submission longer than {@link SUBMIT_OVERLAY_DELAY_MS}, the
- * page is blurred and the "Even geduld…" card is shown.
+ * page, so the current page stays readable. Only when a page navigation takes longer than
+ * {@link OVERLAY_DELAY_MS}, the page is blurred and the "Even geduld…" card is shown.
+ *
+ * A form submission, including the redirect after it, never shows the overlay: the form shows
+ * its own submitting state (a spinner on its button), so the user sees what is being saved.
  *
  * Sends two Sentry metrics with the normalized destination (`page`) and source (`from_page`)
  * pages as attributes:
  * - `navigation_progress.shown`: counted when the blurred overlay appears.
  * - `navigation_progress.duration_ms`: the duration of every navigation that showed the bar, with
- *   `overlay` telling whether the overlay was shown as well.
+ *   `overlay` telling whether the overlay was shown as well and `submission` whether it was a form
+ *   submission.
  *
  * Routes can opt out by exporting `export const handle = { hideNavigationProgress: true }`.
  */
@@ -58,7 +60,7 @@ export function NavigationProgress() {
   const [barShownFor, setBarShownFor] = useState<string | null>(null)
   const [overlayShownFor, setOverlayShownFor] = useState<string | null>(null)
   const barVisible = active && barShownFor === navigationKey
-  const overlayVisible = active && overlayShownFor === navigationKey
+  const overlayVisible = active && !isSubmission && overlayShownFor === navigationKey
   const trackedRef = useRef<TrackedNavigation | null>(null)
 
   // Start the timers. The delays count from the moment the router left the idle state, so a
@@ -71,16 +73,20 @@ export function NavigationProgress() {
         fromPage: normalizePage(pathname),
         page: normalizePage(destination),
         overlayShown: false,
+        submission: false,
       }
     }
     const tracked = trackedRef.current
+    if (isSubmission) tracked.submission = true
     const elapsed = Date.now() - tracked.startedAt
-    const overlayDelay = isSubmission ? SUBMIT_OVERLAY_DELAY_MS : OVERLAY_DELAY_MS
 
     const barTimer = setTimeout(
       () => setBarShownFor(navigationKey),
       Math.max(0, BAR_DELAY_MS - elapsed),
     )
+    if (isSubmission) {
+      return () => clearTimeout(barTimer)
+    }
     const overlayTimer = setTimeout(
       () => {
         setOverlayShownFor(navigationKey)
@@ -92,7 +98,7 @@ export function NavigationProgress() {
           })
         }
       },
-      Math.max(0, overlayDelay - elapsed),
+      Math.max(0, OVERLAY_DELAY_MS - elapsed),
     )
     return () => {
       clearTimeout(barTimer)
@@ -114,6 +120,7 @@ export function NavigationProgress() {
         page: tracked.page,
         from_page: tracked.fromPage,
         overlay: tracked.overlayShown,
+        submission: tracked.submission,
       },
     })
   }, [active])
