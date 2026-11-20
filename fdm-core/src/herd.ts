@@ -7,7 +7,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
-import { lockFarm } from "./livestock-checks"
+import { lockFarmOfHerd } from "./livestock-checks"
 
 /**
  * Adds a new herd asset to a farm and records its initial starting event.
@@ -269,27 +269,23 @@ export async function updateHerd(
     const updated = new Date()
 
     await fdm.transaction(async (tx) => {
-      const herdStart = await tx
-        .select({ b_id_farm: schema.herdStarting.b_id_farm })
-        .from(schema.herdStarting)
-        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
-        .limit(1)
-
-      if (herdStart.length === 0) {
+      // Serialize with every other livestock change on this farm, so no animal joins the herd
+      // while its category or end changes
+      const b_id_farm = await lockFarmOfHerd(tx, l_id_herd)
+      if (!b_id_farm) {
         throw new Error("Herd does not exist")
       }
 
       if (herdProperties.l_id_category) {
-        // Same lock as adding animals, so no animal joins while the category changes
-        await lockFarm(tx, herdStart[0].b_id_farm)
-        await getAnimalCategory(tx, herdProperties.l_id_category, herdStart[0].b_id_farm)
-
         const current = await tx
           .select({ l_id_category: schema.herds.l_id_category })
           .from(schema.herds)
           .where(eq(schema.herds.l_id_herd, l_id_herd))
           .limit(1)
+        // Only a real change is checked, so a herd keeps its category (and can be renamed) also
+        // when the farm has turned that category's catalogue off
         if (current[0]?.l_id_category !== herdProperties.l_id_category) {
+          await getAnimalCategory(tx, herdProperties.l_id_category, b_id_farm)
           // The category of a herd is part of the history of its animals (census, LSU), so it is
           // fixed once the herd has had animals: move them to a herd of the new category instead
           const everAssigned = await tx
@@ -300,6 +296,29 @@ export async function updateHerd(
           if (everAssigned.length > 0) {
             throw new Error("Cannot change the category of a herd that has or had animals")
           }
+        }
+      }
+
+      // A herd can only end when no animal is in it on or after its end date; move those animals
+      // to another herd, or let the herd leave the farm with leaveHerd
+      if (l_end) {
+        const stillAssigned = await tx
+          .select({ l_id_animal: schema.animalAssigning.l_id_animal })
+          .from(schema.animalAssigning)
+          .where(
+            and(
+              eq(schema.animalAssigning.l_id_herd, l_id_herd),
+              or(
+                isNull(schema.animalAssigning.l_assigning_end),
+                gt(schema.animalAssigning.l_assigning_end, l_end),
+              ),
+            ),
+          )
+          .limit(1)
+        if (stillAssigned.length > 0) {
+          throw new Error(
+            "Cannot end a herd that still has animals on its end date; move them or use leaveHerd",
+          )
         }
       }
 

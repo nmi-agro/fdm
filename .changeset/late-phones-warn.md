@@ -10,7 +10,7 @@ A new herd has no start date unless one is given, and then counts as running fro
 
 An animal with a departure in the future stays in its herd until that date: `getAnimal`, `getAnimalsForHerd`, the census and the bulk moves (`reassignHerdAnimals`, `leaveHerd`) treat it as present until then, and a move keeps the departure. Moving or clearing a departure with `updateAnimal` moves or clears the end of the herd assignment, and an animal that becomes present again must have unique numbers.
 
-Milk, feed, excretion and housing records can only link a herd or animal to a milk tank, feed batch, manure pit or barn of the same farm. Moves, reductions and housing changes of the same animal or herd run one after another.
+Milk, feed, excretion and housing records can only link a herd or animal to a milk tank, feed batch, manure pit or barn of the same farm. All changes to the herds, animals, assignments, departures and housing of one farm run one after another. A departure cannot come before a move to another herd that is already recorded, and correcting a departure only moves the end of the animal's last assignment. A herd can only end (`updateHerd` with `l_end`) when no animal is in it on its end date; `leaveHerd` ends a herd together with its animals. A reduction only picks animals that are already in the herd on its date.
 
 `getMilkProductionForHerd` and `getMilkingSummaryForAnimal` count milk once: when animal-level milking records exist in the timeframe, only those are summed; otherwise the herd-level records are used. Feed is summed: `getFeedingSummaryForAnimal` adds the herd-level and animal-level feedings together.
 
