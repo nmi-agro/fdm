@@ -104,6 +104,65 @@ describe("Grazing Domain", () => {
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
   })
 
+  it("should set the intention when a correction moves the first grazing into a year", async () => {
+    const oneDay = (date: string) => ({
+      l_grazing_start: new Date(`${date}T00:00:00.000Z`),
+      l_grazing_end: new Date(`${date}T12:00:00.000Z`),
+    })
+    await addGrazing(fdm, principal_id, l_id_herd, oneDay("2025-05-01").l_grazing_start, {
+      l_grazing_end: oneDay("2025-05-01").l_grazing_end,
+    })
+    const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2026, false)
+
+    // A correction within the same year leaves the intention as the farmer set it
+    await updateGrazing(fdm, principal_id, grazing.l_id_grazing, oneDay("2025-05-02"))
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
+
+    // Moving it into 2026, which has no grazing yet, turns 2026 on
+    await updateGrazing(fdm, principal_id, grazing.l_id_grazing, oneDay("2026-05-02"))
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2026)).toBe(true)
+
+    // Moving another grazing into 2026 is not the first one there
+    await addGrazing(fdm, principal_id, l_id_herd, oneDay("2025-06-01").l_grazing_start, {
+      l_grazing_end: oneDay("2025-06-01").l_grazing_end,
+    })
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2026, false)
+    const second = (await getGrazingForHerd(fdm, principal_id, l_id_herd)).find(
+      (g) => g.l_id_grazing !== grazing.l_id_grazing,
+    )
+    await updateGrazing(fdm, principal_id, second!.l_id_grazing, oneDay("2026-06-01"))
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2026)).toBe(false)
+  })
+
+  it("should reject grazing hours outside 0 to 24", async () => {
+    const start = new Date("2025-05-15T00:00:00.000Z")
+    for (const hours of [0, -1, 25, Number.NaN]) {
+      await expect(
+        addGrazing(fdm, principal_id, l_id_herd, start, { l_grazing_hours: hours }),
+      ).rejects.toMatchObject({
+        cause: { message: expect.stringContaining("Invalid grazing hours") },
+      })
+    }
+    await expect(
+      addGrazings(fdm, principal_id, [{ l_id_herd, l_grazing_start: start, l_grazing_hours: 30 }]),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("Invalid grazing hours") },
+    })
+
+    await addGrazing(fdm, principal_id, l_id_herd, start, { l_grazing_hours: 24 })
+    const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    await expect(
+      updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_hours: 24.5 }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("Invalid grazing hours") },
+    })
+    // Clearing the hours is allowed
+    await updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_hours: null })
+    expect((await getGrazing(fdm, principal_id, grazing.l_id_grazing)).l_grazing_hours).toBeNull()
+  })
+
   it("should record grazing for a field on the same farm and store the b_id link", async () => {
     const b_id = await addField(
       fdm,
@@ -735,6 +794,54 @@ describe("Grazing zones", () => {
     expect(zones[0].l_grazing_geometry_zone.type).toBe("MultiPolygon")
     expect(zones[0].l_grazing_area_grazed).toBeCloseTo(fieldArea / 2, 0)
     expect(zones[1].usage_count).toBe(1)
+  })
+
+  it("lists the zones used in a period, without the excluded record", async () => {
+    await addGrazings(fdm, principal_id, [
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(3),
+        l_grazing_end: day(4),
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      },
+      {
+        l_id_herd,
+        b_id,
+        l_grazing_start: day(20),
+        l_grazing_end: day(21),
+        l_grazing_geometry_zone: strip(5.0, 5.005),
+      },
+    ])
+    const [later, earlier] = await getGrazingForField(fdm, principal_id, b_id)
+    expect(earlier.l_grazing_start).toEqual(day(3))
+
+    // Without a period the zone's last use is the later grazing
+    const [all] = await getGrazingZonesForField(fdm, principal_id, b_id)
+    expect(all.last_used).toEqual(day(20))
+
+    // In a period around the earlier grazing, that use counts
+    const inPeriod = await getGrazingZonesForField(fdm, principal_id, b_id, 20, {
+      from: day(1),
+      to: day(10),
+    })
+    expect(inPeriod).toHaveLength(1)
+    expect(inPeriod[0].last_used).toEqual(day(3))
+    expect(inPeriod[0].usage_count).toBe(1)
+
+    // Excluding one record keeps the other use of the same zone
+    const withoutLater = await getGrazingZonesForField(fdm, principal_id, b_id, 20, {
+      exclude_l_id_grazing: later.l_id_grazing,
+    })
+    expect(withoutLater).toHaveLength(1)
+    expect(withoutLater[0].last_used).toEqual(day(3))
+    expect(
+      await getGrazingZonesForField(fdm, principal_id, b_id, 20, {
+        from: day(1),
+        to: day(10),
+        exclude_l_id_grazing: earlier.l_id_grazing,
+      }),
+    ).toEqual([])
   })
 
   it("adds up successive strips in the grazed area of a field", async () => {
