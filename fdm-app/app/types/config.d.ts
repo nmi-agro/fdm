@@ -105,6 +105,8 @@ export interface ClientConfig {
   /** Base URL of the fdm-mcp service for AI assistants. Used in the manual. */
   mcpUrl?: string
   datasets_url: string
+  /** Base URL of the fdm-docs site (without trailing slash), used for links to the documentation. */
+  docsUrl: string
   analytics: {
     sentry?: {
       dsn: string

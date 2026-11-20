@@ -22,7 +22,16 @@ export function HeaderBalance({
   const location = useLocation()
   const currentPath = String(location.pathname)
   const calendar = useCalendarStore((state) => state.calendar)
-  const balanceKind = currentPath.includes("/balance/nitrogen") ? "nitrogen" : "organic-matter"
+  const balanceKind = currentPath.includes("/balance/nitrogen")
+    ? "nitrogen"
+    : currentPath.includes("/balance/phosphate")
+      ? "phosphate"
+      : "organic-matter"
+  const balanceLabel = {
+    nitrogen: "Stikstof",
+    phosphate: "Fosfaat",
+    "organic-matter": "Organische stof",
+  }[balanceKind]
 
   return (
     <>
@@ -34,9 +43,7 @@ export function HeaderBalance({
       <BreadcrumbItem>
         <DropdownMenu>
           <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
-            <span className="truncate">
-              {currentPath.includes("/balance/nitrogen") ? "Stikstof" : "Organische stof"}
-            </span>
+            <span className="truncate">{balanceLabel}</span>
             <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -53,6 +60,12 @@ export function HeaderBalance({
               <NavLink to={`/farm/${b_id_farm}/${calendar}/balance/organic-matter`}>
                 Organische stof
               </NavLink>
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={currentPath.includes("/balance/phosphate")}
+              key={"phosphate"}
+            >
+              <NavLink to={`/farm/${b_id_farm}/${calendar}/balance/phosphate`}>Fosfaat</NavLink>
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>

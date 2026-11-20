@@ -2,14 +2,19 @@ import {
   calculateDose,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
+  calculatePhosphateBalance,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
+  collectInputForPhosphateBalance,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
   type GebruiksnormResult,
   getNitrogenBalanceField,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
+  getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
+  getSoilParameterEstimates,
   GROENE_BRAAK,
   type NitrogenBalanceFieldResultNumeric,
   type NitrogenBalanceNumeric,
@@ -17,12 +22,17 @@ import {
   type NutrientAdvice,
   type OrganicMatterBalanceFieldResultNumeric,
   type OrganicMatterBalanceNumeric,
+  type PhosphateBalance,
+  type PhosphateBalanceFieldResult,
+  type PhosphateBalanceInput,
+  type PhosphateFieldInput,
 } from "@nmi-agro/fdm-calculator"
 import {
   type FdmType,
   type Field,
   type fdmSchema,
   getCultivations,
+  getCultivationsFromCatalogue,
   getCurrentSoilData,
   getFertilizerApplications,
   getFertilizers,
@@ -304,6 +314,169 @@ export async function getOrganicMatterBalanceForFarm({
     ...input,
     timeFrame: getRequiredTimeFrame(input.timeFrame),
   })
+}
+
+/** Number of earlier years of crop history added for the long-term phosphate balance. */
+const PHOSPHATE_CROP_HISTORY_YEARS = 4
+
+/**
+ * Adds the crop history of the last years (BRP, from the NMI soil estimates that the field dashboard
+ * also uses) to the fields of a phosphate balance input, so the long-term average also covers years
+ * without registered cultivations. The estimates are cached per location. Without an NMI API key, or
+ * when a request fails, the input is returned unchanged for that field.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The principal (for the cultivation catalogue).
+ * @param b_id_farm - The farm (for the cultivation catalogue).
+ * @param input - The phosphate balance input.
+ * @returns The input with `cultivation_history` per field and the catalogue details it needs.
+ */
+export async function addPhosphateCropHistory<T extends PhosphateBalanceInput>(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"],
+  input: T,
+): Promise<T> {
+  const nmiApiKey = getNmiApiKey()
+  if (!nmiApiKey) return input
+  const middle = new Date((input.timeFrame.start.getTime() + input.timeFrame.end.getTime()) / 2)
+  const year = middle.getFullYear()
+
+  const fields: PhosphateBalanceInput["fields"] = []
+  const batchSize = 10
+  for (let i = 0; i < input.fields.length; i += batchSize) {
+    const batch = await Promise.all(
+      input.fields.slice(i, i + batchSize).map(async (fieldInput) => {
+        const centroid = (fieldInput.field as { b_centroid?: [number, number] | null }).b_centroid
+        if (fieldInput.field.b_bufferstrip || !centroid) return fieldInput
+        try {
+          const [a_lon, a_lat] = centroid
+          const estimates = await getSoilParameterEstimates(fdm, { a_lat, a_lon, nmiApiKey })
+          const cultivation_history = estimates.cultivations
+            .filter((c) => c.year < year && c.year >= year - PHOSPHATE_CROP_HISTORY_YEARS)
+            .map((c) => ({ year: c.year, b_lu_catalogue: `nl_${c.b_lu_brp}` }))
+          return cultivation_history.length > 0
+            ? { ...fieldInput, cultivation_history }
+            : fieldInput
+        } catch {
+          return fieldInput
+        }
+      }),
+    )
+    fields.push(...batch)
+  }
+
+  // Make sure the catalogue details of the history crops are available
+  const known = new Set(input.cultivationDetails.map((d) => d.b_lu_catalogue))
+  const needed = new Set(
+    fields.flatMap((f) => (f.cultivation_history ?? []).map((c) => c.b_lu_catalogue)),
+  )
+  let cultivationDetails = input.cultivationDetails
+  if ([...needed].some((id) => !known.has(id))) {
+    const catalogue = await getCultivationsFromCatalogue(fdm, principal_id, b_id_farm)
+    cultivationDetails = [
+      ...cultivationDetails,
+      ...catalogue.filter((c) => needed.has(c.b_lu_catalogue) && !known.has(c.b_lu_catalogue)),
+    ]
+  }
+  return { ...input, fields, cultivationDetails }
+}
+
+// Get phosphate balance for a field (prototype, see FDM-305)
+export async function getPhosphateBalanceForField({
+  fdm,
+  principal_id,
+  b_id_farm,
+  b_id,
+  timeframe,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
+  b_id: Field["b_id"]
+  timeframe: Timeframe
+}): Promise<{
+  fieldResult: PhosphateBalanceFieldResult
+  fieldInput: PhosphateFieldInput
+}> {
+  const collected = await collectInputForPhosphateBalance(
+    fdm,
+    principal_id,
+    b_id_farm,
+    timeframe,
+    b_id,
+  )
+  if (collected.fields.length === 0) {
+    throw new Error(`Field ${b_id} not found for farm ${b_id_farm}`)
+  }
+  const base = {
+    b_id: b_id,
+    b_area: collected.fields[0].field.b_area ?? 0,
+    b_bufferstrip: collected.fields[0].field.b_bufferstrip ?? false,
+  }
+  const exclusion = getPhosphateFieldExclusion(collected.fields[0], collected.timeFrame)
+  if (exclusion) return { fieldResult: { ...base, exclusion }, fieldInput: collected.fields[0] }
+
+  // The crop history needs the cultivation catalogue; when that lookup fails, the field page shows
+  // its calculation-error state instead of failing the whole page
+  let withHistory: typeof collected
+  try {
+    withHistory = await addPhosphateCropHistory(fdm, principal_id, b_id_farm, collected)
+  } catch (error) {
+    return {
+      fieldResult: {
+        ...base,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      fieldInput: collected.fields[0],
+    }
+  }
+
+  const { fields, ...rest } = withHistory
+  const fieldInput = fields[0]
+  const { history: historyYears, ...details } = rest
+  const history = (historyYears ?? []).flatMap((year) =>
+    year.fields
+      .filter((f) => f.field.b_id === b_id)
+      .map((past) => ({ timeFrame: year.timeFrame, fieldInput: past })),
+  )
+  try {
+    const balance = await getPhosphateBalanceField(fdm, {
+      fieldInput,
+      ...details,
+      ...(history.length > 0 ? { history } : {}),
+    })
+    return { fieldResult: { ...base, balance }, fieldInput }
+  } catch (error) {
+    return {
+      fieldResult: {
+        ...base,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      fieldInput,
+    }
+  }
+}
+
+// Get phosphate balance for a farm (prototype, see FDM-305)
+export async function getPhosphateBalanceForFarm({
+  fdm,
+  principal_id,
+  b_id_farm,
+  timeframe,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
+  timeframe: Timeframe
+}): Promise<PhosphateBalance> {
+  const input = await addPhosphateCropHistory(
+    fdm,
+    principal_id,
+    b_id_farm,
+    await collectInputForPhosphateBalance(fdm, principal_id, b_id_farm, timeframe),
+  )
+  return calculatePhosphateBalance(fdm, input)
 }
 
 export async function getNutrientAdviceForField({
