@@ -48,11 +48,11 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
   const assetHost = apiHost.replace(/^([a-z]{2})\./, "$1-assets.")
   const hostname = url.pathname.startsWith("/ingest/static/") ? assetHost : apiHost
 
-  const targetUrl = new URL(url)
-  targetUrl.protocol = "https"
-  targetUrl.hostname = hostname
-  targetUrl.port = "443"
-  targetUrl.pathname = targetUrl.pathname.replace(/^\/ingest/, "")
+  // Only the path and the query come from the request; the origin is always PostHog's. The path
+  // starts with "/" after the prefix is removed, so it can never change the host.
+  const path = url.pathname.replace(/^\/ingest(?=\/|$)/, "") || "/"
+  const targetUrl = new URL(`https://${hostname}${path.startsWith("/") ? path : `/${path}`}`)
+  targetUrl.search = url.search
 
   const headers = new Headers(requestHeaders)
   headers.set("host", hostname)
@@ -130,7 +130,8 @@ export function createPosthogProxyMiddleware(posthogHost) {
       if (value === undefined) continue
       for (const item of Array.isArray(value) ? value : [value]) headers.append(name, item)
     }
-    const url = new URL(req.originalUrl, `${req.protocol}://${req.get("host") ?? "localhost"}`)
+    // Only the path and query of the URL are used, so the request's Host header is not needed
+    const url = new URL(req.originalUrl, "http://localhost")
 
     const response = await proxyToPosthog(
       { method: req.method, url, headers, body: req },

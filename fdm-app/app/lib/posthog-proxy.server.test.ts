@@ -62,6 +62,22 @@ describe("proxyToPosthog", () => {
     expect(calls[0].url).toBe("https://eu-assets.i.posthog.com/static/array.js")
   })
 
+  it("always sends the request to the PostHog host, whatever the path or Host header", async () => {
+    const calls = stubPosthog(new Response("ok"))
+    await proxyToPosthog(
+      {
+        method: "GET",
+        url: new URL("http://attacker.example//evil.example/path?x=1"),
+        headers: new Headers({ host: "attacker.example" }),
+        body: null,
+      },
+      POSTHOG_HOST,
+    )
+    const target = new URL(calls[0].url)
+    expect(target.origin).toBe("https://eu.i.posthog.com")
+    expect(new Headers(calls[0].init.headers).get("host")).toBe("eu.i.posthog.com")
+  })
+
   it("refuses a body that is too large", async () => {
     const calls = stubPosthog(new Response("ok"))
     const response = await proxyToPosthog(
