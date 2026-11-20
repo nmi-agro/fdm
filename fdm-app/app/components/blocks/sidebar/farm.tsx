@@ -169,6 +169,8 @@ export function SidebarFarm({
     if (location.pathname.includes("/bcs")) return "bcs"
     if (location.pathname.includes("/delete")) return "delete"
     if (location.pathname.includes("/settings")) return "settings"
+    // The grazing page of a field, not the Melkvee grazing pages (/livestock/grazing)
+    if (/\/field\/[^/]+\/grazing/.test(location.pathname)) return "grazing"
     return ""
   }
 

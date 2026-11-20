@@ -2,7 +2,7 @@ import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { AlertTriangle, Info, Plus } from "lucide-react"
-import { memo, useImperativeHandle, useMemo, useRef, useState } from "react"
+import { memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { NavLink } from "react-router"
 import type { FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
@@ -21,6 +21,13 @@ import {
   ContextMenuLabel,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useToday } from "~/hooks/use-today"
@@ -31,6 +38,7 @@ import {
   GRAZING_USE_COLORS,
   MIXED_USE_BACKGROUND,
   PLANNED_GRAZING_BACKGROUND,
+  PLANNED_MIXED_USE_BACKGROUND,
   type RestAlert,
 } from "~/lib/grazing-status"
 import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
@@ -54,6 +62,33 @@ const formatLongDay = (day: string) =>
 interface GridPosition {
   row: number
   col: number
+}
+
+/** Something recorded on a day that can be opened: a grazing, a mowing or a fertilizer application. */
+type DayEntry =
+  | {
+      kind: "grazing"
+      key: string
+      grazing: NonNullable<GrazingCalendarCell["grazingEntries"]>[number]
+    }
+  | {
+      kind: "harvest"
+      key: string
+      harvest: NonNullable<GrazingCalendarCell["harvestEntries"]>[number]
+    }
+  | {
+      kind: "fertilizer"
+      key: string
+      fertilizer: NonNullable<GrazingCalendarCell["fertilizerEntries"]>[number]
+    }
+
+/** The label of a day entry in the chooser and the context menu. */
+function dayEntryLabel(entry: DayEntry): string {
+  if (entry.kind === "grazing") {
+    return `${entry.grazing.isPlanned ? "Geplande beweiding" : "Beweiding"} · ${entry.grazing.l_herd_name}`
+  }
+  if (entry.kind === "harvest") return `Maaien · ${entry.harvest.b_lu_name}`
+  return `Bemesting · ${entry.fertilizer.p_name_nl ?? "Meststof"}`
 }
 
 export interface CalendarGridProps {
@@ -87,12 +122,47 @@ export function CalendarGrid({
 }: CalendarGridProps) {
   const [selectedKoppelId, setSelectedKoppelId] = useState(matrix.herds[0]?.l_id_herd ?? "")
 
-  // Drag-to-paint state: the row of the field and the first and current day
+  // Drag-to-paint state: the field and the first and current day. The field is kept by its ID,
+  // not its row, because the rows can be re-sorted while dragging (after a save elsewhere)
   const [isDragging, setIsDragging] = useState(false)
-  const [dragRow, setDragRow] = useState<number | null>(null)
+  const [dragFieldId, setDragFieldId] = useState<string | null>(null)
   const [dragStart, setDragStart] = useState<number | null>(null)
   const [dragEnd, setDragEnd] = useState<number | null>(null)
-  const dragField = dragRow !== null ? matrix.fields[dragRow] : undefined
+  const dragField =
+    dragFieldId !== null ? matrix.fields.find((f) => f.b_id === dragFieldId) : undefined
+  const dragRow = dragField ? matrix.fields.indexOf(dragField) : null
+
+  const resetDrag = () => {
+    setIsDragging(false)
+    setDragFieldId(null)
+    setDragStart(null)
+    setDragEnd(null)
+  }
+
+  // A drag released outside the calendar, or a window that loses focus, ends the drag without
+  // adding anything; a release inside the calendar is handled there first
+  useEffect(() => {
+    if (!isDragging) return
+    const cancel = () => {
+      setIsDragging(false)
+      setDragFieldId(null)
+      setDragStart(null)
+      setDragEnd(null)
+    }
+    window.addEventListener("mouseup", cancel)
+    window.addEventListener("blur", cancel)
+    return () => {
+      window.removeEventListener("mouseup", cancel)
+      window.removeEventListener("blur", cancel)
+    }
+  }, [isDragging])
+
+  // A day with more than one thing to open: the user chooses which one
+  const [chooser, setChooser] = useState<{
+    field: GrazingCalendarFieldRow
+    day: string
+    entries: DayEntry[]
+  } | null>(null)
 
   // The long date of each day, formatted once instead of in every cell on every render
   const dayLabels = useMemo(
@@ -104,6 +174,7 @@ export function CalendarGrid({
   const [menuTarget, setMenuTarget] = useState<{
     field: GrazingCalendarFieldRow
     day: string
+    entries: DayEntry[]
   } | null>(null)
 
   // "Today" is only known on the client; empty until then
@@ -145,9 +216,32 @@ export function CalendarGrid({
     setPopoverOpen(true)
   }
 
-  const handleCellClick = (field: GrazingCalendarFieldRow, cell: GrazingCalendarCell) => {
-    const grazing = cell.grazingEntries?.[0]
-    if (grazing) {
+  /** What can be opened on a day: its grazings, and its mowings and fertilizings when editable. */
+  const dayEntries = (cell: GrazingCalendarCell): DayEntry[] => {
+    const canOpenSheets = Boolean(onSheetRequest) && canWrite
+    return [
+      ...(cell.grazingEntries ?? []).map((grazing): DayEntry => ({
+        kind: "grazing",
+        key: grazing.l_id_grazing,
+        grazing,
+      })),
+      ...(canOpenSheets ? (cell.harvestEntries ?? []) : []).map((harvest): DayEntry => ({
+        kind: "harvest",
+        key: harvest.b_id_harvesting,
+        harvest,
+      })),
+      ...(canOpenSheets ? (cell.fertilizerEntries ?? []) : []).map((fertilizer): DayEntry => ({
+        kind: "fertilizer",
+        key: fertilizer.p_app_id,
+        fertilizer,
+      })),
+    ]
+  }
+
+  /** Opens a grazing, mowing or fertilizer application to change or remove it. */
+  const openEntry = (field: GrazingCalendarFieldRow, entry: DayEntry) => {
+    if (entry.kind === "grazing") {
+      const { grazing } = entry
       // Edit the grazing with its own dates, not those of the day that was clicked
       setPopoverSession((s) => s + 1)
       setPopoverField({ b_id: field.b_id, b_name: field.b_name, b_area: field.b_area })
@@ -166,39 +260,50 @@ export function CalendarGrid({
       setPopoverOpen(true)
       return
     }
-
-    // A day with mowing or fertilizing opens that item to change or remove it
-    const harvest = cell.harvestEntries?.[0]
-    const fertilizer = cell.fertilizerEntries?.[0]
-    if (onSheetRequest && canWrite && harvest) {
-      onSheetRequest({
+    if (entry.kind === "harvest") {
+      onSheetRequest?.({
         type: "harvest-edit",
-        context: { b_id: field.b_id, b_lu: harvest.b_lu, b_id_harvesting: harvest.b_id_harvesting },
+        context: {
+          b_id: field.b_id,
+          b_lu: entry.harvest.b_lu,
+          b_id_harvesting: entry.harvest.b_id_harvesting,
+        },
       })
       return
     }
-    if (onSheetRequest && canWrite && fertilizer) {
-      onSheetRequest({
-        type: "fertilizer-edit",
-        context: { b_id: field.b_id, p_app_id: fertilizer.p_app_id },
-      })
-      return
-    }
+    onSheetRequest?.({
+      type: "fertilizer-edit",
+      context: { b_id: field.b_id, p_app_id: entry.fertilizer.p_app_id },
+    })
+  }
 
+  const handleCellClick = (field: GrazingCalendarFieldRow, cell: GrazingCalendarCell) => {
+    const entries = dayEntries(cell)
+    if (entries.length === 1) {
+      openEntry(field, entries[0])
+      return
+    }
+    // Several things on one day, such as two herds or a grazing and a mowing: let the user choose
+    if (entries.length > 1) {
+      setChooser({ field, day: cell.dateStart, entries })
+      return
+    }
     if (canWrite) openNewGrazing(field, cell.dateStart, cell.dateEnd)
   }
 
   const handleMouseDown = (event: React.MouseEvent, row: number, col: number) => {
     // Only the left button paints; a right click opens the context menu
-    if (!canWrite || event.button !== 0) return
+    const field = matrix.fields[row]
+    if (!canWrite || event.button !== 0 || !field) return
     setIsDragging(true)
-    setDragRow(row)
+    setDragFieldId(field.b_id)
     setDragStart(col)
     setDragEnd(col)
   }
 
   const handleMouseUp = () => {
-    // A drag over more than one day adds a grazing for that period; a single day is a click
+    // A drag over more than one day adds a grazing for that period; a single day is a click. A
+    // drag whose field is no longer in the calendar adds nothing.
     if (
       isDragging &&
       dragField &&
@@ -210,10 +315,7 @@ export function CalendarGrid({
       const endCell = dragField.cells[Math.max(dragStart, dragEnd)]
       openNewGrazing(dragField, startCell.dateStart, endCell.dateEnd)
     }
-    setIsDragging(false)
-    setDragRow(null)
-    setDragStart(null)
-    setDragEnd(null)
+    resetDrag()
   }
 
   /**
@@ -239,7 +341,9 @@ export function CalendarGrid({
         ? canWrite
           ? "Klik om een beweiding toe te voegen"
           : null
-        : "Klik om te openen"
+        : dayEntries(cell).length > 1
+          ? "Klik om te kiezen wat je opent"
+          : "Klik om te openen"
     tooltipRef.current?.show(
       target,
       <span className="flex flex-col gap-0.5">
@@ -467,7 +571,11 @@ export function CalendarGrid({
               onMouseOver={(event) => {
                 const day = dayFromEvent(event)
                 if (!day) return
-                if (isDragging) setDragEnd(day.col)
+                if (isDragging) {
+                  // The button was released where the calendar did not see it
+                  if ((event.buttons & 1) === 0) resetDrag()
+                  else setDragEnd(day.col)
+                }
                 showDayTooltip(day.target)
               }}
               onClick={(event) => {
@@ -488,7 +596,9 @@ export function CalendarGrid({
                 if (!day) return
                 const field = matrix.fields[day.row]
                 const cell = field?.cells[day.col]
-                if (field && cell) setMenuTarget({ field, day: cell.dateStart })
+                if (field && cell) {
+                  setMenuTarget({ field, day: cell.dateStart, entries: dayEntries(cell) })
+                }
               }}
               onMouseLeave={() => tooltipRef.current?.hide()}
               onBlur={(event) => {
@@ -558,6 +668,15 @@ export function CalendarGrid({
                 <ContextMenuLabel>
                   {menuTarget.field.b_name} · {formatLongDay(menuTarget.day)}
                 </ContextMenuLabel>
+                {/* What is recorded on the day, to open it; also when there is more than one */}
+                {menuTarget.entries.map((entry) => (
+                  <ContextMenuItem
+                    key={entry.key}
+                    onClick={() => openEntry(menuTarget.field, entry)}
+                  >
+                    Openen: {dayEntryLabel(entry)}
+                  </ContextMenuItem>
+                ))}
                 <ContextMenuItem
                   disabled={!canWrite}
                   onClick={() => openNewGrazing(menuTarget.field, menuTarget.day, menuTarget.day)}
@@ -645,6 +764,55 @@ export function CalendarGrid({
           />
         </div>
       </div>
+
+      {/* A day with more than one thing on it: choose which one to open */}
+      <Dialog
+        open={chooser !== null}
+        onOpenChange={(open) => {
+          if (!open) setChooser(null)
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Wat wil je openen?</DialogTitle>
+            <DialogDescription>
+              {chooser ? `${chooser.field.b_name} · ${formatLongDay(chooser.day)}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            {chooser?.entries.map((entry) => (
+              <Button
+                key={entry.key}
+                type="button"
+                variant="outline"
+                className="justify-start"
+                onClick={() => {
+                  const { field } = chooser
+                  setChooser(null)
+                  openEntry(field, entry)
+                }}
+              >
+                {dayEntryLabel(entry)}
+              </Button>
+            ))}
+            {canWrite && chooser && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="justify-start"
+                onClick={() => {
+                  const { field, day } = chooser
+                  setChooser(null)
+                  openNewGrazing(field, day, day)
+                }}
+              >
+                <Plus />
+                Beweiding toevoegen
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <GrazingPopover
         key={popoverSession}
@@ -896,7 +1064,11 @@ function dayCellStyle(cell: GrazingCalendarCell): React.CSSProperties | undefine
       : { backgroundColor: GRAZING_USE_COLORS.weiden }
   }
   if (cell.type === "maaien") return { backgroundColor: GRAZING_USE_COLORS.maaien }
-  if (cell.type === "mixed") return { backgroundImage: MIXED_USE_BACKGROUND }
+  if (cell.type === "mixed") {
+    return {
+      backgroundImage: cell.isPlanned ? PLANNED_MIXED_USE_BACKGROUND : MIXED_USE_BACKGROUND,
+    }
+  }
   return undefined
 }
 

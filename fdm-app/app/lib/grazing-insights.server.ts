@@ -11,6 +11,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { fdm } from "~/lib/fdm.server"
 import { getGrazedAreaByField } from "~/lib/grazing-calendar.server"
+import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
 
 export interface GrazingInsightsData {
   year: number
@@ -40,7 +41,8 @@ export async function fetchGrazingInsightsData(
     end: new Date(`${calendarYear}-12-31T23:59:59.999Z`),
   }
 
-  const today = new Date()
+  // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
+  const today = farmToday()
   const [
     allFields,
     cultivationsByField,
@@ -55,7 +57,8 @@ export async function fetchGrazingInsightsData(
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
     getHerdsForFarm(fdm, principal_id, b_id_farm),
-    getCensusForFarm(fdm, principal_id, b_id_farm),
+    // The herds of the selected year, so the density of a past year uses that year's animals
+    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
   ])
 
@@ -88,7 +91,10 @@ export async function fetchGrazingInsightsData(
 
   const harvests: Array<{ b_id: string; b_harvest_date: Date }> = []
   for (const field of grasslandFields) {
-    const cults = cultivationsByField.get(field.b_id) ?? []
+    // Only a grass harvest is a mowing of the grassland
+    const cults = (cultivationsByField.get(field.b_id) ?? []).filter(
+      (c) => c.b_lu_croprotation === "grass",
+    )
     for (const c of cults) {
       const fieldHarvests = harvestsByCultivation.get(c.b_lu) ?? []
       for (const h of fieldHarvests) {

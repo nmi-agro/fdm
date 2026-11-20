@@ -118,9 +118,10 @@ export function Atlas(
 
   const onViewportChange = useCallback(
     (event: ViewStateChangeEvent) => {
-      setViewState(event.viewState)
+      // An embedded map (useStoredViewState false) must not move the main maps on the next visit
+      if (useStoredViewState) setViewState(event.viewState)
     },
-    [setViewState],
+    [setViewState, useStoredViewState],
   )
 
   // `data-map-idle` tells automated tooling (such as the manual's screenshot run) that the map has

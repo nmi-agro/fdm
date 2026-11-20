@@ -40,7 +40,10 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import {
+  fetchGrazingCalendarMatrix,
+  type GrazingCalendarMatrix,
+} from "~/lib/grazing-calendar.server"
 import { handleGrazingEvent, isGrazingIntent } from "~/lib/grazing-events.server"
 import { defaultMapDay, shiftDay } from "~/lib/grazing-map"
 import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
@@ -64,6 +67,17 @@ export const meta: MetaFunction = () => {
 const DAYS_BACK = 6
 const DAYS_AHEAD = 7
 
+/** The key figures of a farm without a herd, which has no grazing calendar yet. */
+const EMPTY_SUMMARY: GrazingCalendarMatrix["summary"] = {
+  weidedagen: 0,
+  averageHours: 0,
+  weidemelkDays: 0,
+  platformArea: 0,
+  platformGvePerHa: null,
+  overgrazingAlertsCount: 0,
+  alerts: [],
+}
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
@@ -76,15 +90,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
+    const herdCardsPromise = getHerdCards(session.principal_id, b_id_farm, timeframe)
     const [farms, herdCards, categories, allFields, cultivationsByField, matrix] =
       await Promise.all([
         getFarms(fdm, session.principal_id),
-        getHerdCards(session.principal_id, b_id_farm, timeframe),
+        herdCardsPromise,
         getAnimalCategoriesForFarm(fdm, session.principal_id, b_id_farm),
         getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        // Days, fields and key figures of the grazing calendar
-        fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
+        // Days, fields and key figures of the grazing calendar; a farm without a herd only gets
+        // the first-herd form, so it skips these reads
+        herdCardsPromise.then((cards) =>
+          cards.length > 0
+            ? fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear)
+            : null,
+        ),
       ])
 
     const farmOptions = farms.map((f) => ({
@@ -120,9 +140,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       categories,
       grasslandArea: Math.round(grasslandArea * 10) / 10,
       // The grazing fields with their days, and the herds as the grazing dialog needs them
-      grazingFields: matrix.fields,
-      grazingHerds: matrix.herds,
-      summary: matrix.summary,
+      grazingFields: matrix?.fields ?? [],
+      grazingHerds: matrix?.herds ?? [],
+      summary: matrix?.summary ?? EMPTY_SUMMARY,
       farmWritePermission,
     }
   } catch (error) {

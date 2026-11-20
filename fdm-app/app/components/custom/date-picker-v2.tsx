@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useState } from "react"
+import { flushSync } from "react-dom"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
@@ -110,6 +111,17 @@ export function DatePicker({
             if (e.key === "ArrowDown") {
               e.preventDefault()
               setOpen(true)
+            }
+            // Enter can submit the form before the field loses focus: commit the typed date
+            // first, synchronously, so the form reads the date that is shown
+            if (e.key === "Enter") {
+              const date = parseDateText(inputValue, calendarYear)
+              if (date) {
+                flushSync(() => {
+                  setMonth(date)
+                  field.onChange(date.toISOString())
+                })
+              }
             }
           }}
           required={required}

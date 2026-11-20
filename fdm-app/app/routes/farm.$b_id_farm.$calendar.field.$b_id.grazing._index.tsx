@@ -39,6 +39,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { censusDateForYear, farmToday, farmTodayKey, fieldGrazingTotals } from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
 
@@ -75,6 +76,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
+    // A single year, or null when the calendar shows all years
+    const calendarYear = Number.isInteger(Number(calendar)) ? Number(calendar) : null
+    // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
+    const today = farmToday()
+    const todayStart = new Date(`${farmTodayKey()}T00:00:00.000Z`)
 
     const [farm, field, herds, grazings, cultivationsByField, harvestsByCultivation, census] =
       await Promise.all([
@@ -84,7 +90,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         getGrazingForField(fdm, session.principal_id, b_id, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        getCensusForFarm(fdm, session.principal_id, b_id_farm),
+        // The herds of the selected year, also for a past year
+        getCensusForFarm(
+          fdm,
+          session.principal_id,
+          b_id_farm,
+          calendarYear !== null ? censusDateForYear(calendarYear) : new Date(),
+        ),
       ])
     const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
@@ -100,8 +112,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const herdMap = new Map(herds.map((h) => [h.l_id_herd, h]))
 
-    // Field harvests
-    const cults = cultivationsByField.get(b_id) ?? []
+    // Mowings: only harvests of grass count as a use of the grassland
+    const cults = (cultivationsByField.get(b_id) ?? []).filter(
+      (c) => c.b_lu_croprotation === "grass",
+    )
     const fieldHarvests = cults.flatMap((c) =>
       (harvestsByCultivation.get(c.b_lu) ?? []).flatMap((h) => {
         if (!h.b_lu_harvest_date) return []
@@ -116,45 +130,52 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }),
     )
 
-    // Calculate summary statistics
-    let totalGrazingDays = 0
-    let totalGrazingHours = 0
-
-    for (const g of grazings) {
-      const start = new Date(g.l_grazing_start)
-      const end = g.l_grazing_end ? new Date(g.l_grazing_end) : start
-      const days = Math.max(1, Math.floor((end.getTime() - start.getTime()) / 86400000) + 1)
-      totalGrazingDays += days
-      totalGrazingHours += days * (g.l_grazing_hours ?? 8)
-    }
+    // Grazing days and hours so far, counted as in the grazing calendar: each day once, a grazing
+    // that still runs up to today, and planned days not yet
+    const { days: totalGrazingDays, hours: totalGrazingHours } = fieldGrazingTotals(
+      grazings,
+      calendarYear,
+      today,
+    )
 
     // Merge events to compute rest periods
     const allEvents = [
-      ...grazings.map((g) => ({
-        type: "weiden" as const,
-        id: g.l_id_grazing,
-        start: new Date(g.l_grazing_start),
-        end: new Date(g.l_grazing_end ?? g.l_grazing_start),
-        herdName: herdMap.get(g.l_id_herd)?.l_herd_name ?? "Koppel",
-        hours: g.l_grazing_hours,
-        area: g.l_grazing_area_grazed ?? field.b_area,
-        areaType: g.l_grazing_geometry_zone
-          ? ("zone" as const)
-          : g.l_grazing_area
-            ? ("partial" as const)
-            : ("full" as const),
-        zone: g.l_grazing_geometry_zone ?? null,
-        // What the grazing dialog needs to change or remove this grazing
-        grazing: {
-          l_id_grazing: g.l_id_grazing,
-          l_id_herd: g.l_id_herd,
-          l_grazing_start: format(new Date(g.l_grazing_start), "yyyy-MM-dd"),
-          l_grazing_end: g.l_grazing_end ? format(new Date(g.l_grazing_end), "yyyy-MM-dd") : null,
-          l_grazing_hours: g.l_grazing_hours,
-          l_grazing_area: g.l_grazing_area,
-          l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
-        },
-      })),
+      ...grazings
+        .map((g) => {
+          const start = new Date(g.l_grazing_start)
+          // A grazing that still runs is in use up to today
+          const end = g.l_grazing_end
+            ? new Date(g.l_grazing_end)
+            : start < todayStart
+              ? todayStart
+              : start
+          return { g, start, end }
+        })
+        .map(({ g, start, end }) => ({
+          type: "weiden" as const,
+          id: g.l_id_grazing,
+          start,
+          end,
+          herdName: herdMap.get(g.l_id_herd)?.l_herd_name ?? "Koppel",
+          hours: g.l_grazing_hours,
+          area: g.l_grazing_area_grazed ?? field.b_area,
+          areaType: g.l_grazing_geometry_zone
+            ? ("zone" as const)
+            : g.l_grazing_area
+              ? ("partial" as const)
+              : ("full" as const),
+          zone: g.l_grazing_geometry_zone ?? null,
+          // What the grazing dialog needs to change or remove this grazing
+          grazing: {
+            l_id_grazing: g.l_id_grazing,
+            l_id_herd: g.l_id_herd,
+            l_grazing_start: format(new Date(g.l_grazing_start), "yyyy-MM-dd"),
+            l_grazing_end: g.l_grazing_end ? format(new Date(g.l_grazing_end), "yyyy-MM-dd") : null,
+            l_grazing_hours: g.l_grazing_hours,
+            l_grazing_area: g.l_grazing_area,
+            l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
+          },
+        })),
       ...fieldHarvests.map((h) => ({
         type: "maaien" as const,
         id: h.b_id_harvesting,
@@ -197,7 +218,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_id,
       b_name_farm: farm.b_name_farm,
       b_name: field.b_name,
-      b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
+      // Unrounded: the grazing dialog computes the area it saves from it; the display rounds
+      b_area: field.b_area ?? 0,
       calendar,
       herds: herds.map((h) => ({
         l_id_herd: h.l_id_herd,

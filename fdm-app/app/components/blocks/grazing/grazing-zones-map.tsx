@@ -8,13 +8,13 @@
 import type { FeatureCollection } from "geojson"
 import { useMemo } from "react"
 import { Layer, type LayerProps, Source } from "react-map-gl/maplibre"
-import type { Area } from "~/lib/grazing-strip"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { COOPERATIVE_GESTURES_PROPS } from "~/components/blocks/atlas/atlas-cooperative-gestures"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getDottedFieldOutlineStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { type Area, intersectAreas } from "~/lib/grazing-strip"
 import {
   ZONE_CASING_COLOR,
   ZONE_CASING_WIDTH,
@@ -60,7 +60,16 @@ export default function GrazingZonesMap({
   height?: string
 }) {
   const fieldData = useMemo(() => toFeatureCollection([fieldGeometry]), [fieldGeometry])
-  const zoneData = useMemo(() => toFeatureCollection(zones), [zones])
+  // A zone is stored as drawn; only the part within the field was grazed and counts
+  const zoneData = useMemo(
+    () =>
+      toFeatureCollection(
+        zones
+          .map((zone) => intersectAreas(zone, fieldGeometry))
+          .filter((zone): zone is Area => zone !== null),
+      ),
+    [zones, fieldGeometry],
+  )
   const initialViewState = useMemo(
     () => ({ ...getViewState(fieldData), fitBoundsOptions: { padding: 24 } }),
     [fieldData],

@@ -17,6 +17,7 @@ import {
   getFertilizerCategoryFromRvoCode,
 } from "~/components/blocks/fertilizer/utils"
 import { fdm } from "~/lib/fdm.server"
+import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
 import {
   GRAZING_SEASON_FIRST_MONTH,
   GRAZING_SEASON_LAST_MONTH,
@@ -203,7 +204,8 @@ export async function fetchGrazingCalendarMatrix(
   const yearEnd = new Date(`${calendarYear}-12-31T23:59:59.999Z`)
   const timeframe: Timeframe = { start: yearStart, end: yearEnd }
 
-  const today = new Date()
+  // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
+  const today = farmToday()
   const todayKey = toIsoDate(today)
   // The day up to which rest is counted: today, or the last day of a past year
   const restReference = today < yearEnd ? today : yearEnd
@@ -225,7 +227,8 @@ export async function fetchGrazingCalendarMatrix(
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
     getHerdsForFarm(fdm, principal_id, b_id_farm),
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
-    getCensusForFarm(fdm, principal_id, b_id_farm),
+    // The herds of the selected year, also for a past year
+    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizers(fdm, principal_id, b_id_farm),
   ])
@@ -263,7 +266,11 @@ export async function fetchGrazingCalendarMatrix(
   >()
 
   for (const field of grasslandFields) {
-    const cults = cultivationsByField.get(field.b_id) ?? []
+    // Only a grass harvest is a mowing; a harvest of another crop on the field is not a use of
+    // the grassland
+    const cults = (cultivationsByField.get(field.b_id) ?? []).filter(
+      (c) => c.b_lu_croprotation === "grass",
+    )
     const fieldHarvests = cults.flatMap((c) =>
       (harvestsByCultivation.get(c.b_lu) ?? []).flatMap((h) => {
         if (!h.b_lu_harvest_date) return []
@@ -418,7 +425,8 @@ export async function fetchGrazingCalendarMatrix(
     return {
       b_id: field.b_id,
       b_name: field.b_name,
-      b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
+      // Unrounded: the grazing dialog computes the area it saves from it; the display rounds
+      b_area: field.b_area ?? 0,
       totalGrazingDays,
       cells,
       recentRestDays,

@@ -46,6 +46,18 @@ describe("getFieldGrazingState", () => {
         isBufferstrip: false,
       }).status,
     ).toBe("disabled")
+    // A grassland buffer strip with a grazing on the day is disabled too
+    expect(
+      getFieldGrazingState({
+        grazings: [grazing("2026-06-10", "2026-06-20")],
+        harvests: [],
+        day: "2026-06-15",
+        today: "2026-06-15",
+        calendarYear: 2026,
+        isGrassland: true,
+        isBufferstrip: true,
+      }).status,
+    ).toBe("disabled")
   })
 
   it("shows a grazing that covers the day", () => {

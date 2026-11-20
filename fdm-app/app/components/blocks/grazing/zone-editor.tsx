@@ -25,7 +25,13 @@ import {
 import { Skeleton } from "~/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { formatHa } from "~/lib/format"
-import { type Area, cutStrip, hasHoles, zoneAreaWithinField } from "~/lib/grazing-strip"
+import {
+  type Area,
+  cutStrip,
+  hasHoles,
+  STRIP_ROTATION_DAYS,
+  zoneAreaWithinField,
+} from "~/lib/grazing-strip"
 import { pushUndo } from "~/lib/undo-history"
 import type { ZoneEditorMode, ZoneMapControls, ZoneNotice } from "./zone-editor-map"
 import {
@@ -52,6 +58,10 @@ const EDIT_HINT =
 const NO_ZONE_REASON = "Teken eerst een zone"
 const HOLE_REASON = "Deze zone heeft een gat en kan niet worden aangepast; teken hem opnieuw"
 const NOTHING_TO_UNDO_REASON = "Er is nog niets om ongedaan te maken"
+const INCOMPLETE_REASON =
+  "Een deel van deze zone kan op de kaart niet worden aangepast; teken hem opnieuw"
+const OCCUPANCY_FAILED_REASON =
+  "Eerder gebruikte zones zijn niet geladen, dus de vrije ruimte is onbekend; laad ze opnieuw"
 
 const NOTICES: Record<ZoneNotice, Notice> = {
   clipped: { tone: "info", text: "Het deel buiten het perceel is afgeknipt." },
@@ -69,13 +79,6 @@ interface Notice {
 
 /** The mode to continue in with a zone: editing, unless there is no zone or it cannot be edited. */
 const modeFor = (zone: Area | null): ZoneEditorMode => (zone && !hasHoles(zone) ? "edit" : "draw")
-
-/**
- * Days before the start of a grazing in which earlier zones on the field count as recently grazed:
- * a new strip connects to them instead of overlapping them. The Handboek Melkveehouderij §3.9.2
- * advises grazing a field again after at most 28 growth days, so a strip older than that is free.
- */
-const STRIP_ROTATION_DAYS = 28
 
 const DIRECTIONS = [
   { value: "0", label: "Naar het noorden" },
@@ -95,6 +98,8 @@ interface EarlierZone {
 interface ZonesData {
   b_geometry: Area
   zones: EarlierZone[]
+  /** Zones of other grazings in the rotation window before this grazing. */
+  occupied: MultiPolygon[]
   /** The earlier zones could not be loaded; drawing still works. */
   zonesFailed: boolean
 }
@@ -122,6 +127,8 @@ export interface ZoneEditorProps {
   days: number
   /** Start of the grazing period (yyyy-MM-dd). */
   startDate: string
+  /** The grazing being edited, which does not occupy its own zone. */
+  l_id_grazing?: string
 }
 
 /**
@@ -139,9 +146,13 @@ export function ZoneEditor({
   hoursPerDay,
   days,
   startDate,
+  l_id_grazing,
 }: ZoneEditorProps) {
   const fetcher = useFetcher<ZonesData>()
-  const url = `/farm/${b_id_farm}/${calendar}/field/${b_id}/grazing/zones`
+  const search = new URLSearchParams()
+  if (startDate) search.set("date", startDate)
+  if (l_id_grazing) search.set("exclude", l_id_grazing)
+  const url = `/farm/${b_id_farm}/${calendar}/field/${b_id}/grazing/zones?${search.toString()}`
   // Load the field outline and earlier zones when the editor opens or the field changes
   const { load } = fetcher
   useEffect(() => {
@@ -165,20 +176,17 @@ export function ZoneEditor({
       (fetcher.data?.zones ?? []).filter((z) => !sameZone(z.l_grazing_geometry_zone, storedZone)),
     [fetcher.data, storedZone],
   )
-  // Earlier strips in the rotation window before this grazing; a new strip connects to them
-  const recentZones = useMemo(() => {
-    const start = new Date(startDate).getTime()
-    const windowStart = start - STRIP_ROTATION_DAYS * 86_400_000
-    return earlierZones
-      .filter((z) => {
-        const used = new Date(z.last_used).getTime()
-        return used >= windowStart && used <= start
-      })
-      .map((z) => z.l_grazing_geometry_zone as Area)
-  }, [earlierZones, startDate])
+  // Strips of other grazings in the rotation window before this grazing, selected by the server
+  // per grazing, so a later use of the same zone does not hide an earlier one; a new strip
+  // connects to them
+  const recentZones = useMemo(() => (fetcher.data?.occupied ?? []) as Area[], [fetcher.data])
+  const occupancyFailed = fetcher.data?.zonesFailed ?? false
 
   const zoneArea = field && zone ? zoneAreaWithinField(zone, field) : null
   const zoneHasHoles = zone !== null && hasHoles(zone)
+  // A zone of which the map could not load every part; editing it could drop that part
+  const [incompleteZone, setIncompleteZone] = useState<Area | null>(null)
+  const zoneIncomplete = zone !== null && zone === incompleteZone
   const canUndo = isDrawing || history.length > 0
 
   /** Changes the zone and remembers the previous one for "Ongedaan maken". */
@@ -243,16 +251,20 @@ export function ZoneEditor({
                 variant={mode === "edit" ? "default" : "outline"}
                 aria-pressed={mode === "edit"}
                 onClick={() => switchMode("edit")}
-                disabled={!zone || zoneHasHoles}
-                disabledReason={zoneHasHoles ? HOLE_REASON : NO_ZONE_REASON}
+                disabled={!zone || zoneHasHoles || zoneIncomplete}
+                disabledReason={
+                  zoneHasHoles ? HOLE_REASON : zoneIncomplete ? INCOMPLETE_REASON : NO_ZONE_REASON
+                }
               >
                 <Pencil className="h-3.5 w-3.5" />
                 <span>Aanpassen</span>
               </ToolbarButton>
               <ToolbarButton
-                variant={showStripBuilder ? "default" : "outline"}
-                aria-pressed={showStripBuilder}
+                variant={showStripBuilder && !occupancyFailed ? "default" : "outline"}
+                aria-pressed={showStripBuilder && !occupancyFailed}
                 onClick={() => setShowStripBuilder((show) => !show)}
+                disabled={occupancyFailed}
+                disabledReason={OCCUPANCY_FAILED_REASON}
               >
                 <Rows3 className="h-3.5 w-3.5" />
                 <span>Strook berekenen</span>
@@ -329,6 +341,10 @@ export function ZoneEditor({
                 onDrawFinished={(drawn) => setMode(modeFor(drawn))}
                 onNotice={(kind) => setNotice(NOTICES[kind])}
                 onDrawingChange={setIsDrawing}
+                onZoneLoaded={(loaded, complete) => {
+                  setIncompleteZone(complete ? null : loaded)
+                  if (!complete) setMode((current) => (current === "edit" ? "draw" : current))
+                }}
                 onUndo={undo}
                 controlsRef={mapControlsRef}
               />
@@ -342,7 +358,7 @@ export function ZoneEditor({
         </p>
       )}
 
-      {field && showStripBuilder && (
+      {field && showStripBuilder && !occupancyFailed && (
         <StripBuilder
           field={field}
           occupied={recentZones}
@@ -362,10 +378,23 @@ export function ZoneEditor({
         />
       )}
 
-      {fetcher.data.zonesFailed && (
-        <p className="text-xs text-amber-700">
-          Eerder gebruikte zones konden niet worden geladen. Je kunt wel een zone tekenen.
-        </p>
+      {occupancyFailed && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs text-amber-700">
+            Eerder gebruikte zones konden niet worden geladen. Je kunt wel een zone tekenen; een
+            strook berekenen kan pas als ze geladen zijn.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={() => void load(url)}
+            disabled={fetcher.state === "loading"}
+          >
+            Opnieuw laden
+          </Button>
+        </div>
       )}
 
       {earlierZones.length > 0 && (
@@ -534,7 +563,7 @@ function StripBuilder({
   }, [animalCount, intake, offer, days])
 
   const handleCut = () => {
-    if (!allocation) return
+    if (!allocation || !(allocation.areaHa > 0)) return
     const strip = cutStrip({
       field,
       occupied,
@@ -615,7 +644,12 @@ function StripBuilder({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-muted-foreground text-xs">
-          {allocation ? (
+          {allocation && !(allocation.areaHa > 0) ? (
+            <span key="too-small">
+              De strook wordt kleiner dan 0,01 ha. Verhoog het aantal dieren, de grasopname of het
+              aantal dagen.
+            </span>
+          ) : allocation ? (
             <span key="allocation">
               Strook van{" "}
               <strong className="text-foreground">{formatZoneHa(allocation.areaHa)} ha</strong> voor{" "}
@@ -631,7 +665,7 @@ function StripBuilder({
           type="button"
           size="sm"
           onClick={handleCut}
-          disabled={!allocation}
+          disabled={!allocation || !(allocation.areaHa > 0)}
           className="text-xs"
         >
           Strook maken
