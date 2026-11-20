@@ -851,6 +851,8 @@ describe("Farm Data Model", () => {
         b_lu_hi: 0.4,
         b_lu_n_harvestable: 4,
         b_lu_n_residue: 2,
+        b_lu_p_harvestable: 1.6,
+        b_lu_p_residue: 0.8,
         b_n_fixation: 0,
         b_lu_rest_oravib: false, // Changed to boolean
         b_lu_variety_options: [], // Added missing property
