@@ -633,6 +633,30 @@ describe("Animal Domain", () => {
     expect(await removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 0)).toEqual([])
   })
 
+  it("should reject a bulk change made from a stale count", async () => {
+    const changed = {
+      cause: { message: expect.stringContaining("Number of animals in the herd has changed") },
+    }
+    // Two clients both see an empty herd; the first change applies, the second is stale
+    await addAnimalsToHerd(fdm, principal_id, l_id_herd, 1, undefined, { expected_count: 0 })
+    await expect(
+      addAnimalsToHerd(fdm, principal_id, l_id_herd, 2, undefined, { expected_count: 0 }),
+    ).rejects.toMatchObject(changed)
+    await expect(
+      removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 1, undefined, { expected_count: 2 }),
+    ).rejects.toMatchObject(changed)
+    expect(await getAnimalsForHerd(fdm, principal_id, l_id_herd)).toHaveLength(1)
+
+    // With the current count both helpers apply
+    await addAnimalsToHerd(fdm, principal_id, l_id_herd, 2, undefined, { expected_count: 1 })
+    expect(
+      await removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 1, undefined, {
+        expected_count: 3,
+      }),
+    ).toHaveLength(1)
+    expect(await getAnimalsForHerd(fdm, principal_id, l_id_herd)).toHaveLength(2)
+  })
+
   it("should skip work numbers too large to count from", async () => {
     await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_worknumber: "99999999999999999999",

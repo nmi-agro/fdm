@@ -771,6 +771,9 @@ export async function removeAnimal(
  * @param l_id_herd - Herd ID to add the new animals to.
  * @param count - Number of new animals to create.
  * @param defaults - Optional default attributes shared by all newly created animals.
+ * @param options - Optional `expected_count`: the number of animals the caller saw in the herd.
+ *   When the herd holds a different number now, nothing is added, so two changes made from the
+ *   same stale count don't both apply.
  * @returns IDs of the newly created animals.
  */
 export async function addAnimalsToHerd(
@@ -783,6 +786,7 @@ export async function addAnimalsToHerd(
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
   },
+  options?: { expected_count?: number },
 ): Promise<string[]> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addAnimalsToHerd")
@@ -791,6 +795,7 @@ export async function addAnimalsToHerd(
     return await fdm.transaction(async (tx) => {
       const now = new Date()
       await lockFarmOfHerd(tx, l_id_herd)
+      await assertExpectedCount(tx, l_id_herd, now, options?.expected_count)
       const b_id_farm = await assertHerdRunsOn(tx, l_id_herd, now)
       const category = await getHerdCategory(tx, l_id_herd)
       const l_specie = defaults?.l_specie ?? category.l_specie
@@ -862,6 +867,42 @@ async function getNextWorknumber(
 function assertAnimalCount(count: number): void {
   if (!Number.isSafeInteger(count) || count < 0) {
     throw new Error(`Invalid number of animals: ${count}`)
+  }
+}
+
+/**
+ * Checks that a herd still holds the number of animals the caller saw, counted as the census
+ * does: animals in the herd on `date` that have not left by then. Run it after the farm lock.
+ *
+ * @param tx - The transaction.
+ * @param l_id_herd - The herd.
+ * @param date - The date to count on.
+ * @param expected_count - The number the caller saw; nothing is checked when it is undefined.
+ * @throws When the herd holds a different number of animals.
+ */
+async function assertExpectedCount(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  date: Date,
+  expected_count: number | undefined,
+): Promise<void> {
+  if (expected_count === undefined) return
+  const [row] = await tx
+    .select({ n: count() })
+    .from(schema.animalAssigning)
+    .leftJoin(
+      schema.animalLeaving,
+      eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
+    )
+    .where(
+      and(
+        eq(schema.animalAssigning.l_id_herd, l_id_herd),
+        activeAssignmentOn(date),
+        presentOn(date),
+      ),
+    )
+  if (Number(row?.n ?? 0) !== expected_count) {
+    throw new Error("Number of animals in the herd has changed")
   }
 }
 
@@ -1057,6 +1098,9 @@ function buildAnimalRows(
  * @param l_id_herd - Herd ID.
  * @param count - Number of animals to remove from the herd.
  * @param properties - Optional leaving date and leaving method.
+ * @param options - Optional `expected_count`: the number of animals the caller saw in the herd.
+ *   When the herd holds a different number now, no animal leaves, so two changes made from the
+ *   same stale count don't both apply.
  * @returns IDs of the animals marked as leaving.
  */
 export async function removeAnimalsFromHerd(
@@ -1068,6 +1112,7 @@ export async function removeAnimalsFromHerd(
     l_leaving_date?: schema.animalLeavingTypeInsert["l_leaving_date"]
     l_leaving_method?: schema.animalLeavingTypeInsert["l_leaving_method"]
   },
+  options?: { expected_count?: number },
 ): Promise<string[]> {
   try {
     return await fdm.transaction(async (tx) => {
@@ -1081,6 +1126,7 @@ export async function removeAnimalsFromHerd(
       // the same animals. Animals that already have a departure (also one in the future) are
       // leaving anyway and are not picked again; animals that only join later can't leave yet.
       await lockFarmOfHerd(tx, l_id_herd)
+      await assertExpectedCount(tx, l_id_herd, new Date(), options?.expected_count)
       const leavingDate = properties?.l_leaving_date ?? new Date()
 
       const activeAssignments = await tx

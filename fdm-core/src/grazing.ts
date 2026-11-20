@@ -1,5 +1,19 @@
 import type * as GeoJSON from "geojson"
-import { and, count, desc, eq, gte, inArray, isNotNull, lt, max, sql, type SQL } from "drizzle-orm"
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lt,
+  lte,
+  max,
+  ne,
+  sql,
+  type SQL,
+} from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type {
@@ -110,6 +124,7 @@ export async function addGrazing(
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazing")
       const grazingEnd = properties?.l_grazing_end ?? null
       assertIntervalEndNotBeforeStart(l_grazing_start, grazingEnd, "l_grazing")
+      assertGrazingHours(properties?.l_grazing_hours)
       const zone = normalizeZone(properties?.l_grazing_geometry_zone, "l_grazing_geometry_zone")
       assertGrazingExtent(zone, properties?.l_grazing_area, properties?.b_id)
 
@@ -145,29 +160,12 @@ export async function addGrazing(
         properties?.b_id ?? null,
       )
 
-      const grazingYear = l_grazing_start.getUTCFullYear()
-      const grazingYearStart = new Date(Date.UTC(grazingYear, 0, 1))
-      const grazingNextYearStart = new Date(Date.UTC(grazingYear + 1, 0, 1))
-
-      const firstGrazingInYear = await tx
-        .select({ l_id_grazing: schema.herdGrazing.l_id_grazing })
-        .from(schema.herdGrazing)
-        .innerJoin(
-          schema.herdStarting,
-          eq(schema.herdGrazing.l_id_herd, schema.herdStarting.l_id_herd),
-        )
-        .where(
-          and(
-            eq(schema.herdStarting.b_id_farm, b_id_farm),
-            gte(schema.herdGrazing.l_grazing_start, grazingYearStart),
-            lt(schema.herdGrazing.l_grazing_start, grazingNextYearStart),
-          ),
-        )
-        .limit(1)
-
-      if (firstGrazingInYear.length === 0) {
-        await setGrazingIntention(tx, principal_id, b_id_farm, grazingYear, true)
-      }
+      await enableIntentionForFirstGrazing(
+        tx,
+        principal_id,
+        b_id_farm,
+        l_grazing_start.getUTCFullYear(),
+      )
 
       await tx.insert(schema.herdGrazing).values({
         l_id_grazing: createId(),
@@ -222,6 +220,7 @@ export async function addGrazings(
 
   try {
     const zones = rows.map((row) => {
+      assertGrazingHours(row.l_grazing_hours)
       const zone = normalizeZone(row.l_grazing_geometry_zone, "l_grazing_geometry_zone")
       assertGrazingExtent(zone, row.l_grazing_area, row.b_id)
       return zone ?? null
@@ -307,28 +306,7 @@ export async function addGrazings(
 
       for (const [b_id_farm, years] of yearsPerFarm.entries()) {
         for (const year of years) {
-          const yearStart = new Date(Date.UTC(year, 0, 1))
-          const nextYearStart = new Date(Date.UTC(year + 1, 0, 1))
-
-          const firstGrazingInYear = await tx
-            .select({ l_id_grazing: schema.herdGrazing.l_id_grazing })
-            .from(schema.herdGrazing)
-            .innerJoin(
-              schema.herdStarting,
-              eq(schema.herdGrazing.l_id_herd, schema.herdStarting.l_id_herd),
-            )
-            .where(
-              and(
-                eq(schema.herdStarting.b_id_farm, b_id_farm),
-                gte(schema.herdGrazing.l_grazing_start, yearStart),
-                lt(schema.herdGrazing.l_grazing_start, nextYearStart),
-              ),
-            )
-            .limit(1)
-
-          if (firstGrazingInYear.length === 0) {
-            await setGrazingIntention(tx, principal_id, b_id_farm, year, true)
-          }
+          await enableIntentionForFirstGrazing(tx, principal_id, b_id_farm, year)
         }
       }
 
@@ -613,6 +591,7 @@ export async function updateGrazing(
           ? existing[0].l_grazing_end
           : properties.l_grazing_end
       assertIntervalEndNotBeforeStart(nextStart, nextEnd, "l_grazing")
+      assertGrazingHours(properties.l_grazing_hours)
 
       const { l_grazing_geometry_zone, ...rest } = properties
       const zone = normalizeZone(l_grazing_geometry_zone, "l_grazing_geometry_zone")
@@ -630,6 +609,26 @@ export async function updateGrazing(
         existing[0].b_id ?? null,
         l_id_grazing,
       )
+
+      // A correction that moves the grazing into another year can be the first grazing of that
+      // year, just like a new record
+      const nextYear = nextStart.getUTCFullYear()
+      if (nextYear !== existing[0].l_grazing_start.getUTCFullYear()) {
+        const herdFarm = await tx
+          .select({ b_id_farm: schema.herdStarting.b_id_farm })
+          .from(schema.herdStarting)
+          .where(eq(schema.herdStarting.l_id_herd, existing[0].l_id_herd))
+          .limit(1)
+        if (herdFarm.length > 0) {
+          await enableIntentionForFirstGrazing(
+            tx,
+            principal_id,
+            herdFarm[0].b_id_farm,
+            nextYear,
+            l_id_grazing,
+          )
+        }
+      }
 
       await tx
         .update(schema.herdGrazing)
@@ -649,6 +648,58 @@ export async function updateGrazing(
       l_grazing_area: properties.l_grazing_area,
       l_grazing_geometry_zone_type: properties.l_grazing_geometry_zone?.type,
     })
+  }
+}
+
+/**
+ * Turns on the grazing intention of a farm for a year when the farm has no grazing in that year
+ * yet, so the first grazing recorded in a year, also by a correction, marks the year as grazed.
+ * Later grazings leave the intention as the farmer set it.
+ *
+ * @param tx - The transaction.
+ * @param principal_id - Principal recording the grazing.
+ * @param b_id_farm - The farm.
+ * @param year - The year of the grazing start (UTC).
+ * @param exclude_l_id_grazing - A grazing that does not count, such as the one being corrected.
+ */
+async function enableIntentionForFirstGrazing(
+  tx: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  year: number,
+  exclude_l_id_grazing?: schema.herdGrazingTypeSelect["l_id_grazing"],
+): Promise<void> {
+  const grazingInYear = await tx
+    .select({ l_id_grazing: schema.herdGrazing.l_id_grazing })
+    .from(schema.herdGrazing)
+    .innerJoin(schema.herdStarting, eq(schema.herdGrazing.l_id_herd, schema.herdStarting.l_id_herd))
+    .where(
+      and(
+        eq(schema.herdStarting.b_id_farm, b_id_farm),
+        gte(schema.herdGrazing.l_grazing_start, new Date(Date.UTC(year, 0, 1))),
+        lt(schema.herdGrazing.l_grazing_start, new Date(Date.UTC(year + 1, 0, 1))),
+        exclude_l_id_grazing
+          ? ne(schema.herdGrazing.l_id_grazing, exclude_l_id_grazing)
+          : undefined,
+      ),
+    )
+    .limit(1)
+
+  if (grazingInYear.length === 0) {
+    await setGrazingIntention(tx, principal_id, b_id_farm, year, true)
+  }
+}
+
+/**
+ * Checks the grazing hours per day.
+ *
+ * @param hours - The hours per day; not set is allowed.
+ * @throws When the hours are not a number above 0 and at most 24.
+ */
+function assertGrazingHours(hours: number | null | undefined): void {
+  if (hours === null || hours === undefined) return
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 24) {
+    throw new Error(`Invalid grazing hours: ${hours}`)
   }
 }
 
@@ -753,6 +804,10 @@ export async function removeGrazing(
  * @param principal_id - Principal requesting the zones.
  * @param b_id - Field ID.
  * @param limit - Maximum number of zones to return. Defaults to 20.
+ * @param options - Optional filters, applied to the grazing records before they are grouped:
+ *   `from` and `to` keep only grazings that start in that period (inclusive), for example to find
+ *   the zones in use around a date; `exclude_l_id_grazing` leaves out one record, such as the
+ *   grazing being edited, while other uses of the same zone still count.
  * @returns The zones as recorded, with their area within the field (ha), last use and herds.
  */
 export async function getGrazingZonesForField(
@@ -760,6 +815,11 @@ export async function getGrazingZonesForField(
   principal_id: PrincipalId,
   b_id: schema.fieldsTypeSelect["b_id"],
   limit = 20,
+  options?: {
+    from?: Date
+    to?: Date
+    exclude_l_id_grazing?: schema.herdGrazingTypeSelect["l_id_grazing"]
+  },
 ): Promise<GrazingZone[]> {
   try {
     await checkPermission(fdm, "field", "read", b_id, principal_id, "getGrazingZonesForField")
@@ -779,7 +839,17 @@ export async function getGrazingZonesForField(
       .from(schema.herdGrazing)
       .innerJoin(schema.fields, eq(schema.herdGrazing.b_id, schema.fields.b_id))
       .innerJoin(schema.herds, eq(schema.herdGrazing.l_id_herd, schema.herds.l_id_herd))
-      .where(and(eq(schema.herdGrazing.b_id, b_id), isNotNull(zone)))
+      .where(
+        and(
+          eq(schema.herdGrazing.b_id, b_id),
+          isNotNull(zone),
+          options?.from ? gte(schema.herdGrazing.l_grazing_start, options.from) : undefined,
+          options?.to ? lte(schema.herdGrazing.l_grazing_start, options.to) : undefined,
+          options?.exclude_l_id_grazing
+            ? ne(schema.herdGrazing.l_id_grazing, options.exclude_l_id_grazing)
+            : undefined,
+        ),
+      )
       // Group by the exact geometry, so a reused zone is listed once
       .groupBy(sql`ST_AsBinary(${zone})`, schema.fields.b_id)
       .orderBy(desc(lastUsed))
@@ -794,7 +864,7 @@ export async function getGrazingZonesForField(
       l_herd_names: row.herd_names.filter((name): name is string => name !== null),
     }))
   } catch (err) {
-    throw handleError(err, "Exception for getGrazingZonesForField", { b_id })
+    throw handleError(err, "Exception for getGrazingZonesForField", { b_id, ...options })
   }
 }
 
