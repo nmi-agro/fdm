@@ -71,7 +71,7 @@
     "@turf/length": "^7.4.0",
     "@turf/union": "^7.4.0",
     "@types/geojson": "^7946.0.16",
-    "proj4": "^2.22.0",
+    "proj4": "^2.23.0",
     "shpjs": "^6.2.0",
     "zod": "catalog:"
   },
