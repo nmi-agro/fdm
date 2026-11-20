@@ -188,7 +188,7 @@ export function AddMeasureDialog({
         if (data.m_end) fd.append("m_end", data.m_end)
         else fd.append("m_end", "")
         if (fields) {
-          for (const b_id of selectedFieldIds) fd.append("b_id", b_id)
+          for (const b_id of applicableSelectedFieldIds) fd.append("b_id", b_id)
         }
         void fetcher.submit(fd, {
           method: "post",
@@ -519,12 +519,19 @@ export function AddMeasureDialog({
   const mStart = useWatch({ control: form.control, name: "m_start" })
   const mEnd = useWatch({ control: form.control, name: "m_end" })
 
+  // The selected fields where the selected measure applies. A field selected before a streamed
+  // applicability arrived can turn out not to apply: it is shown unchecked and is never saved.
+  const applicableSelectedFieldIds = [...selectedFieldIds].filter((b_id) => {
+    const info = selected ? applicabilityByField?.[b_id]?.[selected.m_id] : undefined
+    return !info || info.applicability === "applicable"
+  })
+
   const canSubmit =
     selected !== null &&
     !conflictMap.has(selected.m_id) &&
     !!mStart &&
     (datePreset !== "vaste_einddatum" || !!mEnd) &&
-    (fields === undefined || selectedFieldIds.size > 0)
+    (fields === undefined || applicableSelectedFieldIds.length > 0)
 
   // Sort fields: applicable first, selected on top, then area descending, then name
   const sortedFields = useMemo(() => {
@@ -975,9 +982,9 @@ export function AddMeasureDialog({
                     <div className="flex items-center justify-between">
                       <FieldLabel>
                         Percelen
-                        {selectedFieldIds.size > 0 && (
+                        {applicableSelectedFieldIds.length > 0 && (
                           <span className="text-muted-foreground ml-2 text-xs font-normal">
-                            {selectedFieldIds.size} van {fields.length} geselecteerd
+                            {applicableSelectedFieldIds.length} van {fields.length} geselecteerd
                           </span>
                         )}
                       </FieldLabel>
@@ -1153,7 +1160,7 @@ export function AddMeasureDialog({
                         })
                       )}
                     </div>
-                    {selectedFieldIds.size === 0 && (
+                    {applicableSelectedFieldIds.length === 0 && (
                       <p className="text-destructive mt-1 text-xs">
                         Selecteer minimaal één perceel.
                       </p>
