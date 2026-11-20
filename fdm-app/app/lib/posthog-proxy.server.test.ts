@@ -14,11 +14,21 @@ afterEach(() => {
 function stubPosthog(response: Response) {
   const calls: { url: string; init: RequestInit; body: string }[] = []
   vi.stubGlobal("fetch", async (url: URL, init: RequestInit) => {
-    const body = init.body ? await new Response(init.body as BodyInit).text() : ""
+    const body = init.body ? await readBody(init.body) : ""
     calls.push({ url: url.toString(), init, body })
     return response
   })
   return calls
+}
+
+/** Reads a request body that is either a regular body or an async iterable of chunks. */
+async function readBody(body: unknown): Promise<string> {
+  if (body && typeof body === "object" && Symbol.asyncIterator in body) {
+    const chunks: Uint8Array[] = []
+    for await (const chunk of body as AsyncIterable<Uint8Array>) chunks.push(chunk)
+    return Buffer.concat(chunks).toString()
+  }
+  return new Response(body as BodyInit).text()
 }
 
 describe("proxyToPosthog", () => {
@@ -91,6 +101,77 @@ describe("proxyToPosthog", () => {
     )
     expect(response.status).toBe(413)
     expect(calls).toHaveLength(0)
+  })
+
+  it("refuses a streamed body without Content-Length that grows too large", async () => {
+    stubPosthog(new Response("ok"))
+    const chunk = new Uint8Array(1024 * 1024)
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (let i = 0; i < 11; i++) controller.enqueue(chunk)
+        controller.close()
+      },
+    })
+    const response = await proxyToPosthog(
+      { method: "POST", url: new URL("http://localhost/ingest/s/"), headers: new Headers(), body },
+      POSTHOG_HOST,
+    )
+    expect(response.status).toBe(413)
+  })
+
+  it("does not forward hop-by-hop headers or headers that Connection names", async () => {
+    const calls = stubPosthog(
+      new Response("ok", {
+        headers: { connection: "x-upstream-hop", "x-upstream-hop": "1", "x-kept": "1" },
+      }),
+    )
+    const response = await proxyToPosthog(
+      {
+        method: "GET",
+        url: new URL("http://localhost/ingest/flags/"),
+        headers: new Headers({ connection: "x-hop", "x-hop": "local", "keep-alive": "5" }),
+        body: null,
+      },
+      POSTHOG_HOST,
+    )
+    const forwarded = new Headers(calls[0].init.headers)
+    expect(forwarded.get("x-hop")).toBeNull()
+    expect(forwarded.get("connection")).toBeNull()
+    expect(forwarded.get("keep-alive")).toBeNull()
+    expect(response.headers.get("x-upstream-hop")).toBeNull()
+    expect(response.headers.get("connection")).toBeNull()
+    expect(response.headers.get("x-kept")).toBe("1")
+  })
+
+  it("keeps the timeout active while the response body is transferred", async () => {
+    vi.useFakeTimers()
+    try {
+      vi.stubGlobal("fetch", async (_url: URL, init: RequestInit) => {
+        // Headers arrive at once, but the body never ends until the request is aborted
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            init.signal?.addEventListener("abort", () =>
+              controller.error(new DOMException("aborted", "AbortError")),
+            )
+          },
+        })
+        return new Response(body)
+      })
+      const response = await proxyToPosthog(
+        {
+          method: "GET",
+          url: new URL("http://localhost/ingest/static/array.js"),
+          headers: new Headers(),
+          body: null,
+        },
+        POSTHOG_HOST,
+      )
+      const bodyFails = expect(response.text()).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(60_000)
+      await bodyFails
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("answers 503 when PostHog cannot be reached", async () => {

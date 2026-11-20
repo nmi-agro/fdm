@@ -13,22 +13,91 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024 // 10 MB
 /** A request to PostHog that takes longer is aborted. */
 const TIMEOUT_MS = 60_000
 
-/** Response headers that apply to one connection only and are not passed on. */
-const HOP_BY_HOP_HEADERS = new Set([
+/** Headers that apply to one connection only and are never forwarded, in either direction. */
+const HOP_BY_HOP_HEADERS = [
   "connection",
   "keep-alive",
-  "transfer-encoding",
-  "upgrade",
+  "proxy-connection",
+  "proxy-authenticate",
+  "proxy-authorization",
   "te",
   "trailer",
-])
+  "transfer-encoding",
+  "upgrade",
+]
+
+/**
+ * Removes the hop-by-hop headers, including every header that `Connection` names, in place.
+ *
+ * @param {Headers} headers - The headers to clean.
+ */
+function removeHopByHopHeaders(headers) {
+  const nominated = (headers.get("connection") ?? "")
+    .split(",")
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean)
+  for (const name of [...HOP_BY_HOP_HEADERS, ...nominated]) headers.delete(name)
+}
+
+/** Thrown while streaming a request body that turns out to exceed {@link MAX_BODY_SIZE}. */
+class BodyTooLargeError extends Error {}
+
+/**
+ * Passes a request body through while counting its bytes, so a body without a (truthful)
+ * `Content-Length` header is also limited to {@link MAX_BODY_SIZE}.
+ *
+ * @param {ReadableStream | AsyncIterable<Uint8Array>} source - The request body.
+ * @returns {AsyncGenerator<Uint8Array>} The same chunks, until the limit is exceeded.
+ */
+async function* limitBodySize(source) {
+  let total = 0
+  for await (const chunk of source) {
+    total += chunk.byteLength
+    if (total > MAX_BODY_SIZE) throw new BodyTooLargeError("Request too large")
+    yield chunk
+  }
+}
+
+/**
+ * Returns the response body as a stream that calls `onEnd` once the body is complete, fails or is
+ * cancelled, so the request timeout also covers the transfer of the body.
+ *
+ * @param {ReadableStream<Uint8Array>} body - The response body of PostHog.
+ * @param {() => void} onEnd - Called once when the body has ended.
+ * @returns {ReadableStream<Uint8Array>}
+ */
+function onBodyEnd(body, onEnd) {
+  const reader = body.getReader()
+  return new ReadableStream({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read()
+        if (done) {
+          onEnd()
+          controller.close()
+        } else {
+          controller.enqueue(value)
+        }
+      } catch (error) {
+        onEnd()
+        controller.error(error)
+      }
+    },
+    cancel(reason) {
+      onEnd()
+      return reader.cancel(reason)
+    },
+  })
+}
 
 /**
  * Forwards a request under `/ingest` to PostHog.
  *
  * Static assets (`/ingest/static/*`) go to the PostHog assets host, everything else to the API
- * host. Cookies, authorization and other hop-specific headers are not forwarded; the client IP
- * is passed on as `x-real-ip`.
+ * host. Cookies, authorization and hop-by-hop headers (also those that `Connection` names) are
+ * not forwarded, in either direction; the client IP is passed on as `x-real-ip`. A body larger
+ * than 10 MB is refused with 413, also when it has no `Content-Length`. The 60 s timeout covers
+ * the whole exchange, including the response body.
  *
  * @param {object} request - The incoming request.
  * @param {string} request.method - The HTTP method.
@@ -60,24 +129,15 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
   if (xForwardedFor) {
     headers.set("x-real-ip", xForwardedFor.split(",")[0].trim())
   }
-  for (const name of [
-    "accept-encoding",
-    "proxy-authorization",
-    "authorization",
-    "cookie",
-    "upgrade",
-    // Hop-by-hop headers of the incoming connection, which fetch does not accept
-    "connection",
-    "keep-alive",
-    "transfer-encoding",
-    "expect",
-  ]) {
+  removeHopByHopHeaders(headers)
+  for (const name of ["accept-encoding", "authorization", "cookie", "expect"]) {
     headers.delete(name)
   }
   const hasBody = body !== null && method !== "GET" && method !== "HEAD"
   // Let fetch determine the length of a streamed body
   if (hasBody) headers.delete("content-length")
 
+  // The timeout covers the whole exchange, including the transfer of the response body
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
   let response
@@ -85,11 +145,15 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
     response = await fetch(targetUrl, {
       method,
       headers,
-      body: hasBody ? body : undefined,
+      body: hasBody ? limitBodySize(body) : undefined,
       signal: controller.signal,
       duplex: "half",
     })
   } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof BodyTooLargeError || error?.cause instanceof BodyTooLargeError) {
+      return new Response("Request too large", { status: 413 })
+    }
     if (error instanceof Error && error.name === "AbortError") {
       console.error("PostHog proxy timeout after 60s")
       return new Response("PostHog proxy timeout", {
@@ -102,18 +166,21 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
       status: 503,
       statusText: "PostHog proxy error",
     })
-  } finally {
-    clearTimeout(timeoutId)
   }
 
   const responseHeaders = new Headers(response.headers)
+  removeHopByHopHeaders(responseHeaders)
   responseHeaders.delete("content-encoding")
   responseHeaders.delete("content-length")
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: responseHeaders,
-  })
+  if (!response.body) clearTimeout(timeoutId)
+  return new Response(
+    response.body ? onBodyEnd(response.body, () => clearTimeout(timeoutId)) : null,
+    {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    },
+  )
 }
 
 /**
@@ -141,10 +208,8 @@ export function createPosthogProxyMiddleware(posthogHost) {
     res.status(response.status)
     if (response.statusText) res.statusMessage = response.statusText
     response.headers.forEach((value, name) => {
-      // `set-cookie` may hold several values, which `forEach` joins. Hop-by-hop headers describe
-      // the connection to PostHog, not the one to the browser.
-      if (name === "set-cookie" || HOP_BY_HOP_HEADERS.has(name) || name.startsWith("proxy-")) return
-      res.setHeader(name, value)
+      // `set-cookie` may hold several values, which `forEach` joins
+      if (name !== "set-cookie") res.setHeader(name, value)
     })
     const cookies = response.headers.getSetCookie()
     if (cookies.length > 0) res.setHeader("set-cookie", cookies)
