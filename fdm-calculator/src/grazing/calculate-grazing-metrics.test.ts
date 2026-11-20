@@ -206,16 +206,16 @@ describe("calculateGrazingMetrics", () => {
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2026-05-01T00:00:00.000Z"),
-          l_grazing_end: new Date("2026-05-04T23:59:59.999Z"),
+          l_grazing_end: new Date("2026-05-04T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
-        // Second grazing on f1: May 12 - May 15 (7 days rest after May 4 -> overgrazing alert!)
+        // Second grazing on f1: May 12 - May 15 (8 days rest after May 4 -> overgrazing alert!)
         {
           l_id_grazing: "g2",
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2026-05-12T00:00:00.000Z"),
-          l_grazing_end: new Date("2026-05-15T23:59:59.999Z"),
+          l_grazing_end: new Date("2026-05-15T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
         // Grazing on f2 with partial area
@@ -249,10 +249,101 @@ describe("calculateGrazingMetrics", () => {
     expect(result.veebezetting.platformGvePerHa).toBe(15.5)
     expect(result.veebezetting.platformStockingCategory).toBe("intensief")
 
-    // Overgrazing alerts: f1 had rest from May 4 to May 12 = 7 days (< 21)
+    // Overgrazing alerts: f1 had rest from May 4 to May 12 = 8 days, the difference between the
+    // dates (< 21)
     expect(result.overbeweidingAlerts.length).toBe(1)
     expect(result.overbeweidingAlerts[0].b_id).toBe("f1")
-    expect(result.overbeweidingAlerts[0].restDays).toBe(7)
+    expect(result.overbeweidingAlerts[0].restDays).toBe(8)
+  })
+
+  it("should count rest as the difference between the dates, whatever the end time", () => {
+    const run = (end: string) =>
+      calculateGrazingMetrics({
+        year: 2026,
+        today: new Date("2026-07-01T00:00:00.000Z"),
+        herds: [{ l_id_herd: "h1", l_herd_name: "Melkkoeien", l_id_category: "rvo_100", count: 1 }],
+        fields: [{ b_id: "f1", b_name: "De Hoek", b_area: 4, isGrassland: true }],
+        grazings: [
+          {
+            l_id_grazing: "g1",
+            l_id_herd: "h1",
+            b_id: "f1",
+            l_grazing_start: new Date("2026-05-01T00:00:00.000Z"),
+            l_grazing_end: new Date(end),
+            l_grazing_hours: 8,
+          },
+          {
+            l_id_grazing: "g2",
+            l_id_herd: "h1",
+            b_id: "f1",
+            l_grazing_start: new Date("2026-05-25T00:00:00.000Z"),
+            l_grazing_end: new Date("2026-05-26T00:00:00.000Z"),
+            l_grazing_hours: 8,
+          },
+        ],
+      })
+
+    // End 4 May, next start 25 May: 21 days, so no alert, with a midnight or an end-of-day end
+    for (const end of ["2026-05-04T00:00:00.000Z", "2026-05-04T23:59:59.999Z"]) {
+      const result = run(end)
+      expect(result.rustperiodes.map((r) => r.restDays)).toEqual([21])
+      expect(result.overbeweidingAlerts).toEqual([])
+    }
+  })
+
+  it("should count a running grazing through today and a planned one as its start day", () => {
+    const result = calculateGrazingMetrics({
+      year: 2026,
+      today: new Date("2026-05-15T12:00:00.000Z"),
+      herds: [{ l_id_herd: "h1", l_herd_name: "Melkkoeien", l_id_category: "rvo_100", count: 1 }],
+      fields: [{ b_id: "f1", b_name: "De Hoek", b_area: 4, isGrassland: true }],
+      grazings: [
+        // Started on 12 May without an end: 12, 13, 14 and 15 May
+        {
+          l_id_grazing: "running",
+          l_id_herd: "h1",
+          b_id: "f1",
+          l_grazing_start: new Date("2026-05-12T00:00:00.000Z"),
+          l_grazing_end: null,
+          l_grazing_hours: 8,
+        },
+        // Planned without an end: one planned day
+        {
+          l_id_grazing: "planned",
+          l_id_herd: "h1",
+          b_id: "f1",
+          l_grazing_start: new Date("2026-06-01T00:00:00.000Z"),
+          l_grazing_end: null,
+          l_grazing_hours: 8,
+        },
+      ],
+    })
+
+    expect(result.weidedagen.total).toBe(4)
+    expect(result.weidedagen.planned).toBe(1)
+    expect(result.weidemelk.qualifyingDays).toBe(4)
+  })
+
+  it("should count a running grazing from the previous year in the selected year", () => {
+    const result = calculateGrazingMetrics({
+      year: 2026,
+      today: new Date("2026-01-03T12:00:00.000Z"),
+      herds: [{ l_id_herd: "h1", l_herd_name: "Pinken", l_id_category: "rvo_101", count: 1 }],
+      fields: [{ b_id: "f1", b_name: "De Hoek", b_area: 4, isGrassland: true }],
+      grazings: [
+        {
+          l_id_grazing: "winter",
+          l_id_herd: "h1",
+          b_id: "f1",
+          l_grazing_start: new Date("2025-12-30T00:00:00.000Z"),
+          l_grazing_end: null,
+          l_grazing_hours: 8,
+        },
+      ],
+    })
+
+    // 1, 2 and 3 January
+    expect(result.weidedagen.total).toBe(3)
   })
 
   it("should use the combined grazed area of a field for the platform", () => {

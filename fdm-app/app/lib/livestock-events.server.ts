@@ -62,9 +62,12 @@ export async function handleLivestockEvent(
     const l_id_herd = formText(formData, "l_id_herd")
     const targetCount = Number.parseInt(formText(formData, "target_count", "0"), 10)
     const previousCount = Number.parseInt(formText(formData, "previous_count", "0"), 10)
+    // The change is the difference with the count the user saw; fdm-core refuses it when the
+    // herd no longer holds that count, for example after a change in another tab
+    const options = { expected_count: previousCount }
     if (targetCount > previousCount) {
       const toAdd = targetCount - previousCount
-      await addAnimalsToHerd(fdm, principal_id, l_id_herd, toAdd)
+      await addAnimalsToHerd(fdm, principal_id, l_id_herd, toAdd, undefined, options)
       return dataWithSuccess(
         { targetCount },
         { message: `${toAdd} ${toAdd === 1 ? "dier" : "dieren"} toegevoegd.` },
@@ -72,9 +75,14 @@ export async function handleLivestockEvent(
     }
     if (targetCount < previousCount) {
       const toRemove = previousCount - targetCount
-      await removeAnimalsFromHerd(fdm, principal_id, l_id_herd, toRemove, {
-        l_leaving_method: "sold",
-      })
+      await removeAnimalsFromHerd(
+        fdm,
+        principal_id,
+        l_id_herd,
+        toRemove,
+        { l_leaving_method: "sold" },
+        options,
+      )
       return dataWithSuccess(
         { targetCount },
         { message: `${toRemove} ${toRemove === 1 ? "dier" : "dieren"} afgevoerd.` },

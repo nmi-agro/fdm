@@ -286,6 +286,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 /** A day of the plan, e.g. "3 mei". */
 const formatPlanDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
 
+/** Smallest plot size for Nieuw Nederlands Weiden (ha), as the plot size input allows. */
+const MIN_PLOT_AREA_HA = 0.1
+
+/** Whether a period date of the planner is a valid `YYYY-MM-DD` day. */
+const isPlanDay = (day: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(new Date(`${day}T12:00:00`).getTime())
+
 export default function GrazingPlanAssistent() {
   const {
     b_id_farm,
@@ -366,6 +373,12 @@ export default function GrazingPlanAssistent() {
   const [plotArea, setPlotArea] = useKeyedState(String(defaultPlotArea), (value) => Number(value))
   const plotsPerDay = hoursPerDay > NNW_DAY_AND_NIGHT_HOURS ? 2 : 1
 
+  // The typed values must be usable before a plan is generated: a period of 0 days would never
+  // advance, a tiny plot size would cut a huge number of plots and an empty date has no days
+  const periodDaysValid = Number.isInteger(periodDays) && periodDays >= 1
+  const plotAreaValid = Number.isFinite(plotArea) && plotArea >= MIN_PLOT_AREA_HA
+  const datesValid = isPlanDay(startDate) && isPlanDay(endDate)
+
   const handleSystemSelect = (key: GrazingSystemKey) => {
     setSystemKey(key)
     const sys = GRAZING_SYSTEMS[key]
@@ -382,6 +395,10 @@ export default function GrazingPlanAssistent() {
   // Step 3: Generation and Collision Detection
   const { generatedRows, collisions } = useMemo(() => {
     if (!selectedSystem.requiresGrazingRecords) {
+      return { generatedRows: [], collisions: [] }
+    }
+
+    if (!datesValid || (isNnw ? !plotAreaValid : !periodDaysValid)) {
       return { generatedRows: [], collisions: [] }
     }
 
@@ -588,6 +605,9 @@ export default function GrazingPlanAssistent() {
     isNnw,
     plotArea,
     plotsPerDay,
+    datesValid,
+    plotAreaValid,
+    periodDaysValid,
   ])
 
   // The planned strips or plots for the map preview, each drawn once although the plan returns to
@@ -887,7 +907,11 @@ export default function GrazingPlanAssistent() {
                               max="60"
                               value={periodDays}
                               onChange={(e) => setPeriodDays(parseInt(e.target.value || "4", 10))}
+                              aria-invalid={!periodDaysValid}
                             />
+                            {!periodDaysValid && (
+                              <p className="text-destructive text-xs">Kies 1 dag of meer.</p>
+                            )}
                           </Field>
                         )}
                       </div>
@@ -908,7 +932,13 @@ export default function GrazingPlanAssistent() {
                                 value={plotArea}
                                 onChange={(e) => setPlotArea(parseFloat(e.target.value || "0"))}
                                 className="h-8 text-xs"
+                                aria-invalid={!plotAreaValid}
                               />
+                              {!plotAreaValid && (
+                                <p className="text-destructive text-xs">
+                                  Kies een perceelsgrootte van minstens 0,1 ha.
+                                </p>
+                              )}
                             </Field>
                             <Field>
                               <FieldLabel htmlFor="plan-plot-direction" className="text-xs">

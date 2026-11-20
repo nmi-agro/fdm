@@ -141,33 +141,45 @@ export function GrazingPopover({
     }
   }
 
-  // A new grazing starts at 8 hours, which is the "Beperkt (8u)" preset
-  const initialHours = existingGrazing?.l_grazing_hours ?? 8
-  const [hourPreset, setHourPreset] = useState<"8" | "24" | "custom">(
-    initialHours === 24 ? "24" : initialHours === 8 ? "8" : "custom",
+  // A new grazing starts at 8 hours, which is the "Beperkt (8u)" preset. A stored grazing without
+  // hours keeps them unknown (`null`) until the user picks hours, so an edit of only the dates or
+  // the area does not record 8 hours
+  const initialHours = existingGrazing ? (existingGrazing.l_grazing_hours ?? null) : 8
+  const [hourPreset, setHourPreset] = useState<"8" | "24" | "custom" | null>(
+    initialHours === null ? null : initialHours === 24 ? "24" : initialHours === 8 ? "8" : "custom",
   )
-  const [hours, setHours] = useState<number>(initialHours)
+  const [hours, setHours] = useState<number | null>(initialHours)
+  const hoursInvalid = hours !== null && !(hours > 0 && hours <= 24)
 
   const fieldArea = field?.b_area ?? 0
   const storedZone = existingGrazing?.l_grazing_geometry_zone ?? null
+  const storedArea = existingGrazing?.l_grazing_area ?? null
   const [areaMode, setAreaMode] = useState<AreaMode>(
-    storedZone ? "zone" : existingGrazing?.l_grazing_area ? "partial" : "full",
+    storedZone ? "zone" : storedArea ? "partial" : "full",
   )
   // The part of the field without a location, as a percentage of the field area
   const [partialPercentage, setPartialPercentage] = useState<number>(
-    existingGrazing?.l_grazing_area && fieldArea > 0
-      ? Math.min(100, Math.round((existingGrazing.l_grazing_area / fieldArea) * 100))
-      : 50,
+    storedArea && fieldArea > 0 ? Math.min(100, Math.round((storedArea / fieldArea) * 100)) : 50,
   )
+  // Until the user changes the percentage, a stored area is kept as it is, not rounded to it
+  const [partialTouched, setPartialTouched] = useState(false)
+  const choosePartialPercentage = (percentage: number) => {
+    setPartialPercentage(percentage)
+    setPartialTouched(true)
+  }
   const [zone, setZone] = useState<Area | null>(storedZone)
 
   const handleHourPresetChange = (preset: "8" | "24" | "custom") => {
     setHourPreset(preset)
     if (preset === "8") setHours(8)
     if (preset === "24") setHours(24)
+    if (preset === "custom" && hours === null) setHours(8)
   }
 
-  const partialArea = Number(((fieldArea * partialPercentage) / 100).toFixed(2))
+  const partialArea =
+    !partialTouched && storedArea
+      ? storedArea
+      : Number(((fieldArea * partialPercentage) / 100).toFixed(2))
   const effectiveArea =
     areaMode === "full"
       ? fieldArea
@@ -186,7 +198,7 @@ export function GrazingPopover({
     !isNaN(sDate.getTime()) && !isNaN(eDate.getTime())
       ? Math.max(1, Math.floor((eDate.getTime() - sDate.getTime()) / 86400000) + 1)
       : 1
-  const totalHours = diffDays * (hours || 0)
+  const totalHours = diffDays * (hours ?? 0)
 
   const isFuture = today !== "" && startDate > today
   // The grazing calendar only shows the grazing season; a grazing outside it is kept, but only
@@ -214,7 +226,8 @@ export function GrazingPopover({
     formData.set("l_grazing_start", startDate)
     // Without an end date the grazing keeps running
     if (endDate !== "") formData.set("l_grazing_end", endDate)
-    formData.set("l_grazing_hours", String(hours))
+    // Unknown hours are not sent, so they stay unknown
+    if (hours !== null) formData.set("l_grazing_hours", String(hours))
     // Always send both, so an update can switch between whole field, area and zone
     formData.set(GRAZING_AREA_FIELD, areaMode === "partial" ? String(partialArea) : "")
     formData.set(GRAZING_ZONE_FIELD, areaMode === "zone" && zone ? JSON.stringify(zone) : "")
@@ -400,13 +413,24 @@ export function GrazingPopover({
                       min="1"
                       max="24"
                       step="0.5"
-                      value={hours}
-                      onChange={(e) => setHours(parseFloat(e.target.value || "0"))}
+                      value={hours ?? ""}
+                      onChange={(e) => setHours(e.target.value === "" ? 0 : Number(e.target.value))}
                       className="w-24"
                       aria-label="Aantal uren per dag"
+                      aria-invalid={hoursInvalid}
                     />
                     <span className="text-muted-foreground text-xs">uur per dag</span>
                   </div>
+                )}
+                {hoursInvalid && (
+                  <p className="text-destructive mt-1 text-xs">
+                    Kies meer dan 0 en hoogstens 24 uur per dag.
+                  </p>
+                )}
+                {hours === null && (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Uren niet vastgelegd. Kies de uren per dag, of laat ze open.
+                  </p>
                 )}
               </Field>
 
@@ -448,9 +472,10 @@ export function GrazingPopover({
                       onZoneChange={setZone}
                       storedZone={storedZone}
                       animals={herdCount}
-                      hoursPerDay={hours}
+                      hoursPerDay={hours ?? 8}
                       days={diffDays}
                       startDate={startDate}
+                      l_id_grazing={existingGrazing?.l_id_grazing}
                     />
                   </div>
                 )}
@@ -464,7 +489,7 @@ export function GrazingPopover({
                           type="button"
                           variant={partialPercentage === percentage ? "default" : "outline"}
                           size="sm"
-                          onClick={() => setPartialPercentage(percentage)}
+                          onClick={() => choosePartialPercentage(percentage)}
                           aria-pressed={partialPercentage === percentage}
                           className="h-7 px-2 text-xs"
                         >
@@ -480,7 +505,7 @@ export function GrazingPopover({
                         step="1"
                         value={partialPercentage}
                         onChange={(e) =>
-                          setPartialPercentage(
+                          choosePartialPercentage(
                             Math.min(100, Math.max(0, parseFloat(e.target.value || "0"))),
                           )
                         }
@@ -503,12 +528,19 @@ export function GrazingPopover({
             >
               <p className="text-foreground flex items-center gap-1.5 font-medium">
                 <Info aria-hidden="true" className="text-primary h-3.5 w-3.5 shrink-0" />
-                <span>
-                  {diffDays.toLocaleString("nl-NL")} {diffDays === 1 ? "weidedag" : "weidedagen"} ·{" "}
-                  {totalHours.toLocaleString("nl-NL")}{" "}
-                  {totalHours === 1 ? "weide-uur" : "weide-uren"} op {field?.b_name} (
-                  {formatHa(effectiveArea)} ha).
-                </span>
+                {hours === null ? (
+                  <span key="no-hours">
+                    {diffDays.toLocaleString("nl-NL")} {diffDays === 1 ? "weidedag" : "weidedagen"},
+                    uren niet vastgelegd, op {field?.b_name} ({formatHa(effectiveArea)} ha).
+                  </span>
+                ) : (
+                  <span key="hours">
+                    {diffDays.toLocaleString("nl-NL")} {diffDays === 1 ? "weidedag" : "weidedagen"}{" "}
+                    · {totalHours.toLocaleString("nl-NL")}{" "}
+                    {totalHours === 1 ? "weide-uur" : "weide-uren"} op {field?.b_name} (
+                    {formatHa(effectiveArea)} ha).
+                  </span>
+                )}
               </p>
               {isFuture && (
                 <p className="text-amber-800">
@@ -522,10 +554,11 @@ export function GrazingPopover({
                 </p>
               )}
               {zoneMissing && <p>Teken eerst een zone op de kaart of kies er een.</p>}
-              {!existingGrazing && calendar && (
+              {!existingGrazing && startDate !== "" && (
                 <p>
-                  Met deze beweiding staat Beweiding {calendar} aan voor dit bedrijf; dat telt mee
-                  voor de stikstofgebruiksnorm.
+                  Is dit de eerste beweiding van {startDate.slice(0, 4)}, dan gaat Beweiding{" "}
+                  {startDate.slice(0, 4)} aan voor dit bedrijf; dat telt mee voor de
+                  stikstofgebruiksnorm.
                 </p>
               )}
             </div>
@@ -553,7 +586,10 @@ export function GrazingPopover({
               <Button
                 type="submit"
                 disabled={
-                  !canWrite || zoneMissing || (areaMode === "partial" && !(partialArea > 0))
+                  !canWrite ||
+                  zoneMissing ||
+                  hoursInvalid ||
+                  (areaMode === "partial" && !(partialArea > 0))
                 }
               >
                 <span key={existingGrazing ? "save" : "record"}>

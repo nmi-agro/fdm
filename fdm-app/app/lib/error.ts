@@ -428,6 +428,32 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "Dit dier zit al in deze koppel.")
   }
 
+  // Validation: the count was changed elsewhere since the page was loaded (checked by fdm-core)
+  if (containsErrorMessage(error, "Number of animals in the herd has changed")) {
+    console.warn("Herd count changed since it was loaded:", error)
+    return dataWithWarning(
+      null,
+      "Het aantal dieren is intussen gewijzigd. Laad de pagina opnieuw en pas het aantal dan aan.",
+    )
+  }
+
+  // Validation: grazing hours and grazing zones (checked by fdm-core, also for clients that skip
+  // the checks of the app)
+  if (containsErrorMessage(error, "Invalid grazing hours")) {
+    console.warn("Invalid grazing hours:", error)
+    return dataWithWarning(null, "Kies meer dan 0 en hoogstens 24 uur per dag.")
+  }
+
+  if (
+    containsErrorMessage(error, "l_grazing_geometry_zone") &&
+    (containsErrorMessage(error, "contains an invalid") ||
+      containsErrorMessage(error, "must have WGS84 coordinates") ||
+      containsErrorMessage(error, "must be a Polygon or MultiPolygon"))
+  ) {
+    console.warn("Invalid grazing zone:", error)
+    return dataWithWarning(null, "Ongeldige zone. Teken de zone opnieuw.")
+  }
+
   // Validation: life number and work number of an animal (checked by fdm-core)
   if (
     containsErrorMessage(error, "has an invalid check digit") ||

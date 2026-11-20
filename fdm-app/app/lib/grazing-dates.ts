@@ -1,0 +1,112 @@
+/**
+ * Dates for the grazing pages. Grazing dates are stored as date-only values (midnight UTC of the
+ * calendar day), while "today" follows the calendar day in the Netherlands.
+ */
+
+/** Time zone of the farms; the calendar day of "today" follows it. */
+export const FARM_TIME_ZONE = "Europe/Amsterdam"
+
+const dayKeyFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: FARM_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+
+/**
+ * Today's calendar day in the Netherlands, as `YYYY-MM-DD`. Between midnight and 1:00 or 2:00 in
+ * the Netherlands the UTC date is still the day before.
+ *
+ * @param now - The current moment.
+ * @returns The day key, for example `2026-05-13`.
+ */
+export function farmTodayKey(now: Date = new Date()): string {
+  return dayKeyFormat.format(now)
+}
+
+/**
+ * Today as a date-only value, comparable with the stored grazing dates: the last moment (UTC) of
+ * today's calendar day in the Netherlands. A grazing that starts today has then started, and its
+ * UTC date is today's day.
+ *
+ * @param now - The current moment.
+ * @returns The end of today's calendar day, in UTC.
+ */
+export function farmToday(now: Date = new Date()): Date {
+  return new Date(`${farmTodayKey(now)}T23:59:59.999Z`)
+}
+
+/**
+ * The moment to count the herds on for a calendar year: now in the current or a future year, and
+ * the last day of a past year, so a past year shows the herds of that year.
+ *
+ * @param year - The calendar year.
+ * @param now - The current moment.
+ * @returns The census date.
+ */
+export function censusDateForYear(year: number, now: Date = new Date()): Date {
+  const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
+  return now < yearEnd ? now : yearEnd
+}
+
+/**
+ * The days of a grazing within a calendar year that have already happened, as `YYYY-MM-DD` keys.
+ * A grazing without an end runs through today; days after today are planned and not included.
+ *
+ * @param grazing - The start and the end (or `null`) of the grazing.
+ * @param year - The calendar year, or `null` for every year.
+ * @param today - Today as a date-only value, see {@link farmToday}.
+ * @returns The day keys, in order.
+ */
+export function realisedGrazingDays(
+  grazing: { l_grazing_start: Date | string; l_grazing_end?: Date | string | null },
+  year: number | null,
+  today: Date,
+): string[] {
+  const start = new Date(grazing.l_grazing_start)
+  const end = grazing.l_grazing_end
+    ? new Date(grazing.l_grazing_end)
+    : today > start
+      ? today
+      : start
+  const last = end < today ? end : today
+  const days: string[] = []
+  const day = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+  while (day <= last) {
+    if (year === null || day.getUTCFullYear() === year) days.push(day.toISOString().slice(0, 10))
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+  return days
+}
+
+/**
+ * The grazing days and hours of one field that have already happened, as the grazing calendar
+ * and `calculateGrazingMetrics` count them: a day on which several herds grazed counts once, with
+ * the most hours of that day; a day without recorded hours adds no hours. Planned days (after
+ * today) are left out.
+ *
+ * @param grazings - The grazings on the field.
+ * @param year - The calendar year, or `null` for every year.
+ * @param today - Today as a date-only value, see {@link farmToday}.
+ * @returns The number of grazing days and the total grazing hours.
+ */
+export function fieldGrazingTotals(
+  grazings: Array<{
+    l_grazing_start: Date | string
+    l_grazing_end?: Date | string | null
+    l_grazing_hours?: number | null
+  }>,
+  year: number | null,
+  today: Date,
+): { days: number; hours: number } {
+  const hoursPerDay = new Map<string, number>()
+  for (const grazing of grazings) {
+    for (const day of realisedGrazingDays(grazing, year, today)) {
+      const hours = grazing.l_grazing_hours ?? 0
+      hoursPerDay.set(day, Math.max(hoursPerDay.get(day) ?? 0, hours))
+    }
+  }
+  let hours = 0
+  for (const dayHours of hoursPerDay.values()) hours += dayHours
+  return { days: hoursPerDay.size, hours }
+}

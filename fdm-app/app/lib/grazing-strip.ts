@@ -19,6 +19,13 @@ const AREA_TOLERANCE = 0.005
 /** Maximum number of bisection steps when cutting a strip. */
 const MAX_STEPS = 50
 
+/**
+ * Days before the start of a grazing in which earlier zones on the field count as recently grazed:
+ * a new strip connects to them instead of overlapping them. The Handboek Melkveehouderij §3.9.2
+ * advises grazing a field again after at most 28 growth days, so a strip older than that is free.
+ */
+export const STRIP_ROTATION_DAYS = 28
+
 /** Area of a geometry in hectares. */
 export function areaHa(geometry: Area): number {
   return area(geometry) / SQUARE_METERS_PER_HECTARE
@@ -140,13 +147,20 @@ export function cutStrip({
 }
 
 /**
+ * The most plots {@link cutEqualPlots} cuts from one field. Every plot costs a few dozen
+ * geometry operations, so a very small plot size would otherwise freeze the browser.
+ */
+export const MAX_PLOTS = 500
+
+/**
  * Divides a field into plots of equal size, as Nieuw Nederlands Weiden asks: the number of plots
  * follows from the intended plot size, and every plot gets the same share of the field. The plots
  * are bands perpendicular to `bearing`, in order of use.
  *
  * @param options - Field, intended plot size (ha) and direction.
  * @returns The plots in order of use; one plot for a field smaller than about one plot, none for an
- *   empty field or plot size.
+ *   empty field or plot size. At most {@link MAX_PLOTS} plots: a smaller plot size gives larger
+ *   plots, so callers should refuse such a size first.
  */
 export function cutEqualPlots({
   field,
@@ -159,7 +173,7 @@ export function cutEqualPlots({
 }): Area[] {
   const fieldArea = areaHa(field)
   if (!(plotAreaHa > 0) || !(fieldArea > 0)) return []
-  const count = Math.max(1, Math.round(fieldArea / plotAreaHa))
+  const count = Math.min(MAX_PLOTS, Math.max(1, Math.round(fieldArea / plotAreaHa)))
   if (count === 1) return [field]
 
   // As in cutStrip: rotate so the plots advance eastwards. The plots are bands between fence

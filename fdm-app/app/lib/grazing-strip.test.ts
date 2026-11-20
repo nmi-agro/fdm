@@ -10,8 +10,10 @@ import {
   cutStrips,
   hasHoles,
   intersectAreas,
+  MAX_PLOTS,
   SNAP_TOLERANCE_PX,
   snapToEdges,
+  subtractAreas,
   toMultiPolygon,
   zoneAreaWithinField,
 } from "./grazing-strip"
@@ -95,6 +97,19 @@ const rectangle = (west: number, south: number, east: number, north: number): Po
 const overlapHa = (a: Area, b: Area) => {
   const overlap = intersectAreas(a, b)
   return overlap ? areaHa(overlap) : 0
+}
+
+/** Checks that plots divide a field: no two plots overlap and together they cover the field. */
+const expectPartition = (whole: Area, plots: Area[]) => {
+  for (let i = 0; i < plots.length; i++) {
+    for (let j = i + 1; j < plots.length; j++) {
+      expect(overlapHa(plots[i], plots[j])).toBeLessThan(0.01)
+    }
+  }
+  const total = plots.reduce((sum, plot) => sum + areaHa(plot), 0)
+  expect(total).toBeCloseTo(areaHa(whole), 1)
+  const uncovered = subtractAreas(whole, plots)
+  expect(uncovered ? areaHa(uncovered) : 0).toBeLessThan(0.01)
 }
 
 describe("cutStrip", () => {
@@ -362,9 +377,7 @@ describe("cutEqualPlots", () => {
     for (const plot of plots) {
       expect(areaHa(plot)).toBeCloseTo(fieldArea / expectedCount, 0)
     }
-    const total = plots.reduce((sum, plot) => sum + areaHa(plot), 0)
-    expect(total).toBeCloseTo(fieldArea, 1)
-    expect(overlapHa(plots[0], plots[1])).toBeLessThan(0.01)
+    expectPartition(field, plots)
   })
 
   it("divides a concave field", () => {
@@ -374,6 +387,12 @@ describe("cutEqualPlots", () => {
     for (const plot of plots) {
       expect(areaHa(plot)).toBeCloseTo(fieldArea / plots.length, 0)
     }
+    expectPartition(lField, plots)
+  })
+
+  it("cuts at most MAX_PLOTS plots for a tiny plot size", () => {
+    const plots = cutEqualPlots({ field, plotAreaHa: 1e-12, bearing: 90 })
+    expect(plots.length).toBe(MAX_PLOTS)
   })
 
   it("keeps a field smaller than one plot as one plot", () => {

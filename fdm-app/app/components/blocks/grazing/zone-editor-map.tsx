@@ -8,7 +8,7 @@
 import type { FeatureCollection, MultiPolygon, Polygon, Position } from "geojson"
 import type { Map as MaplibreMap } from "maplibre-gl"
 import { Scan } from "lucide-react"
-import { type RefObject, useEffect, useMemo, useRef } from "react"
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
 import { Layer, type LayerProps, NavigationControl, Source, useMap } from "react-map-gl/maplibre"
 import {
   type GeoJSONStoreFeatures,
@@ -205,6 +205,11 @@ export interface ZoneEditorMapProps {
   onDrawingChange?: (drawing: boolean) => void
   /** Called on Ctrl+Z (or Cmd+Z) on the map while no zone is being drawn. */
   onUndo?: () => void
+  /**
+   * Called after a zone is loaded into the map, with whether every part could be loaded. A zone
+   * with a part the map refuses is shown read-only, so an edit cannot drop that part.
+   */
+  onZoneLoaded?: (zone: Area | null, complete: boolean) => void
   /** Receives the actions the editor can run on the map. */
   controlsRef?: RefObject<ZoneMapControls | null>
   height?: string
@@ -221,6 +226,7 @@ export default function ZoneEditorMap({
   onNotice,
   onDrawingChange,
   onUndo,
+  onZoneLoaded,
   controlsRef,
   height = DEFAULT_HEIGHT,
 }: ZoneEditorMapProps) {
@@ -230,19 +236,23 @@ export default function ZoneEditorMap({
     () => (highlightedZone ? toFeatureCollection([highlightedZone]) : null),
     [highlightedZone],
   )
-  // terra-draw does not accept a polygon with a hole, so such a zone is shown read-only
+  // A zone of which terra-draw refused a part when it was loaded
+  const [incompleteZone, setIncompleteZone] = useState<Area | null>(null)
+  // terra-draw does not accept a polygon with a hole, so such a zone is shown read-only, as is a
+  // zone of which it refused a part
+  const zoneReadOnly = zone !== null && (hasHoles(zone) || zone === incompleteZone)
   const staticZoneData = useMemo(
-    () => (zone && hasHoles(zone) ? toFeatureCollection([zone]) : null),
-    [zone],
+    () => (zone && zoneReadOnly ? toFeatureCollection([zone]) : null),
+    [zone, zoneReadOnly],
   )
   // A dark casing under the white outline that terra-draw draws, so the zone also reads on a light
   // background. Not while editing: it would trail behind a dragged corner until the edit ends.
   const casingData = useMemo(
     () =>
-      zone && !hasHoles(zone) && mode !== "edit"
+      zone && !zoneReadOnly && mode !== "edit"
         ? toFeatureCollection([zone])
         : toFeatureCollection([]),
-    [zone, mode],
+    [zone, zoneReadOnly, mode],
   )
   const initialViewState = useMemo(
     () => ({ ...getViewState(fieldData), fitBoundsOptions: { padding: 24 } }),
@@ -303,6 +313,10 @@ export default function ZoneEditorMap({
         onNotice={onNotice}
         onDrawingChange={onDrawingChange}
         onUndo={onUndo}
+        onZoneLoaded={(loaded, complete) => {
+          setIncompleteZone(complete ? null : loaded)
+          onZoneLoaded?.(loaded, complete)
+        }}
         controlsRef={controlsRef}
       />
     </Atlas>
@@ -347,6 +361,7 @@ function ZoneDrawing({
   onNotice,
   onDrawingChange,
   onUndo,
+  onZoneLoaded,
   controlsRef,
 }: Pick<
   ZoneEditorMapProps,
@@ -359,6 +374,7 @@ function ZoneDrawing({
   | "onNotice"
   | "onDrawingChange"
   | "onUndo"
+  | "onZoneLoaded"
   | "controlsRef"
 >) {
   const { current: mapRef } = useMap()
@@ -380,6 +396,7 @@ function ZoneDrawing({
     onNotice,
     onDrawingChange,
     onUndo,
+    onZoneLoaded,
   })
   useEffect(() => {
     latestRef.current = {
@@ -392,6 +409,7 @@ function ZoneDrawing({
       onNotice,
       onDrawingChange,
       onUndo,
+      onZoneLoaded,
     }
   })
 
@@ -518,16 +536,21 @@ function ZoneDrawing({
         .map((feature) => feature.geometry as Polygon)
 
     const applyZone = (next: Area | null) => {
+      let complete = true
       loading = true
       try {
-        loadZone(draw, next)
+        complete = loadZone(draw, next)
+        // Editing only the parts that loaded would save the zone without the refused part, so
+        // none of it is editable then; the map shows the zone read-only instead
+        if (!complete) draw.clear()
       } finally {
         loading = false
       }
       loadedRef.current = next
       zoneCount = zonePolygons().length
+      latestRef.current.onZoneLoaded?.(next, complete)
       // Keep the zone selected, also after it was clipped and reloaded, so it can be edited at once
-      if (latestRef.current.mode === "edit") selectZone(draw)
+      if (complete && latestRef.current.mode === "edit") selectZone(draw)
     }
 
     // Reads the zone back after an edit in the select mode
@@ -607,7 +630,13 @@ function ZoneDrawing({
     })
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isDrawing()) {
+      // Escape in another dialog on top of this one, such as the delete confirmation, or in a
+      // popup of a select (both rendered elsewhere in the document), belongs to that dialog
+      const owner = container.closest('[role="dialog"]')
+      const target = event.target as Node | null
+      const inOwnDialog =
+        !owner || target === null || target === document.body || owner.contains(target)
+      if (event.key === "Escape" && isDrawing() && inOwnDialog) {
         // The dialog closes on Escape at the document; stop the key here, so it only cancels the
         // drawing. Without a drawing, Escape still closes the dialog.
         event.preventDefault()
@@ -701,19 +730,25 @@ function toDrawMode(mode: ZoneEditorMode): string {
 /**
  * Replaces what terra-draw holds with the polygons of the zone. terra-draw does not accept a
  * polygon with a hole, so such a zone is not loaded; the map shows it read-only instead.
+ *
+ * @returns Whether every part of the zone was accepted; `false` when terra-draw refused a part.
  */
-function loadZone(draw: TerraDraw, zone: Area | null): void {
+function loadZone(draw: TerraDraw, zone: Area | null): boolean {
   draw.clear()
-  if (!zone || hasHoles(zone)) return
+  if (!zone || hasHoles(zone)) return true
   const features = toPolygons(zone).map(
     (geometry) =>
       ({ type: "Feature", geometry, properties: { mode: "polygon" } }) as GeoJSONStoreFeatures,
   )
-  // terra-draw silently skips a feature it does not accept; report it, so a zone that does not
-  // appear on the map can be traced
+  // terra-draw skips a feature it does not accept; report it, so it can be traced
+  let complete = true
   for (const result of draw.addFeatures(features)) {
-    if (!result.valid) console.warn("Zone not shown on the map:", result.reason)
+    if (!result.valid) {
+      complete = false
+      console.warn("Zone part not editable on the map:", result.reason)
+    }
   }
+  return complete
 }
 
 /** Selects the (first part of the) zone, so its corners can be dragged without clicking it first. */
