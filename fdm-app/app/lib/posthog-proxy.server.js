@@ -47,15 +47,33 @@ class BodyTooLargeError extends Error {}
  * `Content-Length` header is also limited to {@link MAX_BODY_SIZE}.
  *
  * @param {ReadableStream | AsyncIterable<Uint8Array>} source - The request body.
- * @returns {AsyncGenerator<Uint8Array>} The same chunks, until the limit is exceeded.
+ * @returns {{ body: AsyncGenerator<Uint8Array>, tooLarge: Promise<boolean> }} The same chunks,
+ *   until the limit is exceeded, and a promise that settles once the body has been read: `true`
+ *   when it was too large.
  */
-async function* limitBodySize(source) {
-  let total = 0
-  for await (const chunk of source) {
-    total += chunk.byteLength
-    if (total > MAX_BODY_SIZE) throw new BodyTooLargeError("Request too large")
-    yield chunk
+function limitBodySize(source) {
+  /** @type {(tooLarge: boolean) => void} */
+  let settle = () => {}
+  const tooLarge = new Promise((resolve) => {
+    settle = resolve
+  })
+  async function* chunks() {
+    let total = 0
+    try {
+      for await (const chunk of source) {
+        total += chunk.byteLength
+        if (total > MAX_BODY_SIZE) {
+          settle(true)
+          throw new BodyTooLargeError("Request too large")
+        }
+        yield chunk
+      }
+    } finally {
+      // No effect when the body was too large: a promise settles only once
+      settle(false)
+    }
   }
+  return { body: chunks(), tooLarge }
 }
 
 /**
@@ -139,13 +157,14 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
 
   // The timeout covers the whole exchange, including the transfer of the response body
   const controller = new AbortController()
+  const upload = hasBody ? limitBodySize(body) : null
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
   let response
   try {
     response = await fetch(targetUrl, {
       method,
       headers,
-      body: hasBody ? limitBodySize(body) : undefined,
+      body: upload ? upload.body : undefined,
       signal: controller.signal,
       duplex: "half",
     })
@@ -166,6 +185,19 @@ export async function proxyToPosthog({ method, url, headers: requestHeaders, bod
       status: 503,
       statusText: "PostHog proxy error",
     })
+  }
+
+  // PostHog may answer before it has read the whole upload. Wait until the body has been read, so
+  // an upload that turns out too large is still answered with 413 instead of PostHog's response.
+  if (upload) {
+    const aborted = new Promise((resolve) => {
+      controller.signal.addEventListener("abort", () => resolve(false), { once: true })
+    })
+    if (await Promise.race([upload.tooLarge, aborted])) {
+      clearTimeout(timeoutId)
+      response.body?.cancel().catch(() => undefined)
+      return new Response("Request too large", { status: 413 })
+    }
   }
 
   const responseHeaders = new Headers(response.headers)

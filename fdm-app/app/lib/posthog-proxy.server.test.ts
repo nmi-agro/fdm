@@ -119,6 +119,29 @@ describe("proxyToPosthog", () => {
     expect(response.status).toBe(413)
   })
 
+  it("answers 413 when PostHog answers before an upload turns out too large", async () => {
+    // PostHog sends its response at once and reads the upload in the background
+    vi.stubGlobal("fetch", async (_url: URL, init: RequestInit) => {
+      void readBody(init.body).catch(() => undefined)
+      return new Response("ok", { status: 200 })
+    })
+    const chunk = new Uint8Array(1024 * 1024)
+    const body = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        for (let i = 0; i < 11; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 5))
+          controller.enqueue(chunk)
+        }
+        controller.close()
+      },
+    })
+    const response = await proxyToPosthog(
+      { method: "POST", url: new URL("http://localhost/ingest/s/"), headers: new Headers(), body },
+      POSTHOG_HOST,
+    )
+    expect(response.status).toBe(413)
+  })
+
   it("does not forward hop-by-hop headers or headers that Connection names", async () => {
     const calls = stubPosthog(
       new Response("ok", {
