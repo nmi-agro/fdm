@@ -317,6 +317,9 @@ export function buildFieldColumn(
                 >
                   {cultivation.b_lu_name}
                 </Badge>
+              ) : field.pending ? (
+                // Without a main cultivation the advice row decides what to show
+                <Skeleton className="h-5 w-20 rounded-full" />
               ) : (
                 <span className="text-muted-foreground truncate text-xs italic">Geen gewas</span>
               )}
