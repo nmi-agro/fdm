@@ -38,7 +38,6 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@file-type/xml": "^1.2.0",
-    "@google-cloud/storage": "^8.4.0",
     "@hookform/resolvers": "^7.0.7",
     "@icons-pack/react-simple-icons": "^13.15.1",
     "@langchain/core": "^1.4.2",
