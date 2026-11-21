@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-export { createGcsStorage, isGcsConfigured } from "./gcs"
+export { createGcsStorage, isGcsConfigured, isGcsNotFoundError } from "./gcs"
 export type { GcsStorage, GcsStorageOptions } from "./gcs"
 export { createMemoryStorage } from "./memory"
 export { buildObjectKey, FileNotFoundError } from "./types"

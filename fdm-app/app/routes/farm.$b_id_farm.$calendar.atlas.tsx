@@ -84,6 +84,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  *
  * @returns The React element representing the farm atlas content block.
  */
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function FarmContentBlock() {
   const loaderData = useLoaderData<typeof loader>()
 

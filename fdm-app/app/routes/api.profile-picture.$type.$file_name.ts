@@ -1,7 +1,10 @@
-import { ApiError } from "@google-cloud/storage"
 import { getPrincipal } from "@nmi-agro/fdm-core"
 import { data, redirect } from "react-router"
-import { buildObjectKey, generateSignedReadUrl } from "~/integrations/gcs.server"
+import {
+  buildObjectKey,
+  generateSignedReadUrl,
+  isGcsNotFoundError,
+} from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -46,7 +49,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
       return redirect(url, { status: 302, headers })
     } catch (gcsError) {
-      if (gcsError instanceof ApiError && gcsError.code === 404) {
+      if (isGcsNotFoundError(gcsError)) {
         return data("Not Found", { status: 404 })
       }
       throw gcsError
