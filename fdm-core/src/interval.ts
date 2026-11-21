@@ -33,7 +33,7 @@ export function overlapsHalfOpen(
 const MS_PER_DAY = 86_400_000
 
 /** Number of the (UTC) calendar day of a timestamp. */
-function dayNumber(date: Date): number {
+export function dayNumber(date: Date): number {
   return Math.floor(date.getTime() / MS_PER_DAY)
 }
 

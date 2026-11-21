@@ -29,8 +29,13 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { setGrazingIntention } from "./grazing_intention"
 import { createId } from "./id"
-import { assertIntervalEndNotBeforeStart, overlapsHalfOpen, sharesCalendarDay } from "./interval"
-import { withTimeframe } from "./timeframe"
+import {
+  assertIntervalEndNotBeforeStart,
+  dayNumber,
+  overlapsHalfOpen,
+  sharesCalendarDay,
+} from "./interval"
+import { withPeriodTimeframe } from "./timeframe"
 import { clippedZone, geographyArea, normalizeZone } from "./zone"
 
 /** SQL expression for the area (ha) of a geometry, rounded to 2 decimals. */
@@ -95,9 +100,10 @@ function assertGrazingExtent(
  * the field, or `l_grazing_area` when only its size is known. A zone is clipped to the field when
  * it is read. Total grazing days are derived from the start/end dates in the calculator layer
  * rather than stored here.
- * A herd can be on the same field only once a day: its grazings on the same field may not share a
- * calendar day, counting both the start and the end day. Herd-level grazings (without a field)
- * may not overlap any other grazing of the herd.
+ * A herd can have several grazings on a day, also on the same field (two zones, or the same zone
+ * twice), as long as their hours add up to at most 24 on every calendar day; a grazing without
+ * hours counts as 0. Herd-level grazings (without a field) may not overlap any other grazing of
+ * the herd.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the grazing action.
@@ -152,13 +158,12 @@ export async function addGrazing(
         }
       }
 
-      await assertNoOverlappingGrazingForHerd(
-        tx,
-        l_id_herd,
+      await assertGrazingFitsHerd(tx, l_id_herd, {
+        b_id: properties?.b_id ?? null,
         l_grazing_start,
-        grazingEnd,
-        properties?.b_id ?? null,
-      )
+        l_grazing_end: grazingEnd,
+        l_grazing_hours: properties?.l_grazing_hours ?? null,
+      })
 
       await enableIntentionForFirstGrazing(
         tx,
@@ -194,8 +199,8 @@ export async function addGrazing(
 /**
  * Records multiple outdoor pasture grazing actions for herds on farm field parcels
  * in a single atomic transaction. Applies all permission, interval, farm-consistency,
- * and overlap validations across all rows, as well as automatic first-of-year grazing
- * intention side-effects.
+ * overlap and hours-per-day validations across all rows (see {@link addGrazing}), counting the
+ * rows of the batch together, as well as automatic first-of-year grazing intention side-effects.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the grazing actions.
@@ -276,22 +281,13 @@ export async function addGrazings(
           }
         }
 
-        await assertNoOverlappingGrazingForHerd(
+        await assertGrazingFitsHerd(
           tx,
           row.l_id_herd,
-          row.l_grazing_start,
-          grazingEnd,
-          row.b_id ?? null,
+          row,
+          undefined,
+          rows.slice(0, i).filter((prev) => prev.l_id_herd === row.l_id_herd),
         )
-
-        for (let j = 0; j < i; j++) {
-          const prev = rows[j]
-          if (prev.l_id_herd === row.l_id_herd && grazingsConflict(row, prev)) {
-            throw new Error(
-              "Grazing interval overlaps another grazing interval in this batch for this herd",
-            )
-          }
-        }
       }
 
       const yearsPerFarm = new Map<string, Set<number>>()
@@ -334,7 +330,8 @@ export async function addGrazings(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param l_id_herd - Herd ID.
- * @param timeframe - Optional timeframe filter.
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ *   grazings that started before it.
  * @returns Array of grazing records.
  */
 export async function getGrazingForHerd(
@@ -347,7 +344,12 @@ export async function getGrazingForHerd(
     await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "getGrazingForHerd")
 
     let dateWhere: SQL | undefined = eq(schema.herdGrazing.l_id_herd, l_id_herd)
-    dateWhere = withTimeframe(dateWhere, schema.herdGrazing.l_grazing_start, timeframe)
+    dateWhere = withPeriodTimeframe(
+      dateWhere,
+      schema.herdGrazing.l_grazing_start,
+      schema.herdGrazing.l_grazing_end,
+      timeframe,
+    )
 
     const rows = await fdm
       .select(grazingColumns())
@@ -368,7 +370,8 @@ export async function getGrazingForHerd(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param b_id_farm - Farm ID.
- * @param timeframe - Optional timeframe filter.
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ *   grazings that started before it.
  * @returns Array of grazing records.
  */
 export async function getGrazingForFarm(
@@ -392,7 +395,12 @@ export async function getGrazingForFarm(
     }
 
     let dateWhere: SQL | undefined = inArray(schema.herdGrazing.l_id_herd, herdIds)
-    dateWhere = withTimeframe(dateWhere, schema.herdGrazing.l_grazing_start, timeframe)
+    dateWhere = withPeriodTimeframe(
+      dateWhere,
+      schema.herdGrazing.l_grazing_start,
+      schema.herdGrazing.l_grazing_end,
+      timeframe,
+    )
 
     const rows = await fdm
       .select(grazingColumns())
@@ -413,7 +421,8 @@ export async function getGrazingForFarm(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param b_id_farm - Farm ID.
- * @param timeframe - Optional timeframe filter.
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ *   grazings that started before it.
  * @returns Array of calendar grazing records with herd and field details.
  */
 export async function getGrazingCalendarForFarm(
@@ -437,7 +446,12 @@ export async function getGrazingCalendarForFarm(
     }
 
     let dateWhere: SQL | undefined = inArray(schema.herdGrazing.l_id_herd, herdIds)
-    dateWhere = withTimeframe(dateWhere, schema.herdGrazing.l_grazing_start, timeframe)
+    dateWhere = withPeriodTimeframe(
+      dateWhere,
+      schema.herdGrazing.l_grazing_start,
+      schema.herdGrazing.l_grazing_end,
+      timeframe,
+    )
 
     const rows = await fdm
       .select({
@@ -473,7 +487,8 @@ export async function getGrazingCalendarForFarm(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param b_id - Field ID.
- * @param timeframe - Optional timeframe filter.
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ *   grazings that started before it.
  * @returns Array of grazing records.
  */
 export async function getGrazingForField(
@@ -486,7 +501,12 @@ export async function getGrazingForField(
     await checkPermission(fdm, "field", "read", b_id, principal_id, "getGrazingForField")
 
     let dateWhere: SQL | undefined = eq(schema.herdGrazing.b_id, b_id)
-    dateWhere = withTimeframe(dateWhere, schema.herdGrazing.l_grazing_start, timeframe)
+    dateWhere = withPeriodTimeframe(
+      dateWhere,
+      schema.herdGrazing.l_grazing_start,
+      schema.herdGrazing.l_grazing_end,
+      timeframe,
+    )
 
     const rows = await fdm
       .select(grazingColumns())
@@ -536,7 +556,8 @@ export async function getGrazing(
 
 /**
  * Corrects an existing grazing record identified by its ID.
- * The updated interval may not overlap another grazing interval for the same herd on the same field.
+ * The corrected grazing must still fit next to the other grazings of the herd: at most 24 hours per
+ * calendar day in total, and no overlap with a herd-level grazing (see {@link addGrazing}).
  * To switch between a zone and an area, pass `null` for the one that no longer applies.
  *
  * @param fdm - The FDM instance.
@@ -565,6 +586,7 @@ export async function updateGrazing(
           b_id: schema.herdGrazing.b_id,
           l_grazing_start: schema.herdGrazing.l_grazing_start,
           l_grazing_end: schema.herdGrazing.l_grazing_end,
+          l_grazing_hours: schema.herdGrazing.l_grazing_hours,
           l_grazing_area: schema.herdGrazing.l_grazing_area,
           l_grazing_geometry_zone: schema.herdGrazing.l_grazing_geometry_zone,
         })
@@ -601,12 +623,18 @@ export async function updateGrazing(
         existing[0].b_id,
       )
 
-      await assertNoOverlappingGrazingForHerd(
+      await assertGrazingFitsHerd(
         tx,
         existing[0].l_id_herd,
-        nextStart,
-        nextEnd,
-        existing[0].b_id ?? null,
+        {
+          b_id: existing[0].b_id,
+          l_grazing_start: nextStart,
+          l_grazing_end: nextEnd,
+          l_grazing_hours:
+            properties.l_grazing_hours === undefined
+              ? existing[0].l_grazing_hours
+              : properties.l_grazing_hours,
+        },
         l_id_grazing,
       )
 
@@ -703,59 +731,115 @@ function assertGrazingHours(hours: number | null | undefined): void {
   }
 }
 
-async function assertNoOverlappingGrazingForHerd(
+/** The parts of a grazing that decide whether it fits next to the other grazings of its herd. */
+type GrazingSlot = {
+  b_id?: string | null
+  l_grazing_start: Date
+  l_grazing_end?: Date | null
+  l_grazing_hours?: number | null
+}
+
+/** Most grazing hours a herd can have on one calendar day, summed over its grazings. */
+const MAX_GRAZING_HOURS_PER_DAY = 24
+
+/**
+ * Loads the other grazings of a herd and checks that a new or corrected grazing fits next to them
+ * (see {@link assertGrazingFits}).
+ *
+ * @param tx - The transaction.
+ * @param l_id_herd - The herd.
+ * @param grazing - The new or corrected grazing.
+ * @param exclude_l_id_grazing - The grazing being corrected, which does not count.
+ * @param batch - Grazings of the same herd added earlier in the same batch.
+ */
+async function assertGrazingFitsHerd(
   tx: FdmType,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
-  l_grazing_start: Date,
-  l_grazing_end: Date | null,
-  b_id: schema.herdGrazingTypeInsert["b_id"],
+  grazing: GrazingSlot,
   exclude_l_id_grazing?: schema.herdGrazingTypeSelect["l_id_grazing"],
+  batch: GrazingSlot[] = [],
 ): Promise<void> {
   const grazingRows = await tx
     .select({
-      l_id_grazing: schema.herdGrazing.l_id_grazing,
       b_id: schema.herdGrazing.b_id,
       l_grazing_start: schema.herdGrazing.l_grazing_start,
       l_grazing_end: schema.herdGrazing.l_grazing_end,
+      l_grazing_hours: schema.herdGrazing.l_grazing_hours,
     })
     .from(schema.herdGrazing)
-    .where(eq(schema.herdGrazing.l_id_herd, l_id_herd))
+    .where(
+      and(
+        eq(schema.herdGrazing.l_id_herd, l_id_herd),
+        exclude_l_id_grazing
+          ? ne(schema.herdGrazing.l_id_grazing, exclude_l_id_grazing)
+          : undefined,
+      ),
+    )
 
-  for (const row of grazingRows) {
-    if (row.l_id_grazing === exclude_l_id_grazing) {
-      continue
-    }
+  assertGrazingFits(grazing, [...grazingRows, ...batch])
+}
 
+/**
+ * Checks that a grazing fits next to the other grazings of the same herd.
+ *
+ * - A grazing without a field (herd level) may not overlap any other grazing of the herd, and no
+ *   grazing may overlap it.
+ * - Grazings on fields may share a day, also on the same field: a herd can graze two zones of a
+ *   field on one day, or the same zone in the morning and the afternoon. Their hours per day are
+ *   added up, and the sum may not exceed 24 hours on any calendar day. A grazing without hours
+ *   counts as 0 hours.
+ *
+ * @param grazing - The new or corrected grazing.
+ * @param others - The other grazings of the herd.
+ * @throws When a herd-level grazing overlaps another grazing, or the hours exceed 24 on a day.
+ */
+function assertGrazingFits(grazing: GrazingSlot, others: GrazingSlot[]): void {
+  const sharingDay: GrazingSlot[] = []
+  for (const other of others) {
     if (
-      grazingsConflict(
-        { b_id, l_grazing_start, l_grazing_end },
-        { b_id: row.b_id, l_grazing_start: row.l_grazing_start, l_grazing_end: row.l_grazing_end },
+      (!grazing.b_id || !other.b_id) &&
+      overlapsHalfOpen(
+        grazing.l_grazing_start,
+        grazing.l_grazing_end,
+        other.l_grazing_start,
+        other.l_grazing_end,
       )
     ) {
       throw new Error("Grazing interval overlaps an existing grazing interval for this herd")
     }
+    if (
+      sharesCalendarDay(
+        grazing.l_grazing_start,
+        grazing.l_grazing_end,
+        other.l_grazing_start,
+        other.l_grazing_end,
+      )
+    ) {
+      sharingDay.push(other)
+    }
   }
-}
 
-/**
- * Whether two grazings of the same herd conflict. Grazings on different fields never conflict.
- * On the same field the herd can be booked only once a day, so grazings conflict when they share
- * a calendar day, also when one of them lasts a single day. A grazing without a field conflicts
- * with every grazing whose period overlaps it.
- */
-function grazingsConflict(
-  a: { b_id?: string | null; l_grazing_start: Date; l_grazing_end?: Date | null },
-  b: { b_id?: string | null; l_grazing_start: Date; l_grazing_end?: Date | null },
-): boolean {
-  const aField = a.b_id ?? null
-  const bField = b.b_id ?? null
-  if (aField !== null && bField !== null && aField !== bField) {
-    return false
+  // The hours on a day only go up on the first day of a grazing, so the busiest day of the new
+  // grazing is its own first day or the first day of one of the grazings it shares a day with
+  const firstDay = dayNumber(grazing.l_grazing_start)
+  const checkDays = new Set([
+    firstDay,
+    ...sharingDay.map((other) => Math.max(firstDay, dayNumber(other.l_grazing_start))),
+  ])
+  for (const day of checkDays) {
+    let hours = grazing.l_grazing_hours ?? 0
+    for (const other of sharingDay) {
+      const otherEnd = other.l_grazing_end
+        ? dayNumber(other.l_grazing_end)
+        : Number.POSITIVE_INFINITY
+      if (dayNumber(other.l_grazing_start) <= day && day <= otherEnd) {
+        hours += other.l_grazing_hours ?? 0
+      }
+    }
+    if (hours > MAX_GRAZING_HOURS_PER_DAY + 1e-9) {
+      throw new Error("Grazing hours of this herd exceed 24 hours on a day")
+    }
   }
-  if (aField !== null && aField === bField) {
-    return sharesCalendarDay(a.l_grazing_start, a.l_grazing_end, b.l_grazing_start, b.l_grazing_end)
-  }
-  return overlapsHalfOpen(a.l_grazing_start, a.l_grazing_end, b.l_grazing_start, b.l_grazing_end)
 }
 
 /**
@@ -880,7 +964,7 @@ export async function getGrazingZonesForField(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal requesting the areas.
  * @param b_id_farm - Farm ID.
- * @param timeframe - Optional timeframe filter on the start of the grazing.
+ * @param timeframe - Optional timeframe; grazings that overlap it count, also open grazings.
  * @returns One item per grazed field with its area and grazed area (ha).
  */
 export async function getGrazedAreaForFarm(
@@ -903,9 +987,10 @@ export async function getGrazedAreaForFarm(
 
     const zone = schema.herdGrazing.l_grazing_geometry_zone
     const area = schema.herdGrazing.l_grazing_area
-    const where = withTimeframe(
+    const where = withPeriodTimeframe(
       and(inArray(schema.herdGrazing.l_id_herd, herdIds), isNotNull(schema.herdGrazing.b_id)),
       schema.herdGrazing.l_grazing_start,
+      schema.herdGrazing.l_grazing_end,
       timeframe,
     )
 

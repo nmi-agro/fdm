@@ -1,4 +1,4 @@
-import { and, gte, lte, type AnyColumn, type SQL } from "drizzle-orm"
+import { and, gte, isNull, lte, or, type AnyColumn, type SQL } from "drizzle-orm"
 
 type Start = Date | null | undefined
 type End = Date | null | undefined
@@ -33,4 +33,31 @@ export function withTimeframe(
     return and(baseWhere, lte(dateColumn, timeframe.end))
   }
   return baseWhere
+}
+
+/**
+ * Combines an optional timeframe with a base predicate on a period with a start and an optional
+ * end, keeping every period that overlaps the timeframe. A period without an end is open and
+ * overlaps every timeframe that ends on or after its start.
+ *
+ * @param baseWhere - The existing predicate to combine with the timeframe bounds.
+ * @param startColumn - The column with the start of the period.
+ * @param endColumn - The column with the end of the period; null means the period is open.
+ * @param timeframe - Optional start and/or end date bounds.
+ * @returns The combined predicate.
+ */
+export function withPeriodTimeframe(
+  baseWhere: SQL | undefined,
+  startColumn: AnyColumn,
+  endColumn: AnyColumn,
+  timeframe?: Timeframe,
+): SQL | undefined {
+  const conditions: Array<SQL | undefined> = [baseWhere]
+  if (timeframe?.end) {
+    conditions.push(lte(startColumn, timeframe.end))
+  }
+  if (timeframe?.start) {
+    conditions.push(or(isNull(endColumn), gte(endColumn, timeframe.start)))
+  }
+  return conditions.length === 1 ? baseWhere : and(...conditions)
 }
