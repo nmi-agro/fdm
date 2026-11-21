@@ -26,6 +26,9 @@ function toDateKey(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+/** Most grazing hours a herd can have on one day, also when its grazings add up to more. */
+const MAX_HOURS_PER_DAY = 24
+
 /** Midnight (UTC) at the start of the calendar day of a date. */
 function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
@@ -74,12 +77,14 @@ function getDaysBetween(start: Date, end: Date): string[] {
  * 1. **Weidedagen (Distinct Days)**:
  *    Calculates distinct calendar days covered by grazing intervals. Concurrent grazing by the same herd
  *    across multiple parcels on the same calendar day counts as exactly one weidedag (double-count protection).
- * 2. **Weide-uren (Daily Maximum)**:
- *    When multiple intervals exist for the same herd on a single day, the daily maximum is used rather than
- *    the sum. Days without recorded hours are excluded from the hour totals and flagged as incomplete.
+ * 2. **Weide-uren (per herd per day)**:
+ *    The hours of all grazings of a herd on one day are added up (8 hours on one field or zone and
+ *    7 hours on another make 15), up to 24 hours. The farm's hours of a day are those of the herd
+ *    that grazed longest; the farm average divides them by the days with recorded hours.
+ *    Grazings without recorded hours add nothing and are flagged as incomplete.
  * 3. **Weidemelk 120 x 6 Norm**:
  *    Pools all herds assigned to category `rvo_100` (Melk- en kalfkoeien) across the farm into a unified
- *    calendar day set. Only days with at least 6 hours of outdoor grazing qualify.
+ *    calendar day set. Only days on which one such herd grazed at least 6 hours qualify.
  * 4. **Realised vs Planned Separation**:
  *    Periods starting on or before `today` are computed as realised metrics. Future-dated periods are tracked
  *    separately as planned values and are never added to realised totals.
@@ -158,18 +163,18 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
   // 1. Day & hour mappings
   const herdRealisedDays = new Map<string, Set<string>>()
   const herdPlannedDays = new Map<string, Set<string>>()
-  const herdDailyMaxHours = new Map<string, Map<string, number>>() // herdId -> (dayKey -> maxHours)
+  const herdDailyHours = new Map<string, Map<string, number>>() // herdId -> (dayKey -> hours)
   const allRealisedDays = new Set<string>()
   const allPlannedDays = new Set<string>()
   const incompleteRecordIds = new Set<string>()
 
-  // Weidemelk daily max hours for category rvo_100
+  // Weidemelk: per day the hours of the dairy herd (category rvo_100) that grazed longest
   const weidemelkDailyHours = new Map<string, number>()
 
   for (const herd of input.herds) {
     herdRealisedDays.set(herd.l_id_herd, new Set())
     herdPlannedDays.set(herd.l_id_herd, new Set())
-    herdDailyMaxHours.set(herd.l_id_herd, new Map())
+    herdDailyHours.set(herd.l_id_herd, new Map())
   }
 
   for (const g of yearGrazings) {
@@ -188,50 +193,48 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
       incompleteRecordIds.add(g.l_id_grazing)
     }
 
-    const herd = herdMap.get(g.l_id_herd)
-    const isWeidemelkCategory = herd?.l_id_category === WEIDEMELK_CATEGORY_CODE
-
     const herdRealised = herdRealisedDays.get(g.l_id_herd) ?? new Set()
     const herdPlanned = herdPlannedDays.get(g.l_id_herd) ?? new Set()
-    const herdHoursMap = herdDailyMaxHours.get(g.l_id_herd) ?? new Map()
+    const herdHoursMap = herdDailyHours.get(g.l_id_herd) ?? new Map<string, number>()
 
     for (const dayKey of days) {
       const isPastOrToday = dayKey <= todayKey && isStarted
       if (isPastOrToday) {
         herdRealised.add(dayKey)
         allRealisedDays.add(dayKey)
-
-        if (hours !== null) {
-          const currentMax = herdHoursMap.get(dayKey) ?? 0
-          herdHoursMap.set(dayKey, Math.max(currentMax, hours))
-
-          if (isWeidemelkCategory) {
-            const wmCurrent = weidemelkDailyHours.get(dayKey) ?? 0
-            weidemelkDailyHours.set(dayKey, Math.max(wmCurrent, hours))
-          }
-        }
       } else {
         herdPlanned.add(dayKey)
         allPlannedDays.add(dayKey)
-
-        if (isWeidemelkCategory && hours !== null) {
-          const wmCurrent = weidemelkDailyHours.get(dayKey) ?? 0
-          weidemelkDailyHours.set(dayKey, Math.max(wmCurrent, hours))
-        }
+      }
+      if (hours !== null) {
+        const current = herdHoursMap.get(dayKey) ?? 0
+        herdHoursMap.set(dayKey, Math.min(MAX_HOURS_PER_DAY, current + hours))
       }
     }
 
     herdRealisedDays.set(g.l_id_herd, herdRealised)
     herdPlannedDays.set(g.l_id_herd, herdPlanned)
-    herdDailyMaxHours.set(g.l_id_herd, herdHoursMap)
+    herdDailyHours.set(g.l_id_herd, herdHoursMap)
+  }
+
+  // Weidemelk counts a day when one dairy herd grazed at least 6 hours on it (its hours on all
+  // fields added up). The farm's weide-uren of a day are those of the herd that grazed longest.
+  const farmDailyHours = new Map<string, number>()
+  for (const [l_id_herd, hoursMap] of herdDailyHours.entries()) {
+    const isWeidemelkCategory = herdMap.get(l_id_herd)?.l_id_category === WEIDEMELK_CATEGORY_CODE
+    for (const [dayKey, hours] of hoursMap.entries()) {
+      if (isWeidemelkCategory) {
+        weidemelkDailyHours.set(dayKey, Math.max(weidemelkDailyHours.get(dayKey) ?? 0, hours))
+      }
+      if (dayKey <= todayKey) {
+        farmDailyHours.set(dayKey, Math.max(farmDailyHours.get(dayKey) ?? 0, hours))
+      }
+    }
   }
 
   // 2. Weidedagen summary
   const perHerdWeidedagen: Record<string, { total: number; planned: number }> = {}
   const perHerdWeideUren: Record<string, { totalHours: number; averageHoursPerDay: number }> = {}
-
-  let totalFarmHours = 0
-  let totalFarmHoursDays = 0
 
   for (const herd of input.herds) {
     const realisedCount = herdRealisedDays.get(herd.l_id_herd)?.size ?? 0
@@ -241,10 +244,11 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
       planned: plannedCount,
     }
 
-    const hoursMap = herdDailyMaxHours.get(herd.l_id_herd) ?? new Map()
+    const hoursMap = herdDailyHours.get(herd.l_id_herd) ?? new Map<string, number>()
     let herdTotalHours = 0
     let daysWithHours = 0
-    for (const [, h] of hoursMap.entries()) {
+    for (const [dayKey, h] of hoursMap.entries()) {
+      if (dayKey > todayKey) continue
       herdTotalHours += h
       daysWithHours += 1
     }
@@ -254,13 +258,14 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
       totalHours: Number(herdTotalHours.toFixed(1)),
       averageHoursPerDay: avg,
     }
-
-    totalFarmHours += herdTotalHours
-    totalFarmHoursDays += daysWithHours
   }
 
+  let totalFarmHours = 0
+  for (const hours of farmDailyHours.values()) {
+    totalFarmHours += hours
+  }
   const farmAverageHours =
-    totalFarmHoursDays > 0 ? Number((totalFarmHours / totalFarmHoursDays).toFixed(1)) : 0
+    farmDailyHours.size > 0 ? Number((totalFarmHours / farmDailyHours.size).toFixed(1)) : 0
 
   // 3. Weidemelk
   let weidemelkQualifyingDays = 0

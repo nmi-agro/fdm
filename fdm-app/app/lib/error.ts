@@ -485,15 +485,21 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "Een ander dier op dit bedrijf heeft dit levensnummer al.")
   }
 
-  // Validation: a herd can be on the same field only once a day (checked by fdm-core)
-  if (
-    containsErrorMessage(error, "overlaps an existing grazing interval") ||
-    containsErrorMessage(error, "overlaps another grazing interval")
-  ) {
+  // Validation: a herd grazes at most 24 hours a day in total (checked by fdm-core)
+  if (containsErrorMessage(error, "exceed 24 hours on a day")) {
+    console.warn("Grazing hours of the herd exceed 24 hours on a day:", error)
+    return dataWithWarning(
+      null,
+      "Deze koppel komt op een dag boven 24 uur beweiden, samen met de beweiding die al is vastgelegd. Pas de uren of de datum aan.",
+    )
+  }
+
+  // Validation: a grazing without a field may not overlap another grazing of the herd
+  if (containsErrorMessage(error, "overlaps an existing grazing interval")) {
     console.warn("Grazing overlaps another grazing of the herd:", error)
     return dataWithWarning(
       null,
-      "Deze koppel weidt op die dag al op dit perceel. Een koppel kan maar één keer per dag op hetzelfde perceel staan. Pas de datum aan of kies een ander perceel.",
+      "Deze koppel heeft in die periode al een beweiding zonder perceel. Pas de datum aan.",
     )
   }
 

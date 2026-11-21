@@ -338,6 +338,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  * @example
  * <FarmFieldIndex />
  */
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function FarmRotationIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const { capture } = useAnalytics()

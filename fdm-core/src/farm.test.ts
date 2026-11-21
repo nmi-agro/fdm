@@ -182,6 +182,39 @@ describe("Farm Functions", () => {
       expect(farms.some((farm) => farm.b_id_farm === b_id_farm)).toBeTruthy() // Assert that the test farm is in the list
     })
 
+    it("should return the roles of the principal for each farm", async () => {
+      const list_principal_id = createId()
+      const owned_farm_id = await addFarm(
+        fdm,
+        list_principal_id,
+        "Owned farm",
+        createId(),
+        "Address 1",
+        "1234 AB",
+      )
+      const shared_farm_id = await addFarm(
+        fdm,
+        principal_id,
+        "Shared farm",
+        createId(),
+        "Address 2",
+        "1234 AB",
+      )
+      await grantRole(fdm, "farm", "advisor", shared_farm_id, list_principal_id)
+
+      const farms = await getFarms(fdm, list_principal_id)
+
+      expect(farms.map((farm) => farm.b_id_farm).sort()).toEqual(
+        [owned_farm_id, shared_farm_id].sort(),
+      )
+      expect(farms.find((farm) => farm.b_id_farm === owned_farm_id)?.roles).toEqual([
+        { principal_id: list_principal_id, principal_type: "user", role: "owner" },
+      ])
+      expect(farms.find((farm) => farm.b_id_farm === shared_farm_id)?.roles).toEqual([
+        { principal_id: list_principal_id, principal_type: "user", role: "advisor" },
+      ])
+    })
+
     it("should handle errors during farm list retrieval", async () => {
       // Mock the listResources function to throw an error
       const mockListResources = async () => {

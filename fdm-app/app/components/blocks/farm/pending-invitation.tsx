@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Bell, Check, Clock, X } from "lucide-react"
-import { Form } from "react-router"
+import { useFetcher } from "react-router"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import { Spinner } from "~/components/ui/spinner"
 
 type PendingInvitation = {
   invitation_id: string
@@ -39,6 +40,9 @@ export function PendingInvitationCard({
   principalType = "user",
   canAccept = true,
 }: Props) {
+  const acceptFetcher = useFetcher()
+  const declineFetcher = useFetcher()
+  const isPending = acceptFetcher.state !== "idle" || declineFetcher.state !== "idle"
   const farmLabel = invitation.farm_name ?? invitation.resource_id
   const expiresText = formatDistanceToNow(new Date(invitation.expires), {
     addSuffix: true,
@@ -80,22 +84,36 @@ export function PendingInvitationCard({
       <CardFooter className="flex gap-2">
         {canAccept ? (
           <>
-            <Form method="post" className="flex-1">
+            <acceptFetcher.Form method="post" className="flex-1">
               <input type="hidden" name="intent" value="accept_farm_invitation" />
               <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
-              <Button type="submit" size="sm" className="w-full">
-                <Check className="mr-1 h-3 w-3" />
-                Accepteren
+              <Button type="submit" size="sm" className="w-full" disabled={isPending}>
+                {acceptFetcher.state !== "idle" ? (
+                  <Spinner className="mr-1 h-3 w-3" />
+                ) : (
+                  <Check className="mr-1 h-3 w-3" />
+                )}
+                <span>Accepteren</span>
               </Button>
-            </Form>
-            <Form method="post" className="flex-1">
+            </acceptFetcher.Form>
+            <declineFetcher.Form method="post" className="flex-1">
               <input type="hidden" name="intent" value="decline_farm_invitation" />
               <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
-              <Button type="submit" size="sm" variant="outline" className="w-full">
-                <X className="mr-1 h-3 w-3" />
-                Weigeren
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                className="w-full"
+                disabled={isPending}
+              >
+                {declineFetcher.state !== "idle" ? (
+                  <Spinner className="mr-1 h-3 w-3" />
+                ) : (
+                  <X className="mr-1 h-3 w-3" />
+                )}
+                <span>Weigeren</span>
               </Button>
-            </Form>
+            </declineFetcher.Form>
           </>
         ) : (
           <div className="text-muted-foreground text-xs">

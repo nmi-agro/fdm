@@ -5,7 +5,7 @@ import type { ControllerFieldState, ControllerRenderProps, FieldValues } from "r
 import { nl as calenderLocale } from "@daypicker/react/locale"
 import * as chrono from "chrono-node"
 import { cn } from "cn"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useState } from "react"
@@ -186,8 +186,10 @@ export function parseDateText(
 
   // Only treat as ISO string when it matches YYYY-MM-DD... to avoid JS's lenient Date parsing
   // (e.g. new Date("1-4-2025") returns January 4th — American order — before Dutch pre-processor runs).
+  // A date without a time is a calendar day: parse it as local midnight, like a day picked in the
+  // calendar, so it does not move to the previous day west of UTC. A full timestamp stays exact.
   if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
-    const isoDate = new Date(date)
+    const isoDate = parseISO(date)
     if (!Number.isNaN(isoDate.getTime())) {
       return isoDate
     }

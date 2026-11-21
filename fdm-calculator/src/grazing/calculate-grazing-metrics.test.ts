@@ -64,10 +64,59 @@ describe("calculateGrazingMetrics", () => {
     expect(result.weidedagen.total).toBe(4)
     expect(result.weidedagen.perHerd["herd-1"].total).toBe(4)
 
-    // Hours on May 10 should be max(8, 6, 4) = 8.
-    // Days 11, 12, 13 are 8 hours each -> Total 32 hours, avg 8.0
-    expect(result.weideUren.totalHours).toBe(32)
-    expect(result.weideUren.averageHoursPerDay).toBe(8.0)
+    // The herd's hours on May 10 add up over the fields: 8 + 6 + 4 = 18.
+    // Days 11, 12, 13 are 8 hours each -> Total 42 hours, avg 10.5
+    expect(result.weideUren.totalHours).toBe(42)
+    expect(result.weideUren.averageHoursPerDay).toBe(10.5)
+    expect(result.weideUren.perHerd["herd-1"]).toEqual({ totalHours: 42, averageHoursPerDay: 10.5 })
+  })
+
+  it("should add up a herd's hours per day, count Weidemelk on them and average the farm per day", () => {
+    const day = (d: number) => ({
+      l_grazing_start: new Date(Date.UTC(2026, 4, d)),
+      l_grazing_end: new Date(Date.UTC(2026, 4, d)),
+    })
+    const result = calculateGrazingMetrics({
+      year: 2026,
+      today: new Date("2026-06-01T12:00:00.000Z"),
+      herds: [
+        {
+          l_id_herd: "dairy",
+          l_herd_name: "Melkkoeien",
+          l_id_category: "rvo_100",
+          l_lsu: 1,
+          count: 80,
+        },
+        {
+          l_id_herd: "young",
+          l_herd_name: "Pinken",
+          l_id_category: "rvo_102",
+          l_lsu: 0.5,
+          count: 20,
+        },
+      ],
+      fields: [{ b_id: "f1", b_name: "De Hoek", b_area: 4.0, isGrassland: true }],
+      grazings: [
+        // Two zones of one field: 4 + 3 = 7 hours, so Weidemelk counts the day
+        { l_id_grazing: "a", l_id_herd: "dairy", b_id: "f1", ...day(10), l_grazing_hours: 4 },
+        { l_id_grazing: "b", l_id_herd: "dairy", b_id: "f1", ...day(10), l_grazing_hours: 3 },
+        // Another herd on the same day: the farm takes the herd that grazed longest
+        { l_id_grazing: "c", l_id_herd: "young", b_id: "f1", ...day(10), l_grazing_hours: 10 },
+        // More than 24 hours a day counts as 24
+        { l_id_grazing: "d", l_id_herd: "young", b_id: "f1", ...day(11), l_grazing_hours: 16 },
+        { l_id_grazing: "e", l_id_herd: "young", b_id: "f1", ...day(11), l_grazing_hours: 16 },
+        // A planned day (after today, 1 June) does not count in the realised hours
+        { l_id_grazing: "f", l_id_herd: "dairy", b_id: "f1", ...day(40), l_grazing_hours: 8 },
+      ],
+    })
+
+    expect(result.weideUren.perHerd.dairy).toEqual({ totalHours: 7, averageHoursPerDay: 7 })
+    expect(result.weideUren.perHerd.young).toEqual({ totalHours: 34, averageHoursPerDay: 17 })
+    // Farm: May 10 → 10 hours (Pinken), May 11 → 24 hours: 34 hours over 2 days
+    expect(result.weideUren.totalHours).toBe(34)
+    expect(result.weideUren.averageHoursPerDay).toBe(17)
+    expect(result.weidemelk.qualifyingDays).toBe(1)
+    expect(result.weidemelk.plannedQualifyingDays).toBe(1)
   })
 
   it("should pool all rvo_100 herds together for Weidemelk 120x6 compliance", () => {

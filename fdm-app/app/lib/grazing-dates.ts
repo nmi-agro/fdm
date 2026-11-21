@@ -81,9 +81,10 @@ export function realisedGrazingDays(
 
 /**
  * The grazing days and hours of one field that have already happened, as the grazing calendar
- * and `calculateGrazingMetrics` count them: a day on which several herds grazed counts once, with
- * the most hours of that day; a day without recorded hours adds no hours. Planned days (after
- * today) are left out.
+ * and `calculateGrazingMetrics` count them: a day counts once. The hours of a herd on a day are
+ * those of all its grazings on the field added up (two zones, or the same zone twice), up to 24;
+ * when several herds grazed that day, the herd with the most hours counts. A grazing without
+ * recorded hours adds no hours. Planned days (after today) are left out.
  *
  * @param grazings - The grazings on the field.
  * @param year - The calendar year, or `null` for every year.
@@ -92,6 +93,7 @@ export function realisedGrazingDays(
  */
 export function fieldGrazingTotals(
   grazings: Array<{
+    l_id_herd?: string
     l_grazing_start: Date | string
     l_grazing_end?: Date | string | null
     l_grazing_hours?: number | null
@@ -99,12 +101,18 @@ export function fieldGrazingTotals(
   year: number | null,
   today: Date,
 ): { days: number; hours: number } {
-  const hoursPerDay = new Map<string, number>()
+  // Hours per herd and day, added up over the herd's grazings
+  const herdHours = new Map<string, number>()
   for (const grazing of grazings) {
     for (const day of realisedGrazingDays(grazing, year, today)) {
-      const hours = grazing.l_grazing_hours ?? 0
-      hoursPerDay.set(day, Math.max(hoursPerDay.get(day) ?? 0, hours))
+      const key = `${grazing.l_id_herd ?? ""}|${day}`
+      herdHours.set(key, Math.min(24, (herdHours.get(key) ?? 0) + (grazing.l_grazing_hours ?? 0)))
     }
+  }
+  const hoursPerDay = new Map<string, number>()
+  for (const [key, hours] of herdHours) {
+    const day = key.slice(key.indexOf("|") + 1)
+    hoursPerDay.set(day, Math.max(hoursPerDay.get(day) ?? 0, hours))
   }
   let hours = 0
   for (const dayHours of hoursPerDay.values()) hours += dayHours

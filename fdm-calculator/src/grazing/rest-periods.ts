@@ -60,6 +60,11 @@ export function zonesOverlap(
  * earlier use of the same part of the field, so successive strips of strip grazing each get their
  * own rest period instead of counting as a re-use of the field after a day.
  *
+ * A use that still runs on the start day of another use of the same part is not a previous use:
+ * two herds on the same zone at the same time, the same zone in the morning and the afternoon, or
+ * a handover on one day count as one use, so they get no rest of 0 days. The rest of the later
+ * use then counts from the use before them.
+ *
  * @param uses - The uses of one field, in any order.
  * @returns For each use, in order of start, the previous use of the same part and the rest days.
  */
@@ -67,8 +72,10 @@ export function calculateRestBeforeUses<T>(uses: FieldUse<T>[]): FieldUseRest<T>
   const sorted = [...uses].sort((a, b) => a.start.getTime() - b.start.getTime())
   return sorted.map((use, index) => {
     let previous: FieldUse<T> | null = null
+    const startDay = Math.floor(use.start.getTime() / MS_PER_DAY)
     for (let i = 0; i < index; i++) {
       const candidate = sorted[i]
+      if (Math.floor(candidate.end.getTime() / MS_PER_DAY) >= startDay) continue
       if (!zonesOverlap(candidate.zone, use.zone)) continue
       if (!previous || candidate.end.getTime() > previous.end.getTime()) previous = candidate
     }

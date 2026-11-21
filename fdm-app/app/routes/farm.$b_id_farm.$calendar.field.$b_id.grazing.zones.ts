@@ -22,6 +22,9 @@ const MS_PER_DAY = 86_400_000
  * - `exclude`: the grazing being edited, which does not occupy its own zone. Other grazings of the
  *   same zone still do.
  */
+/** Most zones in use that the strip builder takes into account; more means the list is cut off. */
+const MAX_OCCUPIED_ZONES = 1000
+
 export async function loader({ params, request }: LoaderFunctionArgs) {
   try {
     const b_id = params.b_id
@@ -45,7 +48,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       getField(fdm, session.principal_id, b_id),
       getGrazingZonesForField(fdm, session.principal_id, b_id).catch(onFailure),
       date && !Number.isNaN(date.getTime())
-        ? getGrazingZonesForField(fdm, session.principal_id, b_id, 100, {
+        ? getGrazingZonesForField(fdm, session.principal_id, b_id, MAX_OCCUPIED_ZONES + 1, {
             from: new Date(date.getTime() - STRIP_ROTATION_DAYS * MS_PER_DAY),
             to: date,
             exclude_l_id_grazing: exclude,
@@ -62,8 +65,12 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         usage_count: zone.usage_count,
         l_herd_names: zone.l_herd_names,
       })),
-      occupied: (occupied ?? []).map((zone) => zone.l_grazing_geometry_zone),
-      zonesFailed: zones === null || occupied === null,
+      occupied: (occupied ?? [])
+        .slice(0, MAX_OCCUPIED_ZONES)
+        .map((zone) => zone.l_grazing_geometry_zone),
+      // More zones in use than requested means the list is cut off, so the free part of the field
+      // is unknown, as when the zones failed to load
+      zonesFailed: zones === null || occupied === null || occupied.length > MAX_OCCUPIED_ZONES,
     }
   } catch (error) {
     throw handleLoaderError(error)

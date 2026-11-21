@@ -30,7 +30,6 @@ import {
 } from "~/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { useToday } from "~/hooks/use-today"
 import { formatHa } from "~/lib/format"
 import {
   formatRestAlert,
@@ -177,9 +176,8 @@ export function CalendarGrid({
     entries: DayEntry[]
   } | null>(null)
 
-  // "Today" is only known on the client; empty until then
-  const todayDate = useToday()
-  const todayKey = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
+  // Today's calendar day in the Netherlands, from the server, as in the matrix itself
+  const todayKey = matrix.todayKey
   const todayIndex = matrix.columns.findIndex((column) => column.dateStart === todayKey)
 
   // Keyboard: the one day that is in the tab order, and the first day of a Shift-selection

@@ -228,7 +228,7 @@ describe("Grazing Domain", () => {
     ).rejects.toThrowError("Exception for updateGrazing")
   })
 
-  it("should allow overlapping grazing intervals for the same herd on DIFFERENT fields, but reject on SAME field or herd-level", async () => {
+  it("should allow overlapping grazing intervals for the same herd on fields, but reject herd-level overlaps", async () => {
     const field1 = await addField(
       fdm,
       principal_id,
@@ -289,13 +289,13 @@ describe("Grazing Domain", () => {
       }),
     ).resolves.not.toThrow()
 
-    // Concurrent grazing on same field 1 MUST be rejected
+    // Concurrent grazing on the same field 1 is accepted, for example on another zone
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, new Date("2025-07-05T00:00:00.000Z"), {
         b_id: field1,
         l_grazing_end: new Date("2025-07-15T00:00:00.000Z"),
       }),
-    ).rejects.toThrowError("Exception for addGrazing")
+    ).resolves.not.toThrow()
 
     // Concurrent grazing with herd-level (b_id is null) MUST be rejected
     await expect(
@@ -883,53 +883,122 @@ describe("Grazing zones", () => {
     expect(whole.b_area_grazed).toBe(fieldArea)
   })
 
-  it("books a herd on the same field only once a day", async () => {
-    // A grazing of one day, on a strip of the field
+  it("allows several grazings of a herd on a field per day up to 24 hours", async () => {
+    const exceeds = { cause: { message: expect.stringContaining("exceed 24 hours") } }
+
+    // Two zones of the field on one day: 8 and 7 hours
     await addGrazing(fdm, principal_id, l_id_herd, day(10), {
       b_id,
       l_grazing_end: day(10),
+      l_grazing_hours: 8,
       l_grazing_geometry_zone: strip(5.0, 5.0025),
     })
-
-    // A second grazing on that day is rejected, also of one day on another strip
-    await expect(
-      addGrazing(fdm, principal_id, l_id_herd, day(10), {
-        b_id,
-        l_grazing_end: day(10),
-        l_grazing_geometry_zone: strip(5.0025, 5.005),
-      }),
-    ).rejects.toThrowError("Exception for addGrazing")
-    // A grazing that ends on that day is rejected too
-    await expect(
-      addGrazing(fdm, principal_id, l_id_herd, day(8), { b_id, l_grazing_end: day(10) }),
-    ).rejects.toThrowError("Exception for addGrazing")
-
-    // The next day is free
-    await addGrazing(fdm, principal_id, l_id_herd, day(11), {
+    await addGrazing(fdm, principal_id, l_id_herd, day(10), {
       b_id,
-      l_grazing_end: day(12),
+      l_grazing_end: day(10),
+      l_grazing_hours: 7,
       l_grazing_geometry_zone: strip(5.0025, 5.005),
     })
-
-    // A grazing that starts on the end day of the previous one is rejected
+    // The same zone again in the evening, up to 24 hours in total
+    await addGrazing(fdm, principal_id, l_id_herd, day(10), {
+      b_id,
+      l_grazing_end: day(10),
+      l_grazing_hours: 9,
+      l_grazing_geometry_zone: strip(5.0, 5.0025),
+    })
+    // One more hour on that day is too much, also from a grazing that only ends on that day
     await expect(
-      addGrazing(fdm, principal_id, l_id_herd, day(12), { b_id, l_grazing_end: day(13) }),
-    ).rejects.toThrowError("Exception for addGrazing")
+      addGrazing(fdm, principal_id, l_id_herd, day(8), {
+        b_id,
+        l_grazing_end: day(10),
+        l_grazing_hours: 1,
+      }),
+    ).rejects.toMatchObject(exceeds)
+    // A grazing without hours counts as 0 hours
+    await addGrazing(fdm, principal_id, l_id_herd, day(8), { b_id, l_grazing_end: day(10) })
 
-    // Moving a grazing onto a booked day is rejected
-    const [next] = (await getGrazingForField(fdm, principal_id, b_id)).filter(
-      (g) => g.l_grazing_start.getTime() === day(11).getTime(),
+    // A grazing of several days is checked on each of its days
+    await addGrazing(fdm, principal_id, l_id_herd, day(15), {
+      b_id,
+      l_grazing_end: day(20),
+      l_grazing_hours: 12,
+    })
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, day(18), {
+        b_id,
+        l_grazing_end: day(18),
+        l_grazing_hours: 13,
+      }),
+    ).rejects.toMatchObject(exceeds)
+    await addGrazing(fdm, principal_id, l_id_herd, day(18), {
+      b_id,
+      l_grazing_end: day(18),
+      l_grazing_hours: 12,
+    })
+    // A day after the busy day still fits
+    await addGrazing(fdm, principal_id, l_id_herd, day(19), {
+      b_id,
+      l_grazing_end: day(21),
+      l_grazing_hours: 12,
+    })
+
+    // A correction counts the other grazings, but not itself
+    const [single] = (await getGrazingForField(fdm, principal_id, b_id)).filter(
+      (g) => g.l_grazing_start.getTime() === day(18).getTime(),
     )
+    await updateGrazing(fdm, principal_id, single.l_id_grazing, { l_grazing_hours: 12 })
     await expect(
-      updateGrazing(fdm, principal_id, next.l_id_grazing, { l_grazing_start: day(10) }),
-    ).rejects.toThrowError("Exception for updateGrazing")
+      updateGrazing(fdm, principal_id, single.l_id_grazing, { l_grazing_hours: 13 }),
+    ).rejects.toMatchObject(exceeds)
 
-    // Two grazings on one day in a batch are rejected
+    // The rows of a batch count together
+    await addGrazings(fdm, principal_id, [
+      { l_id_herd, b_id, l_grazing_start: day(25), l_grazing_end: day(25), l_grazing_hours: 12 },
+      { l_id_herd, b_id, l_grazing_start: day(25), l_grazing_end: day(25), l_grazing_hours: 12 },
+    ])
     await expect(
       addGrazings(fdm, principal_id, [
-        { l_id_herd, b_id, l_grazing_start: day(20), l_grazing_end: day(20) },
-        { l_id_herd, b_id, l_grazing_start: day(20), l_grazing_end: day(20) },
+        { l_id_herd, b_id, l_grazing_start: day(27), l_grazing_end: day(27), l_grazing_hours: 16 },
+        { l_id_herd, b_id, l_grazing_start: day(27), l_grazing_end: day(27), l_grazing_hours: 10 },
       ]),
-    ).rejects.toThrowError("Exception for addGrazings")
+    ).rejects.toMatchObject(exceeds)
+  })
+
+  it("finds grazings that started before the timeframe and run into it", async () => {
+    const yearStart = new Date("2026-01-01T00:00:00.000Z")
+    const timeframe = { start: yearStart, end: new Date("2026-12-31T23:59:59.999Z") }
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-12-28T00:00:00.000Z"), {
+      b_id,
+      l_grazing_end: new Date("2026-01-03T00:00:00.000Z"),
+    })
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-11-01T00:00:00.000Z"), {
+      b_id,
+      l_grazing_end: new Date("2025-11-05T00:00:00.000Z"),
+    })
+    const herd2 = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Pinken",
+      l_id_category: "rvo_100",
+    })
+    // An open grazing started last year
+    await addGrazing(fdm, principal_id, herd2, new Date("2025-12-20T00:00:00.000Z"), { b_id })
+
+    const forField = await getGrazingForField(fdm, principal_id, b_id, timeframe)
+    expect(forField.map((g) => g.l_grazing_start.toISOString().slice(0, 10)).sort()).toEqual([
+      "2025-12-20",
+      "2025-12-28",
+    ])
+    expect(await getGrazingForHerd(fdm, principal_id, l_id_herd, timeframe)).toHaveLength(1)
+    expect(await getGrazingForFarm(fdm, principal_id, b_id_farm, timeframe)).toHaveLength(2)
+    expect(await getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe)).toHaveLength(2)
+    const [area] = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, timeframe)
+    expect(area.b_id).toBe(b_id)
+
+    // A grazing that ended before the timeframe is not found
+    expect(
+      await getGrazingForField(fdm, principal_id, b_id, {
+        start: new Date("2026-02-01T00:00:00.000Z"),
+        end: timeframe.end,
+      }),
+    ).toHaveLength(1)
   })
 })

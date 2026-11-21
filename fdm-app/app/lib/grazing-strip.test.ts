@@ -135,6 +135,12 @@ describe("cutStrip", () => {
     const second = cutStrip({ field, occupied: [first], targetAreaHa: 3, bearing: 90 }) as Area
     expect(areaHa(second)).toBeCloseTo(3, 1)
     expect(overlapHa(first, second)).toBeLessThan(0.01)
+    // The strips share a fence: the second starts where the first ends, without a gap
+    const lons = (area: Area) =>
+      toMultiPolygon(area)
+        .coordinates.flat(2)
+        .map(([lon]) => lon)
+    expect(Math.min(...lons(second))).toBeCloseTo(Math.max(...lons(first)), 5)
   })
 
   it("returns the free remainder when it is smaller than the intended area", () => {

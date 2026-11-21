@@ -82,16 +82,29 @@ describe("realisedGrazingDays", () => {
 describe("fieldGrazingTotals", () => {
   const today = new Date("2026-06-15T23:59:59.999Z")
 
-  it("counts a day once, with the most hours of that day", () => {
+  it("adds up the hours of one herd on a day, up to 24", () => {
+    const day = (hours: number) => ({
+      l_id_herd: "dairy",
+      l_grazing_start: "2026-06-10T00:00:00.000Z",
+      l_grazing_end: "2026-06-10T00:00:00.000Z",
+      l_grazing_hours: hours,
+    })
+    expect(fieldGrazingTotals([day(8), day(7)], 2026, today)).toEqual({ days: 1, hours: 15 })
+    expect(fieldGrazingTotals([day(16), day(16)], 2026, today)).toEqual({ days: 1, hours: 24 })
+  })
+
+  it("counts a day once, with the herd with the most hours that day", () => {
     const totals = fieldGrazingTotals(
       [
         {
+          l_id_herd: "dairy",
           l_grazing_start: "2026-06-10T00:00:00.000Z",
           l_grazing_end: "2026-06-11T00:00:00.000Z",
           l_grazing_hours: 8,
         },
         // A second herd on 11 June
         {
+          l_id_herd: "young",
           l_grazing_start: "2026-06-11T00:00:00.000Z",
           l_grazing_end: "2026-06-11T00:00:00.000Z",
           l_grazing_hours: 24,

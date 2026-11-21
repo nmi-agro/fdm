@@ -106,7 +106,7 @@ export interface RestPeriodDetail {
   b_name?: string | null
   /** Type of the previous use ("weiden" for grazing, "maaien" for mowing). */
   lastUseType: "weiden" | "maaien"
-  /** End timestamp of the previous use. */
+  /** Calendar day (midnight UTC) on which the previous use ended. */
   lastUseDate: Date
   /** Type of the subsequent use ("weiden" for grazing, "maaien" for mowing). */
   nextUseType: "weiden" | "maaien"
@@ -168,11 +168,14 @@ export interface GrazingMetricsResult {
    * Total and average daily grazing hours.
    */
   weideUren: {
-    /** Total cumulative grazing hours across all distinct grazing days. */
+    /**
+     * Total grazing hours of the farm: per distinct day the hours of the herd that grazed
+     * longest, where a herd's hours of a day are those of all its grazings added up (at most 24).
+     */
     totalHours: number
     /** Average daily grazing duration (total hours divided by number of days with recorded hours). */
     averageHoursPerDay: number
-    /** Breakdown of total hours and average daily hours per herd ID. */
+    /** Per herd ID: its hours added up over its grazings per day, and the average per day. */
     perHerd: Record<string, { totalHours: number; averageHoursPerDay: number }>
   }
   /**

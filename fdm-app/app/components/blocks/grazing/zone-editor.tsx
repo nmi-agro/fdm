@@ -24,6 +24,7 @@ import {
 } from "~/components/ui/select"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { formatHa } from "~/lib/format"
 import {
   type Area,
@@ -51,7 +52,7 @@ const MAP_HEIGHT_CLASS = "h-[min(420px,55vh)]"
 const EARLIER_ZONES_SHOWN = 8
 
 const DRAW_HINT =
-  "Klik de hoeken. Klik op het eerste punt of druk Enter om af te ronden; Esc stopt. Lijnen mogen elkaar niet kruisen. Houd Alt ingedrukt om niet te laten springen."
+  "Klik de hoeken. Klik op het eerste punt of druk Enter om af te ronden; Esc stopt. Lijnen mogen elkaar niet kruisen. Houd Alt ingedrukt om niet te laten springen. Zoom in voor een smalle strook: een klik dicht bij het eerste punt rondt de zone af."
 const REPLACE_HINT = "De nieuwe zone vervangt de huidige."
 const EDIT_HINT =
   "Sleep een hoek, klik op een middenpunt voor een extra hoek, rechtsklik op een hoek om hem te verwijderen."
@@ -60,6 +61,12 @@ const HOLE_REASON = "Deze zone heeft een gat en kan niet worden aangepast; teken
 const NOTHING_TO_UNDO_REASON = "Er is nog niets om ongedaan te maken"
 const INCOMPLETE_REASON =
   "Een deel van deze zone kan op de kaart niet worden aangepast; teken hem opnieuw"
+/**
+ * Form id of the strip builder inputs. No form has this id, so the inputs stay out of the grazing
+ * form: their own limits (such as steps of 100 kg) never block saving the grazing.
+ */
+const STRIP_BUILDER_FORM = "strip-builder"
+const OCCUPANCY_LOADING_REASON = "Eerder gebruikte zones voor deze datum worden geladen"
 const OCCUPANCY_FAILED_REASON =
   "Eerder gebruikte zones zijn niet geladen, dus de vrije ruimte is onbekend; laad ze opnieuw"
 
@@ -181,6 +188,8 @@ export function ZoneEditor({
   // connects to them
   const recentZones = useMemo(() => (fetcher.data?.occupied ?? []) as Area[], [fetcher.data])
   const occupancyFailed = fetcher.data?.zonesFailed ?? false
+  // While the zones are loaded again (another date), the zones in use are those of the old date
+  const occupancyLoading = fetcher.state !== "idle"
 
   const zoneArea = field && zone ? zoneAreaWithinField(zone, field) : null
   const zoneHasHoles = zone !== null && hasHoles(zone)
@@ -263,8 +272,10 @@ export function ZoneEditor({
                 variant={showStripBuilder && !occupancyFailed ? "default" : "outline"}
                 aria-pressed={showStripBuilder && !occupancyFailed}
                 onClick={() => setShowStripBuilder((show) => !show)}
-                disabled={occupancyFailed}
-                disabledReason={OCCUPANCY_FAILED_REASON}
+                disabled={occupancyFailed || occupancyLoading}
+                disabledReason={
+                  occupancyFailed ? OCCUPANCY_FAILED_REASON : OCCUPANCY_LOADING_REASON
+                }
               >
                 <Rows3 className="h-3.5 w-3.5" />
                 <span>Strook berekenen</span>
@@ -362,6 +373,7 @@ export function ZoneEditor({
         <StripBuilder
           field={field}
           occupied={recentZones}
+          occupancyLoading={occupancyLoading}
           animals={animals}
           hoursPerDay={hoursPerDay}
           days={days}
@@ -526,6 +538,7 @@ function ZoneLegend({ showRecent }: { showRecent: boolean }) {
 function StripBuilder({
   field,
   occupied,
+  occupancyLoading,
   animals,
   hoursPerDay,
   days,
@@ -533,6 +546,8 @@ function StripBuilder({
 }: {
   field: Area
   occupied: Area[]
+  /** The zones in use are being loaded again; a strip cut now could overlap them. */
+  occupancyLoading: boolean
   animals?: number
   hoursPerDay: number
   days: number
@@ -544,8 +559,9 @@ function StripBuilder({
     hoursPerDay / GRAZING_HOURS_PER_KG_DM_MIN,
   )
   const [direction, setDirection] = useState("90")
-  const [animalCount, setAnimalCount] = useState(animals ? String(animals) : "")
-  const [intake, setIntake] = useState(String(Math.round(defaultIntake * 10) / 10))
+  // Follow the herd and the grazing hours of the dialog until the user types a value of their own
+  const [animalCount, setAnimalCount] = useKeyedState(animals, (n) => (n ? String(n) : ""))
+  const [intake, setIntake] = useKeyedState(defaultIntake, (kg) => String(Math.round(kg * 10) / 10))
   const [offer, setOffer] = useState(String(INSCHAREN_DRY_MATTER_TARGET_KG_HA))
   const [notFree, setNotFree] = useState(false)
 
@@ -563,7 +579,7 @@ function StripBuilder({
   }, [animalCount, intake, offer, days])
 
   const handleCut = () => {
-    if (!allocation || !(allocation.areaHa > 0)) return
+    if (!allocation || !(allocation.areaHa > 0) || occupancyLoading) return
     const strip = cutStrip({
       field,
       occupied,
@@ -607,6 +623,7 @@ function StripBuilder({
           <Input
             id="strip-animals"
             type="number"
+            form={STRIP_BUILDER_FORM}
             min="1"
             value={animalCount}
             onChange={(e) => setAnimalCount(e.target.value)}
@@ -620,6 +637,7 @@ function StripBuilder({
           <Input
             id="strip-intake"
             type="number"
+            form={STRIP_BUILDER_FORM}
             min="0.5"
             step="0.5"
             value={intake}
@@ -634,6 +652,7 @@ function StripBuilder({
           <Input
             id="strip-offer"
             type="number"
+            form={STRIP_BUILDER_FORM}
             min="100"
             step="100"
             value={offer}
@@ -665,10 +684,10 @@ function StripBuilder({
           type="button"
           size="sm"
           onClick={handleCut}
-          disabled={!allocation || !(allocation.areaHa > 0)}
+          disabled={!allocation || !(allocation.areaHa > 0) || occupancyLoading}
           className="text-xs"
         >
-          Strook maken
+          {occupancyLoading ? "Zones laden…" : "Strook maken"}
         </Button>
       </div>
       {notFree && (
