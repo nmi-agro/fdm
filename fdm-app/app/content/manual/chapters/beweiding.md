@@ -59,7 +59,7 @@ In het venster kies je eerst of de koppel **1 dag** of **Meerdere dagen** weidt.
 
 Heeft een bestaande beweiding geen uren per dag, dan blijven die open als je alleen iets anders aanpast. Hetzelfde geldt voor een deel van het perceel zonder kaart: dat blijft precies zo groot tot je het percentage verandert.
 
-Een koppel staat op één dag maar één keer op hetzelfde perceel. Weidt de koppel op een van die dagen al op het perceel, dan krijg je een melding. Pas dan de bestaande beweiding aan, bijvoorbeeld met een grotere zone, of kies een andere datum. Op dezelfde dag naar een ander perceel kan wel.
+Een koppel kan op één dag meer dan één beweiding hebben, ook op hetzelfde perceel: bijvoorbeeld 's ochtends op de ene zone en 's middags op een andere, of twee keer op dezelfde zone. De uren van die beweidingen tellen op, en samen mogen ze niet boven 24 uur per dag komen. Komt de koppel daarboven, dan krijg je een melding; pas dan de uren of de datum aan.
 
 Een beweiding zonder einddatum, bijvoorbeeld uit een eerdere registratie, loopt door tot en met vandaag. Open je haar om bijvoorbeeld de uren aan te passen, laat dan de einddatum leeg; dan blijft ze lopen. Vul je een einddatum in, dan is de beweiding afgesloten.
 
@@ -75,7 +75,7 @@ Klik op **Vastleggen**. Bij een zone kan dat pas als je een zone hebt getekend o
 
 Kies je **Zone op de kaart**, dan zie je het perceel op de kaart, met de witte stippellijn als perceelsgrens. De zone is licht met een witte rand, zodat hij ook op groen grasland goed zichtbaar is; stroken van de afgelopen 28 dagen zijn donker met een witte streepjeslijn.
 
-1. Klik op **Tekenen** en zet met klikken de hoeken van de zone. Rond af door op het eerste punt te klikken, te dubbelklikken of op Enter te drukken. Met Esc stop je de tekening zonder het venster te sluiten. Teken je opnieuw terwijl er al een zone is, dan vervangt de nieuwe zone de oude.
+1. Klik op **Tekenen** en zet met klikken de hoeken van de zone. Rond af door op het eerste punt te klikken, te dubbelklikken of op Enter te drukken. Een klik dicht bij het eerste punt rondt de zone ook af; zoom daarom in als je een smalle strook tekent, of voeg de ontbrekende hoek daarna toe met **Aanpassen**. Met Esc stop je de tekening zonder het venster te sluiten. Teken je opnieuw terwijl er al een zone is, dan vervangt de nieuwe zone de oude.
 2. Met **Aanpassen** is de zone direct gekozen: versleep een hoek, klik op een middenpunt voor een extra hoek of klik met de rechtermuisknop op een hoek om hem te verwijderen. Met **Wissen** begin je opnieuw.
 3. Met **Ongedaan maken** (of Ctrl+Z) zet je de laatste wijziging terug: tijdens het tekenen de laatste hoek, daarna de vorige zone, ook na **Wissen** of een berekende strook.
 4. Onder de kaart staan de **Eerder gebruikte zones** van dit perceel, met datum, koppel en hoe vaak ze zijn gebruikt. Ga met de muis over een zone om hem op de kaart te zien, en klik om hem opnieuw te gebruiken, bijvoorbeeld een vast blok dat je elke ronde weer beweidt.
@@ -94,7 +94,7 @@ Bij stripgrazen of rantsoenbeweiding krijgen je koeien steeds een nieuwe strook 
 2. Controleer het aantal dieren, de grasopname per dier en het grasaanbod. {{appName}} vult ze in met richtwaarden; pas ze aan voor je eigen bedrijf.
 3. Klik op **Strook maken**.
 
-De nieuwe strook sluit aan op de stroken die in de 28 dagen voor deze beweiding op dit perceel zijn beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Konden de eerder gebruikte zones niet worden geladen, dan kun je geen strook laten berekenen; probeer het dan nog eens met **Opnieuw laden**. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
+De nieuwe strook sluit aan op de stroken die in de 28 dagen voor deze beweiding op dit perceel zijn beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Konden de eerder gebruikte zones niet worden geladen, dan kun je geen strook laten berekenen; probeer het dan nog eens met **Opnieuw laden**. Verander je de datum, dan wacht de strookberekening even tot de zones voor die datum zijn geladen. Het aantal dieren en de grasopname volgen de koppel en de uren die je in het venster kiest, tot je ze zelf aanpast. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
 
 ![De strook berekenen: richting, dieren, grasopname en grasaanbod, met de berekende strook op de kaart](screenshot:beweiding-strook)
 
@@ -127,11 +127,11 @@ Bij stripgrazen en rantsoenbeweiding kies je ook hoe groot het beweide deel per 
 - **Stroken op de kaart**: de planner snijdt voor elke weidebeurt een nieuwe strook uit het perceel, met de grootte uit de berekening hierboven. Elke strook sluit aan op de vorige.
 - **Percentage, zonder kaart**: elke weidebeurt beslaat een vast percentage van het perceel, zonder plek.
 
-Bij Nieuw Nederlands Weiden deelt de planner de gekozen percelen op in percelen van gelijke grootte. Bij _Perceelsgrootte (ha)_ staat 2,5 ha per 120 koeien, omgerekend naar je koppel; pas het aan voor je bedrijf. De koppel krijgt elke dag het volgende perceel. Weidt de koppel dag en nacht (meer dan 12 uur), dan krijgt hij 's ochtends en 's avonds een nieuw perceel, elk met de helft van de uren. Liggen die twee op hetzelfde perceel, dan worden ze samen één beweiding.
+Bij Nieuw Nederlands Weiden deelt de planner de gekozen percelen op in percelen van gelijke grootte. Bij _Perceelsgrootte (ha)_ staat 2,5 ha per 120 koeien, omgerekend naar je koppel; pas het aan voor je bedrijf. De koppel krijgt elke dag het volgende perceel. Weidt de koppel dag en nacht (meer dan 12 uur), dan krijgt hij 's ochtends en 's avonds een nieuw perceel, elk als eigen beweiding met de helft van de uren, ook als ze op hetzelfde perceel liggen. Samen tellen ze als één weidedag met alle uren.
 
 Bij stroken en bij Nieuw Nederlands Weiden zie je de stroken of percelen op een kaart boven het plan. Ga met de muis over een regel van het plan om de strook op de kaart te zien, of over een strook op de kaart om de regels ervan te zien.
 
-Percelen zonder perceelsgrens krijgen altijd het percentage. Perioden die overlappen met beweiding die je al hebt vastgelegd, slaat de planner over; je ziet ze in een waarschuwing.
+Percelen zonder perceelsgrens krijgen altijd het percentage. Het plan loopt tot en met de laatste dag van de periode. Een periode die niet past naast beweiding die je al hebt vastgelegd, slaat de planner over: de koppel zou dan boven 24 uur per dag komen, of er ligt al een beweiding zonder perceel. Je ziet die perioden met de reden in een waarschuwing.
 
 ![De planner: systeem, percelen en de geplande perioden](screenshot:beweidingsplan)
 

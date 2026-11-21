@@ -28,13 +28,13 @@ Deze pagina legt uit hoe {{appName}} de getallen bij beweiding berekent: de weid
 
 ## Weidedagen en weide-uren {#weidedagen}
 
-Een weidedag is een kalenderdag waarop een koppel buiten heeft gelopen. Loopt een koppel op één dag op twee percelen, dan telt die dag één keer. Voor de weide-uren telt per koppel per dag het hoogste aantal uren, niet de som. Beweiding zonder uren per dag telt mee als weidedag, maar niet voor de uren; {{appName}} meldt welke beweidingen uren missen.
+Een weidedag is een kalenderdag waarop een koppel buiten heeft gelopen. Loopt een koppel op één dag op twee percelen, dan telt die dag één keer. Voor de weide-uren tellen de uren van alle beweidingen van een koppel op één dag op: 8 uur op het ene perceel of de ene zone en 7 uur op een andere is 15 uur voor die koppel, tot hoogstens 24 uur. Een koppel kan op een dag dus meer dan één beweiding hebben, ook op hetzelfde perceel, zolang ze samen niet boven 24 uur komen. Lopen er op een dag meerdere koppels buiten, dan tellen voor het bedrijf de uren van de koppel die het langst buiten liep; het gemiddelde is per weidedag. Beweiding zonder uren per dag telt mee als weidedag, maar niet voor de uren; {{appName}} meldt welke beweidingen uren missen.
 
-Beweiding met een startdatum na vandaag is gepland. Die telt niet mee in de gerealiseerde weidedagen, maar staat er apart bij. Een beweiding zonder einddatum die al is begonnen, telt door tot en met vandaag. Vandaag is de kalenderdag in Nederland.
+Beweiding met een startdatum na vandaag is gepland. Die telt niet mee in de gerealiseerde weidedagen, maar staat er apart bij. Een beweiding zonder einddatum die al is begonnen, telt door tot en met vandaag. Vandaag is de kalenderdag in Nederland. Een beweiding over de jaargrens, bijvoorbeeld van 28 december tot 3 januari, telt in elk jaar alleen de dagen van dat jaar.
 
 ## Weidemelk {#weidemelk}
 
-Voor Weidemelk moeten de melkkoeien minstens 120 dagen per jaar minstens 6 uur per dag buiten lopen. {{appName}} telt daarvoor de dagen met minstens 6 uur weidegang van alle koppels in de diercategorie melk- en kalfkoeien (RVO-categorie 100) samen. Dit volgt de definitie van Weidemelk in het Convenant Weidegang; de zuivelonderneming bepaalt of je in aanmerking komt.
+Voor Weidemelk moeten de melkkoeien minstens 120 dagen per jaar minstens 6 uur per dag buiten lopen. {{appName}} telt daarvoor de dagen waarop een koppel in de diercategorie melk- en kalfkoeien (RVO-categorie 100) minstens 6 uur buiten liep, met de uren van al zijn beweidingen op die dag samen. Elke dag van het jaar telt mee, ook buiten het weideseizoen van de kalender; "Niet gehaald" verschijnt pas als de 120 dagen in de rest van het jaar niet meer haalbaar zijn. Dit volgt de definitie van Weidemelk in het Convenant Weidegang; de zuivelonderneming bepaalt of je in aanmerking komt.
 
 ## Beweidingsplatform en veebezetting {#veebezetting}
 
@@ -46,7 +46,7 @@ Het beweidingsplatform is de oppervlakte grasland die in het jaar tot en met van
 
 Een zone die buiten de perceelsgrens loopt, telt alleen voor het deel binnen het perceel.
 
-De veebezetting op het platform is de GVE van de koppels die er hebben geweid, gedeeld door de oppervlakte van het platform. In een afgelopen jaar telt {{appName}} de dieren zoals ze op 31 december van dat jaar in de koppels zaten. De GVE per dier komt uit de diercategorieën van RVO. {{appName}} geeft de veebezetting een label: onder 2,0 GVE/ha _extensief_, van 2,0 tot 2,6 _gemiddeld_ en daarboven _intensief_. Dat label is indicatief: er is geen officiële indeling in extensieve en intensieve beweiding in GVE per hectare.
+De veebezetting op het platform is de GVE van de koppels die er hebben geweid, gedeeld door de oppervlakte van het platform. In een afgelopen jaar telt {{appName}} de dieren zoals ze op 31 december van dat jaar in de koppels zaten. Een koppel die in dat jaar heeft geweid maar al eerder is beëindigd, telt mee voor de weidedagen en uren, maar zonder dieren. De GVE per dier komt uit de diercategorieën van RVO. {{appName}} geeft de veebezetting een label: onder 2,0 GVE/ha _extensief_, van 2,0 tot 2,6 _gemiddeld_ en daarboven _intensief_. Dat label is indicatief: er is geen officiële indeling in extensieve en intensieve beweiding in GVE per hectare.
 
 ## Rustperiode {#rust}
 
@@ -54,7 +54,7 @@ Na een weidebeurt of maaisnede heeft gras tijd nodig om terug te groeien. {{appN
 
 De rust is het aantal dagen tussen de laatste dag van het vorige gebruik en de eerste dag van het volgende: eindigt een beweiding op 4 mei en begint de volgende op 25 mei, dan is dat 21 dagen rust. Alleen een maaisnede van gras telt als gebruik, niet de oogst van een ander gewas op het perceel.
 
-De rust telt per deel van het perceel. Een beweiding wordt vergeleken met het laatste eerdere gebruik van hetzelfde deel: een maaisnede of een beweiding van het hele perceel raakt het hele perceel, een zone alleen de stroken die ermee overlappen. Bij stripgrazen krijgt elke strook dus zijn eigen rust.
+De rust telt per deel van het perceel. Een beweiding wordt vergeleken met het laatste eerdere gebruik van hetzelfde deel: een maaisnede of een beweiding van het hele perceel raakt het hele perceel, een zone alleen de stroken die ermee overlappen. Bij stripgrazen krijgt elke strook dus zijn eigen rust. Gebruik van hetzelfde deel op dezelfde tijd, zoals twee koppels tegelijk op één zone of dezelfde zone 's ochtends en 's middags, telt als één gebruik en niet als rust van 0 dagen. Zones tellen alleen voor het deel binnen het perceel.
 
 Aannames:
 
