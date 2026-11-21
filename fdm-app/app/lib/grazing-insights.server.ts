@@ -46,7 +46,7 @@ export async function fetchGrazingInsightsData(
       getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
       getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
       // The herds of the selected year, so the density of a past year uses that year's animals
-      getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear, now)),
+      getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
       getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
     ])
 

@@ -95,7 +95,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           fdm,
           session.principal_id,
           b_id_farm,
-          calendarYear !== null ? censusDateForYear(calendarYear, now) : now,
+          calendarYear !== null ? censusDateForYear(calendarYear) : new Date(),
         ),
       ])
     const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))

@@ -227,8 +227,9 @@ export async function fetchGrazingCalendarMatrix(
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
-    // The herds of the selected year, also for a past year
-    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear, now)),
+    // The herds of the selected year, also for a past year; counted at the real moment, as fdm-core
+    // counts them when a herd count is changed
+    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizers(fdm, principal_id, b_id_farm),
   ])
