@@ -2,7 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Trash2 } from "lucide-react"
-import { Form, NavLink } from "react-router"
+import { NavLink, useFetcher } from "react-router"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,7 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { Spinner } from "~/components/ui/spinner"
 import { measuresTableFeatures } from "./table-features"
 
 export type MeasureTableRow = {
@@ -172,62 +173,81 @@ export function getColumns(
           >
             <Pencil className="h-4 w-4" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive h-8 w-8"
-                  title="Verwijderen"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              }
-            />
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Wil je de maatregel &ldquo;
-                  {row.original.m_name}&rdquo; definitief verwijderen? Dit kan niet ongedaan worden
-                  gemaakt.
-                  <br />
-                  <br />
-                  <span className="text-foreground font-medium">
-                    Wil je de maatregel alleen beëindigen?
-                  </span>{" "}
-                  Gebruik dan de bewerkknop (
-                  <Pencil className="mx-0.5 inline h-3.5 w-3.5" />) en stel een einddatum in.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <Form method="post" action={deleteAction}>
-                  <input type="hidden" name="intent" value="delete" />
-                  {row.original.fields.map((f) => (
-                    <input
-                      key={f.b_id_measure}
-                      type="hidden"
-                      name="b_id_measure"
-                      value={f.b_id_measure}
-                    />
-                  ))}
-                  <AlertDialogAction
-                    type="submit"
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
-                  >
-                    Definitief verwijderen
-                  </AlertDialogAction>
-                </Form>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <DeleteMeasureDialog row={row.original} deleteAction={deleteAction} />
         </div>
       ),
     })
   }
 
   return columns
+}
+
+/**
+ * The delete button of a measure row with its confirmation dialog. The delete is sent with a
+ * fetcher, so the trash button shows a spinner and stays disabled until the delete is done and the
+ * delete can't be sent twice.
+ */
+function DeleteMeasureDialog({
+  row,
+  deleteAction,
+}: {
+  row: MeasureTableRow
+  deleteAction: string
+}) {
+  const fetcher = useFetcher()
+  const isDeleting = fetcher.state !== "idle"
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive h-8 w-8"
+            title="Verwijderen"
+            disabled={isDeleting}
+          >
+            {isDeleting ? <Spinner className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+          </Button>
+        }
+      />
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Wil je de maatregel &ldquo;
+            {row.m_name}&rdquo; definitief verwijderen? Dit kan niet ongedaan worden gemaakt.
+            <br />
+            <br />
+            <span className="text-foreground font-medium">
+              Wil je de maatregel alleen beëindigen?
+            </span>{" "}
+            Gebruik dan de bewerkknop (
+            <Pencil className="mx-0.5 inline h-3.5 w-3.5" />) en stel een einddatum in.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuleren</AlertDialogCancel>
+          <fetcher.Form method="post" action={deleteAction}>
+            <input type="hidden" name="intent" value="delete" />
+            {row.fields.map((f) => (
+              <input
+                key={f.b_id_measure}
+                type="hidden"
+                name="b_id_measure"
+                value={f.b_id_measure}
+              />
+            ))}
+            <AlertDialogAction
+              type="submit"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
+            >
+              Definitief verwijderen
+            </AlertDialogAction>
+          </fetcher.Form>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
 }

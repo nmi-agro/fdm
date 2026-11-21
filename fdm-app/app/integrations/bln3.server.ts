@@ -355,19 +355,26 @@ function errorMessage(error: unknown): string {
 }
 
 /**
+ * The measure inputs of the fields of a farm, collected once and shared by the applicability and
+ * the advice of the measures. Create it with {@link collectFarmMeasureInputs}.
+ */
+export type FarmMeasureInputs = Map<string, ApplicabilityInputsResult>
+
+/**
  * Collects the measure applicability inputs of the given fields with farm-level queries. These
  * inputs serve both the applicability and the advice of the measures.
  *
  * A field missing from the farm inputs (for example one outside the timeframe) is collected on
- * its own. When the farm inputs cannot be collected, every field gets the error.
+ * its own. When the farm inputs cannot be collected, every field gets the error. The returned
+ * promise never rejects.
  */
-async function collectApplicabilityInputsForFields({
+export async function collectFarmMeasureInputs({
   principal_id,
   b_id_farm,
   b_ids,
   b_year,
   timeframe,
-}: FarmFieldsArgs): Promise<Map<string, ApplicabilityInputsResult>> {
+}: FarmFieldsArgs): Promise<FarmMeasureInputs> {
   const farmInputs = await collectInputForBln3MeasureApplicabilityForFarm(
     fdm,
     principal_id,
@@ -491,17 +498,18 @@ async function getAdviceFromInputs(
 /**
  * Fetches BLN3 measure applicability for multiple fields of a farm.
  *
- * The inputs are collected with farm-level queries and the cached results of all fields are
- * looked up at once; at most 5 missing results are requested from the NMI API at the same
- * time. A field whose request fails returns an empty record, and a field whose inputs cannot
- * be collected returns `null`, rather than failing the entire request.
+ * Takes the inputs from {@link collectFarmMeasureInputs}, so a page that also needs the measure
+ * advice collects them only once. The cached results of all fields are looked up at once; at
+ * most 5 missing results are requested from the NMI API at the same time. A field whose request
+ * fails returns an empty record, and a field whose inputs cannot be collected returns `null`,
+ * rather than failing the entire request.
  *
  * @returns A record mapping `b_id` to a record mapping `m_id` to `MeasureApplicabilityInfo`.
  */
 export async function getMeasureApplicabilityForFields(
-  args: FarmFieldsArgs,
+  inputsByField: FarmMeasureInputs,
 ): Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>> {
-  return getApplicabilityFromInputs(await collectApplicabilityInputsForFields(args))
+  return getApplicabilityFromInputs(inputsByField)
 }
 
 /**
@@ -574,7 +582,7 @@ export async function getMeasureAdviceForField({
 export async function getMeasureAdviceForFields(
   args: FarmFieldsArgs,
 ): Promise<Record<string, Bln3MeasureAdviceResult | null>> {
-  return getAdviceFromInputs(await collectApplicabilityInputsForFields(args))
+  return getAdviceFromInputs(await collectFarmMeasureInputs(args))
 }
 
 /**
@@ -625,6 +633,11 @@ export type FarmMeasureOpportunity = FieldTopOpportunity & {
  * Advice failures are represented by missing entries and skipped. A rejection
  * of either batch fetch is intentionally propagated so route loaders can
  * report it and hide the lazy recommendation surface.
+ *
+ * A page that already collected the inputs or requested the applicability
+ * passes them as `measureInputs` and `applicabilityByField`, so neither is
+ * collected or requested twice. The scores may be passed as a promise: they
+ * are only needed after the NMI requests, so both run at the same time.
  */
 export async function getFarmMeasureOpportunities({
   principal_id,
@@ -635,26 +648,34 @@ export async function getFarmMeasureOpportunities({
   scoreByBid,
   activeMeasureIdsByField,
   measureNameById,
+  measureInputs,
+  applicabilityByField: knownApplicabilityByField,
 }: FarmFieldsArgs & {
-  scoreByBid: Map<string, Bln3Score | null>
+  scoreByBid: Map<string, Bln3Score | null> | Promise<Map<string, Bln3Score | null>>
   activeMeasureIdsByField: Map<string, Set<string>>
   measureNameById: Map<string, string>
+  /** The inputs from {@link collectFarmMeasureInputs}, covering at least `b_ids`. */
+  measureInputs?: Promise<FarmMeasureInputs>
+  /** The applicability from {@link getMeasureApplicabilityForFields}, covering at least `b_ids`. */
+  applicabilityByField?: Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>>
 }): Promise<{
   opportunities: FarmMeasureOpportunity[]
   candidates: FarmMeasureOpportunity[]
   adviceAvailable: boolean
 }> {
   // Applicability and advice use the same inputs, so collect them once
-  const inputsByField = await collectApplicabilityInputsForFields({
-    principal_id,
-    b_id_farm,
-    b_ids,
-    b_year,
-    timeframe,
-  })
-  const [applicabilityByField, adviceByField] = await Promise.all([
-    getApplicabilityFromInputs(inputsByField),
+  const collectedInputs = await (measureInputs ??
+    collectFarmMeasureInputs({ principal_id, b_id_farm, b_ids, b_year, timeframe }))
+  // Request the advice only for the given fields, also when the inputs cover more
+  const inputsByField: FarmMeasureInputs = new Map()
+  for (const b_id of b_ids) {
+    const inputs = collectedInputs.get(b_id)
+    if (inputs) inputsByField.set(b_id, inputs)
+  }
+  const [applicabilityByField, adviceByField, scores] = await Promise.all([
+    knownApplicabilityByField ?? getApplicabilityFromInputs(inputsByField),
     getAdviceFromInputs(inputsByField),
+    scoreByBid,
   ])
 
   const opportunities: FarmMeasureOpportunity[] = []
@@ -671,7 +692,7 @@ export async function getFarmMeasureOpportunities({
     adviceAvailable = true
     const fieldCandidates = getFieldOpportunityCandidates({
       advice,
-      score: scoreByBid.get(b_id) ?? null,
+      score: scores.get(b_id) ?? null,
       applicability,
       activeMeasureIds: activeMeasureIdsByField.get(b_id) ?? new Set(),
     })

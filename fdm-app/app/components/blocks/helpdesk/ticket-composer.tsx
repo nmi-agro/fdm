@@ -2,7 +2,7 @@ import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRef } from "react"
 import { Controller } from "react-hook-form"
-import { NavLink, useSubmit } from "react-router"
+import { NavLink, useFormAction, useNavigation, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { Button, buttonVariants } from "~/components/ui/button"
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
 import {
   ALLOWED_ATTACHMENT_EXTENSIONS,
@@ -32,6 +33,13 @@ export function TicketComposer({
   initial_context_farm_id?: string | null
 }) {
   const submit = useSubmit()
+  const navigation = useNavigation()
+  const formAction = useFormAction()
+  // Only this form's submission, not another POST such as signing out from the sidebar
+  const isSubmitting =
+    navigation.state !== "idle" &&
+    navigation.formMethod?.toUpperCase() === "POST" &&
+    navigation.formAction === formAction
   const formRef = useRef<HTMLFormElement>(null)
 
   const form = useRemixForm<z.infer<typeof TicketSchema>>({
@@ -155,7 +163,10 @@ export function TicketComposer({
               >
                 Annuleren
               </NavLink>
-              <Button type="submit">Verzenden</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Spinner />}
+                <span>Verzenden</span>
+              </Button>
             </div>
           </CardContent>
         </Card>

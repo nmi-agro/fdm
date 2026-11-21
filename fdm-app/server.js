@@ -3,6 +3,7 @@ import { createRequestHandler } from "@react-router/express"
 import compression from "compression"
 import express from "express"
 import morgan from "morgan"
+import { createPosthogProxyMiddleware } from "./app/lib/posthog-proxy.server.js"
 
 const BUILD_PATH = "./build/server/index.js"
 const PORT = Number.parseInt(process.env.PORT ?? "8080", 10)
@@ -29,6 +30,12 @@ app.use((req, _res, next) => {
 
 // Don't advertise the framework.
 app.disable("x-powered-by")
+
+// Proxy analytics requests to PostHog before compression, logging and React Router, so this
+// high-volume traffic does not go through the page request handling.
+if (process.env.PUBLIC_POSTHOG_HOST) {
+  app.use("/ingest", createPosthogProxyMiddleware(process.env.PUBLIC_POSTHOG_HOST))
+}
 
 app.use(compression())
 app.use(morgan("tiny"))

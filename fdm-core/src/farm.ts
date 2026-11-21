@@ -5,6 +5,7 @@ import type { Principal } from "./principal.types"
 import {
   checkPermission,
   getRolesOfPrincipalForResource,
+  getRolesOfPrincipalForResources,
   grantRole,
   listPrincipalsForResource,
   listResources,
@@ -209,22 +210,17 @@ export async function getFarms(
         .where(inArray(schema.farms.b_id_farm, resources))
         .orderBy(asc(schema.farms.b_name_farm))
 
-      const farms = await Promise.all(
-        results.map(async (farm) => {
-          // Get roles on farm
-          const roles = await getRolesOfPrincipalForResource(
-            tx,
-            "farm",
-            farm.b_id_farm,
-            principal_id,
-          )
-
-          return {
-            ...farm,
-            roles: roles,
-          }
-        }),
+      // Get the roles on all farms in one query
+      const rolesByFarm = await getRolesOfPrincipalForResources(
+        tx,
+        "farm",
+        results.map((farm) => farm.b_id_farm),
+        principal_id,
       )
+      const farms = results.map((farm) => ({
+        ...farm,
+        roles: rolesByFarm.get(farm.b_id_farm) ?? [],
+      }))
 
       await writeAuditEntry(
         tx,
