@@ -140,7 +140,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           .map((g) => {
             const gStart = new Date(g.l_grazing_start)
             const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-            const days = Math.max(1, Math.floor((gEnd.getTime() - gStart.getTime()) / 86400000) + 1)
+            // Only the days within the selected year count; a grazing can run into the next year
+            const from = timeframe.start && timeframe.start > gStart ? timeframe.start : gStart
+            const to = timeframe.end && timeframe.end < gEnd ? timeframe.end : gEnd
+            const days = Math.max(1, Math.floor((to.getTime() - from.getTime()) / 86400000) + 1)
             return {
               l_id_grazing: g.l_id_grazing,
               l_id_herd: g.l_id_herd,

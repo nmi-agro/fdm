@@ -40,6 +40,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { censusDateForYear, farmToday, farmTodayKey, fieldGrazingTotals } from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
+import { zoneWithinField } from "~/lib/grazing-herds"
 import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
 import { serverNow } from "~/lib/server-now.server"
 
@@ -94,7 +95,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           fdm,
           session.principal_id,
           b_id_farm,
-          calendarYear !== null ? censusDateForYear(calendarYear) : new Date(),
+          calendarYear !== null ? censusDateForYear(calendarYear, now) : now,
         ),
       ])
     const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
@@ -137,6 +138,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       today,
     )
 
+    // Grazings that have started by today; later ones are planned
+    const startedGrazings = grazings.filter((g) => new Date(g.l_grazing_start) <= today)
+
     // Merge events to compute rest periods
     const allEvents = [
       ...grazings
@@ -163,7 +167,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             : g.l_grazing_area
               ? ("partial" as const)
               : ("full" as const),
-          zone: g.l_grazing_geometry_zone ?? null,
+          zone: zoneWithinField(g.l_grazing_geometry_zone, field.b_geometry),
           // What the grazing dialog needs to change or remove this grazing
           grazing: {
             l_id_grazing: g.l_id_grazing,
@@ -228,13 +232,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         count: censusMap.get(h.l_id_herd) ?? 0,
       })),
       b_geometry: field.b_geometry,
-      zones: grazings.flatMap((g) =>
+      // The zones grazed so far; planned grazings are in the list but not on the map
+      zones: startedGrazings.flatMap((g) =>
         g.l_grazing_geometry_zone ? [g.l_grazing_geometry_zone] : [],
       ),
       summary: {
         totalDays: totalGrazingDays,
         totalHours: totalGrazingHours,
-        periodsCount: grazings.length,
+        periodsCount: startedGrazings.length,
         harvestsCount: fieldHarvests.length,
       },
       events: eventsWithRest,

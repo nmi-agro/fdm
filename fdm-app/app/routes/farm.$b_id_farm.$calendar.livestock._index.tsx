@@ -468,6 +468,8 @@ function GrazingWindow({
     row.cells.forEach((cell, i) => {
       if (!cell || i <= DAYS_BACK) return
       for (const g of cell.grazingEntries ?? []) {
+        // A grazing that already runs is not planned, also on its days after today
+        if (!g.isPlanned) continue
         upcoming.set(g.l_id_grazing, {
           herd: g.l_herd_name,
           field: row.field.b_name,

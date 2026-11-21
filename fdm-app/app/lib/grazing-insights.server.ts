@@ -7,24 +7,18 @@ import {
   getFields,
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
-  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { fdm } from "~/lib/fdm.server"
 import { getGrazedAreaByField } from "~/lib/grazing-calendar.server"
 import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
+import { herdsOfYear, type YearHerd, zoneWithinField } from "~/lib/grazing-herds"
 import { serverNow } from "~/lib/server-now.server"
 
 export interface GrazingInsightsData {
   year: number
   metrics: GrazingMetricsResult
-  herds: Array<{
-    l_id_herd: string
-    l_herd_name: string
-    l_id_category: string
-    l_lsu: number
-    count: number
-    colorIndex: number
-  }>
+  herds: YearHerd[]
+
   grasslandFields: Array<{
     b_id: string
     b_name: string
@@ -43,39 +37,22 @@ export async function fetchGrazingInsightsData(
   }
 
   // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
-  const today = farmToday(serverNow())
-  const [
-    allFields,
-    cultivationsByField,
-    harvestsByCultivation,
-    grazings,
-    herds,
-    census,
-    grazedArea,
-  ] = await Promise.all([
-    getFields(fdm, principal_id, b_id_farm, timeframe),
-    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getHerdsForFarm(fdm, principal_id, b_id_farm),
-    // The herds of the selected year, so the density of a past year uses that year's animals
-    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
-    getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
-  ])
+  const now = serverNow()
+  const today = farmToday(now)
+  const [allFields, cultivationsByField, harvestsByCultivation, grazings, census, grazedArea] =
+    await Promise.all([
+      getFields(fdm, principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+      getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
+      getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
+      // The herds of the selected year, so the density of a past year uses that year's animals
+      getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear, now)),
+      getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
+    ])
 
-  const censusMap = new Map<string, number>()
-  for (const c of census) {
-    censusMap.set(c.l_id_herd, c.count)
-  }
-
-  const herdList = herds.map((h, idx) => ({
-    l_id_herd: h.l_id_herd,
-    l_herd_name: h.l_herd_name ?? "Koppel",
-    l_id_category: h.l_id_category,
-    l_lsu: h.l_lsu ?? 1.0,
-    count: censusMap.get(h.l_id_herd) ?? 0,
-    colorIndex: idx % 6,
-  }))
+  // The herds of the selected year, also those that have ended since
+  const herdList = herdsOfYear(census, grazings)
+  const fieldGeometries = new Map(allFields.map((f) => [f.b_id, f.b_geometry]))
 
   const grasslandFields = allFields
     .filter((field) => {
@@ -128,7 +105,10 @@ export async function fetchGrazingInsightsData(
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours,
       l_grazing_area_grazed: g.l_grazing_area_grazed,
-      l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
+      l_grazing_geometry_zone: zoneWithinField(
+        g.l_grazing_geometry_zone,
+        g.b_id ? fieldGeometries.get(g.b_id) : null,
+      ),
     })),
     harvests,
   })

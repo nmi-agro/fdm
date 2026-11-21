@@ -47,6 +47,27 @@ describe("calculateRestBeforeUses", () => {
     expect(rests[3].previous?.data).toBe("a")
   })
 
+  it("counts uses of the same part at the same time as one use", () => {
+    const zone = strip(5.0, 5.001)
+    const rests = calculateRestBeforeUses([
+      // Two herds on the same strip, overlapping
+      { type: "weiden", start: day(1), end: day(5), zone, data: "herd A" },
+      { type: "weiden", start: day(3), end: day(8), zone, data: "herd B" },
+      // The same strip twice on one day
+      { type: "weiden", start: day(20), end: day(20), zone, data: "morning" },
+      { type: "weiden", start: day(20), end: day(20), zone, data: "afternoon" },
+      // A return the next day
+      { type: "weiden", start: day(21), end: day(21), zone, data: "next day" },
+    ])
+    expect(rests.map((r) => [r.use.data, r.restDays, r.previous?.data ?? null])).toEqual([
+      ["herd A", null, null],
+      ["herd B", null, null],
+      ["morning", 12, "herd B"],
+      ["afternoon", 12, "herd B"],
+      ["next day", 1, "morning"],
+    ])
+  })
+
   it("counts mowing from the most recent use of any part of the field", () => {
     const rests = calculateRestBeforeUses([
       { type: "weiden", start: day(1), end: day(1), zone: strip(5.0, 5.001) },

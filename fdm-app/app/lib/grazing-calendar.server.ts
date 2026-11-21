@@ -10,7 +10,6 @@ import {
   getGrazedAreaForFarm,
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
-  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import {
   type FertilizerKind,
@@ -18,6 +17,7 @@ import {
 } from "~/components/blocks/fertilizer/utils"
 import { fdm } from "~/lib/fdm.server"
 import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
+import { herdsOfYear, zoneWithinField } from "~/lib/grazing-herds"
 import {
   GRAZING_SEASON_FIRST_MONTH,
   GRAZING_SEASON_LAST_MONTH,
@@ -206,7 +206,8 @@ export async function fetchGrazingCalendarMatrix(
   const timeframe: Timeframe = { start: yearStart, end: yearEnd }
 
   // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
-  const today = farmToday(serverNow())
+  const now = serverNow()
+  const today = farmToday(now)
   const todayKey = toIsoDate(today)
   // The day up to which rest is counted: today, or the last day of a past year
   const restReference = today < yearEnd ? today : yearEnd
@@ -216,7 +217,6 @@ export async function fetchGrazingCalendarMatrix(
     cultivationsByField,
     harvestsByCultivation,
     grazings,
-    herds,
     grazedArea,
     census,
     fertilizerApplicationsByField,
@@ -226,10 +226,9 @@ export async function fetchGrazingCalendarMatrix(
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getHerdsForFarm(fdm, principal_id, b_id_farm),
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
     // The herds of the selected year, also for a past year
-    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
+    getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear, now)),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizers(fdm, principal_id, b_id_farm),
   ])
@@ -237,7 +236,6 @@ export async function fetchGrazingCalendarMatrix(
   const fertilizerKinds = new Map(
     fertilizers.map((f) => [f.p_id, getFertilizerCategoryFromRvoCode(f.p_type_rvo)]),
   )
-  const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
   // Filter grassland fields (crop rotation === "grass" and not a buffer strip)
   const grasslandFields = allFields.filter((field) => {
@@ -246,19 +244,9 @@ export async function fetchGrazingCalendarMatrix(
     return cults.some((c) => c.b_lu_croprotation === "grass")
   })
 
-  // Map herds to colors
-  const herdColorMap = new Map<string, number>()
-  const herdList = herds.map((h, idx) => {
-    herdColorMap.set(h.l_id_herd, idx % 6)
-    return {
-      l_id_herd: h.l_id_herd,
-      l_herd_name: h.l_herd_name ?? "Koppel",
-      l_id_category: h.l_id_category,
-      l_lsu: h.l_lsu ?? 1.0,
-      count: censusMap.get(h.l_id_herd) ?? 0,
-      colorIndex: idx % 6,
-    }
-  })
+  // The herds of the selected year, with their colours
+  const herdList = herdsOfYear(census, grazings)
+  const herdColorMap = new Map(herdList.map((h) => [h.l_id_herd, h.colorIndex]))
 
   // Map harvests per field
   const harvestsByField = new Map<
@@ -337,7 +325,8 @@ export async function fetchGrazingCalendarMatrix(
       )
 
       let type: GrazingCalendarCell["type"] = "empty"
-      let isPlanned = false
+      // A day after today with a grazing is planned, also for a grazing that has started
+      const isPlanned = cellGrazings.length > 0 && column.dateStart > todayKey
 
       if (cellGrazings.length > 0 && cellHarvests.length > 0) {
         type = "mixed"
@@ -349,10 +338,8 @@ export async function fetchGrazingCalendarMatrix(
 
       const grazingEntries = cellGrazings.map((g) => {
         const gStart = new Date(g.l_grazing_start)
+        // A grazing that starts after today is planned as a whole
         const isFuture = toIsoDate(gStart) > todayKey
-        if (isFuture) {
-          isPlanned = true
-        }
         return {
           l_id_grazing: g.l_id_grazing,
           l_id_herd: g.l_id_herd,
@@ -444,6 +431,7 @@ export async function fetchGrazingCalendarMatrix(
   })
 
   // Calculate metrics summary using fdm-calculator
+  const fieldGeometries = new Map(allFields.map((f) => [f.b_id, f.b_geometry]))
   const metrics = calculateGrazingMetrics({
     year: calendarYear,
     today,
@@ -463,7 +451,10 @@ export async function fetchGrazingCalendarMatrix(
       l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
       l_grazing_hours: g.l_grazing_hours,
       l_grazing_area_grazed: g.l_grazing_area_grazed,
-      l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
+      l_grazing_geometry_zone: zoneWithinField(
+        g.l_grazing_geometry_zone,
+        g.b_id ? fieldGeometries.get(g.b_id) : null,
+      ),
     })),
     harvests: grasslandFields.flatMap((f) =>
       (harvestsByField.get(f.b_id) ?? []).map((h) => ({

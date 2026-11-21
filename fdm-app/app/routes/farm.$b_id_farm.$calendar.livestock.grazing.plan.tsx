@@ -162,7 +162,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       .map((f) => ({
         b_id: f.b_id,
         b_name: f.b_name,
-        b_area: f.b_area != null ? Math.round(f.b_area * 10) / 10 : 0,
+        b_area: f.b_area ?? 0,
         // Needed to cut grazing strips from the field
         b_geometry: f.b_geometry ?? null,
       }))
@@ -186,6 +186,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id: g.b_id,
         l_grazing_start: new Date(g.l_grazing_start).toISOString(),
         l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end).toISOString() : null,
+        l_grazing_hours: g.l_grazing_hours ?? null,
       })),
     }
   } catch (error) {
@@ -285,6 +286,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 /** A day of the plan, e.g. "3 mei". */
 const formatPlanDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
+
+const MS_PER_DAY = 86_400_000
+
+/** The day `days` days after a `YYYY-MM-DD` day, counted on calendar days (no time zone). */
+const shiftPlanDay = (day: string, days: number) =>
+  new Date(Date.parse(`${day}T00:00:00.000Z`) + days * MS_PER_DAY).toISOString().slice(0, 10)
+
+/** Most grazing hours of a herd on one day, as fdm-core allows them. */
+const MAX_HOURS_PER_DAY = 24
 
 /** Smallest plot size for Nieuw Nederlands Weiden (ha), as the plot size input allows. */
 const MIN_PLOT_AREA_HA = 0.1
@@ -430,14 +440,36 @@ export default function GrazingPlanAssistent() {
       reason: string
     }> = []
 
-    const overlapsExisting = (b_id: string, from: Date, to: Date) =>
-      existingGrazings.some((g) => {
-        if (g.l_id_herd !== selectedHerdId) return false
-        if (g.b_id && g.b_id !== b_id) return false
-        const gStart = new Date(g.l_grazing_start)
-        const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-        return from <= gEnd && to >= gStart
-      })
+    // What the herd already has on the days of the plan: the grazing hours per day, added up over
+    // its grazings, and the days of a grazing without a field. A grazing without an end runs on.
+    const bookedHours = new Map<string, number>()
+    const herdLevelDays = new Set<string>()
+    for (const g of existingGrazings) {
+      if (g.l_id_herd !== selectedHerdId) continue
+      const first = g.l_grazing_start.slice(0, 10)
+      const last = g.l_grazing_end ? g.l_grazing_end.slice(0, 10) : endDate
+      for (let day = first < startDate ? startDate : first; day <= last && day <= endDate;) {
+        // A grazing without a field blocks its days, except the end day when it ends at midnight
+        if (!g.b_id && (day < last || day === first || !g.l_grazing_end)) herdLevelDays.add(day)
+        bookedHours.set(day, (bookedHours.get(day) ?? 0) + (g.l_grazing_hours ?? 0))
+        day = shiftPlanDay(day, 1)
+      }
+    }
+    // Why a period cannot be added, as fdm-core would refuse it, or null when it fits
+    const conflictReason = (from: string, to: string, hours: number): string | null => {
+      for (let day = from; day <= to; day = shiftPlanDay(day, 1)) {
+        if (herdLevelDays.has(day)) return "Overlapt met een beweiding zonder perceel"
+        if ((bookedHours.get(day) ?? 0) + hours > MAX_HOURS_PER_DAY) {
+          return "Meer dan 24 uur beweiden op een dag"
+        }
+      }
+      return null
+    }
+    const book = (from: string, to: string, hours: number) => {
+      for (let day = from; day <= to; day = shiftPlanDay(day, 1)) {
+        bookedHours.set(day, (bookedHours.get(day) ?? 0) + hours)
+      }
+    }
 
     if (isNnw) {
       // The chosen fields divided into plots of equal size, in a fixed order over the platform.
@@ -456,48 +488,23 @@ export default function GrazingPlanAssistent() {
       })
       const hoursPerPlot = hoursPerDay / plotsPerDay
       let plotIndex = 0
-      for (
-        const day = new Date(startDate);
-        format(day, "yyyy-MM-dd") <= endDate;
-        day.setDate(day.getDate() + 1)
-      ) {
-        const dayStr = format(day, "yyyy-MM-dd")
-        // One new plot a day, or one in the morning and one in the evening. A herd is on a field
-        // only once a day, so the plots of a day on the same field form one grazing.
-        const dayPlots: Array<{
-          field: (typeof plots)[number]["field"]
-          plots: Area[]
-          uses: number
-        }> = []
+      for (let dayStr = startDate; dayStr <= endDate; dayStr = shiftPlanDay(dayStr, 1)) {
+        // One new plot a day, or one in the morning and one in the evening, each its own grazing
+        // with its share of the hours, also when both lie on the same field
         for (let k = 0; k < plotsPerDay; k++) {
           const { field: f, plot } = plots[plotIndex % plots.length]
           plotIndex++
-          const last = dayPlots.at(-1)
-          if (last && last.field.b_id === f.b_id) {
-            last.uses++
-            if (plot && !last.plots.includes(plot)) last.plots.push(plot)
-          } else {
-            dayPlots.push({ field: f, plots: plot ? [plot] : [], uses: 1 })
-          }
-        }
-        for (const { field: f, plots: fieldPlots, uses } of dayPlots) {
-          if (overlapsExisting(f.b_id, day, day)) {
+          const reason = conflictReason(dayStr, dayStr, hoursPerPlot)
+          if (reason) {
             skippedCollisions.push({
               fieldName: f.b_name,
               startDate: dayStr,
               endDate: dayStr,
-              reason: "Overlapt met bestaande registratie",
+              reason,
             })
             continue
           }
-          // The plots of the day on this field as one zone
-          const zone: MultiPolygon | undefined =
-            fieldPlots.length > 0
-              ? {
-                  type: "MultiPolygon",
-                  coordinates: fieldPlots.flatMap((plot) => toMultiPolygon(plot).coordinates),
-                }
-              : undefined
+          book(dayStr, dayStr, hoursPerPlot)
           rows.push({
             l_id_herd: selectedHerdId,
             b_id: f.b_id,
@@ -505,42 +512,34 @@ export default function GrazingPlanAssistent() {
             fieldArea: f.b_area,
             l_grazing_start: dayStr,
             l_grazing_end: dayStr,
-            l_grazing_hours: hoursPerPlot * uses,
-            l_grazing_geometry_zone: zone,
-            zoneArea: zone
-              ? Number(fieldPlots.reduce((sum, plot) => sum + areaHa(plot), 0).toFixed(2))
-              : undefined,
+            l_grazing_hours: hoursPerPlot,
+            l_grazing_geometry_zone: plot ? toMultiPolygon(plot) : undefined,
+            zoneArea: plot ? Number(areaHa(plot).toFixed(2)) : undefined,
           })
         }
       }
       return { generatedRows: rows, collisions: skippedCollisions }
     }
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    let currentStart = new Date(start)
+    // Periods of `periodDays` days up to and including the end date; the last one may be shorter
     let fieldIndex = 0
-
-    while (currentStart < end) {
-      const currentEnd = new Date(currentStart)
-      currentEnd.setDate(currentEnd.getDate() + periodDays - 1)
-      if (currentEnd > end) {
-        currentEnd.setTime(end.getTime())
-      }
+    for (let sStr = startDate; sStr <= endDate;) {
+      const periodEnd = shiftPlanDay(sStr, periodDays - 1)
+      const eStr = periodEnd > endDate ? endDate : periodEnd
 
       const activeField = fieldsToUse[fieldIndex % fieldsToUse.length]
-      const sStr = format(currentStart, "yyyy-MM-dd")
-      const eStr = format(currentEnd, "yyyy-MM-dd")
 
-      // Check for collision with existing records for this herd & field
-      if (overlapsExisting(activeField.b_id, currentStart, currentEnd)) {
+      // Check that the herd's grazing on these days stays possible
+      const reason = conflictReason(sStr, eStr, hoursPerDay)
+      if (reason) {
         skippedCollisions.push({
           fieldName: activeField.b_name,
           startDate: sStr,
           endDate: eStr,
-          reason: "Overlapt met bestaande registratie",
+          reason,
         })
       } else {
+        book(sStr, eStr, hoursPerDay)
         let strip: Area | null = null
         if (useStrips && stripAllocation && activeField.b_geometry) {
           const field = activeField.b_geometry as Area
@@ -562,9 +561,12 @@ export default function GrazingPlanAssistent() {
           }
         }
 
+        // Not rounded to whole tenths, so a small share of a small field stays above 0 ha; a
+        // field without a known area gets no partial area
+        const partialHa = (activeField.b_area * partialPercentage) / 100
         const partialArea =
-          selectedSystem.grazingType === "partial" && !strip
-            ? Number(((activeField.b_area * partialPercentage) / 100).toFixed(1))
+          selectedSystem.grazingType === "partial" && !strip && partialHa > 0
+            ? Number(partialHa.toFixed(4))
             : undefined
 
         rows.push({
@@ -582,8 +584,7 @@ export default function GrazingPlanAssistent() {
       }
 
       // Advance
-      currentStart = new Date(currentEnd)
-      currentStart.setDate(currentStart.getDate() + 1)
+      sStr = shiftPlanDay(eStr, 1)
       fieldIndex++
     }
 
@@ -969,7 +970,7 @@ export default function GrazingPlanAssistent() {
                             ongeveer deze grootte, alle even groot binnen een perceel. De koppel
                             krijgt elke dag een nieuw perceel
                             {plotsPerDay === 2
-                              ? `; bij dag en nacht weiden (meer dan ${NNW_DAY_AND_NIGHT_HOURS} uur) 's ochtends en 's avonds een nieuw perceel, elk met de helft van de uren. Liggen ze op hetzelfde perceel, dan worden ze samen één beweiding, omdat een koppel maar één keer per dag op een perceel kan staan`
+                              ? `; bij dag en nacht weiden (meer dan ${NNW_DAY_AND_NIGHT_HOURS} uur) 's ochtends en 's avonds een nieuw perceel, elk als eigen beweiding met de helft van de uren`
                               : ""}
                             . De standaard is 2,5 ha per 120 koeien, zoals in de voorbeelden van
                             Nieuw Nederlands Weiden, omgerekend naar deze koppel.
@@ -1179,8 +1180,9 @@ export default function GrazingPlanAssistent() {
                         <p className="flex items-center gap-1.5 font-semibold">
                           <AlertTriangle className="h-4 w-4 text-amber-600" />
                           {collisions.length}{" "}
-                          {collisions.length === 1 ? "periode overlapt" : "perioden overlappen"} met
-                          bestaande registraties en worden overgeslagen:
+                          {collisions.length === 1 ? "periode past" : "perioden passen"} niet naast
+                          de bestaande beweiding van deze koppel en{" "}
+                          {collisions.length === 1 ? "wordt" : "worden"} overgeslagen:
                         </p>
                         <ul className="mt-1 list-disc space-y-0.5 pl-5">
                           {collisions.slice(0, 3).map((c, i) => (
@@ -1189,7 +1191,7 @@ export default function GrazingPlanAssistent() {
                               {c.startDate === c.endDate
                                 ? formatPlanDay(c.startDate)
                                 : `${formatPlanDay(c.startDate)} – ${formatPlanDay(c.endDate)}`}
-                              )
+                              ): {c.reason.toLowerCase()}
                             </li>
                           ))}
                         </ul>

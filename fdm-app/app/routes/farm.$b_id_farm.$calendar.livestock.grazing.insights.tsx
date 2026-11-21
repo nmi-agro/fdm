@@ -3,6 +3,7 @@ import {
   REST_PERIOD_THRESHOLD_DAYS,
 } from "@nmi-agro/fdm-calculator/browser"
 import { getFarm, getFarms } from "@nmi-agro/fdm-core"
+import { getDaysInMonth } from "date-fns"
 import {
   AlertTriangle,
   Award,
@@ -34,6 +35,7 @@ import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { farmTodayKey } from "~/lib/grazing-dates"
 import { fetchGrazingInsightsData } from "~/lib/grazing-insights.server"
 import {
   formatRestAlert,
@@ -76,10 +78,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_name_farm: f.b_name_farm,
     }))
 
-    // After 31 October the grazing season of the year is over, so missing days can no longer be
-    // made up
+    // Weidemelk counts every day of the year with enough grazing hours. The target is out of reach
+    // once the missing days no longer fit in the days left in the year after today.
+    const todayTime = Date.parse(`${farmTodayKey(serverNow())}T00:00:00.000Z`)
+    const countFrom = Math.max(todayTime, Date.UTC(calendarYear, 0, 0))
+    const daysLeft = Math.max(
+      0,
+      Math.round((Date.UTC(calendarYear, 11, 31) - countFrom) / 86_400_000),
+    )
     const seasonOver =
-      serverNow() > new Date(calendarYear, GRAZING_SEASON_LAST_MONTH, 0, 23, 59, 59, 999)
+      !insightsData.metrics.weidemelk.isMet && -insightsData.metrics.weidemelk.marginDays > daysLeft
 
     return {
       b_id_farm,
@@ -113,7 +121,8 @@ const MONTH_NAMES = [
 const formatNumber = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
 
 export default function GrazingInsightsPage() {
-  const { b_id_farm, calendar, farmOptions, metrics, seasonOver } = useLoaderData<typeof loader>()
+  const { b_id_farm, calendar, calendarYear, farmOptions, metrics, seasonOver } =
+    useLoaderData<typeof loader>()
 
   const weidemelkProgressPercent = Math.min(
     100,
@@ -310,14 +319,11 @@ export default function GrazingInsightsPage() {
                         m.month <= GRAZING_SEASON_LAST_MONTH,
                     )
                     .map((m) => {
-                      const totalMonthDays = 30
-                      const realisedWidth = Math.min(
-                        100,
-                        Math.round((m.realisedDays / totalMonthDays) * 100),
-                      )
+                      const totalMonthDays = getDaysInMonth(new Date(calendarYear, m.month - 1))
+                      const realisedWidth = Math.min(100, (m.realisedDays / totalMonthDays) * 100)
                       const plannedWidth = Math.min(
                         100 - realisedWidth,
-                        Math.round((m.plannedDays / totalMonthDays) * 100),
+                        (m.plannedDays / totalMonthDays) * 100,
                       )
 
                       return (
