@@ -456,20 +456,22 @@ function AddMeasureLink({
   fieldsStatus: Promise<MeasureFieldsStatus>
 }) {
   const { b_id_farm = "", calendar = "" } = useParams()
-  const [recommendedFieldIds, setRecommendedFieldIds] = useState<string[]>([])
+  // The recommended fields together with the status request they come from
+  const [recommended, setRecommended] = useState<{
+    source: Promise<MeasureFieldsStatus> | null
+    fieldIds: string[]
+  }>({ source: null, fieldIds: [] })
   useEffect(() => {
     let current = true
-    // No preselection from an earlier request, e.g. before "Opnieuw proberen", until this one
-    // succeeds
-    setRecommendedFieldIds([])
     fieldsStatus
       .then((loaded) => {
         if (!current) return
-        setRecommendedFieldIds(
-          loaded.fields
+        setRecommended({
+          source: fieldsStatus,
+          fieldIds: loaded.fields
             .filter((field) => field.status === "recommended")
             .map((field) => field.b_id),
-        )
+        })
       })
       // Without the status the link still opens the dialog, only without preselected fields
       .catch(() => undefined)
@@ -477,6 +479,9 @@ function AddMeasureLink({
       current = false
     }
   }, [fieldsStatus])
+  // Only preselect fields of the current request: none while it loads, e.g. after
+  // "Opnieuw proberen", or when it fails
+  const recommendedFieldIds = recommended.source === fieldsStatus ? recommended.fieldIds : []
   return (
     <Link
       to={getAddMeasurePath(b_id_farm, calendar, m_id, recommendedFieldIds)}
