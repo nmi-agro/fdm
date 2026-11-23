@@ -300,7 +300,7 @@ export const captures = {
   },
   "beweiding-kalender": {
     ...GRAZING_DASHBOARD_START,
-    steps: [OPEN_MELKVEE, OPEN_GRAZING_CALENDAR, { waitFor: { text: "Koppels:" } }],
+    steps: [OPEN_MELKVEE, OPEN_GRAZING_CALENDAR, { waitFor: { text: "Vastleggen voor:" } }],
   },
   "beweiding-zone-tekenen": {
     ...GRAZING_FIELD_START,
@@ -325,6 +325,8 @@ export const captures = {
   },
   beweidingsplan: {
     ...GRAZING_DASHBOARD_START,
+    // The plan's preview map loads after the steps; wait for it, or it shows as an empty box
+    map: true,
     steps: [
       OPEN_MELKVEE,
       OPEN_GRAZING_CALENDAR,
@@ -350,7 +352,8 @@ export const captures = {
       // The farm page links to the grazing calendar; Weidegang opens from the Melkvee overview
       OPEN_MELKVEE,
       { click: { role: "link", name: "Weidegang", exact: true } },
-      { waitFor: { text: "Weidemelk · 120 dagen × 6 uur" } },
+      // A text of Weidegang only: the Weidemelk label is on the overview too
+      { waitFor: { text: "Weidedagen per maand" } },
     ],
   },
 } satisfies Record<string, CaptureDefinition>

@@ -30,8 +30,9 @@ In {{appName}} leg je je melkvee vast in koppels: groepen dieren die samen worde
 Heeft je bedrijf nog geen dieren, dan zie je in het menu **Melkvee toevoegen**. Daar maak je je eerste koppel aan:
 
 1. Kies de diercategorie, bijvoorbeeld melk- en kalfkoeien. {{appName}} vult een naam voor de koppel in, die je kunt aanpassen.
-2. Vul het aantal dieren in.
-3. Klik op **Koppel aanmaken**.
+2. Vul het aantal dieren in; het veld begint leeg.
+3. Kies bij **Aanwezig sinds** de dag waarop de dieren op het bedrijf en in de koppel kwamen. Vooraf staat 1 januari van het gekozen jaar ingevuld, omdat die dag vaak niet bekend is; laat die staan als je de datum niet weet. Een dag in de toekomst kan niet.
+4. Klik op **Koppel aanmaken**.
 
 {{appName}} maakt het aantal dieren aan zonder oormerk. Voor beweiding en veebezetting is het aantal genoeg; oormerk en levensnummer kun je later per dier aanvullen. Na het opslaan kom je op het Melkvee-overzicht.
 
@@ -54,7 +55,7 @@ Bovenaan voeg je direct iets toe: **Beweiding toevoegen** (kies een perceel), **
 Je beheert je koppels op het Melkvee-overzicht en bovenaan de pagina [Vee](#dieren):
 
 - _Aantal aanpassen:_ met de plus en min op de kaart. Met de plus voeg je dieren zonder oormerk toe. Met de min voer je een dier af; je bevestigt dat met **Afvoeren bevestigen**. Dieren zonder oormerk worden als eerste afgevoerd.
-- _Nog een koppel:_ klik op **Koppel toevoegen**, bijvoorbeeld voor droogstaande koeien of jongvee.
+- _Nog een koppel:_ klik op **Koppel toevoegen**, bijvoorbeeld voor droogstaande koeien of jongvee. Ook hier kies je bij **Aanwezig sinds** sinds wanneer de dieren er zijn, vooraf 1 januari van het gekozen jaar. Dieren die je later met de plus toevoegt, komen erbij op de dag dat je ze toevoegt.
 - _Via het menu op de kaart:_ **Naam wijzigen**, **Dieren verplaatsen naar andere koppel** en **Koppel verwijderen**. Een koppel met dieren kun je pas verwijderen als je de dieren hebt afgevoerd of verplaatst.
 
 Het aantal dieren in een koppel wordt niet apart opgeslagen: {{appName}} telt de dieren die op dat moment in de koppel zitten.
@@ -69,7 +70,7 @@ Klik op een dier om de details te openen. Daar:
 
 - vul je levensnummer, werknummer, geboortedatum en geslacht aan en sla je ze op met **Wijzigingen opslaan**. Is het geslacht nog niet bekend, dan staat er _Onbekend_;
 - verplaats je het dier naar een andere koppel met **Verplaats naar koppel**;
-- leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**. De datum vul je zelf in; er staat niets vooraf ingevuld. Een afvoer in de toekomst houdt het dier tot die datum in zijn koppel, en de pagina toont dan wanneer het vertrek gepland is;
+- leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**. De datum vul je zelf in; er staat niets vooraf ingevuld, en de knop werkt pas als je een datum hebt gekozen. Een afvoer in de toekomst houdt het dier tot die datum in zijn koppel, en de pagina toont dan wanneer het vertrek gepland is;
 - zie je de beweidingshistorie van het dier en in welke koppels het heeft gelopen.
 
 ### Levensnummer en werknummer {#levensnummer}
