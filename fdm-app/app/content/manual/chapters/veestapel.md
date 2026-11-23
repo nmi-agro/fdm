@@ -54,8 +54,8 @@ Bovenaan voeg je direct iets toe: **Beweiding toevoegen** (kies een perceel), **
 
 Je beheert je koppels op het Melkvee-overzicht en bovenaan de pagina [Vee](#dieren):
 
-- _Aantal aanpassen:_ met de plus en min op de kaart. Met de plus voeg je dieren zonder oormerk toe. Met de min voer je een dier af; je bevestigt dat met **Afvoeren bevestigen**. Dieren zonder oormerk worden als eerste afgevoerd.
-- _Nog een koppel:_ klik op **Koppel toevoegen**, bijvoorbeeld voor droogstaande koeien of jongvee. Ook hier kies je bij **Aanwezig sinds** sinds wanneer de dieren er zijn, vooraf 1 januari van het gekozen jaar. Dieren die je later met de plus toevoegt, komen erbij op de dag dat je ze toevoegt.
+- _Aantal aanpassen:_ met de plus en min op de kaart. Met de plus voeg je dieren zonder oormerk toe: vul het aantal in en bij **Aanwezig sinds** de dag waarop ze in de koppel kwamen, vooraf vandaag, en klik op **Toevoegen**. Kies een eerdere dag als de dieren er al eerder waren; dan tellen ze vanaf die dag mee voor de GVE en de veebezetting. Met de min voer je een dier af; je bevestigt dat met **Afvoeren bevestigen**. Dieren zonder oormerk worden als eerste afgevoerd.
+- _Nog een koppel:_ klik op **Koppel toevoegen**, bijvoorbeeld voor droogstaande koeien of jongvee. Ook hier kies je bij **Aanwezig sinds** sinds wanneer de dieren er zijn, vooraf 1 januari van het gekozen jaar.
 - _Via het menu op de kaart:_ **Naam wijzigen**, **Dieren verplaatsen naar andere koppel** en **Koppel verwijderen**. Een koppel met dieren kun je pas verwijderen als je de dieren hebt afgevoerd of verplaatst.
 
 Het aantal dieren in een koppel wordt niet apart opgeslagen: {{appName}} telt de dieren die op dat moment in de koppel zitten.
