@@ -42,15 +42,6 @@ import {
 } from "~/lib/grazing-status"
 import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
 
-const HERD_COLORS = [
-  "bg-emerald-600 text-white dark:bg-emerald-500",
-  "bg-blue-600 text-white dark:bg-blue-500",
-  "bg-amber-600 text-white dark:bg-amber-500",
-  "bg-purple-600 text-white dark:bg-purple-500",
-  "bg-rose-600 text-white dark:bg-rose-500",
-  "bg-cyan-600 text-white dark:bg-cyan-500",
-]
-
 /** Days a Page Up or Page Down moves in the calendar. */
 const PAGE_DAYS = 7
 
@@ -491,19 +482,12 @@ export function CalendarGrid({
                 aria-pressed={selectedKoppelId === h.l_id_herd}
                 onClick={() => setSelectedKoppelId(h.l_id_herd)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 transition-all",
+                  "flex cursor-pointer items-center rounded-full px-2.5 py-1 transition-colors",
                   selectedKoppelId === h.l_id_herd
                     ? "bg-primary text-primary-foreground font-semibold shadow-xs"
                     : "bg-muted hover:bg-muted/80 text-foreground",
                 )}
               >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "inline-block h-2.5 w-2.5 rounded-full",
-                    HERD_COLORS[h.colorIndex % HERD_COLORS.length],
-                  )}
-                />
                 <span>{h.l_herd_name}</span>
               </button>
             ))}
@@ -511,7 +495,7 @@ export function CalendarGrid({
           {actions}
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-4 border-b pb-3 text-xs">
+        <div className="flex flex-wrap items-center justify-end gap-4 text-xs">
           <ul className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <LegendItem label="Weiden">
               <span

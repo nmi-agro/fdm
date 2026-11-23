@@ -12,7 +12,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { ArrowRightLeft, CalendarDays, LogOut, Save } from "lucide-react"
+import { ArrowRightLeft, LogOut, Save } from "lucide-react"
 import { useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -61,8 +61,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import { useKeyedState } from "~/hooks/use-keyed-state"
-import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -324,12 +322,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
         (formData.get("l_leaving_method") as "died" | "sold" | "slaughtered" | "exported" | null) ??
         "sold"
 
+      if (!leavingDateVal) {
+        throw data("Kies de datum van vertrek.", { status: 400 })
+      }
+
       // A departure today is recorded now, so the animal leaves its herd from this moment; a
       // departure on another day at the end of that day in the Netherlands, so the animal still
       // counts on that day
       const now = serverNow()
       const l_leaving_date =
-        !leavingDateVal || leavingDateVal === farmTodayKey(now) ? now : endOfFarmDay(leavingDateVal)
+        leavingDateVal === farmTodayKey(now) ? now : endOfFarmDay(leavingDateVal)
 
       await updateAnimal(fdm, session.principal_id, l_id_animal, {
         l_leaving_date,
@@ -376,17 +378,20 @@ export default function AnimalDetailPage() {
     : "Dier zonder werknummer"
 
   const [targetHerdId, setTargetHerdId] = useState("")
-  // Defaults to today, which is only known on the client; a date the user picks sticks
-  const today = useToday()
-  const [leavingDate, setLeavingDate] = useKeyedState(
-    today ? format(today, "yyyy-MM-dd") : "",
-    (day) => day,
-  )
+  const isLeft = animal.isLeft
+  // A departure in the future is planned: the form starts at that day and reason. Otherwise the
+  // date starts empty, so the form does not suggest that the animal leaves today
+  const plannedLeavingDay =
+    !isLeft && animal.l_leaving_date ? farmTodayKey(new Date(animal.l_leaving_date)) : null
+  const plannedMethod = plannedLeavingDay
+    ? leavingMethods.find((m) => m.value === animal.l_leaving_method)
+    : undefined
+  const plannedLeavingMethod = plannedMethod?.label.toLowerCase()
+  const [leavingDate, setLeavingDate] = useState(plannedLeavingDay ?? "")
   const [leavingMethod, setLeavingMethod] = useState<"sold" | "died" | "slaughtered" | "exported">(
-    "sold",
+    plannedMethod?.value ?? "sold",
   )
 
-  const isLeft = animal.isLeft
   const currentHerd = herds.find((h) => h.l_id_herd === animal.l_id_herd)
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
@@ -511,7 +516,10 @@ export default function AnimalDetailPage() {
                       Pas levensnummer, werknummer, geboortedatum of geslacht aan.
                     </CardDescription>
                   </CardHeader>
-                  <form onSubmit={handleDetailsSubmit}>
+                  <form
+                    onSubmit={handleDetailsSubmit}
+                    className="flex flex-col gap-(--card-spacing)"
+                  >
                     <CardContent className="space-y-4">
                       <FieldGroup>
                         <AnimalNumberFields
@@ -581,7 +589,7 @@ export default function AnimalDetailPage() {
                       </FieldGroup>
                     </CardContent>
                     {farmWritePermission && (
-                      <CardFooter className="border-t pt-4">
+                      <CardFooter className="border-t">
                         <Button
                           type="submit"
                           disabled={fetcher.state !== "idle"}
@@ -600,10 +608,7 @@ export default function AnimalDetailPage() {
                   <CardHeader>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <CalendarDays aria-hidden="true" className="h-4 w-4 text-emerald-700" />
-                          Beweidingshistorie {calendar}
-                        </CardTitle>
+                        <CardTitle className="text-base">Beweidingshistorie {calendar}</CardTitle>
                         <CardDescription className="text-xs">
                           De percelen waar dit dier met zijn koppel heeft geweid, of volgens plan
                           gaat weiden.
@@ -679,7 +684,12 @@ export default function AnimalDetailPage() {
                         : "Registreer wanneer dit dier het bedrijf verlaat."}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    {plannedLeavingDay && (
+                      <p key={`${plannedLeavingDay}-${plannedLeavingMethod}`} className="text-sm">
+                        {`Vertrek gepland op ${format(calendarDay(plannedLeavingDay), "d MMMM yyyy", { locale: nl })}${plannedLeavingMethod ? ` (${plannedLeavingMethod})` : ""}.`}
+                      </p>
+                    )}
                     {isLeft ? (
                       <div className="bg-muted/40 space-y-1 rounded-lg border p-4 text-xs">
                         <p>
@@ -717,6 +727,7 @@ export default function AnimalDetailPage() {
                                 isDirty: false,
                                 isValidating: false,
                               }}
+                              placeholder="Kies de datum van vertrek"
                               required
                             />
                             <Field>
@@ -763,7 +774,10 @@ export default function AnimalDetailPage() {
                         Verplaats dit dier naar een andere koppel.
                       </CardDescription>
                     </CardHeader>
-                    <form onSubmit={handleReassignSubmit}>
+                    <form
+                      onSubmit={handleReassignSubmit}
+                      className="flex flex-col gap-(--card-spacing)"
+                    >
                       <CardContent className="space-y-3">
                         <Field>
                           <FieldLabel htmlFor="move-herd">Doelkoppel</FieldLabel>
@@ -791,7 +805,7 @@ export default function AnimalDetailPage() {
                           </Select>
                         </Field>
                       </CardContent>
-                      <CardFooter className="border-t pt-3">
+                      <CardFooter className="border-t">
                         <Button
                           type="submit"
                           size="sm"

@@ -296,7 +296,7 @@ export default function AnimalsOverviewPage() {
                   Nog geen koppels. Voeg een koppel toe om dieren te registreren.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                   {herds.map((herd) => (
                     <HerdCard
                       key={herd.l_id_herd}

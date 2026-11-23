@@ -37,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { GRAZING_USE_COLORS, PLANNED_GRAZING_BACKGROUND } from "~/lib/grazing-status"
 
 export interface HerdCardProps {
   b_id_farm: string
@@ -199,14 +198,14 @@ export function HerdCard({
 
         <CardContent className="space-y-4">
           {/* Count Stepper */}
-          <div className="bg-muted/40 flex items-center justify-between rounded-lg p-3">
+          <div className="flex items-center justify-between">
             <Button
               type="button"
               variant="outline"
               size="icon"
               onClick={handleDecrement}
               disabled={!canWrite || count <= 0}
-              className="h-9 w-9 shrink-0 cursor-pointer rounded-full"
+              className="h-9 w-9 shrink-0 cursor-pointer rounded-md"
             >
               <Minus className="h-4 w-4" />
               <span className="sr-only">Dier minder</span>
@@ -221,7 +220,7 @@ export function HerdCard({
               size="icon"
               onClick={handleIncrement}
               disabled={!canWrite}
-              className="h-9 w-9 shrink-0 cursor-pointer rounded-full"
+              className="h-9 w-9 shrink-0 cursor-pointer rounded-md"
             >
               <Plus className="h-4 w-4" />
               <span className="sr-only">Dier meer</span>
@@ -240,38 +239,26 @@ export function HerdCard({
           </div>
 
           {/* Grazing Status Badge */}
-          <div className="pt-1">
+          <div>
             {status.type === "grazing_now" && (
               <Badge variant="outline" className="text-emerald-900">
-                <span
-                  aria-hidden="true"
-                  className="mr-1.5 inline-block h-2 w-2 rounded-full"
-                  style={{ backgroundColor: GRAZING_USE_COLORS.weiden }}
-                />
                 <span>Loopt nu op {status.fieldName ?? "onbekend perceel"}</span>
               </Badge>
             )}
             {status.type === "planned" && (
               <Badge variant="outline">
-                {/* Hatched like a planned grazing in the calendar */}
-                <span
-                  aria-hidden="true"
-                  className="mr-1.5 inline-block h-2 w-2 rounded-full"
-                  style={{ backgroundImage: PLANNED_GRAZING_BACKGROUND }}
-                />
                 <span>Gepland vanaf {status.dateStr ?? ""}</span>
               </Badge>
             )}
             {status.type === "idle" && (
               <Badge variant="outline" className="text-muted-foreground">
-                <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" />
-                Wordt vandaag niet geweid
+                <span>Wordt vandaag niet geweid</span>
               </Badge>
             )}
           </div>
         </CardContent>
 
-        <CardFooter className="border-t pt-3">
+        <CardFooter className="border-t">
           <Button
             variant="outline"
             size="sm"
