@@ -8,7 +8,7 @@ import {
   syncAnimalCategoryCatalogueArray,
   syncFeedCatalogueArray,
 } from "./catalogues"
-import { addFarm } from "./farm"
+import { addFarm, removeFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import {
   addFeedBatch,
@@ -372,6 +372,43 @@ describe("Feed Domain", () => {
     await expect(
       addFeedingAnimal(fdm, principal_id, otherBatch, l_id_animal, new Date("2025-05-01")),
     ).rejects.toMatchObject(otherFarmError)
+  })
+
+  it("should not use another farm's own catalogue item for a feed batch", async () => {
+    const otherFarm = await addFarm(
+      fdm,
+      principal_id,
+      "Other Feed Farm",
+      "654321",
+      "Weg 2",
+      "4321BA",
+    )
+    const otherItem = await addFeedToCatalogue(fdm, principal_id, otherFarm, {
+      f_name_nl: "Krachtvoer van de buren",
+      f_type_rvo: "gras_kuil",
+      f_dm: 900,
+      f_n_dm: 25,
+      f_p_dm: 7,
+    })
+
+    // Its ID is refused for this farm
+    await expect(
+      addFeedBatch(fdm, principal_id, b_id_farm, otherItem, "purchased"),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("Feed catalogue item not found") },
+    })
+    // Its feed type finds the standard item, not the other farm's own one
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "purchased")
+    expect((await getFeedBatch(fdm, principal_id, f_id_batch)).f_id_catalogue).not.toBe(otherItem)
+    await expect(
+      updateFeedBatch(fdm, principal_id, f_id_batch, { f_id_catalogue: otherItem }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("Feed catalogue item not found") },
+    })
+
+    // The other farm can use it, and removing that farm is not blocked by this farm
+    await addFeedBatch(fdm, principal_id, otherFarm, otherItem, "purchased")
+    await removeFarm(fdm, principal_id, otherFarm)
   })
 
   it("should reject a feed batch with an unknown catalogue item", async () => {
