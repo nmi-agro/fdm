@@ -151,6 +151,9 @@ describe("cutStrip", () => {
     expect(areaHa(rest)).toBeCloseTo(fieldArea - areaHa(most), 1)
     expect(areaHa(rest)).toBeLessThan(5)
     expect(cutStrip({ field, occupied: [field], targetAreaHa: 5, bearing: 0 })).toBeNull()
+    // Also when the field is occupied together with strips on it, leaving only slivers
+    const strip = cutStrip({ field, targetAreaHa: 3, bearing: 90 }) as Area
+    expect(cutStrip({ field, occupied: [strip, field], targetAreaHa: 5, bearing: 0 })).toBeNull()
   })
 
   it("handles a concave field", () => {
