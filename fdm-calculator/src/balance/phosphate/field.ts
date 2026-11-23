@@ -41,6 +41,22 @@ function yearOfTimeFrame(timeFrame: { start: Date; end: Date }): number {
   return new Date((timeFrame.start.getTime() + timeFrame.end.getTime()) / 2).getFullYear()
 }
 
+/** Main cultivation of a field in a year (see `getMainCultivation`), with its dates as `Date`. */
+function getMainCultivationOfField(
+  fieldInput: Pick<PhosphateFieldInput, "cultivations">,
+  year: number,
+): PhosphateFieldInput["cultivations"][number] | undefined {
+  const main = getMainCultivation(
+    fieldInput.cultivations.map((c) => ({
+      ...c,
+      b_lu_start: c.b_lu_start ? new Date(c.b_lu_start) : null,
+      b_lu_end: c.b_lu_end ? new Date(c.b_lu_end) : null,
+    })),
+    year,
+  )
+  return main ? fieldInput.cultivations.find((c) => c.b_lu === main.b_lu) : undefined
+}
+
 /**
  * Whether a field is left out of the phosphate balance, and why: buffer strips, and fields whose
  * main cultivation of the year (see `getMainCultivation`) is a landscape element or a nature
@@ -56,14 +72,7 @@ export function getPhosphateFieldExclusion(
   fieldInput: Pick<PhosphateFieldInput, "field" | "cultivations">,
   timeFrame: { start: Date; end: Date },
 ): FieldExclusionReason | null {
-  const main = getMainCultivation(
-    fieldInput.cultivations.map((c) => ({
-      ...c,
-      b_lu_start: c.b_lu_start ? new Date(c.b_lu_start) : null,
-      b_lu_end: c.b_lu_end ? new Date(c.b_lu_end) : null,
-    })),
-    yearOfTimeFrame(timeFrame),
-  )
+  const main = getMainCultivationOfField(fieldInput, yearOfTimeFrame(timeFrame))
   return getFieldExclusionReason({
     b_bufferstrip: fieldInput.field.b_bufferstrip,
     b_lu_croprotation: main?.b_lu_croprotation,
@@ -90,7 +99,15 @@ function estimateDefaultRemoval(
   let total = new Decimal(0)
   for (const cultivation of fieldInput.cultivations) {
     const detail = details.get(cultivation.b_lu_catalogue)
-    if (!detail || detail.b_lu_harvestable === "none") continue
+    if (!detail) {
+      // Unknown crop (e.g. from a catalogue that is not enabled for the farm): report it instead of
+      // silently using no removal
+      if (!fieldInput.harvests.some((h) => h.b_lu === cultivation.b_lu)) {
+        missing.push(cultivation.b_lu_name ?? cultivation.b_lu_catalogue)
+      }
+      continue
+    }
+    if (detail.b_lu_harvestable === "none") continue
     if (fieldInput.harvests.some((h) => h.b_lu === cultivation.b_lu)) continue
     const counts =
       detail.b_lu_harvestable === "multiple" ||
@@ -113,26 +130,45 @@ const LONG_TERM_HISTORY_YEARS = 4
 /**
  * The earlier years of a field for the long-term average: the registered data in `history`, and for
  * years without registered cultivations the crop of `cultivation_history` (e.g. BRP), as a
- * cultivation over the whole year without harvest (so the removal uses the catalogue defaults).
+ * cultivation over the whole year without harvest (so the removal uses the catalogue defaults). When
+ * the crop history has no crop for a year either, the main cultivation of the current year is used.
+ *
+ * Also returns the earlier years that make the long-term average only indicative: years without a
+ * registered or historical crop, or without registered fertilizer applications.
  */
 function withCultivationHistory(
   input: PhosphateBalanceFieldCalculationInput,
   currentYear: number,
   details: Map<string, PhosphateCultivationDetail>,
-): { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[] {
+): {
+  years: { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[]
+  incompleteYears: number[]
+} {
   const { fieldInput } = input
   const byYear = new Map(
     (input.history ?? []).map((past) => [yearOfTimeFrame(past.timeFrame), past] as const),
   )
+  const currentCrop = getMainCultivationOfField(fieldInput, currentYear)
   const result: { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[] = []
+  const incompleteYears: number[] = []
   for (let i = 1; i <= LONG_TERM_HISTORY_YEARS; i++) {
     const year = currentYear - i
     const past = byYear.get(year)
+    const historyCrops = (fieldInput.cultivation_history ?? []).filter((c) => c.year === year)
+    const hasCrop = (past?.fieldInput.cultivations.length ?? 0) > 0 || historyCrops.length > 0
+    const hasFertilizers = (past?.fieldInput.fertilizerApplications.length ?? 0) > 0
+    if (!hasCrop || !hasFertilizers) incompleteYears.push(year)
+
     if (past && past.fieldInput.cultivations.length > 0) {
       result.push(past)
       continue
     }
-    const crops = (fieldInput.cultivation_history ?? []).filter((c) => c.year === year)
+    const crops =
+      historyCrops.length > 0
+        ? historyCrops
+        : currentCrop
+          ? [{ year, b_lu_catalogue: currentCrop.b_lu_catalogue }]
+          : []
     if (crops.length === 0) {
       if (past) result.push(past)
       continue
@@ -166,7 +202,7 @@ function withCultivationHistory(
       },
     })
   }
-  return result
+  return { years: result, incompleteYears }
 }
 
 /** Short Dutch list of years, e.g. "2022, 2023 en 2025". */
@@ -467,7 +503,12 @@ export function calculatePhosphateBalanceField(
   const estimatedRemovalYears: number[] = []
   const missingDefaults: string[] = []
   const yearsWithoutData: number[] = []
-  for (const past of withCultivationHistory(input, currentYear, cultivationDetails)) {
+  const { years: pastYears, incompleteYears } = withCultivationHistory(
+    input,
+    currentYear,
+    cultivationDetails,
+  )
+  for (const past of pastYears) {
     if (past.fieldInput.cultivations.length === 0) continue
     const year = yearOfTimeFrame(past.timeFrame)
     // Only years with registered data count: a crop (e.g. from the BRP history) alone would give an
@@ -519,6 +560,11 @@ export function calculatePhosphateBalanceField(
   const longTermFertilizers = mean(fertilizedYears.map((y) => y.fertilizers))
   const longTermBalance = longTermFertilizers.add(mean(years.map((y) => y.rest)))
   const longTermWarnings: string[] = []
+  if (incompleteYears.length > 0) {
+    longTermWarnings.push(
+      `De balans op lange termijn is alleen indicatief: voor ${formatYears(incompleteYears)} zijn geen gewassen of geen bemesting bekend.`,
+    )
+  }
   if (yearsWithoutData.length > 0) {
     longTermWarnings.push(
       years.length === 1

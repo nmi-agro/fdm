@@ -33,7 +33,7 @@ import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import { addPhosphateCropHistory } from "~/integrations/calculator"
+import { addPhosphateCropHistory, failedPhosphateFarmResult } from "~/integrations/calculator"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -70,15 +70,6 @@ export const meta: MetaFunction = () => {
     { title: `Fosfaat | Organisatie | Nutriëntenbalans| ${clientConfig.name}` },
     { name: "description", content: "Bekijk de fosfaatbalans van je organisatie." },
   ]
-}
-
-/** Result of a farm that could not be calculated. */
-function failedFarmResult(errorMessage: string): PhosphateBalance {
-  return {
-    ...calculatePhosphateBalanceFieldsToFarm([], [errorMessage]),
-    hasErrors: true,
-    errorMessage,
-  }
 }
 
 /**
@@ -146,10 +137,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
         farmIds,
         timeframe,
       )
-      const inputsWithHistory = await Promise.all(
-        inputs.map((input) => addPhosphateCropHistory(fdm, principal_id, input.b_id_farm, input)),
-      )
-      const inputsByFarm = new Map(inputsWithHistory.map((input) => [input.b_id_farm, input]))
+      const inputsByFarm = new Map(inputs.map((input) => [input.b_id_farm, input]))
 
       const farmResults: FarmResult[] = await Promise.all(
         farmsExtended
@@ -160,11 +148,18 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
               return {
                 farm,
                 totalArea: farm.b_area_farm,
-                phosphateBalanceResult: failedFarmResult("No fields in input"),
+                phosphateBalanceResult: failedPhosphateFarmResult("No fields in input"),
               }
             }
             try {
-              const phosphateBalanceResult = await calculatePhosphateBalance(fdm, input)
+              // Inside the try: a failing crop history marks only this farm as failed
+              const inputWithHistory = await addPhosphateCropHistory(
+                fdm,
+                principal_id,
+                farm.b_id_farm,
+                input,
+              )
+              const phosphateBalanceResult = await calculatePhosphateBalance(fdm, inputWithHistory)
               if (phosphateBalanceResult.hasErrors) {
                 reportError(
                   phosphateBalanceResult.fieldErrorMessages.join(",\n"),
@@ -189,7 +184,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
               return {
                 farm,
                 totalArea: farm.b_area_farm,
-                phosphateBalanceResult: failedFarmResult(
+                phosphateBalanceResult: failedPhosphateFarmResult(
                   `De fosfaatbalans van dit bedrijf kon niet worden berekend (foutcode ${errorId}).`,
                 ),
               }
@@ -333,12 +328,14 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
               <span>{formatNumberNl(phosphateBalanceResult.balance)}</span>
               {delta !== undefined ? (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground block cursor-default text-xs">
-                      {delta >= 0 ? "+" : ""}
-                      {formatNumberNl(delta, 1)}
-                    </span>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <span className="text-muted-foreground block cursor-default text-xs">
+                        {delta >= 0 ? "+" : ""}
+                        {formatNumberNl(delta, 1)}
+                      </span>
+                    }
+                  />
                   <TooltipContent>
                     {`Verschil t.o.v. het organisatiegemiddelde (${formatNumberNl(combinedResult.balance, 1)} ${PHOSPHATE_UNIT})`}
                   </TooltipContent>

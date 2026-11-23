@@ -118,13 +118,13 @@ export function PhosphateBalanceDetails({
   const rowClass = "flex border-b py-4 text-sm font-medium"
 
   return (
-    <Accordion type="multiple" className="w-full">
+    <Accordion multiple className="w-full">
       <AccordionItem value="supply">
         <AccordionTrigger>
           Aanvoer (Totaal): {formatNumberNl(balanceData.supply.total)} {PHOSPHATE_UNIT}
         </AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {typeTotals.length > 0 ? (
               typeTotals.map(([type, label]) => (
                 <AccordionItem key={type} value={`supply.fertilizers.${type}`}>
@@ -155,7 +155,7 @@ export function PhosphateBalanceDetails({
           Afvoer (Totaal): {formatNumberNl(balanceData.removal.total)} {PHOSPHATE_UNIT}
         </AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             <AccordionItem value="removal.harvests">
               <AccordionTrigger>
                 Oogst: {formatNumberNl(harvests.total)} {PHOSPHATE_UNIT}

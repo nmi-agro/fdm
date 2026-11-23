@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import { type JSX, useState } from "react"
 import {
   Area,
@@ -11,7 +12,6 @@ import {
   YAxis,
 } from "recharts"
 import { type ChartConfig, ChartContainer } from "~/components/ui/chart"
-import { cn } from "~/lib/utils"
 import { formatNumberNl, PHOSPHATE_HORIZON_YEARS } from "./phosphate-format"
 
 /** A dated soil analysis shown as a point in the chart. */

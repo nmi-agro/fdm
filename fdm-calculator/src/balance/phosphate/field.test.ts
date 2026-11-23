@@ -160,10 +160,14 @@ describe("calculatePhosphateBalanceField", () => {
     // 2023 registered harvest 12 000 kg × 4 g/kg −48, residues −6, deposition 0.7
     const rest = (-44.3 + (-53.3 * 365) / 366 - 53.3) / 3
     expect(result.long_term.balance).toBeCloseTo(fertilizers + rest, 1)
-    expect(result.long_term.warnings[0]).toMatch(
-      /Voor 2021 zijn geen bemesting en oogst geregistreerd: deze jaren tellen niet mee/,
+    // 2022 has no crop (the current crop is used) and 2021–2023 have no fertilisation: indicative
+    expect(result.long_term.warnings[0]).toBe(
+      "De balans op lange termijn is alleen indicatief: voor 2021, 2022 en 2023 zijn geen gewassen of geen bemesting bekend.",
     )
-    expect(result.long_term.warnings[1]).toMatch(/Voor 2023 is geen bemesting geregistreerd/)
+    expect(result.long_term.warnings[1]).toMatch(
+      /Voor 2021 en 2022 zijn geen bemesting en oogst geregistreerd: deze jaren tellen niet mee/,
+    )
+    expect(result.long_term.warnings[2]).toMatch(/Voor 2023 is geen bemesting geregistreerd/)
     expect(result.balance).toBeCloseTo(20.2)
     expect(result.projection?.balance_effective_per_year).toBeCloseTo(
       result.long_term.balance + result.long_term.leaching - 20,
@@ -187,9 +191,68 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.long_term.years).toEqual([2025])
     expect(result.long_term.estimated_removal_years).toEqual([])
     expect(result.long_term.balance).toBeCloseTo(result.balance)
+    // 2021 and 2022 have no BRP crop: the current crop is used, but they have no data either
     expect(result.long_term.warnings).toEqual([
-      "Voor 2023 en 2024 zijn geen bemesting en oogst geregistreerd: de trend gebruikt alleen de balans van 2025. Voeg de bemesting en oogsten van eerdere jaren toe voor een gemiddelde balans over de vruchtwisseling.",
+      "De balans op lange termijn is alleen indicatief: voor 2021, 2022, 2023 en 2024 zijn geen gewassen of geen bemesting bekend.",
+      "Voor 2021, 2022, 2023 en 2024 zijn geen bemesting en oogst geregistreerd: de trend gebruikt alleen de balans van 2025. Voeg de bemesting en oogsten van eerdere jaren toe voor een gemiddelde balans over de vruchtwisseling.",
     ])
+  })
+
+  it("should use the current crop for an earlier year with fertilisation but no registered or BRP crop", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: input.fields[0],
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+      history: [
+        {
+          timeFrame: { start: new Date("2024-01-01"), end: new Date("2024-12-31") },
+          fieldInput: {
+            ...input.fields[0],
+            cultivations: [],
+            harvests: [],
+            fertilizerApplications: [
+              { p_app_id: "p2024", p_id_catalogue: "tsp", p_app_amount: 100 },
+            ] as PhosphateBalanceInput["fields"][number]["fertilizerApplications"],
+          },
+        },
+      ],
+    })
+    // 2024: the current crop (potatoes) with the default harvest −48, deposition 0.7, TSP 45
+    expect(result.long_term.years).toEqual([2024, 2025])
+    expect(result.long_term.estimated_removal_years).toEqual([2024])
+    const fertilizers = (64.5 + (45 * 365) / 366) / 2
+    const rest = (-44.3 + (-47.3 * 365) / 366) / 2
+    expect(result.long_term.balance).toBeCloseTo(fertilizers + rest, 1)
+    expect(result.long_term.warnings[0]).toBe(
+      "De balans op lange termijn is alleen indicatief: voor 2021, 2022, 2023 en 2024 zijn geen gewassen of geen bemesting bekend.",
+    )
+  })
+
+  it("should report an earlier crop without catalogue details instead of using no removal", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: {
+        ...input.fields[0],
+        cultivation_history: [{ year: 2024, b_lu_catalogue: "nl_9999" }],
+      },
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+      history: [
+        {
+          timeFrame: { start: new Date("2024-01-01"), end: new Date("2024-12-31") },
+          fieldInput: {
+            ...input.fields[0],
+            cultivations: [],
+            harvests: [],
+            fertilizerApplications: [
+              { p_app_id: "p2024", p_id_catalogue: "tsp", p_app_amount: 100 },
+            ] as PhosphateBalanceInput["fields"][number]["fertilizerApplications"],
+          },
+        },
+      ],
+    })
+    expect(result.long_term.warnings.join(" ")).toMatch(/nl_9999 \(2024\): voeg de oogst toe/)
   })
 
   it("should use the crop history (BRP) for an earlier year with fertilisation but no registered cultivation", () => {

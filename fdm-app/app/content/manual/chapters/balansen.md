@@ -1,8 +1,9 @@
 ---
 title: Balansen
-description: Bekijk de stikstofbalans en de organische-stofbalans van je bedrijf en per perceel, en zie welke gegevens ervoor nodig zijn.
+description: Bekijk de stikstof-, organische-stof- en fosfaatbalans van je bedrijf en per perceel, en zie welke gegevens ervoor nodig zijn.
 section: Resultaten
 order: 1
+updated: 2026-11-23
 inApp:
   - Balans
   - Stikstof
@@ -19,13 +20,17 @@ keywords:
   - doelsturing
   - nitraatuitspoeling
   - lachgasemissie
+  - fosfaatbalans
+  - fosfaattoestand
+  - P-AL
+  - fosfaatverzadiging
 related:
   - background/stikstofbalans
   - background/organische-stofbalans
   - bodem
 ---
 
-De balansen laten zien wat er op je bedrijf binnenkomt en weer afgaat. {{appName}} heeft er twee: voor stikstof en voor organische stof. Je vindt ze onder **Balans** in de zijbalk, voor het hele bedrijf en per perceel.
+De balansen laten zien wat er op je bedrijf binnenkomt en weer afgaat. {{appName}} heeft er drie: voor stikstof, voor organische stof en voor fosfaat. Je vindt ze onder **Balans** in de zijbalk, voor het hele bedrijf en per perceel.
 
 ## Stikstofbalans {#stikstofbalans}
 
@@ -53,14 +58,41 @@ De organische-stofbalans laat zien of het organischestofgehalte van je bodem op 
 
 Meer over de berekening lees je in [Organische-stofbalans](/manual/background/organische-stofbalans).
 
+## Fosfaatbalans {#fosfaatbalans}
+
+De fosfaatbalans is **Experimenteel**: de rekenregels en grenswaarden worden nog met onderzoekers afgestemd. Gebruik de uitkomsten als richting, niet als vaststaand advies.
+
+De balans zet de aanvoer af tegen de afvoer, in kg P₂O₅ per hectare:
+
+| Post    | Wat valt eronder?                                                                                |
+| ------- | ------------------------------------------------------------------------------------------------ |
+| Aanvoer | Kunstmest, dierlijke mest, compost, overige meststoffen, mineralisatie uit de bodem en depositie |
+| Afvoer  | Wat je oogst en wat je aan gewasresten afvoert                                                   |
+
+Daarnaast schat {{appName}} de uitspoeling van fosfaat uit het overschot. Die telt, net als de nitraatuitspoeling bij stikstof, niet mee in de balans.
+
+Eén jaar zegt weinig over de bodem: in het ene jaar bemest je meer, in het andere minder. Daarom kijkt {{appName}} voor de trend naar de gemiddelde balans over het gekozen jaar en de vier jaren ervoor. Staat er voor een eerder jaar geen gewas in {{appName}}, dan wordt het gewas uit het BRP gebruikt, en als dat er ook niet is het hoofdgewas van het gekozen jaar. Ontbreken voor eerdere jaren de gewassen of de bemesting, dan is de balans op lange termijn alleen indicatief; de app zegt dat erbij. Vul de bemesting en oogsten van eerdere jaren aan voor een betrouwbaardere trend.
+
+### Fosfaattoestand van de bodem {#fosfaattoestand}
+
+De balans krijgt pas betekenis naast de bodem. Per perceel zie je onder **Bodemvoorraad (P-AL)** hoeveel fosfaat er voor het gewas beschikbaar is, en onder **Fosfaatverzadiging (PSD)** hoe vol de bodem al zit ten opzichte van de milieugrens. Daaruit volgt het doel van het perceel:
+
+- **Opbouwen**: P-AL ligt onder 35. Er is meer fosfaat nodig voor een goede opbrengst.
+- Onderhouden: P-AL ligt tussen 35 en 45 en de PSD onder de milieugrens. De voorraad mag zo blijven.
+- **Afbouwen**: de PSD ligt boven de milieugrens (of, zonder PSD, P-AL boven 45). Het milieu gaat dan voor.
+
+Bij **Fosfaattoestand** zie je welke kant het perceel op gaat bij de gemiddelde balans en hoe lang het duurt voordat het doel bereikt is. Het oordeel is **Goed**, **Aandacht**, **Bijsturen** of **Onbekend**. Onder **Mogelijke aanpak** staat welke balans nodig is om bij te sturen. Zijn de bodemgegevens geschat of is de fosfaatverzadiging voor jouw grondsoort minder betrouwbaar, dan staat er bij het oordeel dat het indicatief is.
+
+Op de bedrijfspagina zie je bij **Fosfaattoestand van de percelen** hoeveel hectare elk oordeel heeft, en onder **Percelen** de percelen met hun doel en oordeel. Bufferstroken, natuur en landschapselementen tellen niet mee; die staan apart onder "Niet meegenomen".
+
 ## Wat heb je nodig? {#benodigde-gegevens}
 
 Voor een goede balans heeft {{appName}} per perceel nodig:
 
-- een bodemanalyse met totaal stikstof, bodemtype en organische stof;
+- een bodemanalyse met totaal stikstof, bodemtype en organische stof, en voor de fosfaatbalans P-AL en liefst ook P-ox, Fe-ox, Al-ox of de fosfaatverzadiging;
 - de gewassen met zaai- en oogstdata;
 - de oogsten met opbrengst;
-- de bemestingen.
+- de bemestingen, voor de fosfaatbalans ook die van de vier jaren ervoor.
 
 Ontbreekt er iets, dan zegt de app dat. Bufferstroken tellen niet mee in de balans.
 

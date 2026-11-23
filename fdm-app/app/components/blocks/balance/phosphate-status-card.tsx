@@ -4,6 +4,7 @@ import {
   type PhosphateBalanceField,
   type PhosphateStatus,
 } from "@nmi-agro/fdm-calculator/browser"
+import { cn } from "cn"
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,7 +22,6 @@ import {
 import { NavLink } from "react-router"
 import { Card, CardContent, CardDescription, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { cn } from "~/lib/utils"
 import {
   describeConflictEffects,
   describePhosphateDirection,

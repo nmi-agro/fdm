@@ -4,6 +4,7 @@ import type {
   PhosphateVerdict,
 } from "@nmi-agro/fdm-calculator"
 import type { ReactNode } from "react"
+import { cn } from "cn"
 import {
   ChevronDown,
   CircleAlert,
@@ -17,7 +18,6 @@ import {
 import { InfoTip } from "~/components/blocks/fertilizer-applications/bulk/info-tip"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { cn } from "~/lib/utils"
 import {
   formatLongTermYears,
   formatTrendBalanceName,

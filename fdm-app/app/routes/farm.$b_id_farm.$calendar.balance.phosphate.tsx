@@ -172,14 +172,16 @@ export default function FarmBalancePhosphateBlock() {
               <h2 className="text-3xl font-semibold tracking-tight">Fosfaat</h2>
             </div>
             <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="focus-visible:ring-ring/50 hover:bg-muted rounded-md border px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px]"
-                >
-                  Experimenteel
-                </button>
-              </PopoverTrigger>
+              <PopoverTrigger
+                render={
+                  <button
+                    type="button"
+                    className="focus-visible:ring-ring/50 hover:bg-muted rounded-md border px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px]"
+                  >
+                    Experimenteel
+                  </button>
+                }
+              />
               <PopoverContent className="w-80 space-y-2 text-sm">
                 <p className="font-medium">De fosfaatbalans is experimenteel</p>
                 <p className="text-muted-foreground">

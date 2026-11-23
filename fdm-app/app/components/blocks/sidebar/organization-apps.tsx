@@ -133,13 +133,13 @@ export function SidebarOrganizationApps() {
                   <SidebarMenuSubItem>
                     {phosphateBalanceLink ? (
                       <SidebarMenuSubButton
-                        asChild
                         isActive={location.pathname.includes(phosphateBalanceLink)}
-                      >
-                        <NavLink to={phosphateBalanceLink}>
-                          <span>Fosfaat</span>
-                        </NavLink>
-                      </SidebarMenuSubButton>
+                        render={
+                          <NavLink to={phosphateBalanceLink}>
+                            <span>Fosfaat</span>
+                          </NavLink>
+                        }
+                      />
                     ) : null}
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>

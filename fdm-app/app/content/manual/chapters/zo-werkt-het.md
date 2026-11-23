@@ -3,6 +3,7 @@ title: Zo werkt {{appName}}
 description: Wat {{appName}} doet, voor wie het is en hoe je je weg vindt via de kalender, de zijbalk en het bedrijfsdashboard.
 section: Aan de slag
 order: 1
+updated: 2026-11-23
 routes:
   - farm.tsx
   - farm.$b_id_farm.tsx
@@ -28,7 +29,7 @@ Het idee is simpel. Jij vult in wat je weet: welke percelen je hebt, wat erop gr
 
 | Wat je invult       | Wat je ervoor terugkrijgt                                                                     |
 | ------------------- | --------------------------------------------------------------------------------------------- |
-| Percelen            | [Stikstofbalans en organische-stofbalans](/manual/balansen)                                   |
+| Percelen            | [Stikstof-, organische-stof- en fosfaatbalans](/manual/balansen)                              |
 | Gewassen en oogsten | [Gebruiksruimte](/manual/gebruiksruimte) volgens de mestregels                                |
 | Bemestingen         | [Bemestingsadvies](/manual/bemestingsadvies) per perceel en nutriënt                          |
 | Bodemanalyses       | [Bodemkwaliteit](/manual/bodemkwaliteit) volgens BLN3                                         |
@@ -63,7 +64,7 @@ Handig om te weten: het jaar staat ook in het webadres. Stuur je een link naar e
 | Groep       | Wat je er vindt                                                                                                                                       |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Bedrijf     | **Mijn bedrijven**, **Kalender**, **Percelen**, **Bouwplan**, **Tijdlijn**, **Maatregelen**, **Meststoffen** en de perceelkiezer **Kies een perceel** |
-| Apps        | **Atlas**, **Balans** (Stikstof en Organische stof), **Bemestingsadvies**, **Gebruiksruimte** en **Indicatoren**                                      |
+| Apps        | **Atlas**, **Balans** (Stikstof, Organische stof en Fosfaat), **Bemestingsadvies**, **Gebruiksruimte** en **Indicatoren**                             |
 | Labs        | **Mineralisatie** en **Gerrit**: nieuwe, experimentele functies                                                                                       |
 | Organisatie | **Mijn organisaties** en, als je een organisatie kiest, de overzichten over meerdere bedrijven                                                        |
 | Onderaan    | **Handleiding**, **Ondersteuning**, de melding **Wat is er nieuw?** en het menu onder je naam (Account, Cookies, Organisaties, Uitloggen)             |
@@ -78,7 +79,7 @@ Op veel pagina's staat rechtsboven een vraagteken. Daarmee open je het deel van 
 
 Klik je op een bedrijf, dan kom je op het dashboard. Dit is je startpunt:
 
-- Onder **Apps** staan kaarten naar Atlas, Stikstofbalans, OS Balans, Bemestingsadvies, Gebruiksruimte en Bemestingsplan.
+- Onder **Apps** staan kaarten naar Atlas, Stikstofbalans, OS Balans, Fosfaatbalans, Bemestingsadvies, Gebruiksruimte en Bemestingsplan.
 - Onder **Acties** vind je de dingen die je vaak doet als je gegevens wilt toevoegen, zoals **Nieuwe percelen**, **Ophalen bij RVO**, **RVO Shapefile uploaden** en **Upload bodemanalyses**.
 
 ![Het bedrijfsdashboard van een demobedrijf, met de apps en de acties](screenshot:bedrijf-dashboard)

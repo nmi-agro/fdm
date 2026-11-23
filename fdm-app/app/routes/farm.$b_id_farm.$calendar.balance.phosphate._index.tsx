@@ -11,6 +11,7 @@ import {
   type PhosphateVerdict,
 } from "@nmi-agro/fdm-calculator/browser"
 import { getCultivationsForFarm, getFarm, getFields, getHarvestsForFarm } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import {
   ArrowDownRight,
   ArrowRight,
@@ -72,7 +73,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { cn } from "~/lib/utils"
 
 // Meta
 export const meta: MetaFunction = () => {

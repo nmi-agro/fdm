@@ -46,16 +46,18 @@ const references: { text: string; href: string }[] = [
 export function PhosphateHelpDialog() {
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground gap-1.5"
-        >
-          <HelpCircle className="h-4 w-4" />
-          Hoe lees ik de fosfaatbalans?
-        </Button>
-      </DialogTrigger>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground gap-1.5"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Hoe lees ik de fosfaatbalans?
+          </Button>
+        }
+      />
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Hoe lees ik de fosfaatbalans?</DialogTitle>

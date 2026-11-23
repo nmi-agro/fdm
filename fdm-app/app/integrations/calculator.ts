@@ -3,6 +3,7 @@ import {
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
   calculatePhosphateBalance,
+  calculatePhosphateBalanceFieldsToFarm,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
   collectInputForPhosphateBalance,
@@ -470,13 +471,30 @@ export async function getPhosphateBalanceForFarm({
   b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
   timeframe: Timeframe
 }): Promise<PhosphateBalance> {
-  const input = await addPhosphateCropHistory(
-    fdm,
-    principal_id,
-    b_id_farm,
-    await collectInputForPhosphateBalance(fdm, principal_id, b_id_farm, timeframe),
-  )
+  const collected = await collectInputForPhosphateBalance(fdm, principal_id, b_id_farm, timeframe)
+  // The crop history needs the cultivation catalogue; when that lookup fails, the farm is marked as
+  // failed (the page shows its calculation-error state) instead of failing the whole page
+  let input: typeof collected
+  try {
+    input = await addPhosphateCropHistory(fdm, principal_id, b_id_farm, collected)
+  } catch (error) {
+    return failedPhosphateFarmResult(error instanceof Error ? error.message : String(error))
+  }
   return calculatePhosphateBalance(fdm, input)
+}
+
+/**
+ * Phosphate balance of a farm that could not be calculated: no fields, with the error message.
+ *
+ * @param errorMessage - Why the farm could not be calculated.
+ * @returns The failed farm result.
+ */
+export function failedPhosphateFarmResult(errorMessage: string): PhosphateBalance {
+  return {
+    ...calculatePhosphateBalanceFieldsToFarm([], [errorMessage]),
+    hasErrors: true,
+    errorMessage,
+  }
 }
 
 export async function getNutrientAdviceForField({
