@@ -1303,7 +1303,7 @@ function GrazingPlanAssistent() {
                     )}
                   >
                     {previewZones.length > 0 && (
-                      <div className="h-[380px] overflow-hidden rounded-lg border lg:order-2 xl:h-[480px]">
+                      <div className="h-[380px] overflow-hidden rounded-lg border lg:order-2 xl:h-[480px] 2xl:order-none 2xl:h-[320px]">
                         <Suspense fallback={<Skeleton className="h-full w-full" />}>
                           <PlanPreviewMap
                             fields={previewFields}
@@ -1316,7 +1316,8 @@ function GrazingPlanAssistent() {
                       </div>
                     )}
 
-                    <div className="max-h-64 overflow-y-auto rounded-lg border lg:max-h-[380px] xl:max-h-[480px]">
+                    {/* The sticky card of a wide screen keeps its footer on a 1080 px screen */}
+                    <div className="max-h-64 overflow-y-auto rounded-lg border lg:max-h-[380px] xl:max-h-[480px] 2xl:max-h-[360px]">
                       <Table>
                         <TableHeader>
                           <TableRow>

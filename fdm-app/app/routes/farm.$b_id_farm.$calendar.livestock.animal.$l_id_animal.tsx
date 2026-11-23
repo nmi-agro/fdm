@@ -708,7 +708,11 @@ export default function AnimalDetailPage() {
                         </p>
                       </div>
                     ) : farmWritePermission ? (
-                      <form onSubmit={handleDepartureSubmit} className="space-y-4">
+                      <form
+                        id="departure-form"
+                        onSubmit={handleDepartureSubmit}
+                        className="space-y-4"
+                      >
                         <FieldGroup>
                           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <DatePicker
@@ -753,13 +757,24 @@ export default function AnimalDetailPage() {
                             </Field>
                           </div>
                         </FieldGroup>
-                        <Button type="submit" variant="destructive" size="sm" className="gap-1.5">
-                          <LogOut className="h-4 w-4" />
-                          Afvoer vastleggen
-                        </Button>
                       </form>
                     ) : null}
                   </CardContent>
+                  {/* Like the other cards, the action sits in the footer; it waits for a date */}
+                  {!isLeft && farmWritePermission && (
+                    <CardFooter className="border-t">
+                      <Button
+                        type="submit"
+                        form="departure-form"
+                        variant="destructive"
+                        disabled={!leavingDate || fetcher.state !== "idle"}
+                        className="gap-1.5"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Afvoer vastleggen
+                      </Button>
+                    </CardFooter>
+                  )}
                 </Card>
               </div>
 

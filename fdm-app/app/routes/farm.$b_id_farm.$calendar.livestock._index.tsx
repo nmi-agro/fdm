@@ -22,6 +22,7 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddAnimalDialog } from "~/components/blocks/livestock/add-animal-dialog"
 import { AddHerdDialog } from "~/components/blocks/livestock/add-herd-dialog"
 import { HerdCard } from "~/components/blocks/livestock/herd-card"
+import { StatTile } from "~/components/blocks/livestock/stat-tile"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -313,7 +314,7 @@ export default function MelkveeOverview() {
                     detail={`gemiddeld ${summary.averageHours.toLocaleString("nl-NL")} uur per dag`}
                   />
                   <Card className="gap-2 p-4">
-                    <p className="text-muted-foreground text-xs">Weidemelk 120 × 6</p>
+                    <p className="text-muted-foreground text-xs">Weidemelk (120 dagen × 6 uur)</p>
                     <p className="text-2xl font-semibold tabular-nums">
                       {summary.weidemelkDays}
                       <span className="text-muted-foreground text-sm font-normal">/120 dagen</span>
@@ -405,16 +406,6 @@ export default function MelkveeOverview() {
 }
 
 /** A key figure: a label, a large value and a line of detail. */
-function StatTile({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <Card className="gap-1 p-4">
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <p className="text-2xl font-semibold tabular-nums">{value}</p>
-      <p className="text-muted-foreground text-xs">{detail}</p>
-    </Card>
-  )
-}
-
 /**
  * The grazing of the last 7 days and the coming 7 days: per field with a use in that window a
  * strip of days in the colours of the calendar, and the planned grazing of the coming week.
@@ -540,7 +531,8 @@ function GrazingWindow({
           </div>
         )}
 
-        <div className="space-y-1.5">
+        {/* Its own column next to the day strip on a wide screen */}
+        <div className="space-y-1.5 xl:border-l xl:pl-8">
           <h3 className="text-sm font-medium">Gepland deze week</h3>
           {upcoming.size === 0 ? (
             <p className="text-muted-foreground text-xs">Geen geplande beweiding.</p>

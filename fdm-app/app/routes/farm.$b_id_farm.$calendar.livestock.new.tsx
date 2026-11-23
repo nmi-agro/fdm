@@ -167,11 +167,16 @@ export default function LivestockOnboarding() {
   const [selectedCategory, setSelectedCategory] = useState(defaultCategory?.l_id_category ?? "")
   const hasCategories = categories.length > 0
   const [herdName, setHerdName] = useState("Melkkoeien")
-  const [count, setCount] = useState<number>(96)
+  // Starts empty, so changing only the category does not create a number of animals by accident
+  const [countText, setCountText] = useState("")
+  const count = Number.parseInt(countText, 10)
+  const hasCount = Number.isInteger(count) && count > 0
 
   const activeCategoryObj = categories.find((c) => c.l_id_category === selectedCategory)
   const lsuFactor = activeCategoryObj?.l_lsu ?? 1.0
-  const totalGve = (count * lsuFactor).toLocaleString("nl-NL", { maximumFractionDigits: 1 })
+  const totalGve = hasCount
+    ? (count * lsuFactor).toLocaleString("nl-NL", { maximumFractionDigits: 1 })
+    : "—"
 
   const handleCategoryChange = (catId: string) => {
     setSelectedCategory(catId)
@@ -253,7 +258,7 @@ export default function LivestockOnboarding() {
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <Field>
-                        <FieldLabel htmlFor="herd-name">Naam van de koppel</FieldLabel>
+                        <FieldLabel htmlFor="herd-name">Naam van de koppel *</FieldLabel>
                         <Input
                           id="herd-name"
                           name="l_herd_name"
@@ -271,10 +276,9 @@ export default function LivestockOnboarding() {
                           type="number"
                           min="1"
                           max="5000"
-                          value={count}
-                          onChange={(e) =>
-                            setCount(Math.max(1, parseInt(e.target.value || "1", 10)))
-                          }
+                          placeholder="bijv. 96"
+                          value={countText}
+                          onChange={(e) => setCountText(e.target.value)}
                           required
                         />
                       </Field>
@@ -311,7 +315,9 @@ export default function LivestockOnboarding() {
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:max-w-xs">
                 <div>
                   <dt className="text-muted-foreground text-xs">Dieren</dt>
-                  <dd className="font-semibold tabular-nums">{count.toLocaleString("nl-NL")}</dd>
+                  <dd className="font-semibold tabular-nums">
+                    {hasCount ? count.toLocaleString("nl-NL") : "—"}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground text-xs">GVE</dt>
@@ -319,9 +325,9 @@ export default function LivestockOnboarding() {
                 </div>
               </dl>
               <p className="text-muted-foreground max-w-prose">
-                We maken {count} dieren aan zonder oormerk. Vul ze later aan met oormerk en
-                levensnummer, of laat ze zoals ze zijn. Voor beweiding invullen en veebezetting is
-                het aantal genoeg.
+                We maken {hasCount ? `${count} dieren` : "de dieren"} aan zonder oormerk. Vul ze
+                later aan met oormerk en levensnummer, of laat ze zoals ze zijn. Voor beweiding
+                invullen en veebezetting is het aantal genoeg.
               </p>
             </aside>
           </div>

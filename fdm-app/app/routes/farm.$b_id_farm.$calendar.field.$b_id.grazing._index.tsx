@@ -425,7 +425,9 @@ export default function FieldGrazingPage() {
       <div
         className={cn(
           "grid gap-6",
-          showZones && "xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start",
+          // A narrower map at 1280 px, so the history table keeps room for its columns
+          showZones &&
+            "xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start 2xl:grid-cols-[minmax(0,1fr)_420px]",
         )}
       >
         {/* Events Table */}
@@ -473,7 +475,7 @@ export default function FieldGrazingPage() {
                             <button
                               type="button"
                               onClick={() => openGrazing(ev.grazing)}
-                              className="cursor-pointer underline-offset-2 hover:underline focus-visible:underline"
+                              className="decoration-muted-foreground/40 hover:decoration-foreground cursor-pointer underline underline-offset-2"
                             >
                               {ev.herdName}
                               <span className="sr-only"> (beweiding wijzigen)</span>
