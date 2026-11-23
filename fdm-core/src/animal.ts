@@ -1085,7 +1085,7 @@ function buildAnimalRows(
   count: number,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-  now: Date,
+  l_arriving_date: Date,
   firstWorknumber: number,
   defaults?: {
     l_specie?: schema.animalsTypeInsert["l_specie"]
@@ -1114,13 +1114,13 @@ function buildAnimalRows(
       arrivingRow: {
         l_id_animal,
         b_id_farm,
-        l_arriving_date: now,
+        l_arriving_date,
         l_arriving_method: defaults?.l_arriving_method ?? "born",
       },
       assigningRow: {
         l_id_animal,
         l_id_herd,
-        l_assigning_start: now,
+        l_assigning_start: l_arriving_date,
         l_assigning_end: null,
       },
     })
@@ -1953,7 +1953,9 @@ export async function removeAnimalAssigning(
  * @param herdProperties - Herd properties: the animal category (required, enabled for the farm),
  *   and optionally the name and start date. Without a start date the herd has no known start.
  * @param count - Number of new animals to create in the herd.
- * @param animalProperties - Optional default attributes shared by all newly created animals.
+ * @param animalProperties - Optional default attributes shared by all newly created animals, and
+ *   `l_arriving_date`: the date the animals arrived on the farm and joined the herd (default: now).
+ *   The herd must run on that date.
  * @returns The new herd ID and the IDs of the newly created animals.
  */
 export async function createHerdWithAnimals(
@@ -1970,6 +1972,7 @@ export async function createHerdWithAnimals(
     l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
+    l_arriving_date?: schema.animalArrivingTypeInsert["l_arriving_date"]
   },
 ): Promise<{ l_id_herd: string; l_id_animals: string[] }> {
   try {
@@ -1977,24 +1980,32 @@ export async function createHerdWithAnimals(
     assertAnimalCount(count)
 
     return await fdm.transaction(async (tx) => {
-      const now = new Date()
+      const l_arriving_date = animalProperties?.l_arriving_date ?? new Date()
       await lockFarm(tx, b_id_farm)
 
       const category = await getAnimalCategory(tx, herdProperties.l_id_category, b_id_farm)
       const l_id_herd = await insertHerd(tx, b_id_farm, herdProperties)
-      // The animals join the herd now, so a herd that only starts later cannot get them yet
+      // The animals join the herd on their arrival, so the herd must run on that date
       if (count > 0) {
-        await assertHerdRunsOn(tx, l_id_herd, now)
+        await assertHerdRunsOn(tx, l_id_herd, l_arriving_date)
       }
 
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
       assertWorknumberRange(firstWorknumber, count)
       const l_specie = animalProperties?.l_specie ?? category.l_specie
       assertAnimalMatchesCategory(category, l_specie, null)
-      const animalRows = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, {
-        ...animalProperties,
-        l_specie,
-      })
+      const animalRows = buildAnimalRows(
+        count,
+        l_id_herd,
+        b_id_farm,
+        l_arriving_date,
+        firstWorknumber,
+        {
+          l_breed: animalProperties?.l_breed,
+          l_arriving_method: animalProperties?.l_arriving_method,
+          l_specie,
+        },
+      )
 
       if (animalRows.length > 0) {
         await tx.insert(schema.animals).values(animalRows.map((r) => r.animalRow))

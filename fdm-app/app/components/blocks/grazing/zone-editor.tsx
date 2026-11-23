@@ -634,7 +634,8 @@ function StripBuilder({
 
   return (
     <div className="bg-muted/30 space-y-3 rounded-lg border p-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Two columns at any window width: the dialog stays narrow */}
+      <div className="grid grid-cols-2 items-end gap-3">
         <Field>
           <FieldLabel htmlFor="strip-direction" className="text-xs">
             Richting

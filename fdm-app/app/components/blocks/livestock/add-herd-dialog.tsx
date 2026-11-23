@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useFetcher } from "react-router"
+import { HerdArrivalField } from "~/components/blocks/livestock/herd-arrival-field"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
@@ -18,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 
 /**
  * Dialog to add a herd with a number of animals of one category. It posts the intent `add_herd`
@@ -27,10 +29,13 @@ export function AddHerdDialog({
   open,
   onOpenChange,
   categories,
+  defaultArrivalDay,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   categories: Array<{ l_id_category: string; l_category: string; l_lsu: number | null }>
+  /** The day the animals arrive unless the user picks another, as `YYYY-MM-DD`. */
+  defaultArrivalDay: string
 }) {
   const fetcher = useFetcher()
   // Dairy cows when the farm has that category, else its first category; none when it has none
@@ -40,6 +45,8 @@ export function AddHerdDialog({
   const hasCategories = categories.length > 0
   const [name, setName] = useState("Melkkoeien")
   const [count, setCount] = useState(20)
+  // Follows the chosen year until the user picks a day
+  const [arrivalDay, setArrivalDay] = useKeyedState(defaultArrivalDay, (day) => day)
 
   const categoryLabel = (c: (typeof categories)[number]) =>
     `${c.l_category} (${(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)`
@@ -51,6 +58,7 @@ export function AddHerdDialog({
     formData.set("l_id_category", categoryId)
     formData.set("l_herd_name", name.trim())
     formData.set("count", String(count))
+    formData.set("l_arriving_date", arrivalDay)
     void fetcher.submit(formData, { method: "post" })
     onOpenChange(false)
   }
@@ -121,6 +129,8 @@ export function AddHerdDialog({
                   required
                 />
               </Field>
+
+              <HerdArrivalField value={arrivalDay} onChange={setArrivalDay} />
             </FieldGroup>
           </div>
 

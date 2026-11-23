@@ -23,6 +23,7 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddAnimalDialog } from "~/components/blocks/livestock/add-animal-dialog"
 import { AddHerdDialog } from "~/components/blocks/livestock/add-herd-dialog"
 import { HerdCard } from "~/components/blocks/livestock/herd-card"
+import { StatTile } from "~/components/blocks/livestock/stat-tile"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -36,7 +37,7 @@ import {
   fetchGrazingCalendarMatrix,
   type GrazingCalendarMatrix,
 } from "~/lib/grazing-calendar.server"
-import { farmTodayKey } from "~/lib/grazing-dates"
+import { farmTodayKey, herdArrivalDefaultKey } from "~/lib/grazing-dates"
 import { handleGrazingEvent, isGrazingIntent } from "~/lib/grazing-events.server"
 import { defaultMapDay, shiftDay } from "~/lib/grazing-map"
 import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
@@ -120,8 +121,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions,
       herds: herdCards,
       categories,
-      // Grassland area without buffer strips, unrounded for the stocking density
-      grasslandArea: matrix?.grasslandArea ?? 0,
+      defaultArrivalDay: herdArrivalDefaultKey(calendar, serverNow()),
       // Today in the Netherlands, the centre of the grazing window
       todayKey: matrix?.todayKey ?? farmTodayKey(serverNow()),
       // The grazing fields with their days, and the herds as the grazing dialog needs them
@@ -182,7 +182,7 @@ export default function MelkveeOverview() {
     farmOptions,
     herds,
     categories,
-    grasslandArea,
+    defaultArrivalDay,
     grazingFields,
     grazingHerds,
     summary,
@@ -206,7 +206,6 @@ export default function MelkveeOverview() {
 
   const totalAnimals = herds.reduce((acc, h) => acc + h.count, 0)
   const totalGve = Number(herds.reduce((acc, h) => acc + h.count * (h.l_lsu ?? 1.0), 0).toFixed(1))
-  const gvePerHaGrassland = grasslandArea > 0 ? Number((totalGve / grasslandArea).toFixed(1)) : null
   const calendarHref = `/farm/${b_id_farm}/${calendar}/livestock/grazing`
   const insightsHref = `/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`
 
@@ -318,7 +317,7 @@ export default function MelkveeOverview() {
                     detail={`gemiddeld ${summary.averageHours.toLocaleString("nl-NL")} uur per dag`}
                   />
                   <Card className="gap-2 p-4">
-                    <p className="text-muted-foreground text-xs">Weidemelk 120 × 6</p>
+                    <p className="text-muted-foreground text-xs">Weidemelk (120 dagen × 6 uur)</p>
                     <p className="text-2xl font-semibold tabular-nums">
                       {summary.weidemelkDays}
                       <span className="text-muted-foreground text-sm font-normal">/120 dagen</span>
@@ -378,12 +377,6 @@ export default function MelkveeOverview() {
                     />
                   ))}
                 </div>
-                <p className="text-muted-foreground text-xs">
-                  Aantallen zijn afgeleid uit de dieren in de koppel; GVE volgens de diercategorie.
-                  {gvePerHaGrassland !== null
-                    ? ` Veebezetting op ${grasslandArea.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} ha grasland: ${gvePerHaGrassland.toLocaleString("nl-NL")} GVE/ha.`
-                    : ""}
-                </p>
               </section>
             </div>
           )}
@@ -405,22 +398,17 @@ export default function MelkveeOverview() {
         canWrite={farmWritePermission}
       />
       <AddAnimalDialog open={isAddAnimalOpen} onOpenChange={setIsAddAnimalOpen} herds={herds} />
-      <AddHerdDialog open={isAddHerdOpen} onOpenChange={setIsAddHerdOpen} categories={categories} />
+      <AddHerdDialog
+        open={isAddHerdOpen}
+        onOpenChange={setIsAddHerdOpen}
+        categories={categories}
+        defaultArrivalDay={defaultArrivalDay}
+      />
     </div>
   )
 }
 
 /** A key figure: a label, a large value and a line of detail. */
-function StatTile({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <Card className="gap-1 p-4">
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <p className="text-2xl font-semibold tabular-nums">{value}</p>
-      <p className="text-muted-foreground text-xs">{detail}</p>
-    </Card>
-  )
-}
-
 /**
  * The grazing of the last 7 days and the coming 7 days: per field with a use in that window a
  * strip of days in the colours of the calendar, and the planned grazing of the coming week.
@@ -546,7 +534,8 @@ function GrazingWindow({
           </div>
         )}
 
-        <div className="space-y-1.5">
+        {/* Its own column next to the day strip on a wide screen */}
+        <div className="space-y-1.5 xl:border-l xl:pl-8">
           <h3 className="text-sm font-medium">Gepland deze week</h3>
           {upcoming.size === 0 ? (
             <p className="text-muted-foreground text-xs">Geen geplande beweiding.</p>

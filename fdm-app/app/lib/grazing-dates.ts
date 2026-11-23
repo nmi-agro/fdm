@@ -76,6 +76,22 @@ export function censusDateForYear(year: number, now: Date = new Date()): Date {
 }
 
 /**
+ * The day on which the animals of a new herd arrive, unless the user picks another day: 1 January
+ * of the chosen calendar year, as the real day is often unknown. Today when that day is still to
+ * come, and 1 January of this year for the calendar "all".
+ *
+ * @param calendar - The calendar of the route: a year, or `all`.
+ * @param now - The current moment.
+ * @returns The day as `YYYY-MM-DD`.
+ */
+export function herdArrivalDefaultKey(calendar: string, now: Date = new Date()): string {
+  const todayKey = farmTodayKey(now)
+  const year = Number.parseInt(calendar, 10)
+  const yearStartKey = `${Number.isNaN(year) ? todayKey.slice(0, 4) : year}-01-01`
+  return yearStartKey < todayKey ? yearStartKey : todayKey
+}
+
+/**
  * The days of a grazing within a calendar year that have already happened, as `YYYY-MM-DD` keys.
  * Days after today are planned and not included. A record without an end counts its first day.
  *

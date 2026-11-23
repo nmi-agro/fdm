@@ -19,6 +19,7 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { StatTile } from "~/components/blocks/livestock/stat-tile"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -164,85 +165,48 @@ export default function GrazingInsightsPage() {
           <div className="space-y-8">
             {/* Top KPI Cards Grid */}
             {/* Two by two on a phone, like the key figures on the Melkvee page */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 [&>[data-slot=card]]:[--card-spacing:--spacing(4)] sm:[&>[data-slot=card]]:[--card-spacing:--spacing(6)]">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground text-xs font-medium">
-                    Weidedagen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-semibold tabular-nums">
-                    {metrics.weidedagen.total.toLocaleString("nl-NL")}
-                  </div>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {metrics.weidedagen.planned > 0
-                      ? `+ ${metrics.weidedagen.planned.toLocaleString("nl-NL")} gepland`
-                      : `Gerealiseerd in ${calendar}`}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground text-xs font-medium">
-                    Weide-uren per dag
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-semibold tabular-nums">
-                    {formatNumber(metrics.weideUren.averageHoursPerDay)} uur
-                  </div>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    Gemiddeld per weidedag met vastgelegde uren (
-                    {formatNumber(metrics.weideUren.totalHours)} uur totaal)
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground text-xs font-medium">
-                    Beweidingsplatform
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-semibold tabular-nums">
-                    {formatNumber(metrics.beweidingsplatform.areaHa)} ha
-                  </div>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {metrics.beweidingsplatform.fieldCount}{" "}
-                    {metrics.beweidingsplatform.fieldCount === 1 ? "perceel" : "percelen"} beweid
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-muted-foreground text-xs font-medium">
-                    Veebezetting platform
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatTile
+                label="Weidedagen"
+                value={metrics.weidedagen.total.toLocaleString("nl-NL")}
+                detail={
+                  metrics.weidedagen.planned > 0
+                    ? `+ ${metrics.weidedagen.planned.toLocaleString("nl-NL")} gepland`
+                    : `Gerealiseerd in ${calendar}`
+                }
+              />
+              <StatTile
+                label="Weide-uren per dag"
+                value={`${formatNumber(metrics.weideUren.averageHoursPerDay)} uur`}
+                detail={`Gemiddeld per weidedag met vastgelegde uren (${formatNumber(metrics.weideUren.totalHours)} uur totaal)`}
+              />
+              <StatTile
+                label="Beweidingsplatform"
+                value={`${formatNumber(metrics.beweidingsplatform.areaHa)} ha`}
+                detail={`${metrics.beweidingsplatform.fieldCount} ${metrics.beweidingsplatform.fieldCount === 1 ? "perceel" : "percelen"} beweid`}
+              />
+              <StatTile
+                label="Veebezetting platform"
+                value={
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span className="text-2xl font-semibold tabular-nums">
+                    <span>
                       {metrics.veebezetting.platformGvePerHa !== null
                         ? `${formatNumber(metrics.veebezetting.platformGvePerHa)} GVE/ha`
                         : "—"}
                     </span>
                     {metrics.veebezetting.platformStockingCategory && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs font-normal">
                         {metrics.veebezetting.platformStockingCategory}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    {metrics.veebezetting.totalGrasslandGvePerHa !== null
-                      ? `${formatNumber(metrics.veebezetting.totalGrasslandGvePerHa)} GVE/ha op al het grasland`
-                      : "Op al het grasland: —"}
-                  </p>
-                </CardContent>
-              </Card>
+                }
+                detail={
+                  metrics.veebezetting.totalGrasslandGvePerHa !== null
+                    ? `${formatNumber(metrics.veebezetting.totalGrasslandGvePerHa)} GVE/ha op al het grasland`
+                    : "Op al het grasland: —"
+                }
+              />
             </div>
 
             {/* Weidemelk and the points of attention side by side on a wide screen */}
@@ -254,7 +218,7 @@ export default function GrazingInsightsPage() {
                 <CardHeader>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <CardTitle className="text-base">Weidemelk · 120 dagen × 6 uur</CardTitle>
+                      <CardTitle className="text-base">Weidemelk (120 dagen × 6 uur)</CardTitle>
                       <CardDescription className="text-xs">
                         Alleen dagen met minimaal 6 uur weidegang van de melkkoeien (categorie 100)
                         tellen mee.
@@ -366,7 +330,8 @@ export default function GrazingInsightsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                {/* Not wider than needed, so a day count stays close to its bar */}
+                <div className="max-w-4xl space-y-3">
                   {metrics.monthlyDistribution
                     // The months of the grazing season, as in the grazing calendar
                     .filter(

@@ -155,14 +155,18 @@ export function HerdCard({
 
   return (
     <>
-      <Card className="flex flex-col justify-between">
+      <Card className="flex flex-col">
         <CardHeader>
           <div className="flex items-start justify-between">
-            <div>
+            {/* One line for the category, so the rows of cards next to each other line up */}
+            <div className="min-w-0">
               <h3 className="text-base leading-none font-semibold">
                 {herd.l_herd_name ?? "Koppel"}
               </h3>
-              <p className="text-muted-foreground mt-1 text-xs">
+              <p
+                className="text-muted-foreground mt-1 line-clamp-1 text-xs"
+                title={herd.l_category ?? undefined}
+              >
                 {herd.l_category ?? "Diercategorie"}
               </p>
             </div>
@@ -258,7 +262,7 @@ export function HerdCard({
           </div>
         </CardContent>
 
-        <CardFooter className="border-t">
+        <CardFooter className="mt-auto border-t">
           <Button
             variant="outline"
             size="sm"

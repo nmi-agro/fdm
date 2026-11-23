@@ -474,7 +474,8 @@ export function CalendarGrid({
         {/* Toolbar: the herd to record for and the actions; below it the legend */}
         <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground font-medium">Koppels:</span>
+            {/* The herd that a new grazing is recorded for; it does not filter the calendar */}
+            <span className="text-muted-foreground font-medium">Vastleggen voor:</span>
             {matrix.herds.map((h) => (
               <button
                 key={h.l_id_herd}
@@ -774,7 +775,7 @@ export function CalendarGrid({
               </dd>
             </div>
             <div className="flex gap-1">
-              <dt className="text-muted-foreground">Weidemelk 120 × 6:</dt>
+              <dt className="text-muted-foreground">Weidemelk (120 dagen × 6 uur):</dt>
               <dd className="text-foreground font-semibold tabular-nums">
                 {matrix.summary.weidemelkDays >= 120
                   ? `${matrix.summary.weidemelkDays} van 120 dagen, gehaald`
@@ -941,7 +942,12 @@ const CalendarRow = memo(function CalendarRow({
         <div className="max-w-26 truncate sm:max-w-40">{field.b_name}</div>
         {field.recentRestDays !== null && (
           <div className="text-muted-foreground text-xs font-normal">
-            {field.recentRestDays === 1 ? "1 dag rust" : `${field.recentRestDays} dagen rust`}
+            {/* 0: the last use runs through today, or through the last day of a past year */}
+            {field.recentRestDays === 0
+              ? "in gebruik"
+              : field.recentRestDays === 1
+                ? "1 dag rust"
+                : `${field.recentRestDays} dagen rust`}
           </div>
         )}
       </th>

@@ -320,6 +320,39 @@ describe("Animal Domain", () => {
     expect(herdAnimals.every((a) => a.l_arriving_method === "purchased")).toBe(true)
   })
 
+  it("should create a herd whose animals arrive on a given date", async () => {
+    const l_arriving_date = new Date("2025-01-01")
+    const { l_id_herd: newHerdId, l_id_animals } = await createHerdWithAnimals(
+      fdm,
+      principal_id,
+      b_id_farm,
+      { l_herd_name: "Kudde sinds januari", l_id_category: "rvo_100" },
+      2,
+      { l_arriving_date },
+    )
+
+    for (const l_id_animal of l_id_animals) {
+      const animal = await getAnimal(fdm, principal_id, l_id_animal)
+      expect(animal.l_arriving_date).toEqual(l_arriving_date)
+      expect(animal.l_id_herd).toBe(newHerdId)
+    }
+    expect(await getAnimalsForHerd(fdm, principal_id, newHerdId)).toHaveLength(2)
+
+    // A herd that starts after the arrival date cannot take the animals
+    await expect(
+      createHerdWithAnimals(
+        fdm,
+        principal_id,
+        b_id_farm,
+        { l_id_category: "rvo_100", l_start: new Date("2025-03-01") },
+        2,
+        { l_arriving_date },
+      ),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("has not started") },
+    })
+  })
+
   it("should correct an animal_assigning record via updateAnimalAssigning", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL700000010",
