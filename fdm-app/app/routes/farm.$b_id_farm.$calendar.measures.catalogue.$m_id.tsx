@@ -1,5 +1,5 @@
 import { checkPermission, getMeasuresFromCatalogue } from "@nmi-agro/fdm-core"
-import { AlertTriangle, ChevronRight, ExternalLink, Plus } from "lucide-react"
+import { ChevronRight, ExternalLink, Plus } from "lucide-react"
 import { type ReactNode, Suspense, useEffect, useState } from "react"
 import {
   Await,
@@ -22,7 +22,6 @@ import {
   type MeasureStatusAvailability,
   MeasureStatusUnavailable,
 } from "~/components/blocks/measures/measure-status-unavailable"
-import { Alert, AlertDescription } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -135,6 +134,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       applicabilityAvailable: status.applicabilityAvailable,
       eligibleFieldCount: status.eligibleFieldCount,
       applicabilityFailedFieldCount: status.applicabilityFailedFieldCount,
+      nmiConfigured: status.nmiConfigured,
     }))
 
     const { conflicts, variants } = getMeasureRelations(measure, catalogue)
@@ -152,9 +152,8 @@ export default function MeasureCatalogueDetail() {
   const { measure, conflicts, variants, farmWritePermission, fieldsStatus } =
     useLoaderData<typeof loader>()
   const { b_id_farm = "", calendar = "" } = useParams()
-  const isInactive = measure.m_status === "inactive"
   const isFarmLevel = measure.m_stage_applicability === "farm"
-  const canAdd = farmWritePermission && !isInactive && !isFarmLevel
+  const canAdd = farmWritePermission && !isFarmLevel
   const effectType = getEffectTypeInfo(measure.m_effect_type)
   const indicators = getImpactedIndicators(measure.m_impacts_score, measure.m_effect_size)
   const conditions = formatConditions(measure.m_applicability)
@@ -177,7 +176,6 @@ export default function MeasureCatalogueDetail() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Only the exception is marked: measures are recorded per field by default */}
             {isFarmLevel && <Badge variant="outline">Bedrijfsniveau</Badge>}
-            {isInactive && <Badge variant="secondary">Niet meer beschikbaar</Badge>}
             {canAdd && (
               // Keyed on the measure, so the preselected fields of another measure are not reused
               <AddMeasureLink key={measure.m_id} m_id={measure.m_id} fieldsStatus={fieldsStatus} />
@@ -187,16 +185,7 @@ export default function MeasureCatalogueDetail() {
       />
       <FarmContent>
         <div className="@container/measure space-y-6 pb-10">
-          {isInactive && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-              <AlertDescription>
-                Deze maatregel staat niet meer in de catalogus. U kunt hem niet meer toevoegen;
-                percelen waarop hij al is vastgelegd houden hem.
-              </AlertDescription>
-            </Alert>
-          )}
-          {isFarmLevel && !isInactive && farmWritePermission && (
+          {isFarmLevel && farmWritePermission && (
             <p className="text-muted-foreground max-w-[75ch] text-sm">
               Deze maatregel geldt voor het hele bedrijf. Maatregelen legt u per perceel vast,
               daarom kunt u deze maatregel hier niet toevoegen.
@@ -770,14 +759,14 @@ function FieldsCard({
 }
 
 /**
- * List of linked catalogue measures of the same farm; inactive measures are marked.
+ * List of linked catalogue measures of the same farm.
  */
 function MeasureList({
   items,
   b_id_farm,
   calendar,
 }: {
-  items: { m_id: string; m_name: string; inactive: boolean }[]
+  items: { m_id: string; m_name: string }[]
   b_id_farm: string
   calendar: string
 }) {
@@ -796,11 +785,6 @@ function MeasureList({
               {getMeasureCode(item.m_id)}
             </span>
             <span className="min-w-0 flex-1 truncate font-medium">{item.m_name}</span>
-            {item.inactive && (
-              <Badge variant="secondary" className="text-xs">
-                Niet meer beschikbaar
-              </Badge>
-            )}
             <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
           </Link>
         </li>

@@ -21,8 +21,6 @@ export type MeasureCatalogue = {
   m_effect_size?: CatalogueMeasureEffectSize[] | null
   /** IDs of the measure in related schemes, e.g. `{ bbwp: "B121" }` */
   m_external_ids?: Record<string, string> | null
-  /** `active`, or `inactive` when the measure is no longer in its source catalogue */
-  m_status?: "active" | "inactive"
 }
 
 /**

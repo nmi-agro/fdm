@@ -448,11 +448,9 @@ export function AddMeasureDialog({
     )
   }, [opportunityMap, effectiveTopOpportunities, impactFor])
 
-  // Hide farm-level measures (via catalogue field or fallback message check) and measures
-  // that are no longer in the source catalogue
+  // Hide farm-level measures (via catalogue field or fallback message check)
   const fieldLevelCatalogue = useMemo(() => {
     return catalogue.filter((item) => {
-      if (item.m_status === "inactive") return false
       if (item.m_stage_applicability === "farm") return false
       const info = computedApplicabilityMap?.[item.m_id]
       if (info?.message && /Toepasbaarheidsniveau.*'farm'/i.test(info.message)) {
@@ -649,7 +647,7 @@ export function AddMeasureDialog({
       return
     }
     if (!initialMeasureId || appliedInitialMeasureIdRef.current === initialMeasureId) return
-    // Only measures that can be selected in the list, so not inactive or farm-level ones
+    // Only measures that can be selected in the list, so not farm-level ones
     const item = fieldLevelCatalogue.find((c) => c.m_id === initialMeasureId)
     if (!item) return
     const isAlreadyActive = activeMeasureIds.has(item.m_id)

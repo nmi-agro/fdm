@@ -4,8 +4,9 @@
  * applicable.
  */
 import {
+  type Cultivation,
   type Field,
-  getCultivations,
+  getCultivationsForFarm,
   getFields,
   getMeasuresForFarm,
   type MeasureCatalogue,
@@ -128,20 +129,18 @@ async function buildFarmNextSteps({
   const activeMeasureIdsByField = new Map(
     b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
   )
-  const { candidates, adviceAvailable, applicabilityByField } = await getFarmMeasureOpportunities(
-    {
-      principal_id,
-      b_id_farm,
-      b_ids,
-      b_year,
-      timeframe,
-      scoreByBid,
-      activeMeasureIdsByField,
-      measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
-      measureInputs,
-      applicabilityByField: knownApplicabilityByField,
-    },
-  )
+  const { candidates, adviceAvailable, applicabilityByField } = await getFarmMeasureOpportunities({
+    principal_id,
+    b_id_farm,
+    b_ids,
+    b_year,
+    timeframe,
+    scoreByBid,
+    activeMeasureIdsByField,
+    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+    measureInputs,
+    applicabilityByField: knownApplicabilityByField,
+  })
 
   // Show one variant per measure family farm-wide: the variant with the highest
   // impact summed over all eligible candidates of all fields (not only each
@@ -236,7 +235,13 @@ async function buildFarmNextSteps({
     .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
 
   return {
-    recommendations: { steps, opportunitiesByField, topOpportunities, measureImpacts, adviceAvailable },
+    recommendations: {
+      steps,
+      opportunitiesByField,
+      topOpportunities,
+      measureImpacts,
+      adviceAvailable,
+    },
     applicabilityByField,
   }
 }
@@ -254,6 +259,11 @@ export type FarmMeasureStatus = {
   eligibleFieldCount: number
   /** Number of those fields whose applicability could not be loaded */
   applicabilityFailedFieldCount: number
+  /**
+   * `false` when no NMI API key is configured: recommendations and applicability are then not
+   * available at all, and trying again does not help
+   */
+  nmiConfigured: boolean
 }
 
 /**
@@ -273,9 +283,11 @@ export type FarmMeasureStatus = {
  *
  * A complete result is kept for {@link STATUS_CACHE_TTL_MS} per user, farm and year, so opening
  * several measures of the catalogue does not collect the input of every field again for each
- * page. The key includes the measures applied on the farm, so adding, changing or removing a
- * measure gives a fresh result right away. A result with missing recommendations or applicability
- * is not kept, so "Opnieuw proberen" always loads again.
+ * page. The key includes the measures applied on the farm and the fields with their cultivations,
+ * so adding, changing or removing a measure, a field or a cultivation gives a fresh result right
+ * away. Other field data, such as a new soil analysis, shows after at most the cache time. A
+ * result with missing recommendations or applicability is not kept, so "Opnieuw proberen" always
+ * loads again.
  *
  * @returns The fields per measure and whether recommendations and applicability were available.
  */
@@ -294,9 +306,20 @@ export async function getFarmMeasureStatus({
   catalogue: MeasureCatalogue[]
   measuresMap?: Awaited<ReturnType<typeof getMeasuresForFarm>>
 }): Promise<FarmMeasureStatus> {
-  const measuresMap =
-    preloadedMeasuresMap ?? (await getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe))
-  const key = getStatusCacheKey(principal_id, b_id_farm, calendar, measuresMap)
+  // Three farm-level queries; they also check the user's access on every call, also on a cache hit
+  const [measuresMap, fields, cultivationsByField] = await Promise.all([
+    preloadedMeasuresMap ?? getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getFields(fdm, principal_id, b_id_farm, timeframe),
+    getCultivationsForFarm(fdm, principal_id, b_id_farm),
+  ])
+  const key = getStatusCacheKey({
+    principal_id,
+    b_id_farm,
+    calendar,
+    measuresMap,
+    fields,
+    cultivationsByField,
+  })
 
   const now = Date.now()
   for (const [cachedKey, entry] of statusCache) {
@@ -313,6 +336,8 @@ export async function getFarmMeasureStatus({
     timeframe,
     catalogue,
     measuresMap,
+    fields,
+    cultivationsByField,
   })
   statusCache.set(key, { expires: now + STATUS_CACHE_TTL_MS, status })
   status.then(
@@ -334,24 +359,44 @@ const statusCache = new Map<string, { expires: number; status: Promise<FarmMeasu
 
 /**
  * Builds the cache key of a farm measure status. It includes the user, because the fields a user
- * may see differ, and every applied measure with its period, because they change the status.
+ * may see differ; every applied measure with its period; and every field with its buffer strip
+ * flag and cultivations, because they decide which fields are scored and what applies to them.
  */
-function getStatusCacheKey(
-  principal_id: PrincipalId,
-  b_id_farm: string,
-  calendar: string,
-  measuresMap: Awaited<ReturnType<typeof getMeasuresForFarm>>,
-): string {
+function getStatusCacheKey({
+  principal_id,
+  b_id_farm,
+  calendar,
+  measuresMap,
+  fields,
+  cultivationsByField,
+}: {
+  principal_id: PrincipalId
+  b_id_farm: string
+  calendar: string
+  measuresMap: Awaited<ReturnType<typeof getMeasuresForFarm>>
+  fields: Field[]
+  cultivationsByField: Map<string, Cultivation[]>
+}): string {
+  const time = (value: Date | null | undefined) => value?.valueOf() ?? ""
   const applied = [...measuresMap]
     .flatMap(([b_id, measures]) =>
       measures.map(
-        (measure) =>
-          `${b_id}:${measure.m_id}:${measure.m_start?.valueOf() ?? ""}:${measure.m_end?.valueOf() ?? ""}`,
+        (measure) => `${b_id}:${measure.m_id}:${time(measure.m_start)}:${time(measure.m_end)}`,
       ),
     )
     .sort()
-    .join(",")
-  return JSON.stringify([principal_id, b_id_farm, calendar, applied])
+  const fieldKeys = fields
+    .map((field) => {
+      const cultivations = (cultivationsByField.get(field.b_id) ?? [])
+        .map(
+          (cultivation) =>
+            `${cultivation.b_lu}:${cultivation.b_lu_catalogue}:${time(cultivation.b_lu_start)}:${time(cultivation.b_lu_end)}`,
+        )
+        .sort()
+      return `${field.b_id}:${field.b_bufferstrip ? 1 : 0}:${cultivations.join("|")}`
+    })
+    .sort()
+  return JSON.stringify([principal_id, b_id_farm, calendar, applied, fieldKeys])
 }
 
 /** Loads the farm measure status without the cache; see {@link getFarmMeasureStatus}. */
@@ -362,6 +407,8 @@ async function loadFarmMeasureStatus({
   timeframe,
   catalogue,
   measuresMap,
+  fields,
+  cultivationsByField,
 }: {
   principal_id: PrincipalId
   b_id_farm: string
@@ -369,8 +416,9 @@ async function loadFarmMeasureStatus({
   timeframe: Timeframe
   catalogue: MeasureCatalogue[]
   measuresMap: Awaited<ReturnType<typeof getMeasuresForFarm>>
+  fields: Field[]
+  cultivationsByField: Map<string, Cultivation[]>
 }): Promise<FarmMeasureStatus> {
-  const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
   // The BLN3 scores do not depend on the applicability, so they load while it is fetched below
   const scores = getIndicatorsForFarm({
     principal_id,
@@ -385,12 +433,9 @@ async function loadFarmMeasureStatus({
   const calendarYear = Number(calendar)
   const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
 
-  const cultivations = await Promise.all(
-    fields.map((field) => getCultivations(fdm, principal_id, field.b_id)),
-  )
   const eligibleFields = fields
-    .filter((field, index) => {
-      const main = getMainCultivation(cultivations[index], calendar)
+    .filter((field) => {
+      const main = getMainCultivation(cultivationsByField.get(field.b_id) ?? [], calendar)
       return !isExcludedFromBln3({
         b_bufferstrip: field.b_bufferstrip,
         b_lu_croprotation: main?.b_lu_croprotation,
@@ -446,7 +491,8 @@ async function loadFarmMeasureStatus({
     (b_id) => !applicabilityByField[b_id],
   ).length
   // Without an NMI API key the lookup returns empty records, which are not a real result
-  if (!getNmiApiKey()) applicabilityFailedFieldCount = eligibleIds.length
+  const nmiConfigured = Boolean(getNmiApiKey())
+  if (!nmiConfigured) applicabilityFailedFieldCount = eligibleIds.length
   const applicabilityAvailable = applicabilityFailedFieldCount === 0
 
   const fieldsByMeasure = mergeFieldMeasureStatus({
@@ -462,5 +508,6 @@ async function loadFarmMeasureStatus({
     applicabilityAvailable,
     eligibleFieldCount: eligibleFields.length,
     applicabilityFailedFieldCount,
+    nmiConfigured,
   }
 }

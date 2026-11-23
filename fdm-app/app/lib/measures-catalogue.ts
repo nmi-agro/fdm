@@ -212,23 +212,18 @@ export function buildCatalogueRows(catalogue: MeasureCatalogue[]): CatalogueRow[
 /**
  * Sorts, filters and searches the catalogue list.
  *
- * Measures that are no longer in the catalogue only show when the farm still applies them. That
- * comes from `appliedMeasureIds`, not from the counts, so these measures also show while the
- * counts load or when they fail. The status filter and the "recommended" sort order only apply
- * once the counts are loaded. The search is fuzzy over name, code, summary and description, and
+ * The status filter and the "recommended" sort order only apply once the counts are loaded. The search is fuzzy over name, code, summary and description, and
  * keeps the chosen sort order.
  *
  * @param rows - Rows from {@link buildCatalogueRows}.
  * @param filters - The search and filters.
  * @param countsByMeasure - Number of fields per status per measure, or `undefined` while loading.
- * @param appliedMeasureIds - IDs of the measures the farm applies in the selected year.
  * @returns The rows to show, in display order.
  */
 export function filterCatalogueRows(
   rows: CatalogueRow[],
   filters: CatalogueFilters,
   countsByMeasure: Record<string, StatusCounts> | undefined,
-  appliedMeasureIds: ReadonlySet<string> = new Set(),
 ): CatalogueRow[] {
   const { query, sortMode, status, effectType, costLevel, theme } = filters
   const countsOf = (m_id: string) => countsByMeasure?.[m_id] ?? NO_COUNTS
@@ -247,7 +242,6 @@ export function filterCatalogueRows(
   }
   const passesFilters = sorted.filter(
     (row) =>
-      (row.m_status !== "inactive" || appliedMeasureIds.has(row.m_id)) &&
       (status === "all" || !countsByMeasure || countsOf(row.m_id)[status] > 0) &&
       (effectType === "all" || row.m_effect_type === effectType) &&
       (costLevel === "all" || String(row.m_effect_costs) === costLevel) &&
@@ -272,15 +266,13 @@ export function filterCatalogueRows(
 // ── Measure detail ─────────────────────────────────────────────────────────
 
 /** A related measure on the detail page: a conflict or another variant. */
-export type RelatedMeasure = { m_id: string; m_name: string; inactive: boolean }
+export type RelatedMeasure = { m_id: string; m_name: string }
 
 /**
  * Returns the measures that conflict with a measure and the other variants of the same
  * measure family.
  *
- * Conflicts and variants include inactive measures, marked as such: an inactive measure can
- * still be applied on the farm, so a conflict with it still matters. Conflicts with measures
- * that are not in the catalogue are left out. Variants are ordered by ID.
+ * Conflicts with measures that are not in the catalogue are left out. Variants are ordered by ID.
  *
  * @param measure - The measure.
  * @param catalogue - The measures catalogue.
@@ -292,19 +284,13 @@ export function getMeasureRelations(
   const byId = new Map(catalogue.map((item) => [item.m_id, item]))
   const conflicts = (measure.m_conflicts ?? []).flatMap((conflict_id) => {
     const item = byId.get(conflict_id)
-    return item
-      ? [{ m_id: item.m_id, m_name: item.m_name, inactive: item.m_status === "inactive" }]
-      : []
+    return item ? [{ m_id: item.m_id, m_name: item.m_name }] : []
   })
 
   const familyId = getMeasureFamilyId(measure.m_id)
   const variants = catalogue
     .filter((item) => item.m_id !== measure.m_id && getMeasureFamilyId(item.m_id) === familyId)
-    .map((item) => ({
-      m_id: item.m_id,
-      m_name: item.m_name,
-      inactive: item.m_status === "inactive",
-    }))
+    .map((item) => ({ m_id: item.m_id, m_name: item.m_name }))
     .sort((a, b) => a.m_id.localeCompare(b.m_id, "nl", { numeric: true }))
 
   return { conflicts, variants }

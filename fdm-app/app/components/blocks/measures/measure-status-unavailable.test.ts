@@ -40,6 +40,18 @@ describe("getMeasureStatusUnavailableMessage", () => {
     ).toContain("voor dit bedrijf")
   })
 
+  it("says the statuses are not available here without an NMI API key", () => {
+    const message = getMeasureStatusUnavailableMessage({
+      ...available,
+      recommendationsAvailable: false,
+      applicabilityAvailable: false,
+      applicabilityFailedFieldCount: 4,
+      nmiConfigured: false,
+    })
+    expect(message).toMatch(/^Aanbevolen en toepasbare maatregelen zijn in deze omgeving niet/)
+    expect(message).not.toContain("konden niet worden geladen")
+  })
+
   it("keeps the farm-wide recommendations apart from a partial applicability failure", () => {
     const message = getMeasureStatusUnavailableMessage({
       ...available,

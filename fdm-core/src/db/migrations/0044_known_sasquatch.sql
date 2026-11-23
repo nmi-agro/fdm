@@ -1,1 +1,0 @@
-ALTER TABLE "fdm"."measures_catalogue" DROP COLUMN "m_origin";

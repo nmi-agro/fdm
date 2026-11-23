@@ -94,9 +94,7 @@ type CatalogueStatus = MeasureStatusAvailability & {
  * applied, recommended or applicable in the selected year.
  *
  * The status needs NMI requests per field and can take seconds, so it is returned as a
- * promise: the catalogue renders first and the status fills in when it arrives. Which measures
- * the farm applies is a database query and is returned right away, so measures that are no
- * longer in the catalogue but still applied show also while the status loads or when it fails.
+ * promise: the catalogue renders first and the status fills in when it arrives.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -112,9 +110,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getMeasuresFromCatalogue(fdm),
       getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
     ])
-    const appliedMeasureIds = [
-      ...new Set([...measuresMap.values()].flat().map((measure) => measure.m_id)),
-    ]
     const status: Promise<CatalogueStatus> = getFarmMeasureStatus({
       principal_id: session.principal_id,
       b_id_farm,
@@ -130,10 +125,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         applicabilityAvailable: result.applicabilityAvailable,
         eligibleFieldCount: result.eligibleFieldCount,
         applicabilityFailedFieldCount: result.applicabilityFailedFieldCount,
+        nmiConfigured: result.nmiConfigured,
       }
     })
 
-    return { catalogue, appliedMeasureIds, status }
+    return { catalogue, status }
   } catch (error) {
     throw handleLoaderError(error)
   }
@@ -201,12 +197,7 @@ function getFilterSearchValues(filters: CatalogueFilters): Record<string, string
  * with on how many fields each measure is applied, recommended or applicable.
  */
 export default function MeasuresCatalogueIndex() {
-  const {
-    catalogue,
-    appliedMeasureIds: appliedMeasureIdList,
-    status: statusPromise,
-  } = useLoaderData<typeof loader>()
-  const appliedMeasureIds = useMemo(() => new Set(appliedMeasureIdList), [appliedMeasureIdList])
+  const { catalogue, status: statusPromise } = useLoaderData<typeof loader>()
   const { calendar } = useParams()
   // The search and filters start from the URL, so Back and shared links keep them
   const [searchParams] = useSearchParams()
@@ -459,7 +450,6 @@ export default function MeasuresCatalogueIndex() {
                 rows={rows}
                 filters={filters}
                 onReset={resetFilters}
-                appliedMeasureIds={appliedMeasureIds}
                 loaded={null}
               />
             }
@@ -471,7 +461,6 @@ export default function MeasuresCatalogueIndex() {
                   rows={rows}
                   filters={filters}
                   onReset={resetFilters}
-                  appliedMeasureIds={appliedMeasureIds}
                   loaded="failed"
                 />
               }
@@ -481,7 +470,6 @@ export default function MeasuresCatalogueIndex() {
                   rows={rows}
                   filters={filters}
                   onReset={resetFilters}
-                  appliedMeasureIds={appliedMeasureIds}
                   loaded={loaded}
                 />
               )}
@@ -501,14 +489,11 @@ function CatalogueResults({
   rows,
   filters,
   onReset,
-  appliedMeasureIds,
   loaded,
 }: {
   rows: CatalogueRow[]
   filters: CatalogueFilters
   onReset: () => void
-  /** IDs of the measures the farm applies, known before the status loads */
-  appliedMeasureIds: ReadonlySet<string>
   loaded: CatalogueStatus | "failed" | null
 }) {
   const { b_id_farm = "", calendar = "" } = useParams()
@@ -540,19 +525,8 @@ function CatalogueResults({
         rows,
         { query, sortMode: effectiveSortMode, status, effectType, costLevel, theme },
         countsByMeasure,
-        appliedMeasureIds,
       ),
-    [
-      rows,
-      countsByMeasure,
-      appliedMeasureIds,
-      query,
-      effectiveSortMode,
-      status,
-      effectType,
-      costLevel,
-      theme,
-    ],
+    [rows, countsByMeasure, query, effectiveSortMode, status, effectType, costLevel, theme],
   )
 
   const hasFilters =
@@ -683,7 +657,6 @@ function CatalogueListRow({
   absenceConfirmed: boolean
   statusPending: boolean
 }) {
-  const isInactive = row.m_status === "inactive"
   const idBase = `catalogue-${row.m_id.replace(/[^A-Za-z0-9_-]/g, "-")}`
   const statusKeys = (["applied", "recommended", "applicable"] as const).filter(
     (key) => (counts?.[key] ?? 0) > 0,
@@ -698,13 +671,7 @@ function CatalogueListRow({
         className="hover:bg-muted/50 focus-visible:ring-ring grid grid-cols-1 gap-x-6 gap-y-2 px-4 py-3 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset @2xl/catalogue:grid-cols-[minmax(0,1fr)_13rem_1rem] @2xl/catalogue:items-center"
       >
         <div className="min-w-0">
-          <p
-            id={`${idBase}-name`}
-            className={cn(
-              "text-sm font-medium wrap-break-word",
-              isInactive && "text-muted-foreground",
-            )}
-          >
+          <p id={`${idBase}-name`} className="text-sm font-medium wrap-break-word">
             <span className="text-muted-foreground mr-2 font-normal tabular-nums">{row.code}</span>
             <span>{row.m_name}</span>
           </p>
@@ -722,11 +689,6 @@ function CatalogueListRow({
               {row.m_stage_applicability === "farm" && (
                 <Badge variant="outline" className="text-muted-foreground text-xs font-normal">
                   Bedrijfsniveau
-                </Badge>
-              )}
-              {isInactive && (
-                <Badge variant="secondary" className="text-xs">
-                  Niet meer beschikbaar
                 </Badge>
               )}
             </div>

@@ -25,7 +25,6 @@ const measureCatalogueColumns = {
   m_applicability: schema.measuresCatalogue.m_applicability,
   m_effect_size: schema.measuresCatalogue.m_effect_size,
   m_external_ids: schema.measuresCatalogue.m_external_ids,
-  m_status: schema.measuresCatalogue.m_status,
 }
 
 /**

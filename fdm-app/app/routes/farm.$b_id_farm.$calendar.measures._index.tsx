@@ -66,6 +66,7 @@ import {
   getMeasureApplicabilityForFields,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -460,6 +461,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       farmName: farm?.b_name_farm ?? "Bedrijf",
       farmWritePermission,
+      // Without an NMI API key there are no recommendations to load, so no failure to report
+      nmiConfigured: Boolean(getNmiApiKey()),
       fieldList,
       fieldsGeoJSON,
       measureRows,
@@ -796,6 +799,7 @@ export default function MeasuresFarmIndex() {
     fieldSummaries,
     applicabilityByField,
     farmWritePermission,
+    nmiConfigured,
     asyncInsights,
   } = useLoaderData<typeof loader>()
   // The applicability is streamed; until it arrives the add dialog waits with saving
@@ -990,7 +994,13 @@ export default function MeasuresFarmIndex() {
                 {(recData: FarmRecommendationsData) => {
                   // No advice for any eligible field: say so instead of hiding the section,
                   // which would read as "nothing to recommend"
-                  if (recData && !recData.adviceAvailable && fieldList.length > 0) {
+                  // Without an NMI API key the section stays hidden, as retrying cannot help
+                  if (
+                    recData &&
+                    !recData.adviceAvailable &&
+                    fieldList.length > 0 &&
+                    nmiConfigured
+                  ) {
                     return <RecommendationsUnavailable />
                   }
                   return (

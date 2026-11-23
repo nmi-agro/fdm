@@ -1045,17 +1045,6 @@ export const stageApplicabilityTypeEnum = fdmSchema.enum(
   stageApplicabilityTypeOptions.map((x) => x.value) as [string, ...string[]],
 )
 
-// Whether a catalogue measure is still in its source catalogue. An inactive measure is kept
-// because fields may still apply it, but it is no longer offered.
-export const measureStatusOptions = [
-  { value: "active", label: "Actief" },
-  { value: "inactive", label: "Niet meer beschikbaar" },
-] as const
-export const measureStatusEnum = fdmSchema.enum(
-  "m_status",
-  measureStatusOptions.map((x) => x.value) as ["active", "inactive"],
-)
-
 export const measuresCatalogue = fdmSchema.table(
   "measures_catalogue",
   {
@@ -1073,7 +1062,6 @@ export const measuresCatalogue = fdmSchema.table(
     m_applicability: jsonb().$type<CatalogueMeasureCondition[]>(),
     m_effect_size: jsonb().$type<CatalogueMeasureEffectSize[]>(),
     m_external_ids: jsonb().$type<Record<string, string>>(), // IDs in related schemes
-    m_status: measureStatusEnum().notNull().default("active"),
     hash: text(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),

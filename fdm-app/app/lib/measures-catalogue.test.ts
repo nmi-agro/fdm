@@ -30,7 +30,6 @@ function measure(m_id: string, overrides: Partial<MeasureCatalogue> = {}): Measu
     m_summary: null,
     m_source_url: null,
     m_conflicts: null,
-    m_status: "active",
     ...overrides,
   }
 }
@@ -176,7 +175,6 @@ describe("filterCatalogueRows", () => {
       m_effect_type: "classed",
       m_effect_costs: 2,
     }),
-    measure("bln_BM3", { m_name: "Oude maatregel", m_status: "inactive" }),
   ])
   const countsByMeasure = {
     bln_BM10: counts({ recommended: 1, applicable: 3 }),
@@ -185,21 +183,12 @@ describe("filterCatalogueRows", () => {
   }
   const ids = (result: { m_id: string }[]) => result.map((row) => row.m_id)
 
-  it("sorts by name and hides inactive measures that are not applied", () => {
+  it("sorts by name", () => {
     expect(ids(filterCatalogueRows(rows, NO_FILTERS, undefined))).toEqual([
       "bln_BM9",
       "bln_BM2",
       "bln_BM10",
     ])
-  })
-
-  it("shows an inactive measure that the farm still applies, also without counts", () => {
-    const applied = new Set(["bln_BM3"])
-    expect(ids(filterCatalogueRows(rows, NO_FILTERS, countsByMeasure, applied))).toContain(
-      "bln_BM3",
-    )
-    // While the counts load or after they failed
-    expect(ids(filterCatalogueRows(rows, NO_FILTERS, undefined, applied))).toContain("bln_BM3")
   })
 
   it("sorts by code numerically", () => {
@@ -262,20 +251,20 @@ describe("getMeasureRelations", () => {
   const catalogue = [
     measure("bln_BM56b", { m_conflicts: ["bln_BM1", "bln_BM2", "bln_BM99"] }),
     measure("bln_BM56c", { m_name: "Variant c" }),
-    measure("bln_BM56a", { m_name: "Variant a", m_status: "inactive" }),
+    measure("bln_BM56a", { m_name: "Variant a" }),
     measure("bln_BM1", { m_name: "Actief" }),
-    measure("bln_BM2", { m_name: "Vervallen", m_status: "inactive" }),
+    measure("bln_BM2", { m_name: "Ander" }),
   ]
 
-  it("lists the conflicts and other variants, marking inactive ones", () => {
+  it("lists the conflicts in the catalogue and the other variants", () => {
     expect(getMeasureRelations(catalogue[0], catalogue)).toEqual({
       conflicts: [
-        { m_id: "bln_BM1", m_name: "Actief", inactive: false },
-        { m_id: "bln_BM2", m_name: "Vervallen", inactive: true },
+        { m_id: "bln_BM1", m_name: "Actief" },
+        { m_id: "bln_BM2", m_name: "Ander" },
       ],
       variants: [
-        { m_id: "bln_BM56a", m_name: "Variant a", inactive: true },
-        { m_id: "bln_BM56c", m_name: "Variant c", inactive: false },
+        { m_id: "bln_BM56a", m_name: "Variant a" },
+        { m_id: "bln_BM56c", m_name: "Variant c" },
       ],
     })
   })
