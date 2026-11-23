@@ -811,7 +811,9 @@ export async function removeAnimal(
  * @param principal_id - Principal executing the bulk add.
  * @param l_id_herd - Herd ID to add the new animals to.
  * @param count - Number of new animals to create.
- * @param defaults - Optional default attributes shared by all newly created animals.
+ * @param defaults - Optional default attributes shared by all newly created animals, and
+ *   `l_arriving_date`: the date the animals arrived on the farm and joined the herd (default:
+ *   now). The herd must run on that date.
  * @param options - Optional `expected_count`: the number of animals the caller saw in the herd.
  *   When the herd holds a different number now, nothing is added, so two changes made from the
  *   same stale count don't both apply.
@@ -826,6 +828,7 @@ export async function addAnimalsToHerd(
     l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
+    l_arriving_date?: schema.animalArrivingTypeInsert["l_arriving_date"]
   },
   options?: { expected_count?: number },
 ): Promise<string[]> {
@@ -835,20 +838,27 @@ export async function addAnimalsToHerd(
 
     return await fdm.transaction(async (tx) => {
       const now = new Date()
+      const l_arriving_date = defaults?.l_arriving_date ?? now
       await lockFarmOfHerd(tx, l_id_herd)
+      // The caller saw the count of now, also when the animals arrived earlier
       await assertExpectedCount(tx, l_id_herd, now, options?.expected_count)
-      // The new animals stay in the herd, so it may not have an end date
-      const b_id_farm = await assertHerdRunsOn(tx, l_id_herd, now, null)
+      // The new animals join on their arrival and stay in the herd, so it must run from then on
+      // without an end date
+      const b_id_farm = await assertHerdRunsOn(tx, l_id_herd, l_arriving_date, null)
       const category = await getHerdCategory(tx, l_id_herd)
       const l_specie = defaults?.l_specie ?? category.l_specie
       assertAnimalMatchesCategory(category, l_specie, null)
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
       assertWorknumberRange(firstWorknumber, count)
 
-      const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, {
-        ...defaults,
-        l_specie,
-      })
+      const animalIds = buildAnimalRows(
+        count,
+        l_id_herd,
+        b_id_farm,
+        l_arriving_date,
+        firstWorknumber,
+        { l_breed: defaults?.l_breed, l_arriving_method: defaults?.l_arriving_method, l_specie },
+      )
 
       if (animalIds.length > 0) {
         await tx.insert(schema.animals).values(animalIds.map((r) => r.animalRow))
