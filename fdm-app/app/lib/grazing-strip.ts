@@ -26,6 +26,9 @@ const MAX_STEPS = 50
  */
 export const STRIP_ROTATION_DAYS = 28
 
+/** Free area below which nothing of a field is free (ha): rounding slivers, not grass. */
+const MIN_FREE_AREA_HA = 0.001
+
 /**
  * The part of a field that recent grazings occupy, for the strip builder: the zone of a grazing
  * with a zone, and the whole field for a grazing of the whole field. A grazing with only an area
@@ -146,7 +149,8 @@ export function cutStrip({
 }: StripOptions): Area | null {
   if (!(targetAreaHa > 0)) return null
   const free = subtractAreas(field, occupied)
-  if (!free) return null
+  // What remains after subtracting the whole field is at most a sliver along its edges
+  if (!free || areaHa(free) < MIN_FREE_AREA_HA) return null
   const freeArea = areaHa(free)
   if (freeArea <= targetAreaHa * (1 + AREA_TOLERANCE)) return free
 
