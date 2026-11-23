@@ -1,4 +1,4 @@
-import { ApiError, Storage } from "@google-cloud/storage"
+import { Storage } from "@google-cloud/storage"
 import { FileNotFoundError, type FileStorage } from "./types"
 
 /**
@@ -70,14 +70,36 @@ export function isGcsConfigured(bucketName = process.env.GCS_BUCKET_NAME): boole
  * server already closed), which are worth retrying. HTTP errors from GCS are never transient.
  */
 function isTransientNetworkError(error: unknown): boolean {
-  if (error instanceof ApiError || !(error instanceof Error)) return false
+  if (!(error instanceof Error) || getHttpStatus(error) !== undefined) return false
   const code = (error as NodeJS.ErrnoException).code
   if (code && TRANSIENT_NETWORK_ERROR_CODES.has(code)) return true
   return /socket hang up/i.test(error.message)
 }
 
-function isNotFoundError(error: unknown): boolean {
-  return error instanceof ApiError && error.code === 404
+/**
+ * Reads the HTTP status of an error from Google Cloud Storage, from `response.status`, `status`
+ * or a numeric `code`. Returns `undefined` for errors without an HTTP response, such as network
+ * failures, whose `code` is a string like `ECONNRESET`.
+ */
+function getHttpStatus(error: unknown): number | undefined {
+  if (!(error instanceof Error)) return undefined
+  const { response, status, code } = error as {
+    response?: { status?: unknown }
+    status?: unknown
+    code?: unknown
+  }
+  return [response?.status, status, code].find((value) => typeof value === "number")
+}
+
+/**
+ * Checks whether an error from Google Cloud Storage means that the object or bucket does not
+ * exist (HTTP 404).
+ *
+ * @param error - The error thrown by a storage operation.
+ * @returns `true` for a 404 response.
+ */
+export function isGcsNotFoundError(error: unknown): boolean {
+  return getHttpStatus(error) === 404
 }
 
 /**
@@ -144,7 +166,7 @@ export function createGcsStorage(options: GcsStorageOptions = {}): GcsStorage {
           return await attempt()
         }
       } catch (error) {
-        if (isNotFoundError(error)) throw new FileNotFoundError(objectKey)
+        if (isGcsNotFoundError(error)) throw new FileNotFoundError(objectKey)
         throw error
       }
     },
@@ -162,7 +184,7 @@ export function createGcsStorage(options: GcsStorageOptions = {}): GcsStorage {
       try {
         await file(fromKey).move(toKey)
       } catch (error) {
-        if (isNotFoundError(error)) throw new FileNotFoundError(fromKey)
+        if (isGcsNotFoundError(error)) throw new FileNotFoundError(fromKey)
         throw error
       }
     },

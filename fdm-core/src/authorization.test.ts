@@ -6,6 +6,7 @@ import {
   actions,
   checkPermission,
   getRolesOfPrincipalForResource,
+  getRolesOfPrincipalForResources,
   grantRole,
   listPrincipalsForResource,
   listResources,
@@ -730,6 +731,63 @@ describe("Authorization Functions", () => {
       await expect(
         getRolesOfPrincipalForResource(fdmMock, "farm", farm_id, principal_id),
       ).rejects.toThrowError("Exception for getRolesOfPrincipalForResource")
+    })
+  })
+
+  describe("getRolesOfPrincipalForResources", () => {
+    it("should get the roles per resource, including organization roles", async () => {
+      const other_farm_id = createId()
+      const farm_without_roles_id = createId()
+      await grantRole(fdm, "farm", "owner", farm_id, organization_member_id)
+      await grantRole(fdm, "farm", "advisor", other_farm_id, organization_id)
+
+      const rolesByFarm = await getRolesOfPrincipalForResources(
+        fdm,
+        "farm",
+        [farm_id, other_farm_id, farm_without_roles_id],
+        organization_member_id,
+      )
+
+      expect(rolesByFarm.get(farm_id)).toEqual([
+        { principal_id: organization_member_id, principal_type: "user", role: "owner" },
+      ])
+      expect(rolesByFarm.get(other_farm_id)).toEqual([
+        { principal_id: organization_id, principal_type: "organization", role: "advisor" },
+      ])
+      expect(rolesByFarm.has(farm_without_roles_id)).toBe(false)
+    })
+
+    it("should return the same roles as getRolesOfPrincipalForResource", async () => {
+      await grantRole(fdm, "farm", "researcher", farm_id, organization_member_id)
+      await grantRole(fdm, "farm", "owner", farm_id, organization_id)
+
+      const single = await getRolesOfPrincipalForResource(
+        fdm,
+        "farm",
+        farm_id,
+        organization_member_id,
+      )
+      const batched = await getRolesOfPrincipalForResources(
+        fdm,
+        "farm",
+        [farm_id],
+        organization_member_id,
+      )
+      expect(batched.get(farm_id)).toHaveLength(single.length)
+      for (const role of single) {
+        expect(batched.get(farm_id)).toContainEqual(role)
+      }
+    })
+
+    it("should return an empty map for an empty list of resources", async () => {
+      const rolesByFarm = await getRolesOfPrincipalForResources(fdm, "farm", [], principal_id)
+      expect(rolesByFarm.size).toBe(0)
+    })
+
+    it("should throw error with invalid resource", async () => {
+      await expect(
+        getRolesOfPrincipalForResources(fdm, "unknown_resource" as any, [farm_id], principal_id),
+      ).rejects.toThrowError("Exception for getRolesOfPrincipalForResources")
     })
   })
 

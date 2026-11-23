@@ -4,19 +4,16 @@ import {
   type AggregatedNormsToFarmLevel,
   aggregateNormFillingsToFarmLevel,
   aggregateNormsToFarmLevel,
+  calculateNormFillingsForFields,
+  calculateNormsForFields,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
-  type GebruiksnormResult,
-  type NormFilling,
   NormNotApplicableError,
 } from "@nmi-agro/fdm-calculator"
 import type { FieldNormFillings, FieldNormValues } from "~/integrations/calculator"
 
 /** The calendar years for which legal application norms (gebruiksnormen) are available. */
 export type NormsCalendar = "2025" | "2026"
-
-/** Number of fields whose norms are calculated at the same time. */
-const FARM_NORMS_CONCURRENCY = 8
 
 /**
  * Returns whether legal application norms are available for the given calendar.
@@ -71,16 +68,7 @@ export interface FarmNormsContext {
   fillingInputs: Map<string, FillingInput>
 }
 
-type CachedNormFunction = (fdm: FdmType, input: unknown) => Promise<GebruiksnormResult>
-type CachedFillingFunction = (fdm: FdmType, input: unknown) => Promise<NormFilling>
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size))
-  }
-  return chunks
-}
+const FIELD_NOT_FOUND_MESSAGE = "Perceel niet gevonden voor dit jaar."
 
 /**
  * Collects the norm values and the filling input for all given fields of a farm.
@@ -104,41 +92,26 @@ export async function collectFarmNormsContext({
   calendar: NormsCalendar
   fields: Pick<Field, "b_id" | "b_name" | "b_area">[]
 }): Promise<FarmNormsContext> {
-  const normFunctions = createFunctionsForNorms("NL", calendar)
-  const normInputs = (await normFunctions.collectInputForNormsForFarm(
+  const normInputs = (await createFunctionsForNorms("NL", calendar).collectInputForNormsForFarm(
     fdm,
     principal_id,
     b_id_farm,
-  )) as Map<string, unknown>
+  )) as Map<string, object>
 
-  const calculateNitrogen = normFunctions.calculateNormForNitrogen as CachedNormFunction
-  const calculateManure = normFunctions.calculateNormForManure as CachedNormFunction
-  const calculatePhosphate = normFunctions.calculateNormForPhosphate as CachedNormFunction
-  const calculateRenure =
-    "calculateNormForRenure" in normFunctions
-      ? (normFunctions.calculateNormForRenure as CachedNormFunction)
-      : undefined
-
+  // Each norm looks up all fields in the calculation cache with one query
+  const results = await calculateNormsForFields(
+    fdm,
+    "NL",
+    calendar,
+    fields.map((field) => normInputs.get(field.b_id)),
+  )
   const normValues = new Map<string, FieldNormValues>()
   const normErrors = new Map<string, unknown>()
-  for (const batch of chunk(fields, FARM_NORMS_CONCURRENCY)) {
-    await Promise.all(
-      batch.map(async (field) => {
-        try {
-          const input = normInputs.get(field.b_id)
-          if (!input) throw new Error("Perceel niet gevonden voor dit jaar.")
-          const [manure, phosphate, nitrogen, renure] = await Promise.all([
-            calculateManure(fdm, input),
-            calculatePhosphate(fdm, input),
-            calculateNitrogen(fdm, input),
-            calculateRenure ? calculateRenure(fdm, input) : Promise.resolve(undefined),
-          ])
-          normValues.set(field.b_id, { manure, phosphate, nitrogen, renure })
-        } catch (error) {
-          normErrors.set(field.b_id, error)
-        }
-      }),
-    )
+  for (const [index, field] of fields.entries()) {
+    const result = results[index]
+    if (!result) normErrors.set(field.b_id, new Error(FIELD_NOT_FOUND_MESSAGE))
+    else if ("error" in result) normErrors.set(field.b_id, result.error)
+    else normValues.set(field.b_id, result.values)
   }
 
   const phosphateNormByField = new Map<string, number>()
@@ -155,32 +128,6 @@ export async function collectFarmNormsContext({
   )) as Map<string, FillingInput>
 
   return { calendar, fields, normValues, normErrors, fillingInputs }
-}
-
-/** Calculates the fillings of a single field with the cached calculator functions. */
-async function calculateFieldFillings(
-  fdm: FdmType,
-  calendar: NormsCalendar,
-  input: FillingInput,
-): Promise<FieldNormFillings> {
-  const functions = createFunctionsForFertilizerApplicationFilling("NL", calendar)
-  const renure =
-    "calculateFertilizerApplicationFillingForRenure" in functions
-      ? (functions.calculateFertilizerApplicationFillingForRenure as CachedFillingFunction)
-      : undefined
-  const [manure, phosphate, nitrogen, renureFilling] = await Promise.all([
-    (functions.calculateFertilizerApplicationFillingForManure as CachedFillingFunction)(fdm, input),
-    (functions.calculateFertilizerApplicationFillingForPhosphate as CachedFillingFunction)(
-      fdm,
-      input,
-    ),
-    (functions.calculateFertilizerApplicationFillingForNitrogen as CachedFillingFunction)(
-      fdm,
-      input,
-    ),
-    renure ? renure(fdm, input) : Promise.resolve(undefined),
-  ])
-  return { manure, phosphate, nitrogen, renure: renureFilling }
 }
 
 /**
@@ -219,26 +166,31 @@ export async function calculateFarmNorms(
     }
   }
 
-  const fieldNorms: FieldNormsResult[] = []
-  for (const batch of chunk(context.fields, FARM_NORMS_CONCURRENCY)) {
-    const results = await Promise.all(
-      batch.map(async (field): Promise<FieldNormsResult> => {
-        const norms = context.normValues.get(field.b_id)
-        if (!norms) {
-          return toErrorResult(field, context.normErrors.get(field.b_id) ?? "Onbekende fout.")
-        }
-        try {
-          const input = context.fillingInputs.get(field.b_id)
-          if (!input) throw new Error("Perceel niet gevonden voor dit jaar.")
-          const normsFilling = await calculateFieldFillings(fdm, context.calendar, input)
-          return { b_id: field.b_id, b_area: field.b_area ?? 0, norms, normsFilling }
-        } catch (error) {
-          return { ...toErrorResult(field, error), norms }
-        }
-      }),
-    )
-    fieldNorms.push(...results)
-  }
+  // Fillings are only calculated for fields whose norms could be calculated
+  const fillings = await calculateNormFillingsForFields(
+    fdm,
+    "NL",
+    context.calendar,
+    context.fields.map((field) =>
+      context.normValues.has(field.b_id) ? context.fillingInputs.get(field.b_id) : undefined,
+    ),
+  )
+
+  const fieldNorms: FieldNormsResult[] = context.fields.map((field, index): FieldNormsResult => {
+    const norms = context.normValues.get(field.b_id)
+    if (!norms) {
+      return toErrorResult(field, context.normErrors.get(field.b_id) ?? "Onbekende fout.")
+    }
+    const filling = fillings[index]
+    if (!filling) {
+      return { ...toErrorResult(field, new Error(FIELD_NOT_FOUND_MESSAGE)), norms }
+    }
+    if ("error" in filling) {
+      return { ...toErrorResult(field, filling.error), norms }
+    }
+    const normsFilling: FieldNormFillings = filling.values
+    return { b_id: field.b_id, b_area: field.b_area ?? 0, norms, normsFilling }
+  })
 
   const names = new Map(context.fields.map((field) => [field.b_id, field.b_name]))
   const fieldErrorMessages: string[] = []

@@ -13,6 +13,8 @@ import {
   type Timeframe,
 } from "@nmi-agro/fdm-core"
 import {
+  collectFarmMeasureInputs,
+  type FarmMeasureInputs,
   type FieldTopOpportunity,
   getFarmMeasureOpportunities,
   getIndicatorsForFarm,
@@ -52,29 +54,8 @@ export type FarmRecommendationsData = {
   adviceAvailable: boolean
 }
 
-/**
- * Builds the farm-wide measure recommendations: per field the measures that improve its weak
- * indicators most, with one variant per measure family chosen over the whole farm.
- *
- * Pass `farmFields` and `applicabilityByField` when the caller already loaded them, to avoid
- * loading the fields and the applicability a second time. Pass `scores` when the caller already
- * started loading the BLN3 scores, so they load in parallel with the caller's own requests.
- *
- * @returns The ranked steps, the opportunities per field, the farm-wide opportunities, the
- *   summed impact per measure and indicator, and whether any advice could be loaded.
- */
-export async function getFarmNextSteps({
-  principal_id,
-  b_id_farm,
-  fields,
-  b_year,
-  timeframe,
-  measuresMap,
-  catalogue,
-  farmFields,
-  applicabilityByField,
-  scores: preloadedScores,
-}: {
+/** The arguments of {@link getFarmNextSteps}. */
+type FarmNextStepsArgs = {
   principal_id: PrincipalId
   b_id_farm: string
   fields: { b_id: string; b_name: string | null }[]
@@ -83,33 +64,84 @@ export async function getFarmNextSteps({
   measuresMap: Map<string, { m_id: string }[]>
   catalogue: { m_id: string; m_name: string }[]
   farmFields?: Field[]
-  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null>
+  /** The inputs from `collectFarmMeasureInputs`, covering at least the fields. */
+  measureInputs?: Promise<FarmMeasureInputs>
+  /** The applicability per field; fields that are missing or `null` are requested again. */
+  applicabilityByField?:
+    | Record<string, Record<string, MeasureApplicabilityInfo> | null>
+    | Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>>
   scores?: ReturnType<typeof getIndicatorsForFarm>
-}): Promise<FarmRecommendationsData> {
+}
+
+/**
+ * Builds the farm-wide measure recommendations: per field the measures that improve its weak
+ * indicators most, with one variant per measure family chosen over the whole farm.
+ *
+ * Pass `farmFields`, `measureInputs` and `applicabilityByField` when the caller already loaded
+ * them, to avoid loading the fields, the inputs and the applicability a second time. Pass
+ * `scores` when the caller already started loading the BLN3 scores, so they load in parallel with
+ * the caller's own requests.
+ *
+ * @returns The ranked steps, the opportunities per field, the farm-wide opportunities, the
+ *   summed impact per measure and indicator, and whether any advice could be loaded.
+ */
+export async function getFarmNextSteps(args: FarmNextStepsArgs): Promise<FarmRecommendationsData> {
+  const { recommendations } = await buildFarmNextSteps(args)
+  return recommendations
+}
+
+/**
+ * Builds the farm-wide measure recommendations, see {@link getFarmNextSteps}, and also returns
+ * the applicability per field that was used, including the fields that were requested again.
+ */
+async function buildFarmNextSteps({
+  principal_id,
+  b_id_farm,
+  fields,
+  b_year,
+  timeframe,
+  measuresMap,
+  catalogue,
+  farmFields,
+  measureInputs,
+  applicabilityByField: knownApplicabilityByField,
+  scores: preloadedScores,
+}: FarmNextStepsArgs): Promise<{
+  recommendations: FarmRecommendationsData
+  applicabilityByField: Record<string, Record<string, MeasureApplicabilityInfo> | null>
+}> {
   const b_ids = fields.map((f) => f.b_id)
-  const scores = await (preloadedScores ??
+  // The scores are only needed after the NMI requests, so they load at the same time
+  const scoreByBid = (
+    preloadedScores ??
     getIndicatorsForFarm({
       principal_id,
       b_id_farm,
       timeframe,
       preloadedFields: farmFields,
-    }))
+    })
+  ).then((scores) => new Map(scores.map((s) => [s.b_id, s.score])))
+  // Avoid an unhandled rejection when the opportunities fail first; it is awaited there
+  scoreByBid.catch(() => undefined)
   const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
-  const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
   const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
   const activeMeasureIdsByField = new Map(
     b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
   )
-  const { candidates, adviceAvailable } = await getFarmMeasureOpportunities({
-    principal_id,
-    b_ids,
-    b_year,
-    timeframe,
-    scoreByBid,
-    activeMeasureIdsByField,
-    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
-    applicabilityByField,
-  })
+  const { candidates, adviceAvailable, applicabilityByField } = await getFarmMeasureOpportunities(
+    {
+      principal_id,
+      b_id_farm,
+      b_ids,
+      b_year,
+      timeframe,
+      scoreByBid,
+      activeMeasureIdsByField,
+      measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+      measureInputs,
+      applicabilityByField: knownApplicabilityByField,
+    },
+  )
 
   // Show one variant per measure family farm-wide: the variant with the highest
   // impact summed over all eligible candidates of all fields (not only each
@@ -203,7 +235,10 @@ export async function getFarmNextSteps({
     })
     .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
 
-  return { steps, opportunitiesByField, topOpportunities, measureImpacts, adviceAvailable }
+  return {
+    recommendations: { steps, opportunitiesByField, topOpportunities, measureImpacts, adviceAvailable },
+    applicabilityByField,
+  }
 }
 
 export type { FieldMeasureEntry, FieldMeasureStatus }
@@ -364,37 +399,26 @@ async function loadFarmMeasureStatus({
     })
     .map((field) => ({ b_id: field.b_id, b_name: field.b_name ?? null }))
 
-  // Applicability is loaded once and reused for the recommendations. With `reportFailures`, a
-  // field whose NMI request failed is `null`, so a failure is not mistaken for "no applicable
-  // measures".
-  let applicabilityAvailable = true
-  let applicabilityFailedFieldCount = 0
-  const applicabilityByField = await getMeasureApplicabilityForFields({
+  // The inputs and the applicability are loaded once and reused for the recommendations. With
+  // `reportFailures`, a field whose NMI request failed is `null`, so a failure is not mistaken
+  // for "no applicable measures".
+  const eligibleIds = eligibleFields.map((field) => field.b_id)
+  const measureInputs = collectFarmMeasureInputs({
     principal_id,
-    b_ids: eligibleFields.map((field) => field.b_id),
+    b_id_farm,
+    b_ids: eligibleIds,
     b_year,
     timeframe,
-    reportFailures: true,
-  }).catch((error) => {
-    reportError(error, { page: "measures catalogue applicability" })
-    applicabilityAvailable = false
-    applicabilityFailedFieldCount = eligibleFields.length
-    return {} as Record<string, Record<string, MeasureApplicabilityInfo> | null>
   })
-  const failedFields = Object.values(applicabilityByField).filter(
-    (perMeasure) => perMeasure === null,
-  )
-  if (failedFields.length > 0) {
-    applicabilityAvailable = false
-    applicabilityFailedFieldCount = failedFields.length
-  }
-  // Without an NMI API key the lookup returns empty records, which are not a real result
-  if (!getNmiApiKey() && eligibleFields.length > 0) {
-    applicabilityAvailable = false
-    applicabilityFailedFieldCount = eligibleFields.length
-  }
+  const loadedApplicability = await measureInputs
+    .then((inputs) => getMeasureApplicabilityForFields(inputs, { reportFailures: true }))
+    .catch((error) => {
+      reportError(error, { page: "measures catalogue applicability" })
+      return {} as Record<string, Record<string, MeasureApplicabilityInfo> | null>
+    })
 
-  const recommendations = await getFarmNextSteps({
+  // The recommendations request the fields whose applicability failed again
+  const nextSteps = await buildFarmNextSteps({
     principal_id,
     b_id_farm,
     fields: eligibleFields,
@@ -403,15 +427,27 @@ async function loadFarmMeasureStatus({
     measuresMap,
     catalogue,
     farmFields: fields,
-    applicabilityByField,
+    measureInputs,
+    applicabilityByField: loadedApplicability,
     scores,
   }).catch((error) => {
     reportError(error, { page: "measures catalogue recommendations" })
     return null
   })
+  const recommendations = nextSteps?.recommendations ?? null
   // Without eligible fields there is nothing to recommend, which is not a failure
   const recommendationsAvailable =
     eligibleFields.length === 0 || (recommendations?.adviceAvailable ?? false)
+
+  // Use the applicability after those retries, so the statuses and the notice agree with the
+  // recommendations. A field that is still missing or `null` could not be loaded.
+  const applicabilityByField = nextSteps?.applicabilityByField ?? loadedApplicability
+  let applicabilityFailedFieldCount = eligibleIds.filter(
+    (b_id) => !applicabilityByField[b_id],
+  ).length
+  // Without an NMI API key the lookup returns empty records, which are not a real result
+  if (!getNmiApiKey()) applicabilityFailedFieldCount = eligibleIds.length
+  const applicabilityAvailable = applicabilityFailedFieldCount === 0
 
   const fieldsByMeasure = mergeFieldMeasureStatus({
     fieldNames,

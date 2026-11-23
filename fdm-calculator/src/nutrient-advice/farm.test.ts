@@ -7,7 +7,25 @@ const core = vi.hoisted(() => ({
   getCurrentSoilDataForFarm: vi.fn(),
   getFertilizers: vi.fn(),
 }))
-const advice = vi.hoisted(() => ({ getNutrientAdvice: vi.fn() }))
+// The cached function has a `many` method; here it requests each input with the single mock,
+// through the `limit` option like the real one
+const advice = vi.hoisted(() => {
+  const getNutrientAdvice = Object.assign(vi.fn(), {
+    many: vi.fn(
+      (
+        fdm: unknown,
+        inputs: unknown[],
+        options?: { limit?: <T>(task: () => Promise<T>) => Promise<T> },
+      ) =>
+        inputs.map((input) =>
+          options?.limit
+            ? options.limit(() => getNutrientAdvice(fdm, input))
+            : getNutrientAdvice(fdm, input),
+        ),
+    ),
+  })
+  return { getNutrientAdvice }
+})
 const suggestion = vi.hoisted(() => ({ getCultivationSuggestion: vi.fn() }))
 
 vi.mock("@nmi-agro/fdm-core", async (importOriginal) => ({
@@ -149,19 +167,10 @@ describe("farm nutrient advice edge cases", () => {
     expect(findMainCultivation([], 2026)).toBeUndefined()
   })
 
-  it("runs one field at a time with a concurrency of 1", async () => {
+  it("requests the advice of all fields at once with the given concurrency", async () => {
     core.getCultivationsForFarm.mockResolvedValue(
       new Map(["f1", "f2", "f3"].map((b_id) => [b_id, [mainCultivation]])),
     )
-    let running = 0
-    let maxRunning = 0
-    advice.getNutrientAdvice.mockImplementation(async () => {
-      running++
-      maxRunning = Math.max(maxRunning, running)
-      await new Promise((resolve) => setTimeout(resolve, 1))
-      running--
-      return { d_n_req: 1 }
-    })
     const rows = await Promise.all(
       startFarmNutrientAdviceRows({
         ...input([field("f1"), field("f2"), field("f3")]),
@@ -169,7 +178,121 @@ describe("farm nutrient advice edge cases", () => {
       }),
     )
     expect(rows).toHaveLength(3)
+    // One cache lookup for all fields; the limit of requests is applied by `many`
+    expect(advice.getNutrientAdvice.many).toHaveBeenCalledTimes(1)
+    expect(advice.getNutrientAdvice.many).toHaveBeenCalledWith(
+      fdm,
+      [
+        expect.objectContaining({ b_lu_catalogue: "nl_2014" }),
+        expect.objectContaining({ b_lu_catalogue: "nl_2014" }),
+        expect.objectContaining({ b_lu_catalogue: "nl_2014" }),
+      ],
+      { limit: expect.any(Function) },
+    )
+  })
+
+  it("runs one cultivation suggestion at a time with a concurrency of 1", async () => {
+    const lateCultivation = {
+      ...mainCultivation,
+      b_lu_start: new Date("2026-08-01"),
+      b_lu_end: new Date("2026-10-01"),
+    }
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map(["f1", "f2", "f3"].map((b_id) => [b_id, [lateCultivation]])),
+    )
+    let running = 0
+    let maxRunning = 0
+    suggestion.getCultivationSuggestion.mockImplementation(async () => {
+      running++
+      maxRunning = Math.max(maxRunning, running)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      running--
+      return { b_lu_catalogue: "nl_265" }
+    })
+    const rows = await Promise.all(
+      startFarmNutrientAdviceRows({
+        ...input([field("f1"), field("f2"), field("f3")]),
+        concurrency: 1,
+      }),
+    )
+    expect(rows.map((row) => row.error?.code)).toEqual([
+      "no_main_cultivation",
+      "no_main_cultivation",
+      "no_main_cultivation",
+    ])
     expect(maxRunning).toBe(1)
+  })
+
+  it("shares one limit between cultivation suggestions and advice requests", async () => {
+    const lateCultivation = {
+      ...mainCultivation,
+      b_lu_start: new Date("2026-08-01"),
+      b_lu_end: new Date("2026-10-01"),
+    }
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map([
+        ["f1", [mainCultivation]],
+        ["f2", [lateCultivation]],
+        ["f3", [mainCultivation]],
+        ["f4", [lateCultivation]],
+      ]),
+    )
+    let running = 0
+    let maxRunning = 0
+    const track = async <T>(value: T) => {
+      running++
+      maxRunning = Math.max(maxRunning, running)
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      running--
+      return value
+    }
+    advice.getNutrientAdvice.mockImplementation(() => track({ d_n_req: 1 }))
+    suggestion.getCultivationSuggestion.mockImplementation(() =>
+      track({ b_lu_catalogue: "nl_265" }),
+    )
+
+    const rows = await Promise.all(
+      startFarmNutrientAdviceRows({
+        ...input(["f1", "f2", "f3", "f4"].map(field)),
+        concurrency: 2,
+      }),
+    )
+
+    expect(rows.map((row) => row.error?.code)).toEqual([
+      undefined,
+      "no_main_cultivation",
+      undefined,
+      "no_main_cultivation",
+    ])
+    expect(maxRunning).toBe(2)
+  })
+
+  it("shows a cached advice without waiting for the advice of another field", async () => {
+    core.getCultivationsForFarm.mockResolvedValue(
+      new Map([
+        ["f1", [mainCultivation]],
+        ["f2", [mainCultivation]],
+      ]),
+    )
+    let releaseSlowAdvice: (value: unknown) => void = () => undefined
+    advice.getNutrientAdvice
+      .mockReturnValueOnce(new Promise((resolve) => (releaseSlowAdvice = resolve)))
+      .mockResolvedValueOnce({ d_n_req: 80 })
+
+    const [slow, fast] = startFarmNutrientAdviceRows(input([field("f1"), field("f2")]))
+    await expect(fast).resolves.toMatchObject({ b_id: "f2", values: { N: { advice: 80 } } })
+    releaseSlowAdvice({ d_n_req: 10 })
+    await expect(slow).resolves.toMatchObject({ b_id: "f1", values: { N: { advice: 10 } } })
+  })
+
+  it("reports a field whose dose cannot be calculated without requesting its advice", async () => {
+    core.getFertilizerApplicationsForFarm.mockResolvedValue(
+      new Map([["f1", [{ p_id: "unknown-fertilizer", p_app_amount: 100 }]]]),
+    )
+    const [row] = await getFarmNutrientAdviceRows(input([field("f1")]))
+    expect(row?.error?.code).toBe("advice_failed")
+    expect(row?.mainCultivation?.b_lu_catalogue).toBe("nl_2014")
+    expect(advice.getNutrientAdvice).not.toHaveBeenCalled()
   })
 
   it("uses 0 ha for a field without area and keeps an unknown crop rotation", async () => {

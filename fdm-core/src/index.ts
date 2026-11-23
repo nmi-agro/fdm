@@ -27,9 +27,14 @@ export {
 } from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
+  type CachedCalculation,
+  type CachedCalculationManyOptions,
+  type CachedCalculationRow,
   generateCalculationHash,
   getCachedCalculation,
+  getCachedCalculations,
   setCachedCalculation,
+  setCachedCalculations,
   setCalculationError,
   withCalculationCache,
 } from "./calculator"

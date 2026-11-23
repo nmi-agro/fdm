@@ -3,7 +3,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addMeasure,
   checkPermission,
-  getCultivations,
   getCultivationsForFarm,
   getFarm,
   getFields,
@@ -61,7 +60,11 @@ import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
+import { useStreamedRows } from "~/hooks/use-streamed-rows"
+import {
+  collectFarmMeasureInputs,
+  getMeasureApplicabilityForFields,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -289,28 +292,35 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
-    // `reportFailures` maps a failed field to `null`, so the recommendations below only reuse
-    // successful lookups. A failed batch yields `undefined`: the recommendations then fetch
-    // the applicability themselves, and the page falls back to an empty record.
-    const [loadedApplicability, fieldCultivations] = await Promise.all([
-      getMeasureApplicabilityForFields({
-        principal_id: session.principal_id,
-        b_ids: fieldIds,
-        b_year,
-        timeframe,
-        reportFailures: true,
-      }).catch((error) => {
+    // The measure inputs serve the applicability (for the add dialog) and the recommendations.
+    // Both may call the NMI API, so they are streamed and never block the page.
+    const measureInputs = collectFarmMeasureInputs({
+      principal_id: session.principal_id,
+      b_id_farm,
+      b_ids: fieldIds,
+      b_year,
+      timeframe,
+    })
+    // `reportFailures` maps a failed field to `null`, so the recommendations request it again
+    // instead of reading the failure as "no applicable measures"
+    const applicabilityByField = measureInputs
+      .then((inputs) => getMeasureApplicabilityForFields(inputs, { reportFailures: true }))
+      .catch((error) => {
         reportError(error, { page: "farm measures applicability" })
-        return undefined
-      }),
-      Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
-    ])
+        return {}
+      })
 
-    const fieldsWithCultivations = fields.map((f, i) => ({
-      field: f,
-      cultivations: fieldCultivations[i],
-      mainCultivation: getMainCultivation(fieldCultivations[i], calendar) ?? null,
-    }))
+    // All cultivations of each field, not only those in the calendar year
+    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm)
+
+    const fieldsWithCultivations = fields.map((f) => {
+      const cultivations = cultivationsByField.get(f.b_id) ?? []
+      return {
+        field: f,
+        cultivations,
+        mainCultivation: getMainCultivation(cultivations, calendar) ?? null,
+      }
+    })
 
     // Exclude buffer strips, nature plots, and non-agricultural fields from measures recommendations
     const eligibleFieldsWithCultivations = fieldsWithCultivations.filter(
@@ -335,7 +345,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       measuresMap,
       catalogue,
-      applicabilityByField: loadedApplicability,
+      measureInputs,
+      applicabilityByField,
     }).catch((error) => {
       reportError(error, { page: "farm measures recommendations" })
       return {
@@ -455,7 +466,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       catalogue,
       mapStyle: getMapStyle("satellite"),
       fieldSummaries,
-      applicabilityByField: loadedApplicability ?? {},
+      applicabilityByField,
       stats: {
         totalFields: eligibleFieldsWithCultivations.length,
         totalMeasures,
@@ -787,6 +798,10 @@ export default function MeasuresFarmIndex() {
     farmWritePermission,
     asyncInsights,
   } = useLoaderData<typeof loader>()
+  // The applicability is streamed; until it arrives the add dialog waits with saving
+  const applicabilityPromises = useMemo(() => [applicabilityByField], [applicabilityByField])
+  const streamedApplicability = useStreamedRows(applicabilityPromises)
+  const applicability = streamedApplicability.rows[0]
   const { b_id_farm, calendar } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -794,9 +809,12 @@ export default function MeasuresFarmIndex() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [initialFieldIds, setInitialFieldIds] = useState<string[]>([])
   const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
-  const [recommendationsData, setRecommendationsData] = useState<FarmRecommendationsData | null>(
-    null,
+  // The recommendations for the add dialog, from the streamed farm next steps
+  const nextStepsPromises = useMemo(
+    () => [asyncInsights.farmNextSteps],
+    [asyncInsights.farmNextSteps],
   )
+  const recommendationsData = useStreamedRows(nextStepsPromises).rows[0] ?? null
   const [editingRow, setEditingRow] = useState<MeasureTableRow | null>(null)
   const [closingRow, setClosingRow] = useState<MeasureTableRow | null>(null)
 
@@ -970,11 +988,6 @@ export default function MeasuresFarmIndex() {
             >
               <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
                 {(recData: FarmRecommendationsData) => {
-                  // Keep the latest result, also after "Opnieuw proberen", so the add dialog
-                  // gets the current recommendations
-                  if (recData && recData !== recommendationsData) {
-                    setTimeout(() => setRecommendationsData(recData), 0)
-                  }
                   // No advice for any eligible field: say so instead of hiding the section,
                   // which would read as "nothing to recommend"
                   if (recData && !recData.adviceAvailable && fieldList.length > 0) {
@@ -1052,7 +1065,8 @@ export default function MeasuresFarmIndex() {
         }}
         catalogue={catalogue}
         activeMeasures={[]}
-        applicabilityByField={applicabilityByField ?? undefined}
+        applicabilityByField={applicability}
+        applicabilityLoading={!streamedApplicability.complete}
         fields={fieldList}
         initialFieldIds={measureDialogFieldIds}
         topOpportunities={recommendationsData?.topOpportunities}
