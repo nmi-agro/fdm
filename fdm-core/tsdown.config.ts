@@ -8,7 +8,7 @@ export default defineConfig({
   tsconfig: "./tsconfig.build.json",
   dts: true,
   sourcemap: true,
-  target: "node24",
+  target: "node26",
   clean: true,
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
   deps: {
