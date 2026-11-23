@@ -161,9 +161,8 @@ export default function LivestockOnboarding() {
   const { b_id_farm, calendar, farmOptions, categories } = useLoaderData<typeof loader>()
 
   const defaultCategory = categories.find((c) => c.l_id_category === "rvo_100") ?? categories[0]
-  const [selectedCategory, setSelectedCategory] = useState(
-    defaultCategory?.l_id_category ?? "rvo_100",
-  )
+  const [selectedCategory, setSelectedCategory] = useState(defaultCategory?.l_id_category ?? "")
+  const hasCategories = categories.length > 0
   const [herdName, setHerdName] = useState("Melkkoeien")
   const [count, setCount] = useState<number>(96)
 
@@ -219,28 +218,35 @@ export default function LivestockOnboarding() {
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="category-select">Diercategorie *</FieldLabel>
-                  <Select
-                    value={selectedCategory}
-                    items={categories.map((c) => ({
-                      value: c.l_id_category,
-                      label: `${c.l_category} (${(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)`,
-                    }))}
-                    onValueChange={(v) => {
-                      if (v !== null) handleCategoryChange(v)
-                    }}
-                    name="l_id_category"
-                  >
-                    <SelectTrigger id="category-select">
-                      <SelectValue placeholder="Kies diercategorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => (
-                        <SelectItem key={c.l_id_category} value={c.l_id_category}>
-                          {c.l_category} ({(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {!hasCategories ? (
+                    <p className="text-muted-foreground text-sm">
+                      Voor dit bedrijf zijn geen diercategorieën beschikbaar, dus er kan nog geen
+                      koppel worden toegevoegd. Neem contact op met de ondersteuning.
+                    </p>
+                  ) : (
+                    <Select
+                      value={selectedCategory}
+                      items={categories.map((c) => ({
+                        value: c.l_id_category,
+                        label: `${c.l_category} (${(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)`,
+                      }))}
+                      onValueChange={(v) => {
+                        if (v !== null) handleCategoryChange(v)
+                      }}
+                      name="l_id_category"
+                    >
+                      <SelectTrigger id="category-select">
+                        <SelectValue placeholder="Kies diercategorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => (
+                          <SelectItem key={c.l_id_category} value={c.l_id_category}>
+                            {c.l_category} ({(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </Field>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -298,7 +304,9 @@ export default function LivestockOnboarding() {
               >
                 Annuleren
               </Button>
-              <Button type="submit">Koppel aanmaken</Button>
+              <Button type="submit" disabled={!hasCategories || !selectedCategory}>
+                Koppel aanmaken
+              </Button>
             </CardFooter>
           </form>
         </Card>

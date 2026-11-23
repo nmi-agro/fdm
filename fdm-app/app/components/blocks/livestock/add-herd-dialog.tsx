@@ -33,7 +33,11 @@ export function AddHerdDialog({
   categories: Array<{ l_id_category: string; l_category: string; l_lsu: number | null }>
 }) {
   const fetcher = useFetcher()
-  const [categoryId, setCategoryId] = useState("rvo_100")
+  // Dairy cows when the farm has that category, else its first category; none when it has none
+  const [categoryId, setCategoryId] = useState(
+    (categories.find((c) => c.l_id_category === "rvo_100") ?? categories[0])?.l_id_category ?? "",
+  )
+  const hasCategories = categories.length > 0
   const [name, setName] = useState("Melkkoeien")
   const [count, setCount] = useState(20)
 
@@ -64,27 +68,34 @@ export function AddHerdDialog({
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="cat-select">Diercategorie *</FieldLabel>
-                <Select
-                  value={categoryId}
-                  items={categories.map((c) => ({
-                    value: c.l_id_category,
-                    label: categoryLabel(c),
-                  }))}
-                  onValueChange={(v) => {
-                    if (v !== null) setCategoryId(v)
-                  }}
-                >
-                  <SelectTrigger id="cat-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.l_id_category} value={c.l_id_category}>
-                        {categoryLabel(c)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {!hasCategories ? (
+                  <p className="text-muted-foreground text-sm">
+                    Voor dit bedrijf zijn geen diercategorieën beschikbaar, dus er kan nog geen
+                    koppel worden toegevoegd. Neem contact op met de ondersteuning.
+                  </p>
+                ) : (
+                  <Select
+                    value={categoryId}
+                    items={categories.map((c) => ({
+                      value: c.l_id_category,
+                      label: categoryLabel(c),
+                    }))}
+                    onValueChange={(v) => {
+                      if (v !== null) setCategoryId(v)
+                    }}
+                  >
+                    <SelectTrigger id="cat-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.l_id_category} value={c.l_id_category}>
+                          {categoryLabel(c)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </Field>
 
               <Field>
@@ -117,7 +128,9 @@ export function AddHerdDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuleren
             </Button>
-            <Button type="submit">Koppel aanmaken</Button>
+            <Button type="submit" disabled={!hasCategories || !categoryId}>
+              Koppel aanmaken
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
