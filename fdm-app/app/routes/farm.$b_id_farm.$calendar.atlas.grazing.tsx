@@ -317,7 +317,6 @@ function GrazingLayer() {
           grazings: grazingsByField.get(b_id) ?? [],
           harvests: harvestsByField[b_id] ?? [],
           day,
-          today,
           calendarYear,
           isGrassland: Boolean(feature.properties?.isGrassland),
           isBufferstrip: Boolean(feature.properties?.isBufferstrip),
@@ -325,7 +324,7 @@ function GrazingLayer() {
       )
     }
     return result
-  }, [fieldsData, grazingsByField, harvestsByField, day, today, calendarYear])
+  }, [fieldsData, grazingsByField, harvestsByField, day, calendarYear])
 
   const shadedFields: FeatureCollection = useMemo(
     () => ({
@@ -348,13 +347,13 @@ function GrazingLayer() {
       type: "FeatureCollection",
       features: day
         ? grazings.flatMap((g) =>
-            g.l_grazing_geometry_zone && day >= g.l_grazing_start && day <= grazingEndDay(g, today)
+            g.l_grazing_geometry_zone && day >= g.l_grazing_start && day <= grazingEndDay(g)
               ? [{ type: "Feature" as const, geometry: g.l_grazing_geometry_zone, properties: {} }]
               : [],
           )
         : [],
     }),
-    [grazings, day, today],
+    [grazings, day],
   )
 
   const initialViewState = getViewState(fieldsData)

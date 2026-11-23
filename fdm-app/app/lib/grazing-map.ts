@@ -87,12 +87,11 @@ export function defaultMapDay(today: string, calendarYear: number): string {
 }
 
 /**
- * The last day of a grazing (YYYY-MM-DD). A grazing that still runs lasts up to today, or only its
- * first day when it starts after today.
+ * The last day of a grazing (YYYY-MM-DD). Every grazing has an end; a record without one lasts
+ * its first day only.
  */
-export function grazingEndDay(grazing: GrazingMapGrazing, today: string): string {
-  if (grazing.l_grazing_end) return grazing.l_grazing_end
-  return today > grazing.l_grazing_start ? today : grazing.l_grazing_start
+export function grazingEndDay(grazing: GrazingMapGrazing): string {
+  return grazing.l_grazing_end ?? grazing.l_grazing_start
 }
 
 /**
@@ -103,7 +102,7 @@ export function grazingEndDay(grazing: GrazingMapGrazing, today: string): string
  * - Otherwise `rust`, counted from the last use before the day in the selected year. A use in
  *   another year does not count, so a field starts the year as `unused`.
  *
- * @param input - The grazings and harvests of the field, the day, today and the selected year.
+ * @param input - The grazings and harvests of the field, the day and the selected year.
  * @returns The status and the details the map and its popup show.
  */
 export function getFieldGrazingState(input: {
@@ -111,16 +110,14 @@ export function getFieldGrazingState(input: {
   harvests: GrazingMapHarvest[]
   /** The day shown (YYYY-MM-DD). */
   day: string
-  /** Today (YYYY-MM-DD), the end of a grazing that still runs. */
-  today: string
   calendarYear: number
   isGrassland: boolean
   isBufferstrip: boolean
 }): FieldGrazingState {
-  const { grazings, harvests, day, today, calendarYear } = input
+  const { grazings, harvests, day, calendarYear } = input
   if (input.isBufferstrip || !input.isGrassland) return { status: "disabled" }
 
-  const grazing = grazings.find((g) => day >= g.l_grazing_start && day <= grazingEndDay(g, today))
+  const grazing = grazings.find((g) => day >= g.l_grazing_start && day <= grazingEndDay(g))
   if (grazing) return { status: "weiden", grazing }
 
   const harvest = harvests.find((h) => h.harvestDate === day)
@@ -130,7 +127,7 @@ export function getFieldGrazingState(input: {
   const uses = [
     ...grazings
       .filter((g) => g.l_grazing_start < day)
-      .map((g) => ({ type: "weiden" as const, date: grazingEndDay(g, today) })),
+      .map((g) => ({ type: "weiden" as const, date: grazingEndDay(g) })),
     ...harvests
       .filter((h) => h.harvestDate < day)
       .map((h) => ({ type: "maaien" as const, date: h.harvestDate })),

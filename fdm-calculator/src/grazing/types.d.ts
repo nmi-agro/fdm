@@ -32,8 +32,8 @@ export interface GrazingInput {
   b_id?: string | null
   /** Start timestamp of the grazing period. */
   l_grazing_start: Date
-  /** Optional end timestamp of the grazing period. Null indicates an ongoing/open period. */
-  l_grazing_end?: Date | null
+  /** End timestamp of the grazing period (its last day). Every grazing has an end. */
+  l_grazing_end: Date
   /** Number of grazing hours per day (typically 8 for limited grazing, 24 for day & night). */
   l_grazing_hours?: number | null
   /**

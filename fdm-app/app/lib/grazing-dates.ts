@@ -51,9 +51,9 @@ export function censusDateForYear(year: number, now: Date = new Date()): Date {
 
 /**
  * The days of a grazing within a calendar year that have already happened, as `YYYY-MM-DD` keys.
- * A grazing without an end runs through today; days after today are planned and not included.
+ * Days after today are planned and not included. A record without an end counts its first day.
  *
- * @param grazing - The start and the end (or `null`) of the grazing.
+ * @param grazing - The start and the end of the grazing.
  * @param year - The calendar year, or `null` for every year.
  * @param today - Today as a date-only value, see {@link farmToday}.
  * @returns The day keys, in order.
@@ -64,11 +64,7 @@ export function realisedGrazingDays(
   today: Date,
 ): string[] {
   const start = new Date(grazing.l_grazing_start)
-  const end = grazing.l_grazing_end
-    ? new Date(grazing.l_grazing_end)
-    : today > start
-      ? today
-      : start
+  const end = grazing.l_grazing_end ? new Date(grazing.l_grazing_end) : start
   const last = end < today ? end : today
   const days: string[] = []
   const day = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))

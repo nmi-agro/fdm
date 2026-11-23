@@ -16,6 +16,8 @@ import { serverNow } from "~/lib/server-now.server"
 
 export interface GrazingInsightsData {
   year: number
+  /** Today as a date-only value, the moment the figures were calculated for. */
+  today: Date
   metrics: GrazingMetricsResult
   herds: YearHerd[]
 
@@ -102,7 +104,8 @@ export async function fetchGrazingInsightsData(
       l_id_herd: g.l_id_herd,
       b_id: g.b_id,
       l_grazing_start: new Date(g.l_grazing_start),
-      l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
+      // Every grazing has an end; a record without one counts as its start day only
+      l_grazing_end: new Date(g.l_grazing_end ?? g.l_grazing_start),
       l_grazing_hours: g.l_grazing_hours,
       l_grazing_area_grazed: g.l_grazing_area_grazed,
       l_grazing_geometry_zone: zoneWithinField(
@@ -115,6 +118,7 @@ export async function fetchGrazingInsightsData(
 
   return {
     year: calendarYear,
+    today,
     metrics,
     herds: herdList,
     grasslandFields,

@@ -340,40 +340,40 @@ describe("calculateGrazingMetrics", () => {
     }
   })
 
-  it("should count a running grazing through today and a planned one as its start day", () => {
+  it("should count the days up to today as realised and the later days as planned", () => {
     const result = calculateGrazingMetrics({
       year: 2026,
       today: new Date("2026-05-15T12:00:00.000Z"),
       herds: [{ l_id_herd: "h1", l_herd_name: "Melkkoeien", l_id_category: "rvo_100", count: 1 }],
       fields: [{ b_id: "f1", b_name: "De Hoek", b_area: 4, isGrassland: true }],
       grazings: [
-        // Started on 12 May without an end: 12, 13, 14 and 15 May
+        // 12 to 17 May: 12, 13, 14 and 15 May have happened, 16 and 17 May are planned
         {
-          l_id_grazing: "running",
+          l_id_grazing: "current",
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2026-05-12T00:00:00.000Z"),
-          l_grazing_end: null,
+          l_grazing_end: new Date("2026-05-17T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
-        // Planned without an end: one planned day
+        // A planned day
         {
           l_id_grazing: "planned",
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2026-06-01T00:00:00.000Z"),
-          l_grazing_end: null,
+          l_grazing_end: new Date("2026-06-01T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
       ],
     })
 
     expect(result.weidedagen.total).toBe(4)
-    expect(result.weidedagen.planned).toBe(1)
+    expect(result.weidedagen.planned).toBe(3)
     expect(result.weidemelk.qualifyingDays).toBe(4)
   })
 
-  it("should count a running grazing from the previous year in the selected year", () => {
+  it("should count only the days in the selected year of a grazing from the previous year", () => {
     const result = calculateGrazingMetrics({
       year: 2026,
       today: new Date("2026-01-03T12:00:00.000Z"),
@@ -385,7 +385,7 @@ describe("calculateGrazingMetrics", () => {
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2025-12-30T00:00:00.000Z"),
-          l_grazing_end: null,
+          l_grazing_end: new Date("2026-01-03T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
       ],
@@ -438,6 +438,7 @@ describe("calculateGrazingMetrics", () => {
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2026-05-01T00:00:00.000Z"),
+          l_grazing_end: new Date("2026-05-01T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
         {
@@ -445,6 +446,7 @@ describe("calculateGrazingMetrics", () => {
           l_id_herd: "h1",
           b_id: "f1",
           l_grazing_start: new Date("2026-05-05T00:00:00.000Z"),
+          l_grazing_end: new Date("2026-05-05T00:00:00.000Z"),
           l_grazing_hours: null,
         },
       ],

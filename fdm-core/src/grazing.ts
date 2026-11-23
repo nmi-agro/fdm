@@ -8,7 +8,6 @@ import {
   inArray,
   isNotNull,
   lt,
-  lte,
   max,
   ne,
   sql,
@@ -35,6 +34,7 @@ import {
   overlapsHalfOpen,
   sharesCalendarDay,
 } from "./interval"
+import { lockFarm, lockFarmOfHerd } from "./livestock-checks"
 import { withPeriodTimeframe } from "./timeframe"
 import { clippedZone, geographyArea, normalizeZone } from "./zone"
 
@@ -95,7 +95,9 @@ function assertGrazingExtent(
 
 /**
  * Records an outdoor pasture grazing action for a herd on a farm field parcel.
- * Allows logging grazing start/end dates, daily grazing hours and the grazed part of the field.
+ * Logs the grazing start and end dates, daily grazing hours and the grazed part of the field.
+ * Every grazing has an end date; a grazing that is still going on is recorded up to the day it
+ * is planned to end.
  * The grazed part is the whole field by default; pass `l_grazing_geometry_zone` for a zone within
  * the field, or `l_grazing_area` when only its size is known. A zone is clipped to the field when
  * it is read. Total grazing days are derived from the start/end dates in the calculator layer
@@ -109,17 +111,19 @@ function assertGrazingExtent(
  * @param principal_id - Identifier of the principal recording the grazing action.
  * @param l_id_herd - Herd ID.
  * @param l_grazing_start - Start timestamp.
- * @param properties - Optional field ID, end timestamp, hours, and the grazed zone (WGS84) or area (ha).
- * @throws {Error} If both a zone and an area are given, a zone is given without a field, or the zone is invalid.
+ * @param properties - The end timestamp, and optionally the field ID, hours, and the grazed zone
+ *   (WGS84) or area (ha).
+ * @throws {Error} If the end is missing, both a zone and an area are given, a zone is given
+ *   without a field, or the zone is invalid.
  */
 export async function addGrazing(
   fdm: FdmType,
   principal_id: PrincipalId,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
-  l_grazing_start = new Date(),
-  properties?: {
+  l_grazing_start: Date,
+  properties: {
     b_id?: schema.herdGrazingTypeInsert["b_id"]
-    l_grazing_end?: schema.herdGrazingTypeInsert["l_grazing_end"]
+    l_grazing_end: Date
     l_grazing_hours?: schema.herdGrazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.herdGrazingTypeInsert["l_grazing_area"]
     l_grazing_geometry_zone?: GrazingZoneInput
@@ -128,23 +132,18 @@ export async function addGrazing(
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazing")
-      const grazingEnd = properties?.l_grazing_end ?? null
+      // Serialize with the other livestock changes of the farm, so the checks below hold
+      await lockFarmOfHerd(tx, l_id_herd)
+      const grazingEnd = assertGrazingEnd(properties?.l_grazing_end)
       assertIntervalEndNotBeforeStart(l_grazing_start, grazingEnd, "l_grazing")
       assertGrazingHours(properties?.l_grazing_hours)
       const zone = normalizeZone(properties?.l_grazing_geometry_zone, "l_grazing_geometry_zone")
       assertGrazingExtent(zone, properties?.l_grazing_area, properties?.b_id)
 
-      const herdFarm = await tx
-        .select({ b_id_farm: schema.herdStarting.b_id_farm })
-        .from(schema.herdStarting)
-        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
-        .limit(1)
+      const herd = await getHerdPeriod(tx, l_id_herd)
+      assertGrazingWithinHerdPeriod(herd, l_grazing_start, grazingEnd)
 
-      if (herdFarm.length === 0) {
-        throw new Error(`Herd ${l_id_herd} does not belong to a farm`)
-      }
-
-      const b_id_farm = herdFarm[0].b_id_farm
+      const b_id_farm = herd.b_id_farm
 
       if (properties?.b_id) {
         const fieldFarm = await tx
@@ -153,7 +152,7 @@ export async function addGrazing(
           .where(eq(schema.fieldAcquiring.b_id, properties.b_id))
           .limit(1)
 
-        if (fieldFarm.length === 0 || herdFarm[0].b_id_farm !== fieldFarm[0].b_id_farm) {
+        if (fieldFarm.length === 0 || b_id_farm !== fieldFarm[0].b_id_farm) {
           throw new Error(`Field ${properties.b_id} does not belong to the herd's farm`)
         }
       }
@@ -177,7 +176,7 @@ export async function addGrazing(
         l_id_herd,
         l_grazing_start,
         b_id: properties?.b_id ?? null,
-        l_grazing_end: properties?.l_grazing_end ?? null,
+        l_grazing_end: grazingEnd,
         l_grazing_hours: properties?.l_grazing_hours ?? null,
         l_grazing_area: properties?.l_grazing_area ?? null,
         l_grazing_geometry_zone: zone ?? null,
@@ -213,7 +212,7 @@ export async function addGrazings(
     l_id_herd: schema.herdsTypeSelect["l_id_herd"]
     l_grazing_start: Date
     b_id?: schema.herdGrazingTypeInsert["b_id"]
-    l_grazing_end?: schema.herdGrazingTypeInsert["l_grazing_end"]
+    l_grazing_end: Date
     l_grazing_hours?: schema.herdGrazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.herdGrazingTypeInsert["l_grazing_area"]
     l_grazing_geometry_zone?: GrazingZoneInput
@@ -237,18 +236,23 @@ export async function addGrazings(
         await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazings")
       }
 
-      const farmPerHerd = new Map<string, string>()
-      for (const l_id_herd of distinctHerds) {
-        const herdFarm = await tx
-          .select({ b_id_farm: schema.herdStarting.b_id_farm })
-          .from(schema.herdStarting)
-          .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
-          .limit(1)
+      // Serialize with the other livestock changes of the farms, in a fixed order so two
+      // batches never wait for each other. The farm of a herd never changes, so it can be read
+      // before the lock.
+      const herdFarms = await tx
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
+        .from(schema.herdStarting)
+        .where(inArray(schema.herdStarting.l_id_herd, distinctHerds))
+      for (const b_id_farm of [...new Set(herdFarms.map((h) => h.b_id_farm))].sort()) {
+        await lockFarm(tx, b_id_farm)
+      }
 
-        if (herdFarm.length === 0) {
-          throw new Error(`Herd ${l_id_herd} does not belong to a farm`)
-        }
-        farmPerHerd.set(l_id_herd, herdFarm[0].b_id_farm)
+      const farmPerHerd = new Map<string, string>()
+      const periodPerHerd = new Map<string, HerdPeriod>()
+      for (const l_id_herd of distinctHerds) {
+        const herd = await getHerdPeriod(tx, l_id_herd)
+        farmPerHerd.set(l_id_herd, herd.b_id_farm)
+        periodPerHerd.set(l_id_herd, herd)
       }
 
       const distinctFields = Array.from(
@@ -270,8 +274,13 @@ export async function addGrazings(
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
-        const grazingEnd = row.l_grazing_end ?? null
+        const grazingEnd = assertGrazingEnd(row.l_grazing_end)
         assertIntervalEndNotBeforeStart(row.l_grazing_start, grazingEnd, "l_grazing")
+        assertGrazingWithinHerdPeriod(
+          periodPerHerd.get(row.l_id_herd)!,
+          row.l_grazing_start,
+          grazingEnd,
+        )
 
         const b_id_farm = farmPerHerd.get(row.l_id_herd)
         if (row.b_id) {
@@ -312,7 +321,7 @@ export async function addGrazings(
           l_id_herd: r.l_id_herd,
           l_grazing_start: r.l_grazing_start,
           b_id: r.b_id ?? null,
-          l_grazing_end: r.l_grazing_end ?? null,
+          l_grazing_end: r.l_grazing_end,
           l_grazing_hours: r.l_grazing_hours ?? null,
           l_grazing_area: r.l_grazing_area ?? null,
           l_grazing_geometry_zone: zones[i],
@@ -330,7 +339,7 @@ export async function addGrazings(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param l_id_herd - Herd ID.
- * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also
  *   grazings that started before it.
  * @returns Array of grazing records.
  */
@@ -370,7 +379,7 @@ export async function getGrazingForHerd(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param b_id_farm - Farm ID.
- * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also
  *   grazings that started before it.
  * @returns Array of grazing records.
  */
@@ -421,7 +430,7 @@ export async function getGrazingForFarm(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param b_id_farm - Farm ID.
- * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also
  *   grazings that started before it.
  * @returns Array of calendar grazing records with herd and field details.
  */
@@ -487,7 +496,7 @@ export async function getGrazingCalendarForFarm(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal ID.
  * @param b_id - Field ID.
- * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also open
+ * @param timeframe - Optional timeframe filter; grazings that overlap it are returned, also
  *   grazings that started before it.
  * @returns Array of grazing records.
  */
@@ -563,7 +572,8 @@ export async function getGrazing(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal correcting the grazing record.
  * @param l_id_grazing - Grazing record ID.
- * @param properties - Fields to correct. Omitted fields stay unchanged; `null` clears a field.
+ * @param properties - Fields to correct. Omitted fields stay unchanged; `null` clears the hours,
+ *   the area or the zone. The end cannot be cleared: every grazing has an end date.
  * @throws {Error} If the result would have both a zone and an area, or the zone is invalid.
  */
 export async function updateGrazing(
@@ -572,7 +582,7 @@ export async function updateGrazing(
   l_id_grazing: schema.herdGrazingTypeSelect["l_id_grazing"],
   properties: {
     l_grazing_start?: schema.herdGrazingTypeInsert["l_grazing_start"]
-    l_grazing_end?: schema.herdGrazingTypeInsert["l_grazing_end"]
+    l_grazing_end?: Date
     l_grazing_hours?: schema.herdGrazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.herdGrazingTypeInsert["l_grazing_area"]
     l_grazing_geometry_zone?: GrazingZoneInput
@@ -580,6 +590,19 @@ export async function updateGrazing(
 ): Promise<void> {
   try {
     await fdm.transaction(async (tx) => {
+      // The herd of a grazing never changes, so it can be read before the lock; the values the
+      // correction is checked against are read after it
+      const [record] = await tx
+        .select({ l_id_herd: schema.herdGrazing.l_id_herd })
+        .from(schema.herdGrazing)
+        .where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
+        .limit(1)
+      if (!record) {
+        throw new Error("Grazing record not found")
+      }
+      await checkPermission(tx, "herd", "write", record.l_id_herd, principal_id, "updateGrazing")
+      await lockFarmOfHerd(tx, record.l_id_herd)
+
       const existing = await tx
         .select({
           l_id_herd: schema.herdGrazing.l_id_herd,
@@ -598,28 +621,23 @@ export async function updateGrazing(
         throw new Error("Grazing record not found")
       }
 
-      await checkPermission(
-        tx,
-        "herd",
-        "write",
-        existing[0].l_id_herd,
-        principal_id,
-        "updateGrazing",
-      )
-
       const nextStart = properties.l_grazing_start ?? existing[0].l_grazing_start
-      const nextEnd =
+      const nextEnd = assertGrazingEnd(
         properties.l_grazing_end === undefined
           ? existing[0].l_grazing_end
-          : properties.l_grazing_end
+          : properties.l_grazing_end,
+      )
       assertIntervalEndNotBeforeStart(nextStart, nextEnd, "l_grazing")
       assertGrazingHours(properties.l_grazing_hours)
+      const herd = await getHerdPeriod(tx, existing[0].l_id_herd)
+      assertGrazingWithinHerdPeriod(herd, nextStart, nextEnd)
 
-      const { l_grazing_geometry_zone, ...rest } = properties
-      const zone = normalizeZone(l_grazing_geometry_zone, "l_grazing_geometry_zone")
+      const zone = normalizeZone(properties.l_grazing_geometry_zone, "l_grazing_geometry_zone")
       assertGrazingExtent(
         zone === undefined ? existing[0].l_grazing_geometry_zone : zone,
-        rest.l_grazing_area === undefined ? existing[0].l_grazing_area : rest.l_grazing_area,
+        properties.l_grazing_area === undefined
+          ? existing[0].l_grazing_area
+          : properties.l_grazing_area,
         existing[0].b_id,
       )
 
@@ -642,26 +660,24 @@ export async function updateGrazing(
       // year, just like a new record
       const nextYear = nextStart.getUTCFullYear()
       if (nextYear !== existing[0].l_grazing_start.getUTCFullYear()) {
-        const herdFarm = await tx
-          .select({ b_id_farm: schema.herdStarting.b_id_farm })
-          .from(schema.herdStarting)
-          .where(eq(schema.herdStarting.l_id_herd, existing[0].l_id_herd))
-          .limit(1)
-        if (herdFarm.length > 0) {
-          await enableIntentionForFirstGrazing(
-            tx,
-            principal_id,
-            herdFarm[0].b_id_farm,
-            nextYear,
-            l_id_grazing,
-          )
-        }
+        await enableIntentionForFirstGrazing(
+          tx,
+          principal_id,
+          herd.b_id_farm,
+          nextYear,
+          l_id_grazing,
+        )
       }
 
+      // Only the documented columns: a key added at runtime (such as another herd or field) is
+      // never written. An omitted value stays as it is; `null` clears it.
       await tx
         .update(schema.herdGrazing)
         .set({
-          ...rest,
+          l_grazing_start: properties.l_grazing_start,
+          l_grazing_end: properties.l_grazing_end,
+          l_grazing_hours: properties.l_grazing_hours,
+          l_grazing_area: properties.l_grazing_area,
           ...(zone !== undefined ? { l_grazing_geometry_zone: zone } : {}),
           updated: new Date(),
         })
@@ -716,6 +732,72 @@ async function enableIntentionForFirstGrazing(
   if (grazingInYear.length === 0) {
     await setGrazingIntention(tx, principal_id, b_id_farm, year, true)
   }
+}
+
+/** The farm of a herd and the period it runs, to check a grazing against. */
+type HerdPeriod = {
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"]
+  l_start: Date | null
+  l_end: Date | null
+}
+
+/**
+ * Reads the farm and the period of a herd.
+ *
+ * @param tx - The transaction.
+ * @param l_id_herd - The herd.
+ * @returns The farm, start and end of the herd.
+ * @throws When the herd does not belong to a farm.
+ */
+async function getHerdPeriod(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+): Promise<HerdPeriod> {
+  const [herd] = await tx
+    .select({
+      b_id_farm: schema.herdStarting.b_id_farm,
+      l_start: schema.herdStarting.l_start,
+      l_end: schema.herdEnding.l_end,
+    })
+    .from(schema.herdStarting)
+    .leftJoin(schema.herdEnding, eq(schema.herdStarting.l_id_herd, schema.herdEnding.l_id_herd))
+    .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+    .limit(1)
+  if (!herd) {
+    throw new Error(`Herd ${l_id_herd} does not belong to a farm`)
+  }
+  return herd
+}
+
+/**
+ * Checks that a grazing lies within the period of its herd: it does not start on a day before
+ * the herd started, and when the herd has ended, the grazing has an end before the herd's end.
+ *
+ * @param herd - The period of the herd.
+ * @param start - The start of the grazing.
+ * @param end - The end of the grazing.
+ * @throws When the grazing lies (partly) outside the period of the herd.
+ */
+function assertGrazingWithinHerdPeriod(herd: HerdPeriod, start: Date, end: Date): void {
+  const startsTooEarly = herd.l_start && dayNumber(start) < dayNumber(herd.l_start)
+  const endsTooLate = herd.l_end && end.getTime() >= herd.l_end.getTime()
+  if (startsTooEarly || endsTooLate) {
+    throw new Error("Grazing is outside the period of the herd")
+  }
+}
+
+/**
+ * Checks that a grazing has an end date: every grazing is recorded with a first and a last day.
+ *
+ * @param end - The end of the grazing.
+ * @returns The end.
+ * @throws When the end is missing or not a valid date.
+ */
+function assertGrazingEnd(end: Date | null | undefined): Date {
+  if (!(end instanceof Date) || Number.isNaN(end.getTime())) {
+    throw new Error("A grazing needs an end date")
+  }
+  return end
 }
 
 /**
@@ -889,8 +971,9 @@ export async function removeGrazing(
  * @param b_id - Field ID.
  * @param limit - Maximum number of zones to return. Defaults to 20.
  * @param options - Optional filters, applied to the grazing records before they are grouped:
- *   `from` and `to` keep only grazings that start in that period (inclusive), for example to find
- *   the zones in use around a date; `exclude_l_id_grazing` leaves out one record, such as the
+ *   `from` and `to` keep only grazings that overlap that period (inclusive), also one that started
+ *   earlier and runs into it, for example to find the zones in use around a date;
+ *   `exclude_l_id_grazing` leaves out one record, such as the
  *   grazing being edited, while other uses of the same zone still count.
  * @returns The zones as recorded, with their area within the field (ha), last use and herds.
  */
@@ -927,8 +1010,14 @@ export async function getGrazingZonesForField(
         and(
           eq(schema.herdGrazing.b_id, b_id),
           isNotNull(zone),
-          options?.from ? gte(schema.herdGrazing.l_grazing_start, options.from) : undefined,
-          options?.to ? lte(schema.herdGrazing.l_grazing_start, options.to) : undefined,
+          // A grazing counts in the period when it overlaps it, also one that started earlier
+          // and runs into it
+          withPeriodTimeframe(
+            undefined,
+            schema.herdGrazing.l_grazing_start,
+            schema.herdGrazing.l_grazing_end,
+            { start: options?.from, end: options?.to },
+          ),
           options?.exclude_l_id_grazing
             ? ne(schema.herdGrazing.l_id_grazing, options.exclude_l_id_grazing)
             : undefined,
@@ -964,7 +1053,7 @@ export async function getGrazingZonesForField(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal requesting the areas.
  * @param b_id_farm - Farm ID.
- * @param timeframe - Optional timeframe; grazings that overlap it count, also open grazings.
+ * @param timeframe - Optional timeframe; grazings that overlap it count.
  * @returns One item per grazed field with its area and grazed area (ha).
  */
 export async function getGrazedAreaForFarm(

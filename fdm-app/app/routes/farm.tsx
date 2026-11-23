@@ -5,7 +5,6 @@ import {
   getFarm,
   getFarms,
   getFields,
-  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
@@ -112,28 +111,28 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
     const accessibleFarmId =
       hasFarmParam && !farmAccessDenied && params.b_id_farm ? params.b_id_farm : undefined
 
-    const [farmWritePermission, fields, cultivationsByField, hasNotification, herds] =
-      await Promise.all([
-        accessibleFarmId
-          ? checkPermission(
-              fdm,
-              "farm",
-              "write",
-              accessibleFarmId,
-              session.principal_id,
-              url.pathname,
-              false,
-            )
-          : false,
-        accessibleFarmId ? getFields(fdm, session.principal_id, accessibleFarmId, timeframe) : [],
-        accessibleFarmId
-          ? getCultivationsForFarm(fdm, session.principal_id, accessibleFarmId, timeframe)
-          : new Map(),
-        hasNotificationPromise,
-        accessibleFarmId ? getHerdsForFarm(fdm, session.principal_id, accessibleFarmId) : [],
-      ])
+    const [farmWritePermission, fields, cultivationsByField, hasNotification] = await Promise.all([
+      accessibleFarmId
+        ? checkPermission(
+            fdm,
+            "farm",
+            "write",
+            accessibleFarmId,
+            session.principal_id,
+            url.pathname,
+            false,
+          )
+        : false,
+      accessibleFarmId ? getFields(fdm, session.principal_id, accessibleFarmId, timeframe) : [],
+      accessibleFarmId
+        ? getCultivationsForFarm(fdm, session.principal_id, accessibleFarmId, timeframe)
+        : new Map(),
+      hasNotificationPromise,
+    ])
 
-    const hasHerds = herds.length > 0
+    // Whether the farm has ever had a herd, from the farm itself, so the shell needs no extra
+    // query; a farm whose herds have ended keeps the Melkvee pages for its earlier years
+    const hasHerds = farm?.b_farm_livestock ?? false
 
     const fieldOptions = buildFieldOptions(
       fields,
@@ -224,6 +223,7 @@ function FarmShell({
             activeFieldId={activeFieldId}
             fieldWritePermission={fieldWritePermission}
             hasHerds={loaderData.hasHerds}
+            farmWritePermission={loaderData.farmWritePermission}
           />
           <SidebarApps farms={loaderData.farmOptions} />
           <SidebarLabs farms={loaderData.farmOptions} />

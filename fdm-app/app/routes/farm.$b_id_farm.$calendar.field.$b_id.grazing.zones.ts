@@ -1,30 +1,28 @@
-import { getField, getGrazingZonesForField } from "@nmi-agro/fdm-core"
+import { getField, getGrazingForField, getGrazingZonesForField } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { STRIP_ROTATION_DAYS } from "~/lib/grazing-strip"
+import { occupiedPart, STRIP_ROTATION_DAYS } from "~/lib/grazing-strip"
 
 const MS_PER_DAY = 86_400_000
 
 /**
  * Resource route with what the grazing zone editor needs for a field: the field outline, the
- * zones used earlier on the field to reuse them, and the zones in use around a date, so a new
- * strip connects to them.
+ * zones used earlier on the field to reuse them, and the part of the field in use around a date,
+ * so a new strip connects to it.
  *
  * Loaded by the zone editor when the user chooses to draw a zone, so the calendar does not have to
- * load every field outline up front. When the earlier zones fail to load, the outline is still
+ * load every field outline up front. When the earlier grazings fail to load, the outline is still
  * returned with `zonesFailed`, so the user can draw a zone.
  *
  * Search parameters:
- * - `date` (`YYYY-MM-DD`): the start of the grazing. The zones of grazings that start in the
- *   {@link STRIP_ROTATION_DAYS} days up to and including it are returned as `occupied`.
+ * - `date` (`YYYY-MM-DD`): the start of the grazing. The grazings that overlap the
+ *   {@link STRIP_ROTATION_DAYS} days up to and including it occupy their part of the field (see
+ *   {@link occupiedPart}).
  * - `exclude`: the grazing being edited, which does not occupy its own zone. Other grazings of the
  *   same zone still do.
  */
-/** Most zones in use that the strip builder takes into account; more means the list is cut off. */
-const MAX_OCCUPIED_ZONES = 1000
-
 export async function loader({ params, request }: LoaderFunctionArgs) {
   try {
     const b_id = params.b_id
@@ -44,17 +42,23 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       reportError(error, { scope: "grazing-zones" })
       return null
     }
-    const [field, zones, occupied] = await Promise.all([
+    const [field, zones, grazingsInWindow] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
       getGrazingZonesForField(fdm, session.principal_id, b_id).catch(onFailure),
       date && !Number.isNaN(date.getTime())
-        ? getGrazingZonesForField(fdm, session.principal_id, b_id, MAX_OCCUPIED_ZONES + 1, {
-            from: new Date(date.getTime() - STRIP_ROTATION_DAYS * MS_PER_DAY),
-            to: date,
-            exclude_l_id_grazing: exclude,
+        ? getGrazingForField(fdm, session.principal_id, b_id, {
+            start: new Date(date.getTime() - STRIP_ROTATION_DAYS * MS_PER_DAY),
+            end: date,
           }).catch(onFailure)
         : Promise.resolve([]),
     ])
+
+    const occupancy = grazingsInWindow
+      ? occupiedPart(
+          grazingsInWindow.filter((g) => g.l_id_grazing !== exclude),
+          field.b_geometry ?? null,
+        )
+      : null
 
     return {
       b_geometry: field.b_geometry,
@@ -65,12 +69,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         usage_count: zone.usage_count,
         l_herd_names: zone.l_herd_names,
       })),
-      occupied: (occupied ?? [])
-        .slice(0, MAX_OCCUPIED_ZONES)
-        .map((zone) => zone.l_grazing_geometry_zone),
-      // More zones in use than requested means the list is cut off, so the free part of the field
-      // is unknown, as when the zones failed to load
-      zonesFailed: zones === null || occupied === null || occupied.length > MAX_OCCUPIED_ZONES,
+      occupied: occupancy?.occupied ?? [],
+      zonesFailed: zones === null || occupancy === null,
+      // A grazing in the window only has an area without a place on the map, so the free part of
+      // the field is unknown
+      occupancyUnknown: occupancy?.unknown ?? false,
     }
   } catch (error) {
     throw handleLoaderError(error)

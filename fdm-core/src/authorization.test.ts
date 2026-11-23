@@ -1,4 +1,4 @@
-import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
@@ -19,7 +19,7 @@ import {
   withAuditContext,
 } from "./authorization"
 import { addBarn } from "./barn"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { syncAnimalCategoryCatalogueArray, syncFeedCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -136,8 +136,10 @@ describe("Authorization Functions", () => {
 
   describe("checkPermission", () => {
     beforeAll(async () => {
-      // addAnimal derives its category from the herd, so the catalogue must exist
+      // addAnimal derives its category from the herd, and addFeedBatch looks up its feed type,
+      // so both catalogues must exist, also when this file runs on its own
       await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+      await syncFeedCatalogueArray(fdm, await getFeedCatalogue("nmi"))
     })
 
     it("should allow access if principal has the required role", async () => {

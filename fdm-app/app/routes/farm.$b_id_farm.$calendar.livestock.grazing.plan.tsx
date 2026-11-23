@@ -56,7 +56,7 @@ import {
   CardTitle,
 } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
-import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
   Select,
@@ -84,6 +84,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
 import { formatHa } from "~/lib/format"
+import { censusDateForYear } from "~/lib/grazing-dates"
 import { type Area, areaHa, cutEqualPlots, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
 import { grazingZoneSchema } from "~/lib/grazing-zone"
 
@@ -129,11 +130,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       await Promise.all([
         getFarm(fdm, session.principal_id, b_id_farm),
         getFarms(fdm, session.principal_id),
-        getHerdsForFarm(fdm, session.principal_id, b_id_farm),
+        // The herds of the plan year, also for a past year
+        getHerdsForFarm(fdm, session.principal_id, b_id_farm, censusDateForYear(calendarYear)),
         getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        getCensusForFarm(fdm, session.principal_id, b_id_farm),
+        getCensusForFarm(fdm, session.principal_id, b_id_farm, censusDateForYear(calendarYear)),
       ])
     const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
@@ -299,6 +301,9 @@ const shiftPlanDay = (day: string, days: number) =>
 /** Most grazing hours of a herd on one day, as fdm-core allows them. */
 const MAX_HOURS_PER_DAY = 24
 
+/** Longest period on one field (days), as the period input allows. */
+const MAX_PERIOD_DAYS = 60
+
 /** Smallest plot size for Nieuw Nederlands Weiden (ha), as the plot size input allows. */
 const MIN_PLOT_AREA_HA = 0.1
 
@@ -306,7 +311,13 @@ const MIN_PLOT_AREA_HA = 0.1
 const isPlanDay = (day: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(day) && !Number.isNaN(new Date(`${day}T12:00:00`).getTime())
 
-export default function GrazingPlanAssistent() {
+/** The planner, started again for another farm or year, so no selection of the other one stays. */
+export default function GrazingPlanPage() {
+  const { b_id_farm, calendar } = useLoaderData<typeof loader>()
+  return <GrazingPlanAssistent key={`${b_id_farm}#${calendar}`} />
+}
+
+function GrazingPlanAssistent() {
   const {
     b_id_farm,
     calendar,
@@ -388,9 +399,15 @@ export default function GrazingPlanAssistent() {
 
   // The typed values must be usable before a plan is generated: a period of 0 days would never
   // advance, a tiny plot size would cut a huge number of plots and an empty date has no days
-  const periodDaysValid = Number.isInteger(periodDays) && periodDays >= 1
+  const periodDaysValid =
+    Number.isInteger(periodDays) && periodDays >= 1 && periodDays <= MAX_PERIOD_DAYS
   const plotAreaValid = Number.isFinite(plotArea) && plotArea >= MIN_PLOT_AREA_HA
-  const datesValid = isPlanDay(startDate) && isPlanDay(endDate)
+  const hoursValid =
+    Number.isFinite(hoursPerDay) && hoursPerDay > 0 && hoursPerDay <= MAX_HOURS_PER_DAY
+  // The plan stays within the calendar year, whose grazings are loaded to check against
+  const datesInYear =
+    startDate.startsWith(`${calendarYear}-`) && endDate.startsWith(`${calendarYear}-`)
+  const datesValid = isPlanDay(startDate) && isPlanDay(endDate) && datesInYear
 
   const handleSystemSelect = (key: GrazingSystemKey) => {
     setSystemKey(key)
@@ -411,7 +428,7 @@ export default function GrazingPlanAssistent() {
       return { generatedRows: [], collisions: [] }
     }
 
-    if (!datesValid || (isNnw ? !plotAreaValid : !periodDaysValid)) {
+    if (!datesValid || !hoursValid || (isNnw ? !plotAreaValid : !periodDaysValid)) {
       return { generatedRows: [], collisions: [] }
     }
 
@@ -444,16 +461,18 @@ export default function GrazingPlanAssistent() {
     }> = []
 
     // What the herd already has on the days of the plan: the grazing hours per day, added up over
-    // its grazings, and the days of a grazing without a field. A grazing without an end runs on.
+    // its grazings, and the days of a grazing without a field.
     const bookedHours = new Map<string, number>()
     const herdLevelDays = new Set<string>()
     for (const g of existingGrazings) {
       if (g.l_id_herd !== selectedHerdId) continue
       const first = g.l_grazing_start.slice(0, 10)
-      const last = g.l_grazing_end ? g.l_grazing_end.slice(0, 10) : endDate
+      const last = g.l_grazing_end ? g.l_grazing_end.slice(0, 10) : first
       for (let day = first < startDate ? startDate : first; day <= last && day <= endDate;) {
         // A grazing without a field blocks its days, except the end day when it ends at midnight
-        if (!g.b_id && (day < last || day === first || !g.l_grazing_end)) herdLevelDays.add(day)
+        // (as fdm-core compares it: a period ending at midnight does not cover that day)
+        const endsAtMidnight = g.l_grazing_end?.endsWith("T00:00:00.000Z") ?? false
+        if (!g.b_id && (day < last || day === first || !endsAtMidnight)) herdLevelDays.add(day)
         bookedHours.set(day, (bookedHours.get(day) ?? 0) + (g.l_grazing_hours ?? 0))
         day = shiftPlanDay(day, 1)
       }
@@ -546,11 +565,22 @@ export default function GrazingPlanAssistent() {
         let strip: Area | null = null
         if (useStrips && stripAllocation && activeField.b_geometry) {
           const field = activeField.b_geometry as Area
+          // A shorter last period gets a strip for its own number of days
+          const days = Math.round((Date.parse(eStr) - Date.parse(sStr)) / MS_PER_DAY) + 1
+          const targetAreaHa =
+            days === periodDays
+              ? stripAllocation.areaHa
+              : calculateGrazingAllocationArea({
+                  animals: selectedHerdCount,
+                  grassIntakeKgDmPerAnimalPerDay: grassIntake,
+                  availableGrassKgDmPerHa: grassOffer,
+                  days,
+                }).areaHa
           const cut = (occupied: Area[]) =>
             cutStrip({
               field,
               occupied,
-              targetAreaHa: stripAllocation.areaHa,
+              targetAreaHa,
               bearing: Number(stripDirection),
             })
           const occupied = occupiedByField.get(activeField.b_id) ?? []
@@ -605,11 +635,15 @@ export default function GrazingPlanAssistent() {
     existingGrazings,
     useStrips,
     stripAllocation,
+    selectedHerdCount,
+    grassIntake,
+    grassOffer,
     stripDirection,
     isNnw,
     plotArea,
     plotsPerDay,
     datesValid,
+    hoursValid,
     plotAreaValid,
     periodDaysValid,
   ])
@@ -833,6 +867,13 @@ export default function GrazingPlanAssistent() {
                         </div>
                       </div>
 
+                      {isPlanDay(startDate) && isPlanDay(endDate) && !datesInYear && (
+                        <FieldError className="text-xs">
+                          Kies een periode binnen {calendarYear}. Voor een ander jaar kies je dat
+                          jaar in de kalender.
+                        </FieldError>
+                      )}
+
                       {seasonOver && (
                         <p className="text-muted-foreground text-xs">
                           Het weideseizoen van {calendarYear} is voorbij. Het plan laat daarom het
@@ -853,17 +894,8 @@ export default function GrazingPlanAssistent() {
                           {grasslandFields.map((field) => {
                             const isChecked = selectedFieldIds.includes(field.b_id)
                             return (
-                              <div
+                              <label
                                 key={field.b_id}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => toggleField(field.b_id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault()
-                                    toggleField(field.b_id)
-                                  }
-                                }}
                                 className={cn(
                                   "flex cursor-pointer items-center justify-between rounded-lg border p-2.5 text-xs transition-colors",
                                   isChecked
@@ -872,7 +904,10 @@ export default function GrazingPlanAssistent() {
                                 )}
                               >
                                 <div className="flex items-center gap-2">
-                                  <Checkbox checked={isChecked} tabIndex={-1} />
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={() => toggleField(field.b_id)}
+                                  />
                                   <span className="font-medium">{field.b_name}</span>
                                 </div>
                                 <span className="text-muted-foreground tabular-nums">
@@ -881,7 +916,7 @@ export default function GrazingPlanAssistent() {
                                   })}{" "}
                                   ha
                                 </span>
-                              </div>
+                              </label>
                             )
                           })}
                         </div>
@@ -895,9 +930,17 @@ export default function GrazingPlanAssistent() {
                             type="number"
                             min="1"
                             max="24"
+                            step="any"
                             value={hoursPerDay}
-                            onChange={(e) => setHoursPerDay(parseInt(e.target.value || "8", 10))}
+                            onChange={(e) => setHoursPerDay(parseFloat(e.target.value || "8"))}
+                            aria-invalid={!hoursValid}
+                            aria-describedby={hoursValid ? undefined : "plan-hours-error"}
                           />
+                          {!hoursValid && (
+                            <FieldError id="plan-hours-error" className="text-xs">
+                              Kies meer dan 0 en hoogstens 24 uur per dag.
+                            </FieldError>
+                          )}
                         </Field>
 
                         {!isNnw && (
@@ -909,13 +952,16 @@ export default function GrazingPlanAssistent() {
                               id="plan-days"
                               type="number"
                               min="1"
-                              max="60"
+                              max={MAX_PERIOD_DAYS}
                               value={periodDays}
                               onChange={(e) => setPeriodDays(parseInt(e.target.value || "4", 10))}
                               aria-invalid={!periodDaysValid}
+                              aria-describedby={periodDaysValid ? undefined : "plan-days-error"}
                             />
                             {!periodDaysValid && (
-                              <p className="text-destructive text-xs">Kies 1 dag of meer.</p>
+                              <FieldError id="plan-days-error" className="text-xs">
+                                Kies 1 tot en met {MAX_PERIOD_DAYS} dagen.
+                              </FieldError>
                             )}
                           </Field>
                         )}
@@ -938,11 +984,14 @@ export default function GrazingPlanAssistent() {
                                 onChange={(e) => setPlotArea(parseFloat(e.target.value || "0"))}
                                 className="h-8 text-xs"
                                 aria-invalid={!plotAreaValid}
+                                aria-describedby={
+                                  plotAreaValid ? undefined : "plan-plot-area-error"
+                                }
                               />
                               {!plotAreaValid && (
-                                <p className="text-destructive text-xs">
+                                <FieldError id="plan-plot-area-error" className="text-xs">
                                   Kies een perceelsgrootte van minstens 0,1 ha.
-                                </p>
+                                </FieldError>
                               )}
                             </Field>
                             <Field>

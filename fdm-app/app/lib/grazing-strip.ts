@@ -26,6 +26,36 @@ const MAX_STEPS = 50
  */
 export const STRIP_ROTATION_DAYS = 28
 
+/**
+ * The part of a field that recent grazings occupy, for the strip builder: the zone of a grazing
+ * with a zone, and the whole field for a grazing of the whole field. A grazing with only an area
+ * has no place on the map, so the free part of the field is then unknown.
+ *
+ * @param grazings - The grazings on the field in the rotation window.
+ * @param field - The field outline, if known.
+ * @returns The occupied areas, and whether the free part is unknown.
+ */
+export function occupiedPart(
+  grazings: Array<{
+    l_grazing_geometry_zone?: MultiPolygon | null
+    l_grazing_area?: number | null
+  }>,
+  field: Area | null,
+): { occupied: Area[]; unknown: boolean } {
+  const occupied: Area[] = []
+  let unknown = false
+  for (const grazing of grazings) {
+    if (grazing.l_grazing_geometry_zone) {
+      occupied.push(grazing.l_grazing_geometry_zone)
+    } else if (grazing.l_grazing_area != null) {
+      unknown = true
+    } else if (field) {
+      occupied.push(field)
+    }
+  }
+  return { occupied, unknown }
+}
+
 /** Area of a geometry in hectares. */
 export function areaHa(geometry: Area): number {
   return area(geometry) / SQUARE_METERS_PER_HECTARE

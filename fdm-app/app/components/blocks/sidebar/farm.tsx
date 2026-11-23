@@ -66,13 +66,17 @@ export function SidebarFarm({
   activeFieldId,
   fieldWritePermission = false,
   hasHerds = false,
+  farmWritePermission = false,
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
   farms?: { b_id_farm: string; b_name_farm: string | null }[]
   fields?: FieldOption[]
   activeFieldId?: string | null
   fieldWritePermission?: boolean
+  /** The farm has (or had) a herd, so the Melkvee pages are shown. */
   hasHerds?: boolean
+  /** The user can change the farm, for example add a first herd. */
+  farmWritePermission?: boolean
 }) {
   function getSuperiorRole(allRoles: { role: "owner" | "advisor" | "researcher" }[]) {
     if (allRoles.length > 0) {
@@ -581,7 +585,7 @@ export function SidebarFarm({
                           isActive={isMelkveeOverview}
                           className="min-w-0 flex-1"
                           render={
-                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`}>
+                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`} end>
                               <Icon iconNode={cowHead} className="size-4" />
                               <span>Melkvee</span>
                             </NavLink>
@@ -603,6 +607,7 @@ export function SidebarFarm({
                               render={
                                 <NavLink
                                   to={`/farm/${farmId}/${selectedCalendar}/livestock/grazing`}
+                                  end
                                 >
                                   <CalendarDays className="size-4" />
                                   <span>Beweidingskalender</span>
@@ -654,7 +659,7 @@ export function SidebarFarm({
                     </SidebarMenuItem>
                   }
                 />
-              ) : (
+              ) : farmWritePermission ? (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     tooltip="Melkvee toevoegen"
@@ -667,7 +672,7 @@ export function SidebarFarm({
                     }
                   />
                 </SidebarMenuItem>
-              ))}
+              ) : null)}
             {/* Context-aware Perceel group */}
             {isFarmSelected ? (
               <Collapsible

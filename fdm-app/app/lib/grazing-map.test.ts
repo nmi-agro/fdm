@@ -27,7 +27,6 @@ const state = (
     grazings,
     harvests,
     day,
-    today: "2026-06-15",
     calendarYear: Number(day.slice(0, 4)),
     isGrassland: true,
     isBufferstrip: false,
@@ -40,7 +39,6 @@ describe("getFieldGrazingState", () => {
         grazings: [],
         harvests: [],
         day: "2026-06-15",
-        today: "2026-06-15",
         calendarYear: 2026,
         isGrassland: false,
         isBufferstrip: false,
@@ -52,7 +50,6 @@ describe("getFieldGrazingState", () => {
         grazings: [grazing("2026-06-10", "2026-06-20")],
         harvests: [],
         day: "2026-06-15",
-        today: "2026-06-15",
         calendarYear: 2026,
         isGrassland: true,
         isBufferstrip: true,
@@ -62,13 +59,6 @@ describe("getFieldGrazingState", () => {
 
   it("shows a grazing that covers the day", () => {
     expect(state([grazing("2026-06-10", "2026-06-20")], "2026-06-15").status).toBe("weiden")
-  })
-
-  it("lets a running grazing last up to today", () => {
-    const running = [grazing("2026-06-01", null)]
-    expect(state(running, "2026-06-15").status).toBe("weiden")
-    // After today the running grazing is the last use, ending today
-    expect(state(running, "2026-06-18")).toMatchObject({ status: "rust", restDays: 3 })
   })
 
   it("shows a harvest on the day", () => {
@@ -117,7 +107,8 @@ describe("days", () => {
     expect(clampToYear("2025-12-31", 2026)).toBe("2026-01-01")
   })
 
-  it("ends a grazing that starts after today on its first day", () => {
-    expect(grazingEndDay(grazing("2026-07-01", null), "2026-06-15")).toBe("2026-07-01")
+  it("ends a grazing on its end date, or on its first day without one", () => {
+    expect(grazingEndDay(grazing("2026-07-01", "2026-07-03"))).toBe("2026-07-03")
+    expect(grazingEndDay(grazing("2026-07-01", null))).toBe("2026-07-01")
   })
 })

@@ -20,17 +20,18 @@ describe("herdGrazingStatus", () => {
     })
   })
 
-  it("grazes on the last day of a longer grazing and while a grazing runs", () => {
+  it("grazes on the last day of a longer grazing", () => {
     expect(
       herdGrazingStatus(
         [{ l_grazing_start: day("2026-06-10"), l_grazing_end: day("2026-06-15") }],
         "2026-06-15",
       ).type,
     ).toBe("grazing_now")
+    // A record without an end covers its first day only
     expect(
       herdGrazingStatus([{ l_grazing_start: day("2026-06-01"), l_grazing_end: null }], "2026-06-15")
         .type,
-    ).toBe("grazing_now")
+    ).toBe("idle")
   })
 
   it("shows the next planned grazing after an ended one", () => {

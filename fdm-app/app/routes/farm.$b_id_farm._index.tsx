@@ -6,7 +6,6 @@ import {
   getFarm,
   getFarms,
   getFields,
-  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { format } from "date-fns"
@@ -240,8 +239,8 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
     // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
-    const herds = await getHerdsForFarm(fdm, session.principal_id, b_id_farm)
-    const hasHerds = herds.length > 0
+    // Whether the farm has ever had a herd, as in the sidebar
+    const hasHerds = farm.b_farm_livestock
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined

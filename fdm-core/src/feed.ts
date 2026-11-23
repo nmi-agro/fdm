@@ -1,5 +1,19 @@
 import { feedTypeOptions, hashFeed } from "@nmi-agro/fdm-data"
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, type SQL } from "drizzle-orm"
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type {
@@ -25,18 +39,49 @@ type FeedCatalogueReference = string
 
 type FeedTransaction = Parameters<Parameters<FdmType["transaction"]>[0]>[0]
 
+/**
+ * Finds the catalogue item a feed batch refers to, by its ID or by its RVO feed type. Only items
+ * of a standard catalogue or the farm's own items count: an item another farm added to its own
+ * catalogue is never used, so its values stay with that farm and removing that farm is not
+ * blocked by a batch elsewhere. An exact ID wins; for a feed type, a standard item comes before
+ * the farm's own one.
+ *
+ * @param tx - The transaction.
+ * @param reference - The catalogue item ID or the RVO feed type.
+ * @param b_id_farm - The farm of the feed batch.
+ * @returns The catalogue item ID.
+ * @throws When no matching item is available for the farm.
+ */
 async function resolveFeedCatalogueId(
   tx: FeedTransaction,
   reference: FeedCatalogueReference,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
 ): Promise<schema.feedsCatalogueTypeSelect["f_id_catalogue"]> {
   const rows = await tx
     .select({ f_id_catalogue: schema.feedsCatalogue.f_id_catalogue })
     .from(schema.feedsCatalogue)
     .where(
-      or(
-        eq(schema.feedsCatalogue.f_id_catalogue, reference),
-        eq(schema.feedsCatalogue.f_type_rvo, reference),
+      and(
+        or(
+          eq(schema.feedsCatalogue.f_id_catalogue, reference),
+          eq(schema.feedsCatalogue.f_type_rvo, reference),
+        ),
+        // A farm's own items have the farm as their source
+        or(
+          eq(schema.feedsCatalogue.f_source, b_id_farm),
+          notExists(
+            tx
+              .select({ b_id_farm: schema.farms.b_id_farm })
+              .from(schema.farms)
+              .where(eq(schema.farms.b_id_farm, schema.feedsCatalogue.f_source)),
+          ),
+        ),
       ),
+    )
+    .orderBy(
+      sql`case when ${schema.feedsCatalogue.f_id_catalogue} = ${reference} then 0 else 1 end`,
+      sql`case when ${schema.feedsCatalogue.f_source} = ${b_id_farm} then 1 else 0 end`,
+      asc(schema.feedsCatalogue.f_id_catalogue),
     )
     .limit(1)
 
@@ -177,7 +222,7 @@ export async function addFeedBatch(
 
     return await fdm.transaction(async (tx) => {
       const f_id_batch = createId()
-      const resolvedCatalogueId = await resolveFeedCatalogueId(tx, f_id_catalogue)
+      const resolvedCatalogueId = await resolveFeedCatalogueId(tx, f_id_catalogue, b_id_farm)
 
       await tx.insert(schema.feedBatches).values({
         f_id_batch,
@@ -383,7 +428,19 @@ export async function updateFeedBatch(
       }
       const catalogueReference = properties.f_id_catalogue ?? properties.f_batch_type
       if (catalogueReference !== undefined) {
-        batchUpdate.f_id_catalogue = await resolveFeedCatalogueId(tx, catalogueReference)
+        const [batch] = await tx
+          .select({ b_id_farm: schema.feedBatches.b_id_farm })
+          .from(schema.feedBatches)
+          .where(eq(schema.feedBatches.f_id_batch, f_id_batch))
+          .limit(1)
+        if (!batch) {
+          throw new Error("Feed batch not found")
+        }
+        batchUpdate.f_id_catalogue = await resolveFeedCatalogueId(
+          tx,
+          catalogueReference,
+          batch.b_id_farm,
+        )
       }
       if (properties.f_batch_origin !== undefined) {
         batchUpdate.f_batch_origin = properties.f_batch_origin

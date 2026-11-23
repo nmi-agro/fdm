@@ -494,6 +494,34 @@ export async function handleActionError(error: unknown) {
     )
   }
 
+  // Validation: every grazing has a last day (checked by fdm-core)
+  if (containsErrorMessage(error, "needs an end date")) {
+    console.warn("Grazing without an end date:", error)
+    return dataWithWarning(null, "Kies de laatste dag van de beweiding.")
+  }
+
+  // Validation: a grazing lies within the period of its herd (checked by fdm-core)
+  if (containsErrorMessage(error, "outside the period of the herd")) {
+    console.warn("Grazing outside the period of its herd:", error)
+    return dataWithWarning(
+      null,
+      "Deze koppel liep op een deel van die dagen nog niet of niet meer. Pas de datum aan of kies een andere koppel.",
+    )
+  }
+
+  // Validation: an animal's assignment stays within its herd and after its arrival
+  if (containsErrorMessage(error, "cannot extend beyond the end of its herd")) {
+    console.warn("Animal assignment beyond the end of its herd:", error)
+    return dataWithWarning(
+      null,
+      "De koppel van dit dier is op die datum al beëindigd. Kies een eerdere afvoerdatum.",
+    )
+  }
+  if (containsErrorMessage(error, "cannot start before the animal arrived")) {
+    console.warn("Assignment before the animal arrived:", error)
+    return dataWithWarning(null, "Het dier was op die datum nog niet op het bedrijf.")
+  }
+
   // Validation: a grazing without a field may not overlap another grazing of the herd
   if (containsErrorMessage(error, "overlaps an existing grazing interval")) {
     console.warn("Grazing overlaps another grazing of the herd:", error)

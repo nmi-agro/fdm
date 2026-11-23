@@ -1,6 +1,5 @@
 import { checkPermission, getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
-import { format } from "date-fns"
 import { LandPlot, MapIcon, Plus, Repeat, Warehouse } from "lucide-react"
 import { useState } from "react"
 import {
@@ -25,7 +24,6 @@ import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -190,9 +188,9 @@ export default function BeweidingskalenderPage() {
   const openSheet = (request: AddEventSheetRequest | undefined) =>
     setSheetState(request ? { request, openedWithActionData: actionData } : undefined)
 
-  // New grazing, mowing and fertilizing default to today, or the same day in another year
-  const today = useToday()
-  const defaultDay = today ? defaultMapDay(format(today, "yyyy-MM-dd"), calendarYear) : undefined
+  // New grazing, mowing and fertilizing default to today in the Netherlands, or the same day in
+  // another year
+  const defaultDay = defaultMapDay(matrix.todayKey, calendarYear)
   const defaultDate = defaultDay ? new Date(`${defaultDay}T12:00:00`) : undefined
 
   const hasKoppels = matrix.herds.length > 0

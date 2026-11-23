@@ -68,6 +68,24 @@ describe("calculateRestBeforeUses", () => {
     ])
   })
 
+  it("treats a chain of overlapping uses as one continuous use", () => {
+    const zone = strip(5.0, 5.001)
+    const rests = calculateRestBeforeUses([
+      { type: "weiden", start: day(1), end: day(5), zone, data: "A" },
+      { type: "weiden", start: day(3), end: day(8), zone, data: "B" },
+      { type: "weiden", start: day(6), end: day(10), zone, data: "C" },
+      { type: "weiden", start: day(22), end: day(22), zone, data: "D" },
+    ])
+    expect(rests.map((r) => [r.use.data, r.restDays, r.previous?.data ?? null])).toEqual([
+      ["A", null, null],
+      ["B", null, null],
+      // Grazed without a break since 1 May, so no rest before C
+      ["C", null, null],
+      // The chain ended on 10 May
+      ["D", 12, "C"],
+    ])
+  })
+
   it("counts mowing from the most recent use of any part of the field", () => {
     const rests = calculateRestBeforeUses([
       { type: "weiden", start: day(1), end: day(1), zone: strip(5.0, 5.001) },

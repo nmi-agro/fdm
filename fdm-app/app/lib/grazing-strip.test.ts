@@ -11,6 +11,7 @@ import {
   hasHoles,
   intersectAreas,
   MAX_PLOTS,
+  occupiedPart,
   SNAP_TOLERANCE_PX,
   snapToEdges,
   subtractAreas,
@@ -160,6 +161,24 @@ describe("cutStrip", () => {
 
   it("returns null for an intended area of 0", () => {
     expect(cutStrip({ field, targetAreaHa: 0, bearing: 0 })).toBeNull()
+  })
+})
+
+describe("occupiedPart", () => {
+  it("occupies the zone of a grazing and the whole field for a grazing of the whole field", () => {
+    const zone = toMultiPolygon(cutStrip({ field, targetAreaHa: 2, bearing: 90 }) as Area)
+    expect(occupiedPart([{ l_grazing_geometry_zone: zone }], field)).toEqual({
+      occupied: [zone],
+      unknown: false,
+    })
+    expect(occupiedPart([{ l_grazing_geometry_zone: null, l_grazing_area: null }], field)).toEqual({
+      occupied: [field],
+      unknown: false,
+    })
+  })
+
+  it("leaves the free part unknown after a grazing with only an area", () => {
+    expect(occupiedPart([{ l_grazing_area: 1.5 }], field)).toEqual({ occupied: [], unknown: true })
   })
 })
 

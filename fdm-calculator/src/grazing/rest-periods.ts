@@ -60,27 +60,39 @@ export function zonesOverlap(
  * earlier use of the same part of the field, so successive strips of strip grazing each get their
  * own rest period instead of counting as a re-use of the field after a day.
  *
- * A use that still runs on the start day of another use of the same part is not a previous use:
- * two herds on the same zone at the same time, the same zone in the morning and the afternoon, or
- * a handover on one day count as one use, so they get no rest of 0 days. The rest of the later
- * use then counts from the use before them.
+ * Uses of the same part that follow each other without a free day form one continuous use: two
+ * herds on the same zone at the same time, the same zone in the morning and the afternoon, a
+ * handover on one day, or a chain of such uses (1–5 May, 3–8 May, 6–10 May). A use within such a
+ * chain gets no rest of 0 days; its rest counts from the start of the chain back to the use before
+ * the chain, so the use on 6 May has no previous use here, as the part was grazed without a break.
  *
  * @param uses - The uses of one field, in any order.
  * @returns For each use, in order of start, the previous use of the same part and the rest days.
  */
 export function calculateRestBeforeUses<T>(uses: FieldUse<T>[]): FieldUseRest<T>[] {
   const sorted = [...uses].sort((a, b) => a.start.getTime() - b.start.getTime())
+  const dayOf = (date: Date) => Math.floor(date.getTime() / MS_PER_DAY)
+  // The start of the continuous use each use belongs to
+  const chainStarts: Date[] = []
   return sorted.map((use, index) => {
+    let chainStart = use.start
+    for (let i = 0; i < index; i++) {
+      const earlier = sorted[i]
+      if (dayOf(earlier.end) >= dayOf(use.start) && zonesOverlap(earlier.zone, use.zone)) {
+        if (chainStarts[i] < chainStart) chainStart = chainStarts[i]
+      }
+    }
+    chainStarts.push(chainStart)
+
     let previous: FieldUse<T> | null = null
-    const startDay = Math.floor(use.start.getTime() / MS_PER_DAY)
     for (let i = 0; i < index; i++) {
       const candidate = sorted[i]
-      if (Math.floor(candidate.end.getTime() / MS_PER_DAY) >= startDay) continue
+      if (dayOf(candidate.end) >= dayOf(chainStart)) continue
       if (!zonesOverlap(candidate.zone, use.zone)) continue
       if (!previous || candidate.end.getTime() > previous.end.getTime()) previous = candidate
     }
     const restDays = previous
-      ? Math.max(0, Math.floor((use.start.getTime() - previous.end.getTime()) / MS_PER_DAY))
+      ? Math.max(0, Math.floor((chainStart.getTime() - previous.end.getTime()) / MS_PER_DAY))
       : null
     return { use, previous, restDays }
   })
