@@ -55,6 +55,7 @@ describe("Grazing Domain", () => {
   it("should record grazing action and retrieve for herd and farm", async () => {
     const startDate = new Date("2025-05-15")
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
+      l_grazing_end: startDate,
       l_grazing_hours: 8,
       l_grazing_area: 25,
     })
@@ -77,14 +78,16 @@ describe("Grazing Domain", () => {
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
 
-    await addGrazing(fdm, principal_id, l_id_herd, grazingDate)
+    await addGrazing(fdm, principal_id, l_id_herd, grazingDate, { l_grazing_end: grazingDate })
 
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
   })
 
   it("should not overwrite other years when setting first-grazing intention", async () => {
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2024, false)
-    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-06-01T08:00:00.000Z"))
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-06-01T08:00:00.000Z"), {
+      l_grazing_end: new Date("2025-06-01T18:00:00.000Z"),
+    })
 
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2024)).toBe(false)
@@ -140,18 +143,26 @@ describe("Grazing Domain", () => {
     const start = new Date("2025-05-15T00:00:00.000Z")
     for (const hours of [0, -1, 25, Number.NaN]) {
       await expect(
-        addGrazing(fdm, principal_id, l_id_herd, start, { l_grazing_hours: hours }),
+        addGrazing(fdm, principal_id, l_id_herd, start, {
+          l_grazing_end: start,
+          l_grazing_hours: hours,
+        }),
       ).rejects.toMatchObject({
         cause: { message: expect.stringContaining("Invalid grazing hours") },
       })
     }
     await expect(
-      addGrazings(fdm, principal_id, [{ l_id_herd, l_grazing_start: start, l_grazing_hours: 30 }]),
+      addGrazings(fdm, principal_id, [
+        { l_id_herd, l_grazing_start: start, l_grazing_end: start, l_grazing_hours: 30 },
+      ]),
     ).rejects.toMatchObject({
       cause: { message: expect.stringContaining("Invalid grazing hours") },
     })
 
-    await addGrazing(fdm, principal_id, l_id_herd, start, { l_grazing_hours: 24 })
+    await addGrazing(fdm, principal_id, l_id_herd, start, {
+      l_grazing_end: start,
+      l_grazing_hours: 24,
+    })
     const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     await expect(
       updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_hours: 24.5 }),
@@ -186,7 +197,10 @@ describe("Grazing Domain", () => {
       "nl_01",
     )
 
-    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), { b_id })
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), {
+      b_id,
+      l_grazing_end: new Date("2025-05-15"),
+    })
 
     const herdGrazing = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     expect(herdGrazing.length).toBe(1)
@@ -370,6 +384,7 @@ describe("Grazing Domain", () => {
           l_id_herd,
           b_id: "non-existent-field",
           l_grazing_start: new Date("2027-06-10T00:00:00.000Z"),
+          l_grazing_end: new Date("2027-06-10T00:00:00.000Z"),
         },
       ]),
     ).rejects.toThrowError("Exception for addGrazings")
@@ -454,6 +469,7 @@ describe("Grazing Domain", () => {
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), {
         b_id: otherFieldId,
+        l_grazing_end: new Date("2025-05-15"),
       }),
     ).rejects.toThrowError("Exception for addGrazing")
   })
@@ -518,6 +534,7 @@ describe("Grazing Domain", () => {
   it("should correct and remove a grazing record", async () => {
     const startDate = new Date("2025-05-15")
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
+      l_grazing_end: startDate,
       l_grazing_hours: 8,
       l_grazing_area: 25,
     })
@@ -547,9 +564,9 @@ describe("Grazing Domain", () => {
 
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
-    await expect(addGrazing(fdm, invalidUser, l_id_herd, new Date())).rejects.toThrowError(
-      "Principal does not have permission to perform this action",
-    )
+    await expect(
+      addGrazing(fdm, invalidUser, l_id_herd, new Date(), { l_grazing_end: new Date() }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 
   it("should deny access to unauthorized principal for remaining grazing functions", async () => {
@@ -579,6 +596,7 @@ describe("Grazing Domain", () => {
 
     await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), {
       b_id,
+      l_grazing_end: new Date("2025-05-15"),
       l_grazing_area: 10,
     })
     const [grazingRecord] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
@@ -708,6 +726,7 @@ describe("Grazing zones", () => {
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, day(3), {
         b_id,
+        l_grazing_end: day(3),
         l_grazing_area: 5,
         l_grazing_geometry_zone: strip(5.0, 5.005),
       }),
@@ -715,6 +734,7 @@ describe("Grazing zones", () => {
 
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, day(3), {
+        l_grazing_end: day(3),
         l_grazing_geometry_zone: strip(5.0, 5.005),
       }),
     ).rejects.toThrowError("Exception for addGrazing")
@@ -725,6 +745,7 @@ describe("Grazing zones", () => {
           l_id_herd,
           b_id,
           l_grazing_start: day(3),
+          l_grazing_end: day(3),
           l_grazing_geometry_zone: { type: "Polygon", coordinates: [[[5, 52]]] },
         },
       ]),
@@ -981,21 +1002,39 @@ describe("Grazing zones", () => {
     await expect(
       addGrazing(fdm, principal_id, herd, day(18), { b_id, l_grazing_end: day(20) }),
     ).rejects.toMatchObject(outside)
-    await expect(addGrazing(fdm, principal_id, herd, day(18), { b_id })).rejects.toMatchObject(
-      outside,
-    )
     await expect(
-      addGrazings(fdm, principal_id, [{ l_id_herd: herd, b_id, l_grazing_start: day(2) }]),
+      addGrazings(fdm, principal_id, [
+        { l_id_herd: herd, b_id, l_grazing_start: day(2), l_grazing_end: day(3) },
+      ]),
     ).rejects.toMatchObject(outside)
 
     // Within the period: accepted, and a correction cannot move it out
     await addGrazing(fdm, principal_id, herd, day(5), { b_id, l_grazing_end: day(19) })
     const [grazing] = await getGrazingForHerd(fdm, principal_id, herd)
     await expect(
-      updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_end: null }),
+      updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_end: day(21) }),
     ).rejects.toMatchObject(outside)
   })
 
+  it("requires an end date for every grazing", async () => {
+    const needsEnd = { cause: { message: expect.stringContaining("needs an end date") } }
+    const withoutEnd = { b_id } as Parameters<typeof addGrazing>[4]
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, day(3), withoutEnd),
+    ).rejects.toMatchObject(needsEnd)
+    await expect(
+      addGrazings(fdm, principal_id, [
+        { l_id_herd, b_id, l_grazing_start: day(3) } as Parameters<typeof addGrazings>[2][number],
+      ]),
+    ).rejects.toMatchObject(needsEnd)
+    await addGrazing(fdm, principal_id, l_id_herd, day(3), { b_id, l_grazing_end: day(4) })
+    const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    await expect(
+      updateGrazing(fdm, principal_id, grazing.l_id_grazing, {
+        l_grazing_end: null,
+      } as unknown as Parameters<typeof updateGrazing>[3]),
+    ).rejects.toMatchObject(needsEnd)
+  })
   it("only changes the documented columns of a grazing correction", async () => {
     const otherHerd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Ander",
@@ -1041,8 +1080,11 @@ describe("Grazing zones", () => {
       l_herd_name: "Pinken",
       l_id_category: "rvo_100",
     })
-    // An open grazing started last year
-    await addGrazing(fdm, principal_id, herd2, new Date("2025-12-20T00:00:00.000Z"), { b_id })
+    // A long grazing started last year
+    await addGrazing(fdm, principal_id, herd2, new Date("2025-12-20T00:00:00.000Z"), {
+      b_id,
+      l_grazing_end: new Date("2026-03-01T00:00:00.000Z"),
+    })
 
     const forField = await getGrazingForField(fdm, principal_id, b_id, timeframe)
     expect(forField.map((g) => g.l_grazing_start.toISOString().slice(0, 10)).sort()).toEqual([

@@ -912,6 +912,7 @@ describe("Farm Data Model", () => {
       })
       await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-01"), {
         b_id: fieldId,
+        l_grazing_end: new Date("2025-05-01"),
       })
 
       // 2. Action: Remove the field

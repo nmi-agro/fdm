@@ -933,7 +933,10 @@ describe("Farm Functions", () => {
       )
       await addFeedingHerd(fdm, testPrincipalId, f_id_batch, l_id_herd, new Date("2025-02-04"))
 
-      await addGrazing(fdm, testPrincipalId, l_id_herd, new Date("2025-03-01"), { b_id })
+      await addGrazing(fdm, testPrincipalId, l_id_herd, new Date("2025-03-01"), {
+        b_id,
+        l_grazing_end: new Date("2025-03-01"),
+      })
 
       await removeFarm(fdm, testPrincipalId, livestockFarmId)
 
