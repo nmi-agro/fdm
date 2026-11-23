@@ -61,7 +61,7 @@ Heeft een bestaande beweiding geen uren per dag, dan blijven die open als je all
 
 Een koppel kan op één dag meer dan één beweiding hebben, ook op hetzelfde perceel: bijvoorbeeld 's ochtends op de ene zone en 's middags op een andere, of twee keer op dezelfde zone. De uren van die beweidingen tellen op, en samen mogen ze niet boven 24 uur per dag komen. Komt de koppel daarboven, dan krijg je een melding; pas dan de uren of de datum aan.
 
-Een beweiding moet passen binnen de periode van de koppel: niet vóór de start van de koppel, en bij een beëindigde koppel uiterlijk de dag voor het einde.
+Een beweiding is altijd op een perceel en moet passen binnen de periode van de koppel: niet vóór de start van de koppel, en bij een beëindigde koppel uiterlijk de dag voor het einde. Voeg je op de beweidingspagina van een perceel in een eerder jaar een beweiding toe, dan staat de datum al in dat jaar.
 
 Bij _Oppervlak_ kies je welk deel van het perceel de koppel heeft beweid:
 
@@ -94,7 +94,7 @@ Bij stripgrazen of rantsoenbeweiding krijgen je koeien steeds een nieuwe strook 
 2. Controleer het aantal dieren, de grasopname per dier en het grasaanbod. {{appName}} vult ze in met richtwaarden; pas ze aan voor je eigen bedrijf.
 3. Klik op **Strook maken**.
 
-De nieuwe strook sluit aan op de stroken die in de 28 dagen voor deze beweiding op dit perceel zijn beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Is in die 28 dagen het hele perceel beweid, dan is er geen vrije strook. Is er een deel beweid met alleen een percentage, zonder plek op de kaart, dan is niet bekend welk deel vrij is; teken de zone dan zelf. Konden de eerder gebruikte zones niet worden geladen, dan kun je geen strook laten berekenen; probeer het dan nog eens met **Opnieuw laden**. Verander je de datum, dan wacht de strookberekening even tot de zones voor die datum zijn geladen. Het aantal dieren en de grasopname volgen de koppel en de uren die je in het venster kiest, tot je ze zelf aanpast. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
+De nieuwe strook sluit aan op de stroken die in de 28 dagen voor deze beweiding op dit perceel zijn beweid; die zie je donker met een witte streepjeslijn op de kaart. Is het perceel rond, dan begin je weer vooraan. Is in die 28 dagen het hele perceel beweid, dan is er geen vrije strook. Is er een deel beweid met alleen een percentage, zonder plek op de kaart, dan is niet bekend welk deel vrij is; teken de zone dan zelf. Kies eerst een begindatum: de strook hangt af van wat er in de 28 dagen daarvoor is beweid. Konden die beweidingen niet worden geladen, dan kun je geen strook laten berekenen; probeer het dan nog eens met **Opnieuw laden**. Verander je de datum, dan wacht de strookberekening even tot de zones voor die datum zijn geladen. Het aantal dieren en de grasopname volgen de koppel en de uren die je in het venster kiest, tot je ze zelf aanpast. Hoe de strookgrootte wordt berekend, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#strook).
 
 ![De strook berekenen: richting, dieren, grasopname en grasaanbod, met de berekende strook op de kaart](screenshot:beweiding-strook)
 
@@ -131,7 +131,7 @@ Bij Nieuw Nederlands Weiden deelt de planner de gekozen percelen op in percelen 
 
 Bij stroken en bij Nieuw Nederlands Weiden zie je de stroken of percelen op een kaart boven het plan. Ga met de muis over een regel van het plan om de strook op de kaart te zien, of over een strook op de kaart om de regels ervan te zien.
 
-Percelen zonder perceelsgrens krijgen altijd het percentage. Het plan loopt tot en met de laatste dag van de periode en blijft binnen het gekozen jaar; een perceel krijgt hoogstens 60 dagen achter elkaar. Een periode die niet past naast beweiding die je al hebt vastgelegd, slaat de planner over: de koppel zou dan boven 24 uur per dag komen, of er ligt al een beweiding zonder perceel. Je ziet die perioden met de reden in een waarschuwing.
+Percelen zonder perceelsgrens krijgen altijd het percentage. Het plan loopt tot en met de laatste dag van de periode en blijft binnen het gekozen jaar; een perceel krijgt hoogstens 60 dagen achter elkaar. Een periode die niet kan worden vastgelegd, slaat de planner over: de koppel zou dan boven 24 uur per dag komen, de koppel liep toen nog niet of niet meer, of het perceel was toen geen grasland. Je ziet die perioden met de reden in een waarschuwing.
 
 ![De planner: systeem, percelen en de geplande perioden](screenshot:beweidingsplan)
 
@@ -145,7 +145,7 @@ De rust telt per deel van het perceel: bij stripgrazen krijgt elke strook zijn e
 
 Met **Weidegang** in het menu onder Melkvee of op het Melkvee-overzicht open je de inzichten van het jaar:
 
-- weidedagen, gemiddelde weide-uren per dag, het beweidingsplatform en de veebezetting op dat platform;
+- weidedagen, de gemiddelde weide-uren per weidedag met vastgelegde uren, het beweidingsplatform en de veebezetting op dat platform;
 - de voortgang naar Weidemelk: 120 dagen met minstens 6 uur weidegang van de melkkoeien;
 - de weidedagen per maand, gerealiseerd en gepland;
 - **Aandachtspunten**, als die er zijn: percelen die te kort hebben gerust, met de uitleg van de richtlijn voor rust, of beweidingen zonder uren per dag.
