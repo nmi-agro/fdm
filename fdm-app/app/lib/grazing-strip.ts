@@ -26,8 +26,30 @@ const MAX_STEPS = 50
  */
 export const STRIP_ROTATION_DAYS = 28
 
-/** Free area below which nothing of a field is free (ha): rounding slivers, not grass. */
-const MIN_FREE_AREA_HA = 0.001
+/**
+ * Smallest separate free part of a field that counts as grass to graze (ha). Subtracting stored
+ * strips from the field leaves thin slivers along their edges (the outlines differ by fractions
+ * of a millimetre); those are not free grass.
+ */
+const MIN_FREE_PART_HA = 0.01
+
+/**
+ * The free part of a field without slivers: parts smaller than {@link MIN_FREE_PART_HA} are left
+ * out.
+ *
+ * @param free - The free part of the field.
+ * @returns The free part without slivers, or `null` when nothing remains.
+ */
+function withoutSlivers(free: Area | null): Area | null {
+  if (!free) return null
+  const parts = toMultiPolygon(free).coordinates.filter(
+    (coordinates) => areaHa({ type: "Polygon", coordinates }) >= MIN_FREE_PART_HA,
+  )
+  if (parts.length === 0) return null
+  return parts.length === 1
+    ? { type: "Polygon", coordinates: parts[0] }
+    : { type: "MultiPolygon", coordinates: parts }
+}
 
 /**
  * The part of a field that recent grazings occupy, for the strip builder: the zone of a grazing
@@ -148,9 +170,8 @@ export function cutStrip({
   bearing,
 }: StripOptions): Area | null {
   if (!(targetAreaHa > 0)) return null
-  const free = subtractAreas(field, occupied)
-  // What remains after subtracting the whole field is at most a sliver along its edges
-  if (!free || areaHa(free) < MIN_FREE_AREA_HA) return null
+  const free = withoutSlivers(subtractAreas(field, occupied))
+  if (!free) return null
   const freeArea = areaHa(free)
   if (freeArea <= targetAreaHa * (1 + AREA_TOLERANCE)) return free
 
