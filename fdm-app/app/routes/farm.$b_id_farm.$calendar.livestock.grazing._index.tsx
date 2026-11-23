@@ -8,6 +8,7 @@ import {
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
+  redirect,
   useActionData,
   useLoaderData,
 } from "react-router"
@@ -22,7 +23,6 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -36,8 +36,10 @@ import {
 } from "~/lib/field-events.server"
 import { extractFormValuesFromRequest, formText } from "~/lib/form"
 import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import { farmTodayKey } from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { defaultMapDay } from "~/lib/grazing-map"
+import { serverNow } from "~/lib/server-now.server"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 
 export const meta: MetaFunction = () => {
@@ -54,24 +56,38 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     const calendar = getCalendar(params)
-    const calendarYear = parseInt(calendar, 10) || new Date().getFullYear()
 
     if (!b_id_farm) {
       throw data("Farm ID is required", { status: 400 })
     }
 
+    // The calendar shows one year; "all years" opens the current year in the Netherlands
+    const todayKey = farmTodayKey(serverNow())
+    const calendarYear = Number(calendar)
+    if (!Number.isInteger(calendarYear)) {
+      return redirect(`/farm/${b_id_farm}/${todayKey.slice(0, 4)}/livestock/grazing`)
+    }
+
     const session = await getSession(request)
 
-    const [farm, farms, matrix, timelineFields, fertilizerOptions] = await Promise.all([
+    const [farm, farms] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
       getFarms(fdm, session.principal_id),
-      fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
-      // Cultivations, harvests and fertilizer applications per field, for the mowing and
-      // fertilizing forms shared with the Tijdlijn
-      fetchTimelineFields(session.principal_id, b_id_farm, getTimeframe(params)),
-      getFertilizerOptions(session.principal_id, b_id_farm),
     ])
-    const grasslandIds = new Set(matrix.fields.map((f) => f.b_id))
+    // Without a herd the page only shows how to start, so the grazing data is not read
+    const grazingData = farm.b_farm_livestock
+      ? await Promise.all([
+          fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
+          // Cultivations, harvests and fertilizer applications per field, for the mowing and
+          // fertilizing forms shared with the Tijdlijn
+          fetchTimelineFields(session.principal_id, b_id_farm, getTimeframe(params)),
+          getFertilizerOptions(session.principal_id, b_id_farm),
+        ])
+      : null
+    const matrix = grazingData?.[0] ?? null
+    const timelineFields = grazingData?.[1] ?? []
+    const fertilizerOptions = grazingData?.[2] ?? []
+    const grasslandIds = new Set(matrix?.fields.map((f) => f.b_id))
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -94,6 +110,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       calendar,
       farmOptions,
       calendarYear,
+      todayKey,
       matrix,
       grasslandFields: timelineFields.filter((field) => grasslandIds.has(field.b_id)),
       fertilizerOptions,
@@ -156,6 +173,7 @@ export default function BeweidingskalenderPage() {
     b_id_farm,
     calendar,
     calendarYear,
+    todayKey,
     farmOptions,
     matrix,
     grasslandFields,
@@ -187,14 +205,14 @@ export default function BeweidingskalenderPage() {
 
   // New grazing, mowing and fertilizing default to today in the Netherlands, or the same day in
   // another year
-  const defaultDay = defaultMapDay(matrix.todayKey, calendarYear)
+  const defaultDay = defaultMapDay(todayKey, calendarYear)
   const defaultDate = defaultDay ? new Date(`${defaultDay}T12:00:00`) : undefined
 
-  const hasKoppels = matrix.herds.length > 0
-  const hasGrassland = matrix.fields.length > 0
+  const hasKoppels = matrix !== null && matrix.herds.length > 0
+  const hasGrassland = matrix !== null && matrix.fields.length > 0
 
   return (
-    <SidebarInset>
+    <div className="bg-background relative flex w-full flex-1 flex-col">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -213,7 +231,7 @@ export default function BeweidingskalenderPage() {
         <BreadcrumbItem>Beweidingskalender</BreadcrumbItem>
       </Header>
 
-      <main>
+      <div>
         <FarmTitle
           title={`Beweiding ${calendar}`}
           description="Plan en registreer de beweiding en het graslandgebruik van je percelen."
@@ -228,16 +246,18 @@ export default function BeweidingskalenderPage() {
                 <p className="text-muted-foreground mt-2 text-sm">
                   Voeg je eerste koppel toe om te starten met de beweidingskalender.
                 </p>
-                <Button
-                  className="mt-6 gap-1.5"
-                  nativeButton={false}
-                  render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`} />}
-                >
-                  <Plus className="h-4 w-4" />
-                  Melkvee toevoegen
-                </Button>
+                {farmWritePermission && (
+                  <Button
+                    className="mt-6 gap-1.5"
+                    nativeButton={false}
+                    render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`} />}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Melkvee toevoegen
+                  </Button>
+                )}
               </div>
-            ) : !hasGrassland ? (
+            ) : !hasGrassland || matrix === null ? (
               <div className="rounded-xl border border-dashed p-12 text-center">
                 <LandPlot className="text-muted-foreground mx-auto h-12 w-12" />
                 <h3 className="mt-4 text-lg font-semibold">Geen graslandpercelen gevonden</h3>
@@ -314,7 +334,7 @@ export default function BeweidingskalenderPage() {
             )}
           </div>
         </FarmContent>
-      </main>
+      </div>
 
       {/* The grazing dialog, the same as from a calendar cell */}
       <GrazingPopover
@@ -328,7 +348,7 @@ export default function BeweidingskalenderPage() {
         field={grazingField}
         initialStartDate={defaultDay}
         initialEndDate={defaultDay}
-        herds={matrix.herds}
+        herds={matrix?.herds ?? []}
         canWrite={farmWritePermission}
       />
 
@@ -349,6 +369,6 @@ export default function BeweidingskalenderPage() {
         formAction="?index"
         presentation="dialog"
       />
-    </SidebarInset>
+    </div>
   )
 }

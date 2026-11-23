@@ -81,10 +81,29 @@ type DayEntry =
       fertilizer: NonNullable<GrazingCalendarCell["fertilizerEntries"]>[number]
     }
 
-/** The label of a day entry in the chooser and the context menu. */
+const formatShortDay = (day: string) => format(new Date(`${day}T12:00:00`), "d MMM", { locale: nl })
+
+/**
+ * The label of a day entry in the chooser and the context menu. A grazing shows its herd, hours,
+ * area and, when it lasts more than one day, its period, so two grazings on a day can be told
+ * apart.
+ */
 function dayEntryLabel(entry: DayEntry): string {
   if (entry.kind === "grazing") {
-    return `${entry.grazing.isPlanned ? "Geplande beweiding" : "Beweiding"} · ${entry.grazing.l_herd_name}`
+    const { grazing } = entry
+    const parts = [grazing.isPlanned ? "Geplande beweiding" : "Beweiding", grazing.l_herd_name]
+    if (grazing.l_grazing_hours != null) {
+      parts.push(`${grazing.l_grazing_hours.toLocaleString("nl-NL")} uur`)
+    }
+    if (grazing.l_grazing_area_grazed != null) {
+      parts.push(`${formatHa(grazing.l_grazing_area_grazed)} ha`)
+    }
+    if (grazing.l_grazing_end && grazing.l_grazing_end !== grazing.l_grazing_start) {
+      parts.push(
+        `${formatShortDay(grazing.l_grazing_start)} t/m ${formatShortDay(grazing.l_grazing_end)}`,
+      )
+    }
+    return parts.join(" · ")
   }
   if (entry.kind === "harvest") return `Maaien · ${entry.harvest.b_lu_name}`
   return `Bemesting · ${entry.fertilizer.p_name_nl ?? "Meststof"}`
@@ -315,21 +334,37 @@ export function CalendarGrid({
     setDragEnd(col)
   }
 
-  const handleMouseUp = () => {
-    // A drag over more than one day adds a grazing for that period; a single day is a click. A
-    // drag whose field is no longer in the calendar adds nothing.
+  const handleMouseUp = (event: React.MouseEvent) => {
+    // A drag over more than one day adds a grazing for that period; a single day is a click. The
+    // drag only completes when it is released on a day of the same field; a drag whose field is
+    // no longer in the calendar, or released elsewhere, adds nothing.
+    const day = dayFromEvent(event)
     if (
       isDragging &&
+      day &&
       dragField &&
+      day.row === dragRow &&
       dragStart !== null &&
-      dragEnd !== null &&
-      dragStart !== dragEnd
+      dragStart !== day.col
     ) {
-      const startCell = dragField.cells[Math.min(dragStart, dragEnd)]
-      const endCell = dragField.cells[Math.max(dragStart, dragEnd)]
-      openNewGrazing(dragField, startCell.dateStart, endCell.dateEnd)
+      const startCell = dragField.cells[Math.min(dragStart, day.col)]
+      const endCell = dragField.cells[Math.max(dragStart, day.col)]
+      if (startCell && endCell) openNewGrazing(dragField, startCell.dateStart, endCell.dateEnd)
     }
     resetDrag()
+  }
+
+  /** The day a context menu was opened on, by a right click or a long press. */
+  const handleMenuOpenChange = (open: boolean, details: { event: Event }) => {
+    if (!open) return
+    const target = details.event.target
+    const cellElement =
+      target instanceof Element ? target.closest<HTMLElement>("[data-cell]") : null
+    const [row, col] = (cellElement?.dataset.cell ?? "").split("-").map(Number)
+    const field = cellElement ? matrix.fields[row] : undefined
+    const cell = field?.cells[col]
+    // Outside a day (a name or the header) there is no day to add to
+    setMenuTarget(field && cell ? { field, day: cell.dateStart, entries: dayEntries(cell) } : null)
   }
 
   /**
@@ -384,6 +419,9 @@ export function CalendarGrid({
       ?.querySelector<HTMLElement>(`[data-cell="${next.row}-${next.col}"]`)
       ?.focus({ preventScroll: false })
   }
+
+  /** Focuses today in the calendar, or the last focused day when today is not in it. */
+  const goToToday = () => moveFocus(activeCell.row, todayIndex >= 0 ? todayIndex : activeCell.col)
 
   const handleGridKeyDown = (event: React.KeyboardEvent) => {
     const { row, col } = activeCell
@@ -441,7 +479,7 @@ export function CalendarGrid({
 
   return (
     <TooltipProvider>
-      <div className="space-y-4" onMouseUp={handleMouseUp}>
+      <div className="space-y-4">
         {/* Toolbar: the herd to record for and the actions; below it the legend */}
         <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-2">
@@ -530,7 +568,7 @@ export function CalendarGrid({
                     variant="outline"
                     size="sm"
                     className="text-xs"
-                    onClick={() => moveFocus(activeCell.row, activeCell.col)}
+                    onClick={goToToday}
                   >
                     <span key={todayIndex >= 0 ? "today" : "calendar"}>
                       {todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}
@@ -553,16 +591,19 @@ export function CalendarGrid({
           variant="outline"
           size="sm"
           className="sr-only text-xs focus-visible:not-sr-only"
-          onClick={() => moveFocus(activeCell.row, activeCell.col)}
+          onClick={goToToday}
         >
           <span>{todayIndex >= 0 ? "ga naar vandaag in de kalender" : "ga naar de kalender"}</span>
         </Button>
 
         {/* Calendar: one narrow column per day; the context menu belongs to the right-clicked day */}
-        <ContextMenu>
+        <ContextMenu
+          onOpenChange={handleMenuOpenChange}
+          onOpenChangeComplete={(open) => {
+            if (!open) setMenuTarget(null)
+          }}
+        >
           <ContextMenuTrigger
-            // A right click outside a day (a name or the header) has no day to add to
-            onContextMenuCapture={() => setMenuTarget(null)}
             render={
               <div
                 ref={scrollRef}
@@ -605,18 +646,14 @@ export function CalendarGrid({
                 setFocusedCell({ row: day.row, col: day.col })
                 showDayTooltip(day.target)
               }}
-              onContextMenu={(event) => {
-                const day = dayFromEvent(event)
-                if (!day) return
-                const field = matrix.fields[day.row]
-                const cell = field?.cells[day.col]
-                if (field && cell) {
-                  setMenuTarget({ field, day: cell.dateStart, entries: dayEntries(cell) })
-                }
-              }}
+              onMouseUp={handleMouseUp}
               onMouseLeave={() => tooltipRef.current?.hide()}
               onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) tooltipRef.current?.hide()
+                // Focus that leaves the calendar ends a Shift-selection
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  tooltipRef.current?.hide()
+                  setAnchorAt(null)
+                }
               }}
             >
               <thead>
@@ -745,7 +782,9 @@ export function CalendarGrid({
               </dd>
             </div>
             <div className="flex gap-1">
-              <dt className="text-muted-foreground">Gemiddeld per weidedag:</dt>
+              <dt className="text-muted-foreground">
+                Gemiddeld per weidedag met vastgelegde uren:
+              </dt>
               <dd className="text-foreground font-semibold tabular-nums">
                 {matrix.summary.averageHours.toLocaleString("nl-NL")} uur
               </dd>
@@ -944,6 +983,8 @@ const CalendarRow = memo(function CalendarRow({
               "focus-visible:ring-foreground focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none",
               cell.type === "empty" && "hover:bg-muted/60",
               isSelected && "bg-primary/30",
+              // A day with a use keeps its colour; the ring shows it is selected
+              isSelected && "inset-ring-primary inset-ring-2",
               columns[index]?.groupStart && "border-l-border border-l",
             )}
             style={dayCellStyle(cell)}

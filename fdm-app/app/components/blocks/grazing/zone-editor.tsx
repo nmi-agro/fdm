@@ -67,6 +67,7 @@ const INCOMPLETE_REASON =
  */
 const STRIP_BUILDER_FORM = "strip-builder"
 const OCCUPANCY_LOADING_REASON = "Eerder gebruikte zones voor deze datum worden geladen"
+const DATE_MISSING_REASON = "Kies eerst een begindatum"
 const OCCUPANCY_FAILED_REASON =
   "Eerder gebruikte zones zijn niet geladen, dus de vrije ruimte is onbekend; laad ze opnieuw"
 const OCCUPANCY_UNKNOWN_REASON =
@@ -111,8 +112,14 @@ interface ZonesData {
   occupied: MultiPolygon[]
   /** The earlier zones could not be loaded; drawing still works. */
   zonesFailed: boolean
+  /** The grazings in the rotation window could not be loaded, so the free part is unknown. */
+  occupancyFailed: boolean
   /** A grazing in the rotation window has only an area, so the free part of the field is unknown. */
   occupancyUnknown?: boolean
+  /** No valid start date was given, so there is no rotation window. */
+  dateMissing: boolean
+  /** The start date (`YYYY-MM-DD`) this answer belongs to; `null` without a valid date. */
+  date: string | null
 }
 
 /** An area in hectares with at least one decimal, e.g. "2,0". */
@@ -191,12 +198,23 @@ export function ZoneEditor({
   // per grazing, so a later use of the same zone does not hide an earlier one; a new strip
   // connects to them
   const recentZones = useMemo(() => (fetcher.data?.occupied ?? []) as Area[], [fetcher.data])
-  const occupancyFailed = fetcher.data?.zonesFailed ?? false
-  const occupancyUnknown = !occupancyFailed && (fetcher.data?.occupancyUnknown ?? false)
-  // The strip builder needs to know which part of the field is free
-  const occupancyBlocked = occupancyFailed || occupancyUnknown
-  // While the zones are loaded again (another date), the zones in use are those of the old date
-  const occupancyLoading = fetcher.state !== "idle"
+  const zonesFailed = fetcher.data?.zonesFailed ?? false
+  const dateMissing = fetcher.data?.dateMissing ?? false
+  const occupancyFailed = !dateMissing && (fetcher.data?.occupancyFailed ?? false)
+  const occupancyUnknown =
+    !dateMissing && !occupancyFailed && (fetcher.data?.occupancyUnknown ?? false)
+  // The strip builder needs to know which part of the field is free around the start date
+  const occupancyBlocked = dateMissing || occupancyFailed || occupancyUnknown
+  // While the zones are loaded again (another date), or the answer is still that of another
+  // date, the zones in use are not those of this start date
+  const occupancyLoading = fetcher.state !== "idle" || fetcher.data?.date !== startDate
+  const stripBlockedReason = dateMissing
+    ? DATE_MISSING_REASON
+    : occupancyFailed
+      ? OCCUPANCY_FAILED_REASON
+      : occupancyUnknown
+        ? OCCUPANCY_UNKNOWN_REASON
+        : OCCUPANCY_LOADING_REASON
 
   const zoneArea = field && zone ? zoneAreaWithinField(zone, field) : null
   const zoneHasHoles = zone !== null && hasHoles(zone)
@@ -280,13 +298,7 @@ export function ZoneEditor({
                 aria-pressed={showStripBuilder && !occupancyBlocked}
                 onClick={() => setShowStripBuilder((show) => !show)}
                 disabled={occupancyBlocked || occupancyLoading}
-                disabledReason={
-                  occupancyFailed
-                    ? OCCUPANCY_FAILED_REASON
-                    : occupancyUnknown
-                      ? OCCUPANCY_UNKNOWN_REASON
-                      : OCCUPANCY_LOADING_REASON
-                }
+                disabledReason={stripBlockedReason}
               >
                 <Rows3 className="h-3.5 w-3.5" />
                 <span>Strook berekenen</span>
@@ -408,11 +420,20 @@ export function ZoneEditor({
         </p>
       )}
 
-      {occupancyFailed && (
+      {(zonesFailed || occupancyFailed) && (
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs text-amber-700">
-            Eerder gebruikte zones konden niet worden geladen. Je kunt wel een zone tekenen; een
-            strook berekenen kan pas als ze geladen zijn.
+            {occupancyFailed ? (
+              <span key="occupancy">
+                Eerder gebruikte zones konden niet worden geladen. Je kunt wel een zone tekenen; een
+                strook berekenen kan pas als ze geladen zijn.
+              </span>
+            ) : (
+              <span key="zones">
+                Eerder gebruikte zones konden niet worden geladen. Je kunt wel een zone tekenen of
+                een strook berekenen.
+              </span>
+            )}
           </p>
           <Button
             type="button"
@@ -446,7 +467,7 @@ export function ZoneEditor({
                 .join(" · ")
               return (
                 <Button
-                  key={`${earlier.last_used}-${earlier.l_grazing_area_grazed}`}
+                  key={JSON.stringify(earlier.l_grazing_geometry_zone)}
                   type="button"
                   size="sm"
                   variant={isCurrent ? "default" : "outline"}
@@ -581,7 +602,10 @@ function StripBuilder({
   const [animalCount, setAnimalCount] = useKeyedState(animals, (n) => (n ? String(n) : ""))
   const [intake, setIntake] = useKeyedState(defaultIntake, (kg) => String(Math.round(kg * 10) / 10))
   const [offer, setOffer] = useState(String(INSCHAREN_DRY_MATTER_TARGET_KG_HA))
-  const [notFree, setNotFree] = useState(false)
+  // The zones in use for which no free strip was found; the warning belongs to that answer and
+  // disappears once the zones of another date are loaded
+  const [notFreeFor, setNotFreeFor] = useState<Area[] | null>(null)
+  const notFree = notFreeFor !== null && notFreeFor === occupied
 
   const allocation = useMemo(() => {
     const n = Number(animalCount)
@@ -604,7 +628,7 @@ function StripBuilder({
       targetAreaHa: allocation.areaHa,
       bearing: Number(direction),
     })
-    setNotFree(!strip)
+    setNotFreeFor(strip ? null : occupied)
     if (strip) onStrip(strip)
   }
 

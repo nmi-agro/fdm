@@ -15,9 +15,10 @@ import {
   type FertilizerKind,
   getFertilizerCategoryFromRvoCode,
 } from "~/components/blocks/fertilizer/utils"
+import { getTimeframeForYears } from "~/lib/calendar"
 import { fdm } from "~/lib/fdm.server"
-import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
-import { herdsOfYear, zoneWithinField } from "~/lib/grazing-herds"
+import { censusDateForYear, farmDayDate, farmToday } from "~/lib/grazing-dates"
+import { herdsOfYear, type YearHerd, zoneWithinField } from "~/lib/grazing-herds"
 import {
   GRAZING_SEASON_FIRST_MONTH,
   GRAZING_SEASON_LAST_MONTH,
@@ -42,6 +43,55 @@ export async function getGrazedAreaByField(
   if (end < yearStart) return new Map()
   const areas = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, { start: yearStart, end })
   return new Map(areas.map((a) => [a.b_id, a.b_area_grazed]))
+}
+
+/**
+ * What the grazing dialog needs outside the grazing calendar: the herds of the year and the
+ * grassland fields (not a buffer strip, with a grass cultivation), largest first.
+ *
+ * @param principal_id - The user.
+ * @param b_id_farm - The farm.
+ * @param calendarYear - The selected calendar year.
+ * @param loaded - The fields, cultivations per field and grazings of the year, already loaded.
+ * @returns The herds with their count and colour, and the grassland fields.
+ */
+export async function getGrazingDialogData(
+  principal_id: string,
+  b_id_farm: string,
+  calendarYear: number,
+  loaded: {
+    fields: Array<{
+      b_id: string
+      b_name: string
+      b_area?: number | null
+      b_bufferstrip?: boolean | null
+    }>
+    cultivationsByField: Map<string, Array<{ b_lu_croprotation?: string | null }>>
+    grazings: Parameters<typeof herdsOfYear>[1]
+  },
+): Promise<{
+  herds: YearHerd[]
+  grasslandFields: Array<{ b_id: string; b_name: string; b_area: number }>
+}> {
+  // The herds of the selected year, also for a past year; counted at the real moment, as fdm-core
+  // counts them when a herd count is changed
+  const census = await getCensusForFarm(
+    fdm,
+    principal_id,
+    b_id_farm,
+    censusDateForYear(calendarYear),
+  )
+  const grasslandFields = loaded.fields
+    .filter(
+      (field) =>
+        !field.b_bufferstrip &&
+        (loaded.cultivationsByField.get(field.b_id) ?? []).some(
+          (c) => c.b_lu_croprotation === "grass",
+        ),
+    )
+    .map((field) => ({ b_id: field.b_id, b_name: field.b_name, b_area: field.b_area ?? 0 }))
+    .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name, "nl"))
+  return { herds: herdsOfYear(census, loaded.grazings), grasslandFields }
 }
 
 export interface GrazingCalendarCell {
@@ -204,6 +254,8 @@ export async function fetchGrazingCalendarMatrix(
   const yearStart = new Date(`${calendarYear}-01-01T00:00:00.000Z`)
   const yearEnd = new Date(`${calendarYear}-12-31T23:59:59.999Z`)
   const timeframe: Timeframe = { start: yearStart, end: yearEnd }
+  // Mowing and fertilizer dates are moments; they count on their calendar day in the Netherlands
+  const dutchYear = getTimeframeForYears(calendarYear, calendarYear)
 
   // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
   const now = serverNow()
@@ -224,13 +276,13 @@ export async function fetchGrazingCalendarMatrix(
   ] = await Promise.all([
     getFields(fdm, principal_id, b_id_farm, timeframe),
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-    getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getHarvestsForFarm(fdm, principal_id, b_id_farm, dutchYear),
     getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
     getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
     // The herds of the selected year, also for a past year; counted at the real moment, as fdm-core
     // counts them when a herd count is changed
     getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
-    getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, dutchYear),
     getFertilizers(fdm, principal_id, b_id_farm),
   ])
   // Kind of each fertilizer of the farm, derived from its RVO code as on the fertilizer badge
@@ -269,7 +321,7 @@ export async function fetchGrazingCalendarMatrix(
             b_id_harvesting: h.b_id_harvesting,
             b_lu: h.b_lu,
             b_lu_name: c.b_lu_name,
-            harvestDate: new Date(h.b_lu_harvest_date),
+            harvestDate: farmDayDate(h.b_lu_harvest_date),
           },
         ]
       }),
@@ -365,7 +417,7 @@ export async function fetchGrazingCalendarMatrix(
 
       const fertilizerEntries = (fertilizerApplicationsByField.get(field.b_id) ?? [])
         .filter((a) => {
-          const date = new Date(a.p_app_date)
+          const date = farmDayDate(a.p_app_date)
           return date >= column.start && date <= column.end
         })
         .map((a) => ({
@@ -374,7 +426,7 @@ export async function fetchGrazingCalendarMatrix(
           p_type: fertilizerKinds.get(a.p_id) ?? ("other" as const),
           p_app_amount_display: a.p_app_amount_display,
           p_app_amount_unit: a.p_app_amount_unit,
-          p_app_date: toIsoDate(new Date(a.p_app_date)),
+          p_app_date: toIsoDate(farmDayDate(a.p_app_date)),
         }))
 
       return {

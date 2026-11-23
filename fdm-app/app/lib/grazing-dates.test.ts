@@ -1,11 +1,34 @@
 import { describe, expect, it } from "vitest"
 import {
   censusDateForYear,
+  endOfFarmDay,
+  farmDayDate,
   farmToday,
   farmTodayKey,
   fieldGrazingTotals,
   realisedGrazingDays,
 } from "./grazing-dates"
+
+describe("farmDayDate", () => {
+  it("gives the Dutch calendar day as midnight UTC", () => {
+    // 22:00 UTC on 14 June is 00:00 on 15 June in the Netherlands
+    expect(farmDayDate(new Date("2026-06-14T22:00:00.000Z"))).toEqual(
+      new Date("2026-06-15T00:00:00.000Z"),
+    )
+    expect(farmDayDate("2026-06-14T21:59:00.000Z")).toEqual(new Date("2026-06-14T00:00:00.000Z"))
+  })
+})
+
+describe("endOfFarmDay", () => {
+  it("gives 23:59:59.999 in the Netherlands in summer and winter time", () => {
+    expect(endOfFarmDay("2026-06-14")).toEqual(new Date("2026-06-14T21:59:59.999Z"))
+    expect(endOfFarmDay("2026-01-14")).toEqual(new Date("2026-01-14T22:59:59.999Z"))
+    // The day summer time ends: the next midnight is in winter time
+    expect(endOfFarmDay("2026-10-25")).toEqual(new Date("2026-10-25T22:59:59.999Z"))
+    // The day summer time starts
+    expect(endOfFarmDay("2026-03-29")).toEqual(new Date("2026-03-29T21:59:59.999Z"))
+  })
+})
 
 describe("farmTodayKey", () => {
   it("follows the calendar day in the Netherlands", () => {

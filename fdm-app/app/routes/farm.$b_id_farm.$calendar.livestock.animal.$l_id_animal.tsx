@@ -53,7 +53,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { SidebarInset } from "~/components/ui/sidebar"
 import {
   Table,
   TableBody,
@@ -70,7 +69,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
-import { farmTodayKey } from "~/lib/grazing-dates"
+import { endOfFarmDay, farmTodayKey } from "~/lib/grazing-dates"
 import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
@@ -130,9 +129,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     const now = serverNow()
     const todayKey = farmTodayKey(now)
+    // Grazing dates and the birth date are calendar days, stored as midnight UTC
     const dayKey = (date: Date | string) => new Date(date).toISOString().slice(0, 10)
-    const yearFrom = timeframe.start ? dayKey(timeframe.start) : "0000-01-01"
-    const yearTo = timeframe.end ? dayKey(timeframe.end) : "9999-12-31"
+    // The year bounds and assignments are moments: their day is the calendar day in the
+    // Netherlands
+    const farmDayKey = (date: Date | string) => farmTodayKey(new Date(date))
+    const yearFrom = timeframe.start ? farmDayKey(timeframe.start) : "0000-01-01"
+    const yearTo = timeframe.end ? farmDayKey(timeframe.end) : "9999-12-31"
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -155,8 +158,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const realisedHours = new Map<string, number>()
     const animalGrazings = history
       .flatMap((assign) => {
-        const aFrom = assign.l_assigning_start ? dayKey(assign.l_assigning_start) : yearFrom
-        const aBefore = assign.l_assigning_end ? dayKey(assign.l_assigning_end) : "9999-12-31"
+        const aFrom = assign.l_assigning_start ? farmDayKey(assign.l_assigning_start) : yearFrom
+        const aBefore = assign.l_assigning_end ? farmDayKey(assign.l_assigning_end) : "9999-12-31"
         return grazings
           .filter((g) => g.l_id_herd === assign.l_id_herd)
           .flatMap((g) => {
@@ -288,13 +291,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
         ? formText(formData, "l_id_eartag").trim()
         : undefined
       const l_id_worknumber = formText(formData, "l_id_worknumber").trim() || undefined
-      const birthDateVal = formText(formData, "l_birth_date")
+      // An empty birth date removes it; an omitted one leaves it as it is
+      const birthDateVal = formData.has("l_birth_date")
+        ? formText(formData, "l_birth_date")
+        : undefined
       const l_sex = (formData.get("l_sex") as "female" | "male" | null) ?? undefined
 
       await updateAnimal(fdm, session.principal_id, l_id_animal, {
         l_id_eartag,
         l_id_worknumber,
-        l_birth_date: birthDateVal ? new Date(birthDateVal) : undefined,
+        l_birth_date:
+          birthDateVal === undefined ? undefined : birthDateVal ? new Date(birthDateVal) : null,
         l_sex,
       })
 
@@ -317,8 +324,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
         (formData.get("l_leaving_method") as "died" | "sold" | "slaughtered" | "exported" | null) ??
         "sold"
 
+      // A departure today is recorded now, so the animal leaves its herd from this moment; a
+      // departure on another day at the end of that day in the Netherlands, so the animal still
+      // counts on that day
+      const now = serverNow()
+      const l_leaving_date =
+        !leavingDateVal || leavingDateVal === farmTodayKey(now) ? now : endOfFarmDay(leavingDateVal)
+
       await updateAnimal(fdm, session.principal_id, l_id_animal, {
-        l_leaving_date: leavingDateVal ? new Date(leavingDateVal) : new Date(),
+        l_leaving_date,
         l_leaving_method,
       })
 
@@ -386,7 +400,8 @@ export default function AnimalDetailPage() {
     formData.set("intent", "update_details")
     formData.set("l_id_worknumber", editWorknumber)
     formData.set("l_id_eartag", editEartag)
-    if (editBirthdate) formData.set("l_birth_date", editBirthdate)
+    // Always sent, so clearing the field removes the birth date
+    formData.set("l_birth_date", editBirthdate)
     if (editSex) formData.set("l_sex", editSex)
     void fetcher.submit(formData, { method: "post" })
   }
@@ -411,7 +426,7 @@ export default function AnimalDetailPage() {
   }
 
   return (
-    <SidebarInset>
+    <div className="bg-background relative flex w-full flex-1 flex-col">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock/animals`,
@@ -438,7 +453,7 @@ export default function AnimalDetailPage() {
         <BreadcrumbItem>{animalName}</BreadcrumbItem>
       </Header>
 
-      <main>
+      <div>
         <FarmTitle
           title={animalName}
           description={[animal.l_category, currentHerd?.l_herd_name].filter(Boolean).join(" · ")}
@@ -850,7 +865,7 @@ export default function AnimalDetailPage() {
             </div>
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </div>
   )
 }

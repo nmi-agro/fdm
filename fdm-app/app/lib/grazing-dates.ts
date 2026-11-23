@@ -37,6 +37,32 @@ export function farmToday(now: Date = new Date()): Date {
 }
 
 /**
+ * The calendar day in the Netherlands of a moment, as a date-only value (midnight UTC of that
+ * day), comparable with the stored grazing dates. Mowing and fertilizer dates are stored as
+ * moments; a mowing at 00:30 on 15 June in the Netherlands is still 14 June in UTC.
+ *
+ * @param date - The moment.
+ * @returns Midnight UTC of the Dutch calendar day.
+ */
+export function farmDayDate(date: Date | string): Date {
+  return new Date(`${farmTodayKey(new Date(date))}T00:00:00.000Z`)
+}
+
+/**
+ * The last moment of a calendar day in the Netherlands: 23:59:59.999 in Amsterdam, which is
+ * 21:59:59.999 UTC in summer time and 22:59:59.999 UTC in winter time.
+ *
+ * @param dayKey - The day as `YYYY-MM-DD`.
+ * @returns The last moment of that day.
+ */
+export function endOfFarmDay(dayKey: string): Date {
+  const summerEnd = new Date(`${dayKey}T21:59:59.999Z`)
+  // In summer time the next millisecond is already the next day in the Netherlands
+  if (farmTodayKey(new Date(summerEnd.getTime() + 1)) !== dayKey) return summerEnd
+  return new Date(`${dayKey}T22:59:59.999Z`)
+}
+
+/**
  * The moment to count the herds on for a calendar year: now in the current or a future year, and
  * the last day of a past year, so a past year shows the herds of that year.
  *

@@ -86,6 +86,22 @@ describe("calculateRestBeforeUses", () => {
     ])
   })
 
+  it("builds the chain of a use only from uses of its own part", () => {
+    const west = strip(5.0, 5.001)
+    const east = strip(5.001, 5.002)
+    const rests = calculateRestBeforeUses([
+      { type: "weiden", start: day(1), end: day(10), zone: west, data: "west" },
+      { type: "weiden", start: day(2), end: day(2), zone: east, data: "east 2 May" },
+      { type: "weiden", start: day(5), end: day(8), data: "whole field" },
+      { type: "weiden", start: day(7), end: day(9), zone: east, data: "east 7 May" },
+    ])
+    // The east strip was grazed on 2 May and as part of the whole field from 5 May on. The chain
+    // of the west strip (from 1 May) does not run over the east strip, so the rest is 3 days.
+    expect(rests[3].use.data).toBe("east 7 May")
+    expect(rests[3].previous?.data).toBe("east 2 May")
+    expect(rests[3].restDays).toBe(3)
+  })
+
   it("counts mowing from the most recent use of any part of the field", () => {
     const rests = calculateRestBeforeUses([
       { type: "weiden", start: day(1), end: day(1), zone: strip(5.0, 5.001) },

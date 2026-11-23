@@ -19,7 +19,7 @@ import {
   getFarms,
   getFields,
   getGrazingCalendarForFarm,
-  getHerdsForFarm,
+  getHerdsForFarmInPeriod,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { eachDayOfInterval, format } from "date-fns"
@@ -77,13 +77,13 @@ import {
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
-import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe, getTimeframeForYears } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
 import { formatHa } from "~/lib/format"
-import { censusDateForYear } from "~/lib/grazing-dates"
+import { censusDateForYear, farmTodayKey } from "~/lib/grazing-dates"
 import { type Area, areaHa, cutEqualPlots, cutStrip, toMultiPolygon } from "~/lib/grazing-strip"
 import { grazingZoneSchema } from "~/lib/grazing-zone"
 
@@ -123,12 +123,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
+    const planYear = getTimeframeForYears(calendarYear, calendarYear)
     const [farm, farms, herds, allFields, cultivationsByField, existingGrazings, census] =
       await Promise.all([
         getFarm(fdm, session.principal_id, b_id_farm),
         getFarms(fdm, session.principal_id),
-        // The herds of the plan year, also for a past year
-        getHerdsForFarm(fdm, session.principal_id, b_id_farm, censusDateForYear(calendarYear)),
+        // Every herd that ran during the plan year (in the Netherlands), also one that started or
+        // ended during it; the planner keeps its periods within the herd's own period
+        // (a timeframe of whole years always has a start and an end)
+        getHerdsForFarmInPeriod(fdm, session.principal_id, b_id_farm, {
+          start: planYear.start!,
+          end: planYear.end!,
+        }),
         getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
         getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
@@ -167,7 +173,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_area: f.b_area ?? 0,
         // Needed to cut grazing strips from the field
         b_geometry: f.b_geometry ?? null,
+        // The days the field has a grass cultivation (Dutch calendar days, the end included), so
+        // the plan skips the days before it was sown or after it was ploughed
+        grassPeriods: (cultivationsByField.get(f.b_id) ?? [])
+          .filter((c) => c.b_lu_croprotation === "grass")
+          .map((c) => ({
+            start: c.b_lu_start ? farmTodayKey(new Date(c.b_lu_start)) : null,
+            end: c.b_lu_end ? farmTodayKey(new Date(c.b_lu_end)) : null,
+          })),
       }))
+
+    // The first day a herd can graze (as fdm-core compares it, the UTC day of its start) and,
+    // for an ended herd, the first day it can no longer graze: a grazing must end before the end
+    // of the herd, and a grazing day is stored at midnight UTC
+    const utcDayKey = (date: Date) => date.toISOString().slice(0, 10)
+    const herdEndKey = (end: Date) => {
+      const lastDay = utcDayKey(new Date(end.getTime() - 1))
+      return new Date(Date.parse(`${lastDay}T00:00:00.000Z`) + 86_400_000)
+        .toISOString()
+        .slice(0, 10)
+    }
 
     return {
       b_id_farm,
@@ -181,6 +206,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_id_category: h.l_id_category,
         l_lsu: h.l_lsu ?? 1.0,
         count: censusMap.get(h.l_id_herd) ?? 0,
+        l_start: h.l_start ? utcDayKey(new Date(h.l_start)) : null,
+        l_end: h.l_end ? herdEndKey(new Date(h.l_end)) : null,
       })),
       grasslandFields,
       existingGrazings: existingGrazings.map((g) => ({
@@ -274,8 +301,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
       })),
     )
 
-    const firstStart = format(new Date(rows[0].l_grazing_start), "dd-MM")
-    const lastEnd = format(new Date(rows[rows.length - 1].l_grazing_end), "dd-MM")
+    // The stored calendar days, read from their keys: the same days in any time zone
+    const dayMonth = (day: string) => `${day.slice(8, 10)}-${day.slice(5, 7)}`
+    const firstStart = dayMonth(rows[0].l_grazing_start)
+    const lastEnd = dayMonth(rows[rows.length - 1].l_grazing_end)
 
     return redirectWithSuccess(
       `/farm/${b_id_farm}/${calendar}/livestock/grazing`,
@@ -348,6 +377,10 @@ function GrazingPlanAssistent() {
 
   // Step 2: Parameters
   const [selectedHerdId, setSelectedHerdId] = useState(herds[0]?.l_id_herd ?? "")
+  // The chosen herd while it is still among the herds; a herd that disappeared after a reload
+  // has to be chosen again
+  const herdId = herds.some((h) => h.l_id_herd === selectedHerdId) ? selectedHerdId : ""
+  const selectedHerd = herds.find((h) => h.l_id_herd === herdId)
   const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
     grasslandFields.map((f) => f.b_id),
   )
@@ -370,17 +403,20 @@ function GrazingPlanAssistent() {
   const [grassOffer, setGrassOffer] = useState<number>(INSCHAREN_DRY_MATTER_TARGET_KG_HA)
 
   const selectedSystem = GRAZING_SYSTEMS[systemKey]
-  const selectedHerdCount = herds.find((h) => h.l_id_herd === selectedHerdId)?.count ?? 0
+  const selectedHerdCount = selectedHerd?.count ?? 0
   // Strip size from the herd's grass demand over one period
-  const stripAllocation =
-    selectedHerdCount > 0 && grassIntake > 0 && grassOffer > 0 && periodDays > 0
-      ? calculateGrazingAllocationArea({
-          animals: selectedHerdCount,
-          grassIntakeKgDmPerAnimalPerDay: grassIntake,
-          availableGrassKgDmPerHa: grassOffer,
-          days: periodDays,
-        })
-      : null
+  const stripAllocation = useMemo(
+    () =>
+      selectedHerdCount > 0 && grassIntake > 0 && grassOffer > 0 && periodDays > 0
+        ? calculateGrazingAllocationArea({
+            animals: selectedHerdCount,
+            grassIntakeKgDmPerAnimalPerDay: grassIntake,
+            availableGrassKgDmPerHa: grassOffer,
+            days: periodDays,
+          })
+        : null,
+    [selectedHerdCount, grassIntake, grassOffer, periodDays],
+  )
   const useStrips = selectedSystem.grazingType === "partial" && partialMode === "strips"
 
   // Nieuw Nederlands Weiden: the chosen fields are divided into plots of equal size, and the herd
@@ -430,7 +466,7 @@ function GrazingPlanAssistent() {
     }
 
     const fieldsToUse = grasslandFields.filter((f) => selectedFieldIds.includes(f.b_id))
-    if (fieldsToUse.length === 0 || !selectedHerdId) {
+    if (fieldsToUse.length === 0 || !selectedHerd) {
       return { generatedRows: [], collisions: [] }
     }
 
@@ -458,26 +494,35 @@ function GrazingPlanAssistent() {
     }> = []
 
     // What the herd already has on the days of the plan: the grazing hours per day, added up over
-    // its grazings, and the days of a grazing without a field.
+    // its grazings
     const bookedHours = new Map<string, number>()
-    const herdLevelDays = new Set<string>()
     for (const g of existingGrazings) {
-      if (g.l_id_herd !== selectedHerdId) continue
+      if (g.l_id_herd !== herdId) continue
       const first = g.l_grazing_start.slice(0, 10)
       const last = g.l_grazing_end ? g.l_grazing_end.slice(0, 10) : first
       for (let day = first < startDate ? startDate : first; day <= last && day <= endDate;) {
-        // A grazing without a field blocks its days, except the end day when it ends at midnight
-        // (as fdm-core compares it: a period ending at midnight does not cover that day)
-        const endsAtMidnight = g.l_grazing_end?.endsWith("T00:00:00.000Z") ?? false
-        if (!g.b_id && (day < last || day === first || !endsAtMidnight)) herdLevelDays.add(day)
         bookedHours.set(day, (bookedHours.get(day) ?? 0) + (g.l_grazing_hours ?? 0))
         day = shiftPlanDay(day, 1)
       }
     }
+    // Whether the field has a grass cultivation on a day
+    const isGrassOn = (field: (typeof fieldsToUse)[number], day: string) =>
+      field.grassPeriods.some((p) => (!p.start || p.start <= day) && (!p.end || day <= p.end))
     // Why a period cannot be added, as fdm-core would refuse it, or null when it fits
-    const conflictReason = (from: string, to: string, hours: number): string | null => {
+    const conflictReason = (
+      field: (typeof fieldsToUse)[number],
+      from: string,
+      to: string,
+      hours: number,
+    ): string | null => {
       for (let day = from; day <= to; day = shiftPlanDay(day, 1)) {
-        if (herdLevelDays.has(day)) return "Overlapt met een beweiding zonder perceel"
+        if (selectedHerd.l_start && day < selectedHerd.l_start) {
+          return "Koppel liep toen nog niet"
+        }
+        if (selectedHerd.l_end && day >= selectedHerd.l_end) {
+          return "Koppel liep toen niet meer"
+        }
+        if (!isGrassOn(field, day)) return "Geen grasland in die periode"
         if ((bookedHours.get(day) ?? 0) + hours > MAX_HOURS_PER_DAY) {
           return "Meer dan 24 uur beweiden op een dag"
         }
@@ -513,7 +558,7 @@ function GrazingPlanAssistent() {
         for (let k = 0; k < plotsPerDay; k++) {
           const { field: f, plot } = plots[plotIndex % plots.length]
           plotIndex++
-          const reason = conflictReason(dayStr, dayStr, hoursPerPlot)
+          const reason = conflictReason(f, dayStr, dayStr, hoursPerPlot)
           if (reason) {
             skippedCollisions.push({
               fieldName: f.b_name,
@@ -525,7 +570,7 @@ function GrazingPlanAssistent() {
           }
           book(dayStr, dayStr, hoursPerPlot)
           rows.push({
-            l_id_herd: selectedHerdId,
+            l_id_herd: herdId,
             b_id: f.b_id,
             fieldName: f.b_name,
             fieldArea: f.b_area,
@@ -549,7 +594,7 @@ function GrazingPlanAssistent() {
       const activeField = fieldsToUse[fieldIndex % fieldsToUse.length]
 
       // Check that the herd's grazing on these days stays possible
-      const reason = conflictReason(sStr, eStr, hoursPerDay)
+      const reason = conflictReason(activeField, sStr, eStr, hoursPerDay)
       if (reason) {
         skippedCollisions.push({
           fieldName: activeField.b_name,
@@ -600,7 +645,7 @@ function GrazingPlanAssistent() {
             : undefined
 
         rows.push({
-          l_id_herd: selectedHerdId,
+          l_id_herd: herdId,
           b_id: activeField.b_id,
           fieldName: activeField.b_name,
           fieldArea: activeField.b_area,
@@ -623,7 +668,8 @@ function GrazingPlanAssistent() {
     selectedSystem,
     grasslandFields,
     selectedFieldIds,
-    selectedHerdId,
+    herdId,
+    selectedHerd,
     startDate,
     endDate,
     periodDays,
@@ -804,7 +850,7 @@ function GrazingPlanAssistent() {
                         <Field>
                           <FieldLabel htmlFor="plan-herd">Koppel</FieldLabel>
                           <Select
-                            value={selectedHerdId}
+                            value={herdId}
                             items={herds.map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
                             onValueChange={(v) => {
                               if (v !== null) setSelectedHerdId(v)
@@ -1229,9 +1275,8 @@ function GrazingPlanAssistent() {
                         <p className="flex items-center gap-1.5 font-semibold">
                           <AlertTriangle className="h-4 w-4 text-amber-600" />
                           {collisions.length}{" "}
-                          {collisions.length === 1 ? "periode past" : "perioden passen"} niet naast
-                          de bestaande beweiding van deze koppel en{" "}
-                          {collisions.length === 1 ? "wordt" : "worden"} overgeslagen:
+                          {collisions.length === 1 ? "periode kan" : "perioden kunnen"} niet worden
+                          vastgelegd en {collisions.length === 1 ? "wordt" : "worden"} overgeslagen:
                         </p>
                         <ul className="mt-1 list-disc space-y-0.5 pl-5">
                           {collisions.slice(0, 3).map((c, i) => (

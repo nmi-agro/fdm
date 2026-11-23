@@ -78,7 +78,6 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { useToday } from "~/hooks/use-today"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -90,7 +89,9 @@ import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/err
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
+import { farmTodayKey } from "~/lib/grazing-dates"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { serverNow } from "~/lib/server-now.server"
 import { useCalendarStore } from "~/store/calendar"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
@@ -262,6 +263,9 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       // farmVerification,
       isRvoConfigured,
       hasHerds,
+      // Today's grazing is always in the current year in the Netherlands, whatever year is
+      // selected
+      grazingYear: farmTodayKey(serverNow()).slice(0, 4),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -460,8 +464,6 @@ export default function FarmDashboardIndex() {
   const fetcher = useFetcher()
 
   const calendar = useCalendarStore((state) => state.calendar)
-  // "Today" is only known on the client
-  const today = useToday()
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const [searchParams, setSearchParams] = useSearchParams()
   const years = getCalendarSelection()
@@ -739,8 +741,7 @@ export default function FarmDashboardIndex() {
                   <CardContent className="divide-border divide-y p-0">
                     {loaderData.hasHerds && (
                       <ActionLink
-                        // Today's grazing is always in the current year, whatever year is selected
-                        to={`${today ? today.getFullYear() : calendar}/atlas/grazing`}
+                        to={`${loaderData.grazingYear}/atlas/grazing`}
                         icon={<Icon iconNode={cowHead} className="text-primary h-5 w-5" />}
                         title="Beweiding vandaag"
                         description="Leg vast op welk perceel de koppels vandaag weiden."
