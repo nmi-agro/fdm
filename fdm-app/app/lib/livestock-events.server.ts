@@ -21,7 +21,8 @@ import { farmTodayKey } from "~/lib/grazing-dates"
 import { serverNow } from "~/lib/server-now.server"
 
 /**
- * The arrival of the animals of a new herd, from the submitted day `l_arriving_date`
+ * The arrival of new animals (of a new herd, or added to a herd), from the submitted day
+ * `l_arriving_date`
  * (`YYYY-MM-DD`). Today is recorded as now, another day as the start of that day (midnight UTC,
  * like the other date-only livestock dates). Without a day the animals arrive now.
  *
@@ -94,7 +95,14 @@ export async function handleLivestockEvent(
     const options = { expected_count: previousCount }
     if (targetCount > previousCount) {
       const toAdd = targetCount - previousCount
-      await addAnimalsToHerd(fdm, principal_id, l_id_herd, toAdd, undefined, options)
+      await addAnimalsToHerd(
+        fdm,
+        principal_id,
+        l_id_herd,
+        toAdd,
+        { l_arriving_date: parseHerdArrival(formData) },
+        options,
+      )
       return dataWithSuccess(
         { targetCount },
         { message: `${toAdd} ${toAdd === 1 ? "dier" : "dieren"} toegevoegd.` },
