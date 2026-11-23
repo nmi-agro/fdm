@@ -323,12 +323,14 @@ describe("Animal Domain", () => {
   it("should correct an animal_assigning record via updateAnimalAssigning", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL700000010",
+      l_arriving_date: new Date("2025-01-01"),
     })
 
     const before = await getAnimal(fdm, principal_id, l_id_animal)
     const originalStart = before.l_arriving_date as Date
 
-    const correctedStart = new Date(originalStart.getTime() - 60_000)
+    // A correction can move the start later, but not before the arrival
+    const correctedStart = new Date(originalStart.getTime() + 86_400_000)
     await updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, originalStart, {
       l_assigning_start: correctedStart,
     })
@@ -808,6 +810,125 @@ describe("Animal Domain", () => {
     expect(history.find((row) => row.l_id_herd === herdC)?.l_assigning_start).toEqual(
       new Date("2025-01-25"),
     )
+
+    // A departure closes C, the open assignment, not the emptied B that starts later
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-03-01") })
+    const afterDeparture = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(afterDeparture.find((row) => row.l_id_herd === herdC)?.l_assigning_end).toEqual(
+      new Date("2025-03-01"),
+    )
+    expect(afterDeparture.find((row) => row.l_id_herd === herdB)?.l_assigning_end).toEqual(moveDate)
+    // Moving the departure moves the end of C again
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-03-05") })
+    const moved = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(moved.find((row) => row.l_id_herd === herdC)?.l_assigning_end).toEqual(
+      new Date("2025-03-05"),
+    )
+  })
+
+  it("should not reopen an assignment beyond the end of its herd", async () => {
+    const herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Ending",
+      l_id_category: "rvo_100",
+    })
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const end = new Date("2025-02-01")
+    await leaveHerd(fdm, principal_id, herd, end, "sold")
+
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: null }),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("end of its herd") } })
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-03-01") }),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("end of its herd") } })
+    // A correction within the herd's period still works
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-01-20") })
+    expect((await getAnimal(fdm, principal_id, l_id_animal)).l_leaving_date).toEqual(
+      new Date("2025-01-20"),
+    )
+  })
+
+  it("should count the expected number on the leaving date of a scheduled reduction", async () => {
+    const herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Scheduled",
+      l_id_category: "rvo_100",
+    })
+    await addAnimalsToHerd(fdm, principal_id, herd, 3)
+    const nextWeek = new Date(Date.now() + 7 * 86_400_000)
+
+    // Two clients saw three animals and each schedules one departure for next week
+    await removeAnimalsFromHerd(
+      fdm,
+      principal_id,
+      herd,
+      1,
+      { l_leaving_date: nextWeek },
+      {
+        expected_count: 3,
+      },
+    )
+    await expect(
+      removeAnimalsFromHerd(
+        fdm,
+        principal_id,
+        herd,
+        1,
+        { l_leaving_date: nextWeek },
+        {
+          expected_count: 3,
+        },
+      ),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("Number of animals in the herd has changed") },
+    })
+  })
+
+  it("should not start an assignment before the animal arrived", async () => {
+    const herdB = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Arrival B",
+      l_id_category: "rvo_100",
+    })
+    const arrival = new Date("2025-03-01")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: arrival,
+    })
+    const beforeArrival = {
+      cause: { message: expect.stringContaining("before the animal arrived") },
+    }
+
+    // A correction cannot move the assignment before the arrival
+    await expect(
+      updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, arrival, {
+        l_assigning_start: new Date("2025-02-01"),
+      }),
+    ).rejects.toMatchObject(beforeArrival)
+
+    // Also without any assignment left, a move cannot be dated before the arrival
+    await removeAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, arrival)
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, herdB, new Date("2025-02-01")),
+    ).rejects.toMatchObject(beforeArrival)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdB, arrival)
+  })
+
+  it("should only write the documented columns of an assignment correction", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const other = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    // A key added at runtime is ignored
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, new Date("2025-01-01"), {
+      l_assigning_end: new Date("2025-06-01"),
+      l_id_animal: other,
+    } as Parameters<typeof updateAnimalAssigning>[5])
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history).toHaveLength(1)
+    expect(history[0].l_assigning_end).toEqual(new Date("2025-06-01"))
+    expect(await getAnimalAssignmentHistory(fdm, principal_id, other)).toHaveLength(1)
   })
 
   it("should not pick an animal that only arrives later in a reduction", async () => {

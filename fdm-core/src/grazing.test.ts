@@ -964,6 +964,68 @@ describe("Grazing zones", () => {
     ).rejects.toMatchObject(exceeds)
   })
 
+  it("keeps a grazing within the period of its herd", async () => {
+    const outside = {
+      cause: { message: expect.stringContaining("outside the period of the herd") },
+    }
+    const herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Seizoen",
+      l_id_category: "rvo_100",
+      l_start: day(5),
+      l_end: day(20),
+    })
+    // Before the start, through the end, or still running after the end: refused
+    await expect(
+      addGrazing(fdm, principal_id, herd, day(4), { b_id, l_grazing_end: day(6) }),
+    ).rejects.toMatchObject(outside)
+    await expect(
+      addGrazing(fdm, principal_id, herd, day(18), { b_id, l_grazing_end: day(20) }),
+    ).rejects.toMatchObject(outside)
+    await expect(addGrazing(fdm, principal_id, herd, day(18), { b_id })).rejects.toMatchObject(
+      outside,
+    )
+    await expect(
+      addGrazings(fdm, principal_id, [{ l_id_herd: herd, b_id, l_grazing_start: day(2) }]),
+    ).rejects.toMatchObject(outside)
+
+    // Within the period: accepted, and a correction cannot move it out
+    await addGrazing(fdm, principal_id, herd, day(5), { b_id, l_grazing_end: day(19) })
+    const [grazing] = await getGrazingForHerd(fdm, principal_id, herd)
+    await expect(
+      updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_end: null }),
+    ).rejects.toMatchObject(outside)
+  })
+
+  it("only changes the documented columns of a grazing correction", async () => {
+    const otherHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Ander",
+      l_id_category: "rvo_100",
+    })
+    await addGrazing(fdm, principal_id, l_id_herd, day(5), { b_id, l_grazing_end: day(5) })
+    const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    // A key added at runtime is ignored
+    await updateGrazing(fdm, principal_id, grazing.l_id_grazing, {
+      l_grazing_hours: 6,
+      l_id_herd: otherHerd,
+    } as Parameters<typeof updateGrazing>[3])
+    const corrected = await getGrazing(fdm, principal_id, grazing.l_id_grazing)
+    expect(corrected.l_id_herd).toBe(l_id_herd)
+    expect(corrected.l_grazing_hours).toBe(6)
+  })
+
+  it("lists the zones of grazings that overlap a period, also when they started earlier", async () => {
+    await addGrazing(fdm, principal_id, l_id_herd, day(1), {
+      b_id,
+      l_grazing_end: day(12),
+      l_grazing_geometry_zone: strip(5.0, 5.005),
+    })
+    const zones = await getGrazingZonesForField(fdm, principal_id, b_id, 20, {
+      from: day(10),
+      to: day(15),
+    })
+    expect(zones).toHaveLength(1)
+  })
+
   it("finds grazings that started before the timeframe and run into it", async () => {
     const yearStart = new Date("2026-01-01T00:00:00.000Z")
     const timeframe = { start: yearStart, end: new Date("2026-12-31T23:59:59.999Z") }

@@ -560,8 +560,20 @@ export async function updateAnimal(
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "updateAnimal")
 
-    const { l_leaving_date, l_leaving_method, ...animalProperties } = properties
+    const { l_leaving_date, l_leaving_method } = properties
+    // Only the documented columns: a key added at runtime is never written
+    const animalProperties = {
+      l_id_eartag: properties.l_id_eartag,
+      l_id_worknumber: properties.l_id_worknumber,
+      l_specie: properties.l_specie,
+      l_breed: properties.l_breed,
+      l_coatcolor: properties.l_coatcolor,
+      l_birth_date: properties.l_birth_date,
+      l_sex: properties.l_sex,
+    }
     const updated = new Date()
+    // The departure before this change, to find the assignment it closed
+    let previousLeavingDate: Date | null = null
 
     await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm before reading anything
@@ -627,6 +639,7 @@ export async function updateAnimal(
         }
 
         const { b_id_farm } = current[0]
+        previousLeavingDate = current[0].l_leaving_date
         if (properties.l_id_eartag !== undefined) {
           // An empty or null life number clears it
           animalProperties.l_id_eartag = properties.l_id_eartag
@@ -689,7 +702,9 @@ export async function updateAnimal(
 
         // The herd assignment ends when the animal leaves. Setting, moving or clearing the
         // departure sets, moves or clears the end of the animal's last assignment, identified by
-        // its key, so an earlier assignment that ends on the same date is left alone
+        // its key, so an earlier assignment that ends on the same date is left alone. The last
+        // assignment is the one the previous departure closed, or else the open one; an
+        // assignment emptied by a correction does not count.
         if (leavingDateChanges) {
           const [last] = await tx
             .select({
@@ -697,7 +712,14 @@ export async function updateAnimal(
               l_assigning_start: schema.animalAssigning.l_assigning_start,
             })
             .from(schema.animalAssigning)
-            .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+            .where(
+              and(
+                eq(schema.animalAssigning.l_id_animal, l_id_animal),
+                previousLeavingDate
+                  ? eq(schema.animalAssigning.l_assigning_end, previousLeavingDate)
+                  : isNull(schema.animalAssigning.l_assigning_end),
+              ),
+            )
             // Two moves on one day give two assignments with the same start; the one opened last
             // (the latest move, so the later `created`) is the animal's last assignment
             .orderBy(
@@ -706,6 +728,18 @@ export async function updateAnimal(
             )
             .limit(1)
           if (last) {
+            // The assignment cannot run past the end of its herd, for example after `leaveHerd`
+            const [herdEnd] = await tx
+              .select({ l_end: schema.herdEnding.l_end })
+              .from(schema.herdEnding)
+              .where(eq(schema.herdEnding.l_id_herd, last.l_id_herd))
+              .limit(1)
+            if (
+              herdEnd?.l_end &&
+              (!l_leaving_date || new Date(l_leaving_date) > new Date(herdEnd.l_end))
+            ) {
+              throw new Error("Animal assignment cannot extend beyond the end of its herd")
+            }
             await tx
               .update(schema.animalAssigning)
               .set({ l_assigning_end: l_leaving_date ?? null, updated })
@@ -1098,9 +1132,10 @@ function buildAnimalRows(
  * @param l_id_herd - Herd ID.
  * @param count - Number of animals to remove from the herd.
  * @param properties - Optional leaving date and leaving method.
- * @param options - Optional `expected_count`: the number of animals the caller saw in the herd.
- *   When the herd holds a different number now, no animal leaves, so two changes made from the
- *   same stale count don't both apply.
+ * @param options - Optional `expected_count`: the number of animals the caller saw in the herd,
+ *   counted on the leaving date (today when no date is given). When the herd holds a different
+ *   number on that date, no animal leaves, so two changes made from the same stale count don't
+ *   both apply, also when both schedule a departure in the future.
  * @returns IDs of the animals marked as leaving.
  */
 export async function removeAnimalsFromHerd(
@@ -1126,8 +1161,9 @@ export async function removeAnimalsFromHerd(
       // the same animals. Animals that already have a departure (also one in the future) are
       // leaving anyway and are not picked again; animals that only join later can't leave yet.
       await lockFarmOfHerd(tx, l_id_herd)
-      await assertExpectedCount(tx, l_id_herd, new Date(), options?.expected_count)
       const leavingDate = properties?.l_leaving_date ?? new Date()
+      // Counted on the leaving date: an animal scheduled to leave by then no longer counts
+      await assertExpectedCount(tx, l_id_herd, leavingDate, options?.expected_count)
 
       const activeAssignments = await tx
         .select({
@@ -1308,6 +1344,7 @@ export async function assignAnimalToHerd(
           b_id_farm: schema.animalArriving.b_id_farm,
           l_specie: schema.animals.l_specie,
           l_sex: schema.animals.l_sex,
+          l_arriving_date: schema.animalArriving.l_arriving_date,
           l_leaving_date: schema.animalLeaving.l_leaving_date,
         })
         .from(schema.animals)
@@ -1330,6 +1367,7 @@ export async function assignAnimalToHerd(
         throw new Error("Animal has left the farm")
       }
 
+
       // The assignment the animal is in on the date of the move; for a move in the past this is
       // not always the open one (a departure in the future or a later move may have ended it)
       const assignments = await tx
@@ -1347,6 +1385,10 @@ export async function assignAnimalToHerd(
       )
       if (!current && assignments.length > 0) {
         throw new Error("Move cannot be before the current herd assignment")
+      }
+      // Also when the animal has no assignment left: it can't join a herd before it arrived
+      if (animal.l_arriving_date && l_assigning_start < animal.l_arriving_date) {
+        throw new Error("Assignment cannot start before the animal arrived")
       }
       if (current?.l_id_herd === target_l_id_herd) {
         throw new Error(`Animal already belongs to herd ${target_l_id_herd}`)
@@ -1727,7 +1769,10 @@ export async function updateAnimalAssigning(
 
       if (properties.l_id_herd || properties.l_assigning_start) {
         const arriving = await tx
-          .select({ b_id_farm: schema.animalArriving.b_id_farm })
+          .select({
+            b_id_farm: schema.animalArriving.b_id_farm,
+            l_arriving_date: schema.animalArriving.l_arriving_date,
+          })
           .from(schema.animalArriving)
           .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
           .limit(1)
@@ -1737,6 +1782,9 @@ export async function updateAnimalAssigning(
 
         if (arriving.length === 0 || herdFarm !== arriving[0].b_id_farm) {
           throw new Error(`Herd ${nextHerd} does not belong to the animal's farm`)
+        }
+        if (arriving[0].l_arriving_date && nextStart < arriving[0].l_arriving_date) {
+          throw new Error("Assignment cannot start before the animal arrived")
         }
       }
 
@@ -1760,7 +1808,14 @@ export async function updateAnimalAssigning(
 
       const result = await tx
         .update(schema.animalAssigning)
-        .set({ ...properties, updated: new Date() })
+        // Only the documented columns: a key added at runtime (such as another animal) is never
+        // written
+        .set({
+          l_id_herd: properties.l_id_herd,
+          l_assigning_start: properties.l_assigning_start,
+          l_assigning_end: properties.l_assigning_end,
+          updated: new Date(),
+        })
         .where(
           and(
             eq(schema.animalAssigning.l_id_animal, l_id_animal),
