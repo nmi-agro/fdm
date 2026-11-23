@@ -137,7 +137,7 @@ Percelen zonder perceelsgrens krijgen altijd het percentage. Het plan loopt tot 
 
 ## Beweiding per perceel {#perceel}
 
-Op de pagina van een perceel staat het tabblad **Beweiding**. Daar zie je alle beweidingen en maaisneden van dat perceel op een rij, met per gebruik de koppel, de uren per dag, het beweide deel en de rust ervoor. Een rust die korter is dan de richtlijn, is gemarkeerd. Zijn er zones beweid, dan zie je ze op een kaart. Met **Beweiding toevoegen** leg je een beweiding vast voor dit perceel. Klik op de koppel van een beweiding om die aan te passen of te verwijderen; zo bereik je ook een beweiding buiten het seizoen van de kalender.
+Op de pagina van een perceel staat het tabblad **Beweiding**. Bovenaan staan de weidedagen, de weide-uren, het aantal beweidingsperioden en de maaisneden van het jaar. Daaronder zie je alle beweidingen en maaisneden van dat perceel op een rij, met per gebruik de koppel, de uren per dag, het beweide deel en de rust ervoor. Een geplande beweiding is gemarkeerd met _Gepland_, en een rust die korter is dan de richtlijn ook. Zijn er zones beweid, dan staan ze op een kaart naast de lijst; geplande beweiding staat niet op de kaart. Met **Beweiding toevoegen** leg je een beweiding vast voor dit perceel. Klik op de koppel van een beweiding om die aan te passen of te verwijderen; zo bereik je ook een beweiding buiten het seizoen van de kalender.
 
 De rust telt per deel van het perceel: bij stripgrazen krijgt elke strook zijn eigen rustperiode.
 
