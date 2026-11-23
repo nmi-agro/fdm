@@ -4,7 +4,13 @@ import type {
   PhosphateVerdict,
   ValueWithRange,
 } from "./types"
-import { classifyYears, kgP2O5PerPsdPoint, yearsTo } from "./projection"
+import {
+  classifyYears,
+  kgP2O5PerPsdPoint,
+  P_AL_GOOD_MAX,
+  P_AL_GOOD_MIN,
+  yearsTo,
+} from "./projection"
 
 /**
  * Rules of the phosphate status assessment.
@@ -12,10 +18,13 @@ import { classifyYears, kgP2O5PerPsdPoint, yearsTo } from "./projection"
  * DRAFT: the margins and horizons are to be reviewed with the researchers.
  */
 export const PHOSPHATE_STATUS_RULES = {
-  /** Agronomic minimum of P-AL (mg P2O5 / 100 g): below it, building up is needed for the yield */
-  p_al_min: 25,
+  /**
+   * Agronomic minimum of P-AL (mg P2O5 / 100 g): below it, building up is needed for the yield.
+   * Lower bound of the class "Goed" (target value 35) of the Handboek Bodem en Bemesting.
+   */
+  p_al_min: P_AL_GOOD_MIN,
   /** P-AL above which the stock is high (mg P2O5 / 100 g); the bound when the PSD is not available */
-  p_al_high: 45,
+  p_al_high: P_AL_GOOD_MAX,
   /** Margin around a P-AL bound that counts as "close enough" (mg P2O5 / 100 g) */
   p_al_margin: 3,
   /** Margin around the PSD threshold that counts as "close enough" (percentage points) */
@@ -57,21 +66,23 @@ function yearsRange(track: Track, to: number): ValueWithRange | null {
  * Assesses the soil phosphorus of a field against its target zone, from the long-term average
  * balance: where the status is (below, in or above the zone), which way it goes and how long it takes.
  *
- * The target zone has an agronomic lower bound (P-AL ≥ 25, enough for the yield) and an
+ * The target zone has an agronomic lower bound (P-AL ≥ 35, enough for the yield) and an
  * environmental upper bound (PSD ≤ the field threshold). When the PSD is not available or not
- * reliable for the soil type, P-AL 25–45 is used as the zone. Being within the margin of a bound
+ * reliable for the soil type, P-AL 35–45 is used as the zone. Being within the margin of a bound
  * counts as reaching it: getting close is enough.
  *
  * - Above the zone (PSD above the threshold): `afbouwen`. The environment comes first, also when
- *   P-AL is not high (`conflict`). When P-AL is also below 25 the aim is `onderhouden`: neither
- *   building up nor mining, to be judged by an advisor.
- * - Below the zone (P-AL < 25): `opbouwen`.
+ *   P-AL is not high (`conflict`). When P-AL is also below 35 the aim is `onderhouden`: neither
+ *   building up nor mining; the app shows the effect of the balance on both.
+ * - Below the zone (P-AL < 35): `opbouwen`.
  * - In the zone: `onderhouden`; any direction is fine as long as the status stays in the zone.
  *
  * Verdict: outside the zone `good` when the zone is reached within `reach_horizon` years, `attention`
  * when the direction is right but slower, `adjust` when the direction is wrong or there is no change.
- * Inside the zone `good` when it stays for more than `stay_horizon` years, `attention` when it leaves
- * it within that horizon, `adjust` when it leaves it within `leave_soon` years.
+ * Inside the zone `good`, unless the PSD crosses the threshold: then `attention` when that happens
+ * within `stay_horizon` years and `adjust` within `leave_soon` years. A P-AL that declines towards
+ * the lower bound keeps the verdict `good` (P-AL in the zone is "Goed" for the crop); its years are
+ * still reported.
  *
  * DRAFT for discussion: rules and parameters in `PHOSPHATE_STATUS_RULES`.
  *
@@ -230,6 +241,12 @@ export function assessPhosphateStatus(balance: PhosphateBalanceField): Phosphate
   status.binding = first.candidate.track.indicator
   status.years = first.years
   status.years_class = classifyYears(first.years.value)
+  // P-AL in the zone is good for the crop (class "Goed" of the Handboek Bodem en Bemesting): the
+  // years until it leaves the zone are reported, but only the PSD can lower the verdict here
+  if (first.candidate.track.indicator === "p_al") {
+    status.verdict = "good"
+    return status
+  }
   status.verdict =
     first.years.value > R.stay_horizon
       ? "good"

@@ -23,7 +23,7 @@ import {
   calculatePhosphateMineralization,
   yearsInTimeframe,
 } from "./mineralization"
-import { calculatePhosphateProjection } from "./projection"
+import { calculatePhosphateProjection, P_AL_GOOD_MIN } from "./projection"
 import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 import { assessPhosphateStatus } from "./status"
 
@@ -307,7 +307,7 @@ function calculateRemovalByResidues(
 
 /**
  * Determines the Opbouwen / Onderhouden / Afbouwen frame from P-AL, as proposed in the issue:
- * P-AL < 25 opbouwen, 25–45 onderhouden, > 45 afbouwen. The minimum desirable balance is the fixation
+ * P-AL < 35 opbouwen, 35–45 onderhouden, > 45 afbouwen (Handboek Bodem en Bemesting, class Goed). The minimum desirable balance is the fixation
  * (offtake + fixation) when building up or maintaining; when reducing, a deficit is acceptable.
  *
  * DRAFT: the same P-AL bands are used for grassland and arable land.
@@ -318,7 +318,7 @@ function calculateRemovalByResidues(
  */
 export function determinePhosphateFrame(a_p_al: number | null, fixation: number): PhosphateFrame {
   if (a_p_al === null) return { name: null, a_p_al: null, target_balance_min: null }
-  if (a_p_al < 25) return { name: "opbouwen", a_p_al, target_balance_min: fixation }
+  if (a_p_al < P_AL_GOOD_MIN) return { name: "opbouwen", a_p_al, target_balance_min: fixation }
   if (a_p_al <= 45) return { name: "onderhouden", a_p_al, target_balance_min: fixation }
   return { name: "afbouwen", a_p_al, target_balance_min: null }
 }

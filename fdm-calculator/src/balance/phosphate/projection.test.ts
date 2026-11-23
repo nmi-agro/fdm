@@ -105,12 +105,12 @@ describe("calculatePhosphateProjection", () => {
     expect(projection.a_density_sa).toEqual({ value: 0.6, source: "default_soil_type" })
   })
 
-  it("should use P-AL 25 as the floor in the medium range and no floor below it", () => {
-    const medium = project(-60, [{ a_p_al: 35, b_soiltype_agr: "zeeklei" }])
-    expect(medium.p_al?.floor).toBe(25)
-    // (−60 − 20) / 50 = −1.6 per year; (35 − 25) / 1.6 = 6.25 years
+  it("should use P-AL 35 (Handboek class Goed) as the floor in the medium range and no floor below it", () => {
+    const medium = project(-60, [{ a_p_al: 45, b_soiltype_agr: "zeeklei" }])
+    expect(medium.p_al?.floor).toBe(35)
+    // (−60 − 20) / 50 = −1.6 per year; (45 − 35) / 1.6 = 6.25 years
     expect(medium.p_al?.years?.value).toBeCloseTo(6.25)
-    const low = project(-60, [{ a_p_al: 20, b_soiltype_agr: "zeeklei" }])
+    const low = project(-60, [{ a_p_al: 30, b_soiltype_agr: "zeeklei" }])
     expect(low.p_al?.floor).toBeNull()
     expect(low.p_al?.years).toBeNull()
   })

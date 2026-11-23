@@ -34,7 +34,7 @@ The calculations are performed for a user-defined **Time Frame**, normally one c
 
 ## 2. Required Input Data
 
-- **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips get a balance of zero and are left out of the farm average.
+- **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips are not calculated: their field result has `exclusion` instead of a balance, and they are left out of the farm average (Section 4).
 - **Cultivation Data (per field):**
   - Crop type (`b_lu_catalogue`) and crop rotation group (`b_lu_croprotation`). A field with a cultivation in the `grass` rotation group is treated as grassland (sampling depth 0–10 cm), otherwise as arable land (0–25 cm).
   - Crop residue management (`m_cropresidue`): `false` means the residues are removed from the field.
@@ -189,7 +189,7 @@ effective balance (kg P₂O₅ / ha / year) = long-term balance + long-term leac
 
 `fixation` is 20 kg P₂O₅ / ha / year on mineral soils and 0 on peat (_draft_).
 
-- **P-AL:** `ΔP-AL per year = effective balance / buffer`. The buffer (kg P₂O₅ / ha per P-AL unit, _draft_: 65 for sandy soils and dalgrond, 50 for clay, moerige klei and loess, 45 for peat, with ranges) refers to 0–25 cm and is scaled to the sampling depth. The app shows P-AL as low (< 25), medium (25–45) or high (> 45) in this prototype.
+- **P-AL:** `ΔP-AL per year = effective balance / buffer`. The buffer (kg P₂O₅ / ha per P-AL unit, _draft_: 65 for sandy soils and dalgrond, 50 for clay, moerige klei and loess, 45 for peat, with ranges) refers to 0–25 cm and is scaled to the sampling depth. The app shows P-AL as low (< 35), medium (35–45, class Goed of the Handboek Bodem en Bemesting, all soil types) or high (> 45).
 - **PSD** (van Doorn, 2026, Eq. 5.7): `ΔP-ox (mmol / kg) = effective balance / 2.2914 / (ρ × 1000 × d × 0.31)` and `ΔPSD = ΔP-ox / PSC × 100`, with ρ the bulk density (g / cm³; soil-type default when missing) and d the sampling depth (m; from the analysis, otherwise 0.10 on grassland and 0.25 on arable land).
 
 The time until the PSD crosses the field threshold (back below it, or above it) is reported as a class: `reached`, `< 5`, `5–10`, `10–20`, `> 20` years, or `not_reached` at this balance.
@@ -198,24 +198,24 @@ The time until the PSD crosses the field threshold (back below it, or above it) 
 
 `assessPhosphateStatus(balance)` judges a field from its long-term average balance: where the soil phosphorus is relative to a target zone, which way it goes and how long it takes. It is a pure function of the field result (also exported from `@nmi-agro/fdm-calculator/browser`), so the rules can be tuned without recalculating cached balances. The rules are in `PHOSPHATE_STATUS_RULES` (_draft_).
 
-**Target zone.** The lower bound is agronomic: P-AL ≥ 25, enough for the yield. The upper bound is environmental: the PSD at or below the field threshold (Section 3.4.2). When the PSD is missing or not reliable for the soil type (`psd_valid` is false, e.g. calcareous sand), P-AL 25–45 is the zone.
+**Target zone.** The lower bound is agronomic: P-AL ≥ 35, the lower bound of class Goed and the target value (streefgetal) of the Handboek Bodem en Bemesting, for all soil types. The upper bound is environmental: the PSD at or below the field threshold (Section 3.4.2). When the PSD is missing or not reliable for the soil type (`psd_valid` is false, e.g. calcareous sand), P-AL 35–45 is the zone.
 
 | Position                                  | Aim (`aim`)   | Bound that sets it (`binding`)  |
 | ----------------------------------------- | ------------- | ------------------------------- |
 | PSD above the threshold                   | `afbouwen`    | `psd`                           |
-| P-AL below 25                             | `opbouwen`    | `p_al`                          |
+| P-AL below 35                             | `opbouwen`    | `p_al`                          |
 | P-AL above 45, no usable PSD              | `afbouwen`    | `p_al`                          |
 | In the zone                               | `onderhouden` | the bound crossed first, if any |
-| PSD above the threshold and P-AL below 25 | `onderhouden` | `psd`, with `conflict`          |
+| PSD above the threshold and P-AL below 35 | `onderhouden` | `psd`, with `conflict`          |
 
-When the PSD is above the threshold while P-AL is not high (≤ 45), the environment comes first and `conflict` is set: reducing is needed for the environment, not for the yield. `p_al_min_years` gives the years until P-AL reaches 25 at the current balance. When the PSD is above the threshold and P-AL is also below 25, no single direction is right; the field is flagged for an advisor.
+When the PSD is above the threshold while P-AL is not high (≤ 45), the environment comes first and `conflict` is set: reducing is needed for the environment, not for the yield. `p_al_min_years` gives the years until P-AL reaches 35 at the current balance. When the PSD is above the threshold and P-AL is also below 35, no single direction is right and the zone cannot be reached. The app then does not choose a goal: it shows what the balance does to both indicators (PSD towards or away from the threshold, P-AL towards or away from 35) and the effect of a lower or a higher balance.
 
 **Close enough.** Exact targets are not needed. Within 2 PSD percentage points of the threshold, or 3 P-AL units of a P-AL bound, counts as reached. The direction is `stable` when the effective balance (Section 3.4.3) is within ±1 kg P₂O₅ / ha / year.
 
 **Verdict.**
 
 - Outside the zone: `good` when the zone (with its margin) is reached within 10 years, `attention` when the direction is right but slower, `adjust` when the direction is wrong or there is no change.
-- Inside the zone: `good` when the status stays in the zone for more than 20 years (so a deficit on a rich soil is good), `attention` when it leaves the zone within 5–20 years, `adjust` within 5 years.
+- Inside the zone: `good`, unless the PSD crosses the field threshold: `attention` when that happens within 5–20 years, `adjust` within 5 years. A P-AL that declines towards 35 keeps the verdict `good`, because P-AL 35–45 is class "Goed" of the Handboek Bodem en Bemesting; the years until P-AL falls below 35 are still shown.
 - `unknown` without P-AL and PSD.
 
 `years` (with a range from the P-AL buffer) gives the time to reach the zone, or to leave it when inside. `indicative` is set when the PSD is not usable or less reliable for the soil type, the threshold is the general 25%, or the soil data are NMI estimates only.
@@ -238,7 +238,7 @@ The farm output (`PhosphateBalance`) provides:
 
 - `balance`, `supply`, `removal`, `leaching` and `long_term_balance` (kg P₂O₅ / ha, area-weighted), and `terms` with the supply per fertilizer type, mineralisation and deposition, and the removal by harvests and residues.
 - `status_area`: the area (ha) and number of fields per verdict of `assessPhosphateStatus`, without buffer strips.
-- `fields`: per field the ID, area, buffer strip flag and either the `balance` (`PhosphateBalanceField`) or an `errorMessage`.
+- `fields`: per field the ID, area, buffer strip flag and either the `balance` (`PhosphateBalanceField`), an `exclusion` (buffer strip, nature or landscape element; no balance) or an `errorMessage`.
 - `hasErrors`, `fieldErrorMessages`, and `errorMessage` when no balance could be calculated at all (e.g. `No fields in input`).
 
 The field output (`PhosphateBalanceField`) contains:

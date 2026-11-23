@@ -349,12 +349,6 @@ export function PhosphateStockCard({
       ? formatYearsBand(status.years)
       : null
     : formatYearsBand(status.p_al_min_years)
-  // Without a usable PSD, P-AL 25–45 is the whole target zone; otherwise only its floor counts
-  const pAlOnly = !(
-    projection?.psd &&
-    projection.psd.threshold.value !== null &&
-    balance.saturation.psd_valid
-  )
   return (
     <Card className={cn("flex flex-col", className)}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-2">
@@ -388,9 +382,16 @@ export function PhosphateStockCard({
               deltaRange={delta.min !== delta.max ? { min: delta.min, max: delta.max } : undefined}
               bounds={[
                 { value: P_AL_LOW, label: "ondergrens gewas" },
-                ...(pAlOnly ? [{ value: P_AL_HIGH, label: "hoog" }] : []),
+                { value: P_AL_HIGH, label: "bovengrens goed" },
               ]}
-              band={{ from: P_AL_LOW, to: pAlOnly ? P_AL_HIGH : undefined, label: "streefzone" }}
+              // Class "Goed" of the Handboek (35–45) on an axis from 10 (below: "laag") to 65 (above:
+              // "hoog"); ticks every 10 as on the PSD chart, plus the class bounds
+              band={{ from: P_AL_LOW, to: P_AL_HIGH, label: "goed" }}
+              fixedAxis={{
+                min: 10,
+                max: 65,
+                ticks: [10, 20, 30, P_AL_LOW, 40, P_AL_HIGH, 50, 60, 65],
+              }}
               boundColor={P_AL_LEVEL_COLOR}
               unit=""
               measurements={measurements}
@@ -424,11 +425,11 @@ export function PhosphateStockCard({
                 .
               </Detail>
               <Detail title="Niveaus">
-                P-AL {P_AL_LOW} is de landbouwkundige ondergrens van de streefzone: daaronder is
-                opbouwen nodig voor de opbrengst. Boven {P_AL_HIGH} is de voorraad hoog; zonder
-                bruikbare fosfaatverzadiging is dat de bovengrens. Ter vergelijking: het
-                landbouwkundige streefniveau voor bouwland is P-AL 40 (Handboek Bodem en Bemesting);
-                de wettelijke fosfaatklasse (RVO) gebruikt P-AL én P-CaCl₂.
+                P-AL {P_AL_LOW}–{P_AL_HIGH} is de klasse &lsquo;goed&rsquo; van het Handboek Bodem
+                en Bemesting, voor alle grondsoorten (streefgetal {P_AL_LOW}). Daaronder is opbouwen
+                nodig voor de opbrengst. Boven {P_AL_HIGH} hoeft de voorraad niet op peil gehouden
+                te worden; zonder bruikbare fosfaatverzadiging is dat de bovengrens. De wettelijke
+                fosfaatklasse (RVO) gebruikt P-AL én P-CaCl₂.
               </Detail>
               <Detail title="Bronnen">
                 <ul className="list-disc pl-4">

@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader } from "~/components/ui/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { cn } from "~/lib/utils"
 import {
+  describeConflictEffects,
   describePhosphateDirection,
   formatLongTermRange,
   hasLongTermAverage,
@@ -64,7 +65,7 @@ function within(value: number, low = 0.08, high = 0.92): number {
 }
 
 /**
- * The target zone as one picture: building up (below P-AL 25), the target zone, and reducing (above
+ * The target zone as one picture: building up (below P-AL 35), the target zone, and reducing (above
  * the PSD threshold, or P-AL 45 without a usable PSD), with the field's position and the direction
  * of its long-term average balance. Schematic: the three parts are not to scale.
  *
@@ -240,8 +241,11 @@ export function PhosphateStatusCard({
   const edge = describeEdge(balance, status)
   const range = formatLongTermRange(balance.long_term.years)
   const threshold = psd?.threshold.value ?? null
-  const positionLabel =
-    showPsd && psd && threshold !== null && psd.current.value > threshold
+  const conflict = status.conflict && status.aim === "onderhouden"
+  const effects = conflict ? describeConflictEffects(balance) : null
+  const positionLabel = conflict
+    ? "Boven de milieugrens én onder de ondergrens"
+    : showPsd && psd && threshold !== null && psd.current.value > threshold
       ? "Boven de milieugrens"
       : pAl !== null && pAl < P_AL_LOW
         ? "Onder de ondergrens voor het gewas"
@@ -293,15 +297,24 @@ export function PhosphateStatusCard({
                     : undefined
                 }
               />
-              <Fact
-                title={inside ? "Hoe lang in de streefzone" : "Hoe lang tot het doel"}
-                value={yearsValue}
-                note={
-                  yearsFromAdvice
-                    ? `Bij de huidige balans niet. ${edge ?? ""}`
-                    : (edge ?? undefined)
-                }
-              />
+              {effects ? (
+                // No single goal: show what the balance does to both indicators
+                <Fact
+                  title="Effect van de balans"
+                  value={effects.psd ?? effects.pAl ?? "–"}
+                  note={effects.psd ? (effects.pAl ?? undefined) : undefined}
+                />
+              ) : (
+                <Fact
+                  title={inside ? "Hoe lang in de streefzone" : "Hoe lang tot het doel"}
+                  value={yearsValue}
+                  note={
+                    yearsFromAdvice
+                      ? `Bij de huidige balans niet. ${edge ?? ""}`
+                      : (edge ?? undefined)
+                  }
+                />
+              )}
             </dl>
           </>
         ) : (

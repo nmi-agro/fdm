@@ -209,7 +209,7 @@ export type PhosphateProjection = {
     /** kg P2O5 / ha per P-AL unit, scaled to the sampling depth */
     buffer: ValueWithRange
     delta_per_year: ValueWithRange
-    /** Lower bound the P-AL declines towards: 45 (afbouwen) or 25 (onderhouden) */
+    /** Lower bound the P-AL declines towards: 45 (afbouwen) or 35 (onderhouden) */
     floor: number | null
     years: ValueWithRange | null
     years_class: YearsClass

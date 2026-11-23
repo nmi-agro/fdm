@@ -4,4 +4,4 @@
 "@nmi-agro/fdm-docs": patch
 ---
 
-Phosphate balance: earlier years count in the long-term average only when they have registered fertilizer applications or harvests. Without them, the trend uses the balance of the selected year, the app shows that balance instead of an average, and a warning asks to add the data of the earlier years.
+Phosphate balance: when no earlier year has registered fertilizer applications or harvests, the trend uses the balance of the selected year. The field page then shows that balance instead of an average, and a warning asks to add the fertilisation and harvests of the earlier years.
