@@ -68,7 +68,7 @@ Handig om te weten: het jaar staat ook in het webadres. Stuur je een link naar e
 | Organisatie | **Mijn organisaties** en, als je een organisatie kiest, de overzichten over meerdere bedrijven                                                                                                                                                   |
 | Onderaan    | **Handleiding**, **Ondersteuning**, de melding **Wat is er nieuw?** en het menu onder je naam (Account, Cookies, Organisaties, Uitloggen)                                                                                                        |
 
-**Melkvee** verschijnt zodra je een bedrijf hebt gekozen. Heeft het bedrijf nog geen dieren, dan staat er **Melkvee toevoegen**.
+**Melkvee** verschijnt zodra je een bedrijf hebt gekozen dat een koppel heeft of heeft gehad. Heeft het bedrijf nog nooit een koppel gehad, dan staat er **Melkvee toevoegen**, als je het bedrijf mag aanpassen.
 
 Is een onderdeel grijs? Dan heb je nog geen bedrijf gekozen. Klik erop en kies een bedrijf in het venster **Kies een bedrijf**.
 

@@ -69,7 +69,7 @@ Klik op een dier om de details te openen. Daar:
 
 - vul je levensnummer, werknummer, geboortedatum en geslacht aan en sla je ze op met **Wijzigingen opslaan**. Is het geslacht nog niet bekend, dan staat er _Onbekend_;
 - verplaats je het dier naar een andere koppel met **Verplaats naar koppel**;
-- leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**;
+- leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**. Een afvoer in de toekomst houdt het dier tot die datum in zijn koppel;
 - zie je de beweidingshistorie van het dier en in welke koppels het heeft gelopen.
 
 ### Levensnummer en werknummer {#levensnummer}

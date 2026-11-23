@@ -30,7 +30,7 @@ Deze pagina legt uit hoe {{appName}} de getallen bij beweiding berekent: de weid
 
 Een weidedag is een kalenderdag waarop een koppel buiten heeft gelopen. Loopt een koppel op één dag op twee percelen, dan telt die dag één keer. Voor de weide-uren tellen de uren van alle beweidingen van een koppel op één dag op: 8 uur op het ene perceel of de ene zone en 7 uur op een andere is 15 uur voor die koppel, tot hoogstens 24 uur. Een koppel kan op een dag dus meer dan één beweiding hebben, ook op hetzelfde perceel, zolang ze samen niet boven 24 uur komen. Lopen er op een dag meerdere koppels buiten, dan tellen voor het bedrijf de uren van de koppel die het langst buiten liep; het gemiddelde is per weidedag. Beweiding zonder uren per dag telt mee als weidedag, maar niet voor de uren; {{appName}} meldt welke beweidingen uren missen.
 
-Beweiding met een startdatum na vandaag is gepland. Die telt niet mee in de gerealiseerde weidedagen, maar staat er apart bij. Een beweiding zonder einddatum die al is begonnen, telt door tot en met vandaag. Vandaag is de kalenderdag in Nederland. Een beweiding over de jaargrens, bijvoorbeeld van 28 december tot 3 januari, telt in elk jaar alleen de dagen van dat jaar.
+Elke beweiding heeft een eerste en een laatste dag. Dagen na vandaag zijn gepland: die tellen niet mee in de gerealiseerde weidedagen, maar staan er apart bij. Vandaag is de kalenderdag in Nederland. Een beweiding over de jaargrens, bijvoorbeeld van 28 december tot 3 januari, telt in elk jaar alleen de dagen van dat jaar.
 
 ## Weidemelk {#weidemelk}
 
@@ -54,7 +54,7 @@ Na een weidebeurt of maaisnede heeft gras tijd nodig om terug te groeien. {{appN
 
 De rust is het aantal dagen tussen de laatste dag van het vorige gebruik en de eerste dag van het volgende: eindigt een beweiding op 4 mei en begint de volgende op 25 mei, dan is dat 21 dagen rust. Alleen een maaisnede van gras telt als gebruik, niet de oogst van een ander gewas op het perceel.
 
-De rust telt per deel van het perceel. Een beweiding wordt vergeleken met het laatste eerdere gebruik van hetzelfde deel: een maaisnede of een beweiding van het hele perceel raakt het hele perceel, een zone alleen de stroken die ermee overlappen. Bij stripgrazen krijgt elke strook dus zijn eigen rust. Gebruik van hetzelfde deel op dezelfde tijd, zoals twee koppels tegelijk op één zone of dezelfde zone 's ochtends en 's middags, telt als één gebruik en niet als rust van 0 dagen. Zones tellen alleen voor het deel binnen het perceel.
+De rust telt per deel van het perceel. Een beweiding wordt vergeleken met het laatste eerdere gebruik van hetzelfde deel: een maaisnede of een beweiding van het hele perceel raakt het hele perceel, een zone alleen de stroken die ermee overlappen. Bij stripgrazen krijgt elke strook dus zijn eigen rust. Gebruik van hetzelfde deel op dezelfde tijd, zoals twee koppels tegelijk op één zone of dezelfde zone 's ochtends en 's middags, telt als één gebruik en niet als rust van 0 dagen. Dat geldt ook voor een reeks die elkaar overlapt, zoals 1 tot 5 mei, 3 tot 8 mei en 6 tot 10 mei: de zone is dan zonder pauze beweid, en de rust telt vanaf het begin van die reeks. Zones tellen alleen voor het deel binnen het perceel.
 
 Aannames:
 
