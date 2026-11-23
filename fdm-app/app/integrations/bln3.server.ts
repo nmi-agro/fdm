@@ -587,18 +587,19 @@ export async function getMeasureAdviceForField({
 /**
  * Fetches BLN3 measure advice for multiple fields of a farm.
  *
- * The inputs are collected with farm-level queries and the cached advice of all fields is
- * looked up at once; at most 5 missing results are requested from the NMI API at the same
- * time, so a farm-level page never fires 50+ concurrent NMI requests. An individual field's
- * failure maps to `null` (advice unavailable) rather than failing the whole request — callers
- * must not treat `null` as "no recommendations".
+ * Takes the inputs from {@link collectFarmMeasureInputs}, so a caller that also needs the
+ * measure applicability collects them only once. The cached advice of all fields is looked up
+ * at once; at most 5 missing results are requested from the NMI API at the same time, so a
+ * farm-level page never fires 50+ concurrent NMI requests. An individual field's failure maps
+ * to `null` (advice unavailable) rather than failing the whole request — callers must not
+ * treat `null` as "no recommendations".
  *
  * @returns A record mapping `b_id` to a `Bln3MeasureAdviceResult`, or `null` for failed fields.
  */
 export async function getMeasureAdviceForFields(
-  args: FarmFieldsArgs,
+  inputsByField: FarmMeasureInputs,
 ): Promise<Record<string, Bln3MeasureAdviceResult | null>> {
-  return getAdviceFromInputs(await collectFarmMeasureInputs(args))
+  return getAdviceFromInputs(inputsByField)
 }
 
 /**
