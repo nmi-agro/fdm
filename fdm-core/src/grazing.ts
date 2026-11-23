@@ -28,12 +28,7 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { setGrazingIntention } from "./grazing_intention"
 import { createId } from "./id"
-import {
-  assertIntervalEndNotBeforeStart,
-  dayNumber,
-  overlapsHalfOpen,
-  sharesCalendarDay,
-} from "./interval"
+import { assertIntervalEndNotBeforeStart, dayNumber, sharesCalendarDay } from "./interval"
 import { lockFarm, lockFarmOfHerd } from "./livestock-checks"
 import { withPeriodTimeframe } from "./timeframe"
 import { clippedZone, geographyArea, normalizeZone } from "./zone"
@@ -85,8 +80,9 @@ function assertGrazingExtent(
   if (zone && area != null) {
     throw new Error("l_grazing_geometry_zone and l_grazing_area cannot both be set")
   }
-  if (zone && !b_id) {
-    throw new Error("l_grazing_geometry_zone requires a field")
+  // Every grazing is on a field, also one of the whole field or of an area without a location
+  if (!b_id) {
+    throw new Error("A grazing needs a field")
   }
   if (area != null && !(area > 0)) {
     throw new Error("l_grazing_area must be greater than 0")
@@ -104,17 +100,16 @@ function assertGrazingExtent(
  * rather than stored here.
  * A herd can have several grazings on a day, also on the same field (two zones, or the same zone
  * twice), as long as their hours add up to at most 24 on every calendar day; a grazing without
- * hours counts as 0. Herd-level grazings (without a field) may not overlap any other grazing of
- * the herd.
+ * hours counts as 0. Every grazing is on a field.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the grazing action.
  * @param l_id_herd - Herd ID.
  * @param l_grazing_start - Start timestamp.
- * @param properties - The end timestamp, and optionally the field ID, hours, and the grazed zone
- *   (WGS84) or area (ha).
- * @throws {Error} If the end is missing, both a zone and an area are given, a zone is given
- *   without a field, or the zone is invalid.
+ * @param properties - The field ID and the end timestamp, and optionally the hours, and the
+ *   grazed zone (WGS84) or area (ha).
+ * @throws {Error} If the field or the end is missing, both a zone and an area are given, or the
+ *   zone is invalid.
  */
 export async function addGrazing(
   fdm: FdmType,
@@ -122,7 +117,7 @@ export async function addGrazing(
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   l_grazing_start: Date,
   properties: {
-    b_id?: schema.herdGrazingTypeInsert["b_id"]
+    b_id: string
     l_grazing_end: Date
     l_grazing_hours?: schema.herdGrazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.herdGrazingTypeInsert["l_grazing_area"]
@@ -211,7 +206,7 @@ export async function addGrazings(
   rows: {
     l_id_herd: schema.herdsTypeSelect["l_id_herd"]
     l_grazing_start: Date
-    b_id?: schema.herdGrazingTypeInsert["b_id"]
+    b_id: string
     l_grazing_end: Date
     l_grazing_hours?: schema.herdGrazingTypeInsert["l_grazing_hours"]
     l_grazing_area?: schema.herdGrazingTypeInsert["l_grazing_area"]
@@ -671,7 +666,7 @@ export async function updateGrazing(
 
       // Only the documented columns: a key added at runtime (such as another herd or field) is
       // never written. An omitted value stays as it is; `null` clears it.
-      await tx
+      const updatedRows = await tx
         .update(schema.herdGrazing)
         .set({
           l_grazing_start: properties.l_grazing_start,
@@ -682,6 +677,11 @@ export async function updateGrazing(
           updated: new Date(),
         })
         .where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
+        .returning({ l_id_grazing: schema.herdGrazing.l_id_grazing })
+      // Removed in the meantime: fail, so a changed grazing intention is rolled back as well
+      if (updatedRows.length === 0) {
+        throw new Error("Grazing record not found")
+      }
     })
   } catch (err) {
     throw handleError(err, "Exception for updateGrazing", {
@@ -862,33 +862,19 @@ async function assertGrazingFitsHerd(
 }
 
 /**
- * Checks that a grazing fits next to the other grazings of the same herd.
- *
- * - A grazing without a field (herd level) may not overlap any other grazing of the herd, and no
- *   grazing may overlap it.
- * - Grazings on fields may share a day, also on the same field: a herd can graze two zones of a
- *   field on one day, or the same zone in the morning and the afternoon. Their hours per day are
- *   added up, and the sum may not exceed 24 hours on any calendar day. A grazing without hours
- *   counts as 0 hours.
+ * Checks that a grazing fits next to the other grazings of the same herd. Grazings may share a
+ * day, also on the same field: a herd can graze two zones of a field on one day, or the same zone
+ * in the morning and the afternoon. Their hours per day are added up, and the sum may not exceed
+ * 24 hours on any calendar day. A grazing without hours counts as 0 hours. Days are whole
+ * calendar days, counting the first and the last day.
  *
  * @param grazing - The new or corrected grazing.
  * @param others - The other grazings of the herd.
- * @throws When a herd-level grazing overlaps another grazing, or the hours exceed 24 on a day.
+ * @throws When the hours exceed 24 on a day.
  */
 function assertGrazingFits(grazing: GrazingSlot, others: GrazingSlot[]): void {
   const sharingDay: GrazingSlot[] = []
   for (const other of others) {
-    if (
-      (!grazing.b_id || !other.b_id) &&
-      overlapsHalfOpen(
-        grazing.l_grazing_start,
-        grazing.l_grazing_end,
-        other.l_grazing_start,
-        other.l_grazing_end,
-      )
-    ) {
-      throw new Error("Grazing interval overlaps an existing grazing interval for this herd")
-    }
     if (
       sharesCalendarDay(
         grazing.l_grazing_start,
@@ -937,26 +923,32 @@ export async function removeGrazing(
   l_id_grazing: schema.herdGrazingTypeSelect["l_id_grazing"],
 ): Promise<void> {
   try {
-    const existing = await fdm
-      .select({ l_id_herd: schema.herdGrazing.l_id_herd })
-      .from(schema.herdGrazing)
-      .where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
-      .limit(1)
+    await fdm.transaction(async (tx) => {
+      // The herd of a grazing never changes, so it can be read before the lock
+      const existing = await tx
+        .select({ l_id_herd: schema.herdGrazing.l_id_herd })
+        .from(schema.herdGrazing)
+        .where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
+        .limit(1)
 
-    if (existing.length === 0) {
-      throw new Error("Grazing record not found")
-    }
+      if (existing.length === 0) {
+        throw new Error("Grazing record not found")
+      }
 
-    await checkPermission(
-      fdm,
-      "herd",
-      "write",
-      existing[0].l_id_herd,
-      principal_id,
-      "removeGrazing",
-    )
+      await checkPermission(
+        tx,
+        "herd",
+        "write",
+        existing[0].l_id_herd,
+        principal_id,
+        "removeGrazing",
+      )
+      // Serialize with the other livestock changes of the farm, such as a correction of this
+      // grazing
+      await lockFarmOfHerd(tx, existing[0].l_id_herd)
 
-    await fdm.delete(schema.herdGrazing).where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
+      await tx.delete(schema.herdGrazing).where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
+    })
   } catch (err) {
     throw handleError(err, "Exception for removeGrazing", { l_id_grazing })
   }

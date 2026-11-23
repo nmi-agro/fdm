@@ -1,4 +1,5 @@
 import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
+import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import type { Feeding } from "./feed.types"
@@ -8,6 +9,7 @@ import {
   syncAnimalCategoryCatalogueArray,
   syncFeedCatalogueArray,
 } from "./catalogues"
+import * as schema from "./db/schema"
 import { addFarm, removeFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import {
@@ -409,6 +411,51 @@ describe("Feed Domain", () => {
     // The other farm can use it, and removing that farm is not blocked by this farm
     await addFeedBatch(fdm, principal_id, otherFarm, otherItem, "purchased")
     await removeFarm(fdm, principal_id, otherFarm)
+  })
+
+  it("should prefer the standard item for a feed type and use an own item by its ID", async () => {
+    const ownItem = await addFeedToCatalogue(fdm, principal_id, b_id_farm, {
+      f_name_nl: "Eigen graskuil",
+      f_type_rvo: "gras_kuil",
+      f_dm: 400,
+      f_n_dm: 28,
+      f_p_dm: 4,
+    })
+    const sourceOf = async (f_id_catalogue: string) => {
+      const [item] = await fdm
+        .select({ f_source: schema.feedsCatalogue.f_source })
+        .from(schema.feedsCatalogue)
+        .where(eq(schema.feedsCatalogue.f_id_catalogue, f_id_catalogue))
+      return item?.f_source
+    }
+
+    // By feed type, the standard item comes before the farm's own one
+    const byType = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "own_land")
+    const standardItem = (await getFeedBatch(fdm, principal_id, byType)).f_id_catalogue
+    expect(standardItem).not.toBe(ownItem)
+    expect(await sourceOf(standardItem)).toBe("nmi")
+
+    // By its ID, the own item is used
+    const byId = await addFeedBatch(fdm, principal_id, b_id_farm, ownItem, "own_land")
+    expect((await getFeedBatch(fdm, principal_id, byId)).f_id_catalogue).toBe(ownItem)
+  })
+
+  it("should only enable a standard feed catalogue or the farm's own", async () => {
+    const otherFarm = await addFarm(
+      fdm,
+      principal_id,
+      "Other Feed Farm",
+      "654321",
+      "Weg 2",
+      "4321BA",
+    )
+    await expect(
+      enableFeedCatalogue(fdm, principal_id, b_id_farm, otherFarm),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("not available for this farm") },
+    })
+    await enableFeedCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+    await enableFeedCatalogue(fdm, principal_id, b_id_farm, "nmi")
   })
 
   it("should reject a feed batch with an unknown catalogue item", async () => {

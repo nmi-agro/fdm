@@ -1,6 +1,7 @@
 import type {
   CatalogueAnimalCategories,
   CatalogueFeed,
+  CatalogueFeedName,
   CatalogueFertilizer,
   CatalogueFertilizerItem,
   CatalogueMeasure,
@@ -262,6 +263,22 @@ export async function enableFertilizerCatalogue(
   }
 }
 
+/**
+ * The standard feed catalogues, available to every farm. Any other feed catalogue source is the
+ * ID of the farm that owns those items.
+ */
+export const STANDARD_FEED_SOURCES = ["nmi"] as const satisfies readonly CatalogueFeedName[]
+
+/**
+ * Enables a feed catalogue for a farm.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id The ID of the principal making the request.
+ * @param b_id_farm The ID of the farm.
+ * @param f_source The source of the feed catalogue to enable: a standard catalogue (such as `nmi`) or the farm's own ID, for its own items.
+ * @returns A Promise that resolves when the catalogue has been enabled.
+ * @throws If the source is neither a standard catalogue nor the farm's own, or enabling the catalogue fails.
+ */
 export async function enableFeedCatalogue(
   fdm: FdmType,
   principal_id: PrincipalId,
@@ -270,6 +287,13 @@ export async function enableFeedCatalogue(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "enableFeedCatalogue")
+    // Another farm's own items stay with that farm
+    if (
+      f_source !== b_id_farm &&
+      !(STANDARD_FEED_SOURCES as readonly string[]).includes(f_source)
+    ) {
+      throw new Error("Feed catalogue source is not available for this farm")
+    }
     await fdm.insert(schema.feedCatalogueEnabling).values({ b_id_farm, f_source })
   } catch (err) {
     throw handleError(err, "Exception for enableFeedCatalogue", {

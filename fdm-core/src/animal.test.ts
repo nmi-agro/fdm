@@ -826,6 +826,131 @@ describe("Animal Domain", () => {
     )
   })
 
+  it("should move the end of the assignment created last when a departure on a move date is corrected", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const herdB = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "B",
+      l_id_category: "rvo_100",
+    })
+    const herdC = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "C",
+      l_id_category: "rvo_100",
+    })
+    // Two moves on one day leave B empty [February 1, February 1); C is corrected to start
+    // earlier, so B now starts after C although C was created last
+    const moveDate = new Date("2025-02-01")
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdB, moveDate)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, herdC, moveDate)
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, new Date("2025-01-01"), {
+      l_assigning_end: new Date("2025-01-20"),
+    })
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, herdC, moveDate, {
+      l_assigning_start: new Date("2025-01-25"),
+    })
+
+    // A departure on the move date: B and C both end on February 1
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: moveDate })
+    // Moving the departure moves the end of C, the assignment created last
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-03-01") })
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    const b = history.find((row) => row.l_id_herd === herdB)
+    expect(b?.l_assigning_start).toEqual(moveDate)
+    expect(b?.l_assigning_end).toEqual(moveDate)
+    expect(history.find((row) => row.l_id_herd === herdC)?.l_assigning_end).toEqual(
+      new Date("2025-03-01"),
+    )
+  })
+
+  it("should not let a new assignment run past the end of its herd", async () => {
+    const endingHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Ends in June",
+      l_id_category: "rvo_100",
+      l_end: new Date("2025-06-01"),
+    })
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: new Date("2025-01-01"),
+    })
+    const beyondHerd = { cause: { message: expect.stringContaining("end of its herd") } }
+
+    // The open assignment would continue after the herd has ended
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, endingHerd, new Date("2025-03-01")),
+    ).rejects.toMatchObject(beyondHerd)
+    await expect(
+      reassignHerdAnimals(fdm, principal_id, l_id_herd, endingHerd, new Date("2025-03-01")),
+    ).rejects.toMatchObject(beyondHerd)
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, endingHerd, {
+        l_arriving_date: new Date("2025-02-01"),
+      }),
+    ).rejects.toMatchObject(beyondHerd)
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, endingHerd, {
+        l_arriving_date: new Date("2025-02-01"),
+        l_leaving_date: new Date("2025-07-01"),
+      }),
+    ).rejects.toMatchObject(beyondHerd)
+
+    // An animal that leaves before the herd ends can join it
+    await addAnimal(fdm, principal_id, b_id_farm, endingHerd, {
+      l_arriving_date: new Date("2025-02-01"),
+      l_leaving_date: new Date("2025-05-01"),
+    })
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-05-01") })
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, endingHerd, new Date("2025-03-01"))
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history.find((row) => row.l_id_herd === endingHerd)?.l_assigning_end).toEqual(
+      new Date("2025-05-01"),
+    )
+  })
+
+  it("should not let a corrected assignment run past the end of its herd or the departure", async () => {
+    const herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Ending",
+      l_id_category: "rvo_100",
+    })
+    const start = new Date("2025-01-01")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, herd, {
+      l_arriving_date: start,
+    })
+    await leaveHerd(fdm, principal_id, herd, new Date("2025-02-01"), "sold")
+
+    // An end-only edit cannot reopen the assignment or extend it
+    await expect(
+      updateAnimalAssigning(fdm, principal_id, l_id_animal, herd, start, {
+        l_assigning_end: null,
+      }),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("end of its herd") } })
+    await expect(
+      updateAnimalAssigning(fdm, principal_id, l_id_animal, herd, start, {
+        l_assigning_end: new Date("2025-03-01"),
+      }),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("end of its herd") } })
+    // Shortening is allowed
+    await updateAnimalAssigning(fdm, principal_id, l_id_animal, herd, start, {
+      l_assigning_end: new Date("2025-01-20"),
+    })
+    expect(
+      (await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal))[0].l_assigning_end,
+    ).toEqual(new Date("2025-01-20"))
+
+    // In a herd without an end, the departure is the limit
+    const leaving = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: start,
+      l_leaving_date: new Date("2025-03-01"),
+    })
+    await expect(
+      updateAnimalAssigning(fdm, principal_id, leaving, l_id_herd, start, {
+        l_assigning_end: null,
+      }),
+    ).rejects.toMatchObject({ cause: { message: expect.stringContaining("departure") } })
+    await updateAnimalAssigning(fdm, principal_id, leaving, l_id_herd, start, {
+      l_assigning_end: new Date("2025-02-15"),
+    })
+  })
+
   it("should not reopen an assignment beyond the end of its herd", async () => {
     const herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Ending",

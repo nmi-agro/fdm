@@ -9,7 +9,6 @@ import {
   isNotNull,
   isNull,
   lte,
-  notExists,
   or,
   sql,
   type SQL,
@@ -26,7 +25,7 @@ import type {
 } from "./feed.types"
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
-import { getEnabledFeedCatalogues } from "./catalogues"
+import { getEnabledFeedCatalogues, STANDARD_FEED_SOURCES } from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -41,10 +40,10 @@ type FeedTransaction = Parameters<Parameters<FdmType["transaction"]>[0]>[0]
 
 /**
  * Finds the catalogue item a feed batch refers to, by its ID or by its RVO feed type. Only items
- * of a standard catalogue or the farm's own items count: an item another farm added to its own
- * catalogue is never used, so its values stay with that farm and removing that farm is not
- * blocked by a batch elsewhere. An exact ID wins; for a feed type, a standard item comes before
- * the farm's own one.
+ * of a standard catalogue (see {@link STANDARD_FEED_SOURCES}) or the farm's own items (with the
+ * farm as their source) count: an item another farm added to its own catalogue is never used, so
+ * its values stay with that farm and removing that farm is not blocked by a batch elsewhere. An
+ * exact ID wins; for a feed type, a standard item comes before the farm's own one.
  *
  * @param tx - The transaction.
  * @param reference - The catalogue item ID or the RVO feed type.
@@ -69,12 +68,7 @@ async function resolveFeedCatalogueId(
         // A farm's own items have the farm as their source
         or(
           eq(schema.feedsCatalogue.f_source, b_id_farm),
-          notExists(
-            tx
-              .select({ b_id_farm: schema.farms.b_id_farm })
-              .from(schema.farms)
-              .where(eq(schema.farms.b_id_farm, schema.feedsCatalogue.f_source)),
-          ),
+          inArray(schema.feedsCatalogue.f_source, [...STANDARD_FEED_SOURCES]),
         ),
       ),
     )

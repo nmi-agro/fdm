@@ -173,8 +173,14 @@ export async function addAnimal(
         }
       }
 
-      // The animal joins the herd on its arrival date, so the herd must run on that date
-      const herdFarm = await assertHerdRunsOn(tx, l_id_herd, arrivingDate)
+      // The animal joins the herd on its arrival date, so the herd must run on that date, and it
+      // stays until its departure, which may not come after the end of the herd
+      const herdFarm = await assertHerdRunsOn(
+        tx,
+        l_id_herd,
+        arrivingDate,
+        properties?.l_leaving_date ?? null,
+      )
       if (herdFarm !== b_id_farm) {
         throw new Error(`Herd ${l_id_herd} does not belong to farm ${b_id_farm}`)
       }
@@ -720,11 +726,12 @@ export async function updateAnimal(
                   : isNull(schema.animalAssigning.l_assigning_end),
               ),
             )
-            // Two moves on one day give two assignments with the same start; the one opened last
-            // (the latest move, so the later `created`) is the animal's last assignment
+            // The assignment created last is the animal's last one: a move creates the next
+            // assignment after the previous one, and a correction never changes `created`, so a
+            // start moved by a correction does not change the order. The start only breaks a tie.
             .orderBy(
-              desc(schema.animalAssigning.l_assigning_start),
               desc(schema.animalAssigning.created),
+              desc(schema.animalAssigning.l_assigning_start),
             )
             .limit(1)
           if (last) {
@@ -830,7 +837,8 @@ export async function addAnimalsToHerd(
       const now = new Date()
       await lockFarmOfHerd(tx, l_id_herd)
       await assertExpectedCount(tx, l_id_herd, now, options?.expected_count)
-      const b_id_farm = await assertHerdRunsOn(tx, l_id_herd, now)
+      // The new animals stay in the herd, so it may not have an end date
+      const b_id_farm = await assertHerdRunsOn(tx, l_id_herd, now, null)
       const category = await getHerdCategory(tx, l_id_herd)
       const l_specie = defaults?.l_specie ?? category.l_specie
       assertAnimalMatchesCategory(category, l_specie, null)
@@ -1367,7 +1375,6 @@ export async function assignAnimalToHerd(
         throw new Error("Animal has left the farm")
       }
 
-
       // The assignment the animal is in on the date of the move; for a move in the past this is
       // not always the open one (a departure in the future or a later move may have ended it)
       const assignments = await tx
@@ -1394,7 +1401,15 @@ export async function assignAnimalToHerd(
         throw new Error(`Animal already belongs to herd ${target_l_id_herd}`)
       }
 
-      const herdFarm = await assertHerdRunsOn(tx, target_l_id_herd, l_assigning_start)
+      // The new assignment keeps the end the old one had, such as a departure in the future, so
+      // the target herd must run until then
+      const l_assigning_end = current ? current.l_assigning_end : (animal.l_leaving_date ?? null)
+      const herdFarm = await assertHerdRunsOn(
+        tx,
+        target_l_id_herd,
+        l_assigning_start,
+        l_assigning_end,
+      )
       if (herdFarm !== animal.b_id_farm) {
         throw new Error(`Herd ${target_l_id_herd} does not belong to the animal's farm`)
       }
@@ -1415,12 +1430,11 @@ export async function assignAnimalToHerd(
           )
       }
 
-      // The new assignment keeps the end the old one had, such as a departure in the future
       await tx.insert(schema.animalAssigning).values({
         l_id_animal,
         l_id_herd: target_l_id_herd,
         l_assigning_start,
-        l_assigning_end: current ? current.l_assigning_end : (animal.l_leaving_date ?? null),
+        l_assigning_end,
         created: writtenAt(),
       })
     })
@@ -1600,11 +1614,6 @@ export async function reassignHerdAnimals(
       if (!sourceFarm) {
         throw new Error("Source or target herd does not exist")
       }
-      const targetFarm = await assertHerdRunsOn(tx, target_l_id_herd, l_reassign_date)
-      if (sourceFarm !== targetFarm) {
-        throw new Error("Source and target herd must belong to the same farm")
-      }
-
       // The animals in the source herd on the reassignment date, including those with a departure
       // after it; they keep that departure in the target herd
       const activeAssignments = await tx
@@ -1634,6 +1643,27 @@ export async function reassignHerdAnimals(
             presentOn(l_reassign_date),
           ),
         )
+
+      // The animals keep the end of their assignment in the target herd (open, or their
+      // departure), so the target herd must run until the latest of those ends
+      const latestEnd = activeAssignments.some((row) => row.l_assigning_end === null)
+        ? null
+        : activeAssignments.reduce<Date | null>(
+            (latest, row) =>
+              row.l_assigning_end && (!latest || row.l_assigning_end > latest)
+                ? row.l_assigning_end
+                : latest,
+            null,
+          )
+      const targetFarm = await assertHerdRunsOn(
+        tx,
+        target_l_id_herd,
+        l_reassign_date,
+        activeAssignments.length > 0 ? latestEnd : undefined,
+      )
+      if (sourceFarm !== targetFarm) {
+        throw new Error("Source and target herd must belong to the same farm")
+      }
 
       if (activeAssignments.some((row) => l_reassign_date < row.l_assigning_start)) {
         throw new Error("Reassignment date cannot be before an active animal assignment")
@@ -1765,6 +1795,27 @@ export async function updateAnimalAssigning(
         )
       ) {
         throw new Error("Assignment overlaps another assignment of this animal")
+      }
+
+      // Also an end-only edit: the assignment cannot run past the end of its herd or the
+      // animal's departure, whichever comes first. Shortening it is always allowed.
+      const [herdEnd] = await tx
+        .select({ l_end: schema.herdEnding.l_end })
+        .from(schema.herdEnding)
+        .where(eq(schema.herdEnding.l_id_herd, nextHerd))
+        .limit(1)
+      const [leaving] = await tx
+        .select({ l_leaving_date: schema.animalLeaving.l_leaving_date })
+        .from(schema.animalLeaving)
+        .where(eq(schema.animalLeaving.l_id_animal, l_id_animal))
+        .limit(1)
+      const herdLimit = herdEnd?.l_end ?? null
+      const leavingLimit = leaving?.l_leaving_date ?? null
+      if (herdLimit && (nextEnd === null || nextEnd > herdLimit)) {
+        throw new Error("Assignment cannot extend beyond the end of its herd")
+      }
+      if (leavingLimit && (nextEnd === null || nextEnd > leavingLimit)) {
+        throw new Error("Assignment cannot extend beyond the animal's departure")
       }
 
       if (properties.l_id_herd || properties.l_assigning_start) {

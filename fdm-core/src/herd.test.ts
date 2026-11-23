@@ -5,7 +5,14 @@ import { addAnimal, updateAnimal } from "./animal"
 import { disableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
+import {
+  addHerd,
+  getHerd,
+  getHerdsForFarm,
+  getHerdsForFarmInPeriod,
+  removeHerd,
+  updateHerd,
+} from "./herd"
 
 describe("Herd Domain", () => {
   let fdm: FdmType
@@ -234,5 +241,50 @@ describe("Herd Domain", () => {
     })
     await updateHerd(fdm, principal_id, l_id_herd, { l_end: new Date("2025-06-01") })
     expect((await getHerd(fdm, principal_id, l_id_herd)).l_end).toEqual(new Date("2025-06-01"))
+  })
+
+  it("should list the herds that run at some moment within a period", async () => {
+    const endedBefore = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Ended before",
+      l_id_category: "rvo_100",
+      l_end: new Date("2024-12-01"),
+    })
+    const endedDuring = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Ended during",
+      l_id_category: "rvo_100",
+      l_end: new Date("2025-06-01"),
+    })
+    const startsDuring = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Starts during",
+      l_id_category: "rvo_100",
+      l_start: new Date("2025-09-01"),
+    })
+    const startsAfter = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Starts after",
+      l_id_category: "rvo_100",
+      l_start: new Date("2026-02-01"),
+    })
+
+    const herds = await getHerdsForFarmInPeriod(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-01-01"),
+      end: new Date("2025-12-31"),
+    })
+    const ids = herds.map((herd) => herd.l_id_herd)
+    expect(ids).toContain(endedDuring)
+    expect(ids).toContain(startsDuring)
+    expect(ids).not.toContain(endedBefore)
+    expect(ids).not.toContain(startsAfter)
+    expect(herds.find((herd) => herd.l_id_herd === endedDuring)).toMatchObject({
+      l_herd_name: "Ended during",
+      l_category: "100 - Melk- en kalfkoeien",
+      b_id_farm,
+    })
+
+    await expect(
+      getHerdsForFarmInPeriod(fdm, "unauthorized_user", b_id_farm, {
+        start: new Date("2025-01-01"),
+        end: new Date("2025-12-31"),
+      }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 })
