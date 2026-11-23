@@ -32,9 +32,8 @@ const OWN_ID_FIELDS = new Set(["m_id", "m_id_bln"])
  *
  * Transforms the API response from BLN3-specific naming to the pandex naming
  * convention used throughout FDM. The `bln_id` is namespaced as `m_id = "bln_{bln_id}"`
- * so measures from different frameworks can coexist in the same table. The `m_source` of
- * the API (where the measure comes from) is stored as `m_origin`, because `m_source` in
- * FDM is the name of the catalogue.
+ * so measures from different frameworks can coexist in the same table. `m_source` in FDM is
+ * the name of the catalogue (`"bln"`), not the `m_source` field of the API.
  *
  * @param nmiApiKey - Bearer token for the NMI API
  * @returns Array of catalogue items in pandex naming convention
@@ -95,10 +94,6 @@ export async function getCatalogueBln(nmiApiKey: string): Promise<CatalogueMeasu
         m_impacts_score: Array.isArray(item.m_impacts_score) ? item.m_impacts_score : null,
         m_applicability: applicability,
         m_effect_size: Array.isArray(item.m_effect_size) ? item.m_effect_size : null,
-        m_origin:
-          typeof item.m_source === "string" && item.m_source.trim().length > 0
-            ? item.m_source.trim()
-            : null,
         m_external_ids: getExternalIds(item),
       }
     })

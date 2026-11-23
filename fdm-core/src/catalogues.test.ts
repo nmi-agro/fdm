@@ -789,7 +789,6 @@ describe("Measures Catalogue Sync", () => {
           impacts: [{ key: "S_SW_PLEA", value: 0.05 }],
         },
       ],
-      m_origin: "BBWP",
       m_external_ids: { bbwp: "B150" },
     }
     await syncMeasuresCatalogueArray(fdm, [enriched])
@@ -803,7 +802,6 @@ describe("Measures Catalogue Sync", () => {
     expect(rows[0].m_impacts_score).toEqual(["S_SW_PLEA", "S_NUT_N"])
     expect(rows[0].m_applicability).toEqual(enriched.m_applicability)
     expect(rows[0].m_effect_size).toEqual(enriched.m_effect_size)
-    expect(rows[0].m_origin).toBe("BBWP")
     expect(rows[0].m_external_ids).toEqual({ bbwp: "B150" })
     expect(rows[0].m_status).toBe("active")
   })

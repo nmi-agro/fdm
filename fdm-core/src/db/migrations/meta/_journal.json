@@ -309,6 +309,13 @@
       "when": 1794913062211,
       "tag": "0043_brown_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795426142791,
+      "tag": "0044_known_sasquatch",
+      "breakpoints": true
     }
   ]
 }

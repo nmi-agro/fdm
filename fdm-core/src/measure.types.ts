@@ -19,8 +19,6 @@ export type MeasureCatalogue = {
   m_applicability?: CatalogueMeasureCondition[] | null
   /** Effect sizes per score variable, with optional conditions */
   m_effect_size?: CatalogueMeasureEffectSize[] | null
-  /** Where the measure comes from, e.g. a scheme or publication */
-  m_origin?: string | null
   /** IDs of the measure in related schemes, e.g. `{ bbwp: "B121" }` */
   m_external_ids?: Record<string, string> | null
   /** `active`, or `inactive` when the measure is no longer in its source catalogue */

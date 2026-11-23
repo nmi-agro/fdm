@@ -62,7 +62,6 @@ describe("getCatalogueBln", () => {
 
     expect(item.m_id).toBe("bln_BM9")
     expect(item.m_source).toBe("bln")
-    expect(item.m_origin).toBe("BBWP")
     expect(item.m_conflicts).toEqual(["bln_BM2", "bln_BM10"])
     expect(item.m_stage_applicability).toBe("field")
     expect(item.m_effect_costs).toBe(1)
@@ -82,7 +81,6 @@ describe("getCatalogueBln", () => {
     expect(item.m_impacts_score).toBeNull()
     expect(item.m_applicability).toBeNull()
     expect(item.m_effect_size).toBeNull()
-    expect(item.m_origin).toBeNull()
     expect(item.m_external_ids).toBeNull()
     expect(item.m_conflicts).toBeNull()
     expect(item.m_stage_applicability).toBeNull()

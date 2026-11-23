@@ -1072,7 +1072,6 @@ export const measuresCatalogue = fdmSchema.table(
     m_impacts_score: text().array(), // Score variables affected, e.g. "S_NUT_N"
     m_applicability: jsonb().$type<CatalogueMeasureCondition[]>(),
     m_effect_size: jsonb().$type<CatalogueMeasureEffectSize[]>(),
-    m_origin: text(), // Where the measure comes from, e.g. "BBWP"
     m_external_ids: jsonb().$type<Record<string, string>>(), // IDs in related schemes
     m_status: measureStatusEnum().notNull().default("active"),
     hash: text(),
