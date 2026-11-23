@@ -1,6 +1,7 @@
 /**
  * Saving the quick livestock entries that several Melkvee pages offer: adding an animal
- * (`AddAnimalDialog`) and changing herds (`HerdCard`: count, name, moving and removing).
+ * (`AddAnimalDialog`), adding a herd (`AddHerdDialog`) and changing herds (`HerdCard`: count,
+ * name, moving and removing).
  */
 
 import {
@@ -16,6 +17,32 @@ import { data } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
+import { farmTodayKey } from "~/lib/grazing-dates"
+import { serverNow } from "~/lib/server-now.server"
+
+/**
+ * The arrival of the animals of a new herd, from the submitted day `l_arriving_date`
+ * (`YYYY-MM-DD`). Today is recorded as now, another day as the start of that day (midnight UTC,
+ * like the other date-only livestock dates). Without a day the animals arrive now.
+ *
+ * @param formData - The submitted form data.
+ * @returns The arrival moment.
+ * @throws A 400 response for an invalid day or a day in the future.
+ */
+export function parseHerdArrival(formData: FormData): Date {
+  const now = serverNow()
+  const dayKey = formText(formData, "l_arriving_date")
+  const todayKey = farmTodayKey(now)
+  if (!dayKey || dayKey === todayKey) return now
+  const date = new Date(`${dayKey}T00:00:00.000Z`)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey) || Number.isNaN(date.getTime())) {
+    throw data("Kies een geldige datum voor 'Aanwezig sinds'.", { status: 400 })
+  }
+  if (dayKey > todayKey) {
+    throw data("'Aanwezig sinds' kan niet in de toekomst liggen.", { status: 400 })
+  }
+  return date
+}
 
 const LIVESTOCK_INTENTS = [
   "add_animal",
@@ -103,6 +130,7 @@ export async function handleLivestockEvent(
       b_id_farm,
       { l_herd_name, l_id_category },
       Number.parseInt(formText(formData, "count", "0"), 10),
+      { l_arriving_date: parseHerdArrival(formData) },
     )
     return dataWithSuccess({ l_herd_name }, { message: `Koppel ${l_herd_name} aangemaakt.` })
   }

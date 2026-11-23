@@ -49,8 +49,10 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { herdArrivalDefaultKey } from "~/lib/grazing-dates"
 import { getHerdCards } from "~/lib/herd-cards.server"
 import { handleLivestockEvent, isLivestockIntent } from "~/lib/livestock-events.server"
+import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -107,6 +109,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions,
       herds,
       categories,
+      defaultArrivalDay: herdArrivalDefaultKey(calendar, serverNow()),
       animals: animals.map((a) => ({
         l_id_animal: a.l_id_animal,
         l_id_eartag: a.l_id_eartag,
@@ -164,8 +167,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function AnimalsOverviewPage() {
-  const { b_id_farm, calendar, farmOptions, herds, categories, animals, farmWritePermission } =
-    useLoaderData<typeof loader>()
+  const {
+    b_id_farm,
+    calendar,
+    farmOptions,
+    herds,
+    categories,
+    defaultArrivalDay,
+    animals,
+    farmWritePermission,
+  } = useLoaderData<typeof loader>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -463,7 +474,12 @@ export default function AnimalsOverviewPage() {
       </div>
 
       <AddAnimalDialog open={isAddOpen} onOpenChange={setIsAddOpen} herds={herds} />
-      <AddHerdDialog open={isAddHerdOpen} onOpenChange={setIsAddHerdOpen} categories={categories} />
+      <AddHerdDialog
+        open={isAddHerdOpen}
+        onOpenChange={setIsAddHerdOpen}
+        categories={categories}
+        defaultArrivalDay={defaultArrivalDay}
+      />
     </div>
   )
 }

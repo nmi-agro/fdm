@@ -19,6 +19,7 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { HerdArrivalField } from "~/components/blocks/livestock/herd-arrival-field"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter } from "~/components/ui/card"
@@ -31,12 +32,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
+import { herdArrivalDefaultKey } from "~/lib/grazing-dates"
+import { parseHerdArrival } from "~/lib/livestock-events.server"
+import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -89,6 +94,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       calendar,
       farmOptions,
       categories,
+      defaultArrivalDay: herdArrivalDefaultKey(calendar, serverNow()),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -139,7 +145,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         l_id_category,
       },
       count,
-      { l_arriving_method: "born" },
+      { l_arriving_method: "born", l_arriving_date: parseHerdArrival(formData) },
     )
 
     return redirectWithSuccess(
@@ -152,7 +158,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function LivestockOnboarding() {
-  const { b_id_farm, calendar, farmOptions, categories } = useLoaderData<typeof loader>()
+  const { b_id_farm, calendar, farmOptions, categories, defaultArrivalDay } =
+    useLoaderData<typeof loader>()
+  // Follows the chosen year until the user picks a day
+  const [arrivalDay, setArrivalDay] = useKeyedState(defaultArrivalDay, (day) => day)
 
   const defaultCategory = categories.find((c) => c.l_id_category === "rvo_100") ?? categories[0]
   const [selectedCategory, setSelectedCategory] = useState(defaultCategory?.l_id_category ?? "")
@@ -269,6 +278,11 @@ export default function LivestockOnboarding() {
                           required
                         />
                       </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <HerdArrivalField value={arrivalDay} onChange={setArrivalDay} />
+                      <input type="hidden" name="l_arriving_date" value={arrivalDay} />
                     </div>
                   </FieldGroup>
                 </CardContent>

@@ -6,8 +6,23 @@ import {
   farmToday,
   farmTodayKey,
   fieldGrazingTotals,
+  herdArrivalDefaultKey,
   realisedGrazingDays,
 } from "./grazing-dates"
+
+describe("herdArrivalDefaultKey", () => {
+  const now = new Date("2026-06-15T10:00:00.000Z")
+
+  it("starts on 1 January of the chosen year", () => {
+    expect(herdArrivalDefaultKey("2026", now)).toBe("2026-01-01")
+    expect(herdArrivalDefaultKey("2024", now)).toBe("2024-01-01")
+    expect(herdArrivalDefaultKey("all", now)).toBe("2026-01-01")
+  })
+
+  it("never lies in the future", () => {
+    expect(herdArrivalDefaultKey("2027", now)).toBe("2026-06-15")
+  })
+})
 
 describe("farmDayDate", () => {
   it("gives the Dutch calendar day as midnight UTC", () => {
