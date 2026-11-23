@@ -101,8 +101,11 @@ function writtenAt(): SQL<Date> {
   return sql<Date>`clock_timestamp()`
 }
 
-/** SQL condition: the animal has not left the farm by `date`. */
-function presentOn(date: Date): SQL {
+/**
+ * SQL condition: the animal has no departure, or departs after `date`. It does not check the
+ * arrival; combine it with an arrival or assignment condition where that matters.
+ */
+function notDepartedBy(date: Date): SQL {
   return or(
     isNull(schema.animalLeaving.l_leaving_date),
     gt(schema.animalLeaving.l_leaving_date, date),
@@ -390,7 +393,7 @@ export async function getAnimalsForHerd(
         schema.animalLeaving,
         eq(schema.animals.l_id_animal, schema.animalLeaving.l_id_animal),
       )
-      .where(presentOn(now))
+      .where(notDepartedBy(now))
       .orderBy(desc(schema.animals.created))
 
     return rows as Animal[]
@@ -470,7 +473,7 @@ export async function getAnimalsForFarm(
             isNull(schema.animalArriving.l_arriving_date),
             lte(schema.animalArriving.l_arriving_date, atDate),
           ),
-          presentOn(atDate),
+          notDepartedBy(atDate),
         ),
       )
       .orderBy(desc(schema.animals.created))
@@ -950,7 +953,7 @@ async function assertExpectedCount(
       and(
         eq(schema.animalAssigning.l_id_herd, l_id_herd),
         activeAssignmentOn(date),
-        presentOn(date),
+        notDepartedBy(date),
       ),
     )
   if (Number(row?.n ?? 0) !== expected_count) {
@@ -1514,7 +1517,7 @@ export async function leaveHerd(
               isNull(schema.animalAssigning.l_assigning_end),
               gt(schema.animalAssigning.l_assigning_end, l_leaving_date),
             ),
-            presentOn(l_leaving_date),
+            notDepartedBy(l_leaving_date),
           ),
         )
 
@@ -1650,7 +1653,7 @@ export async function reassignHerdAnimals(
               isNull(schema.animalAssigning.l_assigning_end),
               gt(schema.animalAssigning.l_assigning_end, l_reassign_date),
             ),
-            presentOn(l_reassign_date),
+            notDepartedBy(l_reassign_date),
           ),
         )
 
