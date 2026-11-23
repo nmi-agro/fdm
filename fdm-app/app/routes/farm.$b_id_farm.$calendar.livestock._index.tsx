@@ -365,7 +365,7 @@ export default function MelkveeOverview() {
                     Al het vee bekijken
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                   {herds.map((herd) => (
                     <HerdCard
                       key={herd.l_id_herd}
@@ -495,7 +495,8 @@ function GrazingWindow({
           Beweidingskalender
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      {/* On a wide screen the planned grazing sits next to the day strips */}
+      <CardContent className="space-y-4 xl:grid xl:grid-cols-[auto_minmax(0,1fr)] xl:items-start xl:gap-8 xl:space-y-0">
         {rows.length === 0 ? (
           <p className="text-muted-foreground max-w-prose text-sm">
             {outsideSeason
@@ -504,10 +505,11 @@ function GrazingWindow({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
+            {/* Sized to its columns, so the field names stay next to the day strip */}
+            <table className="border-collapse text-xs">
               <thead>
                 <tr className="text-muted-foreground">
-                  <th className="p-1.5 text-left font-medium">Perceel</th>
+                  <th className="w-48 p-1.5 text-left font-medium">Perceel</th>
                   {days.map((day, i) => (
                     <th
                       key={day}
@@ -527,7 +529,11 @@ function GrazingWindow({
               <tbody>
                 {rows.map(({ field, cells }) => (
                   <tr key={field.b_id} className="border-t">
-                    <td className="max-w-40 truncate p-1.5 font-medium">{field.b_name}</td>
+                    <td className="p-1.5 font-medium">
+                      <div className="w-44 truncate" title={field.b_name}>
+                        {field.b_name}
+                      </div>
+                    </td>
                     {cells.map((cell, i) => (
                       <td key={days[i]} className={cn("p-0.5", i === DAYS_BACK && "bg-primary/10")}>
                         {cell ? <GrazingDayCell cell={cell} /> : <div className="h-7" />}

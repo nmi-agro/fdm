@@ -24,6 +24,7 @@ import {
 } from "react-router"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Skeleton } from "~/components/ui/skeleton"
@@ -51,7 +52,6 @@ import {
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { zoneWithinField } from "~/lib/grazing-herds"
 import { defaultMapDay } from "~/lib/grazing-map"
-import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
 import { serverNow } from "~/lib/server-now.server"
 
 const formatNumber = (value: number) => value.toLocaleString("nl-NL", { maximumFractionDigits: 2 })
@@ -201,6 +201,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           start,
           end,
           herdName: herdMap.get(g.l_id_herd)?.l_herd_name ?? "Koppel",
+          // Starts after today, like the grazings left off the map
+          isPlanned: start > today,
           hours: g.l_grazing_hours,
           area: g.l_grazing_area_grazed ?? field.b_area,
           areaType: g.l_grazing_geometry_zone
@@ -229,6 +231,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         start: new Date(h.b_harvest_date),
         end: new Date(h.b_harvest_date),
         herdName: null,
+        isPlanned: false,
         hours: null,
         area: field.b_area,
         areaType: "full" as const,
@@ -366,6 +369,8 @@ export default function FieldGrazingPage() {
   // The grazing to change or remove; null adds a new one
   const [editedGrazing, setEditedGrazing] = useState<(typeof events)[number]["grazing"]>(null)
 
+  const showZones = b_geometry != null && zones.length > 0
+
   // A new grazing starts on today's day and month in the selected year
   const newGrazingDay = calendarYear !== null ? defaultMapDay(todayKey, calendarYear) : undefined
 
@@ -382,8 +387,8 @@ export default function FieldGrazingPage() {
           <h3 className="text-lg font-semibold tracking-tight">
             Beweiding & Graslandgebruik {calendar}
           </h3>
-          <p className="text-muted-foreground text-xs">
-            {formatNumber(b_area)} ha · Beweidingsperioden, maaimomenten en rusttijden
+          <p className="text-muted-foreground text-sm">
+            {formatNumber(b_area)} ha grasland: beweidingen, maaisneden en rust
           </p>
         </div>
         {farmWritePermission && (
@@ -399,75 +404,44 @@ export default function FieldGrazingPage() {
         )}
       </div>
 
-      {/* Headline Summary Card */}
-      <Card>
-        <CardContent className="p-4">
-          {/* Two by two until the four figures fit on one line; the dots only show on that line */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm xl:flex xl:flex-wrap xl:items-center">
-            <div>
-              <span className="text-muted-foreground">Dit jaar: </span>
-              <strong className="text-foreground font-semibold">
-                {countOf(summary.totalDays, "weidedag", "weidedagen")}
-              </strong>
-            </div>
-            <span aria-hidden="true" className="text-muted-foreground hidden xl:inline">
-              ·
-            </span>
-            <div>
-              <strong className="text-foreground font-semibold">
-                {countOf(summary.totalHours, "weide-uur", "weide-uren")}
-              </strong>
-            </div>
-            <span aria-hidden="true" className="text-muted-foreground hidden xl:inline">
-              ·
-            </span>
-            <div>
-              <strong className="text-foreground font-semibold">
-                {countOf(summary.periodsCount, "beweidingsperiode", "beweidingsperioden")}
-              </strong>
-            </div>
-            <span aria-hidden="true" className="text-muted-foreground hidden xl:inline">
-              ·
-            </span>
-            <div>
-              <strong className="text-foreground font-semibold">
-                {countOf(summary.harvestsCount, "snede gemaaid", "sneden gemaaid")}
-              </strong>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* The figures of the year, labelled like the key facts on the animal page */}
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+        <div>
+          <dt className="text-muted-foreground text-xs">Weidedagen</dt>
+          <dd className="font-semibold tabular-nums">{formatNumber(summary.totalDays)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs">Weide-uren</dt>
+          <dd className="font-semibold tabular-nums">{formatNumber(summary.totalHours)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs">Beweidingsperioden</dt>
+          <dd className="font-semibold tabular-nums">{formatNumber(summary.periodsCount)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground text-xs">Maaisneden</dt>
+          <dd className="font-semibold tabular-nums">{formatNumber(summary.harvestsCount)}</dd>
+        </div>
+      </dl>
 
-      {/* Zones grazed this year */}
-      {b_geometry && zones.length > 0 && (
+      {/* On a wide screen the zones map sits next to the history */}
+      <div
+        className={cn(
+          "grid gap-6",
+          showZones && "xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start",
+        )}
+      >
+        {/* Events Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Beweide zones {calendar}</CardTitle>
+            <CardTitle className="text-base">Gebruikshistorie {calendar}</CardTitle>
             <CardDescription className="text-xs">
-              De delen van het perceel die als zone zijn beweid.
+              Chronologisch overzicht van beweidingen en maaisneden op dit perceel.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-hidden rounded-lg border">
-              <Suspense fallback={<Skeleton className="h-[280px] w-full" />}>
-                <GrazingZonesMap fieldGeometry={b_geometry} zones={zones} height="280px" />
-              </Suspense>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Events Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gebruikshistorie {calendar}</CardTitle>
-          <CardDescription className="text-xs">
-            Chronologisch overzicht van beweidingen en maaisneden op dit perceel.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border">
-            <Table>
+          <CardContent className="space-y-4 px-0">
+            {/* The outer columns line up with the card title */}
+            <Table className="[&_tr>*:first-child]:pl-(--card-spacing) [&_tr>*:last-child]:pr-(--card-spacing)">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-40">Periode</TableHead>
@@ -487,25 +461,15 @@ export default function FieldGrazingPage() {
                 ) : (
                   events.map((ev, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="text-xs tabular-nums">
+                      <TableCell className="tabular-nums">
                         {ev.grazing && ev.grazing.l_grazing_end === null
                           ? `vanaf ${ev.startStr}`
                           : ev.startStr === ev.endStr
                             ? ev.startStr
                             : `${ev.startStr} – ${ev.endStr}`}
                       </TableCell>
-                      <TableCell className="text-xs font-medium">
-                        <span className="flex items-center gap-1.5">
-                          <span
-                            aria-hidden="true"
-                            className="inline-block h-2.5 w-2.5 shrink-0 rounded-xs"
-                            style={{
-                              backgroundColor:
-                                ev.type === "weiden"
-                                  ? GRAZING_USE_COLORS.weiden
-                                  : GRAZING_USE_COLORS.maaien,
-                            }}
-                          />
+                      <TableCell className="font-medium">
+                        <span className="flex items-center gap-2">
                           {ev.grazing && farmWritePermission ? (
                             // The grazing opens in the grazing dialog, also outside the season
                             // of the grazing calendar
@@ -520,19 +484,24 @@ export default function FieldGrazingPage() {
                           ) : (
                             <span>{ev.type === "weiden" ? ev.herdName : "Maaisnede"}</span>
                           )}
+                          {ev.isPlanned && (
+                            <Badge variant="outline" className="font-normal">
+                              Gepland
+                            </Badge>
+                          )}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">
+                      <TableCell className="text-right tabular-nums">
                         {ev.hours != null ? `${formatNumber(ev.hours)} uur` : "—"}
                       </TableCell>
-                      <TableCell className="text-xs tabular-nums">
+                      <TableCell className="tabular-nums">
                         {ev.areaType === "zone" && ev.area != null
                           ? `${formatNumber(ev.area)} ha (zone)`
                           : ev.areaType === "partial" && ev.area != null
                             ? `${formatNumber(ev.area)} ha (deel)`
                             : "Volledig"}
                       </TableCell>
-                      <TableCell className="text-right text-xs tabular-nums">
+                      <TableCell className="text-right tabular-nums">
                         {ev.restDays !== null ? (
                           <span
                             className={cn(
@@ -541,7 +510,7 @@ export default function FieldGrazingPage() {
                             )}
                           >
                             {ev.isShortRest && (
-                              <AlertTriangle aria-hidden="true" className="h-3 w-3" />
+                              <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5" />
                             )}
                             <span key={ev.isShortRest ? "short" : "normal"}>
                               {ev.isShortRest
@@ -558,15 +527,29 @@ export default function FieldGrazingPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
 
-          {fieldHarvests.length > 0 && (
-            <p className="text-muted-foreground mt-4 text-xs">
-              Maaimomenten komen uit de oogstregistratie van de graslandteelt op dit perceel.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            {fieldHarvests.length > 0 && (
+              <p className="text-muted-foreground px-(--card-spacing) text-xs">
+                Maaimomenten komen uit de oogstregistratie van de graslandteelt op dit perceel.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Zones grazed so far this year */}
+        {showZones && (
+          <figure className="space-y-2 xl:sticky xl:top-4">
+            <div className="overflow-hidden rounded-xl border">
+              <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
+                <GrazingZonesMap fieldGeometry={b_geometry} zones={zones} height="400px" />
+              </Suspense>
+            </div>
+            <figcaption className="text-muted-foreground text-xs">
+              Beweide zones {calendar}; geplande beweiding staat niet op de kaart.
+            </figcaption>
+          </figure>
+        )}
+      </div>
 
       {/* Grazing dialog: a new grazing, or the grazing picked in the table */}
       <GrazingPopover

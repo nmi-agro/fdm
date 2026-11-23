@@ -24,7 +24,7 @@ import {
 import { cn } from "cn"
 import { eachDayOfInterval, format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, CheckCircle2, Info, Save } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2, Info, Save } from "lucide-react"
 import { lazy, Suspense, useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -774,78 +774,77 @@ function GrazingPlanAssistent() {
         />
 
         <FarmContent>
-          <div className="max-w-4xl space-y-8">
-            {/* Step 1: System Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">1 · Welk systeem wil je toepassen?</CardTitle>
-                <CardDescription className="text-xs">
-                  Gebaseerd op de richtlijnen van het Handboek Melkveehouderij (§3.10) en Nieuw
-                  Nederlands Weiden.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {(Object.keys(GRAZING_SYSTEMS) as GrazingSystemKey[]).map((key) => {
-                    const sys = GRAZING_SYSTEMS[key]
-                    const isSelected = systemKey === key
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => handleSystemSelect(key)}
-                        className={cn(
-                          "cursor-pointer rounded-xl border p-4 text-left transition-all",
-                          isSelected
-                            ? "border-primary bg-primary/5 ring-primary/20 shadow-xs ring-2"
-                            : "border-border hover:bg-muted/40",
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold">{sys.name}</span>
-                          {isSelected && (
-                            <CheckCircle2 aria-hidden="true" className="text-primary h-4 w-4" />
-                          )}
-                        </div>
-                        <p
+          {/* On a wide screen the choices (steps 1 and 2) sit left and the plan (step 3) right */}
+          <div className="w-full space-y-8 2xl:grid 2xl:grid-cols-2 2xl:items-start 2xl:gap-8 2xl:space-y-0">
+            <div className="space-y-8">
+              {/* Step 1: System Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Stap 1: Welk systeem wil je toepassen?</CardTitle>
+                  <CardDescription className="text-xs">
+                    Gebaseerd op de richtlijnen van het Handboek Melkveehouderij (§3.10) en Nieuw
+                    Nederlands Weiden.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-2">
+                    {(Object.keys(GRAZING_SYSTEMS) as GrazingSystemKey[]).map((key) => {
+                      const sys = GRAZING_SYSTEMS[key]
+                      const isSelected = systemKey === key
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => handleSystemSelect(key)}
                           className={cn(
-                            "mt-1.5 text-xs text-pretty",
-                            isSelected ? "text-foreground/80" : "text-muted-foreground",
+                            "cursor-pointer rounded-xl border p-4 text-left transition-colors",
+                            isSelected ? "border-primary" : "border-border hover:bg-muted/40",
                           )}
                         >
-                          {sys.description}
-                        </p>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {!selectedSystem.requiresGrazingRecords && (
-                  <div className="mt-4 space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200">
-                    <p className="font-semibold">Let op bij {selectedSystem.name}:</p>
-                    <p>
-                      Bij dit systeem is er geen weidegang. In de stikstofgebruiksnorm telt al je
-                      grasland mee als <strong>geheel maaien</strong>, wat leidt tot een hogere
-                      stikstofgebruiksruimte. Er worden geen weidedagen vastgelegd.
-                    </p>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/norms`}
-                      className="text-primary mt-1 inline-block font-medium underline"
-                    >
-                      Bekijk de gebruiksruimte →
-                    </NavLink>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold">{sys.name}</span>
+                            {isSelected && (
+                              <CheckCircle2 aria-hidden="true" className="text-primary h-4 w-4" />
+                            )}
+                          </div>
+                          <p
+                            className={cn(
+                              "mt-1.5 text-xs text-pretty",
+                              isSelected ? "text-foreground/80" : "text-muted-foreground",
+                            )}
+                          >
+                            {sys.description}
+                          </p>
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </CardContent>
-            </Card>
 
-            {selectedSystem.requiresGrazingRecords && (
-              <>
-                {/* Step 2: Parameters */}
+                  {!selectedSystem.requiresGrazingRecords && (
+                    <div className="mt-4 space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200">
+                      <p className="font-semibold">Let op bij {selectedSystem.name}:</p>
+                      <p>
+                        Bij dit systeem is er geen weidegang. In de stikstofgebruiksnorm telt al je
+                        grasland mee als <strong>geheel maaien</strong>, wat leidt tot een hogere
+                        stikstofgebruiksruimte. Er worden geen weidedagen vastgelegd.
+                      </p>
+                      <NavLink
+                        to={`/farm/${b_id_farm}/${calendar}/norms`}
+                        className="text-primary mt-1 inline-flex items-center gap-1 font-medium underline"
+                      >
+                        <span>Bekijk de gebruiksruimte</span>
+                        <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                      </NavLink>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {selectedSystem.requiresGrazingRecords && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">2 · Wat neem je mee in het plan?</CardTitle>
+                    <CardTitle className="text-lg">Stap 2: Wat neem je mee in het plan?</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <FieldGroup>
@@ -936,7 +935,7 @@ function GrazingPlanAssistent() {
 
                       <Field>
                         <FieldLabel>Percelen om te beweiden in dit plan</FieldLabel>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-2">
                           {grasslandFields.map((field) => {
                             const isChecked = selectedFieldIds.includes(field.b_id)
                             return (
@@ -1259,168 +1258,170 @@ function GrazingPlanAssistent() {
                     </p>
                   </CardContent>
                 </Card>
+              )}
+            </div>
 
-                {/* Step 3: Plan Review Table */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">3 · Controleer het plan</CardTitle>
-                        <CardDescription className="text-xs">
-                          {generatedRows.length} perioden · ± {totalWeidedagen} weidedagen
-                        </CardDescription>
-                      </div>
-                      <Badge variant="secondary">{selectedSystem.name}</Badge>
+            {selectedSystem.requiresGrazingRecords && (
+              <Card className="2xl:sticky 2xl:top-4">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Stap 3: Controleer het plan</CardTitle>
+                      <CardDescription className="text-xs">
+                        {generatedRows.length} perioden · ± {totalWeidedagen} weidedagen
+                      </CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {collisions.length > 0 && (
-                      <div className="space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
-                        <p className="flex items-center gap-1.5 font-semibold">
-                          <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          {collisions.length}{" "}
-                          {collisions.length === 1 ? "periode kan" : "perioden kunnen"} niet worden
-                          vastgelegd en {collisions.length === 1 ? "wordt" : "worden"} overgeslagen:
-                        </p>
-                        <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                          {collisions.slice(0, 3).map((c, i) => (
-                            <li key={i}>
-                              {c.fieldName} (
-                              {c.startDate === c.endDate
-                                ? formatPlanDay(c.startDate)
-                                : `${formatPlanDay(c.startDate)} – ${formatPlanDay(c.endDate)}`}
-                              ): {c.reason.toLowerCase()}
-                            </li>
-                          ))}
-                        </ul>
+                    <Badge variant="secondary">{selectedSystem.name}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {collisions.length > 0 && (
+                    <div className="space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                      <p className="flex items-center gap-1.5 font-semibold">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        {collisions.length}{" "}
+                        {collisions.length === 1 ? "periode kan" : "perioden kunnen"} niet worden
+                        vastgelegd en {collisions.length === 1 ? "wordt" : "worden"} overgeslagen:
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                        {collisions.slice(0, 3).map((c, i) => (
+                          <li key={i}>
+                            {c.fieldName} (
+                            {c.startDate === c.endDate
+                              ? formatPlanDay(c.startDate)
+                              : `${formatPlanDay(c.startDate)} – ${formatPlanDay(c.endDate)}`}
+                            ): {c.reason.toLowerCase()}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* On a large screen the map sits next to the plan, so a row and its strip
+                        are visible together */}
+                  <div
+                    className={cn(
+                      "grid gap-4",
+                      // In the half-width column of a wide screen, the map sits above the plan
+                      previewZones.length > 0 && "lg:grid-cols-2 lg:items-start 2xl:grid-cols-1",
+                    )}
+                  >
+                    {previewZones.length > 0 && (
+                      <div className="h-[380px] overflow-hidden rounded-lg border lg:order-2 xl:h-[480px]">
+                        <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                          <PlanPreviewMap
+                            fields={previewFields}
+                            zones={previewZones}
+                            highlightedZoneId={hoveredZoneId}
+                            onZoneHover={setHoveredZoneId}
+                            height="100%"
+                          />
+                        </Suspense>
                       </div>
                     )}
 
-                    {/* On a large screen the map sits next to the plan, so a row and its strip
-                        are visible together */}
-                    <div
-                      className={cn(
-                        "grid gap-4",
-                        previewZones.length > 0 && "lg:grid-cols-2 lg:items-start",
-                      )}
-                    >
-                      {previewZones.length > 0 && (
-                        <div className="overflow-hidden rounded-lg border lg:order-2">
-                          <Suspense fallback={<Skeleton className="h-[380px] w-full" />}>
-                            <PlanPreviewMap
-                              fields={previewFields}
-                              zones={previewZones}
-                              highlightedZoneId={hoveredZoneId}
-                              onZoneHover={setHoveredZoneId}
-                              height="380px"
-                            />
-                          </Suspense>
-                        </div>
-                      )}
-
-                      <div className="max-h-64 overflow-y-auto rounded-lg border lg:max-h-[380px]">
-                        <Table>
-                          <TableHeader>
+                    <div className="max-h-64 overflow-y-auto rounded-lg border lg:max-h-[380px] xl:max-h-[480px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-32">Periode</TableHead>
+                            <TableHead>Perceel & Oppervlak</TableHead>
+                            <TableHead className="text-right">Uren/dag</TableHead>
+                            <TableHead>Gebruik</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {generatedRows.length === 0 ? (
                             <TableRow>
-                              <TableHead className="w-32">Periode</TableHead>
-                              <TableHead>Perceel & Oppervlak</TableHead>
-                              <TableHead className="text-right">Uren/dag</TableHead>
-                              <TableHead>Gebruik</TableHead>
+                              <TableCell
+                                colSpan={4}
+                                className="text-muted-foreground py-6 text-center"
+                              >
+                                Geen perioden gegenereerd. Selecteer minimaal 1 perceel.
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {generatedRows.length === 0 ? (
-                              <TableRow>
-                                <TableCell
-                                  colSpan={4}
-                                  className="text-muted-foreground py-6 text-center"
-                                >
-                                  Geen perioden gegenereerd. Selecteer minimaal 1 perceel.
+                          ) : (
+                            generatedRows.map((row, idx) => (
+                              <TableRow
+                                key={idx}
+                                // Highlights the strip of this row on the map, and the rows of the
+                                // strip under the pointer on the map
+                                onMouseEnter={() => setHoveredZoneId(rowZoneIds[idx])}
+                                onMouseLeave={() => setHoveredZoneId(null)}
+                                className={cn(
+                                  rowZoneIds[idx] !== null &&
+                                    rowZoneIds[idx] === hoveredZoneId &&
+                                    "bg-muted/50",
+                                )}
+                              >
+                                <TableCell className="text-xs tabular-nums">
+                                  {row.l_grazing_start === row.l_grazing_end
+                                    ? formatPlanDay(row.l_grazing_start)
+                                    : `${formatPlanDay(row.l_grazing_start)} – ${formatPlanDay(row.l_grazing_end)}`}
+                                </TableCell>
+                                <TableCell className="text-xs font-medium">
+                                  {row.fieldName}{" "}
+                                  <span className="text-muted-foreground font-normal tabular-nums">
+                                    (
+                                    {row.zoneArea !== undefined
+                                      ? // A part never shows as larger than its rounded field
+                                        `${formatHa(Math.min(row.zoneArea, row.fieldArea))} ha van ${formatHa(row.fieldArea)} ha`
+                                      : row.l_grazing_area
+                                        ? `${formatHa(row.l_grazing_area)} ha van ${formatHa(row.fieldArea)} ha`
+                                        : `${formatHa(row.fieldArea)} ha`}
+                                    )
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right text-xs tabular-nums">
+                                  {row.l_grazing_hours.toLocaleString("nl-NL")} uur
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {row.l_grazing_geometry_zone
+                                    ? isNnw
+                                      ? "Perceel op de kaart"
+                                      : "Strook op de kaart"
+                                    : row.l_grazing_area
+                                      ? `Deelperceel (${partialPercentage}%, zonder kaart)`
+                                      : "Volledig"}
                                 </TableCell>
                               </TableRow>
-                            ) : (
-                              generatedRows.map((row, idx) => (
-                                <TableRow
-                                  key={idx}
-                                  // Highlights the strip of this row on the map, and the rows of the
-                                  // strip under the pointer on the map
-                                  onMouseEnter={() => setHoveredZoneId(rowZoneIds[idx])}
-                                  onMouseLeave={() => setHoveredZoneId(null)}
-                                  className={cn(
-                                    rowZoneIds[idx] !== null &&
-                                      rowZoneIds[idx] === hoveredZoneId &&
-                                      "bg-green-100",
-                                  )}
-                                >
-                                  <TableCell className="text-xs tabular-nums">
-                                    {row.l_grazing_start === row.l_grazing_end
-                                      ? formatPlanDay(row.l_grazing_start)
-                                      : `${formatPlanDay(row.l_grazing_start)} – ${formatPlanDay(row.l_grazing_end)}`}
-                                  </TableCell>
-                                  <TableCell className="text-xs font-medium">
-                                    {row.fieldName}{" "}
-                                    <span className="text-muted-foreground font-normal tabular-nums">
-                                      (
-                                      {row.zoneArea !== undefined
-                                        ? // A part never shows as larger than its rounded field
-                                          `${formatHa(Math.min(row.zoneArea, row.fieldArea))} ha van ${formatHa(row.fieldArea)} ha`
-                                        : row.l_grazing_area
-                                          ? `${formatHa(row.l_grazing_area)} ha van ${formatHa(row.fieldArea)} ha`
-                                          : `${formatHa(row.fieldArea)} ha`}
-                                      )
-                                    </span>
-                                  </TableCell>
-                                  <TableCell className="text-right text-xs tabular-nums">
-                                    {row.l_grazing_hours.toLocaleString("nl-NL")} uur
-                                  </TableCell>
-                                  <TableCell className="text-xs">
-                                    {row.l_grazing_geometry_zone
-                                      ? isNnw
-                                        ? "Perceel op de kaart"
-                                        : "Strook op de kaart"
-                                      : row.l_grazing_area
-                                        ? `Deelperceel (${partialPercentage}%, zonder kaart)`
-                                        : "Volledig"}
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                     </div>
+                  </div>
 
-                    <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                      <Info className="text-primary h-3.5 w-3.5 shrink-0" />
-                      Rustperiodes zijn gebaseerd op een vaste richtlijn, niet op de werkelijke
-                      grasgroei.
-                    </p>
-                  </CardContent>
-                  {/* On a phone both buttons span the width, the confirm button on top (as in the
+                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                    <Info className="text-primary h-3.5 w-3.5 shrink-0" />
+                    Rustperiodes zijn gebaseerd op een vaste richtlijn, niet op de werkelijke
+                    grasgroei.
+                  </p>
+                </CardContent>
+                {/* On a phone both buttons span the width, the confirm button on top (as in the
                       dialog footers) */}
-                  <CardFooter className="flex flex-col-reverse items-stretch gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <Button
-                      variant="outline"
-                      nativeButton={false}
-                      render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
-                    >
-                      Annuleren
-                    </Button>
+                <CardFooter className="flex flex-col-reverse items-stretch gap-2 border-t sm:flex-row sm:items-center sm:justify-between">
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/grazing`} />}
+                  >
+                    Annuleren
+                  </Button>
 
-                    <fetcher.Form method="post">
-                      <input type="hidden" name="plan_rows" value={JSON.stringify(generatedRows)} />
-                      <Button
-                        type="submit"
-                        disabled={generatedRows.length === 0 || fetcher.state !== "idle"}
-                        className="w-full gap-1.5 sm:w-auto"
-                      >
-                        <Save aria-hidden="true" className="h-4 w-4" />
-                        Plan bevestigen en vastleggen ({generatedRows.length})
-                      </Button>
-                    </fetcher.Form>
-                  </CardFooter>
-                </Card>
-              </>
+                  <fetcher.Form method="post">
+                    <input type="hidden" name="plan_rows" value={JSON.stringify(generatedRows)} />
+                    <Button
+                      type="submit"
+                      disabled={generatedRows.length === 0 || fetcher.state !== "idle"}
+                      className="w-full gap-1.5 sm:w-auto"
+                    >
+                      <Save aria-hidden="true" className="h-4 w-4" />
+                      Plan bevestigen en vastleggen ({generatedRows.length})
+                    </Button>
+                  </fetcher.Form>
+                </CardFooter>
+              </Card>
             )}
           </div>
         </FarmContent>
