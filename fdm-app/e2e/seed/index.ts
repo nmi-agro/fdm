@@ -599,7 +599,9 @@ export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<Dem
     await addGrazings(fdm, principal, [
       grazing(homePlot, [4, 20], [4, 24]),
       grazing(backPlot, [5, 1], [5, 5]),
-      grazing(homePlot, [5, 20], [5, 24]),
+      // Ends more than 28 days before the strips in June, so the whole home plot is free again for
+      // the strip builder
+      grazing(homePlot, [5, 10], [5, 14]),
       grazing(backPlot, [6, 1], [6, 4]),
       // A part of the field without a location on the map
       { ...grazing(backPlot, [6, 8], [6, 9]), l_grazing_area: 2 },
