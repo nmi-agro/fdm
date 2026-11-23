@@ -22,6 +22,26 @@ The `fdm-data` package extends the Farm Data Model (FDM) core functionality by p
 
 ## Usage
 
+### Cultivations
+
+```typescript
+import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
+
+// Get the BRP cultivation catalogue
+const brpCatalogue = await getCultivationCatalogue("brp")
+console.log(brpCatalogue[0].b_lu_catalogue, brpCatalogue[0].b_lu_name)
+```
+
+### Measures
+
+```typescript
+import { getMeasuresCatalogue } from "@nmi-agro/fdm-data"
+
+// The BLN measures catalogue is read from the NMI API and needs an API key
+const blnCatalogue = await getMeasuresCatalogue("bln", process.env.NMI_API_KEY ?? "")
+console.log(blnCatalogue[0])
+```
+
 ### Fertilizers
 
 ```typescript
