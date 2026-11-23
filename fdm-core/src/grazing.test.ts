@@ -26,6 +26,7 @@ describe("Grazing Domain", () => {
   let principal_id: string
   let b_id_farm: string
   let l_id_herd: string
+  let b_id: string
 
   beforeEach(async () => {
     const host = inject("host")
@@ -50,11 +51,35 @@ describe("Grazing Domain", () => {
       l_herd_name: "Melkkoeien",
       l_id_category: "rvo_100",
     })
+
+    // Every grazing is on a field
+    b_id = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Weide",
+      "src_weide",
+      {
+        type: "Polygon" as const,
+        coordinates: [
+          [
+            [-1, -1],
+            [-1, 1],
+            [1, 1],
+            [1, -1],
+            [-1, -1],
+          ],
+        ],
+      },
+      new Date("2020-01-01"),
+      "nl_01",
+    )
   })
 
   it("should record grazing action and retrieve for herd and farm", async () => {
     const startDate = new Date("2025-05-15")
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
+      b_id,
       l_grazing_end: startDate,
       l_grazing_hours: 8,
       l_grazing_area: 25,
@@ -64,7 +89,7 @@ describe("Grazing Domain", () => {
     expect(herdGrazing.length).toBe(1)
     expect(herdGrazing[0].l_grazing_hours).toBe(8)
     expect(herdGrazing[0].l_grazing_area).toBe(25)
-    // Without a field the recorded area is the grazed area
+    // An area smaller than the field is the grazed area
     expect(herdGrazing[0].l_grazing_area_grazed).toBe(25)
     expect(herdGrazing[0].l_grazing_geometry_zone).toBeNull()
 
@@ -78,7 +103,10 @@ describe("Grazing Domain", () => {
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
 
-    await addGrazing(fdm, principal_id, l_id_herd, grazingDate, { l_grazing_end: grazingDate })
+    await addGrazing(fdm, principal_id, l_id_herd, grazingDate, {
+      b_id,
+      l_grazing_end: grazingDate,
+    })
 
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
   })
@@ -86,6 +114,7 @@ describe("Grazing Domain", () => {
   it("should not overwrite other years when setting first-grazing intention", async () => {
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2024, false)
     await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-06-01T08:00:00.000Z"), {
+      b_id,
       l_grazing_end: new Date("2025-06-01T18:00:00.000Z"),
     })
 
@@ -95,12 +124,14 @@ describe("Grazing Domain", () => {
 
   it("should only auto-set intention on the first grazing in a year", async () => {
     await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-01-05T08:00:00.000Z"), {
+      b_id,
       l_grazing_end: new Date("2025-01-06T08:00:00.000Z"),
     })
     expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
 
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
     await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-02-05T08:00:00.000Z"), {
+      b_id,
       l_grazing_end: new Date("2025-02-06T08:00:00.000Z"),
     })
 
@@ -113,6 +144,7 @@ describe("Grazing Domain", () => {
       l_grazing_end: new Date(`${date}T12:00:00.000Z`),
     })
     await addGrazing(fdm, principal_id, l_id_herd, oneDay("2025-05-01").l_grazing_start, {
+      b_id,
       l_grazing_end: oneDay("2025-05-01").l_grazing_end,
     })
     const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
@@ -129,6 +161,7 @@ describe("Grazing Domain", () => {
 
     // Moving another grazing into 2026 is not the first one there
     await addGrazing(fdm, principal_id, l_id_herd, oneDay("2025-06-01").l_grazing_start, {
+      b_id,
       l_grazing_end: oneDay("2025-06-01").l_grazing_end,
     })
     await setGrazingIntention(fdm, principal_id, b_id_farm, 2026, false)
@@ -144,6 +177,7 @@ describe("Grazing Domain", () => {
     for (const hours of [0, -1, 25, Number.NaN]) {
       await expect(
         addGrazing(fdm, principal_id, l_id_herd, start, {
+          b_id,
           l_grazing_end: start,
           l_grazing_hours: hours,
         }),
@@ -153,13 +187,14 @@ describe("Grazing Domain", () => {
     }
     await expect(
       addGrazings(fdm, principal_id, [
-        { l_id_herd, l_grazing_start: start, l_grazing_end: start, l_grazing_hours: 30 },
+        { l_id_herd, b_id, l_grazing_start: start, l_grazing_end: start, l_grazing_hours: 30 },
       ]),
     ).rejects.toMatchObject({
       cause: { message: expect.stringContaining("Invalid grazing hours") },
     })
 
     await addGrazing(fdm, principal_id, l_id_herd, start, {
+      b_id,
       l_grazing_end: start,
       l_grazing_hours: 24,
     })
@@ -211,23 +246,31 @@ describe("Grazing Domain", () => {
     expect(fieldGrazing[0].l_id_herd).toBe(l_id_herd)
   })
 
-  it("should reject overlapping grazing intervals for the same herd", async () => {
+  it("should reject overlapping grazings of the same herd above 24 hours a day", async () => {
     const firstStart = new Date("2025-04-10T00:00:00.000Z")
     const firstEnd = new Date("2025-04-20T00:00:00.000Z")
     await addGrazing(fdm, principal_id, l_id_herd, firstStart, {
+      b_id,
       l_grazing_end: firstEnd,
+      l_grazing_hours: 12,
     })
 
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, new Date("2025-04-15T00:00:00.000Z"), {
+        b_id,
         l_grazing_end: new Date("2025-04-25T00:00:00.000Z"),
         l_grazing_hours: 24,
       }),
-    ).rejects.toThrowError("Exception for addGrazing")
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("exceed 24 hours") },
+    })
 
+    // Sharing the last day with 12 hours each adds up to 24
     const secondStart = new Date("2025-04-20T00:00:00.000Z")
     await addGrazing(fdm, principal_id, l_id_herd, secondStart, {
+      b_id,
       l_grazing_end: new Date("2025-04-25T00:00:00.000Z"),
+      l_grazing_hours: 12,
     })
     const grazingRecords = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     const secondRecord = grazingRecords.find(
@@ -238,11 +281,49 @@ describe("Grazing Domain", () => {
     await expect(
       updateGrazing(fdm, principal_id, secondRecord!.l_id_grazing, {
         l_grazing_start: new Date("2025-04-15T00:00:00.000Z"),
+        l_grazing_hours: 13,
       }),
-    ).rejects.toThrowError("Exception for updateGrazing")
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("exceed 24 hours") },
+    })
   })
 
-  it("should allow overlapping grazing intervals for the same herd on fields, but reject herd-level overlaps", async () => {
+  it("should refuse a grazing without a field", async () => {
+    const start = new Date("2025-05-15T00:00:00.000Z")
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, start, {
+        l_grazing_end: start,
+      } as unknown as Parameters<typeof addGrazing>[4]),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("needs a field") },
+    })
+    await expect(
+      addGrazings(fdm, principal_id, [
+        { l_id_herd, l_grazing_start: start, l_grazing_end: start },
+      ] as unknown as Parameters<typeof addGrazings>[2]),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("needs a field") },
+    })
+    expect(await getGrazingForHerd(fdm, principal_id, l_id_herd)).toEqual([])
+  })
+
+  it("should refuse to update a grazing that was removed", async () => {
+    const start = new Date("2025-05-15T00:00:00.000Z")
+    await addGrazing(fdm, principal_id, l_id_herd, start, { b_id, l_grazing_end: start })
+    const [grazing] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+
+    await removeGrazing(fdm, principal_id, grazing.l_id_grazing)
+    expect(await getGrazingForHerd(fdm, principal_id, l_id_herd)).toEqual([])
+
+    await expect(
+      updateGrazing(fdm, principal_id, grazing.l_id_grazing, { l_grazing_hours: 6 }),
+    ).rejects.toThrowError("Exception for updateGrazing")
+    await expect(removeGrazing(fdm, principal_id, grazing.l_id_grazing)).rejects.toThrowError(
+      "Exception for removeGrazing",
+    )
+  })
+
+  it("should allow overlapping grazing intervals for the same herd on fields", async () => {
     const field1 = await addField(
       fdm,
       principal_id,
@@ -310,13 +391,6 @@ describe("Grazing Domain", () => {
         l_grazing_end: new Date("2025-07-15T00:00:00.000Z"),
       }),
     ).resolves.not.toThrow()
-
-    // Concurrent grazing with herd-level (b_id is null) MUST be rejected
-    await expect(
-      addGrazing(fdm, principal_id, l_id_herd, new Date("2025-07-05T00:00:00.000Z"), {
-        l_grazing_end: new Date("2025-07-15T00:00:00.000Z"),
-      }),
-    ).rejects.toThrowError("Exception for addGrazing")
   })
 
   it("should bulk insert grazing records via addGrazings atomically with intention side-effect", async () => {
@@ -479,10 +553,12 @@ describe("Grazing Domain", () => {
     const d2 = new Date("2025-06-01")
 
     await addGrazing(fdm, principal_id, l_id_herd, d1, {
+      b_id,
       l_grazing_end: new Date("2025-05-02"),
       l_grazing_area: 10,
     })
     await addGrazing(fdm, principal_id, l_id_herd, d2, {
+      b_id,
       l_grazing_end: new Date("2025-06-02"),
       l_grazing_area: 20,
     })
@@ -534,6 +610,7 @@ describe("Grazing Domain", () => {
   it("should correct and remove a grazing record", async () => {
     const startDate = new Date("2025-05-15")
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
+      b_id,
       l_grazing_end: startDate,
       l_grazing_hours: 8,
       l_grazing_area: 25,
@@ -565,7 +642,7 @@ describe("Grazing Domain", () => {
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(
-      addGrazing(fdm, invalidUser, l_id_herd, new Date(), { l_grazing_end: new Date() }),
+      addGrazing(fdm, invalidUser, l_id_herd, new Date(), { b_id, l_grazing_end: new Date() }),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 
@@ -722,7 +799,7 @@ describe("Grazing zones", () => {
     expect(grazings.map((g) => g.l_grazing_area_grazed)).toEqual([fieldArea, 5])
   })
 
-  it("rejects a zone together with an area, a zone without a field and an invalid zone", async () => {
+  it("rejects a zone together with an area, a grazing without a field and an invalid zone", async () => {
     await expect(
       addGrazing(fdm, principal_id, l_id_herd, day(3), {
         b_id,
@@ -736,7 +813,7 @@ describe("Grazing zones", () => {
       addGrazing(fdm, principal_id, l_id_herd, day(3), {
         l_grazing_end: day(3),
         l_grazing_geometry_zone: strip(5.0, 5.005),
-      }),
+      } as unknown as Parameters<typeof addGrazing>[4]),
     ).rejects.toThrowError("Exception for addGrazing")
 
     await expect(

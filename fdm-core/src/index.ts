@@ -332,7 +332,14 @@ export type {
   UpdateSoilImageAnnotationInput,
 } from "./soil-image.types"
 export type { Timeframe } from "./timeframe"
-export { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
+export {
+  addHerd,
+  getHerd,
+  getHerdsForFarm,
+  getHerdsForFarmInPeriod,
+  removeHerd,
+  updateHerd,
+} from "./herd"
 export type { Herd } from "./herd.types"
 export {
   addAnimal,
