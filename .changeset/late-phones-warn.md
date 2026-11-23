@@ -4,7 +4,7 @@
 
 Add the livestock and dairy domain: Drizzle schema tables and enums, CRUD functions, authorization rules and tests for animals, herds, barns and housing, milking, milk tanks and deliveries, feed batches and feeding, manure pits and excretion, and grazing. The action tables are named after their asset: `herd_housing`, `herd_milking`, `animal_milking`, `herd_feeding`, `animal_feeding`, `herd_excreting` and `herd_grazing`. Every herd has an animal category (`l_id_category`), so `addHerd` and `createHerdWithAnimals` require one.
 
-`createHerdWithAnimals` takes an optional `l_arriving_date` with the animal properties: the date the new animals arrived and joined the herd (default: now), for example the first day of the year when the actual date is unknown.
+`createHerdWithAnimals` and `addAnimalsToHerd` take an optional `l_arriving_date` with the animal properties: the date the new animals arrived and joined the herd (default: now), for example the first day of the year when the actual date is unknown. The herd must run on that date; `expected_count` is still checked on the current count.
 
 An animal takes the animal category of its herd. `assignAnimalToHerd` moves an animal to a herd that the caller chooses, optionally on a date in the past, for example when a heifer calves and joins the dairy cows. It closes the current herd assignment on that date and opens a new one, so the history is kept.
 

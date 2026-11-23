@@ -1,6 +1,7 @@
 import { Minus, MoreHorizontal, Plus, Warehouse } from "lucide-react"
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { NavLink, useFetcher } from "react-router"
+import { HerdArrivalField } from "~/components/blocks/livestock/herd-arrival-field"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { Field, FieldLabel } from "~/components/ui/field"
+import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
   Select,
@@ -37,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { farmTodayKey } from "~/lib/grazing-dates"
 
 export interface HerdCardProps {
   b_id_farm: string
@@ -68,14 +70,16 @@ export function HerdCard({
 }: HerdCardProps) {
   const fetcher = useFetcher()
 
-  // Optimistic count: the local value is shown while a change is pending (debouncing or being
-  // submitted); otherwise the count from the loader.
+  // Optimistic count: the local value is shown while a change is being submitted; otherwise the
+  // count from the loader.
   const [localCount, setLocalCount] = useState<number | null>(null)
-  const [isDebouncing, setIsDebouncing] = useState(false)
-  const isCountPending = isDebouncing || fetcher.formData?.get("intent") === "update_count"
+  const isCountPending = fetcher.formData?.get("intent") === "update_count"
   const count = isCountPending && localCount !== null ? localCount : herd.count
   const [pendingReduceCount, setPendingReduceCount] = useState<number | null>(null)
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  // Adding animals: how many, and since when they are in the herd (today unless chosen)
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [addCountText, setAddCountText] = useState("1")
+  const [arrivalDay, setArrivalDay] = useState("")
 
   // Dialogs
   const [isRenameOpen, setIsRenameOpen] = useState(false)
@@ -84,25 +88,34 @@ export function HerdCard({
   const [targetHerdId, setTargetHerdId] = useState("")
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
 
-  const submitCountChange = (newCount: number) => {
+  const submitCountChange = (newCount: number, l_arriving_date?: string) => {
     if (newCount === herd.count) return
     const formData = new FormData()
     formData.set("intent", "update_count")
     formData.set("l_id_herd", herd.l_id_herd)
     formData.set("target_count", String(newCount))
     formData.set("previous_count", String(herd.count))
+    if (l_arriving_date) formData.set("l_arriving_date", l_arriving_date)
     void fetcher.submit(formData, { method: "post" })
   }
 
   const handleIncrement = () => {
-    const next = count + 1
+    // Today in the Netherlands, taken when the dialog opens
+    setArrivalDay(farmTodayKey())
+    setAddCountText("1")
+    setIsAddOpen(true)
+  }
+
+  const addCount = Number.parseInt(addCountText, 10)
+  const canAdd = Number.isInteger(addCount) && addCount > 0 && arrivalDay !== ""
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canAdd) return
+    const next = herd.count + addCount
     setLocalCount(next)
-    setIsDebouncing(true)
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
-    debounceTimerRef.current = setTimeout(() => {
-      setIsDebouncing(false)
-      submitCountChange(next)
-    }, 600)
+    submitCountChange(next, arrivalDay)
+    setIsAddOpen(false)
   }
 
   const handleDecrement = () => {
@@ -223,11 +236,11 @@ export function HerdCard({
               variant="outline"
               size="icon"
               onClick={handleIncrement}
-              disabled={!canWrite}
+              disabled={!canWrite || isCountPending}
               className="h-9 w-9 shrink-0 cursor-pointer rounded-md"
             >
               <Plus className="h-4 w-4" />
-              <span className="sr-only">Dier meer</span>
+              <span className="sr-only">Dieren toevoegen</span>
             </Button>
           </div>
 
@@ -305,6 +318,47 @@ export function HerdCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add animals: how many and since when */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="max-w-sm">
+          <form onSubmit={handleAddSubmit}>
+            <DialogHeader>
+              <DialogTitle>Dieren toevoegen aan {herd.l_herd_name ?? "koppel"}</DialogTitle>
+              <DialogDescription>
+                De dieren komen erbij zonder oormerk; vul dat later per dier aan.
+              </DialogDescription>
+            </DialogHeader>
+            <FieldGroup className="py-4">
+              <Field>
+                <FieldLabel htmlFor={`add-count-${herd.l_id_herd}`}>Aantal dieren *</FieldLabel>
+                <Input
+                  id={`add-count-${herd.l_id_herd}`}
+                  type="number"
+                  min="1"
+                  max="5000"
+                  value={addCountText}
+                  onChange={(e) => setAddCountText(e.target.value)}
+                  required
+                />
+              </Field>
+              <HerdArrivalField
+                value={arrivalDay}
+                onChange={setArrivalDay}
+                description="Vandaag, tenzij de dieren er al eerder waren."
+              />
+            </FieldGroup>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                Annuleren
+              </Button>
+              <Button type="submit" disabled={!canAdd}>
+                Toevoegen
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Rename Dialog */}
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
