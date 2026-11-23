@@ -462,16 +462,17 @@ export function AddMeasureDialog({
     })
   }, [catalogue, computedApplicabilityMap])
 
-  // The top three recommendations among the measures that can be selected
+  // The top three recommendations among the measures that can be selected: a measure that
+  // conflicts with an active measure is skipped, so every card can be added
   const topRecommendations = useMemo(
     () =>
       (effectiveTopOpportunities ?? [])
         .flatMap((opp) => {
           const item = fieldLevelCatalogue.find((c) => c.m_id === opp.m_id)
-          return item ? [{ opp, item }] : []
+          return item && !conflictMap.has(item.m_id) ? [{ opp, item }] : []
         })
         .slice(0, 3),
-    [effectiveTopOpportunities, fieldLevelCatalogue],
+    [effectiveTopOpportunities, fieldLevelCatalogue, conflictMap],
   )
 
   // Fuzzy search — search against indexed combined strings per catalogue item

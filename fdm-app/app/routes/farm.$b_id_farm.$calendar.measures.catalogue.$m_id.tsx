@@ -459,6 +459,9 @@ function AddMeasureLink({
   const [recommendedFieldIds, setRecommendedFieldIds] = useState<string[]>([])
   useEffect(() => {
     let current = true
+    // No preselection from an earlier request, e.g. before "Opnieuw proberen", until this one
+    // succeeds
+    setRecommendedFieldIds([])
     fieldsStatus
       .then((loaded) => {
         if (!current) return
