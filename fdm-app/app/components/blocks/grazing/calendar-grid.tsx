@@ -185,8 +185,25 @@ export function CalendarGrid({
   // The scrolling box of the calendar, and the one tooltip that follows the day under the pointer
   const scrollRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<CalendarDayTooltipHandle>(null)
-  const [focusedCell, setFocusedCell] = useState<GridPosition | null>(null)
-  const [keyboardAnchor, setKeyboardAnchor] = useState<GridPosition | null>(null)
+  // The focused day and the first day of a Shift-selection are kept per field, like the drag: a
+  // save can reorder the fields, and the position then follows its field. When the field is gone,
+  // the position is dropped.
+  const [focusedAt, setFocusedAt] = useState<{ b_id: string; col: number } | null>(null)
+  const [anchorAt, setAnchorAt] = useState<{ b_id: string; col: number } | null>(null)
+  const toGridPosition = (at: { b_id: string; col: number } | null): GridPosition | null => {
+    if (!at) return null
+    const row = matrix.fields.findIndex((field) => field.b_id === at.b_id)
+    return row < 0 ? null : { row, col: at.col }
+  }
+  const toFieldPosition = (position: GridPosition | null) => {
+    const field = position ? matrix.fields[position.row] : undefined
+    return position && field ? { b_id: field.b_id, col: position.col } : null
+  }
+  const focusedCell = toGridPosition(focusedAt)
+  const keyboardAnchor = toGridPosition(anchorAt)
+  const setFocusedCell = (position: GridPosition | null) => setFocusedAt(toFieldPosition(position))
+  const setKeyboardAnchor = (position: GridPosition | null) =>
+    setAnchorAt(toFieldPosition(position))
   const activeCell = focusedCell ?? { row: 0, col: Math.max(0, todayIndex) }
 
   // Popover state
@@ -253,8 +270,7 @@ export function CalendarGrid({
         l_grazing_geometry_zone: grazing.l_grazing_geometry_zone,
       })
       setPopoverStartDate(grazing.l_grazing_start)
-      // A grazing that still runs has no end date, so saving it keeps it running
-      setPopoverEndDate(grazing.l_grazing_end ?? undefined)
+      setPopoverEndDate(grazing.l_grazing_end ?? grazing.l_grazing_start)
       setPopoverOpen(true)
       return
     }

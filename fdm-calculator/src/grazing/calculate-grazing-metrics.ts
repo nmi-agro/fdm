@@ -34,20 +34,6 @@ function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
 
-/**
- * The end of a grazing for counting. A grazing without an end that has started runs through
- * today, as in the grazing calendar; one that starts later counts as its start day only.
- *
- * @param start - The start of the grazing.
- * @param end - The recorded end, if any.
- * @param todayStart - Midnight (UTC) of today's date.
- * @returns The recorded end, or the end to count with.
- */
-function effectiveEnd(start: Date, end: Date | null | undefined, todayStart: Date): Date {
-  if (end) return new Date(end)
-  return start.getTime() < todayStart.getTime() ? todayStart : start
-}
-
 function getDaysBetween(start: Date, end: Date): string[] {
   const days: string[] = []
   const current = new Date(
@@ -97,8 +83,7 @@ function getDaysBetween(start: Date, end: Date): string[] {
  *    most recent earlier use of the same part of the parcel (see {@link calculateRestBeforeUses}), so
  *    successive grazing strips each get their own rest. The rest is the difference between the
  *    end date of the earlier use and the start date of the next (end 4 May, start 25 May: 21 days).
- *    A grazing without an end that has started runs through today. Flags rest shorter than
- *    {@link REST_PERIOD_THRESHOLD_DAYS} days during the growing season with explanatory guidance.
+ *    Flags rest shorter than {@link REST_PERIOD_THRESHOLD_DAYS} days during the growing season with explanatory guidance.
  *
  * @param input - The {@link GrazingMetricsInput} payload containing the calendar year, optional status date, herds, grazing records, field parcels, and harvest records.
  * @returns A {@link GrazingMetricsResult} object with computed weidedagen, hours, Weidemelk progress, platform metrics, stocking densities, rest periods, and alerts.
@@ -138,7 +123,6 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
   const today = input.today ?? new Date()
   const todayKey = toDateKey(today)
   const todayTime = new Date(todayKey + "T23:59:59.999Z").getTime()
-  const todayStart = new Date(todayKey + "T00:00:00.000Z")
 
   const yearStart = new Date(Date.UTC(year, 0, 1))
   const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
@@ -156,7 +140,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
   // Filter grazings relevant to this calendar year
   const yearGrazings = input.grazings.filter((g) => {
     const start = new Date(g.l_grazing_start)
-    const end = effectiveEnd(start, g.l_grazing_end, todayStart)
+    const end = new Date(g.l_grazing_end)
     return start <= yearEnd && end >= yearStart
   })
 
@@ -179,7 +163,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
 
   for (const g of yearGrazings) {
     const gStart = new Date(g.l_grazing_start)
-    const gEnd = effectiveEnd(gStart, g.l_grazing_end, todayStart)
+    const gEnd = new Date(g.l_grazing_end)
 
     // Clip to year
     const clippedStart = gStart < yearStart ? yearStart : gStart
@@ -428,7 +412,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
     const start = new Date(g.l_grazing_start)
     // The rest is the difference between the dates: the end day counts as used, whatever time
     // of day the end was stored with
-    const end = startOfUtcDay(effectiveEnd(start, g.l_grazing_end, todayStart))
+    const end = startOfUtcDay(new Date(g.l_grazing_end))
     fieldEventsMap
       .get(g.b_id)!
       .push({ type: "weiden", start, end, zone: g.l_grazing_geometry_zone ?? null })

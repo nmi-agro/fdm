@@ -5,6 +5,7 @@ import {
   getFarm,
   getCensusForFarm,
   getField,
+  getGrazing,
   getGrazingForField,
   getHarvestsForFarm,
   getHerdsForFarm,
@@ -38,7 +39,8 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { censusDateForYear, farmToday, farmTodayKey, fieldGrazingTotals } from "~/lib/grazing-dates"
+import { formText } from "~/lib/form"
+import { censusDateForYear, farmToday, fieldGrazingTotals } from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { zoneWithinField } from "~/lib/grazing-herds"
 import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
@@ -80,24 +82,39 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Today's calendar day in the Netherlands, as a date-only value like the grazing dates
     const now = serverNow()
     const today = farmToday(now)
-    const todayStart = new Date(`${farmTodayKey(now)}T00:00:00.000Z`)
+    // The rest before the first use of a year counts from a use in the year before, so that year
+    // is loaded as well; the page itself only shows the selected year
+    const contextTimeframe =
+      calendarYear !== null
+        ? { start: new Date(Date.UTC(calendarYear - 1, 0, 1)), end: timeframe.end }
+        : timeframe
+    const inYear = (start: Date, end: Date | null) =>
+      calendarYear === null ||
+      (start.getUTCFullYear() <= calendarYear && (!end || end.getUTCFullYear() >= calendarYear))
 
-    const [farm, field, herds, grazings, cultivationsByField, harvestsByCultivation, census] =
-      await Promise.all([
-        getFarm(fdm, session.principal_id, b_id_farm),
-        getField(fdm, session.principal_id, b_id),
-        getHerdsForFarm(fdm, session.principal_id, b_id_farm),
-        getGrazingForField(fdm, session.principal_id, b_id, timeframe),
-        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        // The herds of the selected year, also for a past year
-        getCensusForFarm(
-          fdm,
-          session.principal_id,
-          b_id_farm,
-          calendarYear !== null ? censusDateForYear(calendarYear) : new Date(),
-        ),
-      ])
+    const [
+      farm,
+      field,
+      herds,
+      contextGrazings,
+      cultivationsByField,
+      harvestsByCultivation,
+      census,
+    ] = await Promise.all([
+      getFarm(fdm, session.principal_id, b_id_farm),
+      getField(fdm, session.principal_id, b_id),
+      getHerdsForFarm(fdm, session.principal_id, b_id_farm),
+      getGrazingForField(fdm, session.principal_id, b_id, contextTimeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, contextTimeframe),
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, contextTimeframe),
+      // The herds of the selected year, also for a past year
+      getCensusForFarm(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        calendarYear !== null ? censusDateForYear(calendarYear) : new Date(),
+      ),
+    ])
     const censusMap = new Map(census.map((c) => [c.l_id_herd, c.count]))
 
     const farmWritePermission = await checkPermission(
@@ -116,7 +133,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const cults = (cultivationsByField.get(b_id) ?? []).filter(
       (c) => c.b_lu_croprotation === "grass",
     )
-    const fieldHarvests = cults.flatMap((c) =>
+    const contextHarvests = cults.flatMap((c) =>
       (harvestsByCultivation.get(c.b_lu) ?? []).flatMap((h) => {
         if (!h.b_lu_harvest_date) return []
         return [
@@ -130,8 +147,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }),
     )
 
+    // The grazings and mowings of the selected year
+    const grazings = contextGrazings.filter((g) =>
+      inYear(new Date(g.l_grazing_start), g.l_grazing_end ? new Date(g.l_grazing_end) : null),
+    )
+    const fieldHarvests = contextHarvests.filter((h) => {
+      const date = new Date(h.b_harvest_date)
+      return inYear(date, date)
+    })
+    const shownIds = new Set([
+      ...grazings.map((g) => g.l_id_grazing),
+      ...fieldHarvests.map((h) => h.b_id_harvesting),
+    ])
+
     // Grazing days and hours so far, counted as in the grazing calendar: each day once, a grazing
-    // that still runs up to today, and planned days not yet
+    // up to today, and planned days not yet
     const { days: totalGrazingDays, hours: totalGrazingHours } = fieldGrazingTotals(
       grazings,
       calendarYear,
@@ -141,17 +171,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Grazings that have started by today; later ones are planned
     const startedGrazings = grazings.filter((g) => new Date(g.l_grazing_start) <= today)
 
-    // Merge events to compute rest periods
+    // Merge events to compute rest periods, with the uses of the year before as context
     const allEvents = [
-      ...grazings
+      ...contextGrazings
         .map((g) => {
           const start = new Date(g.l_grazing_start)
-          // A grazing that still runs is in use up to today
-          const end = g.l_grazing_end
-            ? new Date(g.l_grazing_end)
-            : start < todayStart
-              ? todayStart
-              : start
+          // Every grazing has an end; a record without one covers its start day
+          const end = g.l_grazing_end ? new Date(g.l_grazing_end) : start
           return { g, start, end }
         })
         .map(({ g, start, end }) => ({
@@ -172,14 +198,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           grazing: {
             l_id_grazing: g.l_id_grazing,
             l_id_herd: g.l_id_herd,
-            l_grazing_start: format(new Date(g.l_grazing_start), "yyyy-MM-dd"),
-            l_grazing_end: g.l_grazing_end ? format(new Date(g.l_grazing_end), "yyyy-MM-dd") : null,
+            // The stored calendar days (midnight UTC), in any time zone
+            l_grazing_start: new Date(g.l_grazing_start).toISOString().slice(0, 10),
+            l_grazing_end: g.l_grazing_end
+              ? new Date(g.l_grazing_end).toISOString().slice(0, 10)
+              : null,
             l_grazing_hours: g.l_grazing_hours,
             l_grazing_area: g.l_grazing_area,
             l_grazing_geometry_zone: g.l_grazing_geometry_zone ?? null,
           },
         })),
-      ...fieldHarvests.map((h) => ({
+      ...contextHarvests.map((h) => ({
         type: "maaien" as const,
         id: h.b_id_harvesting,
         start: new Date(h.b_harvest_date),
@@ -214,6 +243,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           isShortRest: restDays !== null && restDays < REST_PERIOD_THRESHOLD_DAYS,
         }
       })
+      // Only the uses of the selected year are shown
+      .filter((ev) => shownIds.has(ev.id))
       .reverse() // Most recent first for display
 
     return {
@@ -273,9 +304,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
       throw data("U heeft geen schrijfrechten op dit bedrijf.", { status: 403 })
     }
 
-    // The grazing dialog of this page records grazing on this field
+    // The grazing dialog of this page records grazing on this field, and only changes or removes
+    // a grazing of this field
     const formData = await request.formData()
     formData.set("b_id", b_id)
+    const intent = formText(formData, "intent")
+    const l_id_grazing = formText(formData, "l_id_grazing")
+    if ((intent === "update_grazing" || intent === "remove_grazing") && l_id_grazing) {
+      const grazing = await getGrazing(fdm, session.principal_id, l_id_grazing)
+      if (grazing.b_id !== b_id) {
+        throw data("Beweiding niet gevonden op dit perceel", { status: 404 })
+      }
+    }
     return await handleGrazingEvent(formData, {
       principal_id: session.principal_id,
       calendar: getCalendar(params),

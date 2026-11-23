@@ -100,25 +100,21 @@ export function GrazingPopover({
   const today = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
 
   const defaultStart = existingGrazing?.l_grazing_start
-    ? format(new Date(existingGrazing.l_grazing_start), "yyyy-MM-dd")
+    ? // The stored calendar day: callers pass `YYYY-MM-DD` or a UTC timestamp at midnight
+      existingGrazing.l_grazing_start.slice(0, 10)
     : (initialStartDate ?? today)
 
-  // A grazing that still runs (cows out without an end date) keeps an empty end, so saving it
-  // does not end it
-  const isRunning = Boolean(existingGrazing) && !existingGrazing?.l_grazing_end
-  const defaultEnd = existingGrazing?.l_grazing_end
-    ? format(new Date(existingGrazing.l_grazing_end), "yyyy-MM-dd")
-    : isRunning
-      ? ""
-      : (initialEndDate ?? defaultStart)
+  // Every grazing has a last day; a stored record without one gets its start day
+  const defaultEnd = existingGrazing
+    ? (existingGrazing.l_grazing_end?.slice(0, 10) ?? defaultStart)
+    : (initialEndDate ?? defaultStart)
 
   // Start from the defaults, which may still change once "today" is known
   const [startDate, setStartDate] = useKeyedState(defaultStart, (day) => day)
   const [pickedEndDate, setEndDate] = useKeyedState(defaultEnd, (day) => day)
-  // A grazing of one day ends on its start day; one of several days, or one that still runs, has
-  // its own end
+  // A grazing of one day ends on its start day; one of several days has its own end
   const [duration, setDuration] = useState<"single" | "multiple">(
-    isRunning || (defaultEnd !== "" && defaultEnd !== defaultStart) ? "multiple" : "single",
+    defaultEnd !== "" && defaultEnd !== defaultStart ? "multiple" : "single",
   )
   // The end never lies before the start, also when the start moves past a default end
   const endDate =
@@ -134,8 +130,7 @@ export function GrazingPopover({
     if (
       next === "multiple" &&
       startDate !== "" &&
-      (pickedEndDate === "" || pickedEndDate <= startDate) &&
-      !isRunning
+      (pickedEndDate === "" || pickedEndDate <= startDate)
     ) {
       setEndDate(format(addDays(new Date(`${startDate}T12:00:00`), 1), "yyyy-MM-dd"))
     }
@@ -224,8 +219,7 @@ export function GrazingPopover({
     }
 
     formData.set("l_grazing_start", startDate)
-    // Without an end date the grazing keeps running
-    if (endDate !== "") formData.set("l_grazing_end", endDate)
+    formData.set("l_grazing_end", endDate)
     // Unknown hours are not sent, so they stay unknown
     if (hours !== null) formData.set("l_grazing_hours", String(hours))
     // Always send both, so an update can switch between whole field, area and zone
@@ -276,7 +270,6 @@ export function GrazingPopover({
                     size="sm"
                     aria-pressed={duration === "single"}
                     onClick={() => handleDurationChange("single")}
-                    disabled={isRunning}
                     className="text-xs"
                   >
                     1 dag
@@ -342,8 +335,7 @@ export function GrazingPopover({
                 />
                 {duration === "multiple" && (
                   <DatePicker
-                    label={isRunning ? "t/m" : "t/m *"}
-                    description={isRunning ? "Leeg laten: de koeien lopen nog buiten." : undefined}
+                    label="t/m *"
                     field={{
                       name: "l_grazing_end",
                       value: endDate,
@@ -360,7 +352,7 @@ export function GrazingPopover({
                       isDirty: false,
                       isValidating: false,
                     }}
-                    required={!isRunning}
+                    required
                   />
                 )}
               </div>

@@ -39,13 +39,13 @@ describe("censusDateForYear", () => {
 describe("realisedGrazingDays", () => {
   const today = new Date("2026-06-15T23:59:59.999Z")
 
-  it("lets a running grazing last up to today", () => {
+  it("counts a record without an end as its first day", () => {
     const days = realisedGrazingDays(
       { l_grazing_start: "2026-06-12T00:00:00.000Z", l_grazing_end: null },
       2026,
       today,
     )
-    expect(days).toEqual(["2026-06-12", "2026-06-13", "2026-06-14", "2026-06-15"])
+    expect(days).toEqual(["2026-06-12"])
   })
 
   it("leaves out planned days and days in another year", () => {

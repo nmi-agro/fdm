@@ -1,10 +1,4 @@
-import {
-  checkPermission,
-  getAnimalCategoriesForFarm,
-  getCultivationsForFarm,
-  getFarms,
-  getFields,
-} from "@nmi-agro/fdm-core"
+import { checkPermission, getAnimalCategoriesForFarm, getFarms } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
@@ -33,7 +27,6 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Progress } from "~/components/ui/progress"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -43,11 +36,13 @@ import {
   fetchGrazingCalendarMatrix,
   type GrazingCalendarMatrix,
 } from "~/lib/grazing-calendar.server"
+import { farmTodayKey } from "~/lib/grazing-dates"
 import { handleGrazingEvent, isGrazingIntent } from "~/lib/grazing-events.server"
 import { defaultMapDay, shiftDay } from "~/lib/grazing-map"
 import { GRAZING_SEASON_LABEL, isInGrazingSeason } from "~/lib/grazing-status"
 import { getHerdCards } from "~/lib/herd-cards.server"
 import { handleLivestockEvent, isLivestockIntent } from "~/lib/livestock-events.server"
+import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -88,21 +83,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const timeframe = getTimeframe(params)
 
     const herdCardsPromise = getHerdCards(session.principal_id, b_id_farm, timeframe)
-    const [farms, herdCards, categories, allFields, cultivationsByField, matrix] =
-      await Promise.all([
-        getFarms(fdm, session.principal_id),
-        herdCardsPromise,
-        getAnimalCategoriesForFarm(fdm, session.principal_id, b_id_farm),
-        getFields(fdm, session.principal_id, b_id_farm, timeframe),
-        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        // Days, fields and key figures of the grazing calendar; a farm without a herd only gets
-        // the first-herd form, so it skips these reads
-        herdCardsPromise.then((cards) =>
-          cards.length > 0
-            ? fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear)
-            : null,
-        ),
-      ])
+    const [farms, herdCards, categories, matrix] = await Promise.all([
+      getFarms(fdm, session.principal_id),
+      herdCardsPromise,
+      getAnimalCategoriesForFarm(fdm, session.principal_id, b_id_farm),
+      // Days, fields and key figures of the grazing calendar; a farm without a herd only gets
+      // the first-herd form, so it skips these reads
+      herdCardsPromise.then((cards) =>
+        cards.length > 0
+          ? fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear)
+          : null,
+      ),
+    ])
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -119,15 +111,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       false,
     )
 
-    // Total grassland area (excluding buffer strips)
-    const grasslandArea = allFields
-      .filter((f) => {
-        if (f.b_bufferstrip) return false
-        const cults = cultivationsByField.get(f.b_id) ?? []
-        return cults.some((c) => c.b_lu_croprotation === "grass")
-      })
-      .reduce((acc, f) => acc + (f.b_area ?? 0), 0)
-
     return {
       b_id_farm,
       calendar,
@@ -135,7 +118,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions,
       herds: herdCards,
       categories,
-      grasslandArea: Math.round(grasslandArea * 10) / 10,
+      // Grassland area without buffer strips, unrounded for the stocking density
+      grasslandArea: matrix?.grasslandArea ?? 0,
+      // Today in the Netherlands, the centre of the grazing window
+      todayKey: matrix?.todayKey ?? farmTodayKey(serverNow()),
       // The grazing fields with their days, and the herds as the grazing dialog needs them
       grazingFields: matrix?.fields ?? [],
       grazingHerds: matrix?.herds ?? [],
@@ -198,6 +184,7 @@ export default function MelkveeOverview() {
     grazingFields,
     grazingHerds,
     summary,
+    todayKey,
     farmWritePermission,
   } = useLoaderData<typeof loader>()
 
@@ -212,12 +199,8 @@ export default function MelkveeOverview() {
   } | null>(null)
   const [grazingSession, setGrazingSession] = useState(0)
 
-  // "Today" is only known on the client; the overview is centred on today, or on the same day in
-  // another year
-  const todayDate = useToday()
-  const centerDay = todayDate
-    ? defaultMapDay(format(todayDate, "yyyy-MM-dd"), calendarYear)
-    : undefined
+  // The overview is centred on today in the Netherlands, or on the same day in another year
+  const centerDay = defaultMapDay(todayKey, calendarYear)
 
   const totalAnimals = herds.reduce((acc, h) => acc + h.count, 0)
   const totalGve = Number(herds.reduce((acc, h) => acc + h.count * (h.l_lsu ?? 1.0), 0).toFixed(1))
@@ -282,17 +265,25 @@ export default function MelkveeOverview() {
             <div className="rounded-xl border border-dashed p-12 text-center">
               <Warehouse className="text-muted-foreground mx-auto h-12 w-12" />
               <h3 className="mt-4 text-lg font-semibold">Nog geen koppels aanwezig</h3>
-              <p className="text-muted-foreground mt-2 text-sm">
-                Voeg een eerste koppel toe om te starten met veestapel- en beweidingsbeheer.
-              </p>
-              <Button
-                className="mt-6 gap-1.5"
-                nativeButton={false}
-                render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`} />}
-              >
-                <Plus className="h-4 w-4" />
-                Melkvee toevoegen
-              </Button>
+              {farmWritePermission ? (
+                <>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Voeg een eerste koppel toe om te starten met veestapel- en beweidingsbeheer.
+                  </p>
+                  <Button
+                    className="mt-6 gap-1.5"
+                    nativeButton={false}
+                    render={<NavLink to={`/farm/${b_id_farm}/${calendar}/livestock/new`} />}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Melkvee toevoegen
+                  </Button>
+                </>
+              ) : (
+                <p className="text-muted-foreground mt-2 text-sm">
+                  Dit bedrijf heeft nog geen koppels.
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-8">
@@ -388,7 +379,7 @@ export default function MelkveeOverview() {
                 <p className="text-muted-foreground text-xs">
                   Aantallen zijn afgeleid uit de dieren in de koppel; GVE volgens de diercategorie.
                   {gvePerHaGrassland !== null
-                    ? ` Veebezetting op ${grasslandArea.toLocaleString("nl-NL")} ha grasland: ${gvePerHaGrassland.toLocaleString("nl-NL")} GVE/ha.`
+                    ? ` Veebezetting op ${grasslandArea.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} ha grasland: ${gvePerHaGrassland.toLocaleString("nl-NL")} GVE/ha.`
                     : ""}
                 </p>
               </section>

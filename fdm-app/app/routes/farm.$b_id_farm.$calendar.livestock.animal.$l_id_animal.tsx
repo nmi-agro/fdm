@@ -70,6 +70,8 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
+import { farmTodayKey } from "~/lib/grazing-dates"
+import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -82,8 +84,24 @@ export const meta: MetaFunction = () => {
 }
 
 /** A day on this page, e.g. "3 mei", or "3 mei 2024" with the year. */
+/** A stored calendar day (midnight UTC, or `YYYY-MM-DD`) as a date, the same day in any time zone. */
+const calendarDay = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00`)
+
 const formatAnimalDay = (iso: string, withYear = false) =>
-  format(new Date(iso), withYear ? "d MMM yyyy" : "d MMM", { locale: nl })
+  format(calendarDay(iso), withYear ? "d MMM yyyy" : "d MMM", { locale: nl })
+
+/** The `YYYY-MM-DD` keys of the days from `first` up to and including `last`. */
+function daysBetween(first: string, last: string): string[] {
+  const days: string[] = []
+  for (
+    let day = new Date(`${first}T00:00:00.000Z`);
+    day.toISOString().slice(0, 10) <= last;
+    day.setUTCDate(day.getUTCDate() + 1)
+  ) {
+    days.push(day.toISOString().slice(0, 10))
+  }
+  return days
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -106,6 +124,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getHerdsForFarm(fdm, session.principal_id, b_id_farm),
       getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
     ])
+    // The animal is shown under the farm it belongs to only
+    if (animal.b_id_farm !== b_id_farm) {
+      throw data("Dier niet gevonden op dit bedrijf", { status: 404 })
+    }
+    const now = serverNow()
+    const todayKey = farmTodayKey(now)
+    const dayKey = (date: Date | string) => new Date(date).toISOString().slice(0, 10)
+    const yearFrom = timeframe.start ? dayKey(timeframe.start) : "0000-01-01"
+    const yearTo = timeframe.end ? dayKey(timeframe.end) : "9999-12-31"
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -122,50 +149,52 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       false,
     )
 
-    // Correlate animal assignment history with grazing periods
+    // The grazing of the animal: the grazings of its herds, on the days it was in that herd and in
+    // the selected year. A move ends an assignment at the start of that day, so that day belongs to
+    // the new herd.
+    const realisedHours = new Map<string, number>()
     const animalGrazings = history
       .flatMap((assign) => {
-        const aStart = assign.l_assigning_start ? new Date(assign.l_assigning_start) : new Date(0)
-        const aEnd = assign.l_assigning_end
-          ? new Date(assign.l_assigning_end)
-          : new Date(8640000000000000)
-
+        const aFrom = assign.l_assigning_start ? dayKey(assign.l_assigning_start) : yearFrom
+        const aBefore = assign.l_assigning_end ? dayKey(assign.l_assigning_end) : "9999-12-31"
         return grazings
-          .filter((g) => {
-            if (g.l_id_herd !== assign.l_id_herd) return false
-            const gStart = new Date(g.l_grazing_start)
-            const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-            return gStart <= aEnd && gEnd >= aStart
-          })
-          .map((g) => {
-            const gStart = new Date(g.l_grazing_start)
-            const gEnd = g.l_grazing_end ? new Date(g.l_grazing_end) : gStart
-            // Only the days within the selected year count; a grazing can run into the next year
-            const from = timeframe.start && timeframe.start > gStart ? timeframe.start : gStart
-            const to = timeframe.end && timeframe.end < gEnd ? timeframe.end : gEnd
-            const days = Math.max(1, Math.floor((to.getTime() - from.getTime()) / 86400000) + 1)
-            return {
-              l_id_grazing: g.l_id_grazing,
-              l_id_herd: g.l_id_herd,
-              l_herd_name: g.l_herd_name ?? "Koppel",
-              b_id: g.b_id,
-              b_name: g.b_name ?? "Onbekend perceel",
-              b_area: g.b_area,
-              l_grazing_start: gStart.toISOString(),
-              l_grazing_end: gEnd.toISOString(),
-              l_grazing_hours: g.l_grazing_hours ?? 8,
-              days,
-              isPlanned: gStart > new Date(),
+          .filter((g) => g.l_id_herd === assign.l_id_herd)
+          .flatMap((g) => {
+            const days = daysBetween(
+              dayKey(g.l_grazing_start),
+              dayKey(g.l_grazing_end ?? g.l_grazing_start),
+            ).filter((day) => day >= aFrom && day < aBefore && day >= yearFrom && day <= yearTo)
+            if (days.length === 0) return []
+            // Days up to today have happened: the hours of the herd's grazings on a day add up
+            for (const day of days) {
+              if (day > todayKey) continue
+              realisedHours.set(
+                day,
+                Math.min(24, (realisedHours.get(day) ?? 0) + (g.l_grazing_hours ?? 0)),
+              )
             }
+            return [
+              {
+                l_id_grazing: g.l_id_grazing,
+                l_id_herd: g.l_id_herd,
+                l_herd_name: g.l_herd_name ?? "Koppel",
+                b_id: g.b_id,
+                b_name: g.b_name ?? "Onbekend perceel",
+                b_area: g.b_area,
+                l_grazing_start: days[0],
+                l_grazing_end: days[days.length - 1],
+                l_grazing_hours: g.l_grazing_hours ?? null,
+                days: days.length,
+                isPlanned: dayKey(g.l_grazing_start) > todayKey,
+              },
+            ]
           })
       })
-      .sort((a, b) => new Date(b.l_grazing_start).getTime() - new Date(a.l_grazing_start).getTime())
+      .sort((a, b) => b.l_grazing_start.localeCompare(a.l_grazing_start))
 
-    const totalGrazingDays = animalGrazings.reduce((acc, g) => acc + g.days, 0)
-    const totalGrazingHours = animalGrazings.reduce(
-      (acc, g) => acc + g.days * (g.l_grazing_hours ?? 8),
-      0,
-    )
+    // Each day once, and only the days that have happened
+    const totalGrazingDays = realisedHours.size
+    const totalGrazingHours = [...realisedHours.values()].reduce((sum, hours) => sum + hours, 0)
 
     return {
       b_id_farm,
@@ -177,7 +206,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_id_eartag: animal.l_id_eartag,
         l_id_worknumber: animal.l_id_worknumber,
         l_specie: animal.l_specie,
-        l_birth_date: animal.l_birth_date ? new Date(animal.l_birth_date).toISOString() : null,
+        // A calendar day, the same in any time zone
+        l_birth_date: animal.l_birth_date ? dayKey(animal.l_birth_date) : null,
         l_sex: animal.l_sex,
         l_arriving_date: animal.l_arriving_date
           ? new Date(animal.l_arriving_date).toISOString()
@@ -187,6 +217,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           ? new Date(animal.l_leaving_date).toISOString()
           : null,
         l_leaving_method: animal.l_leaving_method,
+        // Gone once the departure date has passed; a departure in the future keeps it in its herd
+        isLeft: animal.l_leaving_date !== null && new Date(animal.l_leaving_date) <= now,
         l_id_herd: animal.l_id_herd,
         l_id_category: animal.l_id_category,
         l_category: animal.l_category,
@@ -240,6 +272,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     )
     if (!farmWritePermission) {
       throw data("U heeft geen schrijfrechten op dit bedrijf.", { status: 403 })
+    }
+    // Only an animal of this farm is changed from this farm's page
+    const owned = await getAnimal(fdm, session.principal_id, l_id_animal)
+    if (owned.b_id_farm !== b_id_farm) {
+      throw data("Dier niet gevonden op dit bedrijf", { status: 404 })
     }
 
     const formData = await request.formData()
@@ -315,9 +352,7 @@ export default function AnimalDetailPage() {
   const [editEartag, setEditEartag] = useState(animal.l_id_eartag ?? "")
   const [showNumberErrors, setShowNumberErrors] = useState(false)
   const isCattle = animal.l_specie === "cattle"
-  const [editBirthdate, setEditBirthdate] = useState(
-    animal.l_birth_date ? format(new Date(animal.l_birth_date), "yyyy-MM-dd") : "",
-  )
+  const [editBirthdate, setEditBirthdate] = useState(animal.l_birth_date?.slice(0, 10) ?? "")
   // Empty while the sex is not known, so the form does not suggest one
   const [editSex, setEditSex] = useState<"female" | "male" | "">(
     animal.l_sex === "female" || animal.l_sex === "male" ? animal.l_sex : "",
@@ -337,7 +372,7 @@ export default function AnimalDetailPage() {
     "sold",
   )
 
-  const isLeft = Boolean(animal.l_leaving_date)
+  const isLeft = animal.isLeft
   const currentHerd = herds.find((h) => h.l_id_herd === animal.l_id_herd)
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
@@ -590,7 +625,7 @@ export default function AnimalDetailPage() {
                           grazingHistory.map((g, idx) => (
                             <TableRow key={idx} className="text-xs">
                               <TableCell className="tabular-nums">
-                                {g.l_grazing_start.slice(0, 10) === g.l_grazing_end.slice(0, 10)
+                                {g.l_grazing_start === g.l_grazing_end
                                   ? formatAnimalDay(g.l_grazing_start)
                                   : `${formatAnimalDay(g.l_grazing_start)} – ${formatAnimalDay(g.l_grazing_end)}`}
                                 {g.isPlanned && (
@@ -607,7 +642,9 @@ export default function AnimalDetailPage() {
                                 {g.l_herd_name}
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {g.l_grazing_hours.toLocaleString("nl-NL")} uur
+                                {g.l_grazing_hours === null
+                                  ? "uren onbekend"
+                                  : `${g.l_grazing_hours.toLocaleString("nl-NL")} uur`}
                               </TableCell>
                             </TableRow>
                           ))
@@ -633,7 +670,9 @@ export default function AnimalDetailPage() {
                         <p>
                           <strong>Vertrekdatum: </strong>
                           {animal.l_leaving_date
-                            ? format(new Date(animal.l_leaving_date), "d MMMM yyyy", { locale: nl })
+                            ? format(calendarDay(animal.l_leaving_date), "d MMMM yyyy", {
+                                locale: nl,
+                              })
                             : "—"}
                         </p>
                         <p>

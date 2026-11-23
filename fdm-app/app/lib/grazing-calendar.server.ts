@@ -126,6 +126,8 @@ export interface GrazingCalendarColumn {
 export interface GrazingCalendarMatrix {
   year: number
   todayKey: string
+  /** Grassland area of the farm (ha, unrounded), without buffer strips. */
+  grasslandArea: number
   columns: GrazingCalendarColumn[]
   fields: GrazingCalendarFieldRow[]
   herds: Array<{
@@ -157,13 +159,11 @@ function toIsoDate(d: Date): string {
 }
 
 /**
- * The last day a grazing covers in the calendar: its end date, or today for a grazing that still
- * runs (cows out without an end date). A running grazing that starts in the future covers its
- * start day only.
+ * The last day a grazing covers in the calendar: its end date. Every grazing has one; a record
+ * without it covers its start day only.
  */
-function grazingEnd(start: Date, end: Date | string | null | undefined, today: Date): Date {
-  if (end) return new Date(end)
-  return today > start ? today : start
+function grazingEnd(start: Date, end: Date | string | null | undefined): Date {
+  return end ? new Date(end) : start
 }
 
 /**
@@ -299,7 +299,7 @@ export async function fetchGrazingCalendarMatrix(
     const grazingDaysSet = new Set<string>()
     for (const g of fieldGrazings) {
       const gStart = new Date(g.l_grazing_start)
-      const gEnd = grazingEnd(gStart, g.l_grazing_end, today)
+      const gEnd = grazingEnd(gStart, g.l_grazing_end)
       const cur = new Date(
         Date.UTC(gStart.getUTCFullYear(), gStart.getUTCMonth(), gStart.getUTCDate()),
       )
@@ -317,7 +317,7 @@ export async function fetchGrazingCalendarMatrix(
     const cells: GrazingCalendarCell[] = columns.map((column) => {
       const cellGrazings = fieldGrazings.filter((g) => {
         const gStart = new Date(g.l_grazing_start)
-        const gEnd = grazingEnd(gStart, g.l_grazing_end, today)
+        const gEnd = grazingEnd(gStart, g.l_grazing_end)
         return gStart <= column.end && gEnd >= column.start
       })
 
@@ -398,7 +398,7 @@ export async function fetchGrazingCalendarMatrix(
         ...fieldGrazings
           .filter((g) => new Date(g.l_grazing_start) <= restReference)
           .map((g) => {
-            const end = grazingEnd(new Date(g.l_grazing_start), g.l_grazing_end, today)
+            const end = grazingEnd(new Date(g.l_grazing_start), g.l_grazing_end)
             return end < restReference ? end : restReference
           }),
         ...fieldHarvests.map((h) => h.harvestDate).filter((date) => date <= restReference),
@@ -449,7 +449,8 @@ export async function fetchGrazingCalendarMatrix(
       l_id_herd: g.l_id_herd,
       b_id: g.b_id,
       l_grazing_start: new Date(g.l_grazing_start),
-      l_grazing_end: g.l_grazing_end ? new Date(g.l_grazing_end) : null,
+      // Every grazing has an end; a record without one counts as its start day only
+      l_grazing_end: new Date(g.l_grazing_end ?? g.l_grazing_start),
       l_grazing_hours: g.l_grazing_hours,
       l_grazing_area_grazed: g.l_grazing_area_grazed,
       l_grazing_geometry_zone: zoneWithinField(
@@ -468,6 +469,7 @@ export async function fetchGrazingCalendarMatrix(
   return {
     year: calendarYear,
     todayKey,
+    grasslandArea: grasslandFields.reduce((sum, f) => sum + (f.b_area ?? 0), 0),
     columns: columns.map(({ start: _start, end: _end, ...column }) => column),
     fields: fieldRows,
     herds: herdList,

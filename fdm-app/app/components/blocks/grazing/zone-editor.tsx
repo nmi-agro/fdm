@@ -69,6 +69,8 @@ const STRIP_BUILDER_FORM = "strip-builder"
 const OCCUPANCY_LOADING_REASON = "Eerder gebruikte zones voor deze datum worden geladen"
 const OCCUPANCY_FAILED_REASON =
   "Eerder gebruikte zones zijn niet geladen, dus de vrije ruimte is onbekend; laad ze opnieuw"
+const OCCUPANCY_UNKNOWN_REASON =
+  "Een recente beweiding heeft alleen een percentage zonder plek, dus de vrije ruimte is onbekend"
 
 const NOTICES: Record<ZoneNotice, Notice> = {
   clipped: { tone: "info", text: "Het deel buiten het perceel is afgeknipt." },
@@ -109,6 +111,8 @@ interface ZonesData {
   occupied: MultiPolygon[]
   /** The earlier zones could not be loaded; drawing still works. */
   zonesFailed: boolean
+  /** A grazing in the rotation window has only an area, so the free part of the field is unknown. */
+  occupancyUnknown?: boolean
 }
 
 /** An area in hectares with at least one decimal, e.g. "2,0". */
@@ -188,6 +192,9 @@ export function ZoneEditor({
   // connects to them
   const recentZones = useMemo(() => (fetcher.data?.occupied ?? []) as Area[], [fetcher.data])
   const occupancyFailed = fetcher.data?.zonesFailed ?? false
+  const occupancyUnknown = !occupancyFailed && (fetcher.data?.occupancyUnknown ?? false)
+  // The strip builder needs to know which part of the field is free
+  const occupancyBlocked = occupancyFailed || occupancyUnknown
   // While the zones are loaded again (another date), the zones in use are those of the old date
   const occupancyLoading = fetcher.state !== "idle"
 
@@ -269,12 +276,16 @@ export function ZoneEditor({
                 <span>Aanpassen</span>
               </ToolbarButton>
               <ToolbarButton
-                variant={showStripBuilder && !occupancyFailed ? "default" : "outline"}
-                aria-pressed={showStripBuilder && !occupancyFailed}
+                variant={showStripBuilder && !occupancyBlocked ? "default" : "outline"}
+                aria-pressed={showStripBuilder && !occupancyBlocked}
                 onClick={() => setShowStripBuilder((show) => !show)}
-                disabled={occupancyFailed || occupancyLoading}
+                disabled={occupancyBlocked || occupancyLoading}
                 disabledReason={
-                  occupancyFailed ? OCCUPANCY_FAILED_REASON : OCCUPANCY_LOADING_REASON
+                  occupancyFailed
+                    ? OCCUPANCY_FAILED_REASON
+                    : occupancyUnknown
+                      ? OCCUPANCY_UNKNOWN_REASON
+                      : OCCUPANCY_LOADING_REASON
                 }
               >
                 <Rows3 className="h-3.5 w-3.5" />
@@ -369,7 +380,7 @@ export function ZoneEditor({
         </p>
       )}
 
-      {field && showStripBuilder && !occupancyFailed && (
+      {field && showStripBuilder && !occupancyBlocked && (
         <StripBuilder
           field={field}
           occupied={recentZones}
@@ -388,6 +399,13 @@ export function ZoneEditor({
             })
           }}
         />
+      )}
+
+      {occupancyUnknown && (
+        <p className="text-xs text-amber-700">
+          Op dit perceel is in de {STRIP_ROTATION_DAYS} dagen voor deze beweiding een deel beweid
+          zonder plek op de kaart. Daardoor is niet bekend welk deel vrij is; teken de zone zelf.
+        </p>
       )}
 
       {occupancyFailed && (

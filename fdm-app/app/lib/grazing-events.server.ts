@@ -50,9 +50,12 @@ export async function handleGrazingEvent(
     if (!l_grazing_start) {
       throw data("Kies een datum", { status: 400 })
     }
+    // Every grazing has a last day; for one day it is the start day
+    if (!l_grazing_end) {
+      throw data("Kies een einddatum", { status: 400 })
+    }
     await addGrazing(fdm, context.principal_id, formText(formData, "l_id_herd"), l_grazing_start, {
       b_id,
-      // Without an end date the grazing runs until it gets one
       l_grazing_end,
       l_grazing_hours,
       ...parseGrazingExtent(formData),
@@ -65,7 +68,7 @@ export async function handleGrazingEvent(
     const extent = parseGrazingExtent(formData)
     await updateGrazing(fdm, context.principal_id, formText(formData, "l_id_grazing"), {
       l_grazing_start,
-      // An empty end keeps the stored end, so a grazing that still runs keeps running
+      // An empty end keeps the stored end
       l_grazing_end,
       // Hours that are not sent stay as they are
       l_grazing_hours,

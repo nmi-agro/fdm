@@ -36,7 +36,7 @@ export function herdGrazingStatus(
   const current = grazings.find(
     (g) =>
       dayKey(g.l_grazing_start) <= todayKey &&
-      (!g.l_grazing_end || dayKey(g.l_grazing_end) >= todayKey),
+      dayKey(g.l_grazing_end ?? g.l_grazing_start) >= todayKey,
   )
   if (current) return { type: "grazing_now", fieldName: current.b_name ?? "onbekend perceel" }
   const planned = grazings

@@ -35,7 +35,6 @@ import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { farmTodayKey } from "~/lib/grazing-dates"
 import { fetchGrazingInsightsData } from "~/lib/grazing-insights.server"
 import {
   formatRestAlert,
@@ -44,7 +43,6 @@ import {
   GRAZING_USE_COLORS,
   PLANNED_GRAZING_BACKGROUND,
 } from "~/lib/grazing-status"
-import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
   return [
@@ -80,7 +78,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Weidemelk counts every day of the year with enough grazing hours. The target is out of reach
     // once the missing days no longer fit in the days left in the year after today.
-    const todayTime = Date.parse(`${farmTodayKey(serverNow())}T00:00:00.000Z`)
+    // The same day the figures were calculated for
+    const todayTime = Date.parse(`${insightsData.today.toISOString().slice(0, 10)}T00:00:00.000Z`)
     const countFrom = Math.max(todayTime, Date.UTC(calendarYear, 0, 0))
     const daysLeft = Math.max(
       0,
