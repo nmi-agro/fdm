@@ -102,13 +102,17 @@ export async function insertHerd(
  * @param tx - The transaction to read in.
  * @param l_id_herd - Identifier of the herd.
  * @param date - Start of the assignment.
+ * @param end - End of the assignment (`null` when it stays open). When given and the herd has an
+ *   end date, the assignment may not run past that end. Leave it out to check only the start.
  * @returns The farm the herd belongs to.
- * @throws When the herd does not exist, has not started yet on the date, or has ended by then.
+ * @throws When the herd does not exist, has not started yet on the date, has ended by then, or
+ *   ends before the given end of the assignment.
  */
 export async function assertHerdRunsOn(
   tx: FdmType,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   date: Date,
+  end?: Date | null,
 ): Promise<schema.farmsTypeSelect["b_id_farm"]> {
   const rows = await tx
     .select({
@@ -130,6 +134,9 @@ export async function assertHerdRunsOn(
   }
   if (l_end && l_end <= date) {
     throw new Error(`Herd ${l_id_herd} has already ended on ${date.toISOString()}`)
+  }
+  if (end !== undefined && l_end && (end === null || end > l_end)) {
+    throw new Error("Assignment cannot extend beyond the end of its herd")
   }
   return b_id_farm
 }
@@ -202,41 +209,80 @@ export async function getHerdsForFarm(
   try {
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getHerdsForFarm")
 
-    const rows = await fdm
-      .select({
-        l_id_herd: schema.herds.l_id_herd,
-        l_herd_name: schema.herds.l_herd_name,
-        l_id_category: schema.herds.l_id_category,
-        l_category: schema.animalCategoriesCatalogue.l_category,
-        l_specie: schema.animalCategoriesCatalogue.l_specie,
-        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
-        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
-        b_id_farm: schema.herdStarting.b_id_farm,
-        l_start: schema.herdStarting.l_start,
-        l_end: schema.herdEnding.l_end,
-        created: schema.herds.created,
-        updated: schema.herds.updated,
-      })
-      .from(schema.herds)
-      .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
-      .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
-      .leftJoin(
-        schema.animalCategoriesCatalogue,
-        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
-      )
-      .where(
-        and(
-          eq(schema.herdStarting.b_id_farm, b_id_farm),
-          or(isNull(schema.herdStarting.l_start), lte(schema.herdStarting.l_start, atDate)),
-          or(isNull(schema.herdEnding.l_end), gt(schema.herdEnding.l_end, atDate)),
-        ),
-      )
-      .orderBy(desc(schema.herds.created))
-
-    return rows as Herd[]
+    return await selectHerdsOfFarm(fdm, b_id_farm, atDate, atDate)
   } catch (err) {
     throw handleError(err, "Exception for getHerdsForFarm", { b_id_farm, atDate })
   }
+}
+
+/**
+ * Retrieves the herds of a farm that run at some moment within a period: herds that started on
+ * or before its end (or have no start date) and had not ended by its start (or have no end date).
+ * A herd that ended during the period is included, so a yearly overview also lists it.
+ *
+ * @param fdm - The FDM instance providing connection to the database.
+ * @param principal_id - Identifier of the principal requesting herds.
+ * @param b_id_farm - Unique identifier of the farm.
+ * @param timeframe - The period, with its start and end.
+ * @returns Array of the herds that run within the period, the newest first.
+ */
+export async function getHerdsForFarmInPeriod(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  timeframe: { start: Date; end: Date },
+): Promise<Herd[]> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getHerdsForFarmInPeriod")
+
+    return await selectHerdsOfFarm(fdm, b_id_farm, timeframe.start, timeframe.end)
+  } catch (err) {
+    throw handleError(err, "Exception for getHerdsForFarmInPeriod", { b_id_farm, timeframe })
+  }
+}
+
+/**
+ * Reads the herds of a farm that run between two moments: started on or before `to` and not
+ * ended by `from`. With `from` equal to `to` this gives the herds that run on that moment.
+ */
+async function selectHerdsOfFarm(
+  fdm: FdmType,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  from: Date,
+  to: Date,
+): Promise<Herd[]> {
+  const rows = await fdm
+    .select({
+      l_id_herd: schema.herds.l_id_herd,
+      l_herd_name: schema.herds.l_herd_name,
+      l_id_category: schema.herds.l_id_category,
+      l_category: schema.animalCategoriesCatalogue.l_category,
+      l_specie: schema.animalCategoriesCatalogue.l_specie,
+      l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+      l_lsu: schema.animalCategoriesCatalogue.l_lsu,
+      b_id_farm: schema.herdStarting.b_id_farm,
+      l_start: schema.herdStarting.l_start,
+      l_end: schema.herdEnding.l_end,
+      created: schema.herds.created,
+      updated: schema.herds.updated,
+    })
+    .from(schema.herds)
+    .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
+    .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
+    .leftJoin(
+      schema.animalCategoriesCatalogue,
+      eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
+    )
+    .where(
+      and(
+        eq(schema.herdStarting.b_id_farm, b_id_farm),
+        or(isNull(schema.herdStarting.l_start), lte(schema.herdStarting.l_start, to)),
+        or(isNull(schema.herdEnding.l_end), gt(schema.herdEnding.l_end, from)),
+      ),
+    )
+    .orderBy(desc(schema.herds.created))
+
+  return rows as Herd[]
 }
 
 /**

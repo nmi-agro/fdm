@@ -19,6 +19,7 @@ import {
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
+  redirect,
   useLoaderData,
 } from "react-router"
 import type { HelpHandle } from "~/lib/manual/help-targets"
@@ -30,7 +31,6 @@ import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Progress } from "~/components/ui/progress"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -68,11 +68,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     const session = await getSession(request)
-    const [farm, farms, insightsData] = await Promise.all([
+    const [farm, farms] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
       getFarms(fdm, session.principal_id),
-      fetchGrazingInsightsData(session.principal_id, b_id_farm, calendarYear),
     ])
+    // Without a herd there is no grazing to show; the livestock page explains how to start
+    if (!farm.b_farm_livestock) {
+      return redirect(`/farm/${b_id_farm}/${calendar}/livestock`)
+    }
+    const insightsData = await fetchGrazingInsightsData(
+      session.principal_id,
+      b_id_farm,
+      calendarYear,
+    )
 
     const farmOptions = farms.map((f) => ({
       b_id_farm: f.b_id_farm,
@@ -132,7 +140,7 @@ export default function GrazingInsightsPage() {
   )
 
   return (
-    <SidebarInset>
+    <div className="bg-background relative flex w-full flex-1 flex-col">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -151,7 +159,7 @@ export default function GrazingInsightsPage() {
         <BreadcrumbItem>Weidegang</BreadcrumbItem>
       </Header>
 
-      <main>
+      <div>
         <FarmTitle
           title={`Weidegang ${calendar}`}
           description="Inzichten in weidedagen, uren, Weidemelk-voortgang en veebezetting op het platform."
@@ -198,7 +206,8 @@ export default function GrazingInsightsPage() {
                     {formatNumber(metrics.weideUren.averageHoursPerDay)} uur
                   </div>
                   <p className="text-muted-foreground mt-1 text-xs">
-                    Gemiddeld per weidedag ({formatNumber(metrics.weideUren.totalHours)} uur totaal)
+                    Gemiddeld per weidedag met vastgelegde uren (
+                    {formatNumber(metrics.weideUren.totalHours)} uur totaal)
                   </p>
                 </CardContent>
               </Card>
@@ -430,7 +439,7 @@ export default function GrazingInsightsPage() {
             )}
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </div>
   )
 }

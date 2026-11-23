@@ -284,6 +284,21 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
 }
 
 /**
+ * Whether the error or one of its causes has a message that matches a pattern. Anchor the
+ * pattern (`^…$`), so it matches one whole message and a value inside another message cannot
+ * make it match.
+ *
+ * @param error - The caught value.
+ * @param pattern - The pattern a single message must match.
+ * @returns `true` when a message in the cause chain matches.
+ */
+export function matchesErrorMessage(error: unknown, pattern: RegExp): boolean {
+  if (!(error instanceof Error)) return false
+  if (pattern.test(error.message)) return true
+  return matchesErrorMessage(error.cause, pattern)
+}
+
+/**
  * Returns the first error in the cause chain (the error itself included) with the given `name`.
  *
  * @param error - The caught value.
@@ -454,10 +469,11 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "Ongeldige zone. Teken de zone opnieuw.")
   }
 
-  // Validation: life number and work number of an animal (checked by fdm-core)
+  // Validation: life number and work number of an animal (checked by fdm-core). The patterns
+  // match one whole message, so the number in it cannot make another message match.
   if (
-    containsErrorMessage(error, "has an invalid check digit") ||
-    containsErrorMessage(error, "is not a valid Dutch cattle life number")
+    matchesErrorMessage(error, /^Life number .+ has an invalid check digit$/) ||
+    matchesErrorMessage(error, /^Life number .+ is not a valid Dutch cattle life number$/)
   ) {
     console.warn("Invalid life number:", error)
     return dataWithWarning(
@@ -466,10 +482,7 @@ export async function handleActionError(error: unknown) {
     )
   }
 
-  if (
-    containsErrorMessage(error, "Work number") &&
-    containsErrorMessage(error, "is already used")
-  ) {
+  if (matchesErrorMessage(error, /^Work number .+ is already used by another animal on farm .+$/)) {
     console.warn("Work number in use:", error)
     return dataWithWarning(
       null,
@@ -477,10 +490,7 @@ export async function handleActionError(error: unknown) {
     )
   }
 
-  if (
-    containsErrorMessage(error, "Life number") &&
-    containsErrorMessage(error, "is already used")
-  ) {
+  if (matchesErrorMessage(error, /^Life number .+ is already used by another animal on farm .+$/)) {
     console.warn("Life number in use:", error)
     return dataWithWarning(null, "Een ander dier op dit bedrijf heeft dit levensnummer al.")
   }
@@ -522,13 +532,10 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "Het dier was op die datum nog niet op het bedrijf.")
   }
 
-  // Validation: a grazing without a field may not overlap another grazing of the herd
-  if (containsErrorMessage(error, "overlaps an existing grazing interval")) {
-    console.warn("Grazing overlaps another grazing of the herd:", error)
-    return dataWithWarning(
-      null,
-      "Deze koppel heeft in die periode al een beweiding zonder perceel. Pas de datum aan.",
-    )
+  // Validation: every grazing is on a field (checked by fdm-core)
+  if (containsErrorMessage(error, "A grazing needs a field")) {
+    console.warn("Grazing without a field:", error)
+    return dataWithWarning(null, "Kies een perceel voor de beweiding.")
   }
 
   // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)

@@ -36,14 +36,21 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { getSession } from "~/lib/auth.server"
-import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe, getTimeframeForYears } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
-import { censusDateForYear, farmToday, fieldGrazingTotals } from "~/lib/grazing-dates"
+import {
+  censusDateForYear,
+  farmDayDate,
+  farmToday,
+  farmTodayKey,
+  fieldGrazingTotals,
+} from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import { zoneWithinField } from "~/lib/grazing-herds"
+import { defaultMapDay } from "~/lib/grazing-map"
 import { GRAZING_USE_COLORS } from "~/lib/grazing-status"
 import { serverNow } from "~/lib/server-now.server"
 
@@ -91,6 +98,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       calendarYear !== null
         ? { start: new Date(Date.UTC(calendarYear - 1, 0, 1)), end: timeframe.end }
         : timeframe
+    // Harvest dates are moments; they count on their calendar day in the Netherlands
+    const harvestTimeframe =
+      calendarYear !== null ? getTimeframeForYears(calendarYear - 1, calendarYear) : timeframe
     const inYear = (start: Date, end: Date | null) =>
       calendarYear === null ||
       (start.getUTCFullYear() <= calendarYear && (!end || end.getUTCFullYear() >= calendarYear))
@@ -109,7 +119,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getHerdsForFarm(fdm, session.principal_id, b_id_farm),
       getGrazingForField(fdm, session.principal_id, b_id, contextTimeframe),
       getCultivationsForFarm(fdm, session.principal_id, b_id_farm, contextTimeframe),
-      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, contextTimeframe),
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, harvestTimeframe),
       // The herds of the selected year, also for a past year
       getCensusForFarm(
         fdm,
@@ -144,16 +154,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_id_harvesting: h.b_id_harvesting,
             b_lu: h.b_lu,
             b_lu_name: c.b_lu_name,
-            b_harvest_date: new Date(h.b_lu_harvest_date).toISOString(),
+            b_harvest_date: farmDayDate(h.b_lu_harvest_date).toISOString(),
           },
         ]
       }),
     )
 
-    // The grazings and mowings of the selected year
-    const grazings = contextGrazings.filter((g) =>
-      inYear(new Date(g.l_grazing_start), g.l_grazing_end ? new Date(g.l_grazing_end) : null),
-    )
+    // The grazings and mowings of the selected year; a stored grazing without an end counts in
+    // its start year only
+    const grazings = contextGrazings.filter((g) => {
+      const start = new Date(g.l_grazing_start)
+      return inYear(start, g.l_grazing_end ? new Date(g.l_grazing_end) : start)
+    })
     const fieldHarvests = contextHarvests.filter((h) => {
       const date = new Date(h.b_harvest_date)
       return inYear(date, date)
@@ -258,6 +270,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       // Unrounded: the grazing dialog computes the area it saves from it; the display rounds
       b_area: field.b_area ?? 0,
       calendar,
+      calendarYear,
+      todayKey: farmTodayKey(now),
       herds: herds.map((h) => ({
         l_id_herd: h.l_id_herd,
         l_herd_name: h.l_herd_name ?? "Koppel",
@@ -335,6 +349,8 @@ export default function FieldGrazingPage() {
     b_name,
     b_area,
     calendar,
+    calendarYear,
+    todayKey,
     herds,
     summary,
     events,
@@ -349,6 +365,9 @@ export default function FieldGrazingPage() {
   const [popoverSession, setPopoverSession] = useState(0)
   // The grazing to change or remove; null adds a new one
   const [editedGrazing, setEditedGrazing] = useState<(typeof events)[number]["grazing"]>(null)
+
+  // A new grazing starts on today's day and month in the selected year
+  const newGrazingDay = calendarYear !== null ? defaultMapDay(todayKey, calendarYear) : undefined
 
   const openGrazing = (grazing: (typeof events)[number]["grazing"]) => {
     setPopoverSession((s) => s + 1)
@@ -558,8 +577,8 @@ export default function FieldGrazingPage() {
         calendar={calendar}
         field={{ b_id, b_name, b_area }}
         existingGrazing={editedGrazing}
-        initialStartDate={editedGrazing?.l_grazing_start}
-        initialEndDate={editedGrazing?.l_grazing_end ?? undefined}
+        initialStartDate={editedGrazing?.l_grazing_start ?? newGrazingDay}
+        initialEndDate={editedGrazing ? (editedGrazing.l_grazing_end ?? undefined) : newGrazingDay}
         herds={herds}
         canWrite={farmWritePermission}
       />

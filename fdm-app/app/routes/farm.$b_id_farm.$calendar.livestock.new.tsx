@@ -38,7 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -187,7 +186,7 @@ export default function LivestockOnboarding() {
   }
 
   return (
-    <SidebarInset>
+    <div className="bg-background relative flex w-full flex-1 flex-col">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -207,7 +206,7 @@ export default function LivestockOnboarding() {
       </Header>
 
       {/* The side padding of FarmContent, so the card lines up with the other Melkvee pages */}
-      <main className="max-w-2xl px-2 py-6 md:px-4 md:py-8 lg:px-6">
+      <div className="max-w-2xl px-2 py-6 md:px-4 md:py-8 lg:px-6">
         <Card className="shadow-sm">
           {/* The form is the card's only child, so it carries the card's spacing itself */}
           <form method="post" className="flex flex-col gap-(--card-spacing)">
@@ -306,7 +305,7 @@ export default function LivestockOnboarding() {
             </CardFooter>
           </form>
         </Card>
-      </main>
-    </SidebarInset>
+      </div>
+    </div>
   )
 }

@@ -152,9 +152,11 @@ export function GrazingPopover({
   const [areaMode, setAreaMode] = useState<AreaMode>(
     storedZone ? "zone" : storedArea ? "partial" : "full",
   )
-  // The part of the field without a location, as a percentage of the field area
+  // The part of the field without a location, as a percentage of the field area, to one decimal
   const [partialPercentage, setPartialPercentage] = useState<number>(
-    storedArea && fieldArea > 0 ? Math.min(100, Math.round((storedArea / fieldArea) * 100)) : 50,
+    storedArea && fieldArea > 0
+      ? Math.min(100, Number(((storedArea / fieldArea) * 100).toFixed(1)))
+      : 50,
   )
   // Until the user changes the percentage, a stored area is kept as it is, not rounded to it
   const [partialTouched, setPartialTouched] = useState(false)
@@ -402,9 +404,9 @@ export function GrazingPopover({
                     <Input
                       id="popover-hours"
                       type="number"
-                      min="1"
+                      min="0"
                       max="24"
-                      step="0.5"
+                      step="any"
                       value={hours ?? ""}
                       onChange={(e) => setHours(e.target.value === "" ? 0 : Number(e.target.value))}
                       className="w-24"
@@ -492,9 +494,9 @@ export function GrazingPopover({
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
-                        step="1"
+                        step="any"
                         value={partialPercentage}
                         onChange={(e) =>
                           choosePartialPercentage(

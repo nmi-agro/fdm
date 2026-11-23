@@ -13,8 +13,10 @@ const MS_PER_DAY = 86_400_000
  * so a new strip connects to it.
  *
  * Loaded by the zone editor when the user chooses to draw a zone, so the calendar does not have to
- * load every field outline up front. When the earlier grazings fail to load, the outline is still
- * returned with `zonesFailed`, so the user can draw a zone.
+ * load every field outline up front. When the earlier zones or the grazings around the date fail
+ * to load, the outline is still returned with `zonesFailed` or `occupancyFailed`, so the user can
+ * draw a zone. `dateMissing` tells that no valid date was given, and `date` which date the answer
+ * belongs to.
  *
  * Search parameters:
  * - `date` (`YYYY-MM-DD`): the start of the grazing. The grazings that overlap the
@@ -42,10 +44,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       reportError(error, { scope: "grazing-zones" })
       return null
     }
+    const dateValid = date !== null && !Number.isNaN(date.getTime())
     const [field, zones, grazingsInWindow] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
       getGrazingZonesForField(fdm, session.principal_id, b_id).catch(onFailure),
-      date && !Number.isNaN(date.getTime())
+      dateValid
         ? getGrazingForField(fdm, session.principal_id, b_id, {
             start: new Date(date.getTime() - STRIP_ROTATION_DAYS * MS_PER_DAY),
             end: date,
@@ -61,6 +64,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       : null
 
     return {
+      // The requested date, so the editor can tell which date this answer belongs to
+      date: dateValid ? dateParam : null,
       b_geometry: field.b_geometry,
       zones: (zones ?? []).map((zone) => ({
         l_grazing_geometry_zone: zone.l_grazing_geometry_zone,
@@ -70,10 +75,15 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         l_herd_names: zone.l_herd_names,
       })),
       occupied: occupancy?.occupied ?? [],
-      zonesFailed: zones === null || occupancy === null,
+      // The earlier zones could not be loaded; drawing a zone still works
+      zonesFailed: zones === null,
+      // The grazings around the date could not be loaded, so the free part of the field is unknown
+      occupancyFailed: occupancy === null,
       // A grazing in the window only has an area without a place on the map, so the free part of
       // the field is unknown
       occupancyUnknown: occupancy?.unknown ?? false,
+      // Without a valid date there is no window to find the part in use for
+      dateMissing: !dateValid,
     }
   } catch (error) {
     throw handleLoaderError(error)

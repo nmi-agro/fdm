@@ -27,7 +27,6 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Progress } from "~/components/ui/progress"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -212,14 +211,14 @@ export default function MelkveeOverview() {
   const insightsHref = `/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`
 
   return (
-    <SidebarInset>
+    <div className="bg-background relative flex w-full flex-1 flex-col">
       <Header action={{ to: `/farm/${b_id_farm}`, label: "Terug naar bedrijf", disabled: false }}>
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
         <BreadcrumbItem>Melkvee</BreadcrumbItem>
       </Header>
 
-      <main>
+      <div>
         <FarmTitle
           title={`Melkvee ${calendar}`}
           description="Je koppels en dieren, de beweiding van deze dagen en de kengetallen voor weidegang."
@@ -389,7 +388,7 @@ export default function MelkveeOverview() {
             </div>
           )}
         </FarmContent>
-      </main>
+      </div>
 
       <GrazingPopover
         key={grazingSession}
@@ -407,7 +406,7 @@ export default function MelkveeOverview() {
       />
       <AddAnimalDialog open={isAddAnimalOpen} onOpenChange={setIsAddAnimalOpen} herds={herds} />
       <AddHerdDialog open={isAddHerdOpen} onOpenChange={setIsAddHerdOpen} categories={categories} />
-    </SidebarInset>
+    </div>
   )
 }
 

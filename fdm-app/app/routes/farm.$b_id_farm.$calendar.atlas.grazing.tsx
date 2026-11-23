@@ -3,6 +3,7 @@ import type { MapGeoJSONFeature } from "maplibre-gl"
 import {
   checkPermission,
   getCultivationsForFarm,
+  getFarm,
   getFields,
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
@@ -53,13 +54,13 @@ import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useKeyedState } from "~/hooks/use-keyed-state"
-import { useToday } from "~/hooks/use-today"
 import { getSession } from "~/lib/auth.server"
-import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframeForYears } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { fetchGrazingCalendarMatrix } from "~/lib/grazing-calendar.server"
+import { getGrazingDialogData } from "~/lib/grazing-calendar.server"
+import { farmDayDate, farmTodayKey } from "~/lib/grazing-dates"
 import { handleGrazingEvent } from "~/lib/grazing-events.server"
 import {
   clampToYear,
@@ -71,6 +72,7 @@ import {
   grazingEndDay,
   shiftDay,
 } from "~/lib/grazing-map"
+import { serverNow } from "~/lib/server-now.server"
 
 export const handle: HelpHandle = { help: "beweiding-vandaag" }
 
@@ -105,17 +107,27 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     const session = await getSession(request)
     const calendar = getCalendar(params)
-    const calendarYear = Number.parseInt(calendar, 10) || new Date().getFullYear()
-    const timeframe = getTimeframe(params)
+    // Today's calendar day in the Netherlands; the map opens on it
+    const todayKey = farmTodayKey(serverNow())
+    const calendarYear = Number.parseInt(calendar, 10) || Number(todayKey.slice(0, 4))
+    // The map shows one year, also for "all years"
+    const timeframe = getTimeframeForYears(calendarYear, calendarYear)
 
-    const [fields, cultivationsByField, harvestsByCultivation, grazings, matrix] =
-      await Promise.all([
-        getFields(fdm, session.principal_id, b_id_farm, timeframe),
-        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-        fetchGrazingCalendarMatrix(session.principal_id, b_id_farm, calendarYear),
-      ])
+    const [farm, fields, cultivationsByField, harvestsByCultivation, grazings] = await Promise.all([
+      getFarm(fdm, session.principal_id, b_id_farm),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getGrazingCalendarForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+    // Without a herd the layer only explains how to activate it
+    const { herds, grasslandFields } = farm.b_farm_livestock
+      ? await getGrazingDialogData(session.principal_id, b_id_farm, calendarYear, {
+          fields,
+          cultivationsByField,
+          grazings,
+        })
+      : { herds: [], grasslandFields: [] }
 
     const farmWritePermission = await checkPermission(
       fdm,
@@ -148,14 +160,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }),
     }
 
+    // Only a grass harvest is a mowing, as on the grazing calendar; its date counts on its
+    // calendar day in the Netherlands
     const harvestsByField: Record<string, GrazingMapHarvest[]> = {}
     for (const field of fields) {
-      harvestsByField[field.b_id] = (cultivationsByField.get(field.b_id) ?? []).flatMap((c) =>
+      const grassCultivations = (cultivationsByField.get(field.b_id) ?? []).filter(
+        (c) => c.b_lu_croprotation === "grass",
+      )
+      harvestsByField[field.b_id] = grassCultivations.flatMap((c) =>
         (harvestsByCultivation.get(c.b_lu) ?? []).flatMap((h) =>
           h.b_lu_harvest_date
             ? [
                 {
-                  harvestDate: toIsoDate(new Date(h.b_lu_harvest_date)),
+                  harvestDate: toIsoDate(farmDayDate(h.b_lu_harvest_date)),
                   yield: h.harvestable?.harvestable_analyses?.[0]?.b_lu_yield ?? null,
                 },
               ]
@@ -178,15 +195,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_id_farm,
       calendar,
       calendarYear,
+      todayKey,
       fieldsData,
       grazings: mapGrazings,
       harvestsByField,
-      herds: matrix.herds,
-      grasslandFields: matrix.fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name,
-        b_area: f.b_area,
-      })),
+      herds,
+      grasslandFields,
       farmWritePermission,
     }
   } catch (error) {
@@ -260,6 +274,7 @@ function GrazingLayer() {
     b_id_farm,
     calendar,
     calendarYear,
+    todayKey: today,
     fieldsData,
     grazings,
     harvestsByField,
@@ -277,11 +292,9 @@ function GrazingLayer() {
     capture("atlas_viewed", { b_id_farm, calendar, layer: "grazing" })
   }, [b_id_farm, calendar, capture])
 
-  // "Today" is only known on the client. The map opens on today's day and month in the selected
-  // year; a day the user picks sticks until the year changes.
-  const todayDate = useToday()
-  const today = todayDate ? format(todayDate, "yyyy-MM-dd") : ""
-  const defaultDay = today ? defaultMapDay(today, calendarYear) : ""
+  // The map opens on today's day and month (the Dutch calendar day, from the server) in the
+  // selected year; a day the user picks sticks until the year changes.
+  const defaultDay = defaultMapDay(today, calendarYear)
   const [day, setDay] = useKeyedState(defaultDay, (d) => d)
   const firstDay = `${calendarYear}-01-01`
   const lastDay = `${calendarYear}-12-31`
@@ -305,7 +318,7 @@ function GrazingLayer() {
     return map
   }, [grazings])
 
-  // Status per field on the shown day; empty until "today" is known on the client
+  // Status per field on the shown day
   const states = useMemo(() => {
     const result = new Map<string, FieldGrazingState>()
     if (!day) return result

@@ -47,7 +47,10 @@ export function herdGrazingStatus(
   if (planned) {
     return {
       type: "planned",
-      dateStr: format(new Date(planned.l_grazing_start), "d MMM", { locale: nl }),
+      // The stored calendar day, read from its key, so it is the same day in any time zone
+      dateStr: format(new Date(`${dayKey(planned.l_grazing_start)}T12:00:00`), "d MMM", {
+        locale: nl,
+      }),
     }
   }
   return { type: "idle" }

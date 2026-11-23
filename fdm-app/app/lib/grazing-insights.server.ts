@@ -8,9 +8,10 @@ import {
   getGrazingCalendarForFarm,
   getHarvestsForFarm,
 } from "@nmi-agro/fdm-core"
+import { getTimeframeForYears } from "~/lib/calendar"
 import { fdm } from "~/lib/fdm.server"
 import { getGrazedAreaByField } from "~/lib/grazing-calendar.server"
-import { censusDateForYear, farmToday } from "~/lib/grazing-dates"
+import { censusDateForYear, farmDayDate, farmToday } from "~/lib/grazing-dates"
 import { herdsOfYear, type YearHerd, zoneWithinField } from "~/lib/grazing-herds"
 import { serverNow } from "~/lib/server-now.server"
 
@@ -45,9 +46,17 @@ export async function fetchGrazingInsightsData(
     await Promise.all([
       getFields(fdm, principal_id, b_id_farm, timeframe),
       getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
-      getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
+      // Mowing dates are moments; they count on their calendar day in the Netherlands, as in
+      // the grazing calendar
+      getHarvestsForFarm(
+        fdm,
+        principal_id,
+        b_id_farm,
+        getTimeframeForYears(calendarYear, calendarYear),
+      ),
       getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe),
-      // The herds of the selected year, so the density of a past year uses that year's animals
+      // The herds of the selected year, so the density of a past year uses that year's animals;
+      // counted at the real moment, as fdm-core counts them when a herd count is changed
       getCensusForFarm(fdm, principal_id, b_id_farm, censusDateForYear(calendarYear)),
       getGrazedAreaByField(principal_id, b_id_farm, calendarYear, today),
     ])
@@ -81,7 +90,7 @@ export async function fetchGrazingInsightsData(
         if (h.b_lu_harvest_date) {
           harvests.push({
             b_id: field.b_id,
-            b_harvest_date: new Date(h.b_lu_harvest_date),
+            b_harvest_date: farmDayDate(h.b_lu_harvest_date),
           })
         }
       }

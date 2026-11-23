@@ -37,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { SidebarInset } from "~/components/ui/sidebar"
 import {
   Table,
   TableBody,
@@ -232,7 +231,7 @@ export default function AnimalsOverviewPage() {
   }
 
   return (
-    <SidebarInset>
+    <div className="bg-background relative flex w-full flex-1 flex-col">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -251,7 +250,7 @@ export default function AnimalsOverviewPage() {
         <BreadcrumbItem>Vee</BreadcrumbItem>
       </Header>
 
-      <main>
+      <div>
         <FarmTitle
           title="Vee"
           description="Je koppels en de dieren erin. Pas het aantal dieren aan, verplaats dieren tussen koppels of bekijk een dier."
@@ -464,10 +463,10 @@ export default function AnimalsOverviewPage() {
             </section>
           </div>
         </FarmContent>
-      </main>
+      </div>
 
       <AddAnimalDialog open={isAddOpen} onOpenChange={setIsAddOpen} herds={herds} />
       <AddHerdDialog open={isAddHerdOpen} onOpenChange={setIsAddHerdOpen} categories={categories} />
-    </SidebarInset>
+    </div>
   )
 }

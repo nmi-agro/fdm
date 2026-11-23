@@ -65,6 +65,8 @@ export function zonesOverlap(
  * handover on one day, or a chain of such uses (1–5 May, 3–8 May, 6–10 May). A use within such a
  * chain gets no rest of 0 days; its rest counts from the start of the chain back to the use before
  * the chain, so the use on 6 May has no previous use here, as the part was grazed without a break.
+ * The chain of a use is built only from uses of its own part: a use of the whole field joins the
+ * chains of two strips, but does not link those strips to each other.
  *
  * @param uses - The uses of one field, in any order.
  * @returns For each use, in order of start, the previous use of the same part and the rest days.
@@ -72,23 +74,26 @@ export function zonesOverlap(
 export function calculateRestBeforeUses<T>(uses: FieldUse<T>[]): FieldUseRest<T>[] {
   const sorted = [...uses].sort((a, b) => a.start.getTime() - b.start.getTime())
   const dayOf = (date: Date) => Math.floor(date.getTime() / MS_PER_DAY)
-  // The start of the continuous use each use belongs to
-  const chainStarts: Date[] = []
   return sorted.map((use, index) => {
+    // The start of the continuous use of this use's own part of the field. Only earlier uses of
+    // this part that still run on the chain start extend the chain; another use's chain may run
+    // over a different part (a whole-field use links strips that do not overlap each other).
+    const earlierOfPart = sorted.slice(0, index).filter((e) => zonesOverlap(e.zone, use.zone))
     let chainStart = use.start
-    for (let i = 0; i < index; i++) {
-      const earlier = sorted[i]
-      if (dayOf(earlier.end) >= dayOf(use.start) && zonesOverlap(earlier.zone, use.zone)) {
-        if (chainStarts[i] < chainStart) chainStart = chainStarts[i]
+    let extended = true
+    while (extended) {
+      extended = false
+      for (const earlier of earlierOfPart) {
+        if (earlier.start < chainStart && dayOf(earlier.end) >= dayOf(chainStart)) {
+          chainStart = earlier.start
+          extended = true
+        }
       }
     }
-    chainStarts.push(chainStart)
 
     let previous: FieldUse<T> | null = null
-    for (let i = 0; i < index; i++) {
-      const candidate = sorted[i]
+    for (const candidate of earlierOfPart) {
       if (dayOf(candidate.end) >= dayOf(chainStart)) continue
-      if (!zonesOverlap(candidate.zone, use.zone)) continue
       if (!previous || candidate.end.getTime() > previous.end.getTime()) previous = candidate
     }
     const restDays = previous
