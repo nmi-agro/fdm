@@ -10,7 +10,7 @@ This guide will walk you through the process of setting up a local development e
 Before you begin, you will need to have the following software installed on your machine:
 
 - **[Node.js](https://nodejs.org/en/download)**: Node.js `>=26.0.0` is required.
-- **[`pnpm`](https://pnpm.io/installation)**: FDM uses `pnpm@12.8.1` for package management (`npm install -g pnpm@12.8.1`; Node.js 26 no longer bundles Corepack).
+- **[`pnpm`](https://pnpm.io/installation)**: FDM uses `pnpm@12.8.1` for package management (`npm install -g pnpm@12.8.1`).
 - **[Git](https://git-scm.com/downloads)**: To clone the repository.
 - **[PostgreSQL](https://www.postgresql.org/download/) with [PostGIS](https://postgis.net/install/)**: FDM stores relational and spatial data in PostgreSQL with PostGIS.
 
