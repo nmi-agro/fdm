@@ -5,8 +5,10 @@ The `integration` project of `vitest.config.ts`: tests that call a route's `load
 - `global-setup.ts`: runs the migrations and syncs the catalogues once per run.
 - `setup.ts`: replaces `getSession` of `~/lib/auth.server`, so routes see the user from `signInAs`.
 - `session.ts`: `signInAs(user | null)`.
-- `helpers.ts`: `seedUserWithFarm`, `loaderArgs`, `actionArgs` and `runRoute`.
+- `helpers.ts`: `seedUserWithFarm`, `loaderArgs`, `actionArgs` and `runRoute`, and `withNmiApiKey`/`setNmiApiKey` to give the tests of a file an NMI API key (pair it with a `fetch` stub).
 - `routes/*.integration.test.ts`: the tests, one file per page or flow.
+
+The files share a worker (`isolate: false`), so a `vi.mock` only reaches modules that no earlier file loaded, and a mock can outlive its file. Don't mock shared modules such as `~/integrations/nmi.server` or `~/integrations/bln3.server`; stub `fetch` and set the key with `withNmiApiKey` instead.
 
 A test typically seeds two users, signs in as one of them, calls the route and checks the status, the redirect target or the data, and then reads the database to check what was saved:
 

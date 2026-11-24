@@ -1,5 +1,12 @@
 import type { RunnableConfig } from "@langchain/core/runnables"
-import type { FdmType, Fertilizer, FertilizerApplication, PrincipalId } from "@nmi-agro/fdm-core"
+import type {
+  FdmType,
+  Fertilizer,
+  FertilizerApplication,
+  Field,
+  PrincipalId,
+  Timeframe,
+} from "@nmi-agro/fdm-core"
 import { tool, type StructuredToolInterface } from "@langchain/core/tools"
 import {
   aggregateNormFillingsToFarmLevel,
@@ -7,16 +14,21 @@ import {
   calculateDose,
   calculateNitrogenBalanceField,
   calculateNitrogenBalancesFieldToFarm,
+  calculateNormsForFields,
   calculateOrganicMatterBalanceField,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
+  createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
   createUncachedFunctionsForFertilizerApplicationFilling,
   getNutrientAdvice,
+  NUTRIENT_ADVICE_CONCURRENCY,
 } from "@nmi-agro/fdm-calculator"
 import {
   getCultivations,
+  getCultivationsForFarm,
   getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getFertilizers,
   getField,
   getFields,
@@ -63,6 +75,134 @@ export function getMainCultivation(cultivations: any[], calendarYear: string) {
 }
 
 /**
+ * Reads the field data that the tools need for several fields, with one query per data type for
+ * the whole farm instead of one per field. A field that is not part of the farm is read on its
+ * own, as is every field when no farm is known or the farm cannot be read, so the result and the
+ * permission check for such a field stay as they were. Each farm-level read starts on first use.
+ *
+ * @param fdm - The FDM instance.
+ * @param principalId - The principal of the agent session.
+ * @param b_id_farm - The farm of the session, if known.
+ * @param cultivationTimeframe - The timeframe of the cultivations.
+ */
+function createFieldReader(
+  fdm: FdmType,
+  principalId: PrincipalId,
+  b_id_farm: string | undefined,
+  cultivationTimeframe: Timeframe,
+) {
+  const readOnce = <T>(read: (farm: string) => Promise<T>) => {
+    let promise: Promise<T | null> | undefined
+    return () => {
+      promise ??= b_id_farm ? read(b_id_farm).catch(() => null) : Promise.resolve(null)
+      return promise
+    }
+  }
+  const farmFields = readOnce(async (farm) => {
+    const byId = new Map<string, Field>()
+    for (const field of await getFields(fdm, principalId, farm)) {
+      if (!byId.has(field.b_id)) byId.set(field.b_id, field)
+    }
+    return byId
+  })
+  const farmCultivations = readOnce((farm) =>
+    getCultivationsForFarm(fdm, principalId, farm, cultivationTimeframe),
+  )
+  const farmSoilData = readOnce((farm) => getCurrentSoilDataForFarm(fdm, principalId, farm))
+  const isFarmField = async (b_id: string) => (await farmFields())?.has(b_id) ?? false
+
+  return {
+    /** The field, as `getField` returns it. */
+    async getField(b_id: string): Promise<Field> {
+      return (await farmFields())?.get(b_id) ?? getField(fdm, principalId, b_id)
+    },
+    /** The cultivations of the field in the timeframe, as `getCultivations` returns them. */
+    async getCultivations(b_id: string) {
+      const byField = (await isFarmField(b_id)) ? await farmCultivations() : null
+      return byField
+        ? (byField.get(b_id) ?? [])
+        : getCultivations(fdm, principalId, b_id, cultivationTimeframe)
+    },
+    /** The current soil data of the field, as `getCurrentSoilData` returns it. */
+    async getCurrentSoilData(b_id: string) {
+      const byField = (await isFarmField(b_id)) ? await farmSoilData() : null
+      return byField ? (byField.get(b_id) ?? []) : getCurrentSoilData(fdm, principalId, b_id)
+    },
+  }
+}
+
+/** The norm input of a field, or the error that prevented collecting it. */
+type NormInputResult = { input: object } | { error: unknown }
+
+/**
+ * Collects the norm input of several fields: the fields of the farm with one farm-level read, and
+ * a field that is not found there (or every field, when the farm cannot be read) on its own, as
+ * before.
+ *
+ * @returns The input or error per field ID.
+ */
+async function collectNormInputs(
+  fdm: FdmType,
+  principalId: PrincipalId,
+  b_id_farm: string | undefined,
+  calendar: string,
+  b_ids: readonly string[],
+): Promise<Map<string, NormInputResult>> {
+  const normFunctions = createFunctionsForNorms("NL", calendar as any)
+  const farmInputs: Map<string, object> | null = b_id_farm
+    ? await normFunctions.collectInputForNormsForFarm(fdm, principalId, b_id_farm).catch(() => null)
+    : null
+  const results = new Map<string, NormInputResult>()
+  await Promise.all(
+    [...new Set(b_ids)].map(async (b_id) => {
+      const input = farmInputs?.get(b_id)
+      if (input) {
+        results.set(b_id, { input })
+        return
+      }
+      try {
+        results.set(b_id, {
+          input: await normFunctions.collectInputForNorms(fdm, principalId, b_id),
+        })
+      } catch (error) {
+        results.set(b_id, { error })
+      }
+    }),
+  )
+  return results
+}
+
+/**
+ * Calculates the legal norms of several fields, with one cache lookup per norm for all fields.
+ *
+ * @returns The norms or error per field ID.
+ */
+async function calculateNorms(
+  fdm: FdmType,
+  calendar: string,
+  inputs: Map<string, NormInputResult>,
+) {
+  const entries = [...inputs]
+  const results = await calculateNormsForFields(
+    fdm,
+    "NL",
+    calendar as any,
+    entries.map(([, result]) => ("input" in result ? result.input : undefined)),
+  )
+  return new Map(
+    entries.map(([b_id, input], index) => {
+      if ("error" in input) return [b_id, { error: input.error }] as const
+      const result = results[index]
+      return [b_id, result ?? { error: new Error(`No norm input for field ${b_id}`) }] as const
+    }),
+  )
+}
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
+/**
  * Creates tools for the fertilizer application planner.
  * @param fdm The non-serializable FDM database instance.
  */
@@ -89,36 +229,39 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         end: new Date(`${calendar}-12-31`),
       }
 
-      const fields = await getFields(fdm, principalId, b_id_farm, timeframe)
-      const fieldDetails = await Promise.all(
-        fields.map(async (f) => {
-          const cultivations = await getCultivations(fdm, principalId, f.b_id, timeframe)
-          const currentSoilData = await getCurrentSoilData(fdm, principalId, f.b_id, timeframe)
-          const mainLu = getMainCultivation(cultivations, calendar)
+      // One query per data type for the whole farm
+      const [fields, cultivationsByField, soilDataByField] = await Promise.all([
+        getFields(fdm, principalId, b_id_farm, timeframe),
+        getCultivationsForFarm(fdm, principalId, b_id_farm, timeframe),
+        getCurrentSoilDataForFarm(fdm, principalId, b_id_farm, timeframe),
+      ])
+      const fieldDetails = fields.map((f) => {
+        const cultivations = cultivationsByField.get(f.b_id) ?? []
+        const currentSoilData = soilDataByField.get(f.b_id) ?? []
+        const mainLu = getMainCultivation(cultivations, calendar)
 
-          const getSoilParam = (param: string) =>
-            currentSoilData.find((d) => d.parameter === param)?.value ?? null
+        const getSoilParam = (param: string) =>
+          currentSoilData.find((d) => d.parameter === param)?.value ?? null
 
-          return {
-            b_id: f.b_id,
-            b_name: f.b_name,
-            b_area: f.b_area,
-            b_bufferstrip: f.b_bufferstrip,
-            b_lu_catalogue: mainLu?.b_lu_catalogue || null,
-            b_lu_name: mainLu?.b_lu_name || null,
-            b_lu_croprotation: mainLu?.b_lu_croprotation || null,
-            b_lu_start: mainLu?.b_lu_start
-              ? new Date(mainLu.b_lu_start).toISOString().split("T")[0]
-              : null,
-            b_soiltype_agr: getSoilParam("b_soiltype_agr"),
-            a_clay_mi: getSoilParam("a_clay_mi"),
-            a_sand_mi: getSoilParam("a_sand_mi"),
-            a_silt_mi: getSoilParam("a_silt_mi"),
-            b_gwl_class: getSoilParam("b_gwl_class"),
-            a_som_loi: getSoilParam("a_som_loi"),
-          }
-        }),
-      )
+        return {
+          b_id: f.b_id,
+          b_name: f.b_name,
+          b_area: f.b_area,
+          b_bufferstrip: f.b_bufferstrip,
+          b_lu_catalogue: mainLu?.b_lu_catalogue || null,
+          b_lu_name: mainLu?.b_lu_name || null,
+          b_lu_croprotation: mainLu?.b_lu_croprotation || null,
+          b_lu_start: mainLu?.b_lu_start
+            ? new Date(mainLu.b_lu_start).toISOString().split("T")[0]
+            : null,
+          b_soiltype_agr: getSoilParam("b_soiltype_agr"),
+          a_clay_mi: getSoilParam("a_clay_mi"),
+          a_sand_mi: getSoilParam("a_sand_mi"),
+          a_silt_mi: getSoilParam("a_silt_mi"),
+          b_gwl_class: getSoilParam("b_gwl_class"),
+          a_som_loi: getSoilParam("a_som_loi"),
+        }
+      })
       // Must return an object (not array) — Gemini rejects array as top-level function_response.
       return { fields: fieldDetails }
     },
@@ -155,55 +298,88 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         throw new Error("Missing nmiApiKey in agent context")
       }
       const args = input as AdviceArgs
-
-      const results = await Promise.all(
-        args.b_ids.map(async (b_id) => {
-          try {
-            const field = await getField(fdm, principalId, b_id)
-            const cultivations = await getCultivations(fdm, principalId, b_id, timeframe)
-            const mainLu = getMainCultivation(cultivations, calendar)
-            const currentSoilData = await getCurrentSoilData(fdm, principalId, b_id)
-
-            if (!mainLu) {
-              return { b_id, advice: null }
-            }
-
-            if (!isValidDutchCropCatalogue(mainLu.b_lu_catalogue)) {
-              return {
-                b_id,
-                advice: null,
-                skipped: `Invalid crop catalogue for NMI nutrient advice: ${mainLu.b_lu_catalogue}`,
-              }
-            }
-
-            // Skip NMI for fields with no known agricultural crop type.
-            // This covers unknown BRP codes (null croprotation) and
-            // nature/landscape fields which the NMI API does not support.
-            if (!mainLu.b_lu_croprotation || mainLu.b_lu_croprotation === "nature") {
-              return {
-                b_id,
-                advice: null,
-                skipped: `Crop type not suitable for NMI nutrient advice: ${mainLu.b_lu_croprotation ?? "unknown"}`,
-              }
-            }
-
-            const advice = await getNutrientAdvice(fdm, {
-              b_lu_catalogue: mainLu.b_lu_catalogue,
-              b_centroid: field.b_centroid ?? [0, 0],
-              currentSoilData: currentSoilData,
-              nmiApiKey,
-              b_bufferstrip: field.b_bufferstrip,
-            })
-            return { b_id, advice }
-          } catch (e) {
-            return {
-              b_id,
-              advice: null,
-              error: e instanceof Error ? e.message : String(e),
-            }
-          }
-        }),
+      const reader = createFieldReader(
+        fdm,
+        principalId,
+        config?.configurable?.b_id_farm as string | undefined,
+        timeframe,
       )
+
+      type AdviceInput = NutrientAdviceInput
+      type AdviceResult = {
+        b_id: string
+        advice: unknown
+        skipped?: string
+        error?: string
+      }
+      const prepared = await Promise.all(
+        args.b_ids.map(
+          async (b_id): Promise<AdviceResult | { b_id: string; input: AdviceInput }> => {
+            try {
+              const field = await reader.getField(b_id)
+              const cultivations = await reader.getCultivations(b_id)
+              const mainLu = getMainCultivation(cultivations, calendar)
+              const currentSoilData = await reader.getCurrentSoilData(b_id)
+
+              if (!mainLu) {
+                return { b_id, advice: null }
+              }
+
+              if (!isValidDutchCropCatalogue(mainLu.b_lu_catalogue)) {
+                return {
+                  b_id,
+                  advice: null,
+                  skipped: `Invalid crop catalogue for NMI nutrient advice: ${mainLu.b_lu_catalogue}`,
+                }
+              }
+
+              // Skip NMI for fields with no known agricultural crop type.
+              // This covers unknown BRP codes (null croprotation) and
+              // nature/landscape fields which the NMI API does not support.
+              if (!mainLu.b_lu_croprotation || mainLu.b_lu_croprotation === "nature") {
+                return {
+                  b_id,
+                  advice: null,
+                  skipped: `Crop type not suitable for NMI nutrient advice: ${mainLu.b_lu_croprotation ?? "unknown"}`,
+                }
+              }
+
+              return {
+                b_id,
+                input: {
+                  b_lu_catalogue: mainLu.b_lu_catalogue,
+                  b_centroid: field.b_centroid ?? [0, 0],
+                  currentSoilData: currentSoilData,
+                  nmiApiKey,
+                  b_bufferstrip: field.b_bufferstrip,
+                },
+              }
+            } catch (e) {
+              return { b_id, advice: null, error: errorMessage(e) }
+            }
+          },
+        ),
+      )
+
+      // Look up the advice of all fields in the cache at once
+      const requests = prepared.filter(
+        (entry): entry is { b_id: string; input: AdviceInput } => "input" in entry,
+      )
+      const advices = await Promise.allSettled(
+        getNutrientAdvice.many(
+          fdm,
+          requests.map(({ input }) => input),
+          { concurrency: NUTRIENT_ADVICE_CONCURRENCY },
+        ),
+      )
+      const adviceByRequest = new Map(requests.map((request, i) => [request, advices[i]]))
+      const results = prepared.map((entry): AdviceResult => {
+        if (!("input" in entry)) return entry
+        const advice = adviceByRequest.get(entry)
+        return advice?.status === "fulfilled"
+          ? { b_id: entry.b_id, advice: advice.value }
+          : { b_id: entry.b_id, advice: null, error: errorMessage(advice?.reason) }
+      })
       // Must return an object (not array) — Gemini rejects array as top-level function_response.
       return { advicePerField: results }
     },
@@ -231,33 +407,25 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       const calendar =
         (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
 
-      const normFunctions = createFunctionsForNorms("NL", calendar as any)
-      const results = await Promise.all(
-        input.b_ids.map(async (b_id: string) => {
-          try {
-            const normsInput = await normFunctions.collectInputForNorms(fdm, principalId, b_id)
-            const [manure, phosphate, nitrogen] = await Promise.all([
-              normFunctions.calculateNormForManure(fdm, normsInput as any),
-              normFunctions.calculateNormForPhosphate(fdm, normsInput as any),
-              normFunctions.calculateNormForNitrogen(fdm, normsInput as any),
-            ])
-            return {
-              b_id,
-              norms: {
-                animalManureN: manure.normValue,
-                workableN: nitrogen.normValue,
-                phosphate: phosphate.normValue,
-              },
-            }
-          } catch (e) {
-            return {
-              b_id,
-              norms: null,
-              error: e instanceof Error ? e.message : String(e),
-            }
-          }
-        }),
-      )
+      const b_id_farm = (config?.configurable?.b_id_farm as string) || input?.b_id_farm
+      const b_ids: string[] = input.b_ids
+      const normInputs = await collectNormInputs(fdm, principalId, b_id_farm, calendar, b_ids)
+      const normsByField = await calculateNorms(fdm, calendar, normInputs)
+      const results = b_ids.map((b_id) => {
+        const result = normsByField.get(b_id)
+        if (!result || "error" in result) {
+          return { b_id, norms: null, error: errorMessage(result?.error) }
+        }
+        const { manure, phosphate, nitrogen } = result.values
+        return {
+          b_id,
+          norms: {
+            animalManureN: manure.normValue,
+            workableN: nitrogen.normValue,
+            phosphate: phosphate.normValue,
+          },
+        }
+      })
       // Must return an object (not array) — Gemini rejects array as top-level function_response.
       return { normsPerField: results }
     },
@@ -390,36 +558,48 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         getFertilizers(fdm, principalId, b_id_farm),
       ])
 
-      const normFuncs = createFunctionsForNorms("NL", calendar as any)
       const fillFuncs = createUncachedFunctionsForFertilizerApplicationFilling(
         "NL",
         calendar as any,
       )
+      const reader = createFieldReader(fdm, principalId, b_id_farm, timeframe)
+      const errorResult = (b_id: string, e: unknown): SimulationFieldResult => ({
+        b_id,
+        b_area: null,
+        error: errorMessage(e),
+        isValid: false,
+        fieldMetrics: null,
+      })
 
-      const fieldResults = await Promise.all(
+      // 1. Check each proposed field and build its proposed applications
+      const checked: ({ result: SimulationFieldResult } | CheckedField)[] = await Promise.all(
         args.fields.map(async (fieldData) => {
           try {
-            const fieldInfo = await getField(fdm, principalId, fieldData.b_id)
+            const fieldInfo = await reader.getField(fieldData.b_id)
 
             if (fieldInfo.b_id_farm !== b_id_farm) {
               return {
-                b_id: fieldData.b_id,
-                b_area: null,
-                error: `Field ${fieldData.b_id} does not belong to farm ${b_id_farm}.`,
-                isValid: false,
-                isForeignField: true,
-                fieldMetrics: null,
+                result: {
+                  b_id: fieldData.b_id,
+                  b_area: null,
+                  error: `Field ${fieldData.b_id} does not belong to farm ${b_id_farm}.`,
+                  isValid: false,
+                  isForeignField: true,
+                  fieldMetrics: null,
+                },
               }
             }
 
             if (fieldInfo.b_bufferstrip && fieldData.applications.length > 0) {
               return {
-                b_id: fieldData.b_id,
-                b_area: fieldInfo.b_area,
-                error: "Field is a buffer strip and cannot receive fertilizer applications.",
-                isValid: false,
-                isBufferStripViolation: true,
-                fieldMetrics: null,
+                result: {
+                  b_id: fieldData.b_id,
+                  b_area: fieldInfo.b_area,
+                  error: "Field is a buffer strip and cannot receive fertilizer applications.",
+                  isValid: false,
+                  isBufferStripViolation: true,
+                  fieldMetrics: null,
+                },
               }
             }
 
@@ -458,32 +638,69 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               } as unknown as FertilizerApplication
             })
 
-            // Calculate legal norms (phosphate.normValue is required as
-            // input to the filling functions).
-            const normsInput = await normFuncs.collectInputForNorms(
-              fdm,
-              principalId,
-              fieldData.b_id,
-            )
-            const [manure, phosphate, nitrogen, renure] = await Promise.all([
-              normFuncs.calculateNormForManure(fdm, normsInput as any),
-              normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
-              normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
-              Number.parseInt(calendar, 10) >= 2026 && (normFuncs as any).calculateNormForRenure
-                ? (normFuncs as any).calculateNormForRenure(fdm, normsInput as any)
-                : Promise.resolve(undefined),
-            ])
+            return { fieldData, fieldInfo, proposedApps }
+          } catch (e) {
+            return { result: errorResult(fieldData.b_id, e) }
+          }
+        }),
+      )
+
+      // 2. Legal norms of the proposed fields and of all fields of the farm, with one cache
+      // lookup per norm (phosphate.normValue is required as input to the filling functions).
+      const pending = checked.filter((entry): entry is CheckedField => !("result" in entry))
+      const allFarmFields = await getFields(fdm, principalId, b_id_farm, timeframe)
+      const farmNormFields = allFarmFields.filter((f) => !f.b_bufferstrip && f.b_area)
+      const normInputs = await collectNormInputs(fdm, principalId, b_id_farm, calendar, [
+        ...pending.map(({ fieldData }) => fieldData.b_id),
+        ...farmNormFields.map((f) => f.b_id),
+      ])
+      const normsByField = await calculateNorms(fdm, calendar, normInputs)
+
+      // 3. The filling input of the proposed fields, read for the whole farm at once; a field
+      // that is not found there is read on its own.
+      const phosphateNormByField = new Map<string, number>()
+      for (const { fieldData } of pending) {
+        const norms = normsByField.get(fieldData.b_id)
+        if (norms && "values" in norms) {
+          phosphateNormByField.set(fieldData.b_id, norms.values.phosphate.normValue)
+        }
+      }
+      type FillingInput = Awaited<
+        ReturnType<typeof fillFuncs.collectInputForFertilizerApplicationFilling>
+      >
+      const farmFillingInputs =
+        phosphateNormByField.size > 0
+          ? ((await createFunctionsForFertilizerApplicationFilling("NL", calendar as any)
+              .collectInputForFertilizerApplicationFillingForFarm(
+                fdm,
+                principalId,
+                b_id_farm,
+                phosphateNormByField,
+              )
+              .catch(() => null)) as Map<string, FillingInput> | null)
+          : null
+
+      // 4. Fillings, balances and dose of each proposed field
+      const evaluated: EvaluatedField[] = await Promise.all(
+        pending.map(async ({ fieldData, fieldInfo, proposedApps }) => {
+          try {
+            const norms = normsByField.get(fieldData.b_id)
+            if (!norms || "error" in norms) {
+              throw norms?.error ?? new Error(`No norms for field ${fieldData.b_id}`)
+            }
+            const { manure, phosphate, nitrogen, renure } = norms.values
 
             // Calculate norm fillings using the proper Dutch regulatory logic
             // from fdm-calculator (Table 9 werkingscoëfficiënten, Table 11
             // mestcodes, organic-rich fertilizer discount regulation).
             const collectedFillingInput =
-              await fillFuncs.collectInputForFertilizerApplicationFilling(
+              farmFillingInputs?.get(fieldData.b_id) ??
+              (await fillFuncs.collectInputForFertilizerApplicationFilling(
                 fdm,
                 principalId,
                 fieldData.b_id,
                 phosphate.normValue,
-              )
+              ))
             const fillingInput = {
               ...collectedFillingInput,
               applications: proposedApps,
@@ -550,19 +767,15 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               fertilizers,
             }).dose
 
-            // Fetch nutrient advice so the agent can compare dose vs advice
-            // inside a single simulation step without a separate tool call.
-            let advice = null
+            // Prepare the nutrient advice so the agent can compare dose vs advice
+            // inside a single simulation step without a separate tool call. The
+            // advice of all fields is looked up together below.
+            let adviceInput: NutrientAdviceInput | undefined
             let adviceSkipped: string | null = null
             if (nmiApiKey && isValidDutchCropCatalogue(fieldData.b_lu_catalogue)) {
               // Fetch the cultivation's crop type to guard against
               // unknown/non-agricultural BRP codes that NMI doesn't support.
-              const simCultivations = await getCultivations(
-                fdm,
-                principalId,
-                fieldData.b_id,
-                timeframe,
-              )
+              const simCultivations = await reader.getCultivations(fieldData.b_id)
               const simMainLu = getMainCultivation(simCultivations, calendar)
               const croprotation = simMainLu?.b_lu_croprotation
 
@@ -570,14 +783,14 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
                 adviceSkipped = `Crop type not suitable for NMI nutrient advice: ${croprotation ?? "unknown"}`
               } else {
                 try {
-                  const currentSoilData = await getCurrentSoilData(fdm, principalId, fieldData.b_id)
-                  advice = await getNutrientAdvice(fdm, {
+                  const currentSoilData = await reader.getCurrentSoilData(fieldData.b_id)
+                  adviceInput = {
                     b_lu_catalogue: simMainLu?.b_lu_catalogue ?? "",
                     b_centroid: fieldInfo.b_centroid ?? [0, 0],
                     currentSoilData,
                     nmiApiKey,
                     b_bufferstrip: fieldInfo.b_bufferstrip,
-                  })
+                  }
                 } catch {
                   // advice remains null if the fetch fails; not an error
                   adviceSkipped = `Could not fetch NMI nutrient advice for field ${fieldData.b_id}`
@@ -587,7 +800,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               adviceSkipped = `Invalid crop catalogue for NMI nutrient advice: ${fieldData.b_lu_catalogue}`
             }
 
-            return {
+            const result: SimulationFieldResult = {
               b_id: fieldData.b_id,
               b_area: fieldInfo.b_area,
               isValid: true,
@@ -633,52 +846,54 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
                 eomSupplyPerHa: omBalance?.supply?.fertilizers?.total ?? null,
                 nBalance: nBalance || null,
                 nBalanceError,
-                advice,
+                advice: null,
                 adviceSkipped,
               },
             }
+            return { result, adviceInput }
           } catch (e) {
-            return {
-              b_id: fieldData.b_id,
-              b_area: null,
-              error: e instanceof Error ? e.message : String(e),
-              isValid: false,
-              fieldMetrics: null,
-            }
+            return { result: errorResult(fieldData.b_id, e) }
           }
         }),
       )
 
+      // 5. Nutrient advice of the proposed fields, looked up in the cache at once
+      const adviceFields = evaluated.filter(
+        (entry): entry is Required<EvaluatedField> => entry.adviceInput !== undefined,
+      )
+      const advices = await Promise.allSettled(
+        getNutrientAdvice.many(
+          fdm,
+          adviceFields.map(({ adviceInput }) => adviceInput),
+          { concurrency: NUTRIENT_ADVICE_CONCURRENCY },
+        ),
+      )
+      for (const [i, { result }] of adviceFields.entries()) {
+        const advice = advices[i]
+        if (advice.status === "fulfilled") {
+          result.fieldMetrics.advice = advice.value
+        } else {
+          // advice remains null if the fetch fails; not an error
+          result.fieldMetrics.adviceSkipped = `Could not fetch NMI nutrient advice for field ${result.b_id}`
+        }
+      }
+
+      const evaluatedResults = evaluated.map(({ result }) => result)
+      const fieldResults = checked.map((entry) =>
+        "result" in entry ? entry.result : (evaluatedResults.shift() as SimulationFieldResult),
+      )
       const validFieldResults = fieldResults.filter((r: any) => r.isValid && r.b_area)
 
-      // Compute norms for ALL farm fields.
-      const allFarmFields = await getFields(fdm, principalId, b_id_farm, timeframe)
+      // Norms for ALL farm fields, from the norms calculated above.
       const failedNormFields: string[] = []
-      const allFarmFieldNorms = await Promise.all(
-        allFarmFields
-          .filter((f) => !f.b_bufferstrip && f.b_area)
-          .map(async (f) => {
-            try {
-              const normsInput = await normFuncs.collectInputForNorms(fdm, principalId, f.b_id)
-              const [manure, phosphate, nitrogen, renure] = await Promise.all([
-                normFuncs.calculateNormForManure(fdm, normsInput as any),
-                normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
-                normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
-                Number.parseInt(calendar, 10) >= 2026 && (normFuncs as any).calculateNormForRenure
-                  ? (normFuncs as any).calculateNormForRenure(fdm, normsInput as any)
-                  : Promise.resolve(undefined),
-              ])
-              return {
-                b_id: f.b_id,
-                b_area: f.b_area as number,
-                norms: { manure, phosphate, nitrogen, renure },
-              }
-            } catch {
-              failedNormFields.push(f.b_id)
-              return null
-            }
-          }),
-      )
+      const allFarmFieldNorms = farmNormFields.map((f) => {
+        const norms = normsByField.get(f.b_id)
+        if (!norms || "error" in norms) {
+          failedNormFields.push(f.b_id)
+          return null
+        }
+        return { b_id: f.b_id, b_area: f.b_area as number, norms: norms.values }
+      })
 
       // Aggregate to farm level using fdm-calculator functions.
       // Norms cover ALL farm fields; fillings cover only the simulated fields.
@@ -1168,6 +1383,32 @@ interface SimulationField {
     p_app_date: string
     p_app_method?: string
   }[]
+}
+
+/** A proposed field of `simulateFarmPlan` that passed the checks on the field itself. */
+interface CheckedField {
+  fieldData: SimulationField
+  fieldInfo: Field
+  proposedApps: FertilizerApplication[]
+}
+
+/** The result of a proposed field of `simulateFarmPlan`, as the agent sees it. */
+interface SimulationFieldResult {
+  b_id: string
+  b_area: number | null
+  isValid: boolean
+  error?: string
+  isForeignField?: boolean
+  isBufferStripViolation?: boolean
+  fieldMetrics: any
+}
+
+type NutrientAdviceInput = Parameters<typeof getNutrientAdvice>[1]
+
+/** A proposed field after its fillings and balances, with its nutrient advice still to look up. */
+interface EvaluatedField {
+  result: SimulationFieldResult
+  adviceInput?: NutrientAdviceInput
 }
 
 interface SimulationArgs {

@@ -276,6 +276,7 @@ export type {
 export {
   getCultivationSuggestion,
   getCultivationSuggestionResult,
+  getCultivationSuggestionResultsForFarm,
 } from "./other/cultivation-suggestion"
 export type {
   CultivationSuggestion,
