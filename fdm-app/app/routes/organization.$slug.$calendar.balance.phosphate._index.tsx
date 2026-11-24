@@ -144,7 +144,17 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
           .filter((farm) => farmIdsSet.has(farm.b_id_farm))
           .map(async (farm) => {
             const input = inputsByFarm.get(farm.b_id_farm)
-            if (!input || input.fields.length === 0) {
+            if (!input) {
+              // The input of this farm could not be collected (logged by the calculator)
+              return {
+                farm,
+                totalArea: farm.b_area_farm,
+                phosphateBalanceResult: failedPhosphateFarmResult(
+                  "De fosfaatbalans van dit bedrijf kon niet worden berekend.",
+                ),
+              }
+            }
+            if (input.fields.length === 0) {
               return {
                 farm,
                 totalArea: farm.b_area_farm,

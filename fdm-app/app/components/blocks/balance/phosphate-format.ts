@@ -93,7 +93,11 @@ export function formatPhosphateAim(status: PhosphateStatus): string {
   if (!status.aim) return "–"
   const aim = { opbouwen: "Opbouwen", onderhouden: "Onderhouden", afbouwen: "Afbouwen" }[status.aim]
   if (status.aim === "onderhouden" && !status.conflict) return aim
-  if (status.conflict) return "Milieu (PSD) en opbrengst (P-AL) vragen een andere richting"
+  // Only in the true conflict (PSD above the threshold, P-AL below the lower bound) is no goal
+  // chosen; when reducing for the PSD while P-AL is not high, the aim is still afbouwen
+  if (status.aim === "onderhouden" && status.conflict) {
+    return "Milieu (PSD) en opbrengst (P-AL) vragen een andere richting"
+  }
   if (status.binding === "psd") return `${aim} voor het milieu (PSD)`
   if (status.binding === "p_al") return `${aim} voor de opbrengst (P-AL)`
   return aim
@@ -514,6 +518,8 @@ export function getPhosphateAdvice(
     ? balance.long_term.fertilizers
     : balance.supply.fertilizers.total
   const years = formatYearsBand(status.years) ?? formatYearsClass(status.years_class)
+  // Time until P-AL falls below the lower bound itself (status.years runs to the bound minus the margin)
+  const pAlMinYears = formatYearsBand(status.p_al_min_years) ?? years
   const indicator = status.binding ? formatIndicator(status.binding) : "fosfaattoestand"
   const inside = status.aim === "onderhouden" && !status.conflict
   const removalOption = (detail: string | null): PhosphateAdviceOption => ({
@@ -578,7 +584,7 @@ export function getPhosphateAdvice(
     if (pAl < R.p_al_min) {
       agronomic = `Onder ${R.p_al_min} is er te weinig fosfaat voor een goede opbrengst; opbouwen is gunstig.`
     } else if (inside && status.binding === "p_al" && status.direction === "down" && status.years) {
-      agronomic = `Goed, maar bij de huidige balans daalt P-AL over ${years} onder ${R.p_al_min}.`
+      agronomic = `Goed, maar bij de huidige balans daalt P-AL over ${pAlMinYears} onder ${R.p_al_min}.`
     } else if (status.aim === "afbouwen") {
       const floor = formatYearsBand(status.p_al_min_years)
       agronomic = `Op peil: afbouwen kost geen opbrengst zolang P-AL boven ${R.p_al_min} blijft${floor ? ` (bij de huidige balans nog ${floor})` : ""}.`
@@ -618,7 +624,7 @@ export function getPhosphateAdvice(
   if (status.verdict === "good") {
     let detail: string
     if (inside && status.binding === "p_al" && status.direction === "down" && status.years) {
-      detail = `P-AL ${R.p_al_min}–${R.p_al_high} is goed volgens het Handboek Bodem en Bemesting. Bij de huidige balans daalt P-AL over ${years} onder ${R.p_al_min}; houd de voorraad dan in de gaten.`
+      detail = `P-AL ${R.p_al_min}–${R.p_al_high} is goed volgens het Handboek Bodem en Bemesting. Bij de huidige balans daalt P-AL over ${pAlMinYears} onder ${R.p_al_min}; houd de voorraad dan in de gaten.`
     } else if (inside) {
       detail =
         status.direction === "down"

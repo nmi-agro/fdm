@@ -33,11 +33,15 @@ export type PhosphateInputOptions = {
   historyYears?: number
 }
 
-/** Default timeframe (the current calendar year) when the timeframe has no start or end. */
+/**
+ * Default timeframe (the current calendar year) when the timeframe has no start or end. The default
+ * end is the last millisecond of 31 December, so events later that day are included.
+ */
 function toTimeFrame(timeframe: Timeframe): { start: Date; end: Date } {
+  const year = new Date().getFullYear()
   return {
-    start: timeframe.start ?? new Date(new Date().getFullYear(), 0, 1),
-    end: timeframe.end ?? new Date(new Date().getFullYear(), 11, 31),
+    start: timeframe.start ?? new Date(year, 0, 1),
+    end: timeframe.end ?? new Date(year, 11, 31, 23, 59, 59, 999),
   }
 }
 
