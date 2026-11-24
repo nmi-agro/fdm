@@ -363,7 +363,7 @@ describe("Catalogues syncing", () => {
     expect(animalCategories.length).toBe(animalCategoriesOriginal.length)
   })
 
-  it("should enable the RVO animal catalogue for a new farm and keep an opt-out after sync", async () => {
+  it("should not enable an animal catalogue for a new farm and keep an opt-out after sync", async () => {
     const principal_id = "existing_farm_sync"
     const b_id_farm = await addFarm(
       fdm,
@@ -373,6 +373,9 @@ describe("Catalogues syncing", () => {
       "Farm Street 1",
       "1234AB",
     )
+    // Like the other catalogues, the caller that creates the farm enables it
+    expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toEqual([])
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
     expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toContain("rvo")
     expect((await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)).length).toBeGreaterThan(
       0,

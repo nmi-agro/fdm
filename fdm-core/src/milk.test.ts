@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import type { MilkingAnimal, MilkingHerd } from "./milk.types"
 import { addAnimal, assignAnimalToHerd } from "./animal"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { enableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
@@ -56,6 +56,7 @@ describe("Milk Domain", () => {
       "Milk Way 1",
       "1234AB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",

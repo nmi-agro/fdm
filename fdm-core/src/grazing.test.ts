@@ -1,7 +1,7 @@
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { enableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addField } from "./field"
@@ -46,6 +46,7 @@ describe("Grazing Domain", () => {
       "Pasture Path 1",
       "1234AB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
@@ -519,6 +520,7 @@ describe("Grazing Domain", () => {
       "Other Pasture 1",
       "4321BA",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, otherFarmId, "rvo")
     const otherFieldId = await addField(
       fdm,
       principal_id,
@@ -604,6 +606,7 @@ describe("Grazing Domain", () => {
     expect(farmBoth.length).toBe(1)
 
     const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Pasture 2", "1234AB")
+    await enableAnimalCategoryCatalogue(fdm, principal_id, farm2, "rvo")
     const emptyFarm = await getGrazingForFarm(fdm, principal_id, farm2)
     expect(emptyFarm).toEqual([])
   })
@@ -746,6 +749,7 @@ describe("Grazing zones", () => {
     await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = "test_principal"
     b_id_farm = await addFarm(fdm, principal_id, "Zone Farm", "123456", "Weg 1", "1234AB")
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
       l_id_category: "rvo_100",

@@ -5,6 +5,7 @@ import {
   addFarm,
   addFertilizer,
   addOrganicCertification,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -825,6 +826,7 @@ export async function action({ request }: ActionFunctionArgs) {
       enableFertilizerCatalogue(fdm, session.principal_id, b_id_farm, b_id_farm),
       enableCultivationCatalogue(fdm, session.principal_id, b_id_farm, "brp"),
       enableMeasureCatalogue(fdm, session.principal_id, b_id_farm, "bln"),
+      enableAnimalCategoryCatalogue(fdm, session.principal_id, b_id_farm, "rvo"),
     )
 
     await Promise.all(setupPromises)

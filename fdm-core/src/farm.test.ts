@@ -8,7 +8,11 @@ import { addAnimal } from "./animal"
 import { createFdmAuth } from "./authentication"
 import { grantRole, listPrincipalsForResource } from "./authorization"
 import { addBarn, addHousing } from "./barn"
-import { syncAnimalCategoryCatalogueArray, syncFeedCatalogueArray } from "./catalogues"
+import {
+  enableAnimalCategoryCatalogue,
+  syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
+} from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -125,6 +129,7 @@ describe("Farm Functions", () => {
       farmAddress,
       farmPostalCode,
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
   })
   describe("getFarm", () => {
     it("should retrieve a farm's details if the principal has read access", async () => {
@@ -872,6 +877,7 @@ describe("Farm Functions", () => {
         "Livestock Lane",
         "88888",
       )
+      await enableAnimalCategoryCatalogue(fdm, testPrincipalId, livestockFarmId, "rvo")
 
       const b_id = await addField(
         fdm,
