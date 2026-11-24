@@ -550,11 +550,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
           ? new Date(m_end_str)
           : undefined
 
-      await Promise.all(
-        eligibleBIds.map((b_id) =>
-          addMeasure(fdm, session.principal_id, b_id, m_id, m_start, m_end),
-        ),
-      )
+      // All fields in one transaction: either every field gets the measure, or none does
+      await fdm.transaction(async (tx) => {
+        for (const b_id of eligibleBIds) {
+          await addMeasure(tx, session.principal_id, b_id, m_id, m_start, m_end)
+        }
+      })
 
       const count = eligibleBIds.length
       return dataWithSuccess(
@@ -586,9 +587,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
           ? new Date(m_end_str)
           : undefined
 
-      await Promise.all(
-        b_id_measures.map((id) => updateMeasure(fdm, session.principal_id, id, m_start, m_end)),
-      )
+      // All measures in one transaction: either every change is saved, or none is
+      await fdm.transaction(async (tx) => {
+        for (const id of b_id_measures) {
+          await updateMeasure(tx, session.principal_id, id, m_start, m_end)
+        }
+      })
 
       return dataWithSuccess(
         { result: "Maatregel bijgewerkt" },
@@ -601,7 +605,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       if (b_id_measures.length === 0) {
         return dataWithError("missing: b_id_measures", "Helaas, er is wat misgegaan.")
       }
-      await Promise.all(b_id_measures.map((id) => removeMeasure(fdm, session.principal_id, id)))
+      // All measures in one transaction: either every measure is removed, or none is
+      await fdm.transaction(async (tx) => {
+        for (const id of b_id_measures) {
+          await removeMeasure(tx, session.principal_id, id)
+        }
+      })
       return dataWithSuccess(
         { result: "Maatregel verwijderd" },
         { message: "Maatregel is verwijderd." },

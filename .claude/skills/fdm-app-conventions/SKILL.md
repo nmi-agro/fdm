@@ -88,6 +88,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 - **Actions branch on an intent field** and end with `throw data("Ongeldige actie", { status: 400 })` for an unrecognised branch.
 - **Successful actions return `dataWithSuccess(...)`** from `remix-toast` so the user gets feedback; `dataWithError` / `dataWithWarning` are the failure equivalents.
 - **Bound external calls.** Loaders that fan out to an external API per field limit concurrency with an explicit constant rather than issuing unbounded `Promise.all`.
+- **Read per farm, not per item.** A page about many fields, cultivations or farms uses the batched fdm-core reads (`getCultivationsForFarm`, `getHarvestsForFarm`, `getCurrentSoilDataForFarm`, `getSoilAnalysesForFarm`, `getFertilizerApplicationsForFarm`, `getMeasuresForFarm`, `getFieldsForFarms`) once and looks items up in the returned `Map`, so the number of queries does not grow with the data. Run independent reads in one `Promise.all`. Cached calculations have a `.many` path that batches cache reads and writes. A field inherits its permissions from its farm, so one farm check replaces a check per field.
+- **Keep prefetched loaders database-only.** Sidebar links use `prefetch="intent"` only for pages whose loaders don't call an external API. When such a page needs NMI data that is not essential, load it after render from a resource route with a fetcher (as the fields table does with `farm.$b_id_farm.$calendar.cultivation-suggestions`), or return it as an unawaited promise for `<Await>` on pages that are not prefetched.
 
 Every route also exports `meta` returning a title of the form `` `Pagina | ${clientConfig.name}` `` plus a description.
 
@@ -209,6 +211,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Returning a caught error's `.message` to the UI | `handleLoaderError` / `handleActionError` |
 | An action with no `dataWithSuccess` feedback | Return a toast helper from `remix-toast` |
 | Unbounded `Promise.all` over every field to an external API | A concurrency constant, as in the existing loaders |
+| `getCultivations` / `getHarvests` / `checkPermission` inside a loop over fields or cultivations | One `*ForFarm` read or one farm check, then a `Map` lookup |
 | New component dropped into `components/ui/` | `components/blocks/<domain>/` |
 | Hand-editing a shadcn primitive for one screen | Compose around it, or add a variant |
 | `asChild` or `@radix-ui/*` / `radix-ui` imports on a primitive | Base UI: `render={<Component />}` and `@base-ui/react/<part>` imports (`asChild` only remains on `cmdk` parts) |

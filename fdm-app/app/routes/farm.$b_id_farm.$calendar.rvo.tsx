@@ -2,7 +2,7 @@ import type { ZodError } from "zod"
 import {
   addFarmVerification,
   type Field,
-  getCultivations,
+  getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getFarm,
   getFarms,
@@ -231,22 +231,19 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
         })
       }
 
-      const localFields = await getFields(fdm, session.principal_id, b_id_farm)
-      const localFieldsExtended = await Promise.all(
-        localFields.map(async (field) => {
-          const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, {
-            start: new Date(`${yearString}-01-01`),
-            end: new Date(`${yearString}-12-31`),
-          })
-          return { ...field, cultivations }
+      // Read the fields, the cultivations of all fields in the year and the catalogue at once
+      const [localFields, cultivationsByField, cultivationsCatalogue] = await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm),
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
+          start: new Date(`${yearString}-01-01`),
+          end: new Date(`${yearString}-12-31`),
         }),
-      )
-
-      const cultivationsCatalogue = await getCultivationsFromCatalogue(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-      )
+        getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+      ])
+      const localFieldsExtended = localFields.map((field) => ({
+        ...field,
+        cultivations: cultivationsByField.get(field.b_id) ?? [],
+      }))
 
       rvoImportReviewData = compareFields(
         localFieldsExtended,

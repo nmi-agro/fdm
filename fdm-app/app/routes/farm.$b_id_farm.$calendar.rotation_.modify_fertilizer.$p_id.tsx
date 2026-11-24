@@ -81,6 +81,7 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
       cultivationsByField,
       fertilizerOptions,
       applicationsByField,
+      farmWritePermission,
     ] = await Promise.all([
       getFarms(fdm, principal_id),
       getFertilizer(fdm, params.p_id, principal_id),
@@ -88,6 +89,9 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
       getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
       getFertilizerOptions(fdm, principal_id, b_id_farm),
       getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+      // The applications are all on this farm and inherit its permissions, and an application
+      // can be written by the same roles as the farm, so one farm check replaces one per application
+      checkPermission(fdm, "farm", "write", b_id_farm, principal_id, url.pathname, false),
     ])
     const fieldOptions = toBulkFieldOptions(farmFields, cultivationsByField, calendar)
     const fieldNames = new Map(fieldOptions.map((field) => [field.b_id, field.b_name]))
@@ -106,22 +110,12 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
           .map((app) => ({ ...app, b_id: field.b_id, b_name: field.b_name })),
       )
       .sort((a, b) => a.p_app_date.getTime() - b.p_app_date.getTime())
-    const applications: ModifiableApplication[] = await Promise.all(
-      candidates.map(async (app) => ({
-        ...app,
-        canModify: await checkPermission(
-          fdm,
-          "fertilizer_application",
-          "write",
-          app.p_app_id,
-          principal_id,
-          url.pathname,
-          false,
-        ),
-        p_app_method_name:
-          methodOptions.find((option) => option.value === app.p_app_method)?.label ?? undefined,
-      })),
-    )
+    const applications: ModifiableApplication[] = candidates.map((app) => ({
+      ...app,
+      canModify: farmWritePermission,
+      p_app_method_name:
+        methodOptions.find((option) => option.value === app.p_app_method)?.label ?? undefined,
+    }))
 
     // Nothing left to change, for example after the last application was removed elsewhere
     if (applications.length === 0) {

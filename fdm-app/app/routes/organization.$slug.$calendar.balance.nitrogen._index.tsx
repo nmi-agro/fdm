@@ -1,5 +1,5 @@
 import { getNitrogenBalanceForFarms, type NitrogenBalanceNumeric } from "@nmi-agro/fdm-calculator"
-import { getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getFarms, getFieldsForFarms } from "@nmi-agro/fdm-core"
 import {
   ArrowDown,
   ArrowRight,
@@ -134,22 +134,22 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
       const farmIdsSet = new Set(searchParamFarmIds ?? [])
 
       // Compute farms
-      const farmsExtended = await Promise.all(
-        farms.map(async (farm) => {
-          const fields = await getFields(fdm, principal_id, farm.b_id_farm)
-
-          const b_area_farm = fields.reduce(
-            (totalArea, field) => totalArea + (field.b_area ?? 0),
-            0,
-          )
-
-          return {
-            ...farm,
-            hasFields: fields.length > 0,
-            b_area_farm: b_area_farm,
-          }
-        }),
+      const fieldsByFarm = await getFieldsForFarms(
+        fdm,
+        principal_id,
+        farms.map((farm) => farm.b_id_farm),
       )
+      const farmsExtended = farms.map((farm) => {
+        const fields = fieldsByFarm.get(farm.b_id_farm) ?? []
+
+        const b_area_farm = fields.reduce((totalArea, field) => totalArea + (field.b_area ?? 0), 0)
+
+        return {
+          ...farm,
+          hasFields: fields.length > 0,
+          b_area_farm: b_area_farm,
+        }
+      })
 
       // Sort farms by descending area, which will in turn also cause the results to be sorted
       farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)

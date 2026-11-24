@@ -339,6 +339,66 @@ export async function listFarmGroups(
 }
 
 /**
+ * Lists the farm groups of several organizations with their members, with a fixed number of
+ * queries. Gives the same groups per organization as {@link listFarmGroups}.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id - The identifier of the principal requesting the groups. Must be a member of every organization.
+ * @param b_id_organizations - The identifiers of the organizations.
+ * @returns A map of organization id to the groups of that organization, ordered by name. Every requested organization is in the map, with an empty array when it has no groups.
+ *
+ * @throws {Error} If the principal is not a member of one of the organizations.
+ *
+ * @alpha
+ */
+export async function listFarmGroupsOfOrganizations(
+  fdm: FdmType,
+  principal_id: string,
+  b_id_organizations: schema.farmGroupsTypeSelect["b_id_organization"][],
+): Promise<Map<string, FarmGroup[]>> {
+  try {
+    const ids = [...new Set(b_id_organizations)]
+    const result = new Map<string, FarmGroup[]>(ids.map((id) => [id, []]))
+    if (ids.length === 0) {
+      return result
+    }
+
+    const memberships = await fdm
+      .select({ organizationId: authNSchema.member.organizationId })
+      .from(authNSchema.member)
+      .where(
+        and(
+          eq(authNSchema.member.userId, principal_id),
+          inArray(authNSchema.member.organizationId, ids),
+        ),
+      )
+    const memberOf = new Set(memberships.map((m: { organizationId: string }) => m.organizationId))
+    if (ids.some((id) => !memberOf.has(id))) {
+      throw new Error(PERMISSION_DENIED)
+    }
+
+    const groups = await fdm
+      .select()
+      .from(schema.farmGroups)
+      .where(inArray(schema.farmGroups.b_id_organization, ids))
+      .orderBy(asc(schema.farmGroups.b_name_group))
+    const periods = await getPeriods(
+      fdm,
+      groups.map((g: schema.farmGroupsTypeSelect) => g.b_id_group),
+    )
+    for (const g of groups as schema.farmGroupsTypeSelect[]) {
+      result.get(g.b_id_organization)?.push({
+        ...g,
+        ...summarizeMembers(periods.get(g.b_id_group)),
+      })
+    }
+    return result
+  } catch (err) {
+    throw handleError(err, "Exception for listFarmGroupsOfOrganizations", { b_id_organizations })
+  }
+}
+
+/**
  * Renames a farm group.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.

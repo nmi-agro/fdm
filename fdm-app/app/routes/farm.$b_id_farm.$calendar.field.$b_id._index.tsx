@@ -20,7 +20,7 @@ import {
   getFields,
   getFertilizerApplications,
   getFertilizers,
-  getHarvests,
+  getHarvestsForFarm,
   getMeasures,
   getParametersForHarvestCat,
   getSoilAnalyses,
@@ -288,6 +288,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       currentSoilDataRaw,
       soilAnalyses,
       measures,
+      harvestsForUrlFarm,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
       getFields(fdm, session.principal_id, b_id_farm, timeframe),
@@ -302,6 +303,8 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         end: timeframe.end,
       }),
       getMeasures(fdm, session.principal_id, b_id, timeframe),
+      // One read for the harvests of all cultivations, instead of one per cultivation
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
     ])
 
     const currentSoilData = enrichCurrentSoilDataWithNlv(currentSoilDataRaw)
@@ -309,6 +312,13 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     if (!field) {
       throw data("Unable to find field", { status: 404, statusText: "Unable to find field" })
     }
+
+    // The harvests were read for the farm in the URL. A field of another farm (only a hand-made
+    // URL) reads the harvests of its own farm, so they don't depend on the URL.
+    const harvestsForFarm =
+      field.b_id_farm === b_id_farm
+        ? harvestsForUrlFarm
+        : await getHarvestsForFarm(fdm, session.principal_id, field.b_id_farm, timeframe)
 
     const fieldWritePermission = !!(await checkPermission(
       fdm,
@@ -343,13 +353,11 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       features: farmFieldsGeoJson.features.filter((feature) => feature.properties.b_id === b_id),
     }
 
-    const harvestEntries = await Promise.all(
-      cultivations.map(async (cultivation) => {
-        const harvests = await getHarvests(fdm, session.principal_id, cultivation.b_lu, timeframe)
-        return [cultivation.b_lu, harvests] as const
-      }),
+    const harvestsByCultivation = Object.fromEntries(
+      cultivations.map(
+        (cultivation) => [cultivation.b_lu, harvestsForFarm.get(cultivation.b_lu) ?? []] as const,
+      ),
     )
-    const harvestsByCultivation = Object.fromEntries(harvestEntries)
 
     const mainCultivation = getMainCultivation(cultivations, calendar)
     const activeCultivation = mainCultivation ?? null

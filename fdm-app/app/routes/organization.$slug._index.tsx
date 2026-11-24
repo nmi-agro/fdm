@@ -2,7 +2,7 @@ import {
   acceptInvitation,
   declineInvitation,
   getFarms,
-  getFields,
+  getFieldsForFarms,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
@@ -126,25 +126,29 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
       activeYear,
     )
 
+    const fieldsByFarm = await getFieldsForFarms(
+      fdm,
+      session.principal_id,
+      farms.map((farm) => farm.b_id_farm),
+      timeframe,
+    )
     const farmsExtended: (FarmWithRoles & {
       b_area_farm: number | null
-    })[] = await Promise.all(
-      farms.map(async (farm) => {
-        const fields = await getFields(fdm, session.principal_id, farm.b_id_farm, timeframe)
+    })[] = farms.map((farm) => {
+      const fields = fieldsByFarm.get(farm.b_id_farm) ?? []
 
-        const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
+      const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
 
-        return {
-          ...farm,
-          roles: undefined,
-          b_area_farm: farmArea,
-          userRoles: [...new Set(farm.roles.map((role) => role.role))],
-          groups: farmGroups
-            .filter((group) => group.b_id_farms.includes(farm.b_id_farm))
-            .map((group) => ({ b_id_group: group.b_id_group, b_name_group: group.b_name_group })),
-        }
-      }),
-    )
+      return {
+        ...farm,
+        roles: undefined,
+        b_area_farm: farmArea,
+        userRoles: [...new Set(farm.roles.map((role) => role.role))],
+        groups: farmGroups
+          .filter((group) => group.b_id_farms.includes(farm.b_id_farm))
+          .map((group) => ({ b_id_group: group.b_id_group, b_name_group: group.b_name_group })),
+      }
+    })
 
     const totalArea = farmsExtended.reduce((acc, farm) => acc + (farm.b_area_farm ?? 0), 0)
 

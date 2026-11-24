@@ -4,7 +4,7 @@ import {
   getCultivations,
   getCultivationsFromCatalogue,
   getField,
-  getHarvests,
+  getHarvestsForFarm,
   removeCultivation,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
@@ -18,7 +18,7 @@ import {
   useLoaderData,
   useSearchParams,
 } from "react-router"
-import { dataWithSuccess } from "remix-toast"
+import { dataWithSuccess, redirectWithSuccess } from "remix-toast"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
@@ -42,6 +42,9 @@ function parseValidDate(value: string | null): Date | undefined {
 // Meta
 
 export const handle: HelpHandle = { help: "gewassen" }
+
+/** The query params that carry a suggested cultivation to this page. */
+const SUGGESTION_PARAMS = ["suggest_b_lu_catalogue", "suggest_start", "suggest_end"] as const
 
 export const meta: MetaFunction = () => {
   return [
@@ -97,18 +100,20 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
-    const fieldWritePermission = await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      url.pathname,
-      false,
-    )
-
-    // Get details of field
-    const field = await getField(fdm, session.principal_id, b_id)
+    const [
+      fieldWritePermission,
+      field,
+      lastCultivationAvailabilityYear,
+      cultivations,
+      harvestsForUrlFarm,
+    ] = await Promise.all([
+      checkPermission(fdm, "field", "write", b_id, session.principal_id, url.pathname, false),
+      getField(fdm, session.principal_id, b_id),
+      getLastCultivationAvailabilityYear(),
+      getCultivations(fdm, session.principal_id, b_id, timeframe),
+      // One read for the harvests of all cultivations, instead of one per cultivation
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
     if (!field) {
       throw data("Field is not found", {
         status: 404,
@@ -116,8 +121,14 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       })
     }
 
+    // The harvests were read for the farm in the URL. A field of another farm (only a hand-made
+    // URL) reads the harvests of its own farm, so they don't depend on the URL.
+    const harvestsForFarm =
+      field.b_id_farm === b_id_farm
+        ? harvestsForUrlFarm
+        : await getHarvestsForFarm(fdm, session.principal_id, field.b_id_farm, timeframe)
+
     // Get available cultivations for the farm
-    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
     const availabilityYearRaw = Number.parseInt(calendar)
     const availabilityYear = Number.isNaN(availabilityYearRaw)
       ? undefined
@@ -145,17 +156,10 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         }
       })
 
-    // Get cultivations for the field
-    const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
-
-    // Get the harvests of the cultivations
-    const harvests = (
-      await Promise.all(
-        cultivations.map(async (cultivation) => {
-          return await getHarvests(fdm, session.principal_id, cultivation.b_lu, timeframe)
-        }),
-      )
-    ).flat()
+    // Get the harvests of the cultivations of this field
+    const harvests = cultivations.flatMap(
+      (cultivation) => harvestsForFarm.get(cultivation.b_lu) ?? [],
+    )
 
     // Return user information from loader
     return {
@@ -210,13 +214,11 @@ export default function FarmFieldsOverviewBlock() {
   // Strip the suggestion query params once the dialog is closed (submitted or dismissed) so
   // navigating back, refreshing, or sharing this URL doesn't keep reopening it.
   const clearSuggestionParams = () => {
-    if (!searchParams.has("suggest_b_lu_catalogue") && !searchParams.has("suggest_start")) return
+    if (!SUGGESTION_PARAMS.some((param) => searchParams.has(param))) return
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
-        next.delete("suggest_b_lu_catalogue")
-        next.delete("suggest_start")
-        next.delete("suggest_end")
+        for (const param of SUGGESTION_PARAMS) next.delete(param)
         return next
       },
       { replace: true },
@@ -265,7 +267,7 @@ export default function FarmFieldsOverviewBlock() {
  *
  * @throws {Error} When the field identifier is absent, or when the cultivation identifier is missing or invalid.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   try {
     // Get the field ID
     const b_id = params.b_id
@@ -292,6 +294,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
         b_lu_catalogue,
         calendar: String(calendar),
       })
+
+      // A confirmed suggestion is done: leave its query params behind. Otherwise the page, which
+      // now shows the add dialog in another place, would open it again with the suggestion.
+      // (`url` is the page URL; `request.url` can be the `.data` URL of the submission)
+      if (SUGGESTION_PARAMS.some((param) => url.searchParams.has(param))) {
+        const target = new URL(url)
+        for (const param of SUGGESTION_PARAMS) target.searchParams.delete(param)
+        return redirectWithSuccess(`${target.pathname}${target.search}`, {
+          message: "Gewas is toegevoegd! 🎉",
+        })
+      }
 
       return dataWithSuccess(
         { result: "Data saved successfully" },

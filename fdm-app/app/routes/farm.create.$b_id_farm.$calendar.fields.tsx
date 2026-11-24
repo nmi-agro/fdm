@@ -1,4 +1,4 @@
-import { getCurrentSoilData, getFarm, getFields } from "@nmi-agro/fdm-core"
+import { getCurrentSoilDataForFarm, getFarm, getFields } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import {
   data,
@@ -20,6 +20,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getSoilStatus, type SoilStatus } from "~/lib/soil-status"
 
 // Meta
 
@@ -67,39 +68,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
-    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
-
-    // Get the fields
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    // Get the farm, its fields and the current soil data of all its fields at once
+    const [farm, fields, currentSoilDataByField] = await Promise.all([
+      getFarm(fdm, session.principal_id, b_id_farm),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
 
     // Get soil status for each field
-    const soilStatus: Record<string, "estimated" | "measured" | "missing"> = {}
-
-    await Promise.all(
-      fields.map(async (field) => {
-        const currentSoilData = await getCurrentSoilData(
-          fdm,
-          session.principal_id,
-          field.b_id,
-          timeframe,
-        )
-
-        if (currentSoilData.length === 0) {
-          soilStatus[field.b_id] = "missing"
-        } else {
-          const sources = new Set(currentSoilData.flatMap((i) => i.sources.map((s) => s.a_source)))
-          const hasMeasured = Array.from(sources).some((s) => s !== "nl-other-nmi")
-
-          if (hasMeasured) {
-            soilStatus[field.b_id] = "measured"
-          } else if (sources.has("nl-other-nmi")) {
-            soilStatus[field.b_id] = "estimated"
-          } else {
-            soilStatus[field.b_id] = "missing"
-          }
-        }
-      }),
-    )
+    const soilStatus: Record<string, SoilStatus> = {}
+    for (const field of fields) {
+      soilStatus[field.b_id] = getSoilStatus(currentSoilDataByField.get(field.b_id) ?? [])
+    }
 
     return {
       fields: fields,
