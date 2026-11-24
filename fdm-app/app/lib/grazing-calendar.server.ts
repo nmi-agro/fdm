@@ -19,11 +19,7 @@ import { getTimeframeForYears } from "~/lib/calendar"
 import { fdm } from "~/lib/fdm.server"
 import { censusDateForYear, farmDayDate, farmToday } from "~/lib/grazing-dates"
 import { herdsOfYear, type YearHerd, zoneWithinField } from "~/lib/grazing-herds"
-import {
-  GRAZING_SEASON_FIRST_MONTH,
-  GRAZING_SEASON_LAST_MONTH,
-  type RestAlert,
-} from "~/lib/grazing-status"
+import { GRAZING_SEASON_FIRST_MONTH, GRAZING_SEASON_LAST_MONTH } from "~/lib/grazing-status"
 import { serverNow } from "~/lib/server-now.server"
 
 /**
@@ -195,9 +191,6 @@ export interface GrazingCalendarMatrix {
     weidemelkDays: number
     platformArea: number
     platformGvePerHa: number | null
-    overgrazingAlertsCount: number
-    /** Fields used again before the rest guideline; see `formatRestAlert`. */
-    alerts: RestAlert[]
   }
 }
 
@@ -531,13 +524,6 @@ export async function fetchGrazingCalendarMatrix(
       weidemelkDays: metrics.weidemelk.qualifyingDays,
       platformArea: metrics.beweidingsplatform.areaHa,
       platformGvePerHa: metrics.veebezetting.platformGvePerHa,
-      overgrazingAlertsCount: metrics.overbeweidingAlerts.length,
-      alerts: metrics.overbeweidingAlerts.map((a) => ({
-        b_id: a.b_id,
-        b_name: a.b_name ?? null,
-        restDays: a.restDays,
-        thresholdDays: a.thresholdDays,
-      })),
     },
   }
 }

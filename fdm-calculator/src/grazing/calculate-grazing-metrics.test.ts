@@ -258,7 +258,7 @@ describe("calculateGrazingMetrics", () => {
           l_grazing_end: new Date("2026-05-04T00:00:00.000Z"),
           l_grazing_hours: 8,
         },
-        // Second grazing on f1: May 12 - May 15 (8 days rest after May 4 -> overgrazing alert!)
+        // Second grazing on f1: May 12 - May 15 (7 growth days after May 4 -> overgrazing alert!)
         {
           l_id_grazing: "g2",
           l_id_herd: "h1",
@@ -279,7 +279,7 @@ describe("calculateGrazingMetrics", () => {
         },
       ],
       harvests: [
-        // Mowing on f1 on June 7 (22 days after May 15 -> compliant rest of at least 21 days)
+        // Mowing on f1 on June 7 (22 growth days after May 15 -> compliant rest of at least 21 days)
         {
           b_id: "f1",
           b_harvest_date: new Date("2026-06-07T10:00:00.000Z"),
@@ -298,15 +298,16 @@ describe("calculateGrazingMetrics", () => {
     expect(result.veebezetting.platformGvePerHa).toBe(15.5)
     expect(result.veebezetting.platformStockingCategory).toBe("intensief")
 
-    // Overgrazing alerts: f1 had rest from May 4 to May 12 = 8 days, the difference between the
-    // dates (< 21)
-    expect(result.overbeweidingAlerts.length).toBe(1)
-    expect(result.overbeweidingAlerts[0].b_id).toBe("f1")
-    expect(result.overbeweidingAlerts[0].restDays).toBe(8)
+    // Rest periods: f1 was free from May 5 and grazed again on May 12 (7 growth days), and free
+    // from May 16 until the mowing on June 7 (22 growth days)
+    expect(result.rustperiodes.map((r) => [r.b_id, r.nextUseType, r.restDays])).toEqual([
+      ["f1", "weiden", 7],
+      ["f1", "maaien", 22],
+    ])
   })
 
-  it("should count rest as the difference between the dates, whatever the end time", () => {
-    const run = (end: string) =>
+  it("should count rest in growth days from the day after the end, whatever the end time", () => {
+    const run = (end: string, nextStart = "2026-05-26T00:00:00.000Z") =>
       calculateGrazingMetrics({
         year: 2026,
         today: new Date("2026-07-01T00:00:00.000Z"),
@@ -325,19 +326,21 @@ describe("calculateGrazingMetrics", () => {
             l_id_grazing: "g2",
             l_id_herd: "h1",
             b_id: "f1",
-            l_grazing_start: new Date("2026-05-25T00:00:00.000Z"),
-            l_grazing_end: new Date("2026-05-26T00:00:00.000Z"),
+            l_grazing_start: new Date(nextStart),
+            l_grazing_end: new Date(nextStart),
             l_grazing_hours: 8,
           },
         ],
       })
 
-    // End 4 May, next start 25 May: 21 days, so no alert, with a midnight or an end-of-day end
+    // End 4 May, free from 5 May, next start 26 May: 21 growth days, with a midnight or an
+    // end-of-day end
     for (const end of ["2026-05-04T00:00:00.000Z", "2026-05-04T23:59:59.999Z"]) {
-      const result = run(end)
-      expect(result.rustperiodes.map((r) => r.restDays)).toEqual([21])
-      expect(result.overbeweidingAlerts).toEqual([])
+      expect(run(end).rustperiodes.map((r) => r.restDays)).toEqual([21])
     }
+    // Next start 25 May: 20 growth days
+    const earlier = run("2026-05-04T00:00:00.000Z", "2026-05-25T00:00:00.000Z")
+    expect(earlier.rustperiodes.map((r) => r.restDays)).toEqual([20])
   })
 
   it("should count the days up to today as realised and the later days as planned", () => {

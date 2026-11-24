@@ -1,4 +1,4 @@
-import { calculateRestBeforeUses, REST_PERIOD_THRESHOLD_DAYS } from "@nmi-agro/fdm-calculator"
+import { calculateRestBeforeUses } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivationsForFarm,
@@ -13,7 +13,7 @@ import {
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { lazy, Suspense, useState } from "react"
 import {
   type ActionFunctionArgs,
@@ -255,7 +255,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           startStr: format(ev.start, "d MMMM", { locale: nl }),
           endStr: format(ev.end, "d MMMM", { locale: nl }),
           restDays,
-          isShortRest: restDays !== null && restDays < REST_PERIOD_THRESHOLD_DAYS,
         }
       })
       // Only the uses of the selected year are shown
@@ -503,21 +502,7 @@ export default function FieldGrazingPage() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {ev.restDays !== null ? (
-                          <span
-                            className={cn(
-                              ev.isShortRest &&
-                                "flex items-center justify-end gap-1 font-semibold text-amber-800",
-                            )}
-                          >
-                            {ev.isShortRest && (
-                              <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5" />
-                            )}
-                            <span key={ev.isShortRest ? "short" : "normal"}>
-                              {ev.isShortRest
-                                ? `${countOf(ev.restDays, "dag", "dagen")} (kort)`
-                                : countOf(ev.restDays, "dag", "dagen")}
-                            </span>
-                          </span>
+                          <span>{countOf(ev.restDays, "dag", "dagen")}</span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

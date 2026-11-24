@@ -4,14 +4,9 @@ import type {
   GrazingMetricsResult,
   HerdInput,
   MonthlyDistributionEntry,
-  OvergrazingAlert,
   RestPeriodDetail,
 } from "./types"
 import {
-  GROWING_SEASON_START_DAY,
-  GROWING_SEASON_START_MONTH,
-  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
-  REST_PERIOD_THRESHOLD_DAYS,
   STOCKING_DENSITY_BENCHMARKS,
   WEIDEMELK_CATEGORY_CODE,
   WEIDEMELK_MIN_HOURS_PER_DAY,
@@ -54,8 +49,8 @@ function getDaysBetween(start: Date, end: Date): string[] {
  *
  * Agronomic references:
  * - *Handboek Melkveehouderij* (Wageningen Livestock Research), Chapter 3:
- *   - §3.9 Grasgroei (growth dynamics, season start February 15).
- *   - §3.10 Graslandgebruik (grazing systems, rest periods, target in-grazing dry matter ± 1.700 kg DM/ha).
+ *   - §3.9.2 Groei overige sneden (growth days counted from the day after the cows leave a field).
+ *   - §3.10 Graslandgebruik (grazing systems: omweiden moves to a new field every four days).
  * - Stichting Weidegang & ZuivelNL Weidemelk criteria (minimum 120 days x 6 hours for category RVO 100).
  * - Statutory GVE conversion factors (Tabel 4 & Tabel 6).
  *
@@ -78,15 +73,17 @@ function getDaysBetween(start: Date, end: Date): string[] {
  *    Computes unique grassland area with started grazing (the grazed area per field, with grazing zones
  *    combined when `fields[].b_area_grazed` is given) and derives
  *    stocking density in GVE/ha with qualitative classification (extensief, gemiddeld, intensief).
- * 6. **Rustperiodes & Overgrazing Alerts**:
+ * 6. **Rustperiodes**:
  *    Calculates the rest before each use (grazing and mowing/harvests) of a parcel, counted from the
  *    most recent earlier use of the same part of the parcel (see {@link calculateRestBeforeUses}), so
- *    successive grazing strips each get their own rest. The rest is the difference between the
- *    end date of the earlier use and the start date of the next (end 4 May, start 25 May: 21 days).
- *    Flags rest shorter than {@link REST_PERIOD_THRESHOLD_DAYS} days during the growing season with explanatory guidance.
+ *    successive grazing strips each get their own rest. The rest is in growth days, from the day
+ *    after the earlier use up to the day before the next (end 4 May, start 26 May: 21 days).
+ *    Grazing a part on successive days forms one period without a rest in between.
+ *    The rest is reported as information, not judged: whether enough
+ *    grass has grown depends on growth and grazing that are not modelled here.
  *
  * @param input - The {@link GrazingMetricsInput} payload containing the calendar year, optional status date, herds, grazing records, field parcels, and harvest records.
- * @returns A {@link GrazingMetricsResult} object with computed weidedagen, hours, Weidemelk progress, platform metrics, stocking densities, rest periods, and alerts.
+ * @returns A {@link GrazingMetricsResult} object with computed weidedagen, hours, Weidemelk progress, platform metrics, stocking densities and rest periods.
  *
  * @example
  * ```typescript
@@ -432,11 +429,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
     }
   }
 
-  const seasonStartThreshold = new Date(
-    Date.UTC(year, GROWING_SEASON_START_MONTH, GROWING_SEASON_START_DAY),
-  )
   const rustperiodes: RestPeriodDetail[] = []
-  const overbeweidingAlerts: OvergrazingAlert[] = []
 
   for (const [b_id, events] of fieldEventsMap.entries()) {
     if (events.length < 2) {
@@ -451,10 +444,6 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
         continue
       }
 
-      const inGrowingSeason = prev.end >= seasonStartThreshold
-
-      const isOvergrazed = inGrowingSeason && restDays < REST_PERIOD_THRESHOLD_DAYS
-
       rustperiodes.push({
         b_id,
         b_name: field?.b_name ?? null,
@@ -463,19 +452,7 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
         nextUseType: next.type,
         nextUseDate: next.start,
         restDays,
-        isOvergrazed,
       })
-
-      if (isOvergrazed) {
-        const fieldDisplayName = field?.b_name ?? "Onbekend perceel"
-        overbeweidingAlerts.push({
-          b_id,
-          b_name: field?.b_name ?? null,
-          restDays,
-          thresholdDays: REST_PERIOD_THRESHOLD_DAYS,
-          message: `${fieldDisplayName} is binnen ${restDays} dagen opnieuw ${next.type === "weiden" ? "beweid" : "gemaaid"} (richtlijn ${REST_PERIOD_THRESHOLD_DAYS} dagen rust). De richtlijn houdt geen rekening met de werkelijke grasgroei. Als richtwaarde voor inscharen geldt ± ${INSCHAREN_DRY_MATTER_TARGET_KG_HA.toLocaleString("nl-NL")} kg ds/ha; dat kost minstens ${REST_PERIOD_THRESHOLD_DAYS} groeidagen (Handboek Melkveehouderij, tabel 3.8).`,
-        })
-      }
     }
   }
 
@@ -512,7 +489,6 @@ export function calculateGrazingMetrics(input: GrazingMetricsInput): GrazingMetr
       platformStockingCategory,
     },
     rustperiodes,
-    overbeweidingAlerts,
     incompleteRecords: {
       count: incompleteRecordIds.size,
       grazingIds: Array.from(incompleteRecordIds),

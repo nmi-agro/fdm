@@ -48,29 +48,3 @@ export const MIXED_USE_BACKGROUND = `linear-gradient(to bottom, ${GRAZING_USE_CO
 
 /** Background of a day with a planned grazing and a mowing: hatched above, mowing below. */
 export const PLANNED_MIXED_USE_BACKGROUND = `linear-gradient(to bottom, transparent 50%, ${GRAZING_USE_COLORS.maaien} 50%), ${PLANNED_GRAZING_BACKGROUND}`
-
-/** A field that was grazed or mown again before the rest guideline. */
-export interface RestAlert {
-  b_id: string
-  b_name: string | null
-  /** Days of rest between the two uses. */
-  restDays: number
-  /** Days of rest the guideline asks for. */
-  thresholdDays: number
-}
-
-/**
- * A short line for a field used again too soon, e.g. "Koeweide is na 3 dagen rust opnieuw
- * gebruikt (richtlijn 21 dagen)." The reasoning behind the guideline is on the Kengetallen page.
- *
- * @param alert - The field and its rest days.
- * @returns The line in Dutch.
- */
-export function formatRestAlert(alert: RestAlert): string {
-  const name = alert.b_name ?? "Een perceel"
-  const when =
-    alert.restDays === 0
-      ? "zonder rust opnieuw gebruikt"
-      : `na ${alert.restDays} ${alert.restDays === 1 ? "dag" : "dagen"} rust opnieuw gebruikt`
-  return `${name} is ${when} (richtlijn ${alert.thresholdDays} dagen rust).`
-}
