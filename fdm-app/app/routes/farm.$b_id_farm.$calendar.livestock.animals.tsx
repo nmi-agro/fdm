@@ -26,6 +26,7 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddAnimalDialog } from "~/components/blocks/livestock/add-animal-dialog"
 import { AddHerdDialog } from "~/components/blocks/livestock/add-herd-dialog"
 import { HerdCard } from "~/components/blocks/livestock/herd-card"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
@@ -239,7 +240,7 @@ export default function AnimalsOverviewPage() {
   }
 
   return (
-    <div className="bg-background relative flex w-full flex-1 flex-col">
+    <PageContainer className="bg-background">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -480,6 +481,6 @@ export default function AnimalsOverviewPage() {
         categories={categories}
         defaultArrivalDay={defaultArrivalDay}
       />
-    </div>
+    </PageContainer>
   )
 }

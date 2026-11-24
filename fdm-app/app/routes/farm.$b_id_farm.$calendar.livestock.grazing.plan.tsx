@@ -43,6 +43,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { PageContainer } from "~/components/custom/page-container"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -64,7 +65,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Skeleton } from "~/components/ui/skeleton"
 import {
   Table,
@@ -767,7 +767,7 @@ function GrazingPlanAssistent() {
   }, [generatedRows])
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock/grazing`,
@@ -794,7 +794,7 @@ function GrazingPlanAssistent() {
         <BreadcrumbItem>Beweidingsplanner</BreadcrumbItem>
       </Header>
 
-      <main>
+      <div>
         <FarmTitle
           title="Beweidingsplanner"
           description="Genereer een rotatieschema voor de percelen die je wilt beweiden, passend bij je koppel en het gekozen graslandgebruikssysteem."
@@ -1447,7 +1447,7 @@ function GrazingPlanAssistent() {
             )}
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

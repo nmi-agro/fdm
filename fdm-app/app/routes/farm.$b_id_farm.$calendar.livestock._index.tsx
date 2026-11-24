@@ -23,6 +23,7 @@ import { AddAnimalDialog } from "~/components/blocks/livestock/add-animal-dialog
 import { AddHerdDialog } from "~/components/blocks/livestock/add-herd-dialog"
 import { HerdCard } from "~/components/blocks/livestock/herd-card"
 import { StatTile } from "~/components/blocks/livestock/stat-tile"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -206,7 +207,7 @@ export default function MelkveeOverview() {
   const insightsHref = `/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`
 
   return (
-    <div className="bg-background relative flex w-full flex-1 flex-col">
+    <PageContainer className="bg-background">
       <Header action={{ to: `/farm/${b_id_farm}`, label: "Terug naar bedrijf", disabled: false }}>
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <BreadcrumbSeparator />
@@ -399,7 +400,7 @@ export default function MelkveeOverview() {
         categories={categories}
         defaultArrivalDay={defaultArrivalDay}
       />
-    </div>
+    </PageContainer>
   )
 }
 
