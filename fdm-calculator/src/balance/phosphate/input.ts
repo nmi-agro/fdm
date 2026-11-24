@@ -34,15 +34,27 @@ export type PhosphateInputOptions = {
 }
 
 /**
- * Default timeframe (the current calendar year) when the timeframe has no start or end. The default
- * end is the last millisecond of 31 December, so events later that day are included.
+ * Default timeframe when the timeframe has no start or end: the current calendar year, ending at the
+ * last millisecond of 31 December so events later that day are included. When only one bound is
+ * given and the default would come after it (a start after this year, or an end before it), the
+ * calendar year of that bound is used instead, so the timeframe is always ordered. The bounds stay
+ * finite because supply terms such as deposition scale with the length of the timeframe.
  */
 function toTimeFrame(timeframe: Timeframe): { start: Date; end: Date } {
+  const startOfYear = (year: number) => new Date(year, 0, 1)
+  const endOfYear = (year: number) => new Date(year, 11, 31, 23, 59, 59, 999)
   const year = new Date().getFullYear()
-  return {
-    start: timeframe.start ?? new Date(year, 0, 1),
-    end: timeframe.end ?? new Date(year, 11, 31, 23, 59, 59, 999),
-  }
+  const start =
+    timeframe.start ??
+    (timeframe.end && timeframe.end < startOfYear(year)
+      ? startOfYear(timeframe.end.getFullYear())
+      : startOfYear(year))
+  const end =
+    timeframe.end ??
+    (timeframe.start && timeframe.start > endOfYear(year)
+      ? endOfYear(timeframe.start.getFullYear())
+      : endOfYear(year))
+  return { start, end }
 }
 
 /**

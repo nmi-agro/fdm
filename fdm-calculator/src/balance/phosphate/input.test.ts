@@ -117,6 +117,33 @@ describe("collectInputForPhosphateBalance", () => {
     expect(input.history).toEqual([])
   })
 
+  it("should default a missing bound to a year that keeps the timeframe ordered", async () => {
+    const year = new Date().getFullYear()
+    const current = await collectInputForPhosphateBalance(
+      fdm,
+      principal,
+      "farm",
+      { start: undefined, end: undefined },
+      undefined,
+      { historyYears: 0 },
+    )
+    expect(current.timeFrame.start).toEqual(new Date(year, 0, 1))
+    expect(current.timeFrame.end).toEqual(new Date(year, 11, 31, 23, 59, 59, 999))
+
+    // Only an end before this year: the start is 1 January of that end's year, not of this year
+    const end = new Date(2020, 5, 30)
+    const past = await collectInputForPhosphateBalance(
+      fdm,
+      principal,
+      "farm",
+      { start: undefined, end },
+      undefined,
+      { historyYears: 0 },
+    )
+    expect(past.timeFrame).toEqual({ start: new Date(2020, 0, 1), end })
+    expect(fdmCore.getFields).toHaveBeenLastCalledWith(fdm, principal, "farm", past.timeFrame)
+  })
+
   it("should use the per-field queries for one field", async () => {
     vi.mocked(fdmCore.getField).mockResolvedValue(fields[0] as never)
     vi.mocked(fdmCore.getCultivations).mockResolvedValue([
