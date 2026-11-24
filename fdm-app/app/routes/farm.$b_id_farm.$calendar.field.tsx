@@ -15,7 +15,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { cn } from "cn"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -24,9 +24,11 @@ import {
   NavLink,
   Outlet,
   redirect,
+  useFetcher,
   useLoaderData,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
+import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -37,7 +39,6 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { buttonVariants } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { bcsRawInputsFromData, deriveBcsContextFromRawInputs } from "~/lib/bcs-derived.server"
@@ -45,25 +46,10 @@ import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
-import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { useFieldFilterStore } from "~/store/field-filter"
-
-// Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
-// missing a main cultivation don't overload the external NMI API with unbounded parallel
-// requests (same concurrency-limiting approach as the nutrient advice overview loader).
-const CULTIVATION_SUGGESTION_CONCURRENCY = 4
-
-/** Splits an array into consecutive chunks of at most `size` items each. */
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size))
-  }
-  return chunks
-}
 
 export const handle: HelpHandle = { help: "percelen" }
 
@@ -114,6 +100,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           farmOptions: [],
           fieldOptions: [],
           fieldsExtended: [],
+          loadCultivationSuggestions: false,
           userName: "",
           farmWritePermission: false,
         }
@@ -155,7 +142,6 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     })
 
     const calendar = params.calendar ?? new Date().getFullYear().toString()
-    const nmiApiKey = getNmiApiKey()
 
     // Read everything the table needs at farm level, in parallel, so the number of queries
     // does not grow with the number of fields
@@ -305,7 +291,6 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         b_id: field.b_id,
         b_name: field.b_name,
         cultivations: cultivations,
-        cultivationSuggestion: undefined as Awaited<ReturnType<typeof getCultivationSuggestion>>,
         fertilizers: fertilizersFiltered,
         d_n_supply_base: d_n_supply_base,
         a_som_loi: a_som_loi,
@@ -317,27 +302,12 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       }
     })
 
-    // Look up NMI-estimate-based cultivation suggestions for fields missing a default
-    // cultivation, in small concurrency-limited batches so a farm with many affected fields
-    // doesn't fire unbounded parallel requests at the external NMI API (same approach as the
-    // farm dashboard and nutrient advice overview loaders).
-    const fieldsMissingCultivation = fieldsExtended.filter(
+    // The cultivation suggestions come from the NMI API, so the page loads them separately
+    // (see `farm.$b_id_farm.$calendar.cultivation-suggestions.ts`). That keeps this loader to
+    // database reads, so the sidebar can prefetch it.
+    const loadCultivationSuggestions = fieldsExtended.some(
       (field) => !getMainCultivation(field.cultivations, calendar),
     )
-    for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
-      await Promise.all(
-        fieldsChunk.map(async (field) => {
-          field.cultivationSuggestion = await getCultivationSuggestion(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            field.b_id,
-            calendar,
-            nmiApiKey,
-          )
-        }),
-      )
-    }
 
     // Return user information from loader
     return {
@@ -347,6 +317,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       fieldOptions: fieldOptions,
       fieldsExtended: fieldsExtended,
+      loadCultivationSuggestions,
       userName: session.userName,
       farmWritePermission: farmWritePermission,
     }
@@ -375,12 +346,25 @@ export default function FarmFieldIndex() {
     [loaderData.b_id_farm, loaderData.calendar],
   )
 
-  const filteredFields = loaderData.fieldsExtended.filter((field) => {
-    if (!showProductiveOnly) {
-      return true
-    }
-    return field.b_bufferstrip === false
-  })
+  // The cultivation suggestions come from the NMI API, so they load after the table renders
+  const suggestionsFetcher = useFetcher<{ suggestions: Record<string, CultivationSuggestion> }>()
+  const { load: loadSuggestions } = suggestionsFetcher
+  const suggestionsUrl = loaderData.loadCultivationSuggestions
+    ? `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/cultivation-suggestions`
+    : null
+  useEffect(() => {
+    if (suggestionsUrl) void loadSuggestions(suggestionsUrl)
+  }, [suggestionsUrl, loadSuggestions])
+  const suggestions = suggestionsUrl ? suggestionsFetcher.data?.suggestions : undefined
+
+  const filteredFields = loaderData.fieldsExtended
+    .filter((field) => {
+      if (!showProductiveOnly) {
+        return true
+      }
+      return field.b_bufferstrip === false
+    })
+    .map((field) => ({ ...field, cultivationSuggestion: suggestions?.[field.b_id] }))
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
