@@ -22,18 +22,30 @@ vi.mock("~/integrations/nmi.server", async (importOriginal) => {
   return { ...actual, getNmiApiKey: () => nmi.apiKey }
 })
 
+/** Suggests the same crop for every requested field. */
 const getCultivationSuggestion = vi.hoisted(() =>
-  vi.fn(async (..._args: unknown[]) => ({
-    b_lu_catalogue: "nl_265",
-    b_lu_name: "Grasland, blijvend",
-    b_lu_start: new Date(Date.UTC(2026, 0, 1, 12)),
-    b_lu_end: undefined,
-  })),
+  vi.fn(
+    async (_fdm: unknown, _principal: unknown, _farm: unknown, b_ids: string[]) =>
+      new Map(
+        b_ids.map((b_id) => [
+          b_id,
+          {
+            status: "suggested" as const,
+            suggestion: {
+              b_lu_catalogue: "nl_265",
+              b_lu_name: "Grasland, blijvend",
+              b_lu_start: new Date(Date.UTC(2026, 0, 1, 12)),
+              b_lu_end: undefined,
+            },
+          },
+        ]),
+      ),
+  ),
 )
 
 vi.mock("~/lib/cultivation-suggestion.server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("~/lib/cultivation-suggestion.server")>()
-  return { ...actual, getCultivationSuggestion }
+  return { ...actual, getCultivationSuggestionResultsForFarm: getCultivationSuggestion }
 })
 
 let owner: SeededUser
@@ -107,7 +119,9 @@ describe("cultivation suggestions", () => {
     const { suggestions } = data as { suggestions: Record<string, { b_lu_catalogue: string }> }
     expect(Object.keys(suggestions)).toEqual([bareField])
     expect(suggestions[bareField].b_lu_catalogue).toBe("nl_265")
+    // One lookup for the farm, with only the field without a main cultivation
     expect(getCultivationSuggestion).toHaveBeenCalledTimes(1)
+    expect(getCultivationSuggestion.mock.calls[0][3]).toEqual([bareField])
   })
 
   it("returns no suggestions without an NMI API key", async () => {

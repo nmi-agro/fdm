@@ -1,3 +1,4 @@
+import { listOrganizationRolesOfUser } from "@nmi-agro/fdm-core"
 import { Plus } from "lucide-react"
 import { NavLink, useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
@@ -10,6 +11,7 @@ import { Empty, EmptyContent, EmptyHeader } from "~/components/ui/empty"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import type { Route } from "./+types/organization._index"
@@ -32,32 +34,24 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
 
-    const organizationsRaw = await auth.api.listOrganizations({
-      headers: request.headers,
-    })
+    // The roles of the user in all organizations come from one read, instead of listing the
+    // members of every organization
+    const [organizationsRaw, organizationRoles, invitations] = await Promise.all([
+      auth.api.listOrganizations({ headers: request.headers }),
+      listOrganizationRolesOfUser(fdm, session.principal_id, session.principal_id),
+      auth.api.listUserInvitations({ headers: request.headers }),
+    ])
 
-    const organizations = await Promise.all(
-      organizationsRaw.map(async (org) => {
-        const members = await auth.api.listMembers({
-          headers: request.headers,
-          query: { organizationId: org.id },
-        })
-        const userRoles = members.members
-          .filter((member) => member.userId === session.principal_id)
-          .map((member) => member.role)
-        const orderedUserRoles = (["owner", "admin", "member"] as const).filter((r) =>
-          userRoles.includes(r),
-        )
-        return {
-          ...org,
-          userRoles: orderedUserRoles,
-          metadata: parseOrganizationMetadata(org),
-        }
-      }),
-    )
-
-    const invitations = await auth.api.listUserInvitations({
-      headers: request.headers,
+    const organizations = organizationsRaw.map((org) => {
+      const userRoles = organizationRoles.get(org.id) ?? []
+      const orderedUserRoles = (["owner", "admin", "member"] as const).filter((r) =>
+        userRoles.includes(r),
+      )
+      return {
+        ...org,
+        userRoles: orderedUserRoles,
+        metadata: parseOrganizationMetadata(org),
+      }
     })
 
     return { organizations, invitations }
