@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_VERSION=24
+ARG NODE_VERSION=26
 ARG PROJECT=@nmi-agro/fdm-api
 
 # Base stage

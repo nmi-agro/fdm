@@ -393,6 +393,3 @@ CREATE UNIQUE INDEX "l_id_milkanalysis_idx" ON "fdm"."milk_analyses" USING btree
 CREATE UNIQUE INDEX "l_id_milkdelivery_idx" ON "fdm"."milk_deliveries" USING btree ("l_id_milkdelivery");--> statement-breakpoint
 CREATE UNIQUE INDEX "l_id_milktank_idx" ON "fdm"."milk_tanks" USING btree ("l_id_milktank");--> statement-breakpoint
 ALTER TABLE "fdm"."fertilizer_acquiring" ADD CONSTRAINT "fertilizer_acquiring_b_id_manurepit_manure_pits_b_id_manurepit_fk" FOREIGN KEY ("b_id_manurepit") REFERENCES "fdm"."manure_pits"("b_id_manurepit") ON DELETE no action ON UPDATE no action;
-
---> statement-breakpoint
-INSERT INTO "fdm"."animal_category_catalogue_selecting" ("b_id_farm", "l_category_source") SELECT "b_id_farm", 'rvo' FROM "fdm"."farms" ON CONFLICT DO NOTHING;

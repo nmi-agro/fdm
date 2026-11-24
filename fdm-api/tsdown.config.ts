@@ -10,7 +10,7 @@ export default defineConfig({
   outDir: "dist",
   dts: true,
   sourcemap: true,
-  target: "node24",
+  target: "node26",
   clean: true,
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
   copy: [{ from: "src/changelog.md", to: "dist" }],

@@ -897,7 +897,8 @@ export async function syncFeedCatalogueArray(
           .limit(1)
 
         if (existing.length === 0) {
-          await tx.insert(schema.feedsCatalogue).values(item)
+          // A sync running at the same time may have added the row since the check above
+          await tx.insert(schema.feedsCatalogue).values(item).onConflictDoNothing()
         } else if (
           existing[0].hash === null ||
           existing[0].hash === undefined ||
@@ -936,7 +937,8 @@ export async function syncAnimalCategoryCatalogueArray(
           .limit(1)
 
         if (existing.length === 0) {
-          await tx.insert(schema.animalCategoriesCatalogue).values(item)
+          // A sync running at the same time may have added the row since the check above
+          await tx.insert(schema.animalCategoriesCatalogue).values(item).onConflictDoNothing()
         } else if (
           existing[0].hash === null ||
           existing[0].hash === undefined ||
