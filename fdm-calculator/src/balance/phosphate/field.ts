@@ -346,7 +346,7 @@ function calculateRemovalByResidues(
 }
 
 /**
- * Determines the Opbouwen / Onderhouden / Afbouwen frame from P-AL, as proposed in the issue:
+ * Determines the Opbouwen / Onderhouden / Afbouwen frame from P-AL:
  * P-AL < 35 opbouwen, 35–45 onderhouden, > 45 afbouwen (Handboek Bodem en Bemesting, class Goed). The minimum desirable balance is the fixation
  * (offtake + fixation) when building up or maintaining; when reducing, a deficit is acceptable.
  *

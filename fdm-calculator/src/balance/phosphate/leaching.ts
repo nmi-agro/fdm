@@ -4,7 +4,7 @@ import type { PhosphateLeaching, PhosphateSaturation, PhosphateSaturationThresho
 /**
  * DRAFT fraction of the phosphate surplus that leaches or runs off, by the phosphorus saturation
  * degree (PSD) relative to the field threshold. Chosen so that the results stay within measured
- * losses: about 0.1–0.5 kg P/ha/year on non-saturated soils (issue FDM-305) and 0.8–2.1 kg P/ha/year
+ * losses: about 0.1–0.5 kg P/ha/year on non-saturated soils and 0.8–2.1 kg P/ha/year
  * measured from open trenches on P-saturated, low-PSC sand with shallow groundwater (up to 1.3–7.5
  * kg P/ha/year estimated for fields with open trenches in the catchment; van Doorn et al. 2026,
  * J. Environ. Qual. 55: e70180). To be reviewed.
@@ -25,7 +25,7 @@ const C_P_REFERENCE = 0.2
 
 /**
  * Calculates the phosphate leaching (dissolved P to groundwater and drains) from the surplus, in the
- * same way as nitrate leaching in the nitrogen balance (issue FDM-305, decision 4): only when the
+ * same way as nitrate leaching in the nitrogen balance: only when the
  * balance is positive, as surplus × factor, and **not** subtracted from the balance (shown
  * separately). Surface runoff and erosion (particulate P) are not estimated.
  *
@@ -34,8 +34,9 @@ const C_P_REFERENCE = 0.2
  * groundwater level ≤ 25 cm, 0.67 at ≥ 100 cm; shallow groundwater means a fast route to surface
  * water).
  *
- * DRAFT for discussion: there is no published kg/ha relation; the fractions need review (Maarten van
- * Doorn). The loss from the existing stock under a deficit is not estimated.
+ * DRAFT for discussion: there is no published kg/ha relation; the fractions still need review. A
+ * first approximation: losses are driven by the P concentration in the soil solution, not by the
+ * surplus. The loss from the existing stock under a deficit is not estimated.
  *
  * @param balance - The phosphate balance of the field (kg P2O5 / ha for the timeframe).
  * @param saturation - The phosphorus saturation of the field.

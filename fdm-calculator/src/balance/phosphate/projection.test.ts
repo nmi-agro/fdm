@@ -13,7 +13,7 @@ const project = (
 }
 
 describe("calculatePhosphateProjection", () => {
-  it("should reproduce the worked example of the issue on clay arable land", () => {
+  it("should reproduce a worked example on clay arable land", () => {
     // P-AL 60, no P input, offtake 60: (−60 − 20) / 50 = −1.6 per year; (60 − 45) / 1.6 ≈ 9 years
     const projection = project(-60, [{ a_p_al: 60, b_soiltype_agr: "zeeklei" }])
     expect(projection.fixation).toBe(20)

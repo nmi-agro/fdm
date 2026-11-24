@@ -6,7 +6,7 @@ sidebar_label: Phosphate Balance
 This document explains how the phosphate (P₂O₅) balance is calculated within the FDM Calculator, and how the balance is linked to the phosphorus status of the soil. The balance gives the phosphate inputs and outputs per field, aggregated to the farm and the organisation. Because phosphate is stored in the soil rather than lost, the balance is shown together with its effect on the soil phosphate stock (P-AL) and on the phosphorus saturation degree (PSD).
 
 :::caution Prototype
-The phosphate balance is experimental (`@alpha`). The parameters marked as _draft_ below are provisional and still have to be reviewed (NMI, Maarten van Doorn). Results are indicative and are meant to show the direction and the order of magnitude, not exact values.
+The phosphate balance is experimental (`@alpha`). The parameters marked as _draft_ below are provisional and still have to be reviewed. Results are indicative and are meant to show the direction and the order of magnitude, not exact values.
 :::
 
 ## 1. Overview
@@ -127,7 +127,7 @@ where `yield` is the average yield of the harvests of the cultivation, or the ca
 
 ### 3.3. Leaching (kg P₂O₅ / ha)
 
-Leaching of dissolved phosphate to groundwater and drains is estimated from the surplus. The structure follows nitrate leaching in the nitrogen balance, as decided in the design of this balance (FDM-305): only a surplus leads to leaching, and the leaching is not part of the balance.
+Leaching of dissolved phosphate to groundwater and drains is estimated from the surplus. The structure follows nitrate leaching in the nitrogen balance: only a surplus leads to leaching, and the leaching is not part of the balance.
 
 ```text
 P leaching = − balance × fraction × groundwater factor     (only when balance > 0)

@@ -10,7 +10,7 @@ import type { SoilAnalysis } from "@nmi-agro/fdm-core"
  * - `beta_max`: scaling factor of the Langmuir sorption maximum used for the environmental PSD threshold
  *   (van Doorn, 2026, Eq. 5.5): 0.167, and 0.125 for peat (Schoumans & Chardon, 2015).
  * - `p_al_buffer`: kg P2O5 / ha needed to change P-AL by 1 mg P2O5 / 100 g in the arable layer
- *   (0–25 cm), with its range. Values as proposed in the issue (to be reviewed with Maarten van Doorn).
+ *   (0–25 cm), with its range. Draft values, still to be reviewed.
  * - `fixation`: kg P2O5 / ha / year that becomes unavailable at a balanced supply: 20 on mineral soils
  *   (Handboek Bodem en Bemesting), not set for peat.
  * - Fallback bulk density (indicative, Chardon et al. 2007), used only when a field has no data of

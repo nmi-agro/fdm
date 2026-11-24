@@ -14,7 +14,7 @@ import { getPhosphateSoilTypeParameters } from "./alpha-max"
 import { P_TO_P2O5 } from "./projection"
 import { sortSoilAnalyses } from "./saturation"
 
-/** Atmospheric P deposition (kg P2O5 / ha / year), as in the issue. Small but included for completeness. */
+/** Atmospheric P deposition (kg P2O5 / ha / year). Small but included for completeness. */
 export const PHOSPHATE_DEPOSITION_PER_YEAR = 0.7
 
 /** Net / gross mineralisation: part of the mineralised P that is not immobilised by microbes (range 0.5–0.75). */
@@ -80,7 +80,7 @@ export function getPeatGroundwaterFactor(
  * organic P is not extracted, so mineralisation moves P into the modelled pool. If the stock is ever
  * tracked as total soil P, this term must be removed.
  *
- * DRAFT for discussion: the parameters come from the issue and need review (Maarten van Doorn).
+ * DRAFT for discussion: the parameters are first estimates and still need review.
  *
  * @param fieldInput - The field input (cultivations and soil analyses).
  * @param cultivationDetails - The cultivation catalogue details (crop rotation, for grassland).

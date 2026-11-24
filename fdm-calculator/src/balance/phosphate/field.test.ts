@@ -523,7 +523,7 @@ describe("calculatePhosphateBalanceField", () => {
 })
 
 describe("determinePhosphateFrame", () => {
-  it("should follow the P-AL bands of the issue", () => {
+  it("should follow the P-AL bands of class Goed (35–45)", () => {
     expect(determinePhosphateFrame(20, 20)).toEqual({
       name: "opbouwen",
       a_p_al: 20,

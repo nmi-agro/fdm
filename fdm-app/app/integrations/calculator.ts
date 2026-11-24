@@ -407,7 +407,7 @@ export async function addPhosphateCropHistory<T extends PhosphateBalanceInput>(
   return { ...input, fields, cultivationDetails }
 }
 
-// Get phosphate balance for a field (prototype, see FDM-305)
+// Get phosphate balance for a field (experimental)
 export async function getPhosphateBalanceForField({
   fdm,
   principal_id,
@@ -483,7 +483,7 @@ export async function getPhosphateBalanceForField({
   }
 }
 
-// Get phosphate balance for a farm (prototype, see FDM-305)
+// Get phosphate balance for a farm (experimental)
 export async function getPhosphateBalanceForFarm({
   fdm,
   principal_id,

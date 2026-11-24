@@ -72,7 +72,7 @@ export function kgP2O5PerPsdPoint(psc: number, a_density_sa: number, depth: numb
  * Projects the soil P status at the current balance.
  *
  * DRAFT for discussion. Two tracks, both with the balance minus fixation:
- * - P-AL (as proposed in the issue): ΔP-AL = (balance − fixation) / buffer, with the soil-type buffer
+ * - P-AL: ΔP-AL = (balance − fixation) / buffer, with the soil-type buffer
  *   scaled from 0–25 cm to the sampling depth. Years until P-AL declines to 45 (afbouwen) or 35
  *   (onderhouden), the bounds of the class "Goed".
  * - PSD (van Doorn 2026, Eq. 5.7): ΔP-ox = (balance − fixation) / (ρ · d · 0.31). Years until the PSD
