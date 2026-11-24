@@ -17,6 +17,7 @@ import { signInAs } from "../session"
 /** Synthetic measures, so the tests do not depend on the real catalogue. */
 const MEASURE_A = "bln_TEST_FARM_MEASURES_A"
 const MEASURE_B = "bln_TEST_FARM_MEASURES_B"
+const MEASURE_C = "bln_TEST_FARM_MEASURES_C"
 
 let owner: SeededUser
 let calendar: string
@@ -30,7 +31,7 @@ beforeAll(async () => {
 
   await syncMeasuresCatalogueArray(
     fdm,
-    [MEASURE_A, MEASURE_B].map((m_id) => ({
+    [MEASURE_A, MEASURE_B, MEASURE_C].map((m_id) => ({
       m_id,
       m_source: "bln",
       m_name: `Testmaatregel ${m_id}`,
@@ -123,25 +124,31 @@ describe("farm measures actions", () => {
   })
 
   it("keeps every measure when one of the removals fails", async () => {
+    // Its own measure, so this test does not depend on the other tests
     const [first] = fieldIds
-    const [measure] = await measuresOf(first, MEASURE_A)
-    expect(measure).toBeDefined()
+    const b_id_measure = await addMeasure(
+      fdm,
+      owner.user.id,
+      first,
+      MEASURE_C,
+      new Date(`${calendar}-04-01`),
+    )
 
     signInAs(owner.user)
     const { status } = await submit([
       ["intent", "delete"],
-      ["b_id_measure", measure.b_id_measure],
+      ["b_id_measure", b_id_measure],
       ["b_id_measure", "does-not-exist"],
     ])
     expect(status).toBeGreaterThanOrEqual(400)
-    expect(await measuresOf(first, MEASURE_A)).toHaveLength(1)
+    expect(await measuresOf(first, MEASURE_C)).toHaveLength(1)
 
     // Without the failing removal, the measure is removed
     const removed = await submit([
       ["intent", "delete"],
-      ["b_id_measure", measure.b_id_measure],
+      ["b_id_measure", b_id_measure],
     ])
     expect(removed.status).toBe(200)
-    expect(await measuresOf(first, MEASURE_A)).toHaveLength(0)
+    expect(await measuresOf(first, MEASURE_C)).toHaveLength(0)
   })
 })

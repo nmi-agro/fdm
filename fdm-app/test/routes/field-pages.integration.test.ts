@@ -7,6 +7,7 @@
  */
 import {
   acceptInvitation,
+  addFarm,
   addSoilAnalysis,
   getCultivations,
   getHarvests,
@@ -140,6 +141,22 @@ describe("cultivation page", () => {
       expect(expected.harvests.length).toBeGreaterThan(0)
       expect((data as { harvests: unknown[] }).harvests).toEqual(expected.harvests)
     }
+  })
+
+  it("lists the harvests of a field whose farm differs from the one in the URL", async () => {
+    // Only a hand-made URL does this; the harvests must not depend on the farm in it
+    const otherFarm = await addFarm(fdm, owner.user.id, "Tweede bedrijf", null, null, null)
+    signInAs(owner.user)
+    const [b_id] = fieldIds
+    const path = `/farm/${otherFarm}/${calendar}/field/${b_id}/cultivation`
+    const { status, data } = await runRoute(() =>
+      cultivationLoader(loaderArgs(path, { b_id_farm: otherFarm, calendar, b_id })),
+    )
+    expect(status).toBe(200)
+
+    const expected = await harvestsPerCultivation(owner.user.id, b_id)
+    expect(expected.harvests.length).toBeGreaterThan(0)
+    expect((data as { harvests: unknown[] }).harvests).toEqual(expected.harvests)
   })
 })
 

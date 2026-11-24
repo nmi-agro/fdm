@@ -288,7 +288,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       currentSoilDataRaw,
       soilAnalyses,
       measures,
-      harvestsForFarm,
+      harvestsForUrlFarm,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
       getFields(fdm, session.principal_id, b_id_farm, timeframe),
@@ -312,6 +312,13 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     if (!field) {
       throw data("Unable to find field", { status: 404, statusText: "Unable to find field" })
     }
+
+    // The harvests were read for the farm in the URL. A field of another farm (only a hand-made
+    // URL) reads the harvests of its own farm, so they don't depend on the URL.
+    const harvestsForFarm =
+      field.b_id_farm === b_id_farm
+        ? harvestsForUrlFarm
+        : await getHarvestsForFarm(fdm, session.principal_id, field.b_id_farm, timeframe)
 
     const fieldWritePermission = !!(await checkPermission(
       fdm,

@@ -96,10 +96,28 @@ const fetchStub: typeof fetch = async (input, init) => {
   return new Response("Not stubbed", { status: 404, statusText: "Not Found" })
 }
 
+const mineralizationCacheEntries = sql`calculation_function in ('requestDynaV2', 'requestWeatherForecast')`
+
+async function countMineralizationCacheEntries(): Promise<number> {
+  const rows = await fdm.execute<{ n: number }>(
+    sql`select count(*)::int as n from "fdm-calculator".calculation_cache where ${mineralizationCacheEntries}`,
+  )
+  return Number(rows[0]?.n ?? 0)
+}
+
 /** Removes the cached Dyna results and forecasts, so the next calculation requests them. */
 async function clearCache(): Promise<void> {
-  // Let the delayed cache writes of an earlier calculation land first
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  // The cache writes results about a second after a calculation, without a signal when they
+  // land. Wait until the number of entries stops changing (at most 10 seconds), so no earlier
+  // write lands after the delete.
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+  let previous = await countMineralizationCacheEntries()
+  for (let waited = 0; waited < 10_000; waited += 500) {
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    const current = await countMineralizationCacheEntries()
+    if (current === previous) break
+    previous = current
+  }
   await fdm.execute(
     sql`delete from "fdm-calculator".calculation_cache
       where calculation_function in ('requestDynaV2', 'requestWeatherForecast')`,
@@ -133,8 +151,13 @@ const path = () => `/farm/${owner.ids.farm}/${owner.ids.year}/mineralization`
 async function loadOutcomes(): Promise<FieldMineralizationOutcome[]> {
   const { status, data } = await runRoute(() => loader(loaderArgs(path(), params())))
   expect(status).toBe(200)
-  const { rows } = data as { rows: { outcome: Promise<FieldMineralizationOutcome> }[] }
-  return Promise.all(rows.map((row) => row.outcome))
+  const { rows } = data as {
+    rows: { b_id: string; outcome: Promise<FieldMineralizationOutcome> }[]
+  }
+  const outcomes = await Promise.all(rows.map((row) => row.outcome))
+  // Each outcome belongs to the field of its own row
+  expect(outcomes.map((outcome) => outcome.b_id)).toEqual(rows.map((row) => row.b_id))
+  return outcomes
 }
 
 /** Context of the owner's farm. */

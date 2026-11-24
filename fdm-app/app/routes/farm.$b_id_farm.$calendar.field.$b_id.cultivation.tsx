@@ -102,7 +102,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       field,
       lastCultivationAvailabilityYear,
       cultivations,
-      harvestsForFarm,
+      harvestsForUrlFarm,
     ] = await Promise.all([
       checkPermission(fdm, "field", "write", b_id, session.principal_id, url.pathname, false),
       getField(fdm, session.principal_id, b_id),
@@ -117,6 +117,13 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         statusText: "Field is not found",
       })
     }
+
+    // The harvests were read for the farm in the URL. A field of another farm (only a hand-made
+    // URL) reads the harvests of its own farm, so they don't depend on the URL.
+    const harvestsForFarm =
+      field.b_id_farm === b_id_farm
+        ? harvestsForUrlFarm
+        : await getHarvestsForFarm(fdm, session.principal_id, field.b_id_farm, timeframe)
 
     // Get available cultivations for the farm
     const availabilityYearRaw = Number.parseInt(calendar)

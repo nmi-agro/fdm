@@ -208,7 +208,10 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const [allSoilDataForFarm, allCultivationsForFarm] = hasBcs
       ? await Promise.all([
           getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm),
-          getCultivationsForFarm(fdm, session.principal_id, b_id_farm),
+          // Like the per-field read before, a failed cultivation read only narrows the BCS context
+          getCultivationsForFarm(fdm, session.principal_id, b_id_farm).catch(
+            () => new Map<string, Cultivation[]>(),
+          ),
         ])
       : [new Map<string, CurrentSoilData>(), new Map<string, Cultivation[]>()]
 
