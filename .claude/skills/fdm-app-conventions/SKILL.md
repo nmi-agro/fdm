@@ -110,7 +110,7 @@ Decide placement before writing:
 | `components/blocks/<domain>/` | Feature components (306 files) | The default home for new UI. Group by domain: `farm/`, `field/`, `fertilizer-applications/`, `soil/`, `norms/`, … |
 | `components/custom/` | Cross-feature shared components | Only when a component is genuinely used across domains and is not a shadcn primitive. |
 
-Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep relative paths. Class names compose through `cn()` from `~/lib/utils`.
+Imports use the `~/` alias (`~/components/ui/button`, `~/lib/calendar`), never deep relative paths. Class names compose through `cn()` from the `cn` package (`import { cn } from "cn"`). `~/lib/utils` has no `cn`, although `components.json` still points the shadcn `utils` alias there, so change that import to `"cn"` in a newly generated primitive.
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
 
