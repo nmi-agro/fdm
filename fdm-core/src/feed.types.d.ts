@@ -20,13 +20,14 @@ export interface FeedBatch {
   f_id_catalogue: schema.feedBatchesTypeSelect["f_id_catalogue"]
   f_batch_type?: schema.feedsCatalogueTypeSelect["f_type_rvo"] | null
   f_batch_origin?: schema.feedBatchesTypeSelect["f_batch_origin"]
-  f_id_feed_analysis?: schema.feedAnalysesTypeSelect["f_id_feed_analysis"]
+  /** The analysis of the batch; `null` when the batch has not been sampled. */
+  f_id_feed_analysis: schema.feedAnalysesTypeSelect["f_id_feed_analysis"] | null
   f_dm?: schema.feedAnalysesTypeSelect["f_dm"]
   f_cp?: schema.feedAnalysesTypeSelect["f_cp"]
   f_vem?: schema.feedAnalysesTypeSelect["f_vem"]
   f_oeb?: schema.feedAnalysesTypeSelect["f_oeb"]
   f_ndf?: schema.feedAnalysesTypeSelect["f_ndf"]
-  f_sampling_date?: schema.feedSamplingTypeSelect["f_sampling_date"]
+  f_sampling_date?: schema.feedSamplingTypeSelect["f_sampling_date"] | null
   created: schema.feedBatchesTypeSelect["created"]
   updated?: schema.feedBatchesTypeSelect["updated"]
 }

@@ -4,7 +4,7 @@ import {
   asc,
   desc,
   eq,
-  gte,
+  gt,
   inArray,
   isNotNull,
   isNull,
@@ -31,6 +31,7 @@ import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertIntervalEndNotBeforeStart } from "./interval"
 import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
@@ -99,6 +100,16 @@ export async function getFeedsFromCatalogue(
   }
 }
 
+/**
+ * Lists the feed catalogue items of the given sources that the principal may use: sources enabled
+ * by a farm the principal has a role on. Like `getFertilizersFromCatalogues`, it checks access in
+ * the query and writes no audit entry; `getFeedsFromCatalogue` checks the farm itself.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The principal reading the items.
+ * @param catalogueSources - The catalogue sources (`f_source`) to read.
+ * @returns The feed catalogue items, ordered by source and name.
+ */
 export async function getFeedsFromCatalogues(
   fdm: FdmType,
   principal_id: PrincipalId,
@@ -184,6 +195,23 @@ export async function addFeedToCatalogue(
   }
 }
 
+/** Whether the properties carry a value for any feed analysis parameter. */
+function hasFeedAnalysisValues(properties: {
+  f_dm?: unknown
+  f_cp?: unknown
+  f_vem?: unknown
+  f_oeb?: unknown
+  f_ndf?: unknown
+}): boolean {
+  return (
+    properties.f_dm !== undefined ||
+    properties.f_cp !== undefined ||
+    properties.f_vem !== undefined ||
+    properties.f_oeb !== undefined ||
+    properties.f_ndf !== undefined
+  )
+}
+
 /**
  * Adds a new feed batch to a farm, optionally with feed analysis parameters (f_dm, f_cp, f_vem, f_oeb, f_ndf).
  *
@@ -213,6 +241,10 @@ export async function addFeedBatch(
 ): Promise<schema.feedBatchesTypeSelect["f_id_batch"]> {
   try {
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "addFeedBatch")
+    // A sampling date belongs to an analysis; without analysis values it would be lost
+    if (properties?.f_sampling_date !== undefined && !hasFeedAnalysisValues(properties)) {
+      throw new Error("f_sampling_date requires analysis values")
+    }
 
     return await fdm.transaction(async (tx) => {
       const f_id_batch = createId()
@@ -226,14 +258,7 @@ export async function addFeedBatch(
         f_batch_origin,
       })
 
-      if (
-        properties &&
-        (properties.f_dm !== undefined ||
-          properties.f_cp !== undefined ||
-          properties.f_vem !== undefined ||
-          properties.f_oeb !== undefined ||
-          properties.f_ndf !== undefined)
-      ) {
+      if (properties && hasFeedAnalysisValues(properties)) {
         const f_id_feed_analysis = createId()
 
         await tx.insert(schema.feedAnalyses).values({
@@ -313,7 +338,7 @@ export async function getFeedBatchesForFarm(
       .where(eq(schema.feedBatches.b_id_farm, b_id_farm))
       .orderBy(desc(schema.feedBatches.created))
 
-    return rows as FeedBatch[]
+    return rows satisfies FeedBatch[]
   } catch (err) {
     throw handleError(err, "Exception for getFeedBatchesForFarm", { b_id_farm })
   }
@@ -373,7 +398,7 @@ export async function getFeedBatch(
       throw new Error("Feed batch not found")
     }
 
-    return rows[0] as FeedBatch
+    return rows[0] satisfies FeedBatch
   } catch (err) {
     throw handleError(err, "Exception for getFeedBatch", { f_id_batch })
   }
@@ -445,12 +470,7 @@ export async function updateFeedBatch(
         .set(batchUpdate)
         .where(eq(schema.feedBatches.f_id_batch, f_id_batch))
 
-      const hasAnalysisUpdates =
-        properties.f_dm !== undefined ||
-        properties.f_cp !== undefined ||
-        properties.f_vem !== undefined ||
-        properties.f_oeb !== undefined ||
-        properties.f_ndf !== undefined
+      const hasAnalysisUpdates = hasFeedAnalysisValues(properties)
 
       const existingSampling = await tx
         .select({ f_id_feed_analysis: schema.feedSampling.f_id_feed_analysis })
@@ -459,6 +479,10 @@ export async function updateFeedBatch(
         .limit(1)
 
       if (existingSampling.length === 0) {
+        // A sampling date belongs to an analysis; without analysis values it would be lost
+        if (properties.f_sampling_date !== undefined && !hasAnalysisUpdates) {
+          throw new Error("f_sampling_date requires analysis values")
+        }
         if (hasAnalysisUpdates) {
           const f_id_feed_analysis = createId()
           await tx.insert(schema.feedAnalyses).values({
@@ -563,13 +587,13 @@ export async function removeFeedBatch(
         throw new Error("Cannot remove feed batch: an animal_feeding record references it")
       }
 
+      // The analyses of exactly the sampling rows this delete removes, also one that a concurrent
+      // correction added just before it
       const feedSamplingRows = await tx
-        .select({ f_id_feed_analysis: schema.feedSampling.f_id_feed_analysis })
-        .from(schema.feedSampling)
+        .delete(schema.feedSampling)
         .where(eq(schema.feedSampling.f_id_batch, f_id_batch))
+        .returning({ f_id_feed_analysis: schema.feedSampling.f_id_feed_analysis })
       const feedAnalysisIds = feedSamplingRows.map((row) => row.f_id_feed_analysis)
-
-      await tx.delete(schema.feedSampling).where(eq(schema.feedSampling.f_id_batch, f_id_batch))
       if (feedAnalysisIds.length > 0) {
         await tx
           .delete(schema.feedAnalyses)
@@ -606,6 +630,7 @@ export async function addFeedingHerd(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addFeedingHerd")
+    assertIntervalEndNotBeforeStart(f_feeding_start, properties?.f_feeding_end, "f_feeding")
     await assertSameFarm(fdm, { l_id_herd }, { f_id_batch })
 
     await fdm.insert(schema.herdFeeding).values({
@@ -648,10 +673,18 @@ export async function updateFeedingHerd(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "updateFeedingHerd")
+    if (properties.f_feeding_end !== undefined) {
+      assertIntervalEndNotBeforeStart(f_feeding_start, properties.f_feeding_end, "f_feeding")
+    }
 
     const result = await fdm
       .update(schema.herdFeeding)
-      .set({ ...properties, updated: new Date() })
+      // Only the documented columns: the batch, herd and start identify the record and never change
+      .set({
+        f_feeding_end: properties.f_feeding_end,
+        f_amount: properties.f_amount,
+        updated: new Date(),
+      })
       .where(
         and(
           eq(schema.herdFeeding.f_id_batch, f_id_batch),
@@ -779,6 +812,7 @@ export async function addFeedingAnimal(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "addFeedingAnimal")
+    assertIntervalEndNotBeforeStart(f_feeding_start, properties?.f_feeding_end, "f_feeding")
     await assertSameFarm(fdm, { l_id_animal }, { f_id_batch })
 
     await fdm.insert(schema.animalFeeding).values({
@@ -820,10 +854,19 @@ export async function updateFeedingAnimal(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "updateFeedingAnimal")
+    if (properties.f_feeding_end !== undefined) {
+      assertIntervalEndNotBeforeStart(f_feeding_start, properties.f_feeding_end, "f_feeding")
+    }
 
     const result = await fdm
       .update(schema.animalFeeding)
-      .set({ ...properties, updated: new Date() })
+      // Only the documented columns: the animal, batch and start identify the record and never
+      // change
+      .set({
+        f_feeding_end: properties.f_feeding_end,
+        f_amount: properties.f_amount,
+        updated: new Date(),
+      })
       .where(
         and(
           eq(schema.animalFeeding.l_id_animal, l_id_animal),
@@ -953,9 +996,11 @@ async function listFeedingEventsForAnimal(
         eq(schema.herdFeeding.l_id_herd, schema.animalAssigning.l_id_herd),
         eq(schema.animalAssigning.l_id_animal, l_id_animal),
         lte(schema.animalAssigning.l_assigning_start, schema.herdFeeding.f_feeding_start),
+        // An assignment ends just before its end moment (half-open), so at a move only the new
+        // herd's feeding counts
         or(
           isNull(schema.animalAssigning.l_assigning_end),
-          gte(schema.animalAssigning.l_assigning_end, schema.herdFeeding.f_feeding_start),
+          gt(schema.animalAssigning.l_assigning_end, schema.herdFeeding.f_feeding_start),
         ),
       ),
     )

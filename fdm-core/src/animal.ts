@@ -27,7 +27,7 @@ import { checkPermission } from "./authorization"
 import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import { assertHerdRunsOn, insertHerd } from "./herd"
+import { assertHerdRunsOn, assertNoGrazingFrom, insertHerd } from "./herd"
 import { createId } from "./id"
 import { overlapsHalfOpen } from "./interval"
 import { lockFarm, lockFarmOfAnimal, lockFarmOfHerd } from "./livestock-checks"
@@ -174,6 +174,14 @@ export async function addAnimal(
         } else {
           arrivingDate = birthdate
         }
+      }
+      // An animal cannot leave before it arrived; leaving at its arrival is an empty stay
+      if (properties?.l_leaving_date) {
+        assertNotBefore(
+          properties.l_leaving_date,
+          arrivingDate,
+          "Departure cannot be before the arrival",
+        )
       }
 
       // The animal joins the herd on its arrival date, so the herd must run on that date, and it
@@ -588,6 +596,12 @@ export async function updateAnimal(
       // Serialize with every other livestock change on this farm before reading anything
       await lockFarmOfAnimal(tx, l_id_animal)
 
+      // An animal born on the farm arrives on its birth date, so a corrected birth date moves the
+      // arrival and the start of the first herd assignment along
+      if (properties.l_birth_date) {
+        await moveArrivalOfBornAnimal(tx, l_id_animal, new Date(properties.l_birth_date))
+      }
+
       if (properties.l_specie !== undefined || properties.l_sex !== undefined) {
         const assignments = await tx
           .select({
@@ -629,6 +643,7 @@ export async function updateAnimal(
             l_id_eartag: schema.animals.l_id_eartag,
             l_id_worknumber: schema.animals.l_id_worknumber,
             b_id_farm: schema.animalArriving.b_id_farm,
+            l_arriving_date: schema.animalArriving.l_arriving_date,
             l_leaving_date: schema.animalLeaving.l_leaving_date,
           })
           .from(schema.animals)
@@ -648,6 +663,14 @@ export async function updateAnimal(
         }
 
         const { b_id_farm } = current[0]
+        // An animal cannot leave before it arrived; leaving at its arrival is an empty stay
+        if (l_leaving_date && current[0].l_arriving_date) {
+          assertNotBefore(
+            l_leaving_date,
+            current[0].l_arriving_date,
+            "Departure cannot be before the arrival",
+          )
+        }
         previousLeavingDate = current[0].l_leaving_date
         if (properties.l_id_eartag !== undefined) {
           // An empty or null life number clears it
@@ -738,6 +761,14 @@ export async function updateAnimal(
             )
             .limit(1)
           if (last) {
+            // The departure ends this assignment, so it cannot come before its start
+            if (l_leaving_date) {
+              assertNotBefore(
+                l_leaving_date,
+                last.l_assigning_start,
+                "Departure cannot be before the start of the animal's last herd assignment",
+              )
+            }
             // The assignment cannot run past the end of its herd, for example after `leaveHerd`
             const [herdEnd] = await tx
               .select({ l_end: schema.herdEnding.l_end })
@@ -767,6 +798,93 @@ export async function updateAnimal(
   } catch (err) {
     throw handleError(err, "Exception for updateAnimal", { l_id_animal, properties })
   }
+}
+
+/**
+ * Throws `message` when `date` comes before `reference`; the same moment is allowed.
+ */
+function assertNotBefore(date: Date | string, reference: Date, message: string): void {
+  if (new Date(date).getTime() < reference.getTime()) {
+    throw new Error(message)
+  }
+}
+
+/**
+ * Moves the arrival of an animal born on the farm to a corrected birth date, together with the
+ * start of its first herd assignment, so birth and arrival stay equal. Does nothing for an animal
+ * that was not born on the farm, or when the dates are already equal. Runs under the farm lock.
+ *
+ * @throws When the new date is after the departure, after the end of the first assignment or the
+ *   start of a later one, or on a day the herd of the first assignment does not run.
+ */
+async function moveArrivalOfBornAnimal(
+  tx: FdmType,
+  l_id_animal: schema.animalsTypeSelect["l_id_animal"],
+  birthDate: Date,
+): Promise<void> {
+  const [arrival] = await tx
+    .select({
+      l_arriving_date: schema.animalArriving.l_arriving_date,
+      l_arriving_method: schema.animalArriving.l_arriving_method,
+      l_leaving_date: schema.animalLeaving.l_leaving_date,
+    })
+    .from(schema.animalArriving)
+    .leftJoin(
+      schema.animalLeaving,
+      eq(schema.animalArriving.l_id_animal, schema.animalLeaving.l_id_animal),
+    )
+    .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
+    .limit(1)
+  if (!arrival || arrival.l_arriving_method !== "born") return
+  if (arrival.l_arriving_date?.getTime() === birthDate.getTime()) return
+
+  if (arrival.l_leaving_date) {
+    assertNotBefore(
+      arrival.l_leaving_date,
+      birthDate,
+      "Birth date of an animal born on the farm cannot be after its departure",
+    )
+  }
+
+  const assignments = await tx
+    .select({
+      l_id_herd: schema.animalAssigning.l_id_herd,
+      l_assigning_start: schema.animalAssigning.l_assigning_start,
+      l_assigning_end: schema.animalAssigning.l_assigning_end,
+    })
+    .from(schema.animalAssigning)
+    .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+    .orderBy(asc(schema.animalAssigning.l_assigning_start), asc(schema.animalAssigning.created))
+  const [first, ...later] = assignments
+  if (first) {
+    if (first.l_assigning_end) {
+      assertNotBefore(
+        first.l_assigning_end,
+        birthDate,
+        "Birth date of an animal born on the farm cannot be after the end of its first herd assignment",
+      )
+    }
+    if (later.some((a) => a.l_assigning_start < birthDate)) {
+      throw new Error("l_birth_date cannot come after a later move of the animal")
+    }
+    // The animal joins its first herd on the new date, so that herd must run then
+    await assertHerdRunsOn(tx, first.l_id_herd, birthDate)
+    await tx
+      .update(schema.animalAssigning)
+      .set({ l_assigning_start: birthDate, updated: new Date() })
+      .where(
+        and(
+          eq(schema.animalAssigning.l_id_animal, l_id_animal),
+          eq(schema.animalAssigning.l_id_herd, first.l_id_herd),
+          eq(schema.animalAssigning.l_assigning_start, first.l_assigning_start),
+        ),
+      )
+  }
+
+  await tx
+    .update(schema.animalArriving)
+    .set({ l_arriving_date: birthDate, updated: new Date() })
+    .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
 }
 
 /**
@@ -1171,8 +1289,9 @@ export async function removeAnimalsFromHerd(
   options?: { expected_count?: number },
 ): Promise<string[]> {
   try {
+    // Before the transaction, so a denied attempt stays in the audit log
+    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "removeAnimalsFromHerd")
     return await fdm.transaction(async (tx) => {
-      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "removeAnimalsFromHerd")
       assertAnimalCount(count)
       if (count === 0) {
         return []
@@ -1479,8 +1598,9 @@ export async function leaveHerd(
   l_leaving_method?: schema.animalLeavingTypeInsert["l_leaving_method"],
 ): Promise<schema.animalsTypeSelect["l_id_animal"][]> {
   try {
+    // Before the transaction, so a denied attempt stays in the audit log
+    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "leaveHerd")
     return await fdm.transaction(async (tx) => {
-      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "leaveHerd")
       // Serialize with every other livestock change on this farm before reading anything
       await lockFarmOfHerd(tx, l_id_herd)
 
@@ -1497,6 +1617,8 @@ export async function leaveHerd(
       if (herdRows[0].l_start && l_leaving_date < herdRows[0].l_start) {
         throw new Error("Herd leaving date cannot be before the herd start date")
       }
+      // The recorded grazing of the herd stays within its period
+      await assertNoGrazingFrom(tx, l_id_herd, l_leaving_date)
 
       // The animals in the herd on the leaving date, including those with a departure after it;
       // their departure moves forward to the herd's leaving date
@@ -1599,28 +1721,28 @@ export async function reassignHerdAnimals(
   l_reassign_date: Date = new Date(),
 ): Promise<schema.animalsTypeSelect["l_id_animal"][]> {
   try {
+    if (source_l_id_herd === target_l_id_herd) {
+      throw new Error("Source and target herd must be different")
+    }
+    // Before the transaction, so a denied attempt stays in the audit log
+    await checkPermission(
+      fdm,
+      "herd",
+      "write",
+      source_l_id_herd,
+      principal_id,
+      "reassignHerdAnimals",
+    )
+    await checkPermission(
+      fdm,
+      "herd",
+      "write",
+      target_l_id_herd,
+      principal_id,
+      "reassignHerdAnimals",
+    )
+
     return await fdm.transaction(async (tx) => {
-      if (source_l_id_herd === target_l_id_herd) {
-        throw new Error("Source and target herd must be different")
-      }
-
-      await checkPermission(
-        tx,
-        "herd",
-        "write",
-        source_l_id_herd,
-        principal_id,
-        "reassignHerdAnimals",
-      )
-      await checkPermission(
-        tx,
-        "herd",
-        "write",
-        target_l_id_herd,
-        principal_id,
-        "reassignHerdAnimals",
-      )
-
       // Serialize with every other livestock change on this farm (such as a single move of one of
       // these animals) before reading the assignments
       const sourceFarm = await lockFarmOfHerd(tx, source_l_id_herd)

@@ -523,6 +523,118 @@ describe("Feed Domain", () => {
     })
   })
 
+  it("should refuse a feeding that ends before it starts", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    const start = new Date("2025-07-10")
+    const before = { f_feeding_end: new Date("2025-07-09") }
+    const refused = {
+      cause: { message: expect.stringContaining("end cannot be earlier than start") },
+    }
+
+    await expect(
+      addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start, before),
+    ).rejects.toMatchObject(refused)
+    await expect(
+      addFeedingAnimal(fdm, principal_id, f_id_batch, l_id_animal, start, before),
+    ).rejects.toMatchObject(refused)
+
+    await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start)
+    await addFeedingAnimal(fdm, principal_id, f_id_batch, l_id_animal, start)
+    await expect(
+      updateFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start, before),
+    ).rejects.toMatchObject(refused)
+    await expect(
+      updateFeedingAnimal(fdm, principal_id, l_id_animal, f_id_batch, start, before),
+    ).rejects.toMatchObject(refused)
+  })
+
+  it("should only write the end and amount of a feeding correction", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+    const otherBatch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "purchased")
+    const start = new Date("2025-07-10")
+    await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start)
+
+    // A wider object, as a JavaScript caller could pass, keeps its batch
+    const wider = { f_amount: 50, f_id_batch: otherBatch } as { f_amount: number }
+    await updateFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, start, wider)
+    const rows = await fdm
+      .select({ f_id_batch: schema.herdFeeding.f_id_batch, f_amount: schema.herdFeeding.f_amount })
+      .from(schema.herdFeeding)
+      .where(eq(schema.herdFeeding.l_id_herd, l_id_herd))
+    expect(rows).toEqual([{ f_id_batch, f_amount: 50 }])
+  })
+
+  it("should count a herd feeding at the moment of a move for the new herd only", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+    const arrival = new Date("2025-01-01")
+    const move = new Date("2025-03-01")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_date: arrival,
+    })
+    const newHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Droogstand",
+      l_id_category: "rvo_100",
+    })
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, newHerd, move)
+    await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, move, { f_amount: 100 })
+    await addFeedingHerd(fdm, principal_id, f_id_batch, newHerd, move, { f_amount: 30 })
+
+    const summary = await getFeedingSummaryForAnimal(fdm, principal_id, l_id_animal)
+    expect(summary.f_amount).toBe(30)
+  })
+
+  it("should refuse a sampling date without analysis values", async () => {
+    const refused = {
+      cause: { message: "f_sampling_date requires analysis values" },
+    }
+    await expect(
+      addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land", {
+        f_sampling_date: new Date("2025-08-01"),
+      }),
+    ).rejects.toMatchObject(refused)
+
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
+    // An unsampled batch has no analysis
+    expect((await getFeedBatch(fdm, principal_id, f_id_batch)).f_id_feed_analysis).toBeNull()
+    await expect(
+      updateFeedBatch(fdm, principal_id, f_id_batch, { f_sampling_date: new Date("2025-08-01") }),
+    ).rejects.toMatchObject(refused)
+
+    // With a sample, a date-only correction is fine
+    await updateFeedBatch(fdm, principal_id, f_id_batch, {
+      f_dm: 350,
+      f_sampling_date: new Date("2025-08-01"),
+    })
+    await updateFeedBatch(fdm, principal_id, f_id_batch, {
+      f_sampling_date: new Date("2025-08-02"),
+    })
+    expect((await getFeedBatch(fdm, principal_id, f_id_batch)).f_sampling_date).toEqual(
+      new Date("2025-08-02"),
+    )
+  })
+
+  it("should clear catalogue nutrients that an updated item leaves out", async () => {
+    const [template] = await getFeedCatalogue("nmi")
+    const item = {
+      f_source: "nmi",
+      f_id_catalogue: "test_feed_clear",
+      f_name_nl: "Testvoer",
+      f_type_rvo: template.f_type_rvo,
+    }
+    await syncFeedCatalogueArray(fdm, [{ ...item, f_dm: 900, f_n_dm: 20, f_p_dm: 5 }])
+    await syncFeedCatalogueArray(fdm, [item])
+    const [row] = await fdm
+      .select({
+        f_dm: schema.feedsCatalogue.f_dm,
+        f_n_dm: schema.feedsCatalogue.f_n_dm,
+        f_p_dm: schema.feedsCatalogue.f_p_dm,
+      })
+      .from(schema.feedsCatalogue)
+      .where(eq(schema.feedsCatalogue.f_id_catalogue, "test_feed_clear"))
+    expect(row).toEqual({ f_dm: null, f_n_dm: null, f_p_dm: null })
+  })
+
   it("should report feeding records that do not exist", async () => {
     const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "own_land")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)

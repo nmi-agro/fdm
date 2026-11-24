@@ -106,6 +106,32 @@ describe("Herd Domain", () => {
     expect(correctedHerd.l_end?.toISOString()).toBe(correctedEndDate.toISOString())
   })
 
+  it("should refuse a herd end before its start", async () => {
+    const refused = {
+      cause: { message: expect.stringContaining("end cannot be earlier than start") },
+    }
+    await expect(
+      addHerd(fdm, principal_id, b_id_farm, {
+        l_id_category: "rvo_100",
+        l_start: new Date("2025-06-01"),
+        l_end: new Date("2025-05-01"),
+      }),
+    ).rejects.toMatchObject(refused)
+
+    const herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_id_category: "rvo_100",
+      l_start: new Date("2025-06-01"),
+    })
+    await expect(
+      updateHerd(fdm, principal_id, herd, { l_end: new Date("2025-05-01") }),
+    ).rejects.toMatchObject(refused)
+    // Without a known start any end is allowed
+    await addHerd(fdm, principal_id, b_id_farm, {
+      l_id_category: "rvo_100",
+      l_end: new Date("2020-01-01"),
+    })
+  })
+
   it("should reject removing a herd that still has an animal assigned", async () => {
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
