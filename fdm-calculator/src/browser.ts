@@ -79,6 +79,5 @@ export {
   NNW_DAY_AND_NIGHT_HOURS,
   NNW_PLOT_AREA_HA_PER_COW,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
-  REST_PERIOD_THRESHOLD_DAYS,
 } from "./grazing/constants"
 export type { GrazingSystemKey } from "./grazing/constants"

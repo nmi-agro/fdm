@@ -15,7 +15,7 @@ import {
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { GrazingDayCell, RestAlertNotice } from "~/components/blocks/grazing/calendar-grid"
+import { GrazingDayCell } from "~/components/blocks/grazing/calendar-grid"
 import { FieldPickerButton } from "~/components/blocks/grazing/field-picker-button"
 import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Header } from "~/components/blocks/header/base"
@@ -69,8 +69,6 @@ const EMPTY_SUMMARY: GrazingCalendarMatrix["summary"] = {
   weidemelkDays: 0,
   platformArea: 0,
   platformGvePerHa: null,
-  overgrazingAlertsCount: 0,
-  alerts: [],
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -338,7 +336,6 @@ export default function MelkveeOverview() {
                     }
                   />
                 </div>
-                <RestAlertNotice alerts={summary.alerts} insightsHref={insightsHref} />
               </section>
 
               {/* Grazing of the last and coming days */}

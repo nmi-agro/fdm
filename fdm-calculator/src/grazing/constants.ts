@@ -12,26 +12,6 @@
  */
 
 /**
- * Minimum rest period (days) between two uses of a grassland field in the growing season. A field
- * grazed or mown again sooner gets an advisory alert.
- * Source: Handboek Melkveehouderij Table 3.8: reaching the grazing yield of 1.700 kg DM/ha takes
- * at least 21 growth days (400 kg N/ha in the second half of April), and longer later in the
- * season or at a lower N rate.
- */
-export const REST_PERIOD_THRESHOLD_DAYS = 21
-
-/**
- * Start of the period in which rest periods are checked (15 February).
- * Assumption: the Handboek Melkveehouderij §3.9.1 ties the start of grass growth to a temperature
- * sum (T-som) of 200, which some years is reached in early February; this fixed date approximates
- * it.
- */
-export const GROWING_SEASON_START_MONTH = 1 // 0-based month (February)
-
-/** Day of the month on which the period with rest-period checks starts; see `GROWING_SEASON_START_MONTH`. */
-export const GROWING_SEASON_START_DAY = 15
-
-/**
  * Weidemelk criteria: at least 120 days of grazing with at least 6 hours per day for the dairy
  * cows (category RVO 100). This constant is the number of days.
  * Source: Weidemelk definition of the Convenant Weidegang / ZuivelNL.

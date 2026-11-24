@@ -1,9 +1,8 @@
 import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { AlertTriangle, Info, Plus } from "lucide-react"
+import { Info, Plus } from "lucide-react"
 import { memo, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
-import { NavLink } from "react-router"
 import type { FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import type {
@@ -32,13 +31,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { formatHa } from "~/lib/format"
 import {
-  formatRestAlert,
   GRAZING_SEASON_LABEL,
   GRAZING_USE_COLORS,
   MIXED_USE_BACKGROUND,
   PLANNED_GRAZING_BACKGROUND,
   PLANNED_MIXED_USE_BACKGROUND,
-  type RestAlert,
 } from "~/lib/grazing-status"
 import { GrazingPopover, type GrazingPopoverProps } from "./grazing-popover"
 
@@ -758,7 +755,7 @@ export function CalendarGrid({
         </ContextMenu>
 
         {/* Season summary */}
-        <div className="bg-card space-y-2 rounded-xl border p-4 shadow-xs">
+        <div className="bg-card rounded-xl border p-4 shadow-xs">
           <dl className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm">
             <div className="flex gap-1">
               <dt className="text-muted-foreground">Weidedagen:</dt>
@@ -795,11 +792,6 @@ export function CalendarGrid({
               </dd>
             </div>
           </dl>
-
-          <RestAlertNotice
-            alerts={matrix.summary.alerts}
-            insightsHref={`/farm/${b_id_farm}/${calendar}/livestock/grazing/insights`}
-          />
         </div>
       </div>
 
@@ -867,34 +859,6 @@ export function CalendarGrid({
         canWrite={canWrite}
       />
     </TooltipProvider>
-  )
-}
-
-/**
- * A one-line notice for the fields used again before the rest guideline: the first field, how many
- * other fields, and a link to the Kengetallen page that explains the guideline.
- */
-export function RestAlertNotice({
-  alerts,
-  insightsHref,
-}: {
-  alerts: RestAlert[]
-  insightsHref: string
-}) {
-  if (alerts.length === 0) return null
-  // One alert per early reuse, so a field can have several; count the other fields
-  const more = new Set(alerts.map((a) => a.b_id).filter((id) => id !== alerts[0].b_id)).size
-  return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber-500/20 bg-amber-500/10 p-2.5 text-xs text-amber-900">
-      <AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-700" />
-      <p className="font-medium">
-        {formatRestAlert(alerts[0])}
-        {more > 0 && ` En ${more} ${more === 1 ? "ander perceel" : "andere percelen"}.`}
-      </p>
-      <NavLink to={insightsHref} className="underline underline-offset-2">
-        Bekijk de rustperiodes
-      </NavLink>
-    </div>
   )
 }
 

@@ -1,11 +1,7 @@
-import {
-  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
-  REST_PERIOD_THRESHOLD_DAYS,
-} from "@nmi-agro/fdm-calculator/browser"
 import { getFarm, getFarms } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { getDaysInMonth } from "date-fns"
-import { AlertTriangle, ArrowRight, CheckCircle2, FileQuestion } from "lucide-react"
+import { ArrowRight, CheckCircle2, FileQuestion } from "lucide-react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -31,7 +27,6 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { fetchGrazingInsightsData } from "~/lib/grazing-insights.server"
 import {
-  formatRestAlert,
   GRAZING_SEASON_FIRST_MONTH,
   GRAZING_SEASON_LAST_MONTH,
   GRAZING_USE_COLORS,
@@ -131,8 +126,7 @@ export default function GrazingInsightsPage() {
     100,
     Math.round((metrics.weidemelk.qualifyingDays / metrics.weidemelk.targetDays) * 100),
   )
-  const hasAttentionPoints =
-    metrics.overbeweidingAlerts.length > 0 || metrics.incompleteRecords.count > 0
+  const hasAttentionPoints = metrics.incompleteRecords.count > 0
 
   return (
     <div className="bg-background relative flex w-full flex-1 flex-col">
@@ -267,37 +261,6 @@ export default function GrazingInsightsPage() {
                     <CardTitle className="text-base">Aandachtspunten</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {metrics.overbeweidingAlerts.length > 0 && (
-                      <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-900">
-                        <AlertTriangle
-                          aria-hidden="true"
-                          className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
-                        />
-                        <div className="space-y-1.5">
-                          <p className="font-semibold">Rustperiode korter dan de richtlijn</p>
-                          <ul className="list-disc space-y-0.5 pl-4">
-                            {metrics.overbeweidingAlerts.map((alert, idx) => (
-                              <li key={idx}>
-                                {formatRestAlert({
-                                  b_id: alert.b_id,
-                                  b_name: alert.b_name ?? null,
-                                  restDays: alert.restDays,
-                                  thresholdDays: alert.thresholdDays,
-                                })}
-                              </li>
-                            ))}
-                          </ul>
-                          <p>
-                            De richtlijn van {REST_PERIOD_THRESHOLD_DAYS} dagen rust houdt geen
-                            rekening met de werkelijke grasgroei. Als richtwaarde voor inscharen
-                            geldt ± {INSCHAREN_DRY_MATTER_TARGET_KG_HA.toLocaleString("nl-NL")} kg
-                            ds/ha; dat kost minstens {REST_PERIOD_THRESHOLD_DAYS} groeidagen
-                            (Handboek Melkveehouderij, tabel 3.8).
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
                     {metrics.incompleteRecords.count > 0 && (
                       <div className="bg-muted/40 text-muted-foreground flex flex-col gap-2 rounded-lg border p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">

@@ -1423,12 +1423,6 @@ function GrazingPlanAssistent() {
                       </Table>
                     </div>
                   </div>
-
-                  <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                    <Info className="text-primary h-3.5 w-3.5 shrink-0" />
-                    Rustperiodes zijn gebaseerd op een vaste richtlijn, niet op de werkelijke
-                    grasgroei.
-                  </p>
                 </CardContent>
                 {/* On a phone both buttons span the width, the confirm button on top (as in the
                       dialog footers) */}

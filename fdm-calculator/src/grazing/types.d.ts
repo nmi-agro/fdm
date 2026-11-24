@@ -112,26 +112,8 @@ export interface RestPeriodDetail {
   nextUseType: "weiden" | "maaien"
   /** Start timestamp of the subsequent use. */
   nextUseDate: Date
-  /** Rest period duration in full calendar days. */
+  /** Rest period in growth days: the days after the previous use and before the next. */
   restDays: number
-  /** Indicates whether the rest interval is below the benchmark threshold during the growing season. */
-  isOvergrazed: boolean
-}
-
-/**
- * Advisory alert for insufficient rest between consecutive uses on a field.
- */
-export interface OvergrazingAlert {
-  /** field identifier. */
-  b_id: string
-  /** field name. */
-  b_name?: string | null
-  /** Realised or planned rest duration in days. */
-  restDays: number
-  /** Rest threshold in days (`REST_PERIOD_THRESHOLD_DAYS`). */
-  thresholdDays: number
-  /** Explanatory Dutch advisory message referencing Handboek Melkveehouderij guidelines. */
-  message: string
 }
 
 /**
@@ -227,10 +209,6 @@ export interface GrazingMetricsResult {
    * Detailed list of rest periods between consecutive uses (grazing and mowing) per field.
    */
   rustperiodes: RestPeriodDetail[]
-  /**
-   * Advisory alerts for parts of fields re-used within fewer than `REST_PERIOD_THRESHOLD_DAYS` days during the growing season.
-   */
-  overbeweidingAlerts: OvergrazingAlert[]
   /**
    * Details on incomplete records (e.g. started grazing periods missing daily hours).
    */

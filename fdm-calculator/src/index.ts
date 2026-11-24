@@ -275,14 +275,11 @@ export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
 export {
   GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY,
   GRAZING_HOURS_PER_KG_DM_MIN,
-  GROWING_SEASON_START_DAY,
-  GROWING_SEASON_START_MONTH,
   GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
   INSCHAREN_DRY_MATTER_TARGET_KG_HA,
   NNW_DAY_AND_NIGHT_HOURS,
   NNW_PLOT_AREA_HA_PER_COW,
   NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
-  REST_PERIOD_THRESHOLD_DAYS,
   STOCKING_DENSITY_BENCHMARKS,
   SWARD_HEIGHT_CM,
   UITSCHAREN_SUPPLEMENTATION_SIGNAL_CM,
@@ -314,7 +311,6 @@ export type {
   HarvestInput as GrazingHarvestInput,
   HerdInput as GrazingHerdInput,
   MonthlyDistributionEntry as GrazingMonthlyDistributionEntry,
-  OvergrazingAlert as GrazingOvergrazingAlert,
   RestPeriodDetail as GrazingRestPeriodDetail,
 } from "./grazing/index"
 export type { FieldExclusionReason } from "./shared/field-exclusion"
