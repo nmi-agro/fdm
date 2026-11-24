@@ -66,6 +66,7 @@ export {
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getDefaultDatesOfCultivation,
+  getDefaultDatesOfCultivations,
   isCultivationUnavailableInPeriod,
   removeCultivation,
   updateCultivation,
@@ -100,6 +101,7 @@ export {
   getFarmIdsOfOrganization,
   isFarmGroupMembershipInYear,
   listFarmGroups,
+  listFarmGroupsOfOrganizations,
   removeFarmFromGroup,
   removeFarmGroup,
   removeFarmGroupMembership,
@@ -247,6 +249,7 @@ export {
   listOrganicCertifications,
   removeOrganicCertification,
 } from "./organic"
+export { listOrganizationRolesOfUser } from "./organization"
 export type { OrganicCertification } from "./organic.types"
 export {
   getPrincipal,
