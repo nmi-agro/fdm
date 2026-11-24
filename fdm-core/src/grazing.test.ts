@@ -78,7 +78,7 @@ describe("Grazing Domain", () => {
 
   it("should record grazing action and retrieve for herd and farm", async () => {
     const startDate = new Date("2025-05-15")
-    await addGrazing(fdm, principal_id, l_id_herd, startDate, {
+    const l_id_grazing = await addGrazing(fdm, principal_id, l_id_herd, startDate, {
       b_id,
       l_grazing_end: startDate,
       l_grazing_hours: 8,
@@ -87,6 +87,7 @@ describe("Grazing Domain", () => {
 
     const herdGrazing = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     expect(herdGrazing.length).toBe(1)
+    expect(herdGrazing[0].l_id_grazing).toBe(l_id_grazing)
     expect(herdGrazing[0].l_grazing_hours).toBe(8)
     expect(herdGrazing[0].l_grazing_area).toBe(25)
     // An area smaller than the field is the grazed area

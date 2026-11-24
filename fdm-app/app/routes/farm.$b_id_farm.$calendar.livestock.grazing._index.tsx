@@ -27,6 +27,7 @@ import { Button } from "~/components/ui/button"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { findActiveCultivationForDate } from "~/lib/cultivation-for-date"
 import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
@@ -149,7 +150,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Read a copy, so a mowing or fertilizing form can still be parsed from the request
     const formData = await request.clone().formData()
-    const intent = formText(formData, "intent")
+    // The mowing and fertilizing forms send their values JSON-encoded (`"add_fertilizer"` with
+    // quotes); strip the quotes as `extractFormValuesFromRequest` does before matching the intent
+    const intent = formText(formData, "intent").replace(/['"]+/g, "").trim()
 
     // Mowing and fertilizing, with the same forms and handling as the Tijdlijn
     if (isFieldEventIntent(intent)) {
@@ -163,7 +166,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // The grazing dialog, shared with the Atlas layer and the field's grazing page
-    return await handleGrazingEvent(formData, { principal_id: session.principal_id, calendar })
+    return await handleGrazingEvent(formData, {
+      principal_id: session.principal_id,
+      b_id_farm,
+      calendar,
+    })
   } catch (error) {
     // extractFormValuesFromRequest already turned validation errors into a toast response
     if (isToastResponse(error)) return error
@@ -204,7 +211,24 @@ export default function BeweidingskalenderPage() {
       ? sheetState.request
       : undefined
   const openSheet = (request: AddEventSheetRequest | undefined) =>
-    setSheetState(request ? { request, openedWithActionData: actionData } : undefined)
+    setSheetState(
+      request
+        ? { request: withGrassCultivation(request), openedWithActionData: actionData }
+        : undefined,
+    )
+
+  // A new mowing belongs to the grass cultivation on its date, also on a field that grows
+  // another crop later in the year; the form would otherwise pick that crop
+  const withGrassCultivation = (request: AddEventSheetRequest): AddEventSheetRequest => {
+    if (request.type !== "harvest" || request.context.b_lu || !request.context.date) return request
+    const field = grasslandFields.find((f) => f.b_id === request.context.b_id)
+    const grass = findActiveCultivationForDate(
+      (field?.cultivations ?? []).filter((c) => c.b_lu_croprotation === "grass"),
+      request.context.date,
+      new Date(8640000000000000),
+    )
+    return grass ? { ...request, context: { ...request.context, b_lu: grass.b_lu } } : request
+  }
 
   // New grazing, mowing and fertilizing default to today in the Netherlands, or the same day in
   // another year

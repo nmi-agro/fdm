@@ -133,6 +133,14 @@ export async function handleFieldEvent(
     return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
   }
   const cultivation = await getCultivation(fdm, principal_id, values.b_lu)
+  // The grazing calendar only records mowing of grass, also on a field that grows another crop
+  // later in the year
+  if (context.source === "grazing_calendar" && cultivation.b_lu_croprotation !== "grass") {
+    return dataWithError(
+      null,
+      "Een maaisnede in de beweidingskalender hoort bij een grasgewas. Leg deze oogst vast op de Tijdlijn.",
+    )
+  }
   const term = getHarvestTerm(
     cultivation.b_lu_croprotation,
     false,

@@ -4,7 +4,7 @@
  * of a field.
  */
 
-import { addGrazing, removeGrazing, updateGrazing } from "@nmi-agro/fdm-core"
+import { addGrazing, getGrazing, getHerd, removeGrazing, updateGrazing } from "@nmi-agro/fdm-core"
 import { data } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { fdm } from "~/lib/fdm.server"
@@ -25,18 +25,41 @@ export function isGrazingIntent(intent: unknown): boolean {
 }
 
 /**
+ * Checks that a herd belongs to the farm of the page. fdm-core checks access to the herd, but a
+ * user with access to two farms could otherwise change a grazing of the other farm from a stale
+ * page.
+ *
+ * @throws A 404 response when the herd belongs to another farm.
+ */
+async function assertHerdOnFarm(principal_id: string, l_id_herd: string, b_id_farm: string) {
+  const herd = await getHerd(fdm, principal_id, l_id_herd)
+  if (herd.b_id_farm !== b_id_farm) {
+    throw data("Koppel niet gevonden op dit bedrijf", { status: 404 })
+  }
+}
+
+/**
  * Saves the grazing dialog. Access is checked by the fdm-core functions.
  *
  * @param formData - The form data of the dialog.
- * @param context - The acting principal and the calendar year of the page.
+ * @param context - The acting principal, the farm and the calendar year of the page.
  * @returns A toast response.
  * @throws {Response} With status 400 for an unknown intent or an invalid date, hours or extent.
  */
 export async function handleGrazingEvent(
   formData: FormData,
-  context: { principal_id: string; calendar: string },
+  context: { principal_id: string; b_id_farm: string; calendar: string },
 ) {
   const intent = formText(formData, "intent")
+
+  // Only a herd of the page's farm, also for a change or removal of an existing grazing
+  const l_id_grazing = formText(formData, "l_id_grazing")
+  if (intent === "add_grazing") {
+    await assertHerdOnFarm(context.principal_id, formText(formData, "l_id_herd"), context.b_id_farm)
+  } else if ((intent === "update_grazing" || intent === "remove_grazing") && l_id_grazing) {
+    const grazing = await getGrazing(fdm, context.principal_id, l_id_grazing)
+    await assertHerdOnFarm(context.principal_id, grazing.l_id_herd, context.b_id_farm)
+  }
   const l_grazing_hours = parseGrazingHours(formText(formData, "l_grazing_hours"))
   const l_grazing_start = parseGrazingDate(formText(formData, "l_grazing_start"))
   const l_grazing_end = parseGrazingDate(formText(formData, "l_grazing_end"))
@@ -66,7 +89,7 @@ export async function handleGrazingEvent(
 
   if (intent === "update_grazing") {
     const extent = parseGrazingExtent(formData)
-    await updateGrazing(fdm, context.principal_id, formText(formData, "l_id_grazing"), {
+    await updateGrazing(fdm, context.principal_id, l_id_grazing, {
       l_grazing_start,
       // An empty end keeps the stored end
       l_grazing_end,
@@ -82,7 +105,7 @@ export async function handleGrazingEvent(
   }
 
   if (intent === "remove_grazing") {
-    await removeGrazing(fdm, context.principal_id, formText(formData, "l_id_grazing"))
+    await removeGrazing(fdm, context.principal_id, l_id_grazing)
     return dataWithSuccess({}, { message: "Beweiding verwijderd." })
   }
 

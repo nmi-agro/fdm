@@ -226,9 +226,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+/** A day of the plan as `YYYY-MM-DD`, and a real calendar day (not 30 February). */
 const planDateSchema = z
   .string()
-  .refine((value) => !Number.isNaN(new Date(value).getTime()), "Ongeldige datum")
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Ongeldige datum")
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00.000Z`)
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+  }, "Ongeldige datum")
 
 /** A period of the plan as the planner sends it; every period is on a field. */
 const planRowsSchema = z.array(
@@ -285,6 +290,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     if (rows.length === 0) {
       throw data("Geen perioden om vast te leggen.", { status: 400 })
+    }
+    // Like the preview: every period lies within the year of the page, so it shows on its
+    // calendar after saving
+    const calendarYear = Number.parseInt(calendar, 10) || new Date().getFullYear()
+    const yearPrefix = `${calendarYear}-`
+    if (
+      rows.some(
+        (r) =>
+          !r.l_grazing_start.startsWith(yearPrefix) ||
+          !r.l_grazing_end.startsWith(yearPrefix) ||
+          r.l_grazing_end < r.l_grazing_start,
+      )
+    ) {
+      throw data(`Kies perioden binnen ${calendarYear}.`, { status: 400 })
     }
 
     await addGrazings(
@@ -553,6 +572,18 @@ function GrazingPlanAssistent() {
           ? cut.map((plot) => ({ field: f, plot: plot as Area | null }))
           : [{ field: f, plot: null }]
       })
+      // Two sessions a day need two different plots; with one plot both would graze the same
+      // land, which is not Nieuw Nederlands Weiden
+      if (plots.length < plotsPerDay) {
+        skippedCollisions.push({
+          fieldName: fieldsToUse.map((f) => f.b_name).join(", "),
+          startDate,
+          endDate,
+          reason:
+            "Maar één perceel voor twee beweidingen per dag: kies kleinere percelen of meer graslandpercelen",
+        })
+        return { generatedRows: rows, collisions: skippedCollisions }
+      }
       const hoursPerPlot = hoursPerDay / plotsPerDay
       let plotIndex = 0
       for (let dayStr = startDate; dayStr <= endDate; dayStr = shiftPlanDay(dayStr, 1)) {

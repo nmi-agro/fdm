@@ -108,6 +108,7 @@ function assertGrazingExtent(
  * @param l_grazing_start - Start timestamp.
  * @param properties - The field ID and the end timestamp, and optionally the hours, and the
  *   grazed zone (WGS84) or area (ha).
+ * @returns The ID of the new grazing.
  * @throws {Error} If the field or the end is missing, both a zone and an area are given, or the
  *   zone is invalid.
  */
@@ -123,7 +124,7 @@ export async function addGrazing(
     l_grazing_area?: schema.herdGrazingTypeInsert["l_grazing_area"]
     l_grazing_geometry_zone?: GrazingZoneInput
   },
-): Promise<void> {
+): Promise<string> {
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazing")
@@ -166,8 +167,9 @@ export async function addGrazing(
         l_grazing_start.getUTCFullYear(),
       )
 
+      const l_id_grazing = createId()
       await tx.insert(schema.herdGrazing).values({
-        l_id_grazing: createId(),
+        l_id_grazing,
         l_id_herd,
         l_grazing_start,
         b_id: properties?.b_id ?? null,
@@ -176,6 +178,7 @@ export async function addGrazing(
         l_grazing_area: properties?.l_grazing_area ?? null,
         l_grazing_geometry_zone: zone ?? null,
       })
+      return l_id_grazing
     })
   } catch (err) {
     throw handleError(err, "Exception for addGrazing", {
