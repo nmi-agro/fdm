@@ -85,6 +85,6 @@ De diercategorie van de koppel bepaalt welk geslacht een dier mag hebben. Een di
 
 ## GVE en veebezetting {#gve}
 
-Elke diercategorie heeft een vast aantal GVE per dier, uit de diercategorieën van RVO: een melkkoe telt als 1 GVE, jongvee minder. De GVE van een koppel is het aantal dieren maal die factor. De veebezetting op grasland onder de koppels in het Melkvee-overzicht is de GVE van alle koppels gedeeld door de oppervlakte grasland van het bedrijf (zonder bufferstroken).
+Elke diercategorie heeft een vast aantal GVE per dier, uit de diercategorieën van RVO: een melkkoe telt als 1 GVE, jongvee minder. De GVE van een koppel is het aantal dieren maal die factor. De veebezetting op al het grasland, bij **Veebezetting platform** op Weidegang, is de GVE van alle koppels gedeeld door de oppervlakte grasland van het bedrijf (zonder bufferstroken).
 
 Hoe {{appName}} de veebezetting op het beweidingsplatform berekent, lees je in de [achtergrond bij beweiding](/manual/background/beweiding#veebezetting).
