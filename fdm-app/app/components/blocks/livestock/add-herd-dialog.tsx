@@ -44,7 +44,11 @@ export function AddHerdDialog({
   )
   const hasCategories = categories.length > 0
   const [name, setName] = useState("Melkkoeien")
-  const [count, setCount] = useState(20)
+  // The typed text, so the field can be cleared while typing; it starts empty, as in
+  // "Melkvee toevoegen"
+  const [countText, setCountText] = useState("")
+  const count = Number.parseInt(countText, 10)
+  const isCountValid = Number.isInteger(count) && count > 0
   // Follows the chosen year until the user picks a day
   const [arrivalDay, setArrivalDay] = useKeyedState(defaultArrivalDay, (day) => day)
 
@@ -118,14 +122,15 @@ export function AddHerdDialog({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="add-herd-count">Aantal dieren</FieldLabel>
+                <FieldLabel htmlFor="add-herd-count">Aantal dieren *</FieldLabel>
                 <Input
                   id="add-herd-count"
                   type="number"
                   min="1"
                   max="5000"
-                  value={count}
-                  onChange={(e) => setCount(Number.parseInt(e.target.value || "1", 10))}
+                  placeholder="bijv. 96"
+                  value={countText}
+                  onChange={(e) => setCountText(e.target.value)}
                   required
                 />
               </Field>
@@ -138,7 +143,7 @@ export function AddHerdDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuleren
             </Button>
-            <Button type="submit" disabled={!hasCategories || !categoryId}>
+            <Button type="submit" disabled={!hasCategories || !categoryId || !isCountValid}>
               Koppel aanmaken
             </Button>
           </DialogFooter>
