@@ -47,7 +47,7 @@ Kies bovenaan bij _Vastleggen voor_ de koppel waarvoor je wilt registreren; de k
 
 ### Maaien en bemesten in de kalender {#maaien-bemesten}
 
-Met **Meer toevoegen** boven de kalender en dan **Maaisnede toevoegen** of **Bemesting toevoegen**, of met de rechtermuisknop op een dag, voeg je een maaisnede of bemesting toe. Je vult hetzelfde formulier in als op de [Tijdlijn](/manual/tijdlijn), in een venster. Via de knoppen boven de kalender staat de datum op vandaag, of op dezelfde dag in het gekozen jaar.
+Met **Meer toevoegen** boven de kalender en dan **Maaisnede toevoegen** of **Bemesting toevoegen**, of met de rechtermuisknop op een dag, voeg je een maaisnede of bemesting toe. Je vult hetzelfde formulier in als op de [Tijdlijn](/manual/tijdlijn), in een venster. Via de knoppen boven de kalender staat de datum op vandaag, of op dezelfde dag in het gekozen jaar. Een maaisnede hoort bij het grasgewas van die datum, ook als er later in het jaar een ander gewas op het perceel staat; de oogst van een ander gewas leg je vast op de Tijdlijn.
 
 Een bemesting telt niet mee als gebruik voor de dagen rust; een maaisnede wel.
 
@@ -127,7 +127,7 @@ Bij stripgrazen en rantsoenbeweiding kies je ook hoe groot het beweide deel per 
 - **Stroken op de kaart**: de planner snijdt voor elke weidebeurt een nieuwe strook uit het perceel, met de grootte uit de berekening hierboven. Elke strook sluit aan op de vorige.
 - **Percentage, zonder kaart**: elke weidebeurt beslaat een vast percentage van het perceel, zonder plek.
 
-Bij Nieuw Nederlands Weiden deelt de planner de gekozen percelen op in percelen van gelijke grootte. Bij _Perceelsgrootte (ha)_ staat 2,5 ha per 120 koeien, omgerekend naar je koppel; pas het aan voor je bedrijf. De koppel krijgt elke dag het volgende perceel. Weidt de koppel dag en nacht (meer dan 12 uur), dan krijgt hij 's ochtends en 's avonds een nieuw perceel, elk als eigen beweiding met de helft van de uren, ook als ze op hetzelfde perceel liggen. Samen tellen ze als één weidedag met alle uren.
+Bij Nieuw Nederlands Weiden deelt de planner de gekozen percelen op in percelen van gelijke grootte. Bij _Perceelsgrootte (ha)_ staat 2,5 ha per 120 koeien, omgerekend naar je koppel; pas het aan voor je bedrijf. De koppel krijgt elke dag het volgende perceel. Weidt de koppel dag en nacht (meer dan 12 uur), dan krijgt hij 's ochtends en 's avonds een nieuw perceel, elk als eigen beweiding met de helft van de uren, ook als ze op hetzelfde perceel liggen. Samen tellen ze als één weidedag met alle uren. Daarvoor zijn minstens twee percelen nodig; levert de opdeling er maar één op, dan slaat de planner de periode over en zegt waarom.
 
 Bij stroken en bij Nieuw Nederlands Weiden zie je de stroken of percelen op een kaart boven het plan. Ga met de muis over een regel van het plan om de strook op de kaart te zien, of over een strook op de kaart om de regels ervan te zien.
 
