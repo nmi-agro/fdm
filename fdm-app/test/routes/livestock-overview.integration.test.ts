@@ -5,6 +5,7 @@
 import {
   addFarm,
   createHerdWithAnimals,
+  enableAnimalCategoryCatalogue,
   getAnimalsForHerd,
   getGrazingForHerd,
 } from "@nmi-agro/fdm-core"
@@ -99,6 +100,7 @@ describe("action add_grazing", () => {
     signInAs(owner.user)
     // The user also owns a second farm with its own herd
     const otherFarm = await addFarm(fdm, owner.user.id, "Tweede bedrijf", null, null, null)
+    await enableAnimalCategoryCatalogue(fdm, owner.user.id, otherFarm, "rvo")
     const { l_id_herd: otherHerd } = await createHerdWithAnimals(
       fdm,
       owner.user.id,

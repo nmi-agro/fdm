@@ -35,6 +35,7 @@ import {
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
+import { createId } from "./id"
 
 describe("Catalogues", () => {
   let fdm: FdmType
@@ -363,7 +364,7 @@ describe("Catalogues syncing", () => {
     expect(animalCategories.length).toBe(animalCategoriesOriginal.length)
   })
 
-  it("should enable the RVO animal catalogue for a new farm and keep an opt-out after sync", async () => {
+  it("should not enable an animal catalogue for a new farm and keep an opt-out after sync", async () => {
     const principal_id = "existing_farm_sync"
     const b_id_farm = await addFarm(
       fdm,
@@ -373,6 +374,9 @@ describe("Catalogues syncing", () => {
       "Farm Street 1",
       "1234AB",
     )
+    // Like the other catalogues, the caller that creates the farm enables it
+    expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toEqual([])
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
     expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toContain("rvo")
     expect((await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)).length).toBeGreaterThan(
       0,
@@ -938,6 +942,39 @@ describe("Measures Catalogue Sync", () => {
 
     // updated timestamp should not have changed
     expect(rowsAfter[0].updated).toEqual(rowsBefore[0].updated)
+  })
+
+  it("should store the effect fields of a measure", async () => {
+    const source = `test_${createId()}`
+    const enriched = {
+      ...measureA,
+      m_id: `${source}_BM1`,
+      m_source: source,
+      m_effect_costs: 2,
+      m_effect_type: "classed",
+      m_impacts_score: ["S_SW_PLEA", "S_NUT_N"],
+      m_applicability: [{ variable: "B_LU_BBWP", values: ["gras_permanent"] }],
+      m_effect_size: [
+        {
+          comment: "Low P",
+          conditions: [{ variable: "A_P_AL", max: 18 }],
+          impacts: [{ key: "S_SW_PLEA", value: 0.05 }],
+        },
+      ],
+      m_external_ids: { bbwp: "B150" },
+    }
+    await syncMeasuresCatalogueArray(fdm, [enriched])
+
+    const rows = await fdm
+      .select()
+      .from(schema.measuresCatalogue)
+      .where(eq(schema.measuresCatalogue.m_id, enriched.m_id))
+    expect(rows[0].m_effect_costs).toBe(2)
+    expect(rows[0].m_effect_type).toBe("classed")
+    expect(rows[0].m_impacts_score).toEqual(["S_SW_PLEA", "S_NUT_N"])
+    expect(rows[0].m_applicability).toEqual(enriched.m_applicability)
+    expect(rows[0].m_effect_size).toEqual(enriched.m_effect_size)
+    expect(rows[0].m_external_ids).toEqual({ bbwp: "B150" })
   })
 
   // Stub `fetch` instead of mocking `@nmi-agro/fdm-data`: with `isolate: false`,

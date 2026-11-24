@@ -78,6 +78,7 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useFarmWarmup } from "~/hooks/use-farm-warmup"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -466,6 +467,16 @@ export default function FarmDashboardIndex() {
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // Fill the calculation cache in the background, so the calculation pages open faster. Only for
+  // the year that stays: without a year in the URL, the page first switches to the selected year.
+  useFarmWarmup(
+    loaderData.b_id_farm,
+    loaderData.activeYear,
+    loaderData.fieldsNumber > 0 &&
+      (searchParams.get("calendar") === loaderData.activeYear ||
+        calendar === loaderData.activeYear),
+  )
   const years = getCalendarSelection()
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)

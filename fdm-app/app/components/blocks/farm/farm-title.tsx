@@ -24,6 +24,8 @@ interface FarmTitleProps {
    * "Handleiding" item (driven by the route's `handle.help`) is enough.
    */
   help?: HelpTargetId
+  /** Wrap a long title over several lines instead of cutting it off on narrow screens. */
+  wrapTitle?: boolean
 }
 
 export function FarmTitle({
@@ -34,16 +36,29 @@ export function FarmTitle({
   action,
   children,
   help,
+  wrapTitle = false,
 }: FarmTitleProps) {
   return (
     <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
         <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
+          {/* A wrapping title keeps the help icon beside its first line instead of on a line
+              of its own */}
+          <div
+            className={wrapTitle ? "flex items-start gap-3" : "flex flex-wrap items-center gap-3"}
+          >
+            <h2
+              className={
+                wrapTitle
+                  ? "min-w-0 text-2xl font-bold tracking-tight wrap-break-word"
+                  : "truncate text-2xl font-bold tracking-tight xl:whitespace-normal"
+              }
+            >
               {title}
             </h2>
-            {help ? <HelpLink target={help} className="-ml-1" /> : null}
+            {help ? (
+              <HelpLink target={help} className={wrapTitle ? "-ml-1 shrink-0" : "-ml-1"} />
+            ) : null}
           </div>
           {descriptionNode ?? (
             <p className="text-muted-foreground wrap-break-word">{description}</p>

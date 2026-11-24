@@ -5,6 +5,7 @@ import type { FdmType } from "./fdm.types"
 import type { Feeding } from "./feed.types"
 import { addAnimal, assignAnimalToHerd } from "./animal"
 import {
+  enableAnimalCategoryCatalogue,
   enableFeedCatalogue,
   syncAnimalCategoryCatalogueArray,
   syncFeedCatalogueArray,
@@ -59,6 +60,7 @@ describe("Feed Domain", () => {
       "Feed Road 1",
       "1234AB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",

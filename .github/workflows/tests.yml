@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -165,7 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -298,7 +298,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -353,7 +353,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -410,7 +410,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -486,7 +486,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
@@ -551,7 +551,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [26]
     permissions:
       contents: read
       packages: write
