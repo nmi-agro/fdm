@@ -32,6 +32,8 @@ const WEATHER_PATH = "/regras/v3/forecast/weather"
 /** The Dyna requests (their `field`) and forecast locations since the last reset. */
 const dynaRequests: { a_lat: number; a_lon: number }[] = []
 const forecastRequests: string[] = []
+/** The successful answers since the last reset; each adds one cache entry. */
+let successfulRequests = 0
 /** Latitude of the field for which the stubbed Dyna answers with an error. */
 let failingLatitude: number | null = null
 
@@ -53,6 +55,7 @@ const fetchStub: typeof fetch = async (input, init) => {
         { status: 400 },
       )
     }
+    successfulRequests++
     const start = body.cultivations?.[0]?.b_lu_start ?? "2026-01-01"
     const nw = Math.round(body.field.a_lat * 10)
     return Response.json({
@@ -76,6 +79,7 @@ const fetchStub: typeof fetch = async (input, init) => {
     const a_lon = url.searchParams.get("a_lon")
     const date = url.searchParams.get("date") ?? ""
     forecastRequests.push(`${a_lat},${a_lon}`)
+    successfulRequests++
     return Response.json({
       data: {
         forecast: [0, 1, 2].map((offset) => ({
@@ -108,20 +112,22 @@ async function countMineralizationCacheEntries(): Promise<number> {
 /** Removes the cached Dyna results and forecasts, so the next calculation requests them. */
 async function clearCache(): Promise<void> {
   // The cache writes results about a second after a calculation, without a signal when they
-  // land. Wait until the number of entries stops changing (at most 10 seconds), so no earlier
-  // write lands after the delete.
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-  let previous = await countMineralizationCacheEntries()
-  for (let waited = 0; waited < 10_000; waited += 500) {
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    const current = await countMineralizationCacheEntries()
-    if (current === previous) break
-    previous = current
+  // land. Every successful request since the last reset adds one entry (the earlier entries
+  // were deleted, and no other test file stubs these endpoints), so wait until that many
+  // entries exist before the delete, and fail after 10 seconds.
+  const expected = successfulRequests
+  const deadline = Date.now() + 10_000
+  while ((await countMineralizationCacheEntries()) < expected) {
+    if (Date.now() > deadline) {
+      throw new Error(`Expected ${expected} cache entries before clearing the cache`)
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
   await fdm.execute(
     sql`delete from "fdm-calculator".calculation_cache
       where calculation_function in ('requestDynaV2', 'requestWeatherForecast')`,
   )
+  successfulRequests = 0
   dynaRequests.length = 0
   forecastRequests.length = 0
 }
