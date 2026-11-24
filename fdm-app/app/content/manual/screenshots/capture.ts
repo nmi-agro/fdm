@@ -342,7 +342,8 @@ export const captures = {
     ...GRAZING_DASHBOARD_START,
     steps: [
       { click: { role: "link", name: "Beweiding vandaag" } },
-      { waitFor: { text: "maandag 15 juni" } },
+      // Without the weekday, which changes with the year of the run
+      { waitFor: { text: "15 juni" } },
     ],
     map: true,
   },

@@ -550,7 +550,8 @@ export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<Dem
       b_id_farm,
       { l_herd_name, l_id_category, l_start: date(year, 1, 1) },
       count,
-      { l_arriving_method: "born" },
+      // The animals arrive with the herd's start, so they count for the grazing of the year
+      { l_arriving_method: "born", l_arriving_date: date(year, 1, 1) },
     )
 
   if (variant === "demo") {
