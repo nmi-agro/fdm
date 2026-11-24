@@ -23,8 +23,8 @@ import { FormSchema } from "~/components/blocks/fertilizer-applications/formsche
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { loadBulkCurrentState } from "~/integrations/fertilizer-application-impact.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -165,7 +165,7 @@ export default function FarmRotationFertilizerAddIndex() {
   const back = { to: rotationUrl, label: "Terug naar bouwplan", disabled: false }
 
   const content = (
-    <main>
+    <div>
       <FarmTitle
         title={`Bemesting toevoegen aan ${loaderData.cultivationName || "bouwplan"}`}
         description="Voeg één bemesting toe aan meerdere percelen en zie direct het effect op gebruiksruimte, advies en stikstofbalans."
@@ -185,7 +185,7 @@ export default function FarmRotationFertilizerAddIndex() {
           overviewUrl={rotationUrl}
         />
       </FarmContent>
-    </main>
+    </div>
   )
 
   // In the farm creation wizard, keep the wizard header so the user stays in the flow
@@ -201,7 +201,7 @@ export default function FarmRotationFertilizerAddIndex() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={back}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <BreadcrumbSeparator />
@@ -210,7 +210,7 @@ export default function FarmRotationFertilizerAddIndex() {
         <BreadcrumbItem className="hidden md:block">Bemesting toevoegen</BreadcrumbItem>
       </Header>
       {content}
-    </SidebarInset>
+    </PageContainer>
   )
 }
 

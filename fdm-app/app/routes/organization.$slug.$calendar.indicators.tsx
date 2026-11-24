@@ -263,7 +263,7 @@ export default function IndicatorsFarmIndex() {
   )
 
   return (
-    <main className="min-w-0">
+    <div className="min-w-0">
       <FarmTitle
         title="Indicatoren"
         description="BLN3 bodemkwaliteitsindicatoren voor alle bedrijven met toegang door deze organisatie."
@@ -370,6 +370,6 @@ export default function IndicatorsFarmIndex() {
           </CardContent>
         </Card>
       </div>
-    </main>
+    </div>
   )
 }

@@ -14,9 +14,9 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BulkSoilAnalysisUpload } from "~/components/blocks/soil/bulk-upload"
 import { toDateKey } from "~/components/blocks/soil/bulk-upload-model"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -92,7 +92,7 @@ export default function BulkSoilAnalysisUploadPage() {
   const loaderData = useLoaderData<typeof loader>()
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${loaderData.b_id_farm}`,
@@ -104,7 +104,7 @@ export default function BulkSoilAnalysisUploadPage() {
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Bodemanalyses uploaden</BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         <FarmTitle
           help="bodemanalyses-uploaden"
           title="Bodemanalyses uploaden"
@@ -144,7 +144,7 @@ export default function BulkSoilAnalysisUploadPage() {
             )}
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

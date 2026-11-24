@@ -111,7 +111,7 @@ export default function SupportSettingsProfile() {
   const navigate = useNavigate()
 
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Mijn Info"
         description="Hier kun je jouw informatie als medewerker beheren."
@@ -125,6 +125,6 @@ export default function SupportSettingsProfile() {
           if (!open) void navigate("..")
         }}
       />
-    </main>
+    </div>
   )
 }

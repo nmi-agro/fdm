@@ -23,6 +23,7 @@ import { HeaderNorms } from "~/components/blocks/header/norms"
 import { NormCard } from "~/components/blocks/norms/norm-card"
 import { NormsDisclaimer } from "~/components/blocks/norms/norms-disclaimer"
 import { NormsFallback } from "~/components/blocks/norms/skeletons"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -34,7 +35,6 @@ import {
   ItemTitle,
 } from "~/components/ui/item"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getNorms } from "~/integrations/calculator"
@@ -259,7 +259,7 @@ export default function FieldNormsBlock() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderNorms
@@ -268,7 +268,7 @@ export default function FieldNormsBlock() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           help="gebruiksruimte"
           title={"Gebruiksruimte"}
@@ -292,8 +292,8 @@ export default function FieldNormsBlock() {
             <FieldNormsContent {...loaderData} asyncData={loaderData.asyncData} />
           </Suspense>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

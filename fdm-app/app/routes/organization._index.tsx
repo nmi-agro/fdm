@@ -64,7 +64,7 @@ export default function OrganizationsIndex() {
   const { organizations, invitations } = useLoaderData<typeof loader>()
 
   return (
-    <main>
+    <div>
       <FarmTitle
         title="Mijn organisaties"
         description="Organisaties stellen je in staat om met anderen samen te werken. Je kunt organisaties aanmaken of lid worden om samen gegevens te beheren."
@@ -122,7 +122,7 @@ export default function OrganizationsIndex() {
           </Empty>
         </div>
       )}
-    </main>
+    </div>
   )
 }
 

@@ -249,7 +249,7 @@ export default function OrganizationGroup() {
     )
 
   return (
-    <main>
+    <div>
       <FarmTitle
         title={group.b_name_group}
         description="Beheer welke bedrijven in deze groep zitten en in welke periode. Een bedrijf kan in meerdere groepen zitten."
@@ -293,7 +293,7 @@ export default function OrganizationGroup() {
           </div>
         </div>
       </FarmContent>
-    </main>
+    </div>
   )
 }
 
