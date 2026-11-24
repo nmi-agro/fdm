@@ -32,9 +32,9 @@ import { buildColumns, type FieldExtended } from "~/components/blocks/fields/col
 import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { buttonVariants } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -393,7 +393,7 @@ export default function FarmFieldIndex() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${loaderData.b_id_farm}`,
@@ -406,7 +406,7 @@ export default function FarmFieldIndex() {
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Percelen</BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         {loaderData.fieldOptions.length === 0 ? (
           <>
             <FarmTitle
@@ -451,8 +451,8 @@ export default function FarmFieldIndex() {
           </>
         )}
         <Outlet />
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

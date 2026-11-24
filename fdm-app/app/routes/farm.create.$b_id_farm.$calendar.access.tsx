@@ -24,6 +24,7 @@ import {
   type AccessVerificationProvider,
 } from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
+import { PageContainer } from "~/components/custom/page-container"
 import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
@@ -43,7 +44,6 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import { Header } from "../components/blocks/header/base"
 import { HeaderFarmCreate } from "../components/blocks/header/create-farm"
-import { SidebarInset } from "../components/ui/sidebar"
 
 // Meta
 
@@ -109,11 +109,11 @@ export default function CreateFarmAccessStep() {
     useLoaderData<typeof loader>()
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined} help="toegang">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-10 pb-0">
           <div className="flex items-center">
             <div className="space-y-0.5">
@@ -143,8 +143,8 @@ export default function CreateFarmAccessStep() {
             <AccessInfoCard />
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

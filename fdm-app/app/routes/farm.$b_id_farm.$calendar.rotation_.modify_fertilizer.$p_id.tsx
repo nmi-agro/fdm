@@ -22,8 +22,8 @@ import { FormSchemaPartialModify } from "~/components/blocks/fertilizer-applicat
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { loadBulkCurrentState } from "~/integrations/fertilizer-application-impact.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -185,7 +185,7 @@ export default function ModifyFertilizerRoute() {
   const backLabel = loaderData.variant === "field" ? "Terug naar percelen" : "Terug naar bouwplan"
 
   const content = (
-    <main>
+    <div>
       <FarmTitle title={title} description={description} />
       <FarmContent>
         <ModifyFertilizerPage
@@ -199,7 +199,7 @@ export default function ModifyFertilizerRoute() {
           current={loaderData.current}
         />
       </FarmContent>
-    </main>
+    </div>
   )
 
   if (loaderData.variant === "create") {
@@ -214,7 +214,7 @@ export default function ModifyFertilizerRoute() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={{ to: loaderData.backUrl, label: backLabel, disabled: false }}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <BreadcrumbSeparator className="hidden md:block" />
@@ -225,7 +225,7 @@ export default function ModifyFertilizerRoute() {
         <BreadcrumbItem className="hidden md:block">{loaderData.fertilizerName}</BreadcrumbItem>
       </Header>
       {content}
-    </SidebarInset>
+    </PageContainer>
   )
 }
 

@@ -242,7 +242,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
   const location = useLocation()
 
   return (
-    <main className="space-y-4 p-8">
+    <div className="space-y-4 p-8">
       <h2 className="text-2xl font-bold tracking-tight">Organische stof</h2>
       <Suspense
         key={`${loaderData.organization.id},${location.search}`}
@@ -250,7 +250,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
       >
         <OrganizationFarmBalanceOrganicMatterOverview {...loaderData} />
       </Suspense>
-    </main>
+    </div>
   )
 }
 

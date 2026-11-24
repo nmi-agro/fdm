@@ -57,6 +57,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 // import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { Badge } from "~/components/ui/badge"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -77,7 +78,6 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useFarmWarmup } from "~/hooks/use-farm-warmup"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
@@ -541,7 +541,7 @@ export default function FarmDashboardIndex() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: "/",
@@ -551,7 +551,7 @@ export default function FarmDashboardIndex() {
       >
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={`${loaderData.b_name_farm}`}
           description={"Een overzicht van de bedrijfsgegevens en applicaties."}
@@ -1016,7 +1016,7 @@ export default function FarmDashboardIndex() {
             </div>
           </div>
         </FarmContent>
-      </main>
+      </div>
       <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
         <DialogContent className="max-w-md sm:max-w-lg">
           <DialogHeader>
@@ -1162,6 +1162,6 @@ export default function FarmDashboardIndex() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SidebarInset>
+    </PageContainer>
   )
 }

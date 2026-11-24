@@ -195,7 +195,7 @@ export default function FertilizerPlanTable() {
         <BreadcrumbSeparator />
         <BreadcrumbItem>Bemestingsplannen</BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         <FarmTitle
           help="bemestingsplan"
           title="Bemestingsplan"
@@ -240,7 +240,7 @@ export default function FertilizerPlanTable() {
         </div>
         {/* for the PDF viewer dialog */}
         <Outlet />
-      </main>
+      </div>
     </>
   )
 }

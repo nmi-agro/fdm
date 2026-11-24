@@ -6,6 +6,7 @@ import { data, NavLink, useLoaderData } from "react-router"
 import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
+import { PageContainer } from "~/components/custom/page-container"
 import {
   Accordion,
   AccordionContent,
@@ -14,7 +15,6 @@ import {
 } from "~/components/ui/accordion"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
@@ -65,11 +65,11 @@ export default function ChooseFieldImportMethod() {
   const showRvoOption = isRvoConfigured
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined} help="percelen-importeren">
         <HeaderFarmCreate b_name_farm={farm.b_name_farm} />
       </Header>
-      <main className="flex flex-1 flex-col items-center justify-center p-4">
+      <div className="flex flex-1 flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           <h1 className="mb-2 text-center text-2xl font-bold">Percelen importeren</h1>
           <p className="text-muted-foreground mb-8 text-center">
@@ -165,7 +165,7 @@ export default function ChooseFieldImportMethod() {
             </Card>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

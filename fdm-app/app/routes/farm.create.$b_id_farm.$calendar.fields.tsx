@@ -12,9 +12,9 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { NewFieldsSidebar } from "~/components/blocks/fields-new/sidebar"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -119,11 +119,11 @@ export default function Index() {
   const { fields, soilStatus, b_id_farm, b_name_farm, calendar } = loaderData
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined} help="percelen-controleren">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-10 pb-16">
           <div className="flex items-center">
             <div className="space-y-0.5">
@@ -160,7 +160,7 @@ export default function Index() {
             </div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

@@ -58,7 +58,7 @@ export default function FarmCreateRotationIndex() {
       <Header action={undefined}>
         <HeaderFarmCreate b_name_farm={currentFarmName} />
       </Header>
-      <main>
+      <div>
         {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
@@ -108,7 +108,7 @@ export default function FarmCreateRotationIndex() {
           </>
         )}
         <Outlet />
-      </main>
+      </div>
     </>
   )
 }

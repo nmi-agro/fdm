@@ -33,6 +33,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
+import { PageContainer } from "~/components/custom/page-container"
 import { buttonVariants } from "~/components/ui/button"
 import {
   Card,
@@ -43,7 +44,6 @@ import {
   CardTitle,
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -347,11 +347,11 @@ export default function AppIndex() {
   const atlasBaseFarmId = userFarms[0]?.b_id_farm ?? organizationFarms[0]?.b_id_farm ?? "undefined"
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderFarm b_id_farm={undefined} farmOptions={loaderData.farmOptions} />
       </Header>
-      <main className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col">
         {loaderData.farms.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center p-6 md:p-10">
             <div className="mx-auto flex w-full max-w-212.5 flex-col items-center space-y-8 text-center">
@@ -737,7 +737,7 @@ export default function AppIndex() {
             <SupportNote />
           </>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
