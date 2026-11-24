@@ -15,14 +15,18 @@ import { loader as indicatorsLoader } from "~/routes/farm.$b_id_farm.$calendar.i
 import { loader as measuresLoader } from "~/routes/farm.$b_id_farm.$calendar.measures._index"
 import { loader as normsLoader } from "~/routes/farm.$b_id_farm.$calendar.norms._index"
 import { loader as nutrientAdviceLoader } from "~/routes/farm.$b_id_farm.$calendar.nutrient_advice._index"
-import { actionArgs, loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
+import {
+  actionArgs,
+  loaderArgs,
+  runRoute,
+  type SeededUser,
+  seedUserWithFarm,
+  withNmiApiKey,
+} from "../helpers"
 import { signInAs } from "../session"
 
 // The calculations only call the NMI API when a key is configured
-vi.mock("~/integrations/nmi.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/integrations/nmi.server")>()
-  return { ...actual, getNmiApiKey: () => "test-key" }
-})
+withNmiApiKey()
 
 const NMI_ORIGIN = "https://api.nmi-agro.nl"
 

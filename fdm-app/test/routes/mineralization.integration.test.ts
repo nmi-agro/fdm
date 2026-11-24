@@ -19,14 +19,11 @@ import {
 } from "~/integrations/mineralization.server"
 import { fdm } from "~/lib/fdm.server"
 import { loader } from "~/routes/farm.$b_id_farm.$calendar.mineralization._index"
-import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
+import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm, withNmiApiKey } from "../helpers"
 import { signInAs } from "../session"
 
 // The calculations only call the NMI API when a key is configured
-vi.mock("~/integrations/nmi.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/integrations/nmi.server")>()
-  return { ...actual, getNmiApiKey: () => "test-key" }
-})
+withNmiApiKey()
 
 const NMI_ORIGIN = "https://api.nmi-agro.nl"
 const DYNA_PATH = "/bemestingsplan/dyna/v2"

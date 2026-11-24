@@ -5,9 +5,8 @@
  * per-field lookup, and accepting the suggestions adds them as before.
  *
  * The NMI API is replaced by a stub that answers per location. Every run uses new locations, so
- * the estimates are never cached yet and the requests can be counted. Only this file imports
- * the dashboard route, so the mock of `~/integrations/nmi.server` applies to it even when
- * another test file in the same worker (`isolate: false`) loaded the real module first.
+ * the estimates are never cached yet and the requests can be counted. The API key is set in the
+ * server config with `withNmiApiKey` and `setNmiApiKey`.
  */
 import { addField, getCultivationsForFarm, getFields } from "@nmi-agro/fdm-core"
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -16,15 +15,19 @@ import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.ser
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { action, loader } from "~/routes/farm.$b_id_farm._index"
-import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm, TEST_ORIGIN } from "../helpers"
+import {
+  loaderArgs,
+  runRoute,
+  type SeededUser,
+  seedUserWithFarm,
+  setNmiApiKey,
+  TEST_ORIGIN,
+  withNmiApiKey,
+} from "../helpers"
 import { signInAs } from "../session"
 
-const nmi = vi.hoisted(() => ({ apiKey: "test-key" as string | undefined }))
-
-vi.mock("~/integrations/nmi.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/integrations/nmi.server")>()
-  return { ...actual, getNmiApiKey: () => nmi.apiKey }
-})
+// Each test starts with a key (see `beforeEach`); one test removes it
+withNmiApiKey()
 
 const NMI_ORIGIN = "https://api.nmi-agro.nl"
 const realFetch = globalThis.fetch
@@ -157,7 +160,7 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  nmi.apiKey = "test-key"
+  setNmiApiKey("test-key")
   estimatesRequests = 0
   gate = Promise.resolve()
 })
@@ -229,7 +232,7 @@ describe("farm dashboard", () => {
   })
 
   it("has no suggestions without an NMI API key", async () => {
-    nmi.apiKey = undefined
+    setNmiApiKey(undefined)
     signInAs(owner.user)
     const { data } = await runRoute(() => loader(dashboardArgs()))
     const details = await (data as DashboardData).fieldsMissingCultivationDetails

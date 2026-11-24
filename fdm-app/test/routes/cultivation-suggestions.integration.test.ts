@@ -3,50 +3,90 @@
  * can prefetch it. Its cultivation suggestions, which come from the NMI API, load from the
  * resource route `farm.$b_id_farm.$calendar.cultivation-suggestions`.
  *
- * The NMI lookup is replaced by a stub, so the tests can count the lookups. Only this file
- * imports the resource route, so the mocks apply to it even when another test file in the same
- * worker (`isolate: false`) loaded the real modules first.
+ * The NMI API is replaced by a fetch stub that answers the estimates of one location and counts
+ * the requests. The field without a crop gets a new location on every run, so its estimate is
+ * never cached yet. The API key is set in the server config with `withNmiApiKey`.
  */
-import { addField, getField } from "@nmi-agro/fdm-core"
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { addField, getFields } from "@nmi-agro/fdm-core"
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { fdm } from "~/lib/fdm.server"
 import { loader as suggestionsLoader } from "~/routes/farm.$b_id_farm.$calendar.cultivation-suggestions"
 import { loader as fieldsTableLoader } from "~/routes/farm.$b_id_farm.$calendar.field"
-import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
+import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm, withNmiApiKey } from "../helpers"
 import { signInAs } from "../session"
 
-const nmi = vi.hoisted(() => ({ apiKey: "test-key" as string | undefined }))
+// The suggestions are only looked up when an NMI API key is configured
+withNmiApiKey()
 
-vi.mock("~/integrations/nmi.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/integrations/nmi.server")>()
-  return { ...actual, getNmiApiKey: () => nmi.apiKey }
+const NMI_ORIGIN = "https://api.nmi-agro.nl"
+const realFetch = globalThis.fetch
+
+/** The location (`lat,lon`) of the field without a crop, for which the stub knows grassland. */
+let bareLocation = ""
+/** The locations of the estimates requests since the last reset. */
+const estimatesRequests: string[] = []
+
+/** A small valid estimates answer with the BRP crop `b_lu_brp` in `year`. */
+const estimatesBody = (year: number, b_lu_brp: number) => ({
+  data: {
+    ...Object.fromEntries(
+      [
+        "a_al_ox",
+        "a_ca_co",
+        "a_ca_co_po",
+        "a_caco3_if",
+        "a_cec_co",
+        "a_clay_mi",
+        "a_cn_fr",
+        "a_com_fr",
+        "a_cu_cc",
+        "a_fe_ox",
+        "a_k_cc",
+        "a_k_co",
+        "a_k_co_po",
+        "a_mg_cc",
+        "a_mg_co",
+        "a_mg_co_po",
+        "a_n_pmn",
+        "a_n_rt",
+        "a_p_al",
+        "a_p_cc",
+        "a_p_ox",
+        "a_p_rt",
+        "a_p_sg",
+        "a_p_wa",
+        "a_ph_cc",
+        "a_s_rt",
+        "a_sand_mi",
+        "a_silt_mi",
+        "a_som_loi",
+        "a_zn_cc",
+        "b_gwl_ghg",
+        "b_gwl_glg",
+        "b_c_st03",
+        "b_som_potential",
+        "b_c_st03_potential",
+        "b_c_delta",
+      ].map((key) => [key, 1]),
+    ),
+    b_soiltype_agr: "dekzand",
+    b_gwl_class: "IIb",
+    cultivations: [{ year, b_lu_brp }],
+    cultivations_advanced: [],
+  },
 })
 
-/** Suggests the same crop for every requested field. */
-const getCultivationSuggestion = vi.hoisted(() =>
-  vi.fn(
-    async (_fdm: unknown, _principal: unknown, _farm: unknown, b_ids: string[]) =>
-      new Map(
-        b_ids.map((b_id) => [
-          b_id,
-          {
-            status: "suggested" as const,
-            suggestion: {
-              b_lu_catalogue: "nl_265",
-              b_lu_name: "Grasland, blijvend",
-              b_lu_start: new Date(Date.UTC(2026, 0, 1, 12)),
-              b_lu_end: undefined,
-            },
-          },
-        ]),
-      ),
-  ),
-)
-
-vi.mock("~/lib/cultivation-suggestion.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/lib/cultivation-suggestion.server")>()
-  return { ...actual, getCultivationSuggestionResultsForFarm: getCultivationSuggestion }
-})
+const fetchStub: typeof fetch = async (input, init) => {
+  const url = new URL(input instanceof Request ? input.url : String(input))
+  if (url.origin !== NMI_ORIGIN) return realFetch(input, init)
+  if (url.pathname !== "/estimates") {
+    return new Response("Not stubbed", { status: 404, statusText: "Not Found" })
+  }
+  const location = `${url.searchParams.get("a_lat")},${url.searchParams.get("a_lon")}`
+  estimatesRequests.push(location)
+  if (location !== bareLocation) return new Response("Unknown location", { status: 400 })
+  return Response.json(estimatesBody(owner.ids.year, 265))
+}
 
 let owner: SeededUser
 let stranger: SeededUser
@@ -54,29 +94,55 @@ let calendar: string
 /** A field without any cultivation, so it has no main cultivation. */
 let bareField: string
 
+/** A small square at a location that no earlier run used. */
+const square = () => {
+  const lon = 5 + Math.random()
+  const lat = 52 + Math.random()
+  const d = 0.001
+  return {
+    type: "Polygon" as const,
+    coordinates: [
+      [
+        [lon, lat],
+        [lon + d, lat],
+        [lon + d, lat + d],
+        [lon, lat + d],
+        [lon, lat],
+      ],
+    ],
+  }
+}
+
 beforeAll(async () => {
+  vi.stubGlobal("fetch", fetchStub)
   owner = await seedUserWithFarm("suggestions")
   stranger = await seedUserWithFarm("stranger")
   calendar = String(owner.ids.year)
 
-  const seededField = Object.values(owner.ids.fields).find((b_id): b_id is string => !!b_id)
-  if (!seededField) throw new Error("The seed has no fields")
-  const { b_geometry } = await getField(fdm, owner.user.id, seededField)
   bareField = await addField(
     fdm,
     owner.user.id,
     owner.ids.farm,
     "Perceel zonder gewas",
     null,
-    b_geometry,
+    square(),
     new Date(Date.UTC(owner.ids.year - 1, 0, 1, 12)),
     "nl_01",
   )
+  const field = (await getFields(fdm, owner.user.id, owner.ids.farm)).find(
+    (candidate) => candidate.b_id === bareField,
+  )
+  if (!field) throw new Error("The field without a crop was not added")
+  const [a_lon, a_lat] = field.b_centroid
+  bareLocation = `${a_lat},${a_lon}`
 })
 
 beforeEach(() => {
-  nmi.apiKey = "test-key"
-  getCultivationSuggestion.mockClear()
+  estimatesRequests.length = 0
+})
+
+afterAll(() => {
+  vi.unstubAllGlobals()
 })
 
 function tableArgs() {
@@ -94,11 +160,11 @@ function suggestionsArgs() {
 }
 
 describe("fields table", () => {
-  it("does not look up suggestions, and asks the page to load them", async () => {
+  it("does not request suggestions, and asks the page to load them", async () => {
     signInAs(owner.user)
     const { status, data } = await runRoute(() => fieldsTableLoader(tableArgs()))
     expect(status).toBe(200)
-    expect(getCultivationSuggestion).not.toHaveBeenCalled()
+    expect(estimatesRequests).toEqual([])
 
     const result = data as {
       loadCultivationSuggestions: boolean
@@ -126,17 +192,8 @@ describe("cultivation suggestions", () => {
     const { suggestions } = data as { suggestions: Record<string, { b_lu_catalogue: string }> }
     expect(Object.keys(suggestions)).toEqual([bareField])
     expect(suggestions[bareField].b_lu_catalogue).toBe("nl_265")
-    // One lookup for the farm, with only the field without a main cultivation
-    expect(getCultivationSuggestion).toHaveBeenCalledTimes(1)
-    expect(getCultivationSuggestion.mock.calls[0][3]).toEqual([bareField])
-  })
-
-  it("returns no suggestions without an NMI API key", async () => {
-    nmi.apiKey = undefined
-    signInAs(owner.user)
-    const { data } = await runRoute(() => suggestionsLoader(suggestionsArgs()))
-    expect(data).toEqual({ suggestions: {} })
-    expect(getCultivationSuggestion).not.toHaveBeenCalled()
+    // Only the field without a main cultivation was looked up
+    expect(estimatesRequests).toEqual([bareLocation])
   })
 
   it("gives a user without access to the farm no suggestions", async () => {
@@ -146,6 +203,6 @@ describe("cultivation suggestions", () => {
     const { status, data } = await runRoute(() => suggestionsLoader(suggestionsArgs()))
     expect(status).toBe(200)
     expect(data).toEqual({ suggestions: {} })
-    expect(getCultivationSuggestion).not.toHaveBeenCalled()
+    expect(estimatesRequests).toEqual([])
   })
 })

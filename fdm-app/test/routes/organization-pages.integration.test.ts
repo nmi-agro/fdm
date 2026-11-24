@@ -34,14 +34,11 @@ import { seedOrganization } from "../../e2e/seed/organization"
 import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
 import { signInAs } from "../session"
 
-// The indicator scores stream in from the NMI API; these tests only look at the fields
-vi.mock("~/integrations/bln3.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/integrations/bln3.server")>()
-  return { ...actual, getIndicatorsForFarm: async () => [] }
-})
-
 const realFetch = globalThis.fetch
-// No request may leave for the NMI API
+// No request may leave for the NMI API. The indicator scores that stream in from it then fail,
+// which the pages handle per farm; these tests only look at the fields. The integrations are
+// not mocked: with `isolate: false` a module mock can outlive this file and break other files
+// that use the same module (such as the farm warm-up).
 const fetchStub: typeof fetch = async (input, init) => {
   const url = new URL(input instanceof Request ? input.url : String(input))
   if (url.origin === "https://api.nmi-agro.nl") {
