@@ -20,6 +20,28 @@ import { formText } from "~/lib/form"
 import { farmTodayKey } from "~/lib/grazing-dates"
 import { serverNow } from "~/lib/server-now.server"
 
+/** The most animals that one change may add, as the forms allow. */
+const MAX_ANIMALS_PER_CHANGE = 5000
+
+/**
+ * The number of animals to add, from a submitted text: a whole number from 1 to 5000. The forms
+ * limit the input too, but a request can bypass them, and a very large number would build that
+ * many rows at once.
+ *
+ * @param value - The submitted number.
+ * @returns The number of animals.
+ * @throws A 400 response for any other value.
+ */
+export function parseAnimalCount(value: string): number {
+  const count = Number(value)
+  if (!Number.isInteger(count) || count < 1 || count > MAX_ANIMALS_PER_CHANGE) {
+    throw data(`Het aantal dieren moet tussen 1 en ${MAX_ANIMALS_PER_CHANGE} liggen.`, {
+      status: 400,
+    })
+  }
+  return count
+}
+
 /**
  * The arrival of new animals (of a new herd, or added to a herd), from the submitted day
  * `l_arriving_date`
@@ -94,7 +116,7 @@ export async function handleLivestockEvent(
     // herd no longer holds that count, for example after a change in another tab
     const options = { expected_count: previousCount }
     if (targetCount > previousCount) {
-      const toAdd = targetCount - previousCount
+      const toAdd = parseAnimalCount(String(targetCount - previousCount))
       await addAnimalsToHerd(
         fdm,
         principal_id,
@@ -137,7 +159,7 @@ export async function handleLivestockEvent(
       principal_id,
       b_id_farm,
       { l_herd_name, l_id_category },
-      Number.parseInt(formText(formData, "count", "0"), 10),
+      parseAnimalCount(formText(formData, "count")),
       { l_arriving_date: parseHerdArrival(formData) },
     )
     return dataWithSuccess({ l_herd_name }, { message: `Koppel ${l_herd_name} aangemaakt.` })

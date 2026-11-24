@@ -229,6 +229,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     return await handleGrazingEvent(await request.formData(), {
       principal_id: session.principal_id,
+      b_id_farm,
       calendar: getCalendar(params),
     })
   } catch (error) {

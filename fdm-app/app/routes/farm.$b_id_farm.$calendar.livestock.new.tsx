@@ -9,10 +9,12 @@ import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
+  Form,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
   useLoaderData,
+  useNavigation,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -40,7 +42,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
 import { herdArrivalDefaultKey } from "~/lib/grazing-dates"
-import { parseHerdArrival } from "~/lib/livestock-events.server"
+import { parseAnimalCount, parseHerdArrival } from "~/lib/livestock-events.server"
 import { serverNow } from "~/lib/server-now.server"
 
 export const meta: MetaFunction = () => {
@@ -127,14 +129,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const formData = await request.formData()
     const l_id_category = formText(formData, "l_id_category")
     const l_herd_name = formText(formData, "l_herd_name", "Melkkoeien").trim()
-    const count = Number.parseInt(formText(formData, "count", "0"), 10)
 
     if (!l_id_category) {
       throw data("Diercategorie is verplicht.", { status: 400 })
     }
-    if (isNaN(count) || count <= 0) {
-      throw data("Aantal dieren moet minimaal 1 zijn.", { status: 400 })
-    }
+    // 1 to 5000, also when a request bypasses the input's limits
+    const count = parseAnimalCount(formText(formData, "count"))
 
     await createHerdWithAnimals(
       fdm,
@@ -162,6 +162,8 @@ export default function LivestockOnboarding() {
     useLoaderData<typeof loader>()
   // Follows the chosen year until the user picks a day
   const [arrivalDay, setArrivalDay] = useKeyedState(defaultArrivalDay, (day) => day)
+  // A second click while the herd is being created would create it twice
+  const navigation = useNavigation()
 
   const defaultCategory = categories.find((c) => c.l_id_category === "rvo_100") ?? categories[0]
   const [selectedCategory, setSelectedCategory] = useState(defaultCategory?.l_id_category ?? "")
@@ -220,7 +222,8 @@ export default function LivestockOnboarding() {
           <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[minmax(0,40rem)_minmax(0,1fr)] lg:items-start">
             <Card className="shadow-sm">
               {/* The form is the card's only child, so it carries the card's spacing itself */}
-              <form method="post" className="flex flex-col gap-(--card-spacing)">
+              {/* A client-side submit: a native form reloads the page and shows its toast twice */}
+              <Form method="post" className="flex flex-col gap-(--card-spacing)">
                 <CardContent className="space-y-6">
                   <FieldGroup>
                     <Field>
@@ -299,11 +302,14 @@ export default function LivestockOnboarding() {
                   >
                     Annuleren
                   </Button>
-                  <Button type="submit" disabled={!hasCategories || !selectedCategory}>
+                  <Button
+                    type="submit"
+                    disabled={!hasCategories || !selectedCategory || navigation.state !== "idle"}
+                  >
                     Koppel aanmaken
                   </Button>
                 </CardFooter>
-              </form>
+              </Form>
             </Card>
 
             {/* What the form creates, without a container of its own; on a wide screen it lines
