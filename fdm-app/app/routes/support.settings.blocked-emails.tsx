@@ -116,12 +116,12 @@ export default function HelpdeskAgentSettings() {
   const { blockedEmails, helpdeskWritePermission } = useLoaderData<typeof loader>()
 
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Geblokkeerde e-mailadressen"
         description="Bekijk de e-mailadressen waarvandaan geen e-mails verzonden mogen worden."
       />
       <BlockedEmailsManager blockedEmails={blockedEmails} canModify={helpdeskWritePermission} />
-    </main>
+    </div>
   )
 }

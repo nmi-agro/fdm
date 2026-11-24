@@ -25,6 +25,12 @@ const SUITE = process.env.E2E_SUITE === "screenshots" ? "screenshots" : "smoke"
 // The seed signs up its users with its own better-auth instance, in the test workers.
 process.env.BETTER_AUTH_URL = BASE_URL
 
+// The app, the seed and the browser run in the time zone of production. On a host in another
+// zone (UTC in most containers), the server would render dates a day off from the browser, and
+// every page that shows a date would fail on a hydration error.
+const TIME_ZONE = "Europe/Amsterdam"
+process.env.TZ = TIME_ZONE
+
 // The app runs as in production and reads the database, secrets and API keys from the
 // environment of this process.
 const appEnv: Record<string, string> = {
@@ -153,7 +159,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: BASE_URL,
     locale: "nl-NL",
-    timezoneId: "Europe/Amsterdam",
+    timezoneId: TIME_ZONE,
     colorScheme: "light",
     actionTimeout: 30_000,
     navigationTimeout: 60_000,

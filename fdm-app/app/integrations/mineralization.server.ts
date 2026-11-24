@@ -141,11 +141,11 @@ export async function loadFarmMineralizationContext(args: {
 }
 
 /**
- * Runs Dyna for a prepared request.
- *
- * Requests with several cultivations can fail at the API. In that case the calculation is
- * repeated with only the main cultivation and the outcome is marked as partial.
+ * Maximum number of Dyna calculations, and of weather forecasts, of one page that are requested
+ * from the NMI API at the same time.
  */
+const NMI_API_CONCURRENCY = 5
+
 /**
  * Requests with several cultivations that the API could not calculate, so they are not sent again
  * while this server runs. Bounded to keep memory use small.
@@ -153,38 +153,90 @@ export async function loadFarmMineralizationContext(args: {
 const failedMultiCultivationRequests = new Set<string>()
 const MAX_REMEMBERED_FAILURES = 1000
 
-async function runDyna(
+/** A Dyna request of a field, with the main cultivation to fall back to. */
+interface DynaJob {
+  request: DynaV2Request
+  mainB_lu: string
+}
+
+/**
+ * Runs Dyna for the prepared requests of several fields, with one cache lookup for all of them.
+ *
+ * Requests with several cultivations can fail at the API. In that case the calculation is
+ * repeated with only the main cultivation and the outcome is marked as partial. These repeats
+ * start once every first attempt has finished, and share a second cache lookup.
+ *
+ * @param nmiApiKey - NMI API key.
+ * @param jobs - The requests, one per field.
+ * @param calculationDate - Calculation date (`YYYY-MM-DD`).
+ * @returns One promise per job, in the order of `jobs`; a failed calculation rejects only its own
+ *   promise.
+ */
+function runDyna(
   nmiApiKey: string,
-  request: DynaV2Request,
-  mainB_lu: string,
+  jobs: readonly DynaJob[],
   calculationDate: string,
-): Promise<{ result: DynaV2Result; partial: boolean }> {
-  const multipleCultivations = (request.cultivations?.length ?? 0) > 1
-  const requestKey = multipleCultivations ? JSON.stringify(request) : ""
-  const fallback = async () => ({
-    result: await getDynaV2(fdm, {
-      nmiApiKey,
-      request: restrictToMainCultivation(request, mainB_lu),
-      calculationDate,
-    }),
-    partial: true,
+): Promise<{ result: DynaV2Result; partial: boolean }>[] {
+  const options = { concurrency: NMI_API_CONCURRENCY }
+  const attempts = jobs.map(({ request, mainB_lu }) => {
+    const multipleCultivations = (request.cultivations?.length ?? 0) > 1
+    const requestKey = multipleCultivations ? JSON.stringify(request) : ""
+    // A request that failed before goes straight to the main cultivation
+    if (multipleCultivations && failedMultiCultivationRequests.has(requestKey)) {
+      return {
+        request: restrictToMainCultivation(request, mainB_lu),
+        partial: true,
+        canFallBack: false,
+        requestKey,
+      }
+    }
+    return { request, partial: false, canFallBack: multipleCultivations, requestKey }
   })
-  if (multipleCultivations && failedMultiCultivationRequests.has(requestKey)) {
-    return fallback()
-  }
-  try {
-    const result = await getDynaV2(fdm, { nmiApiKey, request, calculationDate })
-    return { result, partial: false }
-  } catch (error) {
-    if (error instanceof NmiApiError && error.status >= 500 && multipleCultivations) {
+  const needsFallback = (index: number, error: unknown) =>
+    attempts[index].canFallBack && error instanceof NmiApiError && error.status >= 500
+
+  const first = getDynaV2.many(
+    fdm,
+    attempts.map(({ request }) => ({ nmiApiKey, request, calculationDate })),
+    options,
+  )
+  const fallbacks = Promise.allSettled(first).then((settled) => {
+    const indexes = settled.flatMap((outcome, index) =>
+      outcome.status === "rejected" && needsFallback(index, outcome.reason) ? [index] : [],
+    )
+    for (const index of indexes) {
       if (failedMultiCultivationRequests.size >= MAX_REMEMBERED_FAILURES) {
         failedMultiCultivationRequests.clear()
       }
-      failedMultiCultivationRequests.add(requestKey)
-      return fallback()
+      failedMultiCultivationRequests.add(attempts[index].requestKey)
     }
-    throw error
-  }
+    const results =
+      indexes.length > 0
+        ? getDynaV2.many(
+            fdm,
+            indexes.map((index) => ({
+              nmiApiKey,
+              request: restrictToMainCultivation(jobs[index].request, jobs[index].mainB_lu),
+              calculationDate,
+            })),
+            options,
+          )
+        : []
+    return new Map(indexes.map((index, i) => [index, results[i]]))
+  })
+  // Only fields that need a repeat await it; they handle its errors
+  fallbacks.catch(() => undefined)
+
+  return first.map(async (promise, index) => {
+    try {
+      return { result: await promise, partial: attempts[index].partial }
+    } catch (error) {
+      if (!needsFallback(index, error)) throw error
+      const fallback = (await fallbacks).get(index)
+      if (!fallback) throw error
+      return { result: await fallback, partial: true }
+    }
+  })
 }
 
 /** Reduces a cultivation to the fields that are sent to the browser. */
@@ -199,8 +251,240 @@ function summarizeCultivation(c: MineralizationCultivation): MineralizationMainC
   }
 }
 
+/** Options of {@link calculateFarmMineralization} and {@link calculateFieldMineralization}. */
+export interface MineralizationCalculationOptions {
+  /** Replaces the prepared request of a field (used for scenarios). */
+  transformRequest?: (
+    request: DynaV2Request,
+    mainCultivation: MineralizationCultivation,
+    usedInput: MineralizationUsedInput,
+  ) => DynaV2Request
+}
+
+type OutcomeBase = Pick<FieldMineralizationOutcome, "b_id" | "b_name" | "b_area">
+type ReadyPreparation = Extract<ReturnType<typeof prepareMineralizationInput>, { status: "ready" }>
+
+/** A field that is ready to be sent to Dyna. */
+interface ReadyField {
+  base: OutcomeBase
+  preparation: ReadyPreparation
+  request: DynaV2Request
+  /** Location of the weather forecast, rounded so nearby fields share one. */
+  location: { a_lat: number; a_lon: number }
+}
+
+/** Turns an error of a field into its outcome, with a Dutch message. */
+function toErrorOutcome(base: OutcomeBase, error: unknown): FieldMineralizationOutcome {
+  console.error(`Mineralization calculation failed for field ${base.b_id}:`, error)
+  return {
+    ...base,
+    status: "error",
+    message: error instanceof NmiApiError ? error.message : "Er ging iets mis bij de berekening.",
+  }
+}
+
 /**
- * Calculates the mineralization of one field.
+ * Calculates the mineralization of several fields of a farm.
+ *
+ * The Dyna calculations of all fields share one cache lookup, and the weather forecast is
+ * requested once per (rounded) location; requests to the NMI API run with a concurrency limit.
+ * The default harvest dates of fields without a harvest are looked up once per cultivation.
+ *
+ * The promises never reject: problems are returned as an outcome with `status: "error"` and a
+ * Dutch message, so a failing field does not affect the others.
+ *
+ * @param ctx - Farm context from {@link loadFarmMineralizationContext}.
+ * @param b_ids - Field identifiers.
+ * @param principal_id - Principal of the session.
+ * @param b_id_farm - Farm identifier.
+ * @param options - See {@link MineralizationCalculationOptions}.
+ * @returns One promise per field, in the order of `b_ids`.
+ */
+export function calculateFarmMineralization(
+  ctx: FarmMineralizationContext,
+  b_ids: readonly string[],
+  principal_id: string,
+  b_id_farm: string,
+  options: MineralizationCalculationOptions = {},
+): Promise<FieldMineralizationOutcome>[] {
+  const fieldsById = new Map(ctx.fields.map((field) => [field.b_id, field]))
+  const nmiApiKey = getNmiApiKey()
+
+  const defaultHarvestDates = new Map<string, Promise<string | null>>()
+  const getDefaultHarvestDate = (b_lu_catalogue: string) => {
+    let date = defaultHarvestDates.get(b_lu_catalogue)
+    if (!date) {
+      date = getDefaultDatesOfCultivation(fdm, principal_id, b_id_farm, b_lu_catalogue, ctx.year)
+        .then((defaults) => (defaults.b_lu_end ? toFdmDateString(defaults.b_lu_end) : null))
+        .catch(() => null)
+      defaultHarvestDates.set(b_lu_catalogue, date)
+    }
+    return date
+  }
+
+  // Prepare every field; only the fields that are ready go to Dyna
+  const prepared = b_ids.map(
+    (b_id): { outcome: Promise<FieldMineralizationOutcome> } | ReadyField => {
+      const field = fieldsById.get(b_id)
+      const base = {
+        b_id,
+        b_name: field?.b_name ?? null,
+        b_area: field?.b_area ?? null,
+      }
+      const done = (outcome: FieldMineralizationOutcome) => ({ outcome: Promise.resolve(outcome) })
+      try {
+        const data = ctx.data.get(b_id)
+        if (!data) {
+          return done({
+            ...base,
+            status: "error",
+            message: "Dit perceel is niet gevonden in dit jaar.",
+          })
+        }
+
+        const preparation = prepareMineralizationInput(data, ctx.year, ctx.today)
+        switch (preparation.status) {
+          case "excluded":
+            return done({ ...base, status: "excluded", reason: preparation.reason })
+          case "missing_location":
+          case "no_cultivation":
+            return done({ ...base, status: preparation.status })
+          case "missing_harvest": {
+            const main = preparation.mainCultivation
+            return {
+              outcome: getDefaultHarvestDate(main.b_lu_catalogue).then(
+                (defaultHarvestDate): FieldMineralizationOutcome => ({
+                  ...base,
+                  status: "missing_harvest",
+                  mainCultivation: summarizeCultivation(main),
+                  defaultHarvestDate,
+                }),
+              ),
+            }
+          }
+          case "ready":
+            break
+        }
+
+        if (!nmiApiKey) {
+          return done({
+            ...base,
+            status: "error",
+            message: "De berekening is niet beschikbaar: er is geen NMI API-sleutel ingesteld.",
+          })
+        }
+
+        const request = options.transformRequest
+          ? options.transformRequest(
+              preparation.request,
+              preparation.mainCultivation,
+              preparation.usedInput,
+            )
+          : preparation.request
+        const location = {
+          a_lat: roundCoordinate(request.field.a_lat),
+          a_lon: roundCoordinate(request.field.a_lon),
+        }
+        return { base, preparation, request, location }
+      } catch (error) {
+        return done(toErrorOutcome(base, error))
+      }
+    },
+  )
+
+  const ready = prepared.filter((entry): entry is ReadyField => "request" in entry)
+  const readyOutcomes =
+    nmiApiKey && ready.length > 0 ? calculateReadyFields(ctx, ready, nmiApiKey) : []
+  let readyIndex = 0
+  return prepared.map((entry) => ("outcome" in entry ? entry.outcome : readyOutcomes[readyIndex++]))
+}
+
+/**
+ * Runs Dyna and the weather forecast for the fields that are ready, and interprets the results.
+ *
+ * @returns One promise per field, in the order of `ready`; the promises never reject.
+ */
+function calculateReadyFields(
+  ctx: FarmMineralizationContext,
+  ready: readonly ReadyField[],
+  nmiApiKey: string,
+): Promise<FieldMineralizationOutcome>[] {
+  const todayDate = toFdmDateString(ctx.today)
+  const currentYear = Number(todayDate.slice(0, 4))
+
+  // The forecast only matters for the current year. Identical inputs are requested once, so
+  // fields at the same rounded location share a forecast.
+  const forecasts: Promise<WeatherForecast | null>[] =
+    ctx.year === currentYear
+      ? getWeatherForecast
+          .many(
+            fdm,
+            ready.map(({ location }) => ({ nmiApiKey, ...location, date: todayDate })),
+            { concurrency: NMI_API_CONCURRENCY },
+          )
+          .map((forecast) => forecast.catch(() => null))
+      : ready.map(() => Promise.resolve(null))
+  const dyna = runDyna(
+    nmiApiKey,
+    ready.map(({ request, preparation }) => ({
+      request,
+      mainB_lu: preparation.mainCultivation.b_lu,
+    })),
+    todayDate,
+  )
+  const fertilizerOptions = ctx.fertilizers.map((f) => ({
+    p_id: f.p_id,
+    p_name_nl: f.p_name_nl,
+    p_app_amount_unit: f.p_app_amount_unit,
+    p_app_method_options: f.p_app_method_options ?? [],
+    p_type: f.p_type ?? null,
+  }))
+
+  return ready.map(
+    async ({ base, preparation, request }, index): Promise<FieldMineralizationOutcome> => {
+      try {
+        const [{ result, partial }, forecast] = await Promise.all([dyna[index], forecasts[index]])
+        const main = preparation.mainCultivation
+        const mainCultivation = request.cultivations?.find((c) => c.b_lu_id === main.b_lu)
+        const mainStart = mainCultivation?.b_lu_start ?? `${ctx.year}-01-01`
+        const mainHarvest =
+          request.harvests?.filter((h) => h.b_lu_id === main.b_lu).at(-1)?.b_date_harvest ??
+          mainCultivation?.b_lu_end ??
+          `${ctx.year}-12-31`
+
+        const insights = deriveMineralizationInsights({
+          result,
+          events: preparation.events,
+          forecast,
+          year: ctx.year,
+          today: ctx.today,
+          mainStart,
+          mainHarvest,
+        })
+
+        return {
+          ...base,
+          status: "ok",
+          mainCultivation: summarizeCultivation(main),
+          result,
+          insights,
+          events: preparation.events,
+          usedInput: preparation.usedInput,
+          forecast,
+          mainStart,
+          mainHarvest,
+          partial,
+          fertilizerOptions,
+        }
+      } catch (error) {
+        return toErrorOutcome(base, error)
+      }
+    },
+  )
+}
+
+/**
+ * Calculates the mineralization of one field; see {@link calculateFarmMineralization}.
  *
  * Never rejects: problems are returned as an outcome with `status: "error"` and a Dutch message.
  *
@@ -208,143 +492,17 @@ function summarizeCultivation(c: MineralizationCultivation): MineralizationMainC
  * @param b_id - Field identifier.
  * @param principal_id - Principal of the session.
  * @param b_id_farm - Farm identifier.
- * @param options.calculation - Optional replacement of the prepared request (used for scenarios).
+ * @param options - See {@link MineralizationCalculationOptions}.
  * @returns The outcome of the field.
  */
-export async function calculateFieldMineralization(
+export function calculateFieldMineralization(
   ctx: FarmMineralizationContext,
   b_id: string,
   principal_id: string,
   b_id_farm: string,
-  options: {
-    transformRequest?: (
-      request: DynaV2Request,
-      mainCultivation: MineralizationCultivation,
-      usedInput: MineralizationUsedInput,
-    ) => DynaV2Request
-  } = {},
+  options: MineralizationCalculationOptions = {},
 ): Promise<FieldMineralizationOutcome> {
-  const field = ctx.fields.find((f) => f.b_id === b_id)
-  const base = {
-    b_id,
-    b_name: field?.b_name ?? null,
-    b_area: field?.b_area ?? null,
-  }
-  try {
-    const data = ctx.data.get(b_id)
-    if (!data) {
-      return { ...base, status: "error", message: "Dit perceel is niet gevonden in dit jaar." }
-    }
-
-    const preparation = prepareMineralizationInput(data, ctx.year, ctx.today)
-    switch (preparation.status) {
-      case "excluded":
-        return { ...base, status: "excluded", reason: preparation.reason }
-      case "missing_location":
-      case "no_cultivation":
-        return { ...base, status: preparation.status }
-      case "missing_harvest": {
-        const main = preparation.mainCultivation
-        let defaultHarvestDate: string | null = null
-        try {
-          const defaults = await getDefaultDatesOfCultivation(
-            fdm,
-            principal_id,
-            b_id_farm,
-            main.b_lu_catalogue,
-            ctx.year,
-          )
-          defaultHarvestDate = defaults.b_lu_end ? toFdmDateString(defaults.b_lu_end) : null
-        } catch {
-          defaultHarvestDate = null
-        }
-        return {
-          ...base,
-          status: "missing_harvest",
-          mainCultivation: summarizeCultivation(main),
-          defaultHarvestDate,
-        }
-      }
-      case "ready":
-        break
-    }
-
-    const nmiApiKey = getNmiApiKey()
-    if (!nmiApiKey) {
-      return {
-        ...base,
-        status: "error",
-        message: "De berekening is niet beschikbaar: er is geen NMI API-sleutel ingesteld.",
-      }
-    }
-
-    const main = preparation.mainCultivation
-    const request = options.transformRequest
-      ? options.transformRequest(preparation.request, main, preparation.usedInput)
-      : preparation.request
-    const todayDate = toFdmDateString(ctx.today)
-    const currentYear = Number(todayDate.slice(0, 4))
-
-    const forecastPromise: Promise<WeatherForecast | null> =
-      ctx.year === currentYear
-        ? getWeatherForecast(fdm, {
-            nmiApiKey,
-            a_lat: roundCoordinate(request.field.a_lat),
-            a_lon: roundCoordinate(request.field.a_lon),
-            date: todayDate,
-          }).catch(() => null)
-        : Promise.resolve(null)
-
-    const [{ result, partial }, forecast] = await Promise.all([
-      runDyna(nmiApiKey, request, main.b_lu, todayDate),
-      forecastPromise,
-    ])
-
-    const mainCultivation = request.cultivations?.find((c) => c.b_lu_id === main.b_lu)
-    const mainStart = mainCultivation?.b_lu_start ?? `${ctx.year}-01-01`
-    const mainHarvest =
-      request.harvests?.filter((h) => h.b_lu_id === main.b_lu).at(-1)?.b_date_harvest ??
-      mainCultivation?.b_lu_end ??
-      `${ctx.year}-12-31`
-
-    const insights = deriveMineralizationInsights({
-      result,
-      events: preparation.events,
-      forecast,
-      year: ctx.year,
-      today: ctx.today,
-      mainStart,
-      mainHarvest,
-    })
-
-    return {
-      ...base,
-      status: "ok",
-      mainCultivation: summarizeCultivation(main),
-      result,
-      insights,
-      events: preparation.events,
-      usedInput: preparation.usedInput,
-      forecast,
-      mainStart,
-      mainHarvest,
-      partial,
-      fertilizerOptions: ctx.fertilizers.map((f) => ({
-        p_id: f.p_id,
-        p_name_nl: f.p_name_nl,
-        p_app_amount_unit: f.p_app_amount_unit,
-        p_app_method_options: f.p_app_method_options ?? [],
-        p_type: f.p_type ?? null,
-      })),
-    }
-  } catch (error) {
-    console.error(`Mineralization calculation failed for field ${b_id}:`, error)
-    return {
-      ...base,
-      status: "error",
-      message: error instanceof NmiApiError ? error.message : "Er ging iets mis bij de berekening.",
-    }
-  }
+  return calculateFarmMineralization(ctx, [b_id], principal_id, b_id_farm, options)[0]
 }
 
 /**

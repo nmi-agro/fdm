@@ -16,6 +16,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { StatTile } from "~/components/blocks/livestock/stat-tile"
+import { PageContainer } from "~/components/custom/page-container"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -129,7 +130,7 @@ export default function GrazingInsightsPage() {
   const hasAttentionPoints = metrics.incompleteRecords.count > 0
 
   return (
-    <div className="bg-background relative flex w-full flex-1 flex-col">
+    <PageContainer className="bg-background">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -353,6 +354,6 @@ export default function GrazingInsightsPage() {
           </div>
         </FarmContent>
       </div>
-    </div>
+    </PageContainer>
   )
 }

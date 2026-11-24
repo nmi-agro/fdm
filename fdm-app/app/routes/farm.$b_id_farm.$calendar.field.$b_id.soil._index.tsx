@@ -112,37 +112,26 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // Get soil parameter descriptions
     const soilParameterDescription = getSoilParametersDescription()
 
-    const pathname = url.pathname
-    const fieldWritePermission = checkPermission(
+    const fieldWritePermission = await checkPermission(
       fdm,
       "field",
       "write",
       b_id,
       session.principal_id,
-      pathname,
+      url.pathname,
       false,
     )
 
-    const soilAnalysisWritePermissionsEntries = await Promise.all(
-      filteredSoilAnalyses.map(async (analysis) => [
-        analysis.a_id,
-        await checkPermission(
-          fdm,
-          "soil_analysis",
-          "write",
-          analysis.a_id,
-          session.principal_id,
-          pathname,
-          false,
-        ),
-      ]),
+    // A soil analysis inherits its permissions from its field, and a soil analysis can be
+    // written by the same roles as its field, so the field check applies to each analysis
+    const soilAnalysisWritePermissions = Object.fromEntries(
+      filteredSoilAnalyses.map((analysis) => [analysis.a_id, fieldWritePermission]),
     )
-    const soilAnalysisWritePermissions = Object.fromEntries(soilAnalysisWritePermissionsEntries)
 
     // Return user information from loader
     return {
       field: field,
-      fieldWritePermission: await fieldWritePermission,
+      fieldWritePermission: fieldWritePermission,
       currentSoilData: currentSoilData,
       soilParameterDescription: soilParameterDescription,
       soilAnalyses: filteredSoilAnalyses,

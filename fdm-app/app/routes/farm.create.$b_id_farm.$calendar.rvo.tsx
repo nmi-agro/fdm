@@ -41,10 +41,10 @@ import {
   getImportValidationMessage,
   ImportReviewChoicesSchema,
 } from "~/components/blocks/rvo/schema"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
 import {
   createConfiguredRvoClient,
   createRvoState,
@@ -343,7 +343,7 @@ export default function RvoImportCreatePage() {
 
   if (error) {
     return (
-      <SidebarInset>
+      <PageContainer>
         <Header action={undefined}>
           <HeaderFarmCreate b_name_farm={b_name_farm} />
           <BreadcrumbSeparator />
@@ -351,7 +351,7 @@ export default function RvoImportCreatePage() {
             <BreadcrumbLink>Percelen ophalen bij RVO</BreadcrumbLink>
           </BreadcrumbItem>
         </Header>
-        <main className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto">
           <div className="flex items-center justify-between">
             <FarmTitle
               title={accessDenied ? "Geen toegang bij RVO" : "Fout bij ophalen percelen bij RVO"}
@@ -379,13 +379,13 @@ export default function RvoImportCreatePage() {
               </div>
             </div>
           </FarmContent>
-        </main>
-      </SidebarInset>
+        </div>
+      </PageContainer>
     )
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderFarmCreate b_name_farm={b_name_farm} />
         <BreadcrumbSeparator />
@@ -393,7 +393,7 @@ export default function RvoImportCreatePage() {
           <BreadcrumbLink>Percelen ophalen bij RVO</BreadcrumbLink>
         </BreadcrumbItem>
       </Header>
-      <main className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto">
         {actionData?.message && (
           <div className="p-6">
             <Alert variant={actionData.success ? "default" : "destructive"}>
@@ -496,8 +496,8 @@ export default function RvoImportCreatePage() {
             </FarmContent>
           </>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

@@ -22,6 +22,7 @@ import { GrazingPopover } from "~/components/blocks/grazing/grazing-popover"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { getSession } from "~/lib/auth.server"
@@ -239,7 +240,7 @@ export default function BeweidingskalenderPage() {
   const hasGrassland = matrix !== null && matrix.fields.length > 0
 
   return (
-    <div className="bg-background relative flex w-full flex-1 flex-col">
+    <PageContainer className="bg-background">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -396,6 +397,6 @@ export default function BeweidingskalenderPage() {
         formAction="?index"
         presentation="dialog"
       />
-    </div>
+    </PageContainer>
   )
 }

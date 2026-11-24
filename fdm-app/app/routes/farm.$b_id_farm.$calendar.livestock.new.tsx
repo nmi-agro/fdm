@@ -24,6 +24,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AnimalCategoryCombobox } from "~/components/blocks/livestock/animal-category-combobox"
 import { HerdArrivalField } from "~/components/blocks/livestock/herd-arrival-field"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter } from "~/components/ui/card"
@@ -189,7 +190,7 @@ export default function LivestockOnboarding() {
   }
 
   return (
-    <div className="bg-background relative flex w-full flex-1 flex-col">
+    <PageContainer className="bg-background">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock`,
@@ -323,6 +324,6 @@ export default function LivestockOnboarding() {
           </div>
         </FarmContent>
       </div>
-    </div>
+    </PageContainer>
   )
 }

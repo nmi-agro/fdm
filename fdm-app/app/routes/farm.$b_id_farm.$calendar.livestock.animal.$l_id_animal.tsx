@@ -35,6 +35,7 @@ import {
   getEartagError,
 } from "~/components/blocks/livestock/animal-number-fields"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { PageContainer } from "~/components/custom/page-container"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -434,7 +435,7 @@ export default function AnimalDetailPage() {
   }
 
   return (
-    <div className="bg-background relative flex w-full flex-1 flex-col">
+    <PageContainer className="bg-background">
       <Header
         action={{
           to: `/farm/${b_id_farm}/${calendar}/livestock/animals`,
@@ -898,6 +899,6 @@ export default function AnimalDetailPage() {
           </div>
         </FarmContent>
       </div>
-    </div>
+    </PageContainer>
   )
 }

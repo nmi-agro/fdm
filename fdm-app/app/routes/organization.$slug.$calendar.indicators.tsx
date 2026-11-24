@@ -1,5 +1,5 @@
 import { computeMinimumScores } from "@nmi-agro/fdm-calculator/browser"
-import { getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getFarms, getFieldsForFarms } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
 import { Map as MapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
@@ -128,16 +128,19 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
       lastPromise = scorePromise.then(() => undefined)
     }
 
-    const farmsExtended = await Promise.all(
-      farms.map(async (farm) => {
-        const fields = await getFields(fdm, organization.id, farm.b_id_farm)
-        return {
-          b_id: farm.b_id_farm,
-          b_name: farm.b_name_farm,
-          b_area: fields.reduce((total, field) => total + (field.b_area ?? 0), 0),
-        }
-      }),
+    const fieldsByFarm = await getFieldsForFarms(
+      fdm,
+      organization.id,
+      farms.map((farm) => farm.b_id_farm),
     )
+    const farmsExtended = farms.map((farm) => ({
+      b_id: farm.b_id_farm,
+      b_name: farm.b_name_farm,
+      b_area: (fieldsByFarm.get(farm.b_id_farm) ?? []).reduce(
+        (total, field) => total + (field.b_area ?? 0),
+        0,
+      ),
+    }))
 
     return {
       organization,
@@ -260,7 +263,7 @@ export default function IndicatorsFarmIndex() {
   )
 
   return (
-    <main className="min-w-0">
+    <div className="min-w-0">
       <FarmTitle
         title="Indicatoren"
         description="BLN3 bodemkwaliteitsindicatoren voor alle bedrijven met toegang door deze organisatie."
@@ -367,6 +370,6 @@ export default function IndicatorsFarmIndex() {
           </CardContent>
         </Card>
       </div>
-    </main>
+    </div>
   )
 }
