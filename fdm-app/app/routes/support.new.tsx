@@ -228,12 +228,12 @@ export async function action({ request }: Route.ActionArgs) {
 export default function NewTicket() {
   const { farmOptions, initial_context_farm_id } = useLoaderData<typeof loader>()
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Nieuw ticket"
         description="Stel uw vraag of meld een probleem. Een medewerker neemt doorgaans binnen enkele werkdagen contact met u op."
       />
       <TicketComposer farmOptions={farmOptions} initial_context_farm_id={initial_context_farm_id} />
-    </main>
+    </div>
   )
 }

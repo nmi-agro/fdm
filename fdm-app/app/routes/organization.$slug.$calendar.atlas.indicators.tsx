@@ -1,5 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
-import { getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getFarms, getFieldsForFarms } from "@nmi-agro/fdm-core"
 import { featureCollection } from "@turf/helpers"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { data, type MetaFunction, useLoaderData } from "react-router"
@@ -171,15 +171,16 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
       lastPromise = scorePromise.then(() => undefined)
     }
 
-    const fieldsArray = await Promise.all(
-      farms.map(async (farm) => {
-        return {
-          b_id_farm: farm.b_id_farm,
-          b_name_farm: farm.b_name_farm,
-          fields: await getFields(fdm, organization.id, farm.b_id_farm),
-        }
-      }),
+    const fieldsByFarm = await getFieldsForFarms(
+      fdm,
+      organization.id,
+      farms.map((farm) => farm.b_id_farm),
     )
+    const fieldsArray = farms.map((farm) => ({
+      b_id_farm: farm.b_id_farm,
+      b_name_farm: farm.b_name_farm,
+      fields: fieldsByFarm.get(farm.b_id_farm) ?? [],
+    }))
 
     const fieldsGeoJson: FeatureCollection = featureCollection(
       fieldsArray.flatMap(({ b_id_farm, b_name_farm, fields }) => {

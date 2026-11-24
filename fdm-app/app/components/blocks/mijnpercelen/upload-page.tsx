@@ -126,7 +126,7 @@ export function UploadMijnPercelenPage({
   }, [effectiveCanUnloadSafely, rvoImportReviewData])
 
   return (
-    <main className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto">
       {!rvoImportReviewData ? (
         <div className="flex h-screen items-center justify-center">
           <MijnPercelenUploadForm
@@ -211,6 +211,6 @@ export function UploadMijnPercelenPage({
           </FarmContent>
         </>
       )}
-    </main>
+    </div>
   )
 }

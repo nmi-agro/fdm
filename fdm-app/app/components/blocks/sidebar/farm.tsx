@@ -250,7 +250,9 @@ export function SidebarFarm({
 
   // Links to pages whose loaders only read the database use `prefetch="intent"`, so their data
   // starts loading on hover. Never prefetch pages that call external APIs (indicators, measures,
-  // nutrient advice, mineralization): a hover would start those requests.
+  // nutrient advice, mineralization): a hover would start those requests. The fields table loads
+  // its cultivation suggestions from the NMI API with a fetcher after it renders, so its loader
+  // stays database-only.
   return (
     <TooltipProvider>
       <SidebarGroup>
@@ -393,7 +395,7 @@ export function SidebarFarm({
                     location.pathname === `/farm/${farmId}/${selectedCalendar}/field/`
                   }
                   render={
-                    <NavLink to={`/farm/${farmId}/${selectedCalendar}/field`}>
+                    <NavLink to={`/farm/${farmId}/${selectedCalendar}/field`} prefetch="intent">
                       <Grid2x2 />
                       <span>Percelen</span>
                     </NavLink>

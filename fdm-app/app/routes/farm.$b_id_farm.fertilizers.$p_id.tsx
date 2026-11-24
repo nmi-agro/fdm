@@ -28,7 +28,7 @@ import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -163,7 +163,7 @@ export default function FarmFertilizerBlock() {
   })
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: "../fertilizers",
@@ -178,7 +178,7 @@ export default function FarmFertilizerBlock() {
           fertilizerOptions={loaderData.fertilizerOptions}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={loaderData.fertilizer.p_name_nl || "Naamloze meststof"}
           description={
@@ -203,8 +203,8 @@ export default function FarmFertilizerBlock() {
             />
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

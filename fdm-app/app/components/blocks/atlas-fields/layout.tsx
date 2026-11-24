@@ -14,7 +14,7 @@ export function FieldDetailsAtlasLayout({
   groundWater: ReactNode
 }) {
   return (
-    <main className="mx-auto max-w-7xl pt-6 pb-20">
+    <div className="mx-auto max-w-7xl pt-6 pb-20">
       <div className="grid grid-cols-1 items-start gap-6 px-4 md:px-6 lg:grid-cols-12">
         {/* Perceeldetails: Order 1 (Mobile & Desktop right stack) */}
         <div className="order-1 lg:order-2 lg:col-span-8">{fieldDetails}</div>
@@ -31,6 +31,6 @@ export function FieldDetailsAtlasLayout({
           {groundWater}
         </div>
       </div>
-    </main>
+    </div>
   )
 }

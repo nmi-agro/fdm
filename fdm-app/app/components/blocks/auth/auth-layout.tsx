@@ -17,9 +17,9 @@ export function AuthLayout({
 
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12">
+      <main className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-87.5 gap-6">{children}</div>
-      </div>
+      </main>
       <div className="bg-muted relative hidden lg:block">
         <img
           src={backgroundImage}

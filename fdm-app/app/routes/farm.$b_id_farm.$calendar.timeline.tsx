@@ -37,8 +37,8 @@ import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
 import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
 import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { deleteObject } from "~/integrations/gcs.server"
@@ -532,13 +532,13 @@ export default function TimelinePage() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Tijdlijn</BreadcrumbItem>
       </Header>
-      <main className="min-w-0">
+      <div className="min-w-0">
         {showMobileView ? (
           <>
             <FarmTitle
@@ -592,7 +592,7 @@ export default function TimelinePage() {
             </FarmContent>
           </>
         )}
-      </main>
+      </div>
       <AddEventSheet
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}
@@ -609,6 +609,6 @@ export default function TimelinePage() {
         }}
         request={sheetRequest}
       />
-    </SidebarInset>
+    </PageContainer>
   )
 }
