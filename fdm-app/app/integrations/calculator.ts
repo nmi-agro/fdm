@@ -321,10 +321,16 @@ export async function getOrganicMatterBalanceForFarm({
 const PHOSPHATE_CROP_HISTORY_YEARS = 4
 
 /**
- * Adds the crop history of the last years (BRP, from the NMI soil estimates that the field dashboard
- * also uses) to the fields of a phosphate balance input, so the long-term average also covers years
- * without registered cultivations. The estimates are cached per location. Without an NMI API key, or
- * when a request fails, the input is returned unchanged for that field.
+ * Adds data from the NMI soil estimates (BodemSchat, which the field dashboard also uses) to the
+ * fields of a phosphate balance input:
+ * - the crop history of the last years (BRP), so the long-term average also covers years without
+ *   registered cultivations;
+ * - for a field without a soil analysis that has P-ox, Fe-ox and Al-ox, the estimated oxalate
+ *   values, P-CaCl₂ and PSD, as an undated analysis, so measured analyses still come first. The
+ *   phosphorus saturation then never depends on soil-type defaults.
+ *
+ * The estimates are cached per location. Without an NMI API key, or when a request fails, the input
+ * is returned unchanged for that field.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - The principal (for the cultivation catalogue).
@@ -356,9 +362,27 @@ export async function addPhosphateCropHistory<T extends PhosphateBalanceInput>(
           const cultivation_history = estimates.cultivations
             .filter((c) => c.year < year && c.year >= year - PHOSPHATE_CROP_HISTORY_YEARS)
             .map((c) => ({ year: c.year, b_lu_catalogue: `nl_${c.b_lu_brp}` }))
-          return cultivation_history.length > 0
-            ? { ...fieldInput, cultivation_history }
-            : fieldInput
+          const hasOxalate = fieldInput.soilAnalyses.some(
+            (a) => a.a_p_ox != null && a.a_fe_ox != null && a.a_al_ox != null,
+          )
+          const soilAnalyses = hasOxalate
+            ? fieldInput.soilAnalyses
+            : [
+                ...fieldInput.soilAnalyses,
+                {
+                  a_source: estimates.a_source,
+                  a_p_ox: estimates.a_p_ox,
+                  a_fe_ox: estimates.a_fe_ox,
+                  a_al_ox: estimates.a_al_ox,
+                  a_p_cc: estimates.a_p_cc,
+                  a_p_sg: estimates.a_p_sg,
+                },
+              ]
+          return {
+            ...fieldInput,
+            soilAnalyses,
+            ...(cultivation_history.length > 0 ? { cultivation_history } : {}),
+          }
         } catch {
           return fieldInput
         }

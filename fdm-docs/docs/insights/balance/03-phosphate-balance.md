@@ -138,6 +138,8 @@ P leaching = − balance × fraction × groundwater factor     (only when balanc
 
 _Draft:_ the fractions and the groundwater factor are not taken from literature: there is no published relation between the P surplus and P leaching in kg / ha. The fractions were set by hand so that the results stay within measured losses: about 0.1–0.5 kg P / ha / year on non-saturated soils and 0.8–2.1 kg P / ha / year measured via open trenches on P-saturated sandy soils with shallow groundwater (van Doorn et al., 2026). The direction of the factors (more leaching at a higher saturation and shallower groundwater) follows that study; the values themselves still have to be reviewed. See also [Limitations](#6-limitations).
 
+This is a first approximation, shown in the app as such. For phosphorus, losses are driven by the P concentration in the soil solution rather than by the surplus, and they also occur when the balance is negative. A planned replacement estimates the loss as the P concentration in the soil solution (from P-CaCl₂, or from the PSD via the Langmuir isotherm) times the water flux (precipitation surplus or drain discharge).
+
 ### 3.4. Soil Phosphorus Status
 
 #### 3.4.1. Phosphorus Saturation Degree (PSD)
@@ -154,7 +156,7 @@ The PSD is taken from the first available source:
 
 Without either, the PSD is missing (it is not estimated from P-AL), and the field status is based on P-AL only (Section 3.4.4).
 
-When Fe-ox and Al-ox are missing, the median values of the soil type are used for the PSC. Notes are returned for soils where the PSD is less reliable: calcareous sand (`duinzand`) and calcareous marine clay, and peat, dalgrond and moerige klei (oxalate also dissolves organically bound Fe and Al, so the PSD is probably underestimated).
+There are no soil-type defaults for Fe-ox and Al-ox. A delivered PSD (`a_p_sg`) without Fe-ox and Al-ox is kept, but without a PSC it cannot be projected; without any of these values the PSD is unknown and the status uses P-AL only. In the app, a field without a soil analysis that has P-ox, Fe-ox and Al-ox gets the NMI BodemSchat estimate of its location (oxalate values, P-CaCl₂ and PSD) as an undated analysis, so measured analyses still come first. Notes are returned for soils where the PSD is less reliable: calcareous sand (`duinzand`) and calcareous marine clay, and peat, dalgrond and moerige klei (oxalate also dissolves organically bound Fe and Al, so the PSD is probably underestimated).
 
 #### 3.4.2. Field Threshold
 

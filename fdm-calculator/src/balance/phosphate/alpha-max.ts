@@ -13,8 +13,9 @@ import type { SoilAnalysis } from "@nmi-agro/fdm-core"
  *   (0–25 cm), with its range. Values as proposed in the issue (to be reviewed with Maarten van Doorn).
  * - `fixation`: kg P2O5 / ha / year that becomes unavailable at a balanced supply: 20 on mineral soils
  *   (Handboek Bodem en Bemesting), not set for peat.
- * - Fallback Fe-ox / Al-ox (median per soil unit, van Doorn 2026, Tables S3.2 and S3.3) and bulk
- *   density (indicative, Chardon et al. 2007), used only when a field has no data of its own.
+ * - Fallback bulk density (indicative, Chardon et al. 2007), used only when a field has no data of
+ *   its own. There are no fallback values for Fe-ox and Al-ox: they come from a soil analysis or
+ *   from the NMI BodemSchat estimate of the location.
  */
 export interface PhosphateSoilTypeParameters {
   /** Maximum saturation factor (-) */
@@ -27,10 +28,6 @@ export interface PhosphateSoilTypeParameters {
   fixation: number
   /** Whether the oxalate-based PSD is considered meaningful for this soil type */
   psd_valid: boolean
-  /** Fallback Fe-ox in the topsoil (mmol/kg): [grassland 5–10 cm, arable 10–25 cm] */
-  a_fe_ox_default: [number, number]
-  /** Fallback Al-ox in the topsoil (mmol/kg): [grassland 5–10 cm, arable 10–25 cm] */
-  a_al_ox_default: [number, number]
   /** Fallback bulk density (g/cm³) */
   a_density_sa_default: number
   /** Short explanation for the discussion and the UI; shown as a warning when relevant */
@@ -39,25 +36,10 @@ export interface PhosphateSoilTypeParameters {
 
 type SoilType = NonNullable<SoilAnalysis["b_soiltype_agr"]>
 
-type SoilUnitDefaults = Pick<
-  PhosphateSoilTypeParameters,
-  "a_fe_ox_default" | "a_al_ox_default" | "a_density_sa_default"
->
-const SAND: SoilUnitDefaults = {
-  a_fe_ox_default: [30, 29],
-  a_al_ox_default: [35, 36],
-  a_density_sa_default: 1.35,
-}
-const PEATY: SoilUnitDefaults = {
-  a_fe_ox_default: [74, 74],
-  a_al_ox_default: [39, 39],
-  a_density_sa_default: 1.1,
-}
-const CLAY: SoilUnitDefaults = {
-  a_fe_ox_default: [87, 86],
-  a_al_ox_default: [27, 27],
-  a_density_sa_default: 1.3,
-}
+type SoilUnitDefaults = Pick<PhosphateSoilTypeParameters, "a_density_sa_default">
+const SAND: SoilUnitDefaults = { a_density_sa_default: 1.35 }
+const PEATY: SoilUnitDefaults = { a_density_sa_default: 1.1 }
+const CLAY: SoilUnitDefaults = { a_density_sa_default: 1.3 }
 const MINERAL = { alpha_max: 0.5, beta_max: 0.167, fixation: 20, psd_valid: true }
 
 /**
@@ -110,8 +92,6 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
   loess: {
     ...MINERAL,
     p_al_buffer: [50, 50, 50],
-    a_fe_ox_default: [47, 46],
-    a_al_ox_default: [37, 37],
     a_density_sa_default: 1.35,
     note: null,
   },
@@ -121,8 +101,6 @@ export const phosphateSoilTypeParameters: Record<SoilType, PhosphateSoilTypePara
     fixation: 0,
     psd_valid: true,
     p_al_buffer: [45, 40, 50],
-    a_fe_ox_default: [176, 183],
-    a_al_ox_default: [70, 70],
     a_density_sa_default: 0.6,
     note: "Veen: oxalaat lost ook organisch gebonden ijzer en aluminium op, de fosfaatverzadigingsgraad is waarschijnlijk onderschat.",
   },

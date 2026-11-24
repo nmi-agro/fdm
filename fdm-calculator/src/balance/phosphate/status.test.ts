@@ -15,7 +15,7 @@ type Scenario = {
 
 /** A field balance with only the parts the status uses, from a real saturation and projection. */
 function makeBalance({ balance, fertilizers = 0, soil, isGrassland = false }: Scenario) {
-  const saturation = calculatePhosphateSaturation(soil, isGrassland)
+  const saturation = calculatePhosphateSaturation(soil)
   const threshold = calculatePhosphateSaturationThreshold(saturation, soil)
   const projection = calculatePhosphateProjection(balance, saturation, threshold, soil, isGrassland)
   return {

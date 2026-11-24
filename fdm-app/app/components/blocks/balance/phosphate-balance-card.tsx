@@ -88,7 +88,11 @@ export function PhosphateBalanceCard({
           <Figure label={`Balans ${year}`} value={balance} emphasis={!longTerm} />
           {supply !== undefined ? <Figure label="Aanvoer" value={supply} /> : null}
           {removal !== undefined ? <Figure label="Afvoer" value={removal} /> : null}
-          <Figure label="Uitspoeling (schatting, niet in de balans)" value={leaching} digits={1} />
+          <Figure
+            label="Uitspoeling (eerste schatting, in ontwikkeling; niet in de balans)"
+            value={leaching}
+            digits={1}
+          />
         </div>
         <div className="-ml-4">{children}</div>
       </CardContent>

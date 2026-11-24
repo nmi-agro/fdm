@@ -20,8 +20,9 @@ describe("phosphateSoilTypeParameters", () => {
     expect(high).toBeLessThanOrEqual(70)
     expect(params.alpha_max).toBe(0.5)
     expect(params.a_density_sa_default).toBeGreaterThan(0)
-    expect(params.a_fe_ox_default.every((v) => v > 0)).toBe(true)
-    expect(params.a_al_ox_default.every((v) => v > 0)).toBe(true)
+    // No fallback Fe-ox and Al-ox: they come from a soil analysis or the NMI estimate
+    expect(params).not.toHaveProperty("a_fe_ox_default")
+    expect(params).not.toHaveProperty("a_al_ox_default")
   })
 
   it("should use a fixation of 20 kg P2O5 / ha on mineral soils and none on peat", () => {

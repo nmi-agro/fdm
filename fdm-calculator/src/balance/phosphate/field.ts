@@ -287,7 +287,7 @@ function calculateRemovalByHarvests(
         const b_lu_p_harvestable = analysis.b_lu_p_harvestable ?? detail.b_lu_p_harvestable
         if (b_lu_p_harvestable == null) {
           warnings.push(
-            `Geen fosfaatgehalte bekend voor ${name}: de afvoer met de oogst is op 0 gezet. Controleer of de gewascatalogus is gesynchroniseerd met een NMI API-sleutel.`,
+            `Voor ${name} is geen fosfaatgehalte bekend: de afvoer met de oogst is op 0 gezet. Vul het fosfaatgehalte van de oogst in als je het weet.`,
           )
         }
         if (b_lu_yield == null) {
@@ -423,7 +423,7 @@ export function calculatePhosphateBalanceField(
   const { fieldInput, timeFrame } = input
   const { field } = fieldInput
   const isGrassland = fieldInput.cultivations.some((c) => c.b_lu_croprotation === "grass")
-  const saturation = calculatePhosphateSaturation(fieldInput.soilAnalyses, isGrassland)
+  const saturation = calculatePhosphateSaturation(fieldInput.soilAnalyses)
   const frame = determinePhosphateFrame(
     saturation.a_p_al,
     getPhosphateSoilTypeParameters(saturation.b_soiltype_agr).fixation,

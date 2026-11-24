@@ -28,6 +28,7 @@ import {
   formatYearsBand,
   getPhosphateStatus,
   getPhosphateYearsToThreshold,
+  NMI_ESTIMATE_SOURCE,
   P_AL_HIGH,
   P_AL_LOW,
   PHOSPHATE_VERDICT_TEXT,
@@ -194,37 +195,23 @@ function illustrativeNote(balance: PhosphateBalanceField): string {
 /** Colour of the P-AL floor line: different from the PSD threshold. */
 const P_AL_LEVEL_COLOR = "var(--color-sky-700)"
 
-/** Laboratories and estimates by their `a_source` code (as in the fdm-core soil analysis options). */
-const SOIL_SOURCE_LABELS: Record<string, string> = {
-  "nl-rva-l122": "gemeten door Eurofins Agro Testing Wageningen",
-  "nl-rva-l136": "gemeten door Nutrilab",
-  "nl-rva-l264": "gemeten door Normec Robalab",
-  "nl-rva-l320": "gemeten door ALNN",
-  "nl-rva-l335": "gemeten door Normec Groen Agro Control",
-  "nl-rva-l610": "gemeten door Normec Dumea",
-  "nl-rva-l648": "gemeten door Fertilab",
-  "nl-rva-l697": "gemeten door Care4Agro",
-  "nl-other-nmi": "geschat met NMI BodemSchat, geen bodemanalyse",
-  other: "ander laboratorium",
-}
-
-/** Laboratory names by their `a_source` code, for the tooltip of a measured point. */
-const SOIL_LAB_NAMES: Record<string, string> = {
-  "nl-rva-l122": "Eurofins Agro Testing Wageningen",
-  "nl-rva-l136": "Nutrilab",
-  "nl-rva-l264": "Normec Robalab",
-  "nl-rva-l320": "ALNN",
-  "nl-rva-l335": "Normec Groen Agro Control",
-  "nl-rva-l610": "Normec Dumea",
-  "nl-rva-l648": "Fertilab",
-  "nl-rva-l697": "Care4Agro",
-  other: "Ander laboratorium",
-}
+/**
+ * Laboratory names by their `a_source` code, as defined in fdm-core (the `a_source` options of
+ * `getSoilParametersDescription`). The route loader reads them on the server and passes them down,
+ * because fdm-core cannot be imported in client code.
+ */
+export type SoilSourceLabels = Record<string, string>
 
 /** Dutch description of where the soil data come from (lab measurement or NMI estimate). */
-function formatSources(sources: string[]): string {
+function formatSources(sources: string[], labels: SoilSourceLabels): string {
   if (sources.length === 0) return "bron onbekend"
-  return sources.map((source) => SOIL_SOURCE_LABELS[source] ?? source).join("; ")
+  return sources
+    .map((source) =>
+      source === NMI_ESTIMATE_SOURCE
+        ? "geschat met NMI BodemSchat, geen bodemanalyse"
+        : `gemeten door ${labels[source] ?? "een ander laboratorium"}`,
+    )
+    .join("; ")
 }
 
 /** Measurements older than this (years before the selected year) are not shown in the chart. */
@@ -242,6 +229,7 @@ const MEASUREMENT_HISTORY_YEARS = 15
 function getMeasuredPAl(
   soilAnalyses: PhosphateFieldInput["soilAnalyses"],
   calendarYear: number,
+  labels: SoilSourceLabels = {},
 ): PhosphateMeasurement[] {
   if (!Number.isInteger(calendarYear)) return []
   const reference = new Date(calendarYear, 0, 1).getTime()
@@ -251,14 +239,14 @@ function getMeasuredPAl(
         a.a_p_al !== null &&
         a.a_p_al !== undefined &&
         a.b_sampling_date &&
-        a.a_source !== "nl-other-nmi",
+        a.a_source !== NMI_ESTIMATE_SOURCE,
     )
     .map((a) => ({
       year:
         (new Date(a.b_sampling_date as Date).getTime() - reference) / (365.25 * 24 * 3600 * 1000),
       value: a.a_p_al as number,
       date: new Date(a.b_sampling_date as Date),
-      source: a.a_source ? (SOIL_LAB_NAMES[a.a_source] ?? a.a_source) : "Laboratorium onbekend",
+      source: a.a_source ? (labels[a.a_source] ?? "Ander laboratorium") : "Laboratorium onbekend",
     }))
     .filter((m) => m.year >= -MEASUREMENT_HISTORY_YEARS && m.year <= 1)
     .sort((a, b) => a.year - b.year)
@@ -323,6 +311,7 @@ export function getPhosphateChartStart(
  * @param soilAnalyses - The soil analyses of the field (for the measured points).
  * @param calendarYear - The selected calendar year.
  * @param chartStart - Start of the shared time axis (see `getPhosphateChartStart`).
+ * @param sourceLabels - Laboratory names by `a_source` code, from fdm-core.
  * @param className - Extra classes for the card.
  */
 export function PhosphateStockCard({
@@ -330,18 +319,20 @@ export function PhosphateStockCard({
   soilAnalyses = [],
   calendarYear,
   chartStart,
+  sourceLabels = {},
   className,
 }: {
   balance: PhosphateBalanceField
   soilAnalyses?: PhosphateFieldInput["soilAnalyses"]
   calendarYear?: number
   chartStart?: number
+  sourceLabels?: SoilSourceLabels
   className?: string
 }) {
   const projection = balance.projection
   const pAl = projection?.p_al ?? null
   const status = getPhosphateStatus(balance)
-  const measurements = calendarYear ? getMeasuredPAl(soilAnalyses, calendarYear) : []
+  const measurements = calendarYear ? getMeasuredPAl(soilAnalyses, calendarYear, sourceLabels) : []
   const delta = pAl?.delta_per_year
   const below = pAl !== null && pAl.current < P_AL_LOW
   const minYears = below
@@ -374,7 +365,7 @@ export function PhosphateStockCard({
               ) : null}
             </Row>
             <Row label={below ? `P-AL ${P_AL_LOW} bereikt over` : `P-AL onder ${P_AL_LOW} over`}>
-              {minYears ?? "niet bij de huidige balans"}
+              {minYears ?? "onhaalbaar bij de huidige balans"}
             </Row>
             <PhosphateTrendChart
               current={pAl.current}
@@ -410,6 +401,7 @@ export function PhosphateStockCard({
                 bodemanalyse (
                 {formatSources(
                   balance.saturation.a_p_al_source ? [balance.saturation.a_p_al_source] : [],
+                  sourceLabels,
                 )}
                 ), laag 0–
                 {formatNumberNl(projection.depth.value * 100)} cm.
@@ -462,16 +454,19 @@ const PSD_DEFINITION =
  *
  * @param balance - The phosphate balance of the field.
  * @param chartStart - Start of the shared time axis (see `getPhosphateChartStart`).
+ * @param sourceLabels - Laboratory names by `a_source` code, from fdm-core.
  * @param className - Extra classes for the card (e.g. `h-full` to match the height of a card next
  *   to it).
  */
 export function PhosphateSaturationCard({
   balance,
   chartStart,
+  sourceLabels = {},
   className,
 }: {
   balance: PhosphateBalanceField
   chartStart?: number
+  sourceLabels?: SoilSourceLabels
   className?: string
 }) {
   const projection = balance.projection
@@ -554,8 +549,8 @@ export function PhosphateSaturationCard({
               )}
               <Detail title="Gegevens">
                 {formatSaturationSource(balance.saturation.source)} (
-                {formatSources(balance.saturation.analysis_sources)}). Fosfaatbindingscapaciteit
-                (PSC): {formatNumberNl(balance.saturation.psc)} mmol/kg.
+                {formatSources(balance.saturation.analysis_sources, sourceLabels)}).
+                Fosfaatbindingscapaciteit (PSC): {formatNumberNl(balance.saturation.psc)} mmol/kg.
               </Detail>
               <Detail title="Berekening">
                 PSC = 0,5 × (Fe-ox + Al-ox); PSD = P-ox ÷ PSC × 100. Verandering per jaar uit (

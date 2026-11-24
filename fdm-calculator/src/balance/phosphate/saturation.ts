@@ -29,18 +29,17 @@ function latest<K extends keyof SoilInput>(soilAnalyses: SoilInput[], key: K) {
  * 1. `a_p_ox`, `a_fe_ox` and `a_al_ox` of the most recent soil analysis that has all three (measured,
  *    or NMI map values): `PSC = 0.5 · (Fe-ox + Al-ox)`, `PSD = P-ox / PSC · 100`. No range: the map
  *    values come without uncertainty.
- * 2. `a_p_sg` (PSD as delivered by the laboratory or the NMI API).
- * Without either, the PSD is missing: it is not estimated from P-AL.
+ * 2. `a_p_sg` (PSD as delivered by the laboratory or the NMI API). The PSC then comes from `a_fe_ox`
+ *    and `a_al_ox` of the most recent analysis that has both; without them the PSC is unknown, so
+ *    the PSD is known but cannot be projected.
+ * Without either, the PSD is missing: it is not estimated from P-AL, and there are no soil-type
+ * defaults for Fe-ox and Al-ox (NMI BodemSchat supplies them for every location).
  *
  * @param soilAnalyses - The soil analyses of the field.
- * @param isGrassland - Whether the field is grassland (sampled 0–10 cm) rather than arable land (0–25 cm).
  * @returns The phosphorus saturation with its source.
  * @alpha
  */
-export function calculatePhosphateSaturation(
-  soilAnalyses: SoilInput[],
-  isGrassland: boolean,
-): PhosphateSaturation {
+export function calculatePhosphateSaturation(soilAnalyses: SoilInput[]): PhosphateSaturation {
   const sorted = sortSoilAnalyses(soilAnalyses)
   const soiltype = latest(sorted, "b_soiltype_agr")
   const params = getPhosphateSoilTypeParameters(soiltype?.value)
@@ -81,32 +80,33 @@ export function calculatePhosphateSaturation(
     return result("oxalate", psc, { value, min: value, max: value }, a_p_ox, [oxalate.a_source])
   }
 
-  // PSC from Fe-ox and Al-ox of one analysis, otherwise the soil-type defaults
+  // PSC from Fe-ox and Al-ox of one analysis; no soil-type defaults
   const feAl = sorted.find((a) => a.a_fe_ox != null && a.a_al_ox != null)
-  const layer = isGrassland ? 0 : 1
-  const psc =
-    params.alpha_max *
-    (feAl
-      ? (feAl.a_fe_ox as number) + (feAl.a_al_ox as number)
-      : params.a_fe_ox_default[layer] + params.a_al_ox_default[layer])
-  if (!feAl) {
-    warnings.push(
-      "Geen Fe-ox en Al-ox beschikbaar; de standaardwaarde voor de grondsoort is gebruikt.",
-    )
-  }
+  const feAlSum = feAl ? (feAl.a_fe_ox as number) + (feAl.a_al_ox as number) : 0
+  const psc = feAlSum > 0 ? params.alpha_max * feAlSum : null
 
-  // 2. PSD as delivered
+  // 2. PSD as delivered: kept also without Fe-ox and Al-ox (then no PSC, so no projection)
   const p_sg = latest(sorted, "a_p_sg")
   if (p_sg) {
     const value = p_sg.value
-    return result("a_p_sg", psc, { value, min: value, max: value }, (value / 100) * psc, [
-      p_sg.analysis.a_source,
-      feAl?.a_source,
-    ])
+    if (psc === null) {
+      warnings.push(
+        "Geen Fe-ox en Al-ox beschikbaar: de fosfaatverzadiging is bekend, maar het verloop kan niet worden berekend.",
+      )
+    }
+    return result(
+      "a_p_sg",
+      psc,
+      { value, min: value, max: value },
+      psc === null ? null : (value / 100) * psc,
+      [p_sg.analysis.a_source, psc === null ? null : feAl?.a_source],
+    )
   }
 
-  warnings.push("Geen P-ox of fosfaatverzadigingsgraad beschikbaar.")
-  return result("missing", psc, null, null, [feAl?.a_source])
+  warnings.push(
+    "Geen P-ox, Fe-ox en Al-ox of fosfaatverzadigingsgraad beschikbaar: de fosfaatverzadiging is onbekend.",
+  )
+  return result("missing", null, null, null, [])
 }
 
 /**

@@ -348,7 +348,8 @@ describe("calculatePhosphateBalanceField", () => {
     })
     expect(result.removal.harvests.total).toBe(0)
     expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toMatch(/Geen fosfaatgehalte bekend voor Aardappelen/)
+    expect(result.warnings[0]).toMatch(/Voor Aardappelen is geen fosfaatgehalte bekend/)
+    expect(result.warnings[0]).not.toMatch(/NMI API-sleutel/)
   })
 
   it("should warn when a cultivation that ended in the timeframe has no harvest", () => {

@@ -132,7 +132,8 @@ export function PhosphateHelpDialog() {
               hangt het af van de grondwatertrap. Uit de lucht komt jaarlijks ongeveer 0,7 kg P₂O₅
               per ha. Beide tellen mee als aanvoer. Uitspoeling wordt geschat uit het overschot, de
               fosfaatverzadiging en de grondwatertrap en telt, net als bij stikstof, niet mee in de
-              balans.
+              balans. De berekening van fosfaatverliezen is een eerste benadering en wordt nog
+              verder ontwikkeld.
             </p>
           </div>
 

@@ -1,4 +1,4 @@
-import { getFarm, getField } from "@nmi-agro/fdm-core"
+import { getFarm, getField, getSoilParametersDescription } from "@nmi-agro/fdm-core"
 import { Suspense, use } from "react"
 import {
   data,
@@ -80,6 +80,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     const field = await getField(fdm, session.principal_id, b_id)
 
+    // Laboratory names by `a_source` code, as defined in fdm-core
+    const sourceLabels: Record<string, string> = Object.fromEntries(
+      (
+        getSoilParametersDescription("NL-nl").find((p) => p.parameter === "a_source")?.options ?? []
+      ).map((option) => [String(option.value), option.label]),
+    )
+
     // Skip the calculation when the field is not managed in the selected calendar year
     const fieldAvailability = getFieldAvailability(field, timeframe)
     if (fieldAvailability) {
@@ -89,6 +96,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         farm: farm,
         fieldAvailability,
         calendar: params.calendar ?? "",
+        sourceLabels,
       }
     }
 
@@ -138,6 +146,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farm: farm,
       fieldAvailability: null,
       calendar: params.calendar ?? "",
+      sourceLabels,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -179,6 +188,7 @@ function PhosphateBalance({
   farm,
   field,
   phosphateBalanceResult,
+  sourceLabels,
 }: Awaited<ReturnType<typeof loader>> & {
   phosphateBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["phosphateBalanceResult"]>
 }) {
@@ -251,12 +261,18 @@ function PhosphateBalance({
           then what to do, then the balance and its terms. On small screens everything stacks. */}
       <div className="@container/soil space-y-4">
         <div className="grid gap-4 @3xl/soil:grid-cols-2">
-          <PhosphateSaturationCard balance={result} chartStart={chartStart} className="h-full" />
+          <PhosphateSaturationCard
+            balance={result}
+            chartStart={chartStart}
+            sourceLabels={sourceLabels}
+            className="h-full"
+          />
           <PhosphateStockCard
             balance={result}
             soilAnalyses={fieldInput.soilAnalyses}
             calendarYear={Number(calendar)}
             chartStart={chartStart}
+            sourceLabels={sourceLabels}
             className="h-full"
           />
         </div>

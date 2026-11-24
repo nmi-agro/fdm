@@ -69,7 +69,7 @@ De balans zet de aanvoer af tegen de afvoer, in kg P₂O₅ per hectare:
 | Aanvoer | Kunstmest, dierlijke mest, compost, overige meststoffen, mineralisatie uit de bodem en depositie |
 | Afvoer  | Wat je oogst en wat je aan gewasresten afvoert                                                   |
 
-Daarnaast schat {{appName}} de uitspoeling van fosfaat uit het overschot. Die telt, net als de nitraatuitspoeling bij stikstof, niet mee in de balans.
+Daarnaast schat {{appName}} de uitspoeling van fosfaat uit het overschot. Die telt, net als de nitraatuitspoeling bij stikstof, niet mee in de balans. De berekening van fosfaatverliezen is een eerste benadering en wordt nog verder ontwikkeld.
 
 Eén jaar zegt weinig over de bodem: in het ene jaar bemest je meer, in het andere minder. Daarom kijkt {{appName}} voor de trend naar de gemiddelde balans over het gekozen jaar en de vier jaren ervoor. Een eerder jaar zonder geregistreerde bemesting en zonder geregistreerde oogst telt niet mee. Telt geen enkel eerder jaar mee, dan gebruikt de trend alleen de balans van het gekozen jaar. Staat er voor een eerder jaar geen gewas in {{appName}}, dan wordt het gewas uit het BRP gebruikt, en als dat er ook niet is het hoofdgewas van het gekozen jaar. Ontbreken voor eerdere jaren de gewassen of de bemesting, dan is de balans op lange termijn alleen indicatief; de app zegt dat erbij. Vul de bemesting en oogsten van eerdere jaren aan voor een betrouwbaardere trend.
 

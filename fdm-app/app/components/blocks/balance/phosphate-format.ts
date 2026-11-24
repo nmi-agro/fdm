@@ -228,7 +228,7 @@ export function formatYearsClass(yearsClass: YearsClass): string {
     case "gt_20":
       return "> 20 jaar"
     case "not_reached":
-      return "niet bij de huidige balans"
+      return "onhaalbaar bij de huidige balans"
   }
 }
 
@@ -434,6 +434,10 @@ function yearsWithoutFertilizers(
   const R = PHOSPHATE_STATUS_RULES
   const projection = balance.projection
   if (!projection || projection.balance_effective_per_year === 0) return null
+  // Units: for the PSD, `current` and `edge` are in % and `delta` in %-points per year; for P-AL
+  // they are in mg P₂O₅/100 g and mg P₂O₅/100 g per year. `scale` is dimensionless: the share of
+  // the effective balance (balance + leaching − fixation, kg P₂O₅/ha/year) that remains without
+  // phosphate fertilisation (leaching is kept unchanged, a simplification).
   const scale =
     (projection.balance_effective_per_year - fertilizers) / projection.balance_effective_per_year
   let current: number
