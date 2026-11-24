@@ -1,5 +1,9 @@
 import { useState } from "react"
 import { useFetcher } from "react-router"
+import {
+  type AnimalCategoryOption,
+  AnimalCategoryCombobox,
+} from "~/components/blocks/livestock/animal-category-combobox"
 import { HerdArrivalField } from "~/components/blocks/livestock/herd-arrival-field"
 import { Button } from "~/components/ui/button"
 import {
@@ -12,13 +16,6 @@ import {
 } from "~/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 
 /**
@@ -33,7 +30,7 @@ export function AddHerdDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  categories: Array<{ l_id_category: string; l_category: string; l_lsu: number | null }>
+  categories: AnimalCategoryOption[]
   /** The day the animals arrive unless the user picks another, as `YYYY-MM-DD`. */
   defaultArrivalDay: string
 }) {
@@ -51,9 +48,6 @@ export function AddHerdDialog({
   const isCountValid = Number.isInteger(count) && count > 0
   // Follows the chosen year until the user picks a day
   const [arrivalDay, setArrivalDay] = useKeyedState(defaultArrivalDay, (day) => day)
-
-  const categoryLabel = (c: (typeof categories)[number]) =>
-    `${c.l_category} (${(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)`
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,27 +80,12 @@ export function AddHerdDialog({
                     koppel worden toegevoegd. Neem contact op met de ondersteuning.
                   </p>
                 ) : (
-                  <Select
+                  <AnimalCategoryCombobox
+                    id="cat-select"
+                    categories={categories}
                     value={categoryId}
-                    items={categories.map((c) => ({
-                      value: c.l_id_category,
-                      label: categoryLabel(c),
-                    }))}
-                    onValueChange={(v) => {
-                      if (v !== null) setCategoryId(v)
-                    }}
-                  >
-                    <SelectTrigger id="cat-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => (
-                        <SelectItem key={c.l_id_category} value={c.l_id_category}>
-                          {categoryLabel(c)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onValueChange={setCategoryId}
+                  />
                 )}
               </Field>
 

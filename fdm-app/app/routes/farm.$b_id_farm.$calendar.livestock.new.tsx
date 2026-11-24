@@ -22,19 +22,13 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { AnimalCategoryCombobox } from "~/components/blocks/livestock/animal-category-combobox"
 import { HerdArrivalField } from "~/components/blocks/livestock/herd-arrival-field"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter } from "~/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -237,28 +231,15 @@ export default function LivestockOnboarding() {
                           geen koppel worden toegevoegd. Neem contact op met de ondersteuning.
                         </p>
                       ) : (
-                        <Select
-                          value={selectedCategory}
-                          items={categories.map((c) => ({
-                            value: c.l_id_category,
-                            label: `${c.l_category} (${(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)`,
-                          }))}
-                          onValueChange={(v) => {
-                            if (v !== null) handleCategoryChange(v)
-                          }}
-                          name="l_id_category"
-                        >
-                          <SelectTrigger id="category-select">
-                            <SelectValue placeholder="Kies diercategorie" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((c) => (
-                              <SelectItem key={c.l_id_category} value={c.l_id_category}>
-                                {c.l_category} ({(c.l_lsu ?? 1).toLocaleString("nl-NL")} GVE/dier)
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <>
+                          <AnimalCategoryCombobox
+                            id="category-select"
+                            categories={categories}
+                            value={selectedCategory}
+                            onValueChange={handleCategoryChange}
+                          />
+                          <input type="hidden" name="l_id_category" value={selectedCategory} />
+                        </>
                       )}
                     </Field>
 
