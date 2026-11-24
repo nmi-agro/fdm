@@ -206,7 +206,7 @@ export async function addGrazing(
 export async function addGrazings(
   fdm: FdmType,
   principal_id: PrincipalId,
-  rows: {
+  input: {
     l_id_herd: schema.herdsTypeSelect["l_id_herd"]
     l_grazing_start: Date
     b_id: string
@@ -216,16 +216,27 @@ export async function addGrazings(
     l_grazing_geometry_zone?: GrazingZoneInput
   }[],
 ): Promise<void> {
-  if (rows.length === 0) {
+  if (input.length === 0) {
     return
   }
 
   try {
-    const zones = rows.map((row) => {
+    // A private copy of the rows, with each normalized zone kept on its own row, so a caller that
+    // changes its array or dates while the call runs cannot change what is checked and stored
+    const rows = input.map((row) => {
       assertGrazingHours(row.l_grazing_hours)
       const zone = normalizeZone(row.l_grazing_geometry_zone, "l_grazing_geometry_zone")
       assertGrazingExtent(zone, row.l_grazing_area, row.b_id)
-      return zone ?? null
+      return {
+        l_id_herd: row.l_id_herd,
+        b_id: row.b_id,
+        l_grazing_start: new Date(row.l_grazing_start),
+        // Left as given when missing, so the check for a required end still applies
+        l_grazing_end: row.l_grazing_end ? new Date(row.l_grazing_end) : row.l_grazing_end,
+        l_grazing_hours: row.l_grazing_hours,
+        l_grazing_area: row.l_grazing_area,
+        zone: zone ?? null,
+      }
     })
 
     return await fdm.transaction(async (tx) => {
@@ -314,7 +325,7 @@ export async function addGrazings(
       }
 
       await tx.insert(schema.herdGrazing).values(
-        rows.map((r, i) => ({
+        rows.map((r) => ({
           l_id_grazing: createId(),
           l_id_herd: r.l_id_herd,
           l_grazing_start: r.l_grazing_start,
@@ -322,12 +333,12 @@ export async function addGrazings(
           l_grazing_end: r.l_grazing_end,
           l_grazing_hours: r.l_grazing_hours ?? null,
           l_grazing_area: r.l_grazing_area ?? null,
-          l_grazing_geometry_zone: zones[i],
+          l_grazing_geometry_zone: r.zone,
         })),
       )
     })
   } catch (err) {
-    throw handleError(err, "Exception for addGrazings", { rowCount: rows.length })
+    throw handleError(err, "Exception for addGrazings", { rowCount: input.length })
   }
 }
 

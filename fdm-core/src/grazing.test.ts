@@ -1,6 +1,7 @@
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { leaveHerd } from "./animal"
 import { enableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -19,7 +20,7 @@ import {
   updateGrazing,
 } from "./grazing"
 import { getGrazingIntention, setGrazingIntention } from "./grazing_intention"
-import { addHerd } from "./herd"
+import { addHerd, updateHerd } from "./herd"
 
 describe("Grazing Domain", () => {
   let fdm: FdmType
@@ -97,6 +98,24 @@ describe("Grazing Domain", () => {
 
     const farmGrazing = await getGrazingForFarm(fdm, principal_id, b_id_farm)
     expect(farmGrazing.length).toBe(1)
+  })
+
+  it("should refuse a herd end before the end of a recorded grazing", async () => {
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-10"), {
+      b_id,
+      l_grazing_end: new Date("2025-05-12"),
+    })
+    const refused = {
+      cause: { message: "Herd cannot end before the end of a recorded grazing" },
+    }
+    await expect(
+      updateHerd(fdm, principal_id, l_id_herd, { l_end: new Date("2025-05-11") }),
+    ).rejects.toMatchObject(refused)
+    await expect(
+      leaveHerd(fdm, principal_id, l_id_herd, new Date("2025-05-11")),
+    ).rejects.toMatchObject(refused)
+    // After the last grazing the herd can end
+    await updateHerd(fdm, principal_id, l_id_herd, { l_end: new Date("2025-05-13") })
   })
 
   it("should set grazing intention to true when first grazing is added for a farm year", async () => {
@@ -1178,6 +1197,20 @@ describe("Grazing zones", () => {
     expect(await getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, timeframe)).toHaveLength(2)
     const [area] = await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, timeframe)
     expect(area.b_id).toBe(b_id)
+    // Only the November grazing falls in the first period, and no grazing in the second, so an
+    // ignored timeframe would show in both
+    expect(
+      await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, {
+        start: new Date("2025-11-02T00:00:00.000Z"),
+        end: new Date("2025-11-10T00:00:00.000Z"),
+      }),
+    ).toHaveLength(1)
+    expect(
+      await getGrazedAreaForFarm(fdm, principal_id, b_id_farm, {
+        start: new Date("2025-11-06T00:00:00.000Z"),
+        end: new Date("2025-12-10T00:00:00.000Z"),
+      }),
+    ).toEqual([])
 
     // A grazing that ended before the timeframe is not found
     expect(

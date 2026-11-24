@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, lte, or } from "drizzle-orm"
+import { and, desc, eq, gt, gte, isNull, lte, or } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Herd } from "./herd.types"
@@ -7,6 +7,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertIntervalEndNotBeforeStart } from "./interval"
 import { lockFarmOfHerd } from "./livestock-checks"
 
 /**
@@ -36,6 +37,11 @@ export async function addHerd(
 ): Promise<schema.herdsTypeSelect["l_id_herd"]> {
   try {
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "addHerd")
+
+    // A herd cannot end before it starts; without a start date any end is allowed
+    if (properties.l_start && properties.l_end) {
+      assertIntervalEndNotBeforeStart(properties.l_start, properties.l_end, "l_herd")
+    }
 
     return await fdm.transaction(async (tx) => {
       await getAnimalCategory(tx, properties.l_id_category, b_id_farm)
@@ -92,6 +98,35 @@ export async function insertHerd(
   })
 
   return l_id_herd
+}
+
+/**
+ * Checks that no recorded grazing of a herd runs up to or past a new end of the herd, the same rule
+ * the grazing functions apply when a grazing is written. Callers run this under the farm lock.
+ *
+ * @param tx - The transaction to read in.
+ * @param l_id_herd - The herd that ends.
+ * @param l_end - The new end of the herd.
+ * @throws When a grazing of the herd ends on or after `l_end`.
+ */
+export async function assertNoGrazingFrom(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_end: Date,
+): Promise<void> {
+  const grazing = await tx
+    .select({ l_id_grazing: schema.herdGrazing.l_id_grazing })
+    .from(schema.herdGrazing)
+    .where(
+      and(
+        eq(schema.herdGrazing.l_id_herd, l_id_herd),
+        gte(schema.herdGrazing.l_grazing_end, l_end),
+      ),
+    )
+    .limit(1)
+  if (grazing.length > 0) {
+    throw new Error("Herd cannot end before the end of a recorded grazing")
+  }
 }
 
 /**
@@ -348,6 +383,18 @@ export async function updateHerd(
       // A herd can only end when no animal is in it on or after its end date; move those animals
       // to another herd, or let the herd leave the farm with leaveHerd
       if (l_end) {
+        // A herd cannot end before it starts; without a start date any end is allowed
+        const [start] = await tx
+          .select({ l_start: schema.herdStarting.l_start })
+          .from(schema.herdStarting)
+          .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+          .limit(1)
+        if (start?.l_start) {
+          assertIntervalEndNotBeforeStart(start.l_start, l_end, "l_herd")
+        }
+        // The recorded grazing of the herd stays within its period
+        await assertNoGrazingFrom(tx, l_id_herd, l_end)
+
         const stillAssigned = await tx
           .select({ l_id_animal: schema.animalAssigning.l_id_animal })
           .from(schema.animalAssigning)

@@ -889,7 +889,16 @@ export async function syncFeedCatalogueArray(
   await fdm.transaction(async (tx) => {
     try {
       for (const catalogueItem of catalogue) {
-        const item = { ...catalogueItem, hash: await hashFeed(catalogueItem) }
+        // A nutrient that the source leaves out is unknown: write null, so an update clears a
+        // value an earlier version had (the hash leaves null and missing values out alike).
+        // `hashFeed` gets a copy, as it changes the item it hashes.
+        const item = {
+          ...catalogueItem,
+          f_dm: catalogueItem.f_dm ?? null,
+          f_n_dm: catalogueItem.f_n_dm ?? null,
+          f_p_dm: catalogueItem.f_p_dm ?? null,
+          hash: await hashFeed({ ...catalogueItem }),
+        }
         const existing = await tx
           .select({ hash: schema.feedsCatalogue.hash })
           .from(schema.feedsCatalogue)

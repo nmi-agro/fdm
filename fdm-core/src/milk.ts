@@ -1,5 +1,5 @@
 import { Decimal } from "decimal.js"
-import { and, desc, eq, gte, inArray, isNull, lte, or, type SQL } from "drizzle-orm"
+import { and, desc, eq, gt, inArray, isNull, lte, or, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type {
@@ -15,6 +15,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertIntervalEndNotBeforeStart } from "./interval"
 import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
@@ -146,7 +147,8 @@ export async function updateMilkTank(
 
     await fdm
       .update(schema.milkTanks)
-      .set({ ...properties, updated: new Date() })
+      // Only the documented column: the farm of a tank never changes
+      .set({ l_milktank_name: properties.l_milktank_name, updated: new Date() })
       .where(eq(schema.milkTanks.l_id_milktank, l_id_milktank))
   } catch (err) {
     throw handleError(err, "Exception for updateMilkTank", { l_id_milktank, properties })
@@ -231,6 +233,7 @@ export async function addMilkingHerd(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addMilkingHerd")
+    assertIntervalEndNotBeforeStart(l_milking_start, properties?.l_milking_end, "l_milking")
     await assertSameFarm(fdm, { l_id_herd }, { l_id_milktank })
 
     await fdm.insert(schema.herdMilking).values({
@@ -273,10 +276,18 @@ export async function updateMilkingHerd(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "updateMilkingHerd")
+    if (properties.l_milking_end !== undefined) {
+      assertIntervalEndNotBeforeStart(l_milking_start, properties.l_milking_end, "l_milking")
+    }
 
     const result = await fdm
       .update(schema.herdMilking)
-      .set({ ...properties, updated: new Date() })
+      // Only the documented columns: the herd, tank and start identify the record and never change
+      .set({
+        l_milking_end: properties.l_milking_end,
+        l_milking_amount: properties.l_milking_amount,
+        updated: new Date(),
+      })
       .where(
         and(
           eq(schema.herdMilking.l_id_herd, l_id_herd),
@@ -405,6 +416,7 @@ export async function addMilkingAnimal(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "addMilkingAnimal")
+    assertIntervalEndNotBeforeStart(l_milking_start, properties?.l_milking_end, "l_milking")
     await assertSameFarm(fdm, { l_id_animal }, { l_id_milktank })
 
     await fdm.insert(schema.animalMilking).values({
@@ -447,10 +459,19 @@ export async function updateMilkingAnimal(
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "updateMilkingAnimal")
+    if (properties.l_milking_end !== undefined) {
+      assertIntervalEndNotBeforeStart(l_milking_start, properties.l_milking_end, "l_milking")
+    }
 
     const result = await fdm
       .update(schema.animalMilking)
-      .set({ ...properties, updated: new Date() })
+      // Only the documented columns: the animal, tank and start identify the record and never
+      // change
+      .set({
+        l_milking_end: properties.l_milking_end,
+        l_milking_amount: properties.l_milking_amount,
+        updated: new Date(),
+      })
       .where(
         and(
           eq(schema.animalMilking.l_id_animal, l_id_animal),
@@ -1064,9 +1085,10 @@ export async function getMilkProductionForHerd(
           and(
             eq(schema.animalMilking.l_id_animal, schema.animalAssigning.l_id_animal),
             lte(schema.animalAssigning.l_assigning_start, schema.animalMilking.l_milking_start),
+            // Half-open assignments: at a move the milking counts for the new herd only
             or(
               isNull(schema.animalAssigning.l_assigning_end),
-              gte(schema.animalAssigning.l_assigning_end, schema.animalMilking.l_milking_start),
+              gt(schema.animalAssigning.l_assigning_end, schema.animalMilking.l_milking_start),
             ),
           ),
         )
@@ -1104,9 +1126,10 @@ async function listMilkingEventsForAnimal(
         eq(schema.herdMilking.l_id_herd, schema.animalAssigning.l_id_herd),
         eq(schema.animalAssigning.l_id_animal, l_id_animal),
         lte(schema.animalAssigning.l_assigning_start, schema.herdMilking.l_milking_start),
+        // Half-open assignments: at a move only the new herd's milking counts
         or(
           isNull(schema.animalAssigning.l_assigning_end),
-          gte(schema.animalAssigning.l_assigning_end, schema.herdMilking.l_milking_start),
+          gt(schema.animalAssigning.l_assigning_end, schema.herdMilking.l_milking_start),
         ),
       ),
     )

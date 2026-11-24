@@ -1,4 +1,5 @@
 import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import {
@@ -21,6 +22,7 @@ import {
   updateAnimalAssigning,
 } from "./animal"
 import { enableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
+import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd, getHerdsForFarm } from "./herd"
@@ -351,6 +353,67 @@ describe("Animal Domain", () => {
     ).rejects.toMatchObject({ cause: { message: expect.stringContaining("has not started") } })
   })
 
+  it("should refuse a departure before the arrival", async () => {
+    const refused = { cause: { message: "Departure cannot be before the arrival" } }
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_arriving_method: "purchased",
+        l_arriving_date: new Date("2025-03-01"),
+        l_leaving_date: new Date("2025-02-01"),
+      }),
+    ).rejects.toMatchObject(refused)
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_method: "purchased",
+      l_arriving_date: new Date("2025-03-01"),
+    })
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-02-01") }),
+    ).rejects.toMatchObject(refused)
+    // Leaving at the moment of arrival is an empty stay and allowed
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-03-01") })
+  })
+
+  it("should move the arrival of an animal born on the farm with a corrected birth date", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_birth_date: new Date("2025-03-01"),
+    })
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_birth_date: new Date("2025-03-05") })
+
+    const animal = await getAnimal(fdm, principal_id, l_id_animal)
+    expect(animal.l_birth_date).toEqual(new Date("2025-03-05"))
+    expect(animal.l_arriving_date).toEqual(new Date("2025-03-05"))
+    const [assignment] = await fdm
+      .select({ start: schema.animalAssigning.l_assigning_start })
+      .from(schema.animalAssigning)
+      .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+    expect(assignment.start).toEqual(new Date("2025-03-05"))
+
+    // Not past a later move to another herd
+    const youngstock = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_id_category: "rvo_101",
+    })
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstock, new Date("2025-04-01"))
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_birth_date: new Date("2025-05-01") }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("cannot be after the end of its first herd") },
+    })
+  })
+
+  it("should keep the arrival of a purchased animal when its birth date changes", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_arriving_method: "purchased",
+      l_arriving_date: new Date("2025-06-01"),
+      l_birth_date: new Date("2024-02-01"),
+    })
+    await updateAnimal(fdm, principal_id, l_id_animal, { l_birth_date: new Date("2024-02-10") })
+    const animal = await getAnimal(fdm, principal_id, l_id_animal)
+    expect(animal.l_birth_date).toEqual(new Date("2024-02-10"))
+    expect(animal.l_arriving_date).toEqual(new Date("2025-06-01"))
+  })
+
   it("should create a herd whose animals arrive on a given date", async () => {
     const l_arriving_date = new Date("2025-01-01")
     const { l_id_herd: newHerdId, l_id_animals } = await createHerdWithAnimals(
@@ -451,6 +514,8 @@ describe("Animal Domain", () => {
   it("should keep herd in census with count 0 when all animals have left (soft) or been removed (hard)", async () => {
     const leftAnimal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL700000034",
+      // Arrived before the departure below
+      l_arriving_date: new Date("2025-01-01"),
     })
     // Record departure while preserving history
     await updateAnimal(fdm, principal_id, leftAnimal, {
@@ -805,7 +870,7 @@ describe("Animal Domain", () => {
     )
   })
 
-  it("should reject a departure before a move at the moment of arrival", async () => {
+  it("should reject a departure before an arrival with a move at the same moment", async () => {
     const arrival = new Date("2025-01-01")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_arriving_date: arrival,
@@ -820,7 +885,7 @@ describe("Animal Domain", () => {
     await expect(
       updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2024-12-01") }),
     ).rejects.toMatchObject({
-      cause: { message: expect.stringContaining("before the move to another herd") },
+      cause: { message: expect.stringContaining("Departure cannot be before the arrival") },
     })
   })
 
@@ -1474,6 +1539,8 @@ describe("Animal Domain", () => {
     it("should only block numbers that an animal still on the farm uses", async () => {
       const first = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
         l_id_eartag: "NL130000100019",
+        // Arrived before its departure further on
+        l_arriving_date: new Date("2025-01-01"),
       })
       await expect(
         addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_worknumber: "0001" }),

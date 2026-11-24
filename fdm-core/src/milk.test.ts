@@ -198,6 +198,36 @@ describe("Milk Domain", () => {
     )
   })
 
+  it("should refuse a milking that ends before it starts and keep its key on a correction", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+    const start = new Date("2025-07-10T06:00:00.000Z")
+    const before = { l_milking_end: new Date("2025-07-09T06:00:00.000Z") }
+    const refused = {
+      cause: { message: expect.stringContaining("end cannot be earlier than start") },
+    }
+
+    await expect(
+      addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, start, before),
+    ).rejects.toMatchObject(refused)
+    await expect(
+      addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, start, before),
+    ).rejects.toMatchObject(refused)
+
+    await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, start)
+    await expect(
+      updateMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, start, before),
+    ).rejects.toMatchObject(refused)
+
+    // A wider object, as a JavaScript caller could pass, keeps its tank
+    const otherTank = await addMilkTank(fdm, principal_id, b_id_farm)
+    const wider = { l_milking_amount: 25, l_id_milktank: otherTank } as {
+      l_milking_amount: number
+    }
+    await updateMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, start, wider)
+    const milking = await getMilkingHerd(fdm, principal_id, l_id_herd)
+    expect(milking.map((m) => [m.l_id_milktank, m.l_milking_amount])).toEqual([[l_id_milktank, 25]])
+  })
+
   it("should reject removing a milk tank that has milking or delivery records", async () => {
     await addMilkDelivery(fdm, principal_id, l_id_milktank, new Date(), 500)
 
