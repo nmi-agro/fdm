@@ -6,9 +6,9 @@ import { getAnimalCategory } from "./animal-category"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { lockFarmOf } from "./farm-scope"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart } from "./interval"
-import { lockFarmOfHerd } from "./livestock-checks"
 
 /**
  * Adds a new herd asset to a farm and records its initial starting event.
@@ -352,7 +352,7 @@ export async function updateHerd(
     await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm, so no animal joins the herd
       // while its category or end changes
-      const b_id_farm = await lockFarmOfHerd(tx, l_id_herd)
+      const b_id_farm = await lockFarmOf(tx, { l_id_herd })
       if (!b_id_farm) {
         throw new Error("Herd does not exist")
       }

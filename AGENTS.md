@@ -48,6 +48,7 @@ Test isolation: `fdm-core` and the fdm-app integration project run with `isolate
   - Signature: `fn(fdm: FdmType, principal_id: string, ...)`.
   - A mutation that writes more than once runs inside `fdm.transaction(...)`; a single insert, update or delete may run on `fdm` directly. Generate IDs via `createId()`.
   - Access: call `checkPermission` (`src/authorization.ts`) before touching data, on `fdm` before the transaction or on `tx` inside it. `grantRole` only gives a principal access to a new top-level resource (such as a farm); other records get their access through their parent.
+  - Farm scope (`src/farm-scope.ts`): a write whose checks read other records (counts, overlaps, hours per day) takes `lockFarm`/`lockFarmOf` inside its transaction before the first read; it is an advisory lock, so a function that skips it is not serialized. A record that links to another (a herd to a feed batch, a grazing to a field) checks `assertSameFarm`.
   - Errors: wrap exceptions with `handleError(err, message, context)`, which returns a `BaseError`.
 - **Feature logic in its own package**: put a new feature area in its own workspace package (like `fdm-rvo` or `fdm-reports`), not in `fdm-core`; only touch `fdm-core` for small, unavoidable changes.
 - **`fdm-app` UI**: Dutch-only user interface (keep copy i18n-ready).
