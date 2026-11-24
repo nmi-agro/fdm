@@ -14,3 +14,5 @@ Open and save many pages faster on farms with many fields and for users with man
 - The mineralization overview shares one lookup in the calculation cache for the Dyna calculations of all fields, and requests the weather forecast once per location instead of once per field, with at most five requests to the NMI API at the same time. A field that cannot be calculated still shows its own error.
 
 On the farm measures page, adding, changing or removing a measure on several fields now saves all changes together: if one change fails, none is saved.
+
+Confirming a suggested cultivation on a field without crops now closes the dialog, instead of opening it again with the same suggestion.

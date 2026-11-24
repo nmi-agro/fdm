@@ -8,8 +8,10 @@
 import {
   acceptInvitation,
   addFarm,
+  addField,
   addSoilAnalysis,
   getCultivations,
+  getField,
   getHarvests,
   grantRoleToFarm,
   listPendingInvitationsForPrincipal,
@@ -22,8 +24,11 @@ import { getTimeframe } from "~/lib/calendar"
 import { fdm } from "~/lib/fdm.server"
 import { loader as fieldsTableLoader } from "~/routes/farm.$b_id_farm.$calendar.field"
 import { loader as fieldDashboardLoader } from "~/routes/farm.$b_id_farm.$calendar.field.$b_id._index"
-import { loader as cultivationLoader } from "~/routes/farm.$b_id_farm.$calendar.field.$b_id.cultivation"
-import { loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
+import {
+  action as cultivationAction,
+  loader as cultivationLoader,
+} from "~/routes/farm.$b_id_farm.$calendar.field.$b_id.cultivation"
+import { actionArgs, loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
 import { signInAs } from "../session"
 
 const BCS_SCORES = {
@@ -180,5 +185,55 @@ describe("field dashboard", () => {
         harvests.map((harvest) => harvest.b_id_harvesting).sort(),
       )
     }
+  })
+})
+
+describe("cultivation page action", () => {
+  /** A new field without crops, so the test does not change the fields of the other tests. */
+  async function addBareField(): Promise<string> {
+    const { b_geometry } = await getField(fdm, owner.user.id, fieldIds[0])
+    return addField(
+      fdm,
+      owner.user.id,
+      owner.ids.farm,
+      "Perceel voor voorstel",
+      null,
+      b_geometry,
+      new Date(Date.UTC(owner.ids.year - 1, 0, 1, 12)),
+      "nl_01",
+    )
+  }
+
+  /** The form of the add dialog; `calendar` is only known once `beforeAll` has run. */
+  const form = () => ({ b_lu_catalogue: "nl_265", b_lu_start: `${calendar}-03-01` })
+
+  it("drops the suggestion from the URL after a suggested cultivation is confirmed", async () => {
+    signInAs(owner.user)
+    const b_id = await addBareField()
+    const page = `/farm/${owner.ids.farm}/${calendar}/field/${b_id}/cultivation`
+    const { status, location } = await runRoute(() =>
+      cultivationAction(
+        actionArgs(
+          `${page}?suggest_b_lu_catalogue=nl_265&suggest_start=${calendar}-03-01&tab=x`,
+          { b_id_farm: owner.ids.farm, calendar, b_id },
+          form(),
+        ),
+      ),
+    )
+    expect(status).toBe(302)
+    // The other query params stay
+    expect(location).toBe(`${page}?tab=x`)
+    expect(await getCultivations(fdm, owner.user.id, b_id)).toHaveLength(1)
+  })
+
+  it("stays on the page after a cultivation is added without a suggestion", async () => {
+    signInAs(owner.user)
+    const b_id = await addBareField()
+    const page = `/farm/${owner.ids.farm}/${calendar}/field/${b_id}/cultivation`
+    const { status } = await runRoute(() =>
+      cultivationAction(actionArgs(page, { b_id_farm: owner.ids.farm, calendar, b_id }, form())),
+    )
+    expect(status).toBe(200)
+    expect(await getCultivations(fdm, owner.user.id, b_id)).toHaveLength(1)
   })
 })
