@@ -4,9 +4,12 @@ import {
   getCultivationsFromCatalogue,
   getDefaultsForHarvestParameters,
   getHarvest,
+  getHarvestsForFarm,
   getParametersForHarvestCat,
+  type Harvest,
   type HarvestableAnalysis,
   type HarvestParameters,
+  type Timeframe,
   removeHarvest,
   updateHarvest,
 } from "@nmi-agro/fdm-core"
@@ -17,6 +20,7 @@ import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters
 import { FormSchema } from "~/components/blocks/harvest/schema"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
+import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -40,17 +44,49 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   ]
 }
 
+/**
+ * Finds which of the requested harvests the user may change, with one check on the farm instead of
+ * one per harvest.
+ *
+ * A harvest inherits its permissions from its farm, and a harvest can be written by the same roles
+ * as the farm, so the farm check applies to every harvest on the farm. To know which harvests are
+ * on the farm, the harvests of the farm in the calendar year are read at once (only when the user
+ * may read the farm). A requested harvest that is not among them (normally there is none) is
+ * checked on its own, as before.
+ *
+ * @returns The ids of the harvests the user may change, in the requested order, and the harvests
+ *   of the farm that were read, by id.
+ */
 async function getModifiableHarvestingIds(
   url: URL,
   principal_id: string,
+  b_id_farm: string,
+  timeframe: Timeframe,
   allHarvestingIds: string[],
 ) {
+  const [farmReadPermission, farmWritePermission] = await Promise.all([
+    checkPermission(fdm, "farm", "read", b_id_farm, principal_id, url.pathname, false),
+    checkPermission(fdm, "farm", "write", b_id_farm, principal_id, url.pathname, false),
+  ])
+  const harvestsById = new Map<string, Harvest>()
+  if (farmReadPermission) {
+    const harvestsByCultivation = await getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe)
+    for (const harvests of harvestsByCultivation.values()) {
+      for (const harvest of harvests) harvestsById.set(harvest.b_id_harvesting, harvest)
+    }
+  }
+
   const harvestingWritePermissions = await Promise.all(
-    allHarvestingIds.map((id) =>
-      checkPermission(fdm, "harvesting", "write", id, principal_id, url.pathname, false),
+    allHarvestingIds.map(async (id) =>
+      harvestsById.has(id)
+        ? farmWritePermission
+        : await checkPermission(fdm, "harvesting", "write", id, principal_id, url.pathname, false),
     ),
   )
-  return allHarvestingIds.filter((_, i) => harvestingWritePermissions[i])
+  return {
+    modifiableHarvestingIds: allHarvestingIds.filter((_, i) => harvestingWritePermissions[i]),
+    harvestsById,
+  }
 }
 
 /**
@@ -87,18 +123,22 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
     // Get the session
     const session = await getSession(request)
 
-    const modifiableHarvestingIds = await getModifiableHarvestingIds(
+    const { modifiableHarvestingIds, harvestsById } = await getModifiableHarvestingIds(
       url,
       session.principal_id,
+      b_id_farm,
+      getTimeframe(params),
       allHarvestingIds,
     )
     const harvestingIds = modifiableHarvestingIds.length
       ? modifiableHarvestingIds
       : allHarvestingIds
-    // Get selected harvest
+    // Get selected harvest, from the harvests of the farm that were already read
     const harvests = await Promise.all(
-      harvestingIds.map((b_id_harvesting) =>
-        getHarvest(fdm, session.principal_id, b_id_harvesting),
+      harvestingIds.map(
+        async (b_id_harvesting) =>
+          harvestsById.get(b_id_harvesting) ??
+          (await getHarvest(fdm, session.principal_id, b_id_harvesting)),
       ),
     )
 
@@ -244,9 +284,11 @@ export async function action({ request, params, url }: Route.ActionArgs) {
       })
     }
 
-    const harvestingIds = await getModifiableHarvestingIds(
+    const { modifiableHarvestingIds: harvestingIds } = await getModifiableHarvestingIds(
       url,
       session.principal_id,
+      b_id_farm,
+      getTimeframe(params),
       allHarvestingIds,
     )
     if (harvestingIds.length === 0) {
