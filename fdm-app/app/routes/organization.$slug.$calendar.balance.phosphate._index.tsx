@@ -271,7 +271,7 @@ export default function OrganizationBalancePhosphateBlock() {
   const location = useLocation()
 
   return (
-    <main className="space-y-4 p-8">
+    <div className="space-y-4 p-8">
       <h2 className="text-2xl font-bold tracking-tight">Fosfaat</h2>
       <Suspense
         key={`${loaderData.organization.id},${location.search}`}
@@ -279,7 +279,7 @@ export default function OrganizationBalancePhosphateBlock() {
       >
         <OrganizationBalancePhosphateOverview {...loaderData} />
       </Suspense>
-    </main>
+    </div>
   )
 }
 

@@ -15,8 +15,8 @@ import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HelpLink } from "~/components/custom/help-link"
+import { PageContainer } from "~/components/custom/page-container"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -160,7 +160,7 @@ export default function FarmBalancePhosphateBlock() {
       }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderBalance
@@ -169,7 +169,7 @@ export default function FarmBalancePhosphateBlock() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 px-4 py-5 pb-0 sm:px-6 lg:px-10">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ export default function FarmBalancePhosphateBlock() {
             <div className="flex-1">{<Outlet />}</div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
