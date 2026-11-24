@@ -3,7 +3,7 @@ title: Balansen
 description: Bekijk de stikstof-, organische-stof- en fosfaatbalans van je bedrijf en per perceel, en zie welke gegevens ervoor nodig zijn.
 section: Resultaten
 order: 1
-updated: 2026-11-23
+updated: 2026-11-24
 inApp:
   - Balans
   - Stikstof
@@ -27,6 +27,7 @@ keywords:
 related:
   - background/stikstofbalans
   - background/organische-stofbalans
+  - background/fosfaatbalans
   - bodem
 ---
 
@@ -62,6 +63,8 @@ Meer over de berekening lees je in [Organische-stofbalans](/manual/background/or
 
 De fosfaatbalans is **Experimenteel**: de rekenregels en grenswaarden worden nog met onderzoekers afgestemd. Gebruik de uitkomsten als richting, niet als vaststaand advies.
 
+![De fosfaatbalans van een bedrijf, met de fosfaattoestand van de percelen](screenshot:balans-fosfaat)
+
 De balans zet de aanvoer af tegen de afvoer, in kg P₂O₅ per hectare:
 
 | Post    | Wat valt eronder?                                                                                |
@@ -86,6 +89,8 @@ Ligt P-AL onder 35 terwijl de PSD boven de milieugrens zit, dan vragen opbrengst
 Bij **Fosfaattoestand** zie je welke kant het perceel op gaat bij de gemiddelde balans en hoe lang het duurt voordat het doel bereikt is. Het oordeel is **Goed**, **Aandacht**, **Bijsturen** of **Onbekend**. Onder **Mogelijke aanpak** staat welke balans nodig is om bij te sturen. Zijn de bodemgegevens geschat of is de fosfaatverzadiging voor jouw grondsoort minder betrouwbaar, dan staat er bij het oordeel dat het indicatief is.
 
 Op de bedrijfspagina zie je bij **Fosfaattoestand van de percelen** hoeveel hectare elk oordeel heeft, en onder **Percelen** de percelen met hun doel en oordeel. Bufferstroken, natuur en landschapselementen tellen niet mee; die staan apart onder "Niet meegenomen".
+
+Hoe de balans, de fosfaattoestand en het oordeel worden bepaald, lees je in [Fosfaatbalans](/manual/background/fosfaatbalans).
 
 ## Wat heb je nodig? {#benodigde-gegevens}
 

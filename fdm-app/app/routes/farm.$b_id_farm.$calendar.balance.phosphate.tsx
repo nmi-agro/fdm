@@ -9,10 +9,12 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { PhosphateHelpDialog } from "~/components/blocks/balance/phosphate-help-dialog"
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { HelpLink } from "~/components/custom/help-link"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
@@ -20,6 +22,8 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+
+export const handle: HelpHandle = { help: "fosfaatbalans" }
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -168,8 +172,9 @@ export default function FarmBalancePhosphateBlock() {
       <main>
         <div className="space-y-6 px-4 py-5 pb-0 sm:px-6 lg:px-10">
           <div className="flex flex-wrap items-center gap-4">
-            <div className="space-y-0.5 ">
+            <div className="flex items-center gap-2">
               <h2 className="text-3xl font-semibold tracking-tight">Fosfaat</h2>
+              <HelpLink target="fosfaatbalans" />
             </div>
             <Popover>
               <PopoverTrigger

@@ -25,7 +25,6 @@ const initializeRuntimeEnvMap = (): RuntimeConfig => {
     "PUBLIC_FDM_NAME",
     "PUBLIC_FDM_DATASETS_URL",
     "PUBLIC_FDM_DATASETS_URL",
-    "PUBLIC_FDM_DOCS_URL",
     "PUBLIC_FDM_API_URL",
     "PUBLIC_FDM_MCP_URL",
     "PUBLIC_MAP_PROVIDER",
@@ -97,9 +96,6 @@ const posthogConfig =
     ? { key: String(posthogKey), host: String(posthogHost) }
     : null
 
-/** Public fdm-docs site, used when `PUBLIC_FDM_DOCS_URL` is not set. */
-const DEFAULT_DOCS_URL = "https://nmi-agro.github.io/fdm"
-
 // Export the client-safe config object
 export const clientConfig: ClientConfig = {
   name: String(getConfigValue("PUBLIC_FDM_NAME", "FDM")),
@@ -116,10 +112,6 @@ export const clientConfig: ClientConfig = {
     getConfigValue("PUBLIC_FDM_DATASETS_URL", "https://storage.googleapis.com/fdm-public-data") ||
       "https://storage.googleapis.com/fdm-public-data",
   ),
-
-  docsUrl: String(
-    getConfigValue("PUBLIC_FDM_DOCS_URL", DEFAULT_DOCS_URL) || DEFAULT_DOCS_URL,
-  ).replace(/\/+$/, ""),
 
   analytics: {
     sentry: sentryConfig,

@@ -1,5 +1,4 @@
 import { PHOSPHATE_STATUS_RULES as R } from "@nmi-agro/fdm-calculator/browser"
-import { HelpCircle } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
@@ -8,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import { clientConfig } from "~/lib/config"
+import { getHelpHref } from "~/lib/manual/help-targets"
 import { PHOSPHATE_VERDICT_TEXT } from "./phosphate-format"
 
 const references: { text: string; href: string }[] = [
@@ -48,12 +47,8 @@ export function PhosphateHelpDialog() {
     <Dialog>
       <DialogTrigger
         render={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground gap-1.5"
-          >
-            <HelpCircle className="h-4 w-4" />
+          // No "?" icon: the help link next to the title already carries it (one per screen)
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             Hoe lees ik de fosfaatbalans?
           </Button>
         }
@@ -156,14 +151,16 @@ export function PhosphateHelpDialog() {
           </div>
 
           <p>
-            Meer over de berekening staat in de{" "}
+            Hoe de balans, de fosfaattoestand en het oordeel worden berekend, staat in de{" "}
+            {/* New tab, like the help link next to the title, so the page keeps its place */}
             <a
-              href={`${clientConfig.docsUrl}/docs/insights/balance/phosphate-balance`}
+              href={getHelpHref("achtergrond-fosfaatbalans")}
               target="_blank"
-              rel="noreferrer"
-              className="hover:text-foreground underline"
+              rel="noopener"
+              className="hover:text-foreground underline underline-offset-4"
             >
-              documentatie van de fosfaatbalans
+              achtergrond bij de fosfaatbalans
+              <span className="sr-only"> (opent in een nieuw tabblad)</span>
             </a>
             .
           </p>
