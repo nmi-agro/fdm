@@ -4,7 +4,7 @@ import {
   getCultivations,
   getCultivationsFromCatalogue,
   getField,
-  getHarvests,
+  getHarvestsForFarm,
   removeCultivation,
 } from "@nmi-agro/fdm-core"
 import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
@@ -97,18 +97,20 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
-    const fieldWritePermission = await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      url.pathname,
-      false,
-    )
-
-    // Get details of field
-    const field = await getField(fdm, session.principal_id, b_id)
+    const [
+      fieldWritePermission,
+      field,
+      lastCultivationAvailabilityYear,
+      cultivations,
+      harvestsForFarm,
+    ] = await Promise.all([
+      checkPermission(fdm, "field", "write", b_id, session.principal_id, url.pathname, false),
+      getField(fdm, session.principal_id, b_id),
+      getLastCultivationAvailabilityYear(),
+      getCultivations(fdm, session.principal_id, b_id, timeframe),
+      // One read for the harvests of all cultivations, instead of one per cultivation
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
     if (!field) {
       throw data("Field is not found", {
         status: 404,
@@ -117,7 +119,6 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     }
 
     // Get available cultivations for the farm
-    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
     const availabilityYearRaw = Number.parseInt(calendar)
     const availabilityYear = Number.isNaN(availabilityYearRaw)
       ? undefined
@@ -145,17 +146,10 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         }
       })
 
-    // Get cultivations for the field
-    const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
-
-    // Get the harvests of the cultivations
-    const harvests = (
-      await Promise.all(
-        cultivations.map(async (cultivation) => {
-          return await getHarvests(fdm, session.principal_id, cultivation.b_lu, timeframe)
-        }),
-      )
-    ).flat()
+    // Get the harvests of the cultivations of this field
+    const harvests = cultivations.flatMap(
+      (cultivation) => harvestsForFarm.get(cultivation.b_lu) ?? [],
+    )
 
     // Return user information from loader
     return {

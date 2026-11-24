@@ -1,5 +1,7 @@
 import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import {
+  type Cultivation,
+  type CurrentSoilData,
   checkPermission,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
@@ -38,7 +40,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
-import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import { bcsRawInputsFromData, deriveBcsContextFromRawInputs } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -152,8 +154,38 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       }
     })
 
-    // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    const calendar = params.calendar ?? new Date().getFullYear().toString()
+    const nmiApiKey = getNmiApiKey()
+
+    // Read everything the table needs at farm level, in parallel, so the number of queries
+    // does not grow with the number of fields
+    const [
+      fields,
+      fertilizers,
+      cultivationsForFarm,
+      cultivationsCatalogue,
+      lastCultivationAvailabilityYear,
+      fertilizerApplicationsForFarm,
+      currentSoilDataForFarm,
+      soilAnalysesForFarm,
+      farmWritePermission,
+    ] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getFertilizers(fdm, session.principal_id, b_id_farm),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+      getLastCultivationAvailabilityYear(),
+      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm, {
+        start: undefined,
+        end: timeframe?.end,
+      }),
+      // A field inherits its permissions from its farm, so this also answers the write
+      // permission of each field
+      checkPermission(fdm, "farm", "write", b_id_farm, session.principal_id, url.pathname, false),
+    ])
+
     const fieldOptions = fields.map((field) => {
       if (!field?.b_id || !field?.b_name) {
         throw new Error("Invalid field data structure")
@@ -165,149 +197,125 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       }
     })
 
-    const fertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm)
-
-    const calendar = params.calendar ?? new Date().getFullYear().toString()
-    const nmiApiKey = getNmiApiKey()
-
-    const cultivationsForFarm = await getCultivationsForFarm(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-      timeframe,
-    )
     // The catalogue holds the years in which each RVO crop code is available.
     const availabilityYearsByCatalogue = new Map(
-      (await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm)).map((item) => [
-        item.b_lu_catalogue,
-        item.b_lu_ya,
-      ]),
+      cultivationsCatalogue.map((item) => [item.b_lu_catalogue, item.b_lu_ya]),
     )
-    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
-    const fertilizerApplicationsForFarm = await getFertilizerApplicationsForFarm(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-      timeframe,
-    )
-    const currentSoilDataForFarm = await getCurrentSoilDataForFarm(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-      timeframe,
-    )
-    const soilAnalysesForFarm = await getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm, {
-      start: undefined,
-      end: timeframe?.end,
-    })
-    const fieldsExtended = await Promise.all(
-      fields.map(async (field) => {
-        const cultivations = (cultivationsForFarm.get(field.b_id) ?? []).map((cultivation) => ({
-          ...cultivation,
-          availabilityWarning: isCultivationUnavailableInPeriod(
-            cultivation,
-            availabilityYearsByCatalogue.get(cultivation.b_lu_catalogue),
-            lastCultivationAvailabilityYear,
-          ),
-        }))
 
-        const fertilizerApplications = fertilizerApplicationsForFarm.get(field.b_id) ?? []
-
-        const fertilizersFiltered = fertilizers.filter((fertilizer) => {
-          return fertilizerApplications.some((application) => {
-            return application.p_id === fertilizer.p_id
-          })
-        })
-
-        const currentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
-        const a_som_loi = Number(
-          currentSoilData.find((x) => x.parameter === "a_som_loi")?.value ?? 0,
-        )
-        const existingNlv = currentSoilData.find(
-          (x) => x.parameter === "d_n_supply_base" && x.value != null,
-        )?.value
-        const clayVal = currentSoilData.find((x) => x.parameter === "a_clay_mi")?.value
-        const cnVal = currentSoilData.find((x) => x.parameter === "a_cn_fr")?.value
-        const somVal = currentSoilData.find((x) => x.parameter === "a_som_loi")?.value
-        const d_n_supply_base =
-          typeof existingNlv === "number"
-            ? existingNlv
-            : typeof somVal === "number" && typeof clayVal === "number" && typeof cnVal === "number"
-              ? Math.round(
-                  calculateNlv({
-                    a_clay_mi: clayVal,
-                    a_cn_fr: cnVal,
-                    a_som_loi: somVal,
-                  }) * 10,
-                ) / 10
-              : null
-        const b_soiltype_agr = String(
-          currentSoilData.find((x) => x.parameter === "b_soiltype_agr")?.value ?? "",
-        )
-
-        // Fetch latest BCS analysis up to end of this calendar year.
-        const soilAnalyses = soilAnalysesForFarm.get(field.b_id) ?? []
-        const latestBcs = soilAnalyses.filter(isBcsAnalysis).sort((a, b) => {
-          const da = a.b_sampling_date?.getTime() ?? 0
-          const db = b.b_sampling_date?.getTime() ?? 0
-          return db - da
-        })[0]
-        const bcs = latestBcs
-          ? await (async () => {
-              const { labContext } = await deriveBcsScores(
-                fdm,
-                session.principal_id,
-                field.b_id,
-                new Date(latestBcs.b_sampling_date ?? latestBcs.a_date ?? new Date()),
-              )
-              const { d_bcs, scoreColor, scoreLabel } = computeBcs(
-                {
-                  a_ss_bcs: latestBcs.a_ss_bcs,
-                  a_sc_bcs: latestBcs.a_sc_bcs,
-                  a_rd_bcs: latestBcs.a_rd_bcs,
-                  a_ew_bcs: latestBcs.a_ew_bcs,
-                  a_cc_bcs: latestBcs.a_cc_bcs,
-                  a_gs_bcs: latestBcs.a_gs_bcs,
-                  a_p_bcs: latestBcs.a_p_bcs,
-                  a_c_bcs: latestBcs.a_c_bcs,
-                  a_rt_bcs: latestBcs.a_rt_bcs,
-                },
-                labContext ?? undefined,
-              )
-              return {
-                a_id: latestBcs.a_id,
-                d_bcs,
-                scoreColor,
-                scoreLabel,
-              }
-            })()
-          : null
-
-        const has_write_permission = await checkPermission(
-          fdm,
-          "field",
-          "write",
-          field.b_id,
-          session.principal_id,
-          url.pathname,
-          false,
-        )
-        return {
-          b_id: field.b_id,
-          b_name: field.b_name,
-          cultivations: cultivations,
-          cultivationSuggestion: undefined as Awaited<ReturnType<typeof getCultivationSuggestion>>,
-          fertilizers: fertilizersFiltered,
-          d_n_supply_base: d_n_supply_base,
-          a_som_loi: a_som_loi,
-          b_soiltype_agr: b_soiltype_agr,
-          b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-          b_bufferstrip: field.b_bufferstrip,
-          has_write_permission: has_write_permission,
-          bcs,
-        }
+    // The latest BCS assessment of each field, up to the end of this calendar year
+    const latestBcsByField = new Map(
+      fields.map((field) => {
+        const latestBcs = (soilAnalysesForFarm.get(field.b_id) ?? [])
+          .filter(isBcsAnalysis)
+          .sort((a, b) => {
+            const da = a.b_sampling_date?.getTime() ?? 0
+            const db = b.b_sampling_date?.getTime() ?? 0
+            return db - da
+          })[0]
+        return [field.b_id, latestBcs] as const
       }),
     )
+
+    // The BCS lab context uses all soil data and cultivations of a field, without the
+    // calendar's timeframe. Read them once for the farm, and only when a field has a BCS.
+    const hasBcs = [...latestBcsByField.values()].some((latestBcs) => latestBcs !== undefined)
+    const [allSoilDataForFarm, allCultivationsForFarm] = hasBcs
+      ? await Promise.all([
+          getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm),
+          getCultivationsForFarm(fdm, session.principal_id, b_id_farm),
+        ])
+      : [new Map<string, CurrentSoilData>(), new Map<string, Cultivation[]>()]
+
+    const fieldsExtended = fields.map((field) => {
+      const cultivations = (cultivationsForFarm.get(field.b_id) ?? []).map((cultivation) => ({
+        ...cultivation,
+        availabilityWarning: isCultivationUnavailableInPeriod(
+          cultivation,
+          availabilityYearsByCatalogue.get(cultivation.b_lu_catalogue),
+          lastCultivationAvailabilityYear,
+        ),
+      }))
+
+      const fertilizerApplications = fertilizerApplicationsForFarm.get(field.b_id) ?? []
+
+      const fertilizersFiltered = fertilizers.filter((fertilizer) => {
+        return fertilizerApplications.some((application) => {
+          return application.p_id === fertilizer.p_id
+        })
+      })
+
+      const currentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
+      const a_som_loi = Number(currentSoilData.find((x) => x.parameter === "a_som_loi")?.value ?? 0)
+      const existingNlv = currentSoilData.find(
+        (x) => x.parameter === "d_n_supply_base" && x.value != null,
+      )?.value
+      const clayVal = currentSoilData.find((x) => x.parameter === "a_clay_mi")?.value
+      const cnVal = currentSoilData.find((x) => x.parameter === "a_cn_fr")?.value
+      const somVal = currentSoilData.find((x) => x.parameter === "a_som_loi")?.value
+      const d_n_supply_base =
+        typeof existingNlv === "number"
+          ? existingNlv
+          : typeof somVal === "number" && typeof clayVal === "number" && typeof cnVal === "number"
+            ? Math.round(
+                calculateNlv({
+                  a_clay_mi: clayVal,
+                  a_cn_fr: cnVal,
+                  a_som_loi: somVal,
+                }) * 10,
+              ) / 10
+            : null
+      const b_soiltype_agr = String(
+        currentSoilData.find((x) => x.parameter === "b_soiltype_agr")?.value ?? "",
+      )
+
+      const latestBcs = latestBcsByField.get(field.b_id)
+      const bcs = latestBcs
+        ? (() => {
+            const { labContext } = deriveBcsContextFromRawInputs(
+              bcsRawInputsFromData(
+                allSoilDataForFarm.get(field.b_id) ?? [],
+                allCultivationsForFarm.get(field.b_id) ?? [],
+              ),
+              new Date(latestBcs.b_sampling_date ?? latestBcs.a_date ?? new Date()),
+            )
+            const { d_bcs, scoreColor, scoreLabel } = computeBcs(
+              {
+                a_ss_bcs: latestBcs.a_ss_bcs,
+                a_sc_bcs: latestBcs.a_sc_bcs,
+                a_rd_bcs: latestBcs.a_rd_bcs,
+                a_ew_bcs: latestBcs.a_ew_bcs,
+                a_cc_bcs: latestBcs.a_cc_bcs,
+                a_gs_bcs: latestBcs.a_gs_bcs,
+                a_p_bcs: latestBcs.a_p_bcs,
+                a_c_bcs: latestBcs.a_c_bcs,
+                a_rt_bcs: latestBcs.a_rt_bcs,
+              },
+              labContext ?? undefined,
+            )
+            return {
+              a_id: latestBcs.a_id,
+              d_bcs,
+              scoreColor,
+              scoreLabel,
+            }
+          })()
+        : null
+
+      return {
+        b_id: field.b_id,
+        b_name: field.b_name,
+        cultivations: cultivations,
+        cultivationSuggestion: undefined as Awaited<ReturnType<typeof getCultivationSuggestion>>,
+        fertilizers: fertilizersFiltered,
+        d_n_supply_base: d_n_supply_base,
+        a_som_loi: a_som_loi,
+        b_soiltype_agr: b_soiltype_agr,
+        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+        b_bufferstrip: field.b_bufferstrip,
+        has_write_permission: farmWritePermission,
+        bcs,
+      }
+    })
 
     // Look up NMI-estimate-based cultivation suggestions for fields missing a default
     // cultivation, in small concurrency-limited batches so a farm with many affected fields
@@ -330,16 +338,6 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         }),
       )
     }
-
-    const farmWritePermission = await checkPermission(
-      fdm,
-      "farm",
-      "write",
-      b_id_farm,
-      session.principal_id,
-      url.pathname,
-      false,
-    )
 
     // Return user information from loader
     return {
