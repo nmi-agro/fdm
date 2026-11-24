@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, or, type SQL, sql } from "drizzle-orm"
+import { and, desc, eq, gte, inArray, isNull, lte, or, type SQL, sql } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Field } from "./field.types"
@@ -227,81 +227,127 @@ export async function getFields(
   try {
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getFields")
 
-    let whereClause: SQL | undefined
-
-    if (timeframe?.start && timeframe.end) {
-      whereClause = and(
-        eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-        and(
-          // Check if the acquiring date is within the timeframe
-          lte(schema.fieldAcquiring.b_start, timeframe.end),
-        ),
-        // Check if there is a discarding date and if it is within the timeframe
-        or(
-          isNull(schema.fieldDiscarding.b_end),
-          and(
-            isNotNull(schema.fieldDiscarding.b_end),
-            gte(schema.fieldDiscarding.b_end, timeframe.start),
-          ),
-        ),
-      )
-    } else if (timeframe?.start) {
-      whereClause = and(
-        eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-        or(
-          isNull(schema.fieldDiscarding.b_end),
-          and(
-            isNotNull(schema.fieldDiscarding.b_end),
-            gte(schema.fieldDiscarding.b_end, timeframe.start),
-          ),
-        ),
-      )
-    } else if (timeframe?.end) {
-      whereClause = and(
-        eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-        lte(schema.fieldAcquiring.b_start, timeframe.end),
-      )
-    } else {
-      whereClause = eq(schema.fieldAcquiring.b_id_farm, b_id_farm)
-    }
-
-    // Get properties of the requested field
-    const fields = await fdm
-      .select({
-        b_id: schema.fields.b_id,
-        b_name: schema.fields.b_name,
-        b_id_farm: schema.fieldAcquiring.b_id_farm,
-        b_id_source: schema.fields.b_id_source,
-        b_geometry: schema.fields.b_geometry,
-        b_bufferstrip: schema.fields.b_bufferstrip,
-        b_centroid_x: sql<number>`ST_X(ST_Centroid(b_geometry))`,
-        b_centroid_y: sql<number>`ST_Y(ST_Centroid(b_geometry))`,
-        b_area: sql<number>`ROUND((ST_Area(b_geometry::geography)/10000)::NUMERIC, 2)::FLOAT`,
-        b_perimeter: sql<number>`ROUND((ST_Length(ST_ExteriorRing(b_geometry)::geography))::NUMERIC, 2)::FLOAT`,
-        b_start: schema.fieldAcquiring.b_start,
-        b_acquiring_method: schema.fieldAcquiring.b_acquiring_method,
-        b_end: schema.fieldDiscarding.b_end,
-      })
-      .from(schema.fields)
-      .innerJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
-      .leftJoin(schema.fieldDiscarding, eq(schema.fields.b_id, schema.fieldDiscarding.b_id))
-      .where(whereClause)
-      .orderBy(desc(sql<number>`ST_Area(b_geometry::geography)`))
-
-    // Process the centroids into a tuple and adjust end dates on 1 January
-    return fields
-      .map(({ b_centroid_x, b_centroid_y, ...rest }) => ({
-        ...rest,
-        b_end: rest.b_end ? adjustEndDateAtYearStart(rest.b_end) : rest.b_end,
-        b_centroid: [b_centroid_x, b_centroid_y] as [number, number],
-      }))
-      .filter(
-        // Exclude fields that, after adjustment, ended before the start of the timeframe
-        (field) => !(timeframe?.start && field.b_end && field.b_end < timeframe.start),
-      ) as Field[]
+    return await selectFieldsOfFarms(fdm, [b_id_farm], timeframe)
   } catch (err) {
     throw handleError(err, "Exception for getFields", { b_id_farm })
   }
+}
+
+/**
+ * Retrieves the fields of several farms at once.
+ *
+ * This is the multi-farm form of {@link getFields}: it checks read access once per farm and then
+ * reads the fields of all farms in a single query. The fields of each farm are the same as
+ * `getFields` returns for that farm, with the same timeframe filter and the same order (largest
+ * area first).
+ *
+ * When a timeframe is provided, only fields that are managed during (part of) the timeframe are
+ * returned: fields acquired on or before the end of the timeframe and not ended before its start.
+ * A `b_end` on 1 January is returned as the end of 31 December of the previous year (see
+ * `adjustEndDateAtYearStart`), so a field ended on 31 December or 1 January is not returned
+ * for the next calendar year.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id - The ID of the principal making the request. Needs read access to every farm.
+ * @param b_id_farms - The unique identifiers of the farms.
+ * @param timeframe - Optional timeframe to filter fields by start and end dates.
+ * @returns A Promise resolving to a Map keyed by farm ID (`b_id_farm`), with the farm's fields as
+ *   values. Every requested farm is in the map; a farm without fields has an empty array.
+ * @throws {Error} If the principal lacks read access to any of the farms, or if the query fails.
+ *
+ * @alpha
+ */
+export async function getFieldsForFarms(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farms: schema.farmsTypeSelect["b_id_farm"][],
+  timeframe?: Timeframe,
+): Promise<Map<schema.farmsTypeSelect["b_id_farm"], Field[]>> {
+  try {
+    const farmIds = [...new Set(b_id_farms)]
+    const result = new Map<schema.farmsTypeSelect["b_id_farm"], Field[]>(
+      farmIds.map((b_id_farm) => [b_id_farm, []]),
+    )
+    if (farmIds.length === 0) {
+      return result
+    }
+
+    await Promise.all(
+      farmIds.map((b_id_farm) =>
+        checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getFieldsForFarms"),
+      ),
+    )
+
+    // The fields come in order of descending area, so each farm keeps that order
+    const fields = await selectFieldsOfFarms(fdm, farmIds, timeframe)
+    for (const field of fields) {
+      result.get(field.b_id_farm)?.push(field)
+    }
+    return result
+  } catch (err) {
+    throw handleError(err, "Exception for getFieldsForFarms", { b_id_farms })
+  }
+}
+
+/**
+ * Reads the fields of the given farms, without a permission check. Callers check read access
+ * to each farm first.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param b_id_farms - The farms to read the fields of. Must not be empty.
+ * @param timeframe - Optional timeframe to filter fields by start and end dates.
+ * @returns The fields of all farms, largest area first.
+ */
+async function selectFieldsOfFarms(
+  fdm: FdmType,
+  b_id_farms: schema.farmsTypeSelect["b_id_farm"][],
+  timeframe?: Timeframe,
+): Promise<Field[]> {
+  const conditions: (SQL | undefined)[] = [inArray(schema.fieldAcquiring.b_id_farm, b_id_farms)]
+  if (timeframe?.end) {
+    // Acquired on or before the end of the timeframe
+    conditions.push(lte(schema.fieldAcquiring.b_start, timeframe.end))
+  }
+  if (timeframe?.start) {
+    // Not ended before the start of the timeframe
+    conditions.push(
+      or(isNull(schema.fieldDiscarding.b_end), gte(schema.fieldDiscarding.b_end, timeframe.start)),
+    )
+  }
+
+  const fields = await fdm
+    .select({
+      b_id: schema.fields.b_id,
+      b_name: schema.fields.b_name,
+      b_id_farm: schema.fieldAcquiring.b_id_farm,
+      b_id_source: schema.fields.b_id_source,
+      b_geometry: schema.fields.b_geometry,
+      b_bufferstrip: schema.fields.b_bufferstrip,
+      b_centroid_x: sql<number>`ST_X(ST_Centroid(b_geometry))`,
+      b_centroid_y: sql<number>`ST_Y(ST_Centroid(b_geometry))`,
+      b_area: sql<number>`ROUND((ST_Area(b_geometry::geography)/10000)::NUMERIC, 2)::FLOAT`,
+      b_perimeter: sql<number>`ROUND((ST_Length(ST_ExteriorRing(b_geometry)::geography))::NUMERIC, 2)::FLOAT`,
+      b_start: schema.fieldAcquiring.b_start,
+      b_acquiring_method: schema.fieldAcquiring.b_acquiring_method,
+      b_end: schema.fieldDiscarding.b_end,
+    })
+    .from(schema.fields)
+    .innerJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
+    .leftJoin(schema.fieldDiscarding, eq(schema.fields.b_id, schema.fieldDiscarding.b_id))
+    .where(and(...conditions))
+    .orderBy(desc(sql<number>`ST_Area(b_geometry::geography)`))
+
+  // Process the centroids into a tuple and adjust end dates on 1 January
+  return fields
+    .map(({ b_centroid_x, b_centroid_y, ...rest }) => ({
+      ...rest,
+      b_end: rest.b_end ? adjustEndDateAtYearStart(rest.b_end) : rest.b_end,
+      b_centroid: [b_centroid_x, b_centroid_y] as [number, number],
+    }))
+    .filter(
+      // Exclude fields that, after adjustment, ended before the start of the timeframe
+      (field) => !(timeframe?.start && field.b_end && field.b_end < timeframe.start),
+    ) as Field[]
 }
 
 /**

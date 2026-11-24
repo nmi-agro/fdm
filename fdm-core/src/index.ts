@@ -183,6 +183,7 @@ export {
   determineIfFieldIsBuffer,
   getField,
   getFields,
+  getFieldsForFarms,
   listAvailableAcquiringMethods,
   removeField,
   updateField,
