@@ -3,8 +3,8 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { genericAction, loader } from "~/components/blocks/mijnpercelen/loader-and-action.server"
 import { UploadMijnPercelenPage } from "~/components/blocks/mijnpercelen/upload-page"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.upload"
 
@@ -40,7 +40,7 @@ export default function UpdateWithMijnPercelenPage() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <BreadcrumbItem className="hidden xl:block">Bedrijf</BreadcrumbItem>
         <BreadcrumbSeparator className="hidden xl:block" />
@@ -54,6 +54,6 @@ export default function UpdateWithMijnPercelenPage() {
         backUrl={`/farm/${loaderData.b_id_farm}`}
         isFarmCreateWizard={false}
       />
-    </SidebarInset>
+    </PageContainer>
   )
 }

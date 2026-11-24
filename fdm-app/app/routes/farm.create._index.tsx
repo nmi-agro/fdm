@@ -35,6 +35,7 @@ import {
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { PageContainer } from "~/components/custom/page-container"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -54,7 +55,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
 import { isKvkConfigured } from "~/integrations/kvk.server"
@@ -276,11 +276,11 @@ export default function AddFarmPage() {
   }, [formSetValue, selectedYear])
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined} help="bedrijf-aanmaken">
         <HeaderFarmCreate b_name_farm={undefined} />
       </Header>
-      <main className="bg-muted/20 flex-1 overflow-y-auto">
+      <div className="bg-muted/20 flex-1 overflow-y-auto">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 p-4 lg:grid-cols-3 lg:p-8">
           {/* Left Column: Form */}
           <div className="lg:col-span-2">
@@ -740,8 +740,8 @@ export default function AddFarmPage() {
             </div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

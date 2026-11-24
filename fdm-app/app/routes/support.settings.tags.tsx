@@ -151,7 +151,7 @@ export default function HelpdeskTagsSettings() {
   const { availableTags, helpdeskWritePermission } = useLoaderData<typeof loader>()
 
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Tags"
         description={
@@ -161,6 +161,6 @@ export default function HelpdeskTagsSettings() {
         }
       />
       <HelpdeskTagManager availableTags={availableTags} canModify={helpdeskWritePermission} />
-    </main>
+    </div>
   )
 }

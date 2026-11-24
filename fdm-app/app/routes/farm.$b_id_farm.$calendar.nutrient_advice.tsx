@@ -14,8 +14,8 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNutrientAdvice } from "~/components/blocks/header/nutrient-advice"
+import { PageContainer } from "~/components/custom/page-container"
 import { buttonVariants } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -144,7 +144,7 @@ export default function FarmBalanceNitrogenBlock() {
       }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderNutrientAdvice
@@ -153,7 +153,7 @@ export default function FarmBalanceNitrogenBlock() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         {!loaderData.b_id && (
           <FarmTitle
             help="bemestingsadvies"
@@ -178,7 +178,7 @@ export default function FarmBalanceNitrogenBlock() {
             <div className="min-w-0 flex-1">{<Outlet />}</div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

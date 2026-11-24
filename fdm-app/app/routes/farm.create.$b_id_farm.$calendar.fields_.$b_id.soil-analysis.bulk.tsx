@@ -11,8 +11,8 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { BulkSoilAnalysisUpload } from "~/components/blocks/soil/bulk-upload"
 import { toDateKey } from "~/components/blocks/soil/bulk-upload-model"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -92,7 +92,7 @@ export default function BulkSoilAnalysisUploadWizardPage() {
   const fieldsHref = `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `${fieldsHref}/${loaderData.b_id}`,
@@ -103,7 +103,7 @@ export default function BulkSoilAnalysisUploadWizardPage() {
       >
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-4 pb-16 md:p-10">
           <div className="space-y-0.5">
             <h2 className="text-2xl font-bold tracking-tight">Bodemanalyses uploaden</h2>
@@ -130,7 +130,7 @@ export default function BulkSoilAnalysisUploadWizardPage() {
             destination={fieldsHref}
           />
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
