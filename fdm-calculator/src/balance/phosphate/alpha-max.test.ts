@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   getPhosphateSoilTypeParameters,
   ghgPerGroundwaterClass,
+  ghgRangePerGroundwaterClass,
   phosphateSoilTypeParameters,
 } from "./alpha-max"
 
@@ -71,5 +72,24 @@ describe("ghgPerGroundwaterClass", () => {
       expect(ghgPerGroundwaterClass[gt]).toBeGreaterThanOrEqual(25)
       expect(ghgPerGroundwaterClass[gt]).toBeLessThanOrEqual(40)
     }
+  })
+
+  it("should stay within the GHG range of every class", () => {
+    for (const [gt, { min, max }] of Object.entries(ghgRangePerGroundwaterClass)) {
+      const ghg = ghgPerGroundwaterClass[gt as keyof typeof ghgPerGroundwaterClass]
+      expect(ghg).toBeGreaterThanOrEqual(min)
+      expect(ghg).toBeLessThanOrEqual(max)
+    }
+  })
+
+  it("should use the middle of a closed range and the lower bound of an open-ended range", () => {
+    expect(ghgPerGroundwaterClass.I).toBe(10)
+    expect(ghgPerGroundwaterClass.III).toBe(20)
+    expect(ghgPerGroundwaterClass.VII).toBe(110)
+    // Open-ended "c" classes and Gt VIII: the shallowest level of the class
+    expect(ghgPerGroundwaterClass.Ic).toBe(25)
+    expect(ghgPerGroundwaterClass.IIc).toBe(40)
+    expect(ghgPerGroundwaterClass.IVc).toBe(80)
+    expect(ghgPerGroundwaterClass.VIII).toBe(140)
   })
 })

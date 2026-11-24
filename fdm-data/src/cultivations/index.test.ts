@@ -237,6 +237,23 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
     expect(grassland?.b_lu_p_residue).toBeNull()
   })
 
+  it("should use null for blank phosphate contents instead of 0", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          nmiResponse([{ b_lu_brp: 265, b_lu_p_harvestable: "  ", b_lu_p_residue: "" }]),
+        ),
+    )
+
+    const catalogue = await getBrp({ nmiApiKey: "test-key" })
+    const grassland = catalogue.find((item) => item.b_lu_catalogue === "nl_265")
+
+    expect(grassland?.b_lu_p_harvestable).toBeNull()
+    expect(grassland?.b_lu_p_residue).toBeNull()
+  })
+
   it("should throw when the NMI API request fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unauthorized", { status: 401 })))
 

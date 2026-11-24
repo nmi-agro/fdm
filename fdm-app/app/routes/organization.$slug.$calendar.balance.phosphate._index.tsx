@@ -301,6 +301,10 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
   const { combinedResult, farmResults } = asyncData
   const hasErrors = farmResults.some((r) => r.phosphateBalanceResult.hasErrors)
   const orgShares = getVerdictShares(combinedResult.status_area)
+  // The verdicts count only judged hectares; show how much of the area that is
+  const { good, attention, adjust, unknown } = combinedResult.status_area
+  const judgedArea = good.area + attention.area + adjust.area
+  const countedArea = judgedArea + unknown.area
 
   const createFarmRow = ({ farm, totalArea, phosphateBalanceResult }: FarmResult) => {
     const href = `/farm/${farm.b_id_farm}/${params.calendar}/balance/phosphate`
@@ -386,9 +390,12 @@ function OrganizationBalancePhosphateOverview(loaderData: LoaderData) {
             <BufferStripInfo />
           </CardTitle>
           <CardDescription>
-            Oordeel per bedrijf uit de oppervlakte van de percelen: goed als minstens de helft goed
-            is.
+            Oordeel per bedrijf uit de oppervlakte van de beoordeelde percelen: goed als minstens de
+            helft van de beoordeelde oppervlakte goed is.
             {orgShares ? ` Alle geselecteerde bedrijven samen: ${formatShares(orgShares)}.` : ""}
+            {countedArea > 0
+              ? ` Beoordeeld: ${formatNumberNl(judgedArea, 1)} van ${formatNumberNl(countedArea, 1)} ha.`
+              : ""}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -72,12 +72,12 @@ export function calculatePhosphateSaturation(soilAnalyses: SoilInput[]): Phospha
   if (oxalate) {
     const psc = params.alpha_max * ((oxalate.a_fe_ox as number) + (oxalate.a_al_ox as number))
     const a_p_ox = oxalate.a_p_ox as number
-    if (psc <= 0) {
-      warnings.push("Fe-ox + Al-ox is nul; de fosfaatverzadigingsgraad kan niet worden berekend.")
-      return result("missing", null, null, a_p_ox, [oxalate.a_source])
+    if (psc > 0) {
+      const value = (a_p_ox / psc) * 100
+      return result("oxalate", psc, { value, min: value, max: value }, a_p_ox, [oxalate.a_source])
     }
-    const value = (a_p_ox / psc) * 100
-    return result("oxalate", psc, { value, min: value, max: value }, a_p_ox, [oxalate.a_source])
+    // Unusable triplet: a delivered PSD (below) can still be used
+    warnings.push("Fe-ox + Al-ox is nul; de fosfaatverzadigingsgraad kan niet worden berekend.")
   }
 
   // PSC from Fe-ox and Al-ox of one analysis; no soil-type defaults
@@ -85,7 +85,8 @@ export function calculatePhosphateSaturation(soilAnalyses: SoilInput[]): Phospha
   const feAlSum = feAl ? (feAl.a_fe_ox as number) + (feAl.a_al_ox as number) : 0
   const psc = feAlSum > 0 ? params.alpha_max * feAlSum : null
 
-  // 2. PSD as delivered: kept also without Fe-ox and Al-ox (then no PSC, so no projection)
+  // 2. PSD as delivered: kept also without Fe-ox and Al-ox (then no PSC, so no projection). The
+  // source of the PSD comes first in `analysis_sources`, the source of Fe-ox and Al-ox after it.
   const p_sg = latest(sorted, "a_p_sg")
   if (p_sg) {
     const value = p_sg.value

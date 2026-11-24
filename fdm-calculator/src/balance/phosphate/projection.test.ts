@@ -100,6 +100,21 @@ describe("calculatePhosphateProjection", () => {
     expect(projection.p_al?.buffer.value).toBeCloseTo(50 * 0.2)
   })
 
+  it("should use the sampling depth of the phosphorus analysis, not of a newer analysis without P", () => {
+    const projection = project(-20, [
+      {
+        a_p_al: 40,
+        a_depth_upper: 0,
+        a_depth_lower: 25,
+        b_sampling_date: new Date("2024-03-01"),
+        b_soiltype_agr: "zeeklei",
+      },
+      // Newer organic-matter-only sample of 0–5 cm
+      { a_som_loi: 3, a_depth_upper: 0, a_depth_lower: 5, b_sampling_date: new Date("2025-03-01") },
+    ])
+    expect(projection.depth).toEqual({ value: 0.25, source: "soil_analysis" })
+  })
+
   it("should use the default bulk density of the soil type without a measurement", () => {
     const projection = project(-20, [{ a_p_al: 40, b_soiltype_agr: "veen" }], true)
     expect(projection.a_density_sa).toEqual({ value: 0.6, source: "default_soil_type" })

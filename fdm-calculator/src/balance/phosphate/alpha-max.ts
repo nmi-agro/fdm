@@ -126,42 +126,59 @@ export function getPhosphateSoilTypeParameters(
     : phosphateSoilTypeParametersUnknown
 }
 
+type GroundwaterClass = NonNullable<SoilAnalysis["b_gwl_class"]>
+
+/** Upper bound used for open-ended GHG ranges (e.g. "> 140 cm") in the groundwater class table. */
+const GHG_OPEN_ENDED = 300
+
 /**
- * DRAFT mean highest groundwater level (GHG, cm below surface) per groundwater class (Gt), used for the
- * environmental PSD threshold. Typical values within the class definitions: a-classes and Gt I–III/V
- * without suffix 15 cm (GHG < 25), b-classes 32 cm (25–40), IV and VI 60 cm (40–80), VII 110 cm
- * (80–140), VIII 160 cm (> 140). To be reviewed.
+ * Range of the mean highest groundwater level (GHG, cm below surface) per groundwater class (Gt),
+ * following the definitions of the Dutch groundwater classes. An open-ended range ("> 25 cm") has
+ * the maximum 300.
  */
-export const ghgPerGroundwaterClass: Record<NonNullable<SoilAnalysis["b_gwl_class"]>, number> = {
-  I: 10,
-  Ia: 10,
-  Ic: 10,
-  II: 15,
-  IIa: 15,
-  IIb: 32,
-  IIc: 15,
-  III: 15,
-  IIIa: 15,
-  IIIb: 32,
-  IV: 60,
-  IVu: 60,
-  IVc: 60,
-  V: 15,
-  Va: 15,
-  Vao: 15,
-  Vad: 15,
-  Vb: 32,
-  Vbo: 32,
-  Vbd: 32,
-  sV: 32,
-  sVb: 32,
-  VI: 60,
-  VIo: 60,
-  VId: 60,
-  VII: 110,
-  VIIo: 110,
-  VIId: 110,
-  VIII: 160,
-  VIIIo: 160,
-  VIIId: 160,
+export const ghgRangePerGroundwaterClass: Record<GroundwaterClass, { min: number; max: number }> = {
+  I: { min: 0, max: 20 },
+  Ia: { min: 0, max: 25 },
+  Ic: { min: 25, max: GHG_OPEN_ENDED },
+  II: { min: 0, max: 30 },
+  IIa: { min: 0, max: 25 },
+  IIb: { min: 25, max: 40 },
+  IIc: { min: 40, max: GHG_OPEN_ENDED },
+  III: { min: 0, max: 40 },
+  IIIa: { min: 0, max: 25 },
+  IIIb: { min: 25, max: 40 },
+  IV: { min: 40, max: 80 },
+  IVu: { min: 40, max: 80 },
+  IVc: { min: 80, max: GHG_OPEN_ENDED },
+  V: { min: 0, max: 40 },
+  sV: { min: 0, max: 40 },
+  sVb: { min: 25, max: 40 },
+  Va: { min: 0, max: 25 },
+  Vao: { min: 0, max: 25 },
+  Vad: { min: 0, max: 25 },
+  Vb: { min: 25, max: 40 },
+  Vbo: { min: 25, max: 40 },
+  Vbd: { min: 25, max: 40 },
+  VI: { min: 40, max: 80 },
+  VIo: { min: 40, max: 80 },
+  VId: { min: 40, max: 80 },
+  VII: { min: 80, max: 140 },
+  VIIo: { min: 80, max: 140 },
+  VIId: { min: 80, max: 140 },
+  VIII: { min: 140, max: GHG_OPEN_ENDED },
+  VIIIo: { min: 140, max: GHG_OPEN_ENDED },
+  VIIId: { min: 140, max: GHG_OPEN_ENDED },
 }
+
+/**
+ * Mean highest groundwater level (GHG, cm below surface) per groundwater class (Gt), used for the
+ * environmental PSD threshold and the leaching groundwater factor. Derived from the ranges in
+ * `ghgRangePerGroundwaterClass`: the middle of a closed range, and the lower bound of an open-ended
+ * range (the shallowest level of the class, so the strictest threshold).
+ */
+export const ghgPerGroundwaterClass = Object.fromEntries(
+  Object.entries(ghgRangePerGroundwaterClass).map(([gt, { min, max }]) => [
+    gt,
+    max >= GHG_OPEN_ENDED ? min : (min + max) / 2,
+  ]),
+) as Record<GroundwaterClass, number>

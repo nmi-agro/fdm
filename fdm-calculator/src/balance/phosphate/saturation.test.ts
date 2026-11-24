@@ -96,6 +96,13 @@ describe("calculatePhosphateSaturation", () => {
     expect(result.warnings.join(" ")).toMatch(/Fe-ox \+ Al-ox is nul/)
   })
 
+  it("should still use a delivered PSD when the oxalate triplet is unusable", () => {
+    const result = calculatePhosphateSaturation([{ a_p_ox: 5, a_fe_ox: 0, a_al_ox: 0, a_p_sg: 20 }])
+    expect(result.source).toBe("a_p_sg")
+    expect(result.psd?.value).toBe(20)
+    expect(result.psc).toBeNull()
+  })
+
   it("should report a missing PSD without data", () => {
     const result = calculatePhosphateSaturation([{ b_soiltype_agr: "zeeklei" }])
     expect(result.source).toBe("missing")
@@ -119,7 +126,8 @@ describe("calculatePhosphateSaturationThreshold", () => {
     const saturation = calculatePhosphateSaturation(soil)
     const threshold = calculatePhosphateSaturationThreshold(saturation, soil)
     expect(threshold.source).toBe("field")
-    expect(threshold.ghg).toBe(15)
+    // Gt IIIa: GHG 0–25 cm, middle 12.5 cm
+    expect(threshold.ghg).toBe(12.5)
     expect(threshold.c_p_env).toBeCloseTo(0.1)
     // PSD about 37%, P-CaCl2 3 mg/kg: KL about 20 m³/mol, threshold about 17%
     expect(threshold.psd_env).toBeGreaterThan(15)

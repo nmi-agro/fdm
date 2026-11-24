@@ -144,8 +144,15 @@ describe("collectInputForPhosphateBalance", () => {
     expect(fdmCore.getFields).toHaveBeenLastCalledWith(fdm, principal, "farm", past.timeFrame)
   })
 
+  it("should reject a field of another farm", async () => {
+    vi.mocked(fdmCore.getField).mockResolvedValue({ ...fields[0], b_id_farm: "other" } as never)
+    await expect(
+      collectInputForPhosphateBalance(fdm, principal, "farm", timeframe, "f1"),
+    ).rejects.toThrow("Field f1 does not belong to farm farm")
+  })
+
   it("should use the per-field queries for one field", async () => {
-    vi.mocked(fdmCore.getField).mockResolvedValue(fields[0] as never)
+    vi.mocked(fdmCore.getField).mockResolvedValue({ ...fields[0], b_id_farm: "farm" } as never)
     vi.mocked(fdmCore.getCultivations).mockResolvedValue([
       cultivation("f1", "c1", "nl_265"),
     ] as never)

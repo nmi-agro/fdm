@@ -73,6 +73,9 @@ async function collectFieldInputs(
 ): Promise<PhosphateFieldInput[]> {
   if (b_id) {
     const field = await getField(tx, principal_id, b_id)
+    if (field.b_id_farm !== b_id_farm) {
+      throw new Error(`Field ${b_id} does not belong to farm ${b_id_farm}`)
+    }
     const cultivations = await getCultivations(tx, principal_id, field.b_id, timeframe)
     const harvests = (
       await Promise.all(cultivations.map((c) => getHarvests(tx, principal_id, c.b_lu, timeframe)))

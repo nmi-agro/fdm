@@ -146,7 +146,10 @@ export type ValueWithRange = { value: number; min: number; max: number }
 /** Phosphorus saturation of the topsoil. */
 export type PhosphateSaturation = {
   source: PhosphateSaturationSource
-  /** Sources (`a_source`) of the soil analyses the PSD (and PSC) were taken from */
+  /**
+   * Sources (`a_source`) of the soil analyses the PSD (and PSC) were taken from. The source of the
+   * PSD itself comes first; for a delivered PSD, the source of Fe-ox and Al-ox follows.
+   */
   analysis_sources: string[]
   b_soiltype_agr: SoilAnalysis["b_soiltype_agr"] | null
   alpha_max: number
@@ -214,7 +217,11 @@ export type PhosphateProjection = {
     years: ValueWithRange | null
     years_class: YearsClass
   } | null
-  /** PSD track (van Doorn 2026, Eq. 5.7): ΔP-ox = (balance − fixation) / (ρ · d · 0.31) */
+  /**
+   * PSD track (van Doorn 2026, Eq. 5.7): ΔP-ox (mmol / kg) = (balance − fixation) / 2.2914 / (ρ ·
+   * 1000 · d · 0.31), with the balance in kg P₂O₅ / ha (÷ 2.2914 gives kg P), ρ in g / cm³ and d in m;
+   * ΔPSD = ΔP-ox / PSC × 100
+   */
   psd: {
     current: ValueWithRange
     delta_per_year: number

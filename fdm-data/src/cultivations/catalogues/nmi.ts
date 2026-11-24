@@ -18,11 +18,12 @@ interface NmiApiCultivation {
   b_lu_p_residue?: unknown
 }
 
-/** Accepts numbers and numeric strings (e.g. "4.5"); anything else becomes `null`. */
+/** Accepts numbers and numeric strings (e.g. "4.5"); anything else, including blank strings, becomes `null`. */
 function toNumberOrNull(value: unknown): number | null {
+  if (typeof value === "string" && value.trim() === "") return null
   const number =
     typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN
-  return Number.isFinite(number) && number >= 0 && value !== "" ? number : null
+  return Number.isFinite(number) && number >= 0 ? number : null
 }
 
 /**

@@ -255,6 +255,76 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.long_term.warnings.join(" ")).toMatch(/nl_9999 \(2024\): voeg de oogst toe/)
   })
 
+  it("should not fail the field on an earlier harvest of a crop without catalogue details", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: input.fields[0],
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+      history: [
+        {
+          timeFrame: { start: new Date("2024-01-01"), end: new Date("2024-12-31") },
+          fieldInput: {
+            ...input.fields[0],
+            cultivations: [
+              {
+                ...input.fields[0].cultivations[0],
+                b_lu: "c2024",
+                b_lu_catalogue: "nl_9999",
+                b_lu_name: "Onbekend gewas",
+                b_lu_start: new Date("2024-04-01"),
+                b_lu_end: new Date("2024-09-01"),
+              },
+            ],
+            harvests: [harvest("c2024", 8000, null)],
+          },
+        },
+      ],
+    })
+    expect(result.long_term.years).toEqual([2024, 2025])
+    expect(result.long_term.warnings.join(" ")).toMatch(/Onbekend gewas \(2024\)/)
+  })
+
+  it("should use the land use of each earlier year for its mineralisation", () => {
+    const soil = [{ ...input.fields[0].soilAnalyses[0], a_som_loi: 3, a_density_sa: 1.3 }]
+    const arable2024 = {
+      timeFrame: { start: new Date("2024-01-01"), end: new Date("2024-12-31") },
+      fieldInput: {
+        ...input.fields[0],
+        soilAnalyses: soil,
+        cultivations: [
+          {
+            ...input.fields[0].cultivations[0],
+            b_lu: "c2024",
+            b_lu_start: new Date("2024-04-01"),
+            b_lu_end: new Date("2024-09-01"),
+          },
+        ],
+        harvests: [harvest("c2024", 12000, null)],
+      },
+    }
+    const run = (b_lu_croprotation: "grass" | "potato") =>
+      calculatePhosphateBalanceField({
+        fieldInput: {
+          ...input.fields[0],
+          soilAnalyses: soil,
+          cultivations: [{ ...input.fields[0].cultivations[0], b_lu_croprotation }],
+        },
+        fertilizerDetails: input.fertilizerDetails,
+        cultivationDetails: input.cultivationDetails,
+        timeFrame: input.timeFrame,
+        history: [arable2024],
+      })
+    const grass = run("grass")
+    const arable = run("potato")
+    // The arable year 2024 counts the same in both, so the long-term difference is only half the
+    // difference of the selected year
+    expect(grass.long_term.balance - arable.long_term.balance).toBeCloseTo(
+      (grass.balance - arable.balance) / 2,
+      6,
+    )
+  })
+
   it("should use the crop history (BRP) for an earlier year with fertilisation but no registered cultivation", () => {
     const result = calculatePhosphateBalanceField({
       fieldInput: {

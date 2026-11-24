@@ -96,8 +96,13 @@ export function calculatePhosphateProjection(
   const params = getPhosphateSoilTypeParameters(saturation.b_soiltype_agr)
   const sorted = sortSoilAnalyses(soilAnalyses)
 
+  // The sampling layer of the most recent analysis with a phosphorus value (P-AL, P-ox or PSD), so
+  // the depth belongs to the measurement that is projected, not to e.g. an organic-matter-only sample
   const withDepth = sorted.find(
-    (a) => a.a_depth_lower != null && a.a_depth_lower > (a.a_depth_upper ?? 0),
+    (a) =>
+      (a.a_p_al != null || a.a_p_ox != null || a.a_p_sg != null) &&
+      a.a_depth_lower != null &&
+      a.a_depth_lower > (a.a_depth_upper ?? 0),
   )
   const depth: PhosphateProjection["depth"] = withDepth
     ? {

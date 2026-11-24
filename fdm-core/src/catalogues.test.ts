@@ -864,6 +864,54 @@ describe("Measures Catalogue Sync", () => {
     expect(rows).toHaveLength(1)
   })
 
+  it("syncCatalogues should keep stored phosphate contents and sync measures when the cultivations lookup fails", async () => {
+    await fdm
+      .update(schema.cultivationsCatalogue)
+      .set({ b_lu_p_harvestable: 7.7 })
+      .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
+    const fetchMock = vi.fn().mockImplementation(async (url: string) =>
+      url.includes("/lookup/cultivations")
+        ? new Response("Service Unavailable", { status: 503 })
+        : new Response(
+            JSON.stringify({
+              data: {
+                measures: [
+                  {
+                    m_id: "SYNC2",
+                    m_name: "Test Sync Measure 2",
+                    m_summary: null,
+                    m_description: null,
+                    m_source_url: null,
+                    m_conflicts: null,
+                    m_applicability: [],
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+    } finally {
+      vi.unstubAllGlobals()
+      warn.mockRestore()
+    }
+
+    const measures = await fdm
+      .select({ m_id: schema.measuresCatalogue.m_id })
+      .from(schema.measuresCatalogue)
+      .where(eq(schema.measuresCatalogue.m_id, "bln_SYNC2"))
+    expect(measures).toHaveLength(1)
+    const [grass] = await fdm
+      .select({ b_lu_p_harvestable: schema.cultivationsCatalogue.b_lu_p_harvestable })
+      .from(schema.cultivationsCatalogue)
+      .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
+    expect(grass.b_lu_p_harvestable).toBe(7.7)
+  })
+
   it("syncCatalogues with nmiApiKey should add phosphate contents to the cultivation catalogue", async () => {
     const fetchMock = vi.fn().mockImplementation(async (url: string) =>
       url.includes("/lookup/cultivations")

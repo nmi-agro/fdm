@@ -955,7 +955,9 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           const balance = fieldResult.balance as PhosphateBalanceField
           const status = getPhosphateStatus(balance)
           const psd = balance.projection?.psd ?? null
-          const estimated = balance.saturation.analysis_sources.includes(NMI_ESTIMATE_SOURCE)
+          // The first source is the one the PSD itself comes from (P-ox or a delivered PSD); a
+          // later one only supplied Fe-ox and Al-ox for the binding capacity
+          const estimated = balance.saturation.analysis_sources[0] === NMI_ESTIMATE_SOURCE
           return {
             balance: balance.balance,
             supply: balance.supply.total,

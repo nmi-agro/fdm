@@ -714,10 +714,24 @@ async function extendCatalogueFertilizer(catalogueFertilizer: CatalogueFertilize
  * instead of being cleared. With a key, a row is also updated when it lacks phosphate contents that
  * the NMI API does provide, even if its stored hash is unchanged (e.g. after the columns were
  * re-created), so the catalogue repairs itself on the next start.
+ *
+ * When the NMI API lookup fails, the catalogue is synchronised as without a key (the stored
+ * phosphate contents are kept), so an outage of the NMI API does not block the synchronisation.
  */
 async function syncCultivationCatalogue(fdm: FdmType, nmiApiKey?: string) {
-  const hasNmiApiKey = typeof nmiApiKey === "string" && nmiApiKey.length > 0
-  const brpCatalogue = await getCultivationCatalogue("brp", { nmiApiKey })
+  let hasNmiApiKey = typeof nmiApiKey === "string" && nmiApiKey.length > 0
+  let brpCatalogue: Awaited<ReturnType<typeof getCultivationCatalogue>>
+  try {
+    brpCatalogue = await getCultivationCatalogue("brp", { nmiApiKey })
+  } catch (error) {
+    if (!hasNmiApiKey) throw error
+    console.warn(
+      "The NMI cultivations lookup failed; the cultivation catalogue is synchronised without phosphate contents and the stored values are kept:",
+      error,
+    )
+    hasNmiApiKey = false
+    brpCatalogue = await getCultivationCatalogue("brp")
+  }
 
   await fdm.transaction(async (tx) => {
     try {

@@ -75,6 +75,7 @@ export {
   getPhosphateFieldExclusion,
   getPhosphateSoilTypeParameters,
   ghgPerGroundwaterClass,
+  ghgRangePerGroundwaterClass,
   PHOSPHATE_DEPOSITION_PER_YEAR,
   PHOSPHATE_STATUS_RULES,
   PHOSPHATE_VERDICT_ORDER,

@@ -20,13 +20,13 @@ Phosphorus behaves differently from nitrogen:
 The balance of a field is:
 
 ```text
-P Balance (kg P₂O₅ / ha) = P Supply − P Removal
+P Balance (kg P₂O₅ / ha) = P Supply + P Removal
 ```
 
 Where:
 
-- **P Supply:** phosphate from fertilizers, mineralisation of soil organic matter and atmospheric deposition.
-- **P Removal:** phosphate in the harvested products and in crop residues that are removed from the field.
+- **P Supply:** phosphate from fertilizers, mineralisation of soil organic matter and atmospheric deposition (positive).
+- **P Removal:** phosphate in the harvested products and in crop residues that are removed from the field. It is returned as a negative number, so the balance is the sum of both terms.
 
 Leaching is estimated separately from the surplus and is **not** subtracted from the balance (as for nitrate in the nitrogen balance). Surface runoff and erosion are not estimated (see [Limitations](#6-limitations)). All phosphate is counted at 100% (no working coefficients: these belong to fertilizer advice, not to a balance).
 
@@ -34,7 +34,7 @@ The calculations are performed for a user-defined **Time Frame**, normally one c
 
 ## 2. Required Input Data
 
-- **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips are not calculated: their field result has `exclusion` instead of a balance, and they are left out of the farm average (Section 4).
+- **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips and fields whose main cultivation is a nature cultivation or a landscape element are not calculated: their field result has `exclusion` (`bufferstrip`, `nature` or `landscape_element`) instead of a balance, and they are left out of the farm average (Section 4).
 - **Cultivation Data (per field):**
   - Crop type (`b_lu_catalogue`) and crop rotation group (`b_lu_croprotation`). A field with a cultivation in the `grass` rotation group is treated as grassland (sampling depth 0–10 cm), otherwise as arable land (0–25 cm).
   - Crop residue management (`m_cropresidue`): `false` means the residues are removed from the field.
@@ -64,7 +64,7 @@ For each fertilizer application:
 P supply = p_app_amount (kg / ha) × p_p_rt (g P₂O₅ / kg) / 1000
 ```
 
-The supply is reported per fertilizer type (`mineral`, `manure`, `compost`, `other`), with the applications of each type.
+The supply is reported per fertilizer type (`mineral`, `manure`, `compost`, `other`), with the applications of each type. A fertilizer without a phosphate content (for example a nitrogen fertilizer) adds nothing.
 
 #### 3.1.2. Mineralisation of Soil Organic Matter
 
@@ -168,7 +168,7 @@ PSD_env = 100 × α_max × K_L × C_env / (β_max + α_max × K_L × C_env)
 ```
 
 - `C_P` (mol / m³) = P-CaCl₂ (mg P / kg) × 0.1 / 31 (1:10 extraction).
-- `C_env` from the groundwater class: 0.1 mg P / L at a mean highest groundwater level ≤ 25 cm, rising linearly to 0.3 mg P / L at ≥ 100 cm (converted to mol / m³). The groundwater class is translated to a mean highest groundwater level with a draft table; an unknown class uses the strictest value.
+- `C_env` from the groundwater class: 0.1 mg P / L at a mean highest groundwater level ≤ 25 cm, rising linearly to 0.3 mg P / L at ≥ 100 cm (converted to mol / m³). The groundwater class is translated to a mean highest groundwater level with the GHG ranges of the Dutch groundwater class definitions (`ghgRangePerGroundwaterClass`): the middle of a closed range (e.g. Gt VI, 40–80 cm: 60 cm), and the lower bound of an open-ended range (e.g. Gt IVc, > 80 cm: 80 cm; Gt VIII, > 140 cm: 140 cm), so the strictest value of the class. An unknown class uses the strictest value.
 - `β_max` = 0.167, 0.125 for peat.
 
 Without P-CaCl₂ or PSD, a threshold of 25% is used.
@@ -179,11 +179,11 @@ The projection shows what happens to the soil if the long-term average balance i
 
 **Long-term average balance.** The balance is averaged over the selected year and up to four years before it, so a crop rotation (for example potatoes in one year and cereals in the next) is taken into account:
 
-- **Years:** the selected year and every earlier year with a cultivation on the field. Registered cultivations are collected with the input (`history`; `collectInputForPhosphateBalance` collects four earlier years by default, `historyYears: 4`). For years without registered cultivations, the crop history of the field (`cultivation_history`, in the app the BRP crops from the NMI API, as on the field dashboard) is used.
+- **Years:** the selected year and every earlier year with a cultivation on the field. Registered cultivations are collected with the input (`history`; `collectInputForPhosphateBalance` collects four earlier years by default, `historyYears: 4`). For years without registered cultivations, the crop history of the field (`cultivation_history`, in the app the BRP crops from the NMI API, as on the field dashboard) is used, and when that has no crop for the year either, the main cultivation of the selected year. When an earlier year has no crop or no fertilizer applications, a warning says that the long-term balance is only indicative.
 - **Only years with data:** an earlier year counts only when it has registered fertilizer applications or harvests; a crop alone (e.g. from the BRP history) is not enough. Without any such year, the trend uses the balance of the selected year only, and a warning asks the user to add the fertilisation and harvests of the earlier years. The app then shows the balance of the year instead of an average.
-- **Removal, mineralisation and deposition** are averaged over these years. In earlier years, a crop without a registered harvest gets the default yield and phosphate content of the cultivation catalogue (NMI API): once for a crop that is harvested once, every year for grassland. When no default is known, the app asks the user to add the harvest.
+- **Removal, mineralisation and deposition** are averaged over these years. In earlier years, a crop without a registered harvest gets the default yield and phosphate content of the cultivation catalogue (NMI API): once for a crop that is harvested once, every year for grassland. When no default is known, or the crop has no catalogue details (e.g. from a catalogue that is no longer enabled; its harvests are then left out), the app names the crop and asks the user to add the harvest.
 - **Fertilizer supply** is averaged over the years with registered fertilizer applications (the selected year always counts), because missing applications in earlier years usually mean "not registered" rather than "not fertilized". The app asks the user to add the fertilizer applications of those years.
-- The leaching of the average balance and the average balance itself (`long_term`) are used for the projection. The earlier years use the same soil data and parameters as the selected year.
+- The leaching of the average balance and the average balance itself (`long_term`) are used for the projection. The earlier years use the same soil data and parameters as the selected year, but their own land use (grassland or arable land) for the mineralisation.
 
 ```text
 effective balance (kg P₂O₅ / ha / year) = long-term balance + long-term leaching − fixation
@@ -192,7 +192,7 @@ effective balance (kg P₂O₅ / ha / year) = long-term balance + long-term leac
 `fixation` is 20 kg P₂O₅ / ha / year on mineral soils and 0 on peat (_draft_).
 
 - **P-AL:** `ΔP-AL per year = effective balance / buffer`. The buffer (kg P₂O₅ / ha per P-AL unit, _draft_: 65 for sandy soils and dalgrond, 50 for clay, moerige klei and loess, 45 for peat, with ranges) refers to 0–25 cm and is scaled to the sampling depth. The app shows P-AL as low (< 35), medium (35–45, class Goed of the Handboek Bodem en Bemesting, all soil types) or high (> 45).
-- **PSD** (van Doorn, 2026, Eq. 5.7): `ΔP-ox (mmol / kg) = effective balance / 2.2914 / (ρ × 1000 × d × 0.31)` and `ΔPSD = ΔP-ox / PSC × 100`, with ρ the bulk density (g / cm³; soil-type default when missing) and d the sampling depth (m; from the analysis, otherwise 0.10 on grassland and 0.25 on arable land).
+- **PSD** (van Doorn, 2026, Eq. 5.7): `ΔP-ox (mmol / kg) = effective balance / 2.2914 / (ρ × 1000 × d × 0.31)` and `ΔPSD = ΔP-ox / PSC × 100`, with ρ the bulk density (g / cm³; soil-type default when missing) and d the sampling depth (m; from the most recent analysis with a phosphorus value — P-AL, P-ox or PSD — otherwise 0.10 on grassland and 0.25 on arable land). The same depth scales the P-AL buffer.
 
 The time until the PSD crosses the field threshold (back below it, or above it) is reported as a class: `reached`, `< 5`, `5–10`, `10–20`, `> 20` years, or `not_reached` at this balance.
 

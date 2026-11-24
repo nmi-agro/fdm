@@ -1,6 +1,7 @@
 export {
   getPhosphateSoilTypeParameters,
   ghgPerGroundwaterClass,
+  ghgRangePerGroundwaterClass,
   phosphateSoilTypeParameters,
 } from "./alpha-max"
 export type { PhosphateSoilTypeParameters } from "./alpha-max"

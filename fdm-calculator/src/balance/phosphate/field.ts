@@ -213,7 +213,11 @@ function formatYears(years: number[]): string {
     : `${sorted.slice(0, -1).join(", ")} en ${sorted[sorted.length - 1]}`
 }
 
-/** Phosphate supply by fertilizers: amount (kg / ha) × p_p_rt (g P2O5 / kg) / 1000, at 100% (no working coefficient). */
+/**
+ * Phosphate supply by fertilizers: amount (kg / ha) × p_p_rt (g P2O5 / kg) / 1000, at 100% (no
+ * working coefficient). A fertilizer without a phosphate content (e.g. a nitrogen fertilizer) adds
+ * nothing.
+ */
 function calculateSupplyByFertilizers(
   applications: PhosphateFieldInput["fertilizerApplications"],
   details: Map<string, PhosphateFertilizerDetail>,
@@ -287,7 +291,7 @@ function calculateRemovalByHarvests(
         const b_lu_p_harvestable = analysis.b_lu_p_harvestable ?? detail.b_lu_p_harvestable
         if (b_lu_p_harvestable == null) {
           warnings.push(
-            `Voor ${name} is geen fosfaatgehalte bekend: de afvoer met de oogst is op 0 gezet. Vul het fosfaatgehalte van de oogst in als je het weet.`,
+            `Voor ${name} is geen fosfaatgehalte bekend: de afvoer met de oogst is op 0 gezet. Vul het fosfaatgehalte van de oogst in als u het weet.`,
           )
         }
         if (b_lu_yield == null) {
@@ -520,19 +524,31 @@ export function calculatePhosphateBalanceField(
       yearsWithoutData.push(year)
       continue
     }
+    // Harvests of a crop without catalogue details (e.g. from a catalogue that is no longer enabled)
+    // are left out, so they don't fail the field; `estimateDefaultRemoval` then reports the crop
+    const hasDetails = (b_lu: string) => {
+      const cultivation = past.fieldInput.cultivations.find((c) => c.b_lu === b_lu)
+      return cultivation !== undefined && cultivationDetails.has(cultivation.b_lu_catalogue)
+    }
+    const pastInput = {
+      ...past.fieldInput,
+      harvests: past.fieldInput.harvests.filter((h) => hasDetails(h.b_lu)),
+    }
+    // The land use of that year, not of the selected year
+    const pastIsGrassland = pastInput.cultivations.some((c) => c.b_lu_croprotation === "grass")
     const pastTerms = calculateFieldTerms(
-      past.fieldInput,
+      pastInput,
       fertilizerDetails,
       cultivationDetails,
       past.timeFrame,
-      isGrassland,
+      pastIsGrassland,
       saturation,
       threshold,
       [],
     )
     const missingBefore = missingDefaults.length
     const defaultRemoval = estimateDefaultRemoval(
-      past.fieldInput,
+      pastInput,
       cultivationDetails,
       past.timeFrame,
       missingDefaults,
