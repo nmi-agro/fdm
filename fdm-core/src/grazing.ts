@@ -26,10 +26,10 @@ import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { assertSameFarm, getFarmOf, lockFarm, lockFarmOf } from "./farm-scope"
 import { setGrazingIntention } from "./grazing_intention"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart, dayNumber, sharesCalendarDay } from "./interval"
-import { lockFarm, lockFarmOfHerd } from "./livestock-checks"
 import { withPeriodTimeframe } from "./timeframe"
 import { clippedZone, geographyArea, normalizeZone } from "./zone"
 
@@ -129,7 +129,7 @@ export async function addGrazing(
     return await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazing")
       // Serialize with the other livestock changes of the farm, so the checks below hold
-      await lockFarmOfHerd(tx, l_id_herd)
+      await lockFarmOf(tx, { l_id_herd })
       const grazingEnd = assertGrazingEnd(properties?.l_grazing_end)
       assertIntervalEndNotBeforeStart(l_grazing_start, grazingEnd, "l_grazing")
       assertGrazingHours(properties?.l_grazing_hours)
@@ -142,15 +142,7 @@ export async function addGrazing(
       const b_id_farm = herd.b_id_farm
 
       if (properties?.b_id) {
-        const fieldFarm = await tx
-          .select({ b_id_farm: schema.fieldAcquiring.b_id_farm })
-          .from(schema.fieldAcquiring)
-          .where(eq(schema.fieldAcquiring.b_id, properties.b_id))
-          .limit(1)
-
-        if (fieldFarm.length === 0 || b_id_farm !== fieldFarm[0].b_id_farm) {
-          throw new Error(`Field ${properties.b_id} does not belong to the herd's farm`)
-        }
+        await assertSameFarm(tx, { l_id_herd }, { b_id: properties.b_id })
       }
 
       await assertGrazingFitsHerd(tx, l_id_herd, {
@@ -269,16 +261,11 @@ export async function addGrazings(
       )
       const farmPerField = new Map<string, string>()
       for (const b_id of distinctFields) {
-        const fieldFarm = await tx
-          .select({ b_id_farm: schema.fieldAcquiring.b_id_farm })
-          .from(schema.fieldAcquiring)
-          .where(eq(schema.fieldAcquiring.b_id, b_id))
-          .limit(1)
-
-        if (fieldFarm.length === 0) {
+        const fieldFarm = await getFarmOf(tx, { b_id })
+        if (!fieldFarm) {
           throw new Error(`Field ${b_id} does not belong to a farm`)
         }
-        farmPerField.set(b_id, fieldFarm[0].b_id_farm)
+        farmPerField.set(b_id, fieldFarm)
       }
 
       for (let i = 0; i < rows.length; i++) {
@@ -610,7 +597,7 @@ export async function updateGrazing(
         throw new Error("Grazing record not found")
       }
       await checkPermission(tx, "herd", "write", record.l_id_herd, principal_id, "updateGrazing")
-      await lockFarmOfHerd(tx, record.l_id_herd)
+      await lockFarmOf(tx, { l_id_herd: record.l_id_herd })
 
       const existing = await tx
         .select({
@@ -959,7 +946,7 @@ export async function removeGrazing(
       )
       // Serialize with the other livestock changes of the farm, such as a correction of this
       // grazing
-      await lockFarmOfHerd(tx, existing[0].l_id_herd)
+      await lockFarmOf(tx, { l_id_herd: existing[0].l_id_herd })
 
       await tx.delete(schema.herdGrazing).where(eq(schema.herdGrazing.l_id_grazing, l_id_grazing))
     })

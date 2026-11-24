@@ -27,10 +27,10 @@ import { checkPermission } from "./authorization"
 import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { lockFarm, lockFarmOf } from "./farm-scope"
 import { assertHerdRunsOn, assertNoGrazingFrom, insertHerd } from "./herd"
 import { createId } from "./id"
 import { overlapsHalfOpen } from "./interval"
-import { lockFarm, lockFarmOfAnimal, lockFarmOfHerd } from "./livestock-checks"
 
 /**
  * Retrieves animal categories from the catalogues selected for a farm.
@@ -594,7 +594,7 @@ export async function updateAnimal(
 
     await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm before reading anything
-      await lockFarmOfAnimal(tx, l_id_animal)
+      await lockFarmOf(tx, { l_id_animal })
 
       // An animal born on the farm arrives on its birth date, so a corrected birth date moves the
       // arrival and the start of the first herd assignment along
@@ -960,7 +960,7 @@ export async function addAnimalsToHerd(
     return await fdm.transaction(async (tx) => {
       const now = new Date()
       const l_arriving_date = defaults?.l_arriving_date ?? now
-      await lockFarmOfHerd(tx, l_id_herd)
+      await lockFarmOf(tx, { l_id_herd })
       // The caller saw the count of now, also when the animals arrived earlier
       await assertExpectedCount(tx, l_id_herd, now, options?.expected_count)
       // The new animals join on their arrival and stay in the herd, so it must run from then on
@@ -1300,7 +1300,7 @@ export async function removeAnimalsFromHerd(
       // Serialize with every other livestock change on this farm, so two reductions don't pick
       // the same animals. Animals that already have a departure (also one in the future) are
       // leaving anyway and are not picked again; animals that only join later can't leave yet.
-      await lockFarmOfHerd(tx, l_id_herd)
+      await lockFarmOf(tx, { l_id_herd })
       const leavingDate = properties?.l_leaving_date ?? new Date()
       // Counted on the leaving date: an animal scheduled to leave by then no longer counts
       await assertExpectedCount(tx, l_id_herd, leavingDate, options?.expected_count)
@@ -1477,7 +1477,7 @@ export async function assignAnimalToHerd(
     await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm (other moves, bulk moves, a
       // category change of the target herd) before reading anything
-      await lockFarmOfAnimal(tx, l_id_animal)
+      await lockFarmOf(tx, { l_id_animal })
 
       const rows = await tx
         .select({
@@ -1602,7 +1602,7 @@ export async function leaveHerd(
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "leaveHerd")
     return await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm before reading anything
-      await lockFarmOfHerd(tx, l_id_herd)
+      await lockFarmOf(tx, { l_id_herd })
 
       const herdRows = await tx
         .select({ l_start: schema.herdStarting.l_start })
@@ -1745,7 +1745,7 @@ export async function reassignHerdAnimals(
     return await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm (such as a single move of one of
       // these animals) before reading the assignments
-      const sourceFarm = await lockFarmOfHerd(tx, source_l_id_herd)
+      const sourceFarm = await lockFarmOf(tx, { l_id_herd: source_l_id_herd })
       if (!sourceFarm) {
         throw new Error("Source or target herd does not exist")
       }
@@ -1889,7 +1889,7 @@ export async function updateAnimalAssigning(
 
     await fdm.transaction(async (tx) => {
       // Serialize with every other livestock change on this farm, so the checks below hold
-      await lockFarmOfAnimal(tx, l_id_animal)
+      await lockFarmOf(tx, { l_id_animal })
 
       const assignments = await tx
         .select({

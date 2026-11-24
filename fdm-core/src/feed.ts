@@ -30,9 +30,9 @@ import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
+import { assertSameFarm } from "./farm-scope"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart } from "./interval"
-import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
 type FeedCatalogueReference = string

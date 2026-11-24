@@ -6,9 +6,9 @@ import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { assertSameFarm } from "./farm-scope"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
-import { assertSameFarm } from "./livestock-checks"
 import { withTimeframe } from "./timeframe"
 
 /**
