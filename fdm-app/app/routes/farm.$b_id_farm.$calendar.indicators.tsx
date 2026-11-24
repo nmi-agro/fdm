@@ -76,6 +76,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function IndicatorsLayout() {
   const loaderData = useLoaderData<typeof loader>()
   const { b_id } = useParams()

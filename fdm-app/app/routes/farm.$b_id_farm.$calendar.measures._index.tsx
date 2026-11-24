@@ -8,13 +8,11 @@ import {
   getFields,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
-  type PrincipalId,
   removeMeasure,
-  type Timeframe,
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import { ClipboardList, Sparkles } from "lucide-react"
+import { AlertTriangle, BookOpen, ClipboardList, RefreshCw, Sparkles } from "lucide-react"
 import { lazy, Suspense, useCallback, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
@@ -27,6 +25,7 @@ import {
   useFetcher,
   useLoaderData,
   useParams,
+  useRevalidator,
   useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
@@ -42,9 +41,11 @@ import {
   type MeasureDateFormValues,
   MeasureDateSchema,
 } from "~/components/blocks/measures/formschema"
+import { MeasureDetailLink } from "~/components/blocks/measures/measure-detail-link"
 import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { DatePicker } from "~/components/custom/date-picker-v2"
-import { Button } from "~/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import {
   Empty,
@@ -59,170 +60,24 @@ import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
+import { useStreamedRows } from "~/hooks/use-streamed-rows"
 import {
+  collectFarmMeasureInputs,
   getMeasureApplicabilityForFields,
-  getIndicatorsForFarm,
-  getFarmMeasureOpportunities,
-  type FieldTopOpportunity,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
+import { type FarmRecommendationsData, getFarmNextSteps } from "~/lib/farm-measures.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { getFarmBestVariantIds, isExcludedFromBln3 } from "~/lib/indicators"
-import { INDICATORS } from "~/lib/indicators"
+import { isExcludedFromBln3 } from "~/lib/indicators"
+import { getMeasureCode, getMeasuresCataloguePath } from "~/lib/measures-catalogue"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
-
-/** A ranked measure × field recommendation for the farm-wide "Aanbevolen
- * maatregelen" card, derived from `getTopOpportunitiesForField` run per
- * field then flattened across the farm — deliberately cross-field and
- * cross-indicator, matching this route's "whole farm" framing. */
-type FarmNextStep = {
-  b_id: string
-  b_name: string | null
-  m_id: string
-  m_name: string
-  indicatorName: string
-  aggregateImpact: number
-}
-
-export type FarmRecommendationsData = {
-  steps: FarmNextStep[]
-  opportunitiesByField: Record<string, FieldTopOpportunity[]>
-  topOpportunities: FieldTopOpportunity[]
-  measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]>
-}
-
-async function getFarmNextSteps({
-  principal_id,
-  b_id_farm,
-  fields,
-  b_year,
-  timeframe,
-  measuresMap,
-  catalogue,
-}: {
-  principal_id: PrincipalId
-  b_id_farm: string
-  fields: { b_id: string; b_name: string | null }[]
-  b_year: number
-  timeframe?: Timeframe
-  measuresMap: Map<string, { m_id: string }[]>
-  catalogue: { m_id: string; m_name: string }[]
-}): Promise<FarmRecommendationsData> {
-  const b_ids = fields.map((f) => f.b_id)
-  const scores = await getIndicatorsForFarm({ principal_id, b_id_farm, timeframe })
-  const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
-  const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
-  const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
-  const activeMeasureIdsByField = new Map(
-    b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
-  )
-  const { candidates } = await getFarmMeasureOpportunities({
-    principal_id,
-    b_id_farm,
-    b_ids,
-    b_year,
-    timeframe,
-    scoreByBid,
-    activeMeasureIdsByField,
-    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
-  })
-
-  // Show one variant per measure family farm-wide: the variant with the highest
-  // impact summed over all eligible candidates of all fields (not only each
-  // field's winner). The winning variant is listed on every field where it is
-  // eligible, also where another variant of that family scored best.
-  const bestVariantIds = getFarmBestVariantIds(
-    candidates.map((c) => ({ b_id: c.b_id, m_id: c.m_id, impact: c.aggregateImpact })),
-  )
-  const opportunities = candidates.filter((c) => bestVariantIds.has(c.m_id))
-
-  const opportunitiesByField: Record<string, FieldTopOpportunity[]> = {}
-  const farmOpportunitiesByMId = new Map<string, FieldTopOpportunity>()
-  const measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]> = {}
-
-  for (const opp of opportunities) {
-    if (!opportunitiesByField[opp.b_id]) {
-      opportunitiesByField[opp.b_id] = []
-    }
-    opportunitiesByField[opp.b_id].push({
-      m_id: opp.m_id,
-      aggregateImpact: opp.aggregateImpact,
-      indicatorImpacts: opp.indicatorImpacts,
-    })
-
-    const existing = farmOpportunitiesByMId.get(opp.m_id)
-    if (existing) {
-      existing.aggregateImpact += opp.aggregateImpact
-      for (const indImpact of opp.indicatorImpacts) {
-        const existingInd = existing.indicatorImpacts.find(
-          (i) => i.indicator_id === indImpact.indicator_id,
-        )
-        if (existingInd) {
-          existingInd.measure_impact += indImpact.measure_impact
-        } else {
-          existing.indicatorImpacts.push({ ...indImpact })
-        }
-      }
-    } else {
-      farmOpportunitiesByMId.set(opp.m_id, {
-        m_id: opp.m_id,
-        aggregateImpact: opp.aggregateImpact,
-        indicatorImpacts: opp.indicatorImpacts.map((i) => ({ ...i })),
-      })
-    }
-
-    for (const indImpact of opp.indicatorImpacts) {
-      if (!measureImpacts[opp.m_id]) {
-        measureImpacts[opp.m_id] = []
-      }
-      const existing = measureImpacts[opp.m_id].find(
-        (i) => i.indicator_id === indImpact.indicator_id,
-      )
-      if (existing) {
-        existing.measure_impact += indImpact.measure_impact
-      } else {
-        measureImpacts[opp.m_id].push({
-          indicator_id: indImpact.indicator_id,
-          measure_impact: indImpact.measure_impact,
-        })
-      }
-    }
-  }
-
-  for (const impacts of Object.values(measureImpacts)) {
-    impacts.sort((a, b) => b.measure_impact - a.measure_impact)
-  }
-
-  const topOpportunities = [...farmOpportunitiesByMId.values()].sort(
-    (a, b) => b.aggregateImpact - a.aggregateImpact,
-  )
-
-  const steps = opportunities
-    .map((opportunity) => {
-      const topIndicatorId = [...opportunity.indicatorImpacts].sort(
-        (a, b) => b.measure_impact - a.measure_impact,
-      )[0]?.indicator_id
-      return {
-        b_id: opportunity.b_id,
-        b_name: fieldNameByBid.get(opportunity.b_id) ?? null,
-        m_id: opportunity.m_id,
-        m_name: opportunity.m_name,
-        indicatorName: topIndicatorId
-          ? (indicatorNameById.get(topIndicatorId) ?? topIndicatorId)
-          : "",
-        aggregateImpact: opportunity.aggregateImpact,
-      }
-    })
-    .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
-
-  return { steps, opportunitiesByField, topOpportunities, measureImpacts }
-}
 
 /** Groups farm-wide measure × field recommendations by measure — one row per
  * measure with its fields as compact links, ranked by summed impact — instead
@@ -289,10 +144,16 @@ function GroupedRecommendations({
           <li key={group.m_id} className="text-sm">
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className="text-muted-foreground font-mono text-xs">
-                  {group.m_id.replace("bln_", "")}
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {getMeasureCode(group.m_id)}
                 </span>
                 <span className="font-medium">{group.m_name}</span>
+                <MeasureDetailLink
+                  m_id={group.m_id}
+                  m_name={group.m_name}
+                  icon="external"
+                  className="self-center"
+                />
                 {index === 0 && (
                   <span className="text-muted-foreground text-xs">
                     (grootste verwachte verbetering)
@@ -325,7 +186,7 @@ function GroupedRecommendations({
                   {i > 0 && <span className="text-muted-foreground"> · </span>}
                   <Link
                     to={`${basePath}/${field.b_id}`}
-                    className="text-foreground hover:text-primary transition-colors hover:underline"
+                    className="text-muted-foreground hover:text-foreground transition-colors hover:underline"
                   >
                     {field.b_name ?? "Perceel"}
                   </Link>
@@ -348,6 +209,41 @@ function GroupedRecommendations({
         </button>
       )}
     </div>
+  )
+}
+
+/**
+ * Shown in place of "Aanbevolen maatregelen" when the advice could not be loaded for any field,
+ * so the missing card does not read as "nothing to recommend". "Opnieuw proberen" reruns the
+ * loader, like the status notice in the measures catalogue.
+ */
+function RecommendationsUnavailable() {
+  const revalidator = useRevalidator()
+  const isRetrying = revalidator.state === "loading"
+  return (
+    <Alert>
+      <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+      <AlertTitle>Aanbevolen maatregelen niet beschikbaar</AlertTitle>
+      <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          De aanbevelingen konden niet worden geladen. Een maatregel zonder aanbeveling is dus niet
+          per se ongeschikt.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5 self-start sm:self-auto"
+          disabled={isRetrying}
+          onClick={() => {
+            void revalidator.revalidate()
+          }}
+        >
+          {isRetrying ? <Spinner /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+          <span>Opnieuw proberen</span>
+        </Button>
+      </AlertDescription>
+    </Alert>
   )
 }
 
@@ -397,20 +293,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
-    const [applicabilityByField, cultivationsByField] = await Promise.all([
-      getMeasureApplicabilityForFields({
-        principal_id: session.principal_id,
-        b_id_farm,
-        b_ids: fieldIds,
-        b_year,
-        timeframe,
-      }).catch((error) => {
+    // The measure inputs serve the applicability (for the add dialog) and the recommendations.
+    // Both may call the NMI API, so they are streamed and never block the page.
+    const measureInputs = collectFarmMeasureInputs({
+      principal_id: session.principal_id,
+      b_id_farm,
+      b_ids: fieldIds,
+      b_year,
+      timeframe,
+    })
+    // `reportFailures` maps a failed field to `null`, so the recommendations request it again
+    // instead of reading the failure as "no applicable measures"
+    const applicabilityByField = measureInputs
+      .then((inputs) => getMeasureApplicabilityForFields(inputs, { reportFailures: true }))
+      .catch((error) => {
         reportError(error, { page: "farm measures applicability" })
         return {}
-      }),
-      // All cultivations of each field, not only those in the calendar year
-      getCultivationsForFarm(fdm, session.principal_id, b_id_farm),
-    ])
+      })
+
+    // All cultivations of each field, not only those in the calendar year
+    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm)
 
     const fieldsWithCultivations = fields.map((f) => {
       const cultivations = cultivationsByField.get(f.b_id) ?? []
@@ -444,6 +346,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       measuresMap,
       catalogue,
+      measureInputs,
+      applicabilityByField,
     }).catch((error) => {
       reportError(error, { page: "farm measures recommendations" })
       return {
@@ -451,6 +355,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         opportunitiesByField: {},
         topOpportunities: [],
         measureImpacts: {},
+        adviceAvailable: false,
       }
     })
     const fieldList = eligibleFieldsWithCultivations.map(({ field, mainCultivation }) => ({
@@ -556,6 +461,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       farmName: farm?.b_name_farm ?? "Bedrijf",
       farmWritePermission,
+      // Without an NMI API key there are no recommendations to load, so no failure to report
+      nmiConfigured: Boolean(getNmiApiKey()),
       fieldList,
       fieldsGeoJSON,
       measureRows,
@@ -892,8 +799,13 @@ export default function MeasuresFarmIndex() {
     fieldSummaries,
     applicabilityByField,
     farmWritePermission,
+    nmiConfigured,
     asyncInsights,
   } = useLoaderData<typeof loader>()
+  // The applicability is streamed; until it arrives the add dialog waits with saving
+  const applicabilityPromises = useMemo(() => [applicabilityByField], [applicabilityByField])
+  const streamedApplicability = useStreamedRows(applicabilityPromises)
+  const applicability = streamedApplicability.rows[0]
   const { b_id_farm, calendar } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -901,9 +813,12 @@ export default function MeasuresFarmIndex() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [initialFieldIds, setInitialFieldIds] = useState<string[]>([])
   const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
-  const [recommendationsData, setRecommendationsData] = useState<FarmRecommendationsData | null>(
-    null,
+  // The recommendations for the add dialog, from the streamed farm next steps
+  const nextStepsPromises = useMemo(
+    () => [asyncInsights.farmNextSteps],
+    [asyncInsights.farmNextSteps],
   )
+  const recommendationsData = useStreamedRows(nextStepsPromises).rows[0] ?? null
   const [editingRow, setEditingRow] = useState<MeasureTableRow | null>(null)
   const [closingRow, setClosingRow] = useState<MeasureTableRow | null>(null)
 
@@ -943,6 +858,14 @@ export default function MeasuresFarmIndex() {
   // The URL is the source of truth for a deep-linked measure: no effect needed to open it.
   const measureDialogOpen = addDialogOpen || !!openMeasure
   const measureDialogMeasureId = openMeasure ?? initialMeasureId
+  // A deep link can also preselect fields (`?fields=a,b`), e.g. the fields on which the
+  // catalogue recommends the measure. Unknown or ineligible IDs are ignored.
+  const linkedFieldIds = useMemo(() => {
+    const ids = searchParams.get("fields")?.split(",") ?? []
+    const known = new Set(fieldList.map((field) => field.b_id))
+    return ids.filter((id) => known.has(id))
+  }, [searchParams, fieldList])
+  const measureDialogFieldIds = openMeasure ? linkedFieldIds : initialFieldIds
 
   const columns = getColumns(
     (b_id) => `${basePath}/${b_id}`,
@@ -977,7 +900,7 @@ export default function MeasuresFarmIndex() {
           </EmptyMedia>
           <EmptyTitle>Geen maatregelen vastgelegd</EmptyTitle>
           <EmptyDescription>
-            Maatregelen zijn bodembeheermaatregelen die je per perceel kunt vastleggen om de
+            Maatregelen zijn bodembeheermaatregelen die u per perceel kunt vastleggen om de
             bodemkwaliteit te verbeteren. Klik op een perceel op de kaart of gebruik de knop om te
             beginnen.
           </EmptyDescription>
@@ -1004,8 +927,22 @@ export default function MeasuresFarmIndex() {
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
         rightNode={
-          <div className="flex items-center gap-2">
+          // Help stays quiet; the catalogue is a destination, so it gets a real button
+          <div className="flex flex-wrap items-center gap-2">
             <Bln3HelpDialog />
+            {b_id_farm && calendar ? (
+              <Link
+                to={getMeasuresCataloguePath(b_id_farm, calendar)}
+                className={buttonVariants({
+                  variant: "outline",
+                  className: "gap-1.5 pointer-coarse:h-11",
+                })}
+                data-slot="button"
+              >
+                <BookOpen className="h-4 w-4" aria-hidden="true" />
+                <span>Maatregelencatalogus</span>
+              </Link>
+            ) : null}
           </div>
         }
       />
@@ -1055,8 +992,16 @@ export default function MeasuresFarmIndex() {
             >
               <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
                 {(recData: FarmRecommendationsData) => {
-                  if (recData && recData !== recommendationsData && !recommendationsData) {
-                    setTimeout(() => setRecommendationsData(recData), 0)
+                  // No advice for any eligible field: say so instead of hiding the section,
+                  // which would read as "nothing to recommend"
+                  // Without an NMI API key the section stays hidden, as retrying cannot help
+                  if (
+                    recData &&
+                    !recData.adviceAvailable &&
+                    fieldList.length > 0 &&
+                    nmiConfigured
+                  ) {
+                    return <RecommendationsUnavailable />
                   }
                   return (
                     recData?.steps &&
@@ -1120,6 +1065,7 @@ export default function MeasuresFarmIndex() {
                 (prev) => {
                   const nextParams = new URLSearchParams(prev)
                   nextParams.delete("openMeasure")
+                  nextParams.delete("fields")
                   return nextParams
                 },
                 { replace: true },
@@ -1129,9 +1075,10 @@ export default function MeasuresFarmIndex() {
         }}
         catalogue={catalogue}
         activeMeasures={[]}
-        applicabilityByField={applicabilityByField ?? undefined}
+        applicabilityByField={applicability}
+        applicabilityLoading={!streamedApplicability.complete}
         fields={fieldList}
-        initialFieldIds={initialFieldIds}
+        initialFieldIds={measureDialogFieldIds}
         topOpportunities={recommendationsData?.topOpportunities}
         opportunitiesByField={recommendationsData?.opportunitiesByField}
         measureImpacts={recommendationsData?.measureImpacts}

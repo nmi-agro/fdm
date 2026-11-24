@@ -632,6 +632,42 @@ This schema holds the primary data related to farm operations.
 
 - Primary Key on (`b_id_farm`, `b_grazing_intention_year`).
 
+### Measures
+
+#### **`measuresCatalogue`**
+
+**Purpose**: A catalogue of soil management measures, synchronized from an external source (currently BLN). The nested fields are a read-only copy of the source: they are displayed, not queried.
+
+| Column                    | Type                         | Constraints | Description                                                                                                   |
+| ------------------------- | ---------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| **m_id**                  | `text`                       | Primary Key | Unique identifier of the measure, prefixed with its source (e.g., 'bln_BM1').                                 |
+| **m_source**              | `text`                       | Not Null    | The catalogue the measure comes from (e.g., 'bln').                                                           |
+| **m_name**                | `text`                       | Not Null    | Name of the measure.                                                                                          |
+| **m_description**         | `text`                       |             | Full description of the measure.                                                                              |
+| **m_summary**             | `text`                       |             | Short summary of the measure.                                                                                 |
+| **m_source_url**          | `text`                       |             | Link to the source document of the measure.                                                                   |
+| **m_conflicts**           | `text[]`                     |             | `m_id` values of measures that cannot be taken together with this one on the same field.                      |
+| **m_stage_applicability** | `stageApplicabilityTypeEnum` |             | Whether the measure is recorded per field or for the whole farm ('field', 'farm').                            |
+| **m_effect_costs**        | `numeric` (custom)           |             | Cost indication: 0 (low), 1 (medium) or 2 (high).                                                             |
+| **m_effect_type**         | `text`                       |             | How the effect is described: 'qual' (fixed effect), 'classed' (depends on field conditions) or 'quant'.       |
+| **m_impacts_score**       | `text[]`                     |             | Score variables the measure affects (e.g., 'S_NUT_N').                                                        |
+| **m_applicability**       | `jsonb`                      |             | Conditions that must be met for the measure to apply: per variable the allowed values or a `min`/`max` range. |
+| **m_effect_size**         | `jsonb`                      |             | Effect sizes per score variable: base effects and effects that apply under conditions.                        |
+| **m_external_ids**        | `jsonb`                      |             | IDs of the measure in related schemes (e.g., `{ "bbwp": "B121" }`).                                           |
+| **hash**                  | `text`                       |             | A hash value representing the content of the catalogue entry, for change tracking.                            |
+| **created**               | `timestamp with time zone`   | Not Null    | Timestamp when this record was created (default: now()).                                                      |
+| **updated**               | `timestamp with time zone`   |             | Timestamp when this record was last updated by a catalogue sync.                                              |
+
+**Indexes:**
+
+- Unique index on `m_id`.
+- Index on `m_source`.
+
+##### `stageApplicabilityTypeEnum`
+
+- **Name**: `m_stage_applicability`
+- **Possible values**: `farm`, `field`
+
 ---
 
 ## `fdm-authn` Schema (Authentication)

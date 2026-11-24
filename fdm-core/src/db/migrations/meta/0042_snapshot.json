@@ -1,5 +1,5 @@
 {
-  "id": "62aed0ff-6aef-4da2-bd03-8a1053eeaf2c",
+  "id": "52fe068b-48b5-409c-9207-e4cdeaca3e8d",
   "prevId": "0ec73bcf-252b-4562-8440-c399a38110fb",
   "version": "7",
   "dialect": "postgresql",
@@ -464,18 +464,6 @@
         },
         "b_lu_n_residue": {
           "name": "b_lu_n_residue",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "b_lu_p_harvestable": {
-          "name": "b_lu_p_harvestable",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "b_lu_p_residue": {
-          "name": "b_lu_p_residue",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -2786,6 +2774,42 @@
           "name": "m_stage_applicability",
           "type": "m_stage_applicability",
           "typeSchema": "fdm",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "m_effect_costs": {
+          "name": "m_effect_costs",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "m_effect_type": {
+          "name": "m_effect_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "m_impacts_score": {
+          "name": "m_impacts_score",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "m_applicability": {
+          "name": "m_applicability",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "m_effect_size": {
+          "name": "m_effect_size",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "m_external_ids": {
+          "name": "m_external_ids",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

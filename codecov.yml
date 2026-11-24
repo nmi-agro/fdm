@@ -1,0 +1,23 @@
+# Codecov checks on pull requests. Every package uploads its coverage with its own flag; see
+# .github/workflows/tests.yml and .github/workflows/fdm-app.yml.
+coverage:
+  status:
+    patch:
+      # Library packages: the changed lines must be covered at least as well as the project.
+      default:
+        flags:
+          - fdm-core
+          - fdm-calculator
+          - fdm-data
+          - fdm-rvo
+          - fdm-agents
+          - fdm-api
+          - fdm-storage
+          - fdm-reports
+          - fdm-helpdesk
+      # fdm-app: the patch coverage is reported, but does not fail a pull request while the
+      # app's test coverage is being built up.
+      fdm-app:
+        flags:
+          - fdm-app
+        informational: true
