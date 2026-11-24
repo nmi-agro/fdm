@@ -26,6 +26,7 @@ import {
   createFdmAuth,
   createFdmServer,
   createHerdWithAnimals,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -415,6 +416,7 @@ export async function seedFarm(fdm: Fdm, options: SeedOptions = {}): Promise<Dem
   await enableFertilizerCatalogue(fdm, principal, b_id_farm, b_id_farm)
   await enableCultivationCatalogue(fdm, principal, b_id_farm, "brp")
   await enableMeasureCatalogue(fdm, principal, b_id_farm, "bln")
+  await enableAnimalCategoryCatalogue(fdm, principal, b_id_farm, "rvo")
 
   const fertilizers = new Map<string, string>()
   for (const fertilizer of await getFertilizersFromCatalogue(fdm, principal, b_id_farm)) {

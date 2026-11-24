@@ -2,7 +2,11 @@ import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import { addAnimal, updateAnimal } from "./animal"
-import { disableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
+import {
+  disableAnimalCategoryCatalogue,
+  enableAnimalCategoryCatalogue,
+  syncAnimalCategoryCatalogueArray,
+} from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import {
@@ -37,6 +41,7 @@ describe("Herd Domain", () => {
       "Farm Street 1",
       "1234AB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
   })
 
   it("should create, read, update, and list herds", async () => {

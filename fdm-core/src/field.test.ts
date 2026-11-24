@@ -3,7 +3,11 @@ import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
-import { enableCultivationCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
+import {
+  enableAnimalCategoryCatalogue,
+  enableCultivationCatalogue,
+  syncAnimalCategoryCatalogueArray,
+} from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
 import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
@@ -834,6 +838,7 @@ describe("Farm Data Model", () => {
     beforeEach(async () => {
       // 1. Setup: Create a farm, enable catalogue and add cultivation to catalogue
       farmId = await addFarm(fdm, principal_id, "Test Farm", "123", "Address", "12345")
+      await enableAnimalCategoryCatalogue(fdm, principal_id, farmId, "rvo")
 
       await enableCultivationCatalogue(fdm, principal_id, farmId, b_lu_source)
       // Ensure catalogue entry exists before each test

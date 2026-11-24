@@ -13,7 +13,7 @@ import {
   updateBarn,
   updateHousing,
 } from "./barn"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { enableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
@@ -41,6 +41,7 @@ describe("Barn Domain", () => {
       "Farm Street 1",
       "1234AB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
   })
 
   it("should create, read, update, list, and remove barns", async () => {

@@ -37,6 +37,7 @@ import {
   addSoilImageAnnotation,
   createFarmGroup,
   declineInvitation,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -188,6 +189,8 @@ export interface FdmApiServices {
   // Cultivations
   getEnabledCultivationCatalogues: typeof getEnabledCultivationCatalogues
   enableCultivationCatalogue: typeof enableCultivationCatalogue
+  // Animal categories, enabled for a new farm
+  enableAnimalCategoryCatalogue: typeof enableAnimalCategoryCatalogue
   getCultivationsFromCatalogues: typeof getCultivationsFromCatalogues
   getCultivations: typeof getCultivations
   getCultivationsForFarm: typeof getCultivationsForFarm
@@ -345,6 +348,7 @@ export const defaultServices: Omit<FdmApiServices, "getReportBranding"> = {
   removeField,
   getEnabledCultivationCatalogues,
   enableCultivationCatalogue,
+  enableAnimalCategoryCatalogue,
   getCultivationsFromCatalogues,
   getCultivations,
   getCultivationsForFarm,

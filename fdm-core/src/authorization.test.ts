@@ -19,7 +19,11 @@ import {
   withAuditContext,
 } from "./authorization"
 import { addBarn } from "./barn"
-import { syncAnimalCategoryCatalogueArray, syncFeedCatalogueArray } from "./catalogues"
+import {
+  enableAnimalCategoryCatalogue,
+  syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
+} from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -195,6 +199,7 @@ describe("Authorization Functions", () => {
         "Farm Lane 1",
         "1234AB",
       )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
 
       const b_id_barn = await addBarn(fdm, principal_id, real_farm_id)
       await checkPermission(fdm, "barn", "read", b_id_barn, principal_id, "test")
@@ -229,6 +234,7 @@ describe("Authorization Functions", () => {
         "Farm Lane 1",
         "1234AB",
       )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
 
       // Branch 1: resource_id matches a milk tank directly
       const l_id_milktank = await addMilkTank(fdm, principal_id, real_farm_id)
@@ -270,6 +276,7 @@ describe("Authorization Functions", () => {
         "Farm Lane 1",
         "1234AB",
       )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
 
       // Branch 1: resource_id matches a feed batch directly
       const f_id_batch = await addFeedBatch(
@@ -308,6 +315,7 @@ describe("Authorization Functions", () => {
         "Farm Lane 1",
         "1234AB",
       )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
 
       // Branch 1: resource_id matches a manure pit directly
       const b_id_manurepit = await addManurePit(fdm, principal_id, real_farm_id)

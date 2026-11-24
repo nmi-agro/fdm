@@ -20,7 +20,7 @@ import {
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
+import { enableAnimalCategoryCatalogue, syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd, getHerdsForFarm } from "./herd"
@@ -49,6 +49,7 @@ describe("Animal Domain", () => {
       "Farm Street 1",
       "1234AB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
@@ -292,6 +293,7 @@ describe("Animal Domain", () => {
       "Other Street 2",
       "4321BB",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, otherFarmId, "rvo")
     const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
       l_herd_name: "Andere kudde",
       l_id_category: "rvo_100",
@@ -409,6 +411,7 @@ describe("Animal Domain", () => {
       "Other Street 3",
       "4321BC",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, otherFarmId, "rvo")
     const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
       l_herd_name: "Andere kudde 2",
       l_id_category: "rvo_100",
@@ -1198,6 +1201,7 @@ describe("Animal Domain", () => {
       "Other Street 1",
       "4321BA",
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, otherFarmId, "rvo")
     const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
       l_herd_name: "Andere kudde",
       l_id_category: "rvo_100",
