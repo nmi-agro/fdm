@@ -5,9 +5,9 @@ import type { FdmType } from "./fdm.types"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { assertSameFarm, lockFarmOf } from "./farm-scope"
 import { createId } from "./id"
 import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
-import { assertSameFarm, lockFarmOfHerd } from "./livestock-checks"
 
 /**
  * Adds a new barn asset to a farm and records its construction/acquisition event.
@@ -292,7 +292,7 @@ export async function addHousing(
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addHousing")
       await assertSameFarm(tx, { l_id_herd }, { b_id_barn })
       // Serialize with every other livestock change on this farm, so the overlap check below holds
-      await lockFarmOfHerd(tx, l_id_herd)
+      await lockFarmOf(tx, { l_id_herd })
       assertIntervalEndNotBeforeStart(b_housing_start, b_housing_end, "b_housing")
       await assertNoOverlappingHousingForHerd(tx, l_id_herd, b_housing_start, b_housing_end ?? null)
 
@@ -333,7 +333,7 @@ export async function updateHousing(
     await fdm.transaction(async (tx) => {
       await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "updateHousing")
       // Serialize with every other livestock change on this farm, so the overlap check below holds
-      await lockFarmOfHerd(tx, l_id_herd)
+      await lockFarmOf(tx, { l_id_herd })
 
       const existingRows = await tx
         .select({
