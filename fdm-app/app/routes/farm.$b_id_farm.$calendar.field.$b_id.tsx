@@ -21,7 +21,7 @@ import { FieldNotAvailableForYear } from "~/components/blocks/field/not-availabl
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -206,7 +206,7 @@ export default function FarmFieldIndex() {
         }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={backAction}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderField
@@ -215,7 +215,7 @@ export default function FarmFieldIndex() {
           b_id={loaderData.b_id}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={loaderData.field?.b_name}
           description={
@@ -239,7 +239,7 @@ export default function FarmFieldIndex() {
             <Outlet />
           )}
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

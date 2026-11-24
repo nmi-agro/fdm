@@ -3,6 +3,8 @@
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router"
 import { randomUUID } from "node:crypto"
+import { afterAll, beforeAll } from "vitest"
+import { serverConfig } from "~/lib/config.server"
 import { fdm } from "~/lib/fdm.server"
 import type { DemoFarmIds } from "../e2e/seed/demo-farm"
 import type { TestUser } from "./session"
@@ -10,6 +12,33 @@ import { seedFarm } from "../e2e/seed"
 
 /** The origin of the requests that the helpers build. */
 export const TEST_ORIGIN = "http://localhost"
+
+/**
+ * Sets the NMI API key that `getNmiApiKey` returns, or removes it with `undefined`.
+ *
+ * Don't mock `~/integrations/nmi.server` for this: the files share a worker (`isolate: false`),
+ * so a module that an earlier test file loaded keeps the real `getNmiApiKey`. The server config
+ * is one shared object, so changing it reaches every module.
+ *
+ * @param apiKey - The key, or `undefined` for no key.
+ */
+export function setNmiApiKey(apiKey: string | undefined): void {
+  serverConfig.integrations.nmi = apiKey ? { api_key: apiKey } : undefined
+}
+
+/**
+ * Gives the tests of the calling file an NMI API key, and restores the configured key after
+ * them. Pair it with a `fetch` stub, so no request leaves for the NMI API.
+ *
+ * @param apiKey - The key (default `test-key`).
+ */
+export function withNmiApiKey(apiKey = "test-key"): void {
+  const configured = serverConfig.integrations.nmi
+  beforeAll(() => setNmiApiKey(apiKey))
+  afterAll(() => {
+    serverConfig.integrations.nmi = configured
+  })
+}
 
 /** A seeded user with a `minimal` farm. */
 export interface SeededUser {

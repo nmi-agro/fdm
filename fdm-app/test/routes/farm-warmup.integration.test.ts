@@ -15,14 +15,18 @@ import { loader as indicatorsLoader } from "~/routes/farm.$b_id_farm.$calendar.i
 import { loader as measuresLoader } from "~/routes/farm.$b_id_farm.$calendar.measures._index"
 import { loader as normsLoader } from "~/routes/farm.$b_id_farm.$calendar.norms._index"
 import { loader as nutrientAdviceLoader } from "~/routes/farm.$b_id_farm.$calendar.nutrient_advice._index"
-import { actionArgs, loaderArgs, runRoute, type SeededUser, seedUserWithFarm } from "../helpers"
+import {
+  actionArgs,
+  loaderArgs,
+  runRoute,
+  type SeededUser,
+  seedUserWithFarm,
+  withNmiApiKey,
+} from "../helpers"
 import { signInAs } from "../session"
 
 // The calculations only call the NMI API when a key is configured
-vi.mock("~/integrations/nmi.server", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("~/integrations/nmi.server")>()
-  return { ...actual, getNmiApiKey: () => "test-key" }
-})
+withNmiApiKey()
 
 const NMI_ORIGIN = "https://api.nmi-agro.nl"
 
@@ -87,17 +91,27 @@ const warm = (b_id_farm: string, form: Record<string, string>) =>
   runRoute(() => action(actionArgs(`/api/farm/${b_id_farm}/warm`, { b_id_farm }, form)))
 
 /**
- * The cache entries of the calculations on these pages: the NMI requests, the norms and the
- * balances. Other test files that run at the same time do not use them.
+ * The cache entries of the calculations on these pages for the farm of `owner`: the NMI
+ * requests, the norms and the balances.
+ *
+ * Only this file stubs the NMI endpoints below, so their entries are its own. The norms and
+ * balances are also calculated by other test files that run at the same time (the organization
+ * pages), so those entries count only when their input names this farm or one of its fields.
  */
-const pageCacheEntries = sql`calculation_function in (
-    'requestBln3Score', 'requestBln3MeasureApplicability', 'requestBln3MeasureAdvice',
-    'requestNutrientAdvice', 'calculateNitrogenBalanceField', 'calculateOrganicMatterBalanceField'
-  ) or calculation_function like 'calculateNL%'`
+function pageCacheEntries() {
+  const ids = [owner.ids.farm, ...Object.values(owner.ids.fields)].filter(
+    (id): id is string => !!id,
+  )
+  return sql`(calculation_function in (
+      'requestBln3Score', 'requestBln3MeasureApplicability', 'requestBln3MeasureAdvice',
+      'requestNutrientAdvice'
+    ) or ((calculation_function in ('calculateNitrogenBalanceField', 'calculateOrganicMatterBalanceField')
+      or calculation_function like 'calculateNL%') and input::text ~ ${ids.join("|")}))`
+}
 
 async function countCacheEntries(): Promise<number> {
   const rows = await fdm.execute<{ n: number }>(
-    sql`select count(*)::int as n from "fdm-calculator".calculation_cache where ${pageCacheEntries}`,
+    sql`select count(*)::int as n from "fdm-calculator".calculation_cache where ${pageCacheEntries()}`,
   )
   return Number(rows[0]?.n ?? 0)
 }
@@ -159,7 +173,9 @@ describe("action", () => {
 
     // The cache key depends only on the inputs, and every run seeds the same field data, so an
     // earlier run would already have warmed this farm
-    await fdm.execute(sql`delete from "fdm-calculator".calculation_cache where ${pageCacheEntries}`)
+    await fdm.execute(
+      sql`delete from "fdm-calculator".calculation_cache where ${pageCacheEntries()}`,
+    )
     nmiRequests.length = 0
     const { status } = await warm(b_id_farm, { calendar })
     expect(status).toBe(204)

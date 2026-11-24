@@ -277,8 +277,8 @@ export default function SignIn() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative">
-        <StickyHeader />
+      <StickyHeader />
+      <main className="relative">
         <div className="relative w-full lg:grid lg:min-h-150 lg:grid-cols-2 xl:min-h-200">
           {/* Mobile Background Image */}
           <div className="absolute inset-0 z-0 bg-[#122023] lg:hidden">
@@ -1663,7 +1663,7 @@ export default function SignIn() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </MotionConfig>
   )
 }

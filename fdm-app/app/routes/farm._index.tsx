@@ -2,7 +2,8 @@ import {
   acceptInvitation,
   declineInvitation,
   getFarms,
-  listFarmGroups,
+  listFarmGroupsOfOrganizations,
+  listOrganizationRolesOfUser,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
 import {
@@ -33,6 +34,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
+import { PageContainer } from "~/components/custom/page-container"
 import { buttonVariants } from "~/components/ui/button"
 import {
   Card,
@@ -43,7 +45,6 @@ import {
   CardTitle,
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -104,57 +105,54 @@ export async function loader({ request }: LoaderFunctionArgs) {
       ...pendingInvitationsRaw.filter((invitation) => !invitation.can_accept),
     ]
 
-    const rawOrganizations = await auth.api.listOrganizations({
-      headers: request.headers,
-    })
-    const organizations = await Promise.all(
-      rawOrganizations.map(async (organization) => {
-        const membersListResponse = await auth.api.listMembers({
-          headers: request.headers,
-          query: {
-            organizationId: organization.id,
-          },
-        })
-
-        const userRoles = membersListResponse.members
-          .filter((member) => member.userId === session.principal_id)
-          .map((member) => member.role)
-
-        const orderedUserRoles = (["owner", "admin", "member"] as const).filter((r) =>
-          userRoles.includes(r),
-        )
-
-        return {
-          ...organization,
-          userRoles: orderedUserRoles,
-          metadata: parseOrganizationMetadata(organization),
-        }
+    // The organizations of the user and the user's roles in them, read once for all organizations
+    const [rawOrganizations, organizationRoles] = await Promise.all([
+      auth.api.listOrganizations({
+        headers: request.headers,
       }),
-    )
+      listOrganizationRolesOfUser(fdm, session.principal_id, session.principal_id),
+    ])
+    const organizations = rawOrganizations.map((organization) => {
+      const userRoles = organizationRoles.get(organization.id) ?? []
+      const orderedUserRoles = (["owner", "admin", "member"] as const).filter((r) =>
+        userRoles.includes(r),
+      )
+
+      return {
+        ...organization,
+        userRoles: orderedUserRoles,
+        metadata: parseOrganizationMetadata(organization),
+      }
+    })
 
     const pendingOrganizationInvitations = await auth.api.listUserInvitations({
       headers: request.headers,
     })
 
-    // Get the farm groups of the organizations. A failure should not block the farm overview.
-    const farmGroups = (
-      await Promise.all(
-        organizations.map(async (organization) => {
-          try {
-            const groups = await listFarmGroups(fdm, session.principal_id, organization.id)
-            return groups.map((group) => ({
-              b_id_group: group.b_id_group,
-              b_name_group: group.b_name_group,
-              b_id_organization: organization.id,
-              b_id_farms: group.b_id_farms,
-            }))
-          } catch (error) {
-            reportError(error)
-            return []
-          }
-        }),
+    // Get the farm groups of all organizations at once. A failure should not block the farm overview.
+    let farmGroups: {
+      b_id_group: string
+      b_name_group: string
+      b_id_organization: string
+      b_id_farms: string[]
+    }[] = []
+    try {
+      const groupsByOrganization = await listFarmGroupsOfOrganizations(
+        fdm,
+        session.principal_id,
+        organizations.map((organization) => organization.id),
       )
-    ).flat()
+      farmGroups = organizations.flatMap((organization) =>
+        (groupsByOrganization.get(organization.id) ?? []).map((group) => ({
+          b_id_group: group.b_id_group,
+          b_name_group: group.b_name_group,
+          b_id_organization: organization.id,
+          b_id_farms: group.b_id_farms,
+        })),
+      )
+    } catch (error) {
+      reportError(error)
+    }
 
     // Return user information from loader
     return {
@@ -347,11 +345,11 @@ export default function AppIndex() {
   const atlasBaseFarmId = userFarms[0]?.b_id_farm ?? organizationFarms[0]?.b_id_farm ?? "undefined"
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderFarm b_id_farm={undefined} farmOptions={loaderData.farmOptions} />
       </Header>
-      <main className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col">
         {loaderData.farms.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center p-6 md:p-10">
             <div className="mx-auto flex w-full max-w-212.5 flex-col items-center space-y-8 text-center">
@@ -737,7 +735,7 @@ export default function AppIndex() {
             <SupportNote />
           </>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

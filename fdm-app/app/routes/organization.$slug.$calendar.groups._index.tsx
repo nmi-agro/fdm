@@ -99,7 +99,7 @@ export default function OrganizationGroups() {
   const calendarLabel = formatCalendarLabel(calendar)
 
   return (
-    <main>
+    <div>
       <FarmTitle
         title={`Groepen van ${organization.name}`}
         description="Verdeel de bedrijven van deze organisatie in groepen, bijvoorbeeld per project. Een bedrijf kan in meerdere groepen zitten."
@@ -159,7 +159,7 @@ export default function OrganizationGroups() {
           <CreateGroupCard key={groups.length} />
         </div>
       </FarmContent>
-    </main>
+    </div>
   )
 }
 

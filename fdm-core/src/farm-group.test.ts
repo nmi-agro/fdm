@@ -13,6 +13,7 @@ import {
   getFarmGroup,
   getFarmIdsOfOrganization,
   listFarmGroups,
+  listFarmGroupsOfOrganizations,
   removeFarmFromGroup,
   removeFarmGroup,
   removeFarmGroupMembership,
@@ -161,6 +162,60 @@ describe("Farm group functions", () => {
       const groups = await listFarmGroups(fdm, member_id, orgId)
       expect(groups.map((g) => g.b_name_group)).toEqual(["Akkerbouw", "Melkvee"])
       await expect(listFarmGroups(fdm, outsider_id, orgId)).rejects.toThrow(DENIED)
+    })
+  })
+
+  describe("listFarmGroupsOfOrganizations", () => {
+    const createOrganization = async (members: string[]) => {
+      const orgId = createId()
+      await fdm.insert(authNSchema.organization).values({
+        id: orgId,
+        name: `Batch Org ${orgId}`,
+        slug: `batch-org-${orgId.toLowerCase()}`,
+        createdAt: new Date(),
+      })
+      for (const userId of members) {
+        await fdm.insert(authNSchema.member).values({
+          id: createId(),
+          organizationId: orgId,
+          userId,
+          role: "member",
+          createdAt: new Date(),
+        })
+      }
+      return orgId
+    }
+
+    it("should return the same groups per organization as listFarmGroups", async () => {
+      const orgA = await createOrganization([member_id])
+      const orgB = await createOrganization([member_id])
+      const orgEmpty = await createOrganization([member_id])
+      const groupA2 = await createFarmGroup(fdm, member_id, orgA, "Zuid")
+      await createFarmGroup(fdm, member_id, orgA, "Noord")
+      await createFarmGroup(fdm, member_id, orgB, "Melkvee")
+      await grantRole(fdm, "farm", "owner", b_id_farm_a, orgA)
+      await addFarmToGroup(fdm, member_id, groupA2, b_id_farm_a)
+
+      const groups = await listFarmGroupsOfOrganizations(fdm, member_id, [orgA, orgB, orgEmpty])
+
+      expect([...groups.keys()].sort()).toEqual([orgA, orgB, orgEmpty].sort())
+      for (const orgId of [orgA, orgB, orgEmpty]) {
+        expect(groups.get(orgId)).toEqual(await listFarmGroups(fdm, member_id, orgId))
+      }
+      expect(groups.get(orgA)?.map((g) => g.b_name_group)).toEqual(["Noord", "Zuid"])
+      expect(groups.get(orgA)?.[1].b_id_farms).toEqual([b_id_farm_a])
+    })
+
+    it("should return an empty map without organizations", async () => {
+      expect((await listFarmGroupsOfOrganizations(fdm, member_id, [])).size).toBe(0)
+    })
+
+    it("should reject a principal that is not a member of one of the organizations", async () => {
+      const orgMember = await createOrganization([member_id])
+      const orgOther = await createOrganization([outsider_id])
+      await expect(
+        listFarmGroupsOfOrganizations(fdm, member_id, [orgMember, orgOther]),
+      ).rejects.toThrow(DENIED)
     })
   })
 

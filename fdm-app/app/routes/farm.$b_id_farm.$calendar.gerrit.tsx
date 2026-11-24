@@ -45,6 +45,7 @@ import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +65,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
@@ -644,7 +644,7 @@ export default function GerritApp() {
 
   if (isGerritEnabled === false) {
     return (
-      <SidebarInset>
+      <PageContainer>
         <Header action={headerAction}>
           <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
         </Header>
@@ -663,14 +663,14 @@ export default function GerritApp() {
             </div>
           </div>
         </FarmContent>
-      </SidebarInset>
+      </PageContainer>
     )
   }
 
   if (!isSupportedYear) {
     return (
       <>
-        <SidebarInset>
+        <PageContainer>
           <Header action={headerAction}>
             <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
           </Header>
@@ -704,7 +704,7 @@ export default function GerritApp() {
               </div>
             </div>
           </FarmContent>
-        </SidebarInset>
+        </PageContainer>
         {blockerDialog}
       </>
     )
@@ -712,7 +712,7 @@ export default function GerritApp() {
 
   return (
     <>
-      <SidebarInset>
+      <PageContainer>
         <Header action={headerAction}>
           <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
         </Header>
@@ -831,7 +831,7 @@ export default function GerritApp() {
             </div>
           </div>
         </FarmContent>
-      </SidebarInset>
+      </PageContainer>
       {blockerDialog}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
         <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">

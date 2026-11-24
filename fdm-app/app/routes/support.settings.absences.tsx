@@ -154,7 +154,7 @@ export default function SupportSettingsAbsences() {
   }
 
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Afwezigheid"
         description={
@@ -204,6 +204,6 @@ export default function SupportSettingsAbsences() {
         isAdmin={isAdmin}
         agents={agents}
       />
-    </main>
+    </div>
   )
 }
