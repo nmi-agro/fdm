@@ -12,6 +12,7 @@ import { createId } from "./id"
 import {
   addMeasure,
   getMeasure,
+  getMeasureFromCatalogue,
   getMeasures,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
@@ -104,6 +105,25 @@ describe("Measure Data Model", () => {
       const idx1 = catalogue.findIndex((c) => c.m_id === "bln_BM2")
       const idx2 = catalogue.findIndex((c) => c.m_id === "bln_BM1")
       expect(idx1).toBeLessThan(idx2)
+    })
+  })
+
+  describe("getMeasureFromCatalogue", () => {
+    it("should return a single catalogue entry with timestamps", async () => {
+      const entry = await getMeasureFromCatalogue(fdm, "bln_BM1")
+      expect(entry).toBeDefined()
+      expect(entry?.m_id).toBe("bln_BM1")
+      expect(entry?.m_name).toBe(TEST_CATALOGUE_ITEM.m_name)
+      expect(entry?.m_description).toBe(TEST_CATALOGUE_ITEM.m_description)
+      expect(entry?.m_summary).toBe(TEST_CATALOGUE_ITEM.m_summary)
+      expect(entry?.m_source_url).toBe(TEST_CATALOGUE_ITEM.m_source_url)
+      expect(entry?.m_conflicts).toEqual(["bln_BM2"])
+      expect(entry?.created).toBeInstanceOf(Date)
+    })
+
+    it("should return undefined for an unknown m_id", async () => {
+      const entry = await getMeasureFromCatalogue(fdm, `bln_unknown_${createId()}`)
+      expect(entry).toBeUndefined()
     })
   })
 

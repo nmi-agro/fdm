@@ -56,6 +56,12 @@ const ALLOWLIST = {
   jsonb: {
     "fdm.soil_image_annotating.a_image_annotation_coordinates":
       "free-form point/polygon coordinate list drawn on an image",
+    "fdm.measures_catalogue.m_applicability":
+      "read-only copy of the source catalogue's conditions; evaluated by the NMI API, only displayed",
+    "fdm.measures_catalogue.m_effect_size":
+      "nested effect blocks from the source catalogue; only displayed, replaced as a whole on sync",
+    "fdm.measures_catalogue.m_external_ids":
+      "IDs in an open-ended set of related schemes; only displayed, never queried",
     "fdm-authz.audit.audit_resource_details": "arbitrary snapshot of the audited resource",    "fdm-authz.audit.audit_origin_details": "arbitrary request metadata",
     "fdm-calculator.calculation_cache.input": "opaque calculator input, keyed by calculation_hash",
     "fdm-calculator.calculation_cache.result": "opaque calculator result",
