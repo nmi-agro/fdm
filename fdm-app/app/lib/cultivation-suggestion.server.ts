@@ -3,4 +3,5 @@ export {
   type CultivationSuggestionResult,
   getCultivationSuggestion,
   getCultivationSuggestionResult,
+  getCultivationSuggestionResultsForFarm,
 } from "@nmi-agro/fdm-calculator"
