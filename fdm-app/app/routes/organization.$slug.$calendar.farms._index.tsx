@@ -316,7 +316,7 @@ export default function OrganizationFarmsPage() {
   const { data, organization, groups, defaultJoined, calendar } = useLoaderData<typeof loader>()
   const groupsPath = `/organization/${organization.slug}/${calendar}/groups`
   return (
-    <main>
+    <div>
       <FarmTitle
         title={`Bedrijven met toegang door ${organization.name}`}
         description="Klik op een bedrijfsnaam voor meer informatie."
@@ -351,6 +351,6 @@ export default function OrganizationFarmsPage() {
           />
         )}
       </FarmContent>
-    </main>
+    </div>
   )
 }

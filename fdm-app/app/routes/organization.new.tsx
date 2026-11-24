@@ -39,7 +39,7 @@ export async function loader() {
 
 export default function AddOrganizationPage() {
   return (
-    <main>
+    <div>
       <FarmTitle
         title={"Organisatie aanmaken"}
         description={
@@ -49,7 +49,7 @@ export default function AddOrganizationPage() {
       <div className="mx-auto max-w-3xl px-4">
         <OrganizationSettingsForm method="post" canModify={true} profilePictureField={true} />
       </div>
-    </main>
+    </div>
   )
 }
 

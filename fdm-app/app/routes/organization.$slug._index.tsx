@@ -18,6 +18,7 @@ import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitati
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { OrganizationAvatar } from "~/components/blocks/organization/organization-avatar"
 import { Expandable, ExpandableContent, ExpandableTrigger } from "~/components/custom/expandable"
+import { PageContainer } from "~/components/custom/page-container"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -215,8 +215,8 @@ export default function AppIndex() {
   const years = getCalendarSelection()
   const description = loaderData.organization.metadata.data?.description
   return (
-    <SidebarInset>
-      <main>
+    <PageContainer>
+      <div>
         <FarmTitle
           title={`Dashboard van ${loaderData.organization.name}`}
           description={"Bekijk alle informatie over deze organisatie"}
@@ -464,8 +464,8 @@ export default function AppIndex() {
             </div>
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

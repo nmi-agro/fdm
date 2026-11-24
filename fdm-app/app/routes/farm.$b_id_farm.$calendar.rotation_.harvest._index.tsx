@@ -37,6 +37,7 @@ import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button, buttonVariants } from "~/components/ui/button"
@@ -59,7 +60,6 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { Label } from "~/components/ui/label"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useKeyedState } from "~/hooks/use-keyed-state"
@@ -471,7 +471,7 @@ export default function FarmRotationHarvestAddIndex() {
       : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`)
   const backlinkLabel = loaderData.returnUrl ? "Terug" : "Terug naar bouwplan"
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: backlink,
@@ -487,7 +487,7 @@ export default function FarmRotationHarvestAddIndex() {
           {isHarvestUpdate ? `${getCapitalizedTerm} bijwerken` : `${getCapitalizedTerm} toevoegen`}
         </BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={
             isHarvestUpdate
@@ -736,8 +736,8 @@ export default function FarmRotationHarvestAddIndex() {
             </DialogContent>
           </Dialog>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

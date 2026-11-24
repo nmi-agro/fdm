@@ -5,8 +5,8 @@
  * Its params are filled in by `route-params.ts`; a route whose params cannot be filled in fails
  * until it gets a resolver or a skip entry with a reason.
  *
- * A page passes when it answers 200, shows no error page, and has no errors in the browser or
- * failing (5xx) requests to the app. A resource route passes when it answers below 500: called
+ * A page passes when it answers 200, shows no error page, has at most one `main` landmark, and has
+ * no errors in the browser or failing (5xx) requests to the app. A resource route passes when it answers below 500: called
  * without its query or body, a 4xx is the expected answer, while a loader that throws gives 500.
  */
 import { expect, test } from "@playwright/test"
@@ -61,6 +61,11 @@ test.describe("every route", () => {
           await expect(page.getByText(text), "The page should not show an error").toHaveCount(0)
         }
       }
+      // The app shell renders the only `main` landmark; a page inside it uses a plain container.
+      expect(
+        await page.locator("main, [role=main]").count(),
+        "The page should have at most one main landmark",
+      ).toBeLessThanOrEqual(1)
       const known = KNOWN_ERRORS[route.pattern] ?? []
       const problems = guard
         .problems()

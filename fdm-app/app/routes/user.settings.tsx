@@ -1,7 +1,7 @@
 import { type LoaderFunctionArgs, Outlet, useLoaderData, useLocation } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderUser } from "~/components/blocks/header/user"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 
@@ -44,13 +44,13 @@ export default function UserSettingsLayout() {
     SETTINGS_PAGES.find((candidate) => pathname.startsWith(candidate.href)) ?? SETTINGS_PAGES[0]
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderUser name={user.name} page={page} />
       </Header>
-      <main>
+      <div>
         <Outlet />
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

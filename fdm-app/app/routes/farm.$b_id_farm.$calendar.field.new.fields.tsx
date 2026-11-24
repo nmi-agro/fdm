@@ -17,8 +17,8 @@ import { NewFieldsSidebar } from "~/components/blocks/fields-new/sidebar"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
+import { PageContainer } from "~/components/custom/page-container"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -135,7 +135,7 @@ export default function Index() {
   const { fields, soilStatus, b_id_farm, calendar } = loaderData
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
@@ -146,7 +146,7 @@ export default function Index() {
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderField b_id_farm={loaderData.b_id_farm} fieldOptions={[]} b_id={undefined} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-10 pb-16">
           <div className="flex items-center">
             <div className="space-y-0.5">
@@ -172,7 +172,7 @@ export default function Index() {
             </div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
