@@ -755,7 +755,10 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    const fieldIds = url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
+    // Without duplicates, so each field is saved once
+    const fieldIds = [
+      ...new Set(url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []),
+    ]
     const cultivationIds = url.searchParams.get("cultivationIds")?.split(",").filter(Boolean) ?? []
 
     if (!fieldIds || fieldIds.length === 0) {

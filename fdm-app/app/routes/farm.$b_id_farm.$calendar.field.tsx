@@ -299,15 +299,14 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         b_bufferstrip: field.b_bufferstrip,
         has_write_permission: farmWritePermission,
         bcs,
+        missingMainCultivation: !getMainCultivation(cultivations, calendar),
       }
     })
 
     // The cultivation suggestions come from the NMI API, so the page loads them separately
     // (see `farm.$b_id_farm.$calendar.cultivation-suggestions.ts`). That keeps this loader to
     // database reads, so the sidebar can prefetch it.
-    const loadCultivationSuggestions = fieldsExtended.some(
-      (field) => !getMainCultivation(field.cultivations, calendar),
-    )
+    const loadCultivationSuggestions = fieldsExtended.some((field) => field.missingMainCultivation)
 
     // Return user information from loader
     return {
@@ -346,12 +345,16 @@ export default function FarmFieldIndex() {
     [loaderData.b_id_farm, loaderData.calendar],
   )
 
-  // The cultivation suggestions come from the NMI API, so they load after the table renders
-  const suggestionsFetcher = useFetcher<{ suggestions: Record<string, CultivationSuggestion> }>()
-  const { load: loadSuggestions } = suggestionsFetcher
+  // The cultivation suggestions come from the NMI API, so they load after the table renders. The
+  // fetcher has its own key per farm and year, so the suggestions of another farm or year never
+  // show while new ones load.
   const suggestionsUrl = loaderData.loadCultivationSuggestions
     ? `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/cultivation-suggestions`
     : null
+  const suggestionsFetcher = useFetcher<{ suggestions: Record<string, CultivationSuggestion> }>({
+    key: `cultivation-suggestions:${loaderData.b_id_farm}:${loaderData.calendar}`,
+  })
+  const { load: loadSuggestions } = suggestionsFetcher
   useEffect(() => {
     if (suggestionsUrl) void loadSuggestions(suggestionsUrl)
   }, [suggestionsUrl, loadSuggestions])
@@ -364,7 +367,12 @@ export default function FarmFieldIndex() {
       }
       return field.b_bufferstrip === false
     })
-    .map((field) => ({ ...field, cultivationSuggestion: suggestions?.[field.b_id] }))
+    .map((field) => ({
+      ...field,
+      // Only for fields that still lack a main cultivation: after a suggestion is accepted, the
+      // table reloads before the suggestions do
+      cultivationSuggestion: field.missingMainCultivation ? suggestions?.[field.b_id] : undefined,
+    }))
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??

@@ -46,7 +46,7 @@ Test isolation: `fdm-core` and the fdm-app integration project run with `isolate
 - **Domain column prefixes** in the `fdm` PG schema, not camelCase: `b_` (farms, fields, cultivations), `p_` (fertilizer products), `a_` (soil analyses), `m_` (measures), `l_` (livestock), `f_` (feed). Enforced by `pnpm check-schema`; details and exceptions in the `fdm-schema` skill. Generated schemas (`fdm-authn`) are exempt.
 - **`fdm-core` function conventions**:
   - Signature: `fn(fdm: FdmType, principal_id: string, ...)`.
-  - Every exported function, read or write, checks the permission itself with `checkPermission` (`src/authorization.ts`) before it touches data. Don't add unchecked variants that rely on the caller to check, also not for batching; a private helper may skip the check only when every exported caller checks first.
+  - Every exported function, read or write, checks the permission itself before it touches data: with `checkPermission` (`src/authorization.ts`) for farm data, or with the membership check the module already uses for organization data (as in `farm-group.ts`). Don't add unchecked variants that rely on the caller to check, also not for batching; a private helper may skip the check only when every exported caller checks first.
   - Mutations run inside `fdm.transaction(...)`, generate IDs via `createId()`, and grant roles via `grantRole`.
   - Errors: wrap exceptions with `handleError(err, message, context)`, which returns a `BaseError`.
 - **Feature logic in its own package**: put a new feature area in its own workspace package (like `fdm-rvo` or `fdm-reports`), not in `fdm-core`; only touch `fdm-core` for small, unavoidable changes.

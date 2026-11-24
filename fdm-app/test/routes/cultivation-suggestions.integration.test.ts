@@ -102,11 +102,18 @@ describe("fields table", () => {
 
     const result = data as {
       loadCultivationSuggestions: boolean
-      fieldsExtended: { b_id: string; cultivationSuggestion?: unknown }[]
+      fieldsExtended: {
+        b_id: string
+        missingMainCultivation: boolean
+        cultivationSuggestion?: unknown
+      }[]
     }
     expect(result.loadCultivationSuggestions).toBe(true)
-    expect(result.fieldsExtended.some((field) => field.b_id === bareField)).toBe(true)
     expect(result.fieldsExtended.every((field) => !field.cultivationSuggestion)).toBe(true)
+    // Only the field without a crop may show a suggestion
+    expect(
+      result.fieldsExtended.filter((field) => field.missingMainCultivation).map((f) => f.b_id),
+    ).toEqual([bareField])
   })
 })
 
@@ -132,10 +139,13 @@ describe("cultivation suggestions", () => {
     expect(getCultivationSuggestion).not.toHaveBeenCalled()
   })
 
-  it("refuses a user without access to the farm", async () => {
+  it("gives a user without access to the farm no suggestions", async () => {
+    // The suggestions are optional, so a refused read gives an empty list instead of an error
+    // page over the fields table
     signInAs(stranger.user)
-    const { status } = await runRoute(() => suggestionsLoader(suggestionsArgs()))
-    expect(status).toBeGreaterThanOrEqual(400)
+    const { status, data } = await runRoute(() => suggestionsLoader(suggestionsArgs()))
+    expect(status).toBe(200)
+    expect(data).toEqual({ suggestions: {} })
     expect(getCultivationSuggestion).not.toHaveBeenCalled()
   })
 })

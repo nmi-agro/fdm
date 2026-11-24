@@ -7,7 +7,7 @@ import {
   type CultivationSuggestion,
   getCultivationSuggestionResultsForFarm,
 } from "~/lib/cultivation-suggestion.server"
-import { handleLoaderError } from "~/lib/error"
+import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
@@ -38,27 +38,34 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     const suggestions: Record<string, CultivationSuggestion> = {}
     if (!nmiApiKey) return { suggestions }
 
-    const [fields, cultivationsForFarm] = await Promise.all([
-      getFields(fdm, session.principal_id, b_id_farm, timeframe),
-      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-    ])
-    const fieldsMissingCultivation = fields.filter(
-      (field) => !getMainCultivation(cultivationsForFarm.get(field.b_id) ?? [], calendar),
-    )
-    if (fieldsMissingCultivation.length === 0) return { suggestions }
+    // The suggestions are optional: an error here must not replace the fields table with an
+    // error page, so it is reported and the table shows no suggestions
+    try {
+      const [fields, cultivationsForFarm] = await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      ])
+      const fieldsMissingCultivation = fields.filter(
+        (field) => !getMainCultivation(cultivationsForFarm.get(field.b_id) ?? [], calendar),
+      )
+      if (fieldsMissingCultivation.length === 0) return { suggestions }
 
-    // The database is read once for the farm; the NMI API gets a limited number of requests
-    const results = await getCultivationSuggestionResultsForFarm(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-      fieldsMissingCultivation.map((field) => field.b_id),
-      calendar,
-      nmiApiKey,
-      { concurrency: CULTIVATION_SUGGESTION_CONCURRENCY },
-    )
-    for (const [b_id, result] of results) {
-      if (result.status === "suggested") suggestions[b_id] = result.suggestion
+      // The database is read once for the farm; the NMI API gets a limited number of requests
+      const results = await getCultivationSuggestionResultsForFarm(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        fieldsMissingCultivation.map((field) => field.b_id),
+        calendar,
+        nmiApiKey,
+        { concurrency: CULTIVATION_SUGGESTION_CONCURRENCY },
+      )
+      for (const [b_id, result] of results) {
+        if (result.status === "suggested") suggestions[b_id] = result.suggestion
+      }
+    } catch (error) {
+      reportError(error, { page: "cultivation-suggestions" }, { b_id_farm, calendar })
+      return { suggestions: {} }
     }
 
     return { suggestions }
