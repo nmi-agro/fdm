@@ -7,8 +7,14 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { type JSX, useId, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
-import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { ChartContainer, ChartLegend, ChartTooltip } from "~/components/ui/chart"
+import {
+  BALANCE_AXIS_WIDTH,
+  BALANCE_BAR_GAP,
+  BalanceChartTooltip,
+  BalanceRowTick,
+  toBalanceRows,
+} from "./balance-chart-parts"
 import { formatNumberNl, PHOSPHATE_UNIT } from "./phosphate-format"
 
 /** Colors and labels of the terms, the same as in the nitrogen balance chart. */
@@ -140,12 +146,12 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
   const { supply, removal } = buildSegments(props)
   const segments = new Map([...supply, ...removal].map((s) => [s.key, s]))
 
-  const chartData: Record<string, string | number> = { name: "Balans" }
-  for (const segment of segments.values()) chartData[segment.key] = segment.value
-  // An empty side (e.g. no supply) still gets its own bar of 0, so the chart always shows supply
-  // and removal as two bars and the remaining bar keeps its size
-  if (supply.length === 0) chartData.supply_empty = 0
-  if (removal.length === 0) chartData.removal_empty = 0
+  // One row for the supply and one for the removal; an empty side keeps its labelled row
+  const chartData = toBalanceRows(
+    Object.fromEntries([...segments.values()].map((s) => [s.key, s.value])),
+    supply.map((s) => s.key),
+    removal.map((s) => s.key),
+  )
 
   const presentTerms = new Set([...segments.values()].map((s) => s.term))
   const legend = (Object.keys(TERMS) as Term[]).filter((term) => presentTerms.has(term))
@@ -157,7 +163,7 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
   )
 
   const radius = 5
-  const renderBar = (stackId: string, bar: Segment[]) =>
+  const renderBar = (bar: Segment[]) =>
     bar.map((segment, i) => {
       let barRadius: number | [number, number, number, number] = 0
       if (bar.length === 1) barRadius = radius
@@ -168,7 +174,7 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
           key={segment.key}
           id={`${svgId}_${segment.key}`}
           dataKey={segment.key}
-          stackId={stackId}
+          stackId="balance"
           radius={barRadius}
           fill={TERMS[segment.term].color}
           onMouseEnter={() => setFocus(segment.key)}
@@ -185,15 +191,20 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
       className="aspect-auto h-44 w-full"
       onMouseLeave={() => setFocus(undefined)}
     >
-      <BarChart accessibilityLayer data={[chartData]} layout="vertical" margin={{ left: -20 }}>
+      <BarChart
+        accessibilityLayer
+        data={chartData}
+        layout="vertical"
+        barCategoryGap={BALANCE_BAR_GAP}
+      >
         <XAxis type="number" />
         <YAxis
           dataKey="name"
           type="category"
           tickLine={false}
-          tickMargin={10}
           axisLine={false}
-          tickFormatter={() => ""}
+          width={BALANCE_AXIS_WIDTH}
+          tick={<BalanceRowTick labels={{ supply: ["Aanvoer"], removal: ["Afvoer"] }} />}
         />
         <ChartTooltip
           shared={false}
@@ -203,25 +214,13 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
             if (!segment) return null
             const isSupply = supply.includes(segment)
             return (
-              <Card>
-                <CardHeader className="p-4 pb-0">
-                  <div>
-                    <div
-                      className="me-2 inline-block h-2 w-2 rounded-[2px]"
-                      style={{ backgroundColor: TERMS[segment.term].color }}
-                    />
-                    {isSupply ? "Aanvoer" : "Afvoer"}: {TERMS[segment.term].label.toLowerCase()}
-                  </div>
-                  {segment.detail.map((detail) => (
-                    <div key={detail} className="ms-4">
-                      {detail}
-                    </div>
-                  ))}
-                </CardHeader>
-                <CardContent className="p-4 font-bold">
-                  {formatNumberNl(segment.value, segment.value < 10 ? 1 : 0)} {PHOSPHATE_UNIT}
-                </CardContent>
-              </Card>
+              <BalanceChartTooltip
+                color={TERMS[segment.term].color}
+                title={`${isSupply ? "Aanvoer" : "Afvoer"}: ${TERMS[segment.term].label.toLowerCase()}`}
+                details={segment.detail}
+                value={formatNumberNl(segment.value, segment.value < 10 ? 1 : 0)}
+                unit={PHOSPHATE_UNIT}
+              />
             )
           }}
         />
@@ -240,12 +239,8 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
             </div>
           }
         />
-        {supply.length === 0 ? <Bar dataKey="supply_empty" stackId="supply" fill="none" /> : null}
-        {renderBar("supply", supply)}
-        {removal.length === 0 ? (
-          <Bar dataKey="removal_empty" stackId="removal" fill="none" />
-        ) : null}
-        {renderBar("removal", removal)}
+        {renderBar(supply)}
+        {renderBar(removal)}
         <ZIndexLayer zIndex={2000}>
           {focus && (
             <use

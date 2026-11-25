@@ -6,8 +6,15 @@ import {
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
 } from "~/components/ui/chart"
+import { formatBalanceValue } from "~/lib/format"
+import {
+  BALANCE_AXIS_WIDTH,
+  BALANCE_BAR_GAP,
+  BalanceChartTooltip,
+  BalanceRowTick,
+  toBalanceRows,
+} from "./balance-chart-parts"
 
 export function OrganicMatterBalanceChart({
   supply,
@@ -16,13 +23,12 @@ export function OrganicMatterBalanceChart({
   supply: number
   degradation: number
 }): JSX.Element {
-  const chartData = [
-    {
-      name: "Balans",
-      supply: supply,
-      degradation: degradation * -1,
-    },
-  ]
+  // One row for the supply and one for the degradation
+  const chartData = toBalanceRows(
+    { supply: supply, degradation: degradation * -1 },
+    ["supply"],
+    ["degradation"],
+  )
 
   const chartConfig = {
     supply: {
@@ -37,20 +43,41 @@ export function OrganicMatterBalanceChart({
 
   return (
     <ChartContainer config={chartConfig}>
-      <BarChart accessibilityLayer data={chartData} layout="vertical" margin={{ left: -20 }}>
+      <BarChart
+        accessibilityLayer
+        data={chartData}
+        layout="vertical"
+        barCategoryGap={BALANCE_BAR_GAP}
+      >
         <XAxis type="number" />
         <YAxis
           dataKey="name"
           type="category"
           tickLine={false}
-          tickMargin={10}
           axisLine={false}
-          tickFormatter={() => ""}
+          width={BALANCE_AXIS_WIDTH}
+          tick={<BalanceRowTick labels={{ supply: ["Aanvoer"], removal: ["Afbraak"] }} />}
         />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+        <ChartTooltip
+          cursor={false}
+          shared={false}
+          content={({ payload }) => {
+            const item = payload?.find((p) => p && p.type !== "none")
+            const key = item?.dataKey as keyof typeof chartConfig | undefined
+            if (!key || !(key in chartConfig) || typeof item?.value !== "number") return null
+            return (
+              <BalanceChartTooltip
+                color={chartConfig[key].color}
+                title={chartConfig[key].label}
+                value={formatBalanceValue(item.value)}
+                unit="kg EOM / ha"
+              />
+            )
+          }}
+        />
         <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="supply" fill="var(--color-supply)" radius={5} />
-        <Bar dataKey="degradation" fill="var(--color-degradation)" radius={5} />
+        <Bar dataKey="supply" stackId="balance" fill="var(--color-supply)" radius={5} />
+        <Bar dataKey="degradation" stackId="balance" fill="var(--color-degradation)" radius={5} />
       </BarChart>
     </ChartContainer>
   )
