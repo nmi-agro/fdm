@@ -99,7 +99,7 @@ export async function renderWelcomeEmail(user: User): Promise<Email> {
   const email = {
     From: `"${serverConfig.mail?.postmark.sender_name}" <${serverConfig.mail?.postmark.sender_address}>`,
     To: user.email,
-    Subject: `Welkom bij ${serverConfig.name}! Krijg inzicht in je bedrijfsdata.`,
+    Subject: `Welkom bij ${serverConfig.name}: zo begint u`,
     HtmlBody: emailHtml,
     Tag: "welcome",
   }

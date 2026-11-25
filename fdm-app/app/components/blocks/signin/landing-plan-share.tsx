@@ -62,8 +62,9 @@ export function LandingCollaborate() {
       <div className="mt-12 grid gap-x-16 gap-y-10 md:grid-cols-2">
         <FeatureItem icon={UserPlus} title="Uw adviseur of collega uitnodigen">
           <p>
-            Nodig iemand uit per e-mail en kies de rol: eigenaar, adviseur of onderzoeker. Een
-            onderzoeker kan alleen meekijken.
+            Nodig iemand uit met het e-mailadres, of geef een hele organisatie toegang door op de
+            naam te zoeken. U kiest de rol: eigenaar, adviseur of onderzoeker. Een onderzoeker kan
+            alleen meekijken.
           </p>
           <ManualLink target="samenwerken" className="mt-2">
             Lees meer over samenwerken

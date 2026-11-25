@@ -169,8 +169,8 @@ export function LandingFaq() {
                 <li>uw oogstgegevens, ook als u een seizoen wilt narekenen.</li>
               </ul>
               <p className="mt-2">
-                Bemesting en oogst voert u zelf in; daar is nog geen koppeling voor. Hoe u zich
-                aanmeldt, uw eerste bedrijf aanmaakt en uw percelen importeert, leest u in{" "}
+                Bemesting en oogst voert u zelf in. Hoe u zich aanmeldt, uw eerste bedrijf aanmaakt
+                en uw percelen importeert, leest u in{" "}
                 <Link
                   to={getHelpHref("aan-de-slag")}
                   className="text-foreground font-medium underline underline-offset-4"

@@ -11,7 +11,7 @@ import {
 const STEPS = [
   {
     title: "Gegevens vastleggen",
-    text: "Percelen haalt u op bij RVO en bodemanalyses leest u in uit de pdf. Bemesting en oogst voert u zelf in; daar is nog geen koppeling voor.",
+    text: "Percelen haalt u op bij RVO en bodemanalyses leest u in uit de pdf. Bemesting en oogst voert u zelf in.",
   },
   {
     title: "Doorrekenen",
@@ -56,9 +56,8 @@ export function LandingRecord() {
       <SectionHeading label="Uw gegevens" title="Deels ophalen, deels zelf invoeren">
         <p>
           Het inzicht is zo goed als de gegevens eronder. Percelen en bodemanalyses haalt u op met
-          een import. Voor bemesting en oogst is er nog geen koppeling: die voert u zelf in. Dat
-          kost wat tijd, maar we maken het zo eenvoudig mogelijk, en de tijdlijn laat zien wat er
-          nog ontbreekt.
+          een import. Bemesting en oogst voert u zelf in. Dat kost wat tijd, maar we maken het zo
+          eenvoudig mogelijk, en de tijdlijn laat zien wat er nog ontbreekt.
         </p>
       </SectionHeading>
       <ProductShot
