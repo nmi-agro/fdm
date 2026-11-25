@@ -10,8 +10,8 @@ import {
 
 const STEPS = [
   {
-    title: "Gegevens ophalen",
-    text: "Haal uw percelen op bij RVO en uw bodemanalyses uit de pdf. U vult alleen aan wat u zelf weet: gewassen, bemesting en oogst.",
+    title: "Gegevens vastleggen",
+    text: "Percelen haalt u op bij RVO en bodemanalyses leest u in uit de pdf. Bemesting en oogst voert u zelf in; daar is nog geen koppeling voor.",
   },
   {
     title: "Doorrekenen",
@@ -29,9 +29,9 @@ export function LandingHowItWorks() {
     <LandingSection id="mogelijkheden">
       <SectionHeading label="Zo werkt het" title="Inzicht in productie en milieu, in één beeld">
         <p>
-          {clientConfig.name} gebruikt de gegevens die u al heeft om inzicht te geven in bemesting
+          {clientConfig.name} gebruikt de gegevens van uw bedrijf om inzicht te geven in bemesting
           en bodem op uw percelen, en in wat dat betekent voor water en lucht. Dezelfde gegevens
-          voeden de verschillende berekeningen.
+          voeden de verschillende berekeningen, dus wat u één keer vastlegt, gebruikt u overal.
         </p>
       </SectionHeading>
       <ol className="mt-12 grid gap-8 md:grid-cols-3 md:gap-0 md:divide-x">
@@ -53,10 +53,12 @@ export function LandingHowItWorks() {
 export function LandingRecord() {
   return (
     <LandingSection>
-      <SectionHeading label="Uw gegevens" title="Weinig invoeren, veel ophalen">
+      <SectionHeading label="Uw gegevens" title="Ophalen waar het kan, invoeren waar het moet">
         <p>
-          Het inzicht is zo goed als de gegevens eronder. Daarom haalt {clientConfig.name} zoveel
-          mogelijk op uit wat u al heeft, en ziet u in één beeld wat er nog ontbreekt.
+          Het inzicht is zo goed als de gegevens eronder. Percelen en bodemanalyses haalt u op met
+          een import. Voor bemesting en oogst is er nog geen koppeling: die voert u zelf in. Dat
+          kost wat tijd, maar we maken het zo eenvoudig mogelijk, en de tijdlijn laat zien wat er
+          nog ontbreekt.
         </p>
       </SectionHeading>
       <ProductShot
@@ -78,9 +80,10 @@ export function LandingRecord() {
               de waarden uit; u controleert ze en koppelt ze aan het perceel. Geen analyse? Dan
               rekent {clientConfig.name} met bodemwaarden die het NMI schat.
             </FeatureItem>
-            <FeatureItem icon={Table2} title="Aanvullen in tabellen">
-              Vul bouwplan, bemesting en oogst aan in tabellen, voor meerdere percelen of gewassen
-              tegelijk.
+            <FeatureItem icon={Table2} title="Invoeren in tabellen">
+              Voer bemesting en oogst in en werk het bouwplan bij in tabellen. Een bemesting of
+              oogst die op meerdere percelen gelijk is, legt u in één keer vast voor al die
+              percelen.
             </FeatureItem>
             <FeatureItem icon={GanttChart} title="Tijdlijn">
               Zie het hele jaar in één beeld: per perceel de gewassen als balken en de bemestingen,

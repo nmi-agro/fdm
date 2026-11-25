@@ -110,7 +110,8 @@ export function LandingCallToAction() {
           Probeer het met uw eigen bedrijf
         </h2>
         <p className="mt-4 max-w-xl text-lg leading-relaxed text-white/80">
-          Gratis tijdens de pilot en zonder installatie. Uw percelen haalt u op met een RVO-import.
+          Gratis tijdens de pilot en zonder installatie. U begint met een RVO-import van uw percelen
+          en vult daarna bemesting en oogst aan.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <SignInLink className={buttonVariants({ size: "lg", variant: "secondary" })}>
@@ -155,8 +156,9 @@ export function LandingFaq() {
               Wat heb ik nodig om te starten?
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground text-[0.9375rem] leading-relaxed">
-              Alleen een account. Hoe u zich aanmeldt, uw eerste bedrijf aanmaakt en uw percelen
-              importeert, leest u in{" "}
+              Een account en de gegevens van uw bedrijf. Percelen haalt u op bij RVO; bemesting en
+              oogst voert u zelf in, en hoe completer die zijn, hoe meer de berekeningen zeggen. Hoe
+              u zich aanmeldt, uw eerste bedrijf aanmaakt en uw percelen importeert, leest u in{" "}
               <Link
                 to={getHelpHref("aan-de-slag")}
                 className="text-foreground font-medium underline underline-offset-4"
