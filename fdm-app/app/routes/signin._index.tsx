@@ -31,6 +31,7 @@ import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
+import { normalizeOrigin } from "~/lib/manual/seo"
 import { getSafeRedirect } from "~/lib/url-utils"
 import { extractFormValuesFromRequest } from "../lib/form"
 
@@ -38,8 +39,11 @@ import { extractFormValuesFromRequest } from "../lib/form"
 const SOCIAL_IMAGE_URL =
   "https://images.unsplash.com/photo-1717702576954-c07131c54169?q=80&w=1200&auto=format&fit=crop"
 
-/** `/` redirects here, so this page (as listed in the sitemap) is the canonical URL. */
-const CANONICAL_URL = new URL("/signin", clientConfig.url).href
+/**
+ * `/` redirects here, so this page (as listed in the sitemap) is the canonical URL. Root-relative
+ * when the public URL is not configured, as in the smoke tests, so loading the module never throws.
+ */
+const CANONICAL_URL = `${normalizeOrigin(clientConfig.url)}/signin`
 
 export const meta: MetaFunction = () => {
   // Search results show about 60 characters of a title and 155 of a description
