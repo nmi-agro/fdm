@@ -74,7 +74,7 @@ export function FieldCultivationsBadge({
           </span>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Teelten voor {fieldName}</DialogTitle>
         </DialogHeader>

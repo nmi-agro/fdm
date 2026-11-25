@@ -802,7 +802,7 @@ export function CalendarGrid({
           if (!open) setChooser(null)
         }}
       >
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Wat wil je openen?</DialogTitle>
             <DialogDescription>

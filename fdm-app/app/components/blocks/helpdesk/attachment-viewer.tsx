@@ -141,7 +141,7 @@ export function AttachmentViewerDialogContent({
   const objectUrl = status.status === "ok" ? status.url : null
 
   return (
-    <DialogContent className="flex h-[85vh] max-h-160 w-full max-w-4xl flex-col sm:max-h-[85vh]">
+    <DialogContent className="flex h-[85vh] max-h-160 w-full flex-col sm:max-h-[85vh] sm:max-w-4xl">
       <FileViewerDialogHeader
         title={attachment.file_name}
         downloadUrl={objectUrl ?? attachment.file_path}

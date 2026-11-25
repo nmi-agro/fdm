@@ -672,7 +672,7 @@ export function AddMeasureDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-x-hidden overflow-y-auto">
+      <DialogContent className="max-h-[90vh] grid-cols-[minmax(0,1fr)] overflow-x-hidden overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Maatregel toevoegen</DialogTitle>
         </DialogHeader>
