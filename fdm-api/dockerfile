@@ -75,6 +75,12 @@ COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-api/pac
 COPY --from=builder --chown=user:nodejs /app/fdm-api/dist ./fdm-api/dist
 COPY --from=builder --chown=user:nodejs /app/fdm-api/instrument.server.mjs ./fdm-api/instrument.server.mjs
 
+# Default report images, the same files that fdm-app shows in its reports
+COPY --from=pruner --chown=user:nodejs \
+    /app/fdm-app/public/fdm-high-resolution-logo-transparent-no-text.png \
+    /app/fdm-app/public/bemestingsplan_cover.jpg \
+    ./fdm-api/public/
+
 # Set production environment
 ENV NODE_ENV=production
 ENV PORT=8080
