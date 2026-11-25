@@ -1,4 +1,4 @@
-import { Camera, FileUp, GanttChart, ScanText, Table2 } from "lucide-react"
+import { Camera, FileUp, GanttChart, Milk, ScanText, Table2 } from "lucide-react"
 import { clientConfig } from "~/lib/config"
 import {
   FeatureItem,
@@ -87,6 +87,11 @@ export function LandingRecord() {
             <FeatureItem icon={GanttChart} title="Tijdlijn">
               Zie het hele jaar in één beeld: per perceel de gewassen als balken en de bemestingen,
               oogsten en bodemanalyses als momenten. Aanpassen kan door te klikken en te slepen.
+            </FeatureItem>
+            <FeatureItem icon={Milk} title="Melkvee en beweiding">
+              Leg uw melkvee vast in koppels en houd op de beweidingskalender bij welke koppel
+              wanneer op welk perceel weidde. {clientConfig.name} rekent daaruit de weidedagen, de
+              voortgang naar Weidemelk en de veebezetting op uw grasland.
             </FeatureItem>
             <FeatureItem icon={Camera} title="BodemConditieScore">
               Beoordeel de bodem in het veld, leg uw bodemkuil vast met foto's en notities en

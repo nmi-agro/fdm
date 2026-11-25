@@ -54,12 +54,20 @@ export function LandingBalances() {
             Daarnaast rekent {clientConfig.name} de organische-stofbalans door: de aanvoer en
             afbraak van organische stof, per perceel en voor het bedrijf.
           </p>
+          <p>
+            De fosfaatbalans is nieuw en nog experimenteel. Die zet de balans naast de
+            fosfaattoestand van de bodem en laat per perceel zien of opbouwen, onderhouden of
+            afbouwen past. Gebruik de uitkomsten als richting, niet als vaststaand advies.
+          </p>
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             <ManualLink target="achtergrond-stikstofbalans">
               Zo wordt de stikstofbalans berekend
             </ManualLink>
             <ManualLink target="achtergrond-organische-stofbalans">
               Zo wordt de organische-stofbalans berekend
+            </ManualLink>
+            <ManualLink target="achtergrond-fosfaatbalans">
+              Zo wordt de fosfaatbalans berekend
             </ManualLink>
           </div>
         </SectionHeading>
