@@ -9,7 +9,7 @@ const SPEC_GROUPS = [
         value: "Aanvoer, afvoer en emissies per perceel, met een doel per perceel",
       },
       { label: "Emissies", value: "Ammoniak en lachgas volgens het rekenmodel NEMA" },
-      { label: "Mineralisatie", value: "MINIP-model en het Dyna-model van het NMI, dag voor dag" },
+      { label: "Mineralisatie", value: "MINIP-model, voor de werkzame stikstof in de balans" },
       { label: "Bemestingsadvies", value: "Adviezen van de CBGV en de CBAV" },
       { label: "Bodemkwaliteit", value: "BLN 3, met OBI en BBWP" },
     ],
@@ -21,7 +21,6 @@ const SPEC_GROUPS = [
       { label: "Gewashistorie", value: "Basisregistratie Gewaspercelen (BRP), terug tot 2009" },
       { label: "Hoogte", value: "Actueel Hoogtebestand Nederland (AHN4)" },
       { label: "Bodem", value: "Bodemkaart van Nederland (BRO) en uw eigen bodemanalyses" },
-      { label: "Weer", value: "Gemeten weer, de verwachting en langjarige klimaatgegevens" },
     ],
   },
   {

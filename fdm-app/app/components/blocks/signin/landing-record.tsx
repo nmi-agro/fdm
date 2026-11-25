@@ -53,7 +53,7 @@ export function LandingHowItWorks() {
 export function LandingRecord() {
   return (
     <LandingSection>
-      <SectionHeading label="Uw gegevens" title="Ophalen waar het kan, invoeren waar het moet">
+      <SectionHeading label="Uw gegevens" title="Deels ophalen, deels zelf invoeren">
         <p>
           Het inzicht is zo goed als de gegevens eronder. Percelen en bodemanalyses haalt u op met
           een import. Voor bemesting en oogst is er nog geen koppeling: die voert u zelf in. Dat

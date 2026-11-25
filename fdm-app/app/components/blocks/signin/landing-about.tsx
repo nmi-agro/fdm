@@ -156,16 +156,29 @@ export function LandingFaq() {
               Wat heb ik nodig om te starten?
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground text-[0.9375rem] leading-relaxed">
-              Een account en de gegevens van uw bedrijf. Percelen haalt u op bij RVO; bemesting en
-              oogst voert u zelf in, en hoe completer die zijn, hoe meer de berekeningen zeggen. Hoe
-              u zich aanmeldt, uw eerste bedrijf aanmaakt en uw percelen importeert, leest u in{" "}
-              <Link
-                to={getHelpHref("aan-de-slag")}
-                className="text-foreground font-medium underline underline-offset-4"
-              >
-                Aan de slag
-              </Link>{" "}
-              in de handleiding.
+              <p>
+                Een account. Uw percelen haalt u daarna op bij RVO. Het helpt als u bij de hand
+                heeft:
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>de pdf's van uw bodemanalyses, die u in één keer uploadt;</li>
+                <li>
+                  uw bemestingsplan of de bemestingen die u gaf, als u een seizoen wilt narekenen.
+                  Voor een nieuw plan is dat niet nodig: dat stelt u in {clientConfig.name} op;
+                </li>
+                <li>uw oogstgegevens, ook als u een seizoen wilt narekenen.</li>
+              </ul>
+              <p className="mt-2">
+                Bemesting en oogst voert u zelf in; daar is nog geen koppeling voor. Hoe u zich
+                aanmeldt, uw eerste bedrijf aanmaakt en uw percelen importeert, leest u in{" "}
+                <Link
+                  to={getHelpHref("aan-de-slag")}
+                  className="text-foreground font-medium underline underline-offset-4"
+                >
+                  Aan de slag
+                </Link>{" "}
+                in de handleiding.
+              </p>
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="veilig">

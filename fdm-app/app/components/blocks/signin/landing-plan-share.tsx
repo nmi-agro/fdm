@@ -1,8 +1,8 @@
-import { Bot, Building2, FileText, KeyRound, Plug, Sprout, UserPlus } from "lucide-react"
+import { Bot, Building2, FileText, KeyRound, Plug, UserPlus } from "lucide-react"
 import { clientConfig } from "~/lib/config"
 import { FeatureItem, LandingSection, ManualLink, SectionHeading } from "./landing-primitives"
 
-/** From insight to a plan: the bemestingsplan PDF and the two Labs features. */
+/** From insight to a plan: the bemestingsplan PDF and Gerrit (Labs). */
 export function LandingPlan() {
   return (
     <LandingSection tone="muted">
@@ -39,20 +39,9 @@ export function LandingPlan() {
                 Lees meer over Gerrit
               </ManualLink>
             </FeatureItem>
-            <FeatureItem icon={Sprout} title="Mineralisatie" badge="Labs">
-              <p>
-                Volg door het seizoen hoeveel stikstof er vrijkomt uit bodem, bemesting en
-                gewasresten, hoeveel het gewas opneemt en hoeveel er uitspoelt. Het deel na vandaag
-                is een verwachting op basis van het weer.
-              </p>
-              <ManualLink target="mineralisatie" className="mt-2">
-                Lees meer over Mineralisatie
-              </ManualLink>
-            </FeatureItem>
           </div>
           <p className="text-muted-foreground mt-8 text-sm leading-relaxed">
-            Functies onder Labs zijn nog in ontwikkeling. Ze werken al, maar kunnen nog veranderen
-            en worden stap voor stap vrijgegeven.
+            Functies onder Labs zijn nog in ontwikkeling. Ze werken al, maar kunnen nog veranderen.
           </p>
         </div>
       </div>
