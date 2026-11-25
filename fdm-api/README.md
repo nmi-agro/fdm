@@ -56,7 +56,7 @@ Or explore every endpoint interactively at **https://api.yourdomain.com/docs**.
 
 ## Authentication
 
-All endpoints (except `/docs` and `/openapi.json`) require a user-owned API key. Send it in one of two ways:
+All endpoints (except `/docs`, `/openapi.json` and `/health`) require a user-owned API key. Send it in one of two ways:
 
 ```http
 # Header
@@ -208,6 +208,7 @@ All require `?year=YYYY`, use the `nmi` rate limit and need `NMI_API_KEY` on the
 | --------------- | --------------------------------------------------------------------- |
 | `/docs`         | Interactive Scalar UI — try every endpoint in the browser             |
 | `/openapi.json` | Full OpenAPI 3.1 document — for SDK generation or import into Postman |
+| `/health`       | Liveness check for container healthchecks; returns `{"status":"ok"}`  |
 
 ---
 

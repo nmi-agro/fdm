@@ -78,6 +78,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         process.env.PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR,
       PUBLIC_SENTRY_PROFILE_SAMPLE_RATE: process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE,
       PUBLIC_SENTRY_SECURITY_REPORT_URI: process.env.PUBLIC_SENTRY_SECURITY_REPORT_URI,
+      SENTRY_RELEASE: process.env.SENTRY_RELEASE,
       PUBLIC_POSTHOG_KEY: process.env.PUBLIC_POSTHOG_KEY,
       PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST,
     }

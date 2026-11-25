@@ -9,7 +9,7 @@ if (process.env.PUBLIC_SENTRY_DSN) {
     profileSessionSampleRate: Number(process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE ?? 0),
     profileLifecycle: "trace",
     environment: process.env.NODE_ENV ?? "development",
-    release: process.env.SENTRY_RELEASE ?? process.env.npm_package_version,
+    release: process.env.SENTRY_RELEASE || process.env.npm_package_version,
     dataCollection: {
       userInfo: true,
       cookies: true,
@@ -34,7 +34,7 @@ if (process.env.PUBLIC_SENTRY_DSN) {
     },
   })
   console.log(
-    `[Sentry] Server SDK initialized (release: ${process.env.SENTRY_RELEASE ?? process.env.npm_package_version}, env: ${process.env.NODE_ENV ?? "development"})`,
+    `[Sentry] Server SDK initialized (release: ${process.env.SENTRY_RELEASE || process.env.npm_package_version}, env: ${process.env.NODE_ENV ?? "development"})`,
   )
 } else {
   console.warn("[Sentry] PUBLIC_SENTRY_DSN is not set — error reporting is disabled")
