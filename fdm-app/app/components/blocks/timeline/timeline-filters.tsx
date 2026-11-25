@@ -24,6 +24,7 @@ export const defaultTimelineFilters: TimelineFilters = {
   showFertilizers: true,
   showHarvests: true,
   showSoilSamplings: true,
+  showGrazing: true,
   showFutureEvents: false,
 }
 
@@ -169,6 +170,16 @@ export function TimelineFiltersPopover({
                 }
               />
               <Label htmlFor="filter-soil">Bodemanalyses</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={filters.showGrazing ?? true}
+                id="filter-grazing"
+                onCheckedChange={(checked) =>
+                  onFiltersChange({ ...filters, showGrazing: checked === true })
+                }
+              />
+              <Label htmlFor="filter-grazing">Beweiding</Label>
             </div>
           </div>
         </div>

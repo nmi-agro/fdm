@@ -54,6 +54,46 @@ export type {
   OrganicMatterSupplyNumeric,
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
+export {
+  calculatePhosphateBalance,
+  calculatePhosphateBalanceField,
+  calculatePhosphateBalanceForFarms,
+  calculatePhosphateBalancesFieldToFarm,
+  getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
+} from "./balance/phosphate/index"
+export {
+  collectInputForPhosphateBalance,
+  collectInputForPhosphateBalanceForFarms,
+} from "./balance/phosphate/input"
+export type { PhosphateInputOptions } from "./balance/phosphate/input"
+export {
+  assessPhosphateStatus,
+  PHOSPHATE_STATUS_RULES,
+  PHOSPHATE_VERDICT_ORDER,
+} from "./balance/phosphate/status"
+export type {
+  PhosphateBalance,
+  PhosphateBalanceField,
+  PhosphateBalanceFieldInput,
+  PhosphateBalanceFieldResult,
+  PhosphateBalanceHistoryYear,
+  PhosphateBalanceInput,
+  PhosphateFieldInput,
+  PhosphateFrame,
+  PhosphateLeaching,
+  PhosphateLongTermBalance,
+  PhosphateProjection,
+  PhosphateSaturation,
+  PhosphateSaturationSource,
+  PhosphateSaturationThreshold,
+  PhosphateStatus,
+  PhosphateSupplyDeposition,
+  PhosphateSupplyMineralization,
+  PhosphateVerdict,
+  ValueWithRange,
+  YearsClass,
+} from "./balance/phosphate/types"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"
 export type {
@@ -114,7 +154,11 @@ export type {
 } from "./bln3/types"
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
-export { getNitrogenBalanceForFarms, getOrganicMatterBalanceForFarms } from "./balance/farms"
+export {
+  getNitrogenBalanceForFarms,
+  getOrganicMatterBalanceForFarms,
+  getPhosphateBalanceForFarms,
+} from "./balance/farms"
 export { combineFarmMeasureSummaries, getFarmMeasureSummary } from "./bln3/farm-measures"
 export type {
   CombinedMeasureSummary,
@@ -273,5 +317,46 @@ export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
+export {
+  GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY,
+  GRAZING_HOURS_PER_KG_DM_MIN,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
+  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_DAY_AND_NIGHT_HOURS,
+  NNW_PLOT_AREA_HA_PER_COW,
+  NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
+  STOCKING_DENSITY_BENCHMARKS,
+  SWARD_HEIGHT_CM,
+  UITSCHAREN_SUPPLEMENTATION_SIGNAL_CM,
+  WEIDEMELK_CATEGORY_CODE,
+  WEIDEMELK_MIN_HOURS_PER_DAY,
+  WEIDEMELK_TARGET_DAYS,
+  GRAZING_SYSTEMS,
+  calculateGrazingAllocationArea,
+  calculateGrazingMetrics,
+  calculatePlatformArea,
+  calculateRestBeforeUses,
+  estimateGrassIntake,
+  zonesOverlap,
+} from "./grazing/index"
+export type {
+  FieldInput as GrazingFieldInput,
+  FieldUse as GrazingFieldUse,
+  FieldUseRest as GrazingFieldUseRest,
+  GrassGrowthSeason,
+  GrassIntakeInput,
+  GrassIntakeResult,
+  GrazingAllocationInput,
+  GrazingAllocationResult,
+  GrazingInput as GrazingRecordInput,
+  GrazingMetricsInput,
+  GrazingMetricsResult,
+  GrazingSystemKey,
+  PlatformAreaInput,
+  HarvestInput as GrazingHarvestInput,
+  HerdInput as GrazingHerdInput,
+  MonthlyDistributionEntry as GrazingMonthlyDistributionEntry,
+  RestPeriodDetail as GrazingRestPeriodDetail,
+} from "./grazing/index"
 export type { FieldExclusionReason } from "./shared/field-exclusion"
 export { getFieldExclusionReason, LANDSCAPE_ELEMENT_BRP_CODES } from "./shared/field-exclusion"

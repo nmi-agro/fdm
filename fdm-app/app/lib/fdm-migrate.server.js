@@ -51,6 +51,11 @@ async function main() {
       schema: schema,
     })
     const nmiApiKey = process.env.NMI_API_KEY
+    if (!nmiApiKey) {
+      console.warn(
+        "NMI_API_KEY is not set: the phosphate contents of crops cannot be retrieved; stored contents are kept, but crops without one get no phosphate removal in the balance ⚠️",
+      )
+    }
     await syncCatalogues(fdm, { nmiApiKey })
     console.log("Sync completed ✅")
   } catch (error) {

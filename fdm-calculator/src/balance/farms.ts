@@ -4,6 +4,7 @@ import type {
   OrganicMatterBalanceFieldResultNumeric,
   OrganicMatterBalanceNumeric,
 } from "./organic-matter/types"
+import type { PhosphateBalance } from "./phosphate/types"
 import { calculateNitrogenBalanceForFarms, calculateNitrogenBalancesFieldToFarm } from "./nitrogen"
 import { collectInputForNitrogenBalanceForFarms } from "./nitrogen/input"
 import {
@@ -11,6 +12,14 @@ import {
   calculateOrganicMatterBalancesFieldToFarm,
 } from "./organic-matter"
 import { collectInputForOrganicMatterBalanceForFarms } from "./organic-matter/input"
+import {
+  calculatePhosphateBalanceForFarms,
+  calculatePhosphateBalancesFieldToFarm,
+} from "./phosphate"
+import {
+  collectInputForPhosphateBalanceForFarms,
+  type PhosphateInputOptions,
+} from "./phosphate/input"
 
 /** The balance of one farm within a multi-farm calculation. */
 export type FarmBalanceResult<T> = {
@@ -126,5 +135,38 @@ export async function getOrganicMatterBalanceForFarms(
     total.fields as OrganicMatterBalanceFieldResultNumeric[],
     calculateOrganicMatterBalancesFieldToFarm,
   )
+  return { total, farms }
+}
+
+/**
+ * Calculates the phosphate balance of several farms: the balance of all their fields together and
+ * the balance per farm. A field that cannot be calculated is reported in the result of its farm and
+ * does not stop the others.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The principal requesting the balance. Needs read access to every farm.
+ * @param farmIds - The farms.
+ * @param timeframe - The period of the balance.
+ * @param options - See `PhosphateInputOptions`; pass `nmiApiKey` to add the NMI soil estimates and
+ *   crop history.
+ * @returns The combined balance and the balance per farm.
+ * @alpha
+ */
+export async function getPhosphateBalanceForFarms(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  farmIds: string[],
+  timeframe: Timeframe,
+  options: PhosphateInputOptions = {},
+): Promise<MultiFarmBalance<PhosphateBalance>> {
+  const inputs = await collectInputForPhosphateBalanceForFarms(
+    fdm,
+    principal_id,
+    farmIds,
+    timeframe,
+    options,
+  )
+  const total = await calculatePhosphateBalanceForFarms(fdm, inputs)
+  const farms = splitPerFarm(farmIds, inputs, total.fields, calculatePhosphateBalancesFieldToFarm)
   return { total, farms }
 }

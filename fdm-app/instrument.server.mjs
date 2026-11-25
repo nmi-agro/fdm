@@ -2,6 +2,9 @@ import { nodeProfilingIntegration } from "@sentry/profiling-node"
 import * as Sentry from "@sentry/react-router"
 
 if (process.env.PUBLIC_SENTRY_DSN) {
+  // The container starts with `node ./server.js`, so `npm_package_version` is only set when the
+  // app runs through pnpm. Deploys set SENTRY_RELEASE to the release the sourcemaps belong to.
+  const release = process.env.SENTRY_RELEASE || process.env.npm_package_version
   Sentry.init({
     dsn: process.env.PUBLIC_SENTRY_DSN,
     integrations: [nodeProfilingIntegration()],
@@ -27,7 +30,7 @@ if (process.env.PUBLIC_SENTRY_DSN) {
       return event
     },
     environment: process.env.NODE_ENV ?? "development",
-    release: process.env.npm_package_version,
+    release,
     dataCollection: {
       userInfo: true,
       cookies: true,
@@ -43,7 +46,7 @@ if (process.env.PUBLIC_SENTRY_DSN) {
     },
   })
   console.log(
-    `[Sentry] Server SDK initialized (release: ${process.env.npm_package_version}, env: ${process.env.NODE_ENV ?? "development"})`,
+    `[Sentry] Server SDK initialized (release: ${release}, env: ${process.env.NODE_ENV ?? "development"})`,
   )
 } else {
   console.warn("[Sentry] PUBLIC_SENTRY_DSN is not set — server-side error reporting is disabled")

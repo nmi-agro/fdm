@@ -284,6 +284,21 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
 }
 
 /**
+ * Whether the error or one of its causes has a message that matches a pattern. Anchor the
+ * pattern (`^…$`), so it matches one whole message and a value inside another message cannot
+ * make it match.
+ *
+ * @param error - The caught value.
+ * @param pattern - The pattern a single message must match.
+ * @returns `true` when a message in the cause chain matches.
+ */
+export function matchesErrorMessage(error: unknown, pattern: RegExp): boolean {
+  if (!(error instanceof Error)) return false
+  if (pattern.test(error.message)) return true
+  return matchesErrorMessage(error.cause, pattern)
+}
+
+/**
  * Returns the first error in the cause chain (the error itself included) with the given `name`.
  *
  * @param error - The caught value.
@@ -397,6 +412,130 @@ export async function handleActionError(error: unknown) {
       null,
       "Een bedrijf moet minimaal één eigenaar hebben. Wijs eerst een andere eigenaar aan voordat je deze rol wijzigt.",
     )
+  }
+
+  // Validation: animal sex or species incompatible with category
+  if (containsErrorMessage(error, "is not allowed for category")) {
+    console.warn("Animal sex incompatible with category:", error)
+    return dataWithWarning(
+      null,
+      "Het geslacht kan niet worden gewijzigd omdat dit dier is ingedeeld (of ingedeeld is geweest) in een koppel/categorie die dit geslacht niet toestaat.",
+    )
+  }
+
+  if (containsErrorMessage(error, "does not match category")) {
+    console.warn("Animal species incompatible with category:", error)
+    return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
+  }
+
+  if (containsErrorMessage(error, "has not started yet") && containsErrorMessage(error, "Herd")) {
+    console.warn("Herd not started on the date of the move:", error)
+    return dataWithWarning(null, "Deze koppel is op die datum nog niet begonnen.")
+  }
+
+  if (containsErrorMessage(error, "has already ended") && containsErrorMessage(error, "Herd")) {
+    console.warn("Herd ended before the date of the move:", error)
+    return dataWithWarning(null, "Deze koppel is op die datum al beëindigd.")
+  }
+
+  if (containsErrorMessage(error, "Animal already belongs to herd")) {
+    console.warn("Animal already in the target herd:", error)
+    return dataWithWarning(null, "Dit dier zit al in deze koppel.")
+  }
+
+  // Validation: the count was changed elsewhere since the page was loaded (checked by fdm-core)
+  if (containsErrorMessage(error, "Number of animals in the herd has changed")) {
+    console.warn("Herd count changed since it was loaded:", error)
+    return dataWithWarning(
+      null,
+      "Het aantal dieren is intussen gewijzigd. Laad de pagina opnieuw en pas het aantal dan aan.",
+    )
+  }
+
+  // Validation: grazing hours and grazing zones (checked by fdm-core, also for clients that skip
+  // the checks of the app)
+  if (containsErrorMessage(error, "Invalid grazing hours")) {
+    console.warn("Invalid grazing hours:", error)
+    return dataWithWarning(null, "Kies meer dan 0 en hoogstens 24 uur per dag.")
+  }
+
+  if (
+    containsErrorMessage(error, "l_grazing_geometry_zone") &&
+    (containsErrorMessage(error, "contains an invalid") ||
+      containsErrorMessage(error, "must have WGS84 coordinates") ||
+      containsErrorMessage(error, "must be a Polygon or MultiPolygon"))
+  ) {
+    console.warn("Invalid grazing zone:", error)
+    return dataWithWarning(null, "Ongeldige zone. Teken de zone opnieuw.")
+  }
+
+  // Validation: life number and work number of an animal (checked by fdm-core). The patterns
+  // match one whole message, so the number in it cannot make another message match.
+  if (
+    matchesErrorMessage(error, /^Life number .+ has an invalid check digit$/) ||
+    matchesErrorMessage(error, /^Life number .+ is not a valid Dutch cattle life number$/)
+  ) {
+    console.warn("Invalid life number:", error)
+    return dataWithWarning(
+      null,
+      "Dit levensnummer klopt niet. Controleer de cijfers op het oormerk: een Nederlands levensnummer heeft 9 of 12 cijfers.",
+    )
+  }
+
+  if (matchesErrorMessage(error, /^Work number .+ is already used by another animal on farm .+$/)) {
+    console.warn("Work number in use:", error)
+    return dataWithWarning(
+      null,
+      "Een ander dier op dit bedrijf heeft dit werknummer al. Kies een ander werknummer.",
+    )
+  }
+
+  if (matchesErrorMessage(error, /^Life number .+ is already used by another animal on farm .+$/)) {
+    console.warn("Life number in use:", error)
+    return dataWithWarning(null, "Een ander dier op dit bedrijf heeft dit levensnummer al.")
+  }
+
+  // Validation: a herd grazes at most 24 hours a day in total (checked by fdm-core)
+  if (containsErrorMessage(error, "exceed 24 hours on a day")) {
+    console.warn("Grazing hours of the herd exceed 24 hours on a day:", error)
+    return dataWithWarning(
+      null,
+      "Deze koppel komt op een dag boven 24 uur beweiden, samen met de beweiding die al is vastgelegd. Pas de uren of de datum aan.",
+    )
+  }
+
+  // Validation: every grazing has a last day (checked by fdm-core)
+  if (containsErrorMessage(error, "needs an end date")) {
+    console.warn("Grazing without an end date:", error)
+    return dataWithWarning(null, "Kies de laatste dag van de beweiding.")
+  }
+
+  // Validation: a grazing lies within the period of its herd (checked by fdm-core)
+  if (containsErrorMessage(error, "outside the period of the herd")) {
+    console.warn("Grazing outside the period of its herd:", error)
+    return dataWithWarning(
+      null,
+      "Deze koppel liep op een deel van die dagen nog niet of niet meer. Pas de datum aan of kies een andere koppel.",
+    )
+  }
+
+  // Validation: an animal's assignment stays within its herd and after its arrival
+  if (containsErrorMessage(error, "cannot extend beyond the end of its herd")) {
+    console.warn("Animal assignment beyond the end of its herd:", error)
+    return dataWithWarning(
+      null,
+      "De koppel van dit dier is op die datum al beëindigd. Kies een eerdere afvoerdatum.",
+    )
+  }
+  if (containsErrorMessage(error, "cannot start before the animal arrived")) {
+    console.warn("Assignment before the animal arrived:", error)
+    return dataWithWarning(null, "Het dier was op die datum nog niet op het bedrijf.")
+  }
+
+  // Validation: every grazing is on a field (checked by fdm-core)
+  if (containsErrorMessage(error, "A grazing needs a field")) {
+    console.warn("Grazing without a field:", error)
+    return dataWithWarning(null, "Kies een perceel voor de beweiding.")
   }
 
   // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)

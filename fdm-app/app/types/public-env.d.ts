@@ -14,6 +14,7 @@ interface RuntimeConfig {
   PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR?: string | number
   PUBLIC_SENTRY_PROFILE_SAMPLE_RATE?: string | number
   PUBLIC_SENTRY_SECURITY_REPORT_URI?: string
+  SENTRY_RELEASE?: string
   PUBLIC_POSTHOG_KEY?: string
   PUBLIC_POSTHOG_HOST?: string
 }

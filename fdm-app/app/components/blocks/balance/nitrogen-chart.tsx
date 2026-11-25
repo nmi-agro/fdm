@@ -9,9 +9,15 @@ import { format } from "date-fns/format"
 import { useId, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { ChartContainer, ChartLegend, ChartTooltip } from "~/components/ui/chart"
 import { formatBalanceValue } from "~/lib/format"
+import {
+  BALANCE_AXIS_WIDTH,
+  BALANCE_BAR_GAP,
+  BalanceChartTooltip,
+  BalanceRowTick,
+  toBalanceRows,
+} from "./balance-chart-parts"
 
 type FieldInput = FdmFieldInput
 type FarmBalanceData = NitrogenBalanceNumeric
@@ -492,20 +498,21 @@ export function NitrogenBalanceChart(
     >
       <BarChart
         accessibilityLayer
-        data={[chartData]}
+        // One row for the supply and one for the removal and emissions
+        data={toBalanceRows(chartData, supplyBar.flat(), removalBar.flat())}
         layout="vertical"
-        margin={{
-          left: -20,
-        }}
+        barCategoryGap={BALANCE_BAR_GAP}
       >
         <XAxis type="number" />
         <YAxis
           dataKey="name"
           type="category"
           tickLine={false}
-          tickMargin={10}
           axisLine={false}
-          tickFormatter={() => ""}
+          width={BALANCE_AXIS_WIDTH}
+          tick={
+            <BalanceRowTick labels={{ supply: ["Aanvoer"], removal: ["Afvoer en", "emissies"] }} />
+          }
         />
         <ChartTooltip
           shared={false}
@@ -516,37 +523,17 @@ export function NitrogenBalanceChart(
             if (!name) return null
             const itemConfig = chartConfig[name]
             if (!itemConfig) return null
+            const value = chartData[name]
             return (
-              <Card size="sm">
-                <CardHeader>
-                  <div>
-                    <div
-                      className="me-2 inline-block h-2 w-2 rounded-[2px]"
-                      style={{
-                        backgroundColor: itemConfig.styleId
-                          ? chartConfig[itemConfig.styleId].color
-                          : itemConfig.color,
-                      }}
-                    />
-                    {itemConfig.label}
-                  </div>
-                  {itemConfig.detail?.map((detail, i) => (
-                    <div key={i}>
-                      <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
-                      {detail}
-                    </div>
-                  ))}
-                </CardHeader>
-                <CardContent>
-                  <div className="font-bold">
-                    <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
-                    {typeof chartData[name] === "number"
-                      ? formatBalanceValue(chartData[name])
-                      : chartData[name]}{" "}
-                    {itemConfig.unit ?? "kg N / ha"}
-                  </div>
-                </CardContent>
-              </Card>
+              <BalanceChartTooltip
+                color={
+                  itemConfig.styleId ? chartConfig[itemConfig.styleId].color : itemConfig.color
+                }
+                title={itemConfig.label}
+                details={itemConfig.detail}
+                value={typeof value === "number" ? formatBalanceValue(value) : String(value ?? "")}
+                unit={itemConfig.unit ?? "kg N / ha"}
+              />
             )
           }}
         />
@@ -574,8 +561,8 @@ export function NitrogenBalanceChart(
             </div>
           )}
         />
-        {renderBar("a", supplyBar)}
-        {renderBar("b", removalBar)}
+        {renderBar("balance", supplyBar)}
+        {renderBar("balance", removalBar)}
         <ZIndexLayer zIndex={2000}>
           {barOutlineFocus && (
             <use

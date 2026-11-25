@@ -12,6 +12,7 @@ import {
   FieldDashboardNormsTile,
   FieldDashboardNutrientAdviceTile,
   FieldDashboardOrganicMatterBalanceTile,
+  FieldDashboardPhosphateBalanceTile,
   FieldDashboardSoilAnalysesTile,
   FieldDashboardSoilParametersTile,
 } from "./tiles"
@@ -36,7 +37,8 @@ export const FIELD_DASHBOARD_SECTIONS: FieldDashboardSectionDefinition[] = [
   {
     id: "balansen",
     title: "Balansen",
-    gridClassName: "grid gap-6 xl:grid-cols-2",
+    // Three balances side by side, like the three tiles of Bemesting
+    gridClassName: "grid gap-6 xl:grid-cols-3",
   },
   {
     id: "bodem",
@@ -144,6 +146,15 @@ export function buildFieldDashboardRegistry({
       detailHref: `/farm/${b_id_farm}/${calendar}/balance/organic-matter/${b_id}`,
       dataKey: "asyncInsights.organicMatterBalance",
       Component: FieldDashboardOrganicMatterBalanceTile,
+    },
+    {
+      id: "phosphate-balance",
+      section: "balansen",
+      title: "Fosfaatbalans",
+      span: "",
+      detailHref: `/farm/${b_id_farm}/${calendar}/balance/phosphate/${b_id}`,
+      dataKey: "asyncInsights.phosphateBalance",
+      Component: FieldDashboardPhosphateBalanceTile,
     },
     {
       id: "soil-parameters",

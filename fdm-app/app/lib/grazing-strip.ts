@@ -1,0 +1,417 @@
+import type { Feature, MultiPolygon, Polygon, Position } from "geojson"
+import area from "@turf/area"
+import bbox from "@turf/bbox"
+import bboxPolygon from "@turf/bbox-polygon"
+import centroid from "@turf/centroid"
+import difference from "@turf/difference"
+import { feature, featureCollection } from "@turf/helpers"
+import intersect from "@turf/intersect"
+import transformRotate from "@turf/transform-rotate"
+
+/** A polygonal area: a field, a zone or a strip. */
+export type Area = Polygon | MultiPolygon
+
+const SQUARE_METERS_PER_HECTARE = 10_000
+
+/** Relative precision of the strip area. */
+const AREA_TOLERANCE = 0.005
+
+/** Maximum number of bisection steps when cutting a strip. */
+const MAX_STEPS = 50
+
+/**
+ * Days before the start of a grazing in which earlier zones on the field count as recently grazed:
+ * a new strip connects to them instead of overlapping them. The Handboek Melkveehouderij §3.9.2
+ * advises grazing a field again after at most 28 growth days, so a strip older than that is free.
+ */
+export const STRIP_ROTATION_DAYS = 28
+
+/**
+ * Smallest separate free part of a field that counts as grass to graze (ha). Subtracting stored
+ * strips from the field leaves thin slivers along their edges (the outlines differ by fractions
+ * of a millimetre); those are not free grass.
+ */
+const MIN_FREE_PART_HA = 0.01
+
+/**
+ * The free part of a field without slivers: parts smaller than {@link MIN_FREE_PART_HA} are left
+ * out.
+ *
+ * @param free - The free part of the field.
+ * @returns The free part without slivers, or `null` when nothing remains.
+ */
+function withoutSlivers(free: Area | null): Area | null {
+  if (!free) return null
+  const parts = toMultiPolygon(free).coordinates.filter(
+    (coordinates) => areaHa({ type: "Polygon", coordinates }) >= MIN_FREE_PART_HA,
+  )
+  if (parts.length === 0) return null
+  return parts.length === 1
+    ? { type: "Polygon", coordinates: parts[0] }
+    : { type: "MultiPolygon", coordinates: parts }
+}
+
+/**
+ * The part of a field that recent grazings occupy, for the strip builder: the zone of a grazing
+ * with a zone, and the whole field for a grazing of the whole field. A grazing with only an area
+ * has no place on the map, so the free part of the field is then unknown.
+ *
+ * @param grazings - The grazings on the field in the rotation window.
+ * @param field - The field outline, if known.
+ * @returns The occupied areas, and whether the free part is unknown.
+ */
+export function occupiedPart(
+  grazings: Array<{
+    l_grazing_geometry_zone?: MultiPolygon | null
+    l_grazing_area?: number | null
+  }>,
+  field: Area | null,
+): { occupied: Area[]; unknown: boolean } {
+  const occupied: Area[] = []
+  let unknown = false
+  for (const grazing of grazings) {
+    if (grazing.l_grazing_geometry_zone) {
+      occupied.push(grazing.l_grazing_geometry_zone)
+    } else if (grazing.l_grazing_area != null) {
+      unknown = true
+    } else if (field) {
+      occupied.push(field)
+    }
+  }
+  return { occupied, unknown }
+}
+
+/** Area of a geometry in hectares. */
+export function areaHa(geometry: Area): number {
+  return area(geometry) / SQUARE_METERS_PER_HECTARE
+}
+
+/**
+ * Converts a zone to a `MultiPolygon`, the form in which zones are stored.
+ *
+ * @param zone - A Polygon or MultiPolygon.
+ * @returns The zone as a MultiPolygon.
+ */
+export function toMultiPolygon(zone: Area): MultiPolygon {
+  return zone.type === "MultiPolygon"
+    ? zone
+    : { type: "MultiPolygon", coordinates: [zone.coordinates] }
+}
+
+/**
+ * Intersects two areas.
+ *
+ * @returns The overlapping area, or `null` when they don't overlap.
+ */
+export function intersectAreas(a: Area, b: Area): Area | null {
+  const result = intersect(featureCollection<Area>([feature(a), feature(b)]))
+  return result ? result.geometry : null
+}
+
+/**
+ * Subtracts areas from an area.
+ *
+ * @returns What remains of `base`, or `null` when nothing remains.
+ */
+export function subtractAreas(base: Area, subtract: Area[]): Area | null {
+  let remaining: Area | null = base
+  for (const part of subtract) {
+    if (!remaining) return null
+    const result: Feature<Area> | null = difference(
+      featureCollection<Area>([feature(remaining), feature(part)]),
+    )
+    remaining = result ? result.geometry : null
+  }
+  return remaining
+}
+
+/**
+ * The part of a zone that lies within the field, in hectares. A zone is stored as drawn and
+ * clipped to the field when it is used, as fdm-core does.
+ *
+ * @param zone - The grazing zone.
+ * @param field - The field outline.
+ * @returns The area of the zone within the field (ha).
+ */
+export function zoneAreaWithinField(zone: Area, field: Area): number {
+  const clipped = intersectAreas(zone, field)
+  return clipped ? areaHa(clipped) : 0
+}
+
+export interface StripOptions {
+  /** The field outline. */
+  field: Area
+  /** Parts of the field already used (earlier strips); the new strip connects to them. */
+  occupied?: Area[]
+  /** Intended area of the strip (ha). */
+  targetAreaHa: number
+  /**
+   * Direction in which the strips advance over the field, in degrees clockwise from north
+   * (0 = northwards, 90 = eastwards). The fence runs perpendicular to it.
+   */
+  bearing: number
+}
+
+/**
+ * Cuts the next grazing strip from a field: a band perpendicular to `bearing`, starting at the
+ * back of the part of the field that is still free, with the intended area. When the free part is
+ * smaller than the intended area, the whole free part is returned.
+ *
+ * The band is found by bisection on the position of the front fence, to within 0,5 % of the
+ * intended area.
+ *
+ * @param options - Field, occupied parts, intended area and direction.
+ * @returns The strip, or `null` when nothing of the field is free or the intended area is 0.
+ */
+export function cutStrip({
+  field,
+  occupied = [],
+  targetAreaHa,
+  bearing,
+}: StripOptions): Area | null {
+  if (!(targetAreaHa > 0)) return null
+  const free = withoutSlivers(subtractAreas(field, occupied))
+  if (!free) return null
+  const freeArea = areaHa(free)
+  if (freeArea <= targetAreaHa * (1 + AREA_TOLERANCE)) return free
+
+  // Rotate so that the strips advance eastwards; the strip is then everything west of a meridian
+  const pivot = centroid(field).geometry.coordinates as Position
+  const toFrame = 90 - bearing
+  const rotated = transformRotate(feature(free), toFrame, { pivot }).geometry as Area
+  const [minX, minY, maxX, maxY] = bbox(rotated)
+
+  const bandUpTo = (x: number): Area | null =>
+    intersectAreas(rotated, bboxPolygon([minX, minY, x, maxY]).geometry)
+
+  let low = minX
+  let high = maxX
+  let best: Area | null = null
+  for (let step = 0; step < MAX_STEPS; step++) {
+    const x = (low + high) / 2
+    const band = bandUpTo(x)
+    const bandArea = band ? areaHa(band) : 0
+    best = band
+    if (Math.abs(bandArea - targetAreaHa) <= targetAreaHa * AREA_TOLERANCE) break
+    if (bandArea < targetAreaHa) low = x
+    else high = x
+  }
+  if (!best) return null
+
+  return transformRotate(feature(best), -toFrame, { pivot }).geometry as Area
+}
+
+/**
+ * The most plots {@link cutEqualPlots} cuts from one field. Every plot costs a few dozen
+ * geometry operations, so a very small plot size would otherwise freeze the browser.
+ */
+export const MAX_PLOTS = 500
+
+/**
+ * Divides a field into plots of equal size, as Nieuw Nederlands Weiden asks: the number of plots
+ * follows from the intended plot size, and every plot gets the same share of the field. The plots
+ * are bands perpendicular to `bearing`, in order of use.
+ *
+ * @param options - Field, intended plot size (ha) and direction.
+ * @returns The plots in order of use; one plot for a field smaller than about one plot, none for an
+ *   empty field or plot size. At most {@link MAX_PLOTS} plots: a smaller plot size gives larger
+ *   plots, so callers should refuse such a size first.
+ */
+export function cutEqualPlots({
+  field,
+  plotAreaHa,
+  bearing,
+}: {
+  field: Area
+  plotAreaHa: number
+  bearing: number
+}): Area[] {
+  const fieldArea = areaHa(field)
+  if (!(plotAreaHa > 0) || !(fieldArea > 0)) return []
+  const count = Math.min(MAX_PLOTS, Math.max(1, Math.round(fieldArea / plotAreaHa)))
+  if (count === 1) return [field]
+
+  // As in cutStrip: rotate so the plots advance eastwards. The plots are bands between fence
+  // lines, each found by bisection on the area west of it, so no plot is subtracted from another
+  // (which fails on edges that almost coincide)
+  const pivot = centroid(field).geometry.coordinates as Position
+  const toFrame = 90 - bearing
+  const rotated = transformRotate(feature(field), toFrame, { pivot }).geometry as Area
+  const [minX, minY, maxX, maxY] = bbox(rotated)
+  const rotatedArea = areaHa(rotated)
+  const areaWestOf = (x: number) => {
+    const band = intersectAreas(rotated, bboxPolygon([minX, minY, x, maxY]).geometry)
+    return band ? areaHa(band) : 0
+  }
+
+  const fences = [minX]
+  for (let k = 1; k < count; k++) {
+    const target = (rotatedArea * k) / count
+    let low = fences[k - 1]
+    let high = maxX
+    for (let step = 0; step < MAX_STEPS; step++) {
+      const x = (low + high) / 2
+      const area = areaWestOf(x)
+      if (Math.abs(area - target) <= (rotatedArea / count) * AREA_TOLERANCE) {
+        low = x
+        high = x
+        break
+      }
+      if (area < target) low = x
+      else high = x
+    }
+    fences.push((low + high) / 2)
+  }
+  fences.push(maxX)
+
+  const plots: Area[] = []
+  for (let k = 0; k < count; k++) {
+    const band = intersectAreas(
+      rotated,
+      bboxPolygon([fences[k], minY, fences[k + 1], maxY]).geometry,
+    )
+    if (band) plots.push(transformRotate(feature(band), -toFrame, { pivot }).geometry as Area)
+  }
+  return plots
+}
+
+/**
+ * Cuts successive strips from a field, each connecting to the previous one. When the field is used
+ * up, the next strip starts again at the back of the field, as the herd returns to the first strip
+ * after its rest period.
+ *
+ * @param options - Field, intended area per strip and direction.
+ * @param count - Number of strips.
+ * @returns The strips in order of use. Empty when the field or the intended area is empty.
+ */
+export function cutStrips(options: Omit<StripOptions, "occupied">, count: number): Area[] {
+  const strips: Area[] = []
+  let occupied: Area[] = []
+  for (let i = 0; i < count; i++) {
+    let strip = cutStrip({ ...options, occupied })
+    if (!strip && occupied.length > 0) {
+      occupied = []
+      strip = cutStrip({ ...options, occupied })
+    }
+    if (!strip) break
+    strips.push(strip)
+    occupied.push(strip)
+  }
+  return strips
+}
+
+/** Converts a WGS84 position to screen pixels, as the map does. */
+export type ProjectToScreen = (lng: number, lat: number) => { x: number; y: number }
+
+/** Distance within which a drawn point snaps to an edge (screen pixels). */
+export const SNAP_TOLERANCE_PX = 12
+
+/** The rings of an area as lists of positions. */
+function ringsOf(target: Area): Position[][] {
+  return target.type === "Polygon" ? target.coordinates : target.coordinates.flat()
+}
+
+/**
+ * Finds the point to snap a drawn point to: a corner of one of the areas within the tolerance,
+ * or else the nearest point on one of their edges within the tolerance. Corners go first, so a
+ * zone can start exactly in the corner of the field. Distances are measured in screen pixels, so
+ * snapping feels the same at every zoom level.
+ *
+ * @param point - The drawn point (WGS84).
+ * @param targets - The areas to snap to, such as the field outline and earlier strips.
+ * @param project - Converts a WGS84 position to screen pixels.
+ * @param tolerancePx - Maximum distance to snap (pixels). Defaults to {@link SNAP_TOLERANCE_PX}.
+ * @returns The position to use, or `undefined` when nothing is within the tolerance.
+ */
+export function snapToEdges(
+  point: Position,
+  targets: Area[],
+  project: ProjectToScreen,
+  tolerancePx = SNAP_TOLERANCE_PX,
+): Position | undefined {
+  const p = project(point[0], point[1])
+  let bestCorner: { position: Position; distance: number } | undefined
+  let bestEdge: { position: Position; distance: number } | undefined
+
+  for (const target of targets) {
+    for (const ring of ringsOf(target)) {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const a = ring[i]
+        const b = ring[i + 1]
+        const pa = project(a[0], a[1])
+        const pb = project(b[0], b[1])
+
+        const cornerDistance = Math.hypot(p.x - pa.x, p.y - pa.y)
+        if (
+          cornerDistance <= tolerancePx &&
+          (!bestCorner || cornerDistance < bestCorner.distance)
+        ) {
+          bestCorner = { position: [a[0], a[1]], distance: cornerDistance }
+        }
+
+        // Nearest point on the segment, in screen space; at field scale the map projection is
+        // linear enough to interpolate the WGS84 position with the same fraction
+        const dx = pb.x - pa.x
+        const dy = pb.y - pa.y
+        const lengthSquared = dx * dx + dy * dy
+        if (lengthSquared === 0) continue
+        const t = Math.max(0, Math.min(1, ((p.x - pa.x) * dx + (p.y - pa.y) * dy) / lengthSquared))
+        const edgeDistance = Math.hypot(p.x - (pa.x + t * dx), p.y - (pa.y + t * dy))
+        if (edgeDistance <= tolerancePx && (!bestEdge || edgeDistance < bestEdge.distance)) {
+          bestEdge = {
+            position: [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])],
+            distance: edgeDistance,
+          }
+        }
+      }
+    }
+  }
+
+  return bestCorner?.position ?? bestEdge?.position
+}
+
+/** Area below which a difference between two zones counts as rounding (square metres). */
+const NEGLIGIBLE_AREA_M2 = 0.5
+
+/**
+ * Clips a drawn zone to the field, so it never extends beyond the field outline.
+ *
+ * @param zone - The drawn zone.
+ * @param field - The field outline.
+ * @returns The part of the zone within the field: `zone` itself when it already lies within the
+ *   field, `null` when it lies entirely outside the field.
+ */
+export function clipZoneToField(zone: Area, field: Area): Area | null {
+  const clipped = intersectAreas(zone, field)
+  if (!clipped) return null
+  return area(zone) - area(clipped) < NEGLIGIBLE_AREA_M2 ? zone : clipped
+}
+
+/** How clipping to the field changed a drawn zone. */
+export type ClipFeedback = "inside" | "clipped" | "outside"
+
+/**
+ * Tells how clipping to the field changed a drawn zone, so the user can be told when part of it,
+ * or all of it, was cut off. A difference below 0,5 m² counts as rounding, as in
+ * {@link clipZoneToField}.
+ *
+ * @param drawn - The zone as drawn.
+ * @param clipped - The zone after {@link clipZoneToField}.
+ * @returns `"inside"` when nothing was cut off, `"clipped"` when a part outside the field was cut
+ *   off, and `"outside"` when the zone lay entirely outside the field.
+ */
+export function clipFeedback(drawn: Area, clipped: Area | null): ClipFeedback {
+  if (!clipped) return "outside"
+  return area(drawn) - area(clipped) < NEGLIGIBLE_AREA_M2 ? "inside" : "clipped"
+}
+
+/**
+ * Whether an area has a hole: a polygon with an inner ring.
+ *
+ * @param target - A Polygon or MultiPolygon.
+ * @returns `true` when one of its polygons has more than one ring.
+ */
+export function hasHoles(target: Area): boolean {
+  const polygons = target.type === "Polygon" ? [target.coordinates] : target.coordinates
+  return polygons.some((rings) => rings.length > 1)
+}

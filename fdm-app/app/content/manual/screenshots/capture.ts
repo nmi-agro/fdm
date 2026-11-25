@@ -3,7 +3,37 @@
  * needs an entry here, and every entry must be used; `pnpm --filter @nmi-agro/fdm-app test:unit`
  * checks both. See the README in the manual folder for how to add one and run the capture.
  */
-import type { CaptureDefinition } from "~/lib/manual/capture-types"
+import type { CaptureDefinition, CaptureStep } from "~/lib/manual/capture-types"
+
+/**
+ * The day (`MM-DD` of the run's year) that the livestock and grazing captures show as today. The
+ * browser clock is fixed to it, and the run sets `FDM_FIXED_TODAY` to it for the server (see
+ * playwright.config.ts), so both agree on the grazing status and the rest days.
+ */
+export const GRAZING_CAPTURE_DAY = "06-15"
+
+// Shared parts of the livestock and grazing captures. These pages depend on "today" (grazing
+// status, rest days, default dates), so they start on the dashboard with the fixed clock and open
+// the page through the menu. The seed grazes strips on the home plot on 13, 14 and 15 June.
+const GRAZING_DASHBOARD_START = {
+  route: "/farm/{farm}?calendar={year}",
+  ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+  clock: `{year}-${GRAZING_CAPTURE_DAY}T12:00:00+02:00`,
+} satisfies Partial<CaptureDefinition>
+const GRAZING_FIELD_START = {
+  route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
+  ready: { text: "Perceelskaart", exact: true },
+  clock: `{year}-${GRAZING_CAPTURE_DAY}T12:00:00+02:00`,
+} satisfies Partial<CaptureDefinition>
+const OPEN_MELKVEE: CaptureStep = { click: { selector: 'a[href$="/livestock"]' } }
+const OPEN_GRAZING_CALENDAR: CaptureStep = { click: { selector: 'a[href$="/livestock/grazing"]' } }
+const OPEN_ZONE_EDITOR: CaptureStep[] = [
+  { click: { role: "link", name: "Beweiding", exact: true } },
+  { waitFor: { text: "Gebruikshistorie", exact: false } },
+  { click: { role: "button", name: "Beweiding toevoegen" } },
+  { click: { text: "Zone op de kaart", exact: true } },
+  { waitFor: { text: "Eerder gebruikte zones" } },
+]
 
 export const captures = {
   "bedrijf-dashboard": {
@@ -172,6 +202,13 @@ export const captures = {
     // Fails when a field could not be calculated.
     steps: [{ waitForHidden: { text: "Bekijk foutmelding" } }],
   },
+  "balans-fosfaat": {
+    route: "/farm/{farm}/{year}/balance/phosphate",
+    // Only shown when the farm balance was calculated, not in its error state
+    ready: { text: "Fosfaattoestand van de percelen" },
+    // Fails when a field could not be calculated.
+    steps: [{ waitForHidden: { text: "kon niet worden berekend" } }],
+  },
   "gebruiksruimte-perceel": {
     route: "/farm/{farm}/{year}/norms/{field:grasland-huiskavel}",
     ready: { text: "Fosfaat" },
@@ -262,6 +299,69 @@ export const captures = {
       { upload: { selector: "input[type=file]" } },
       { click: { role: "button", name: "PDF's uitlezen" } },
       { click: { role: "button", name: "Aandacht nodig" } },
+    ],
+  },
+  "veestapel-overzicht": {
+    ...GRAZING_DASHBOARD_START,
+    steps: [OPEN_MELKVEE, { waitFor: { text: "Al het vee bekijken" } }],
+  },
+  "beweiding-kalender": {
+    ...GRAZING_DASHBOARD_START,
+    steps: [OPEN_MELKVEE, OPEN_GRAZING_CALENDAR, { waitFor: { text: "Vastleggen voor:" } }],
+  },
+  "beweiding-zone-tekenen": {
+    ...GRAZING_FIELD_START,
+    steps: [
+      ...OPEN_ZONE_EDITOR,
+      // Move the pointer off the drawing toolbar, whose disabled buttons explain themselves in a tooltip
+      { hover: { text: "Leg de beweidingsperiode en uren vast voor dit perceel." } },
+    ],
+    element: { role: "dialog", name: "Beweiding" },
+    map: true,
+  },
+  "beweiding-strook": {
+    ...GRAZING_FIELD_START,
+    steps: [
+      ...OPEN_ZONE_EDITOR,
+      { click: { role: "button", name: "Strook berekenen" } },
+      { click: { role: "button", name: "Strook maken" } },
+      { waitFor: { text: "binnen het perceel" } },
+    ],
+    element: { role: "dialog", name: "Beweiding" },
+    map: true,
+  },
+  beweidingsplan: {
+    ...GRAZING_DASHBOARD_START,
+    // The plan's preview map loads after the steps; wait for it, or it shows as an empty box
+    map: true,
+    steps: [
+      OPEN_MELKVEE,
+      OPEN_GRAZING_CALENDAR,
+      { click: { role: "link", name: "Beweidingsplanner" } },
+      { click: { text: "Stripgrazen", exact: true } },
+      { click: { role: "button", name: "Stroken op de kaart" } },
+      { waitFor: { text: "Strook op de kaart", exact: true } },
+    ],
+  },
+  "beweiding-vandaag": {
+    // The map reads "today" from the browser when it first loads, so it opens through the
+    // dashboard action after the clock is fixed. The demo farm grazes the home plot in mid-June.
+    ...GRAZING_DASHBOARD_START,
+    steps: [
+      { click: { role: "link", name: "Beweiding vandaag" } },
+      // Without the weekday, which changes with the year of the run
+      { waitFor: { text: "15 juni" } },
+    ],
+    map: true,
+  },
+  "beweiding-inzichten": {
+    ...GRAZING_DASHBOARD_START,
+    steps: [
+      // The farm page links to the grazing calendar; Weidegang opens from the Melkvee overview
+      OPEN_MELKVEE,
+      { click: { role: "link", name: "Weidegang", exact: true } },
+      // A text of Weidegang only: the Weidemelk label is on the overview too
+      { waitFor: { text: "Weidedagen per maand" } },
     ],
   },
 } satisfies Record<string, CaptureDefinition>

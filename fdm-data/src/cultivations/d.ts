@@ -47,6 +47,10 @@ export interface CatalogueCultivationItem {
   b_lu_eom_residue: number
   b_lu_n_harvestable: number
   b_lu_n_residue: number
+  /** Phosphate content of the harvested product (g P2O5 / kg DM), from the NMI API. `null` when not available. */
+  b_lu_p_harvestable: number | null
+  /** Phosphate content of the crop residue (g P2O5 / kg DM), from the NMI API. `null` when not available. */
+  b_lu_p_residue: number | null
   b_n_fixation: number
   b_lu_rest_oravib: boolean
   b_lu_variety_options: string[] | null

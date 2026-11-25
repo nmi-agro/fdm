@@ -115,6 +115,8 @@ export interface ClientConfig {
       replay_sample_rate_on_error: number
       profile_sample_rate: number
       security_report_uri: string
+      /** Sentry release: `SENTRY_RELEASE` at runtime, else the package version from the build. */
+      release?: string
     } | null
     posthog?: {
       key: string
