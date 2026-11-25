@@ -151,6 +151,8 @@ function paramValue(name: string, pattern: string, farm: SmokeFarm): string | un
       return undefined
     case "b_id_group":
       return farm.organization.group
+    case "l_id_animal":
+      return farm.animals[0]
     default:
       return undefined
   }

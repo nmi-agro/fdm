@@ -14,11 +14,13 @@ The primary purpose of the catalogues is to ensure data consistency and reduce t
 
 ## Available Catalogues
 
-The `fdm-data` package includes the following catalogues, which are stored in the `cultivations_catalogue` and `fertilizers_catalogue` tables respectively:
+The `fdm-data` package includes the following catalogues, which are stored in the `cultivations_catalogue`, `fertilizers_catalogue`, `feeds_catalogue` and `animal_categories_catalogue` tables:
 
 - **`cultivationsCatalogue`**: A standardized list of crops, including their names, varieties, typical yields, nutrient content, and other agronomic properties. Each entry has a `b_lu_catalogue` as its primary key.
 - **`fertilizersCatalogue`**: A standardized list of common fertilizers, including their nutrient content, density, and application methods. Each entry has a `p_id_catalogue` as its primary key.
+- **`feedsCatalogue`**: A standardized list of feeds, with default dry matter, nitrogen and phosphate contents (the `nmi` source follows RVO Tabel 8). Each entry has an `f_id_catalogue` as its primary key.
+- **`animalCategoriesCatalogue`**: A standardized list of animal categories, with their species, allowed sexes and livestock units per animal (the `rvo` source follows the RVO categories). Each entry has an `l_id_category` as its primary key.
 
 ## Farm-Specific Catalogue Selection
 
-FDM provides a flexible system for managing which catalogues a farm uses. The `cultivationCatalogueSelecting` and `fertilizerCatalogueEnabling` tables allow each farm to specify which catalogue sources (`b_lu_source` and `p_source`) they want to use. This allows for customization and localization of the standardized data.
+FDM provides a flexible system for managing which catalogues a farm uses. The `cultivationCatalogueSelecting`, `fertilizerCatalogueEnabling`, `feedCatalogueEnabling` and `animalCategoryCatalogueSelecting` tables allow each farm to specify which catalogue sources (`b_lu_source`, `p_source`, `f_source` and `l_category_source`) they want to use. Farms can add custom feed entries with their farm ID as `f_source`.

@@ -9,7 +9,12 @@ export const CHAPTER_SECTIONS = [
 ] as const
 
 /** Sections of the background pages, in the order of the navigation. */
-export const BACKGROUND_SECTIONS = ["Balansen", "Normen en advies", "Bodem"] as const
+export const BACKGROUND_SECTIONS = [
+  "Balansen",
+  "Normen en advies",
+  "Bodem",
+  "Vee en beweiding",
+] as const
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Gebruik een datum als JJJJ-MM-DD")
 

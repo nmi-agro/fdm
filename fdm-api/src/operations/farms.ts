@@ -22,6 +22,8 @@ export interface FarmServices extends LimitServices {
   enableCultivationCatalogue: typeof core.enableCultivationCatalogue
   /** Enables a field measure catalogue for the farm. */
   enableMeasureCatalogue: typeof core.enableMeasureCatalogue
+  /** Enables an animal category catalogue for the farm. */
+  enableAnimalCategoryCatalogue: typeof core.enableAnimalCategoryCatalogue
   /** Lists the fertilizers in the catalogues enabled on a farm. */
   getFertilizersFromCatalogue: typeof core.getFertilizersFromCatalogue
   /** Adds a catalogue fertilizer to the farm's fertilizer list. */
@@ -188,10 +190,19 @@ export const createFarm = defineOperation({
       const measureCatalogueEnablement = ["bln"].map((m_source) =>
         services.enableMeasureCatalogue(tx, principal.effectivePrincipalId, b_id_farm, m_source),
       )
+      const animalCategoryCatalogueEnablement = ["rvo"].map((l_category_source) =>
+        services.enableAnimalCategoryCatalogue(
+          tx,
+          principal.effectivePrincipalId,
+          b_id_farm,
+          l_category_source,
+        ),
+      )
       const catEnablementResult = await Promise.allSettled([
         ...fertilizerCatalogueEnablement,
         ...cultivationCatalogueEnablement,
         ...measureCatalogueEnablement,
+        ...animalCategoryCatalogueEnablement,
       ])
       for (const result of catEnablementResult) {
         if (result.status === "rejected") {

@@ -108,34 +108,6 @@ function getDateFromOffsetX(offsetX: number, range: Range): Date {
 }
 
 /**
- * Finds the cultivation covering `date` on this field, preferring the tightest-fitting one (same
- * "narrowest span wins" rule used to attach fertilizer/harvest/soil events to a bar in
- * `buildFieldFeatures`) — needed so an empty-space click or the "Oogst" quick-add option can
- * resolve which cultivation the date falls into.
- *
- * @param cultivations:
- */
-export function findActiveCultivationForDate(
-  cultivations: TimelineCultivation[],
-  date: Date,
-  openCultivationEndAt: Date,
-): TimelineCultivation | undefined {
-  let best: TimelineCultivation | undefined
-  let bestSpan = Number.POSITIVE_INFINITY
-  for (const cultivation of cultivations) {
-    if (!cultivation.b_lu_start) continue
-    const endAt = cultivation.b_lu_end ?? openCultivationEndAt
-    if (date < cultivation.b_lu_start || date > endAt) continue
-    const span = endAt.getTime() - cultivation.b_lu_start.getTime()
-    if (span < bestSpan) {
-      best = cultivation
-      bestSpan = span
-    }
-  }
-  return best
-}
-
-/**
  * Invisible, full-row click target rendered *behind* a field's `GanttFeatureRow` (i.e. before it
  * in DOM order — see the "positioned elements painted in DOM order" rule) so cultivation
  * bars/event icons, painted after, still win hit-testing over their own area, while the rest of
@@ -260,6 +232,17 @@ export type TimelineSoilAnalysis = {
   a_date: Date | null
 }
 
+export type TimelineGrazing = {
+  l_id_grazing: string
+  l_id_herd: string
+  l_herd_name: string | null
+  l_grazing_start: Date
+  l_grazing_end: Date | null
+  l_grazing_hours: number | null
+  /** Grazed area (ha): the zone within the field, the recorded area, or the whole field. */
+  l_grazing_area_grazed: number | null
+}
+
 export type TimelineCultivation = {
   b_lu: string
   b_lu_catalogue: string
@@ -280,6 +263,7 @@ export type TimelineField = {
   fertilizerApplications: TimelineFertilizerApplication[]
   harvests: TimelineHarvest[]
   soilAnalyses: TimelineSoilAnalysis[]
+  grazings?: TimelineGrazing[]
 }
 
 export type TimelineFilters = {
@@ -288,6 +272,7 @@ export type TimelineFilters = {
   showFertilizers: boolean
   showHarvests: boolean
   showSoilSamplings: boolean
+  showGrazing?: boolean
   /** Mobile-only: desktop's Gantt always shows the full range regardless of this flag. */
   showFutureEvents: boolean
 }
@@ -678,6 +663,33 @@ function buildFieldFeatures(
           resizable: false,
         },
       )
+    }
+  }
+
+  if (filters.showGrazing && field.grazings) {
+    for (const grazing of field.grazings) {
+      const startAt = grazing.l_grazing_start
+      const endAt = grazing.l_grazing_end ?? openCultivationEndAt
+      const name = grazing.l_herd_name ?? "Beweiding"
+      const hoursText = grazing.l_grazing_hours ? ` (${grazing.l_grazing_hours}u/dag)` : ""
+      const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/grazing`
+      orphanFeatures.push({
+        id: `grazing-${grazing.l_id_grazing}`,
+        name: `${name}${hoursText}`,
+        startAt,
+        endAt,
+        status: {
+          id: "grazing",
+          name: "Beweiding",
+          color: hexToRgba("#10b981", 0.6),
+        },
+        color: hexToRgba("#10b981", 0.6),
+        lane: field.b_id,
+        kind: "cultivation",
+        href,
+        label: name,
+        detail: `Beweiding:${name}${hoursText}\n${field.b_name}\n${formatNl(startAt)} – ${grazing.l_grazing_end ? formatNl(grazing.l_grazing_end) : "nu actief"}`,
+      })
     }
   }
 
