@@ -178,7 +178,7 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
         </div>
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">Oppervlakte</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">Oppervlakte</dt>
             <dd className="mt-1 text-sm font-medium">
               {dashboard.field.b_area != null && Number.isFinite(dashboard.field.b_area)
                 ? `${dashboard.field.b_area.toFixed(1).replace(".", ",")} ha`
@@ -186,15 +186,17 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">Eigendom / pacht</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">
+              Eigendom / pacht
+            </dt>
             <dd className="mt-1 text-sm font-medium">{ownershipLabel}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">In gebruik</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">In gebruik</dt>
             <dd className="mt-1 text-sm font-medium">{inUseLabel}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">Bufferstrook</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">Bufferstrook</dt>
             <dd className="mt-1 text-sm font-medium">
               {dashboard.field.b_bufferstrip ? "Ja" : "Nee"}
             </dd>
@@ -272,7 +274,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
         </Suspense>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase">Teeltperiode</p>
+            <p className="text-muted-foreground text-xs hyphens-auto uppercase">Teeltperiode</p>
             <p className="mt-1 text-sm font-medium">
               {formatDateLabel(activeCultivation.startDate)} –{" "}
               {formatDateLabel(activeCultivation.endDate, "Lopend")}
@@ -295,7 +297,9 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
           <div className="rounded-lg border p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-muted-foreground text-xs uppercase">{harvestDateTerm}</p>
+                <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                  {harvestDateTerm}
+                </p>
                 <p className="mt-1 text-sm font-medium">{formatDateLabel(latestHarvest.date)}</p>
               </div>
               <Link
@@ -522,7 +526,9 @@ export function FieldDashboardNutrientAdviceTile({ dashboard, tile }: FieldDashb
                 {data.items.map((item) => (
                   <div key={item.label} className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-muted-foreground text-xs uppercase">{item.label}</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {item.label}
+                      </p>
                       <p className="text-sm font-semibold">
                         {Math.round(item.current)} / {Math.round(item.target)} {item.unit}
                       </p>
@@ -555,7 +561,9 @@ export function FieldDashboardNormsTile({ dashboard, tile }: FieldDashboardTileP
                 {data.items.map((item) => (
                   <div key={item.label} className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-muted-foreground text-xs uppercase">{item.label}</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {item.label}
+                      </p>
                       <p className="text-sm font-semibold">
                         {Math.round(item.used)} / {Math.round(item.limit)} {item.unit}
                       </p>
@@ -620,25 +628,29 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Aanvoer</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Aanvoer</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.supply, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Afvoer</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Afvoer</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.removal, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Ammoniakemissie</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                      Ammoniakemissie
+                    </p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.emissionAmmonia, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Nitraatuitspoeling</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                      Nitraatuitspoeling
+                    </p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.emissionNitrate, data.unit)}
                     </p>
@@ -700,13 +712,13 @@ export function FieldDashboardOrganicMatterBalanceTile({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Aanvoer</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Aanvoer</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.supply, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Afbraak</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Afbraak</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.degradation, data.unit)}
                     </p>
@@ -766,7 +778,9 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">Verzadiging (PSD)</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        Verzadiging (PSD)
+                      </p>
                       <p className="mt-1 text-sm font-semibold">
                         {data.psd === null ? "–" : `${Math.round(data.psd)} %`}
                         {data.threshold === null ? "" : ` / grens ${Math.round(data.threshold)} %`}
@@ -776,7 +790,7 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
                       ) : null}
                     </div>
                     <div className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
                         {data.years?.label ?? "Grens"}
                       </p>
                       <p className="mt-1 text-sm font-semibold">{data.years?.value ?? "–"}</p>
@@ -1023,7 +1037,9 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                 <div className="grid grid-cols-2 gap-3">
                   {data.aggregations.map((aggregation) => (
                     <div key={aggregation.id} className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {aggregation.label}
+                      </p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
                           <span>Onbekend</span>
@@ -1106,11 +1122,11 @@ export function FieldDashboardMeasuresTile({ dashboard, tile }: FieldDashboardTi
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase">Actief</p>
+            <p className="text-muted-foreground text-xs hyphens-auto uppercase">Actief</p>
             <p className="mt-1 text-xl font-semibold">{dashboard.measures.activeCount}</p>
           </div>
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase">Doorlopend</p>
+            <p className="text-muted-foreground text-xs hyphens-auto uppercase">Doorlopend</p>
             <p className="mt-1 text-xl font-semibold">{dashboard.measures.ongoingCount}</p>
           </div>
         </div>

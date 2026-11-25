@@ -37,7 +37,8 @@ export const FIELD_DASHBOARD_SECTIONS: FieldDashboardSectionDefinition[] = [
   {
     id: "balansen",
     title: "Balansen",
-    gridClassName: "grid gap-6 xl:grid-cols-2",
+    // Three balances side by side, like the three tiles of Bemesting
+    gridClassName: "grid gap-6 xl:grid-cols-3",
   },
   {
     id: "bodem",

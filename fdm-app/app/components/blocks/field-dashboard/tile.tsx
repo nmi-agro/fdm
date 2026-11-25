@@ -45,10 +45,14 @@ export function FieldDashboardTile({
   footer?: boolean
   children: ReactNode
 }) {
+  const hasFooter = footer && detailHref
   return (
+    // Full height, so the tiles of a row are equally tall and their footers line up. With a footer
+    // the card has no bottom padding: the footer link brings its own, compact padding.
     <Card
       className={cn(
-        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-200 motion-reduce:animate-none",
+        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 h-full motion-safe:duration-200 motion-reduce:animate-none",
+        hasFooter && "pb-0",
         className,
       )}
     >
@@ -57,14 +61,18 @@ export function FieldDashboardTile({
         {statusBadge ? <div className="shrink-0">{statusBadge}</div> : null}
       </CardHeader>
       <CardContent className={cn("space-y-4", contentClassName)}>{children}</CardContent>
-      {footer && detailHref ? (
-        <CardFooter className="border-t">
+      {hasFooter ? (
+        <CardFooter className="mt-auto border-t px-0 [.border-t]:pt-0">
+          {/* The whole footer is the link, so the full width is a click and tap target */}
           <Link
             to={detailHref}
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/50 focus-visible:ring-ring/50 group/footer flex w-full items-center gap-1.5 px-(--card-spacing) py-3 text-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-inset"
           >
             <span>{detailLabel}</span>
-            <ArrowRight className="size-4" />
+            <ArrowRight
+              className="size-4 transition-transform group-hover/footer:translate-x-0.5 motion-reduce:transition-none"
+              aria-hidden="true"
+            />
           </Link>
         </CardFooter>
       ) : null}
