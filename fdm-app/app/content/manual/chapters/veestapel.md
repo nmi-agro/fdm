@@ -62,9 +62,9 @@ Het aantal dieren in een koppel wordt niet apart opgeslagen: {{appName}} telt de
 
 ## Vee {#dieren}
 
-Met **Al het vee bekijken** of **Vee** in het menu open je de pagina Vee. Bovenaan staan je koppels, met dezelfde kaarten als op het overzicht; zo beheer je de [koppels](#koppels) en de dieren op één plek. Met **Koppel toevoegen** maak je een nieuwe koppel. Met _Dieren bekijken_ op een kaart toon je alleen de dieren van die koppel.
+Met **Al het vee bekijken** of **Vee** in het menu open je de pagina Vee. Bovenaan staan je koppels, met dezelfde kaarten als op het overzicht; zo beheer je de [koppels](#koppels) en de dieren op één plek. Met **Koppel toevoegen** maak je een nieuwe koppel. Met _Dieren bekijken_ op een kaart spring je naar de lijst met alleen de dieren van die koppel.
 
-Daaronder staat de lijst van alle dieren, op werknummer. Je zoekt in alle kolommen, zoals werknummer, levensnummer, koppel en datum, en filtert op koppel. Een dier zonder levensnummer heeft een streepje. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
+Daaronder staat de lijst van alle dieren, op werknummer. Je zoekt in alle kolommen, zoals werknummer, levensnummer, koppel en datum, en filtert op koppel. De kop van de lijst noemt de gekozen koppel en hoeveel van al je dieren de lijst toont, bijvoorbeeld _Dieren van Melkkoeien (60 van 80)_. Een dier zonder levensnummer heeft een streepje. Met **Dier toevoegen** voeg je één dier toe en wijs je het direct aan een koppel toe.
 
 Klik op een dier om de details te openen. Daar:
 
