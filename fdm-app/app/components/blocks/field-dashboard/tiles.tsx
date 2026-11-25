@@ -16,7 +16,10 @@ import {
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
-import { PHOSPHATE_VERDICT_TEXT } from "~/components/blocks/balance/phosphate-format"
+import {
+  PHOSPHATE_VERDICT_STYLE,
+  PHOSPHATE_VERDICT_TEXT,
+} from "~/components/blocks/balance/phosphate-format"
 import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
@@ -710,14 +713,6 @@ export function FieldDashboardOrganicMatterBalanceTile({
   )
 }
 
-/** Colours of the phosphate verdict (same rule as the balance pages); the label is always shown. */
-const PHOSPHATE_STATUS_BADGE = {
-  good: "bg-emerald-100 text-emerald-800",
-  attention: "bg-amber-100 text-amber-800",
-  adjust: "bg-red-100 text-red-800",
-  unknown: "bg-muted text-muted-foreground",
-} as const
-
 /**
  * Phosphate balance tile: the saldo, the verdict and aim of the soil phosphorus status, the PSD now and its threshold, the
  * years until the threshold is crossed (as a class) and whether the PSD is measured or estimated.
@@ -733,7 +728,7 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
       >
         {(result) =>
           renderAsyncState(tile.title, tile.detailHref, result, (data) => {
-            const badgeClass = PHOSPHATE_STATUS_BADGE[data.status]
+            const { Icon: BadgeIcon, pill } = PHOSPHATE_VERDICT_STYLE[data.status]
             const badgeText = PHOSPHATE_VERDICT_TEXT[data.status]
             return (
               <FieldDashboardTile
@@ -743,12 +738,12 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
-                      badgeClass,
+                      pill,
                     )}
                     title={badgeText.description}
                   >
-                    {data.status === "good" ? <CheckCircle2 className="size-3.5" /> : null}
-                    {badgeText.label}
+                    <BadgeIcon className="size-3.5" aria-hidden="true" />
+                    <span>{badgeText.label}</span>
                   </span>
                 }
               >

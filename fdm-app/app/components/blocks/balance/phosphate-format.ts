@@ -8,6 +8,7 @@ import {
   type ValueWithRange,
   type YearsClass,
 } from "@nmi-agro/fdm-calculator/browser"
+import { CircleAlert, CircleCheck, CircleHelp, CircleX } from "lucide-react"
 
 /**
  * Formats a number with Dutch notation (decimal comma, dot as thousands separator).
@@ -77,6 +78,47 @@ export const PHOSPHATE_VERDICT_TEXT: Record<
     description: "Geen P-AL en geen fosfaatverzadiging bekend",
   },
 }
+
+/**
+ * Icon and colours per verdict, for every place that shows a phosphate verdict (balance pages,
+ * organisation page, field dashboard tile): never colour alone, always with an icon and a label.
+ * Text and icons use the -700/-800 shades so they meet WCAG AA on their light tint.
+ *
+ * - `icon`: the round status icon;
+ * - `badge`: the outlined verdict badge of the balance pages;
+ * - `pill`: the filled status badge of a dashboard tile, like the other tiles;
+ * - `bar`: a segment of the area bar (always next to a legend with icon and label).
+ */
+export const PHOSPHATE_VERDICT_STYLE = {
+  good: {
+    Icon: CircleCheck,
+    icon: "bg-green-100 text-green-700",
+    badge: "border-green-700/30 bg-green-50 text-green-800",
+    pill: "bg-green-100 text-green-800",
+    bar: "bg-green-600",
+  },
+  attention: {
+    Icon: CircleAlert,
+    icon: "bg-amber-100 text-amber-700",
+    badge: "border-amber-700/30 bg-amber-50 text-amber-800",
+    pill: "bg-amber-100 text-amber-800",
+    bar: "bg-amber-500",
+  },
+  adjust: {
+    Icon: CircleX,
+    icon: "bg-red-100 text-red-700",
+    badge: "border-red-700/30 bg-red-50 text-red-800",
+    pill: "bg-red-100 text-red-800",
+    bar: "bg-red-600",
+  },
+  unknown: {
+    Icon: CircleHelp,
+    icon: "bg-muted text-muted-foreground",
+    badge: "border-border bg-muted text-muted-foreground",
+    pill: "bg-muted text-muted-foreground",
+    bar: "bg-muted-foreground/40",
+  },
+} as const satisfies Record<PhosphateVerdict, unknown>
 
 /** Dutch name of a soil P indicator. */
 export function formatIndicator(indicator: "psd" | "p_al"): string {

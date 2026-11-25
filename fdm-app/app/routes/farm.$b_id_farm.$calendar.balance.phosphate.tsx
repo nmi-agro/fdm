@@ -173,7 +173,7 @@ export default function FarmBalancePhosphateBlock() {
         <div className="space-y-6 px-4 py-5 pb-0 sm:px-6 lg:px-10">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-3xl font-semibold tracking-tight">Fosfaat</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Fosfaat</h2>
               <HelpLink target="fosfaatbalans" />
             </div>
             <Popover>

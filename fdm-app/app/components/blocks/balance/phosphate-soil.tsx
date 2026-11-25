@@ -5,16 +5,7 @@ import type {
 } from "@nmi-agro/fdm-calculator"
 import type { ReactNode } from "react"
 import { cn } from "cn"
-import {
-  ChevronDown,
-  CircleAlert,
-  CircleCheck,
-  CircleHelp,
-  CircleX,
-  Droplets,
-  Info,
-  Sprout,
-} from "lucide-react"
+import { ChevronDown, Droplets, Info, Sprout } from "lucide-react"
 import { InfoTip } from "~/components/blocks/fertilizer-applications/bulk/info-tip"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
@@ -31,6 +22,7 @@ import {
   NMI_ESTIMATE_SOURCE,
   P_AL_HIGH,
   P_AL_LOW,
+  PHOSPHATE_VERDICT_STYLE,
   PHOSPHATE_VERDICT_TEXT,
 } from "./phosphate-format"
 import {
@@ -40,52 +32,30 @@ import {
 } from "./phosphate-trend-chart"
 
 /**
- * Icon and colours per verdict: never colour alone, always with an icon and a label. Text and
- * icons use the -700/-800 shades so they meet WCAG AA on their light tint.
- */
-const VERDICT_STYLE = {
-  good: {
-    Icon: CircleCheck,
-    icon: "bg-green-100 text-green-700",
-    badge: "border-green-700/30 bg-green-50 text-green-800",
-  },
-  attention: {
-    Icon: CircleAlert,
-    icon: "bg-amber-100 text-amber-700",
-    badge: "border-amber-700/30 bg-amber-50 text-amber-800",
-  },
-  adjust: {
-    Icon: CircleX,
-    icon: "bg-red-100 text-red-700",
-    badge: "border-red-700/30 bg-red-50 text-red-800",
-  },
-  unknown: {
-    Icon: CircleHelp,
-    icon: "bg-muted text-muted-foreground",
-    badge: "border-border bg-muted text-muted-foreground",
-  },
-} as const
-
-/**
  * Status icon of a field: check (good), alert (attention), cross (adjust) or question mark
  * (unknown), with the verdict and its meaning as accessible label.
  *
  * @param verdict - The verdict of the field.
  * @param className - Extra classes (size).
+ * @param decorative - The verdict label is shown next to the icon: hide the icon from screen
+ *   readers, so the label is not read twice and link names stay short.
  */
 export function PhosphateStatusIcon({
   verdict,
   className,
+  decorative = false,
 }: {
   verdict: PhosphateVerdict
   className?: string
+  decorative?: boolean
 }) {
-  const { Icon, icon } = VERDICT_STYLE[verdict]
+  const { Icon, icon } = PHOSPHATE_VERDICT_STYLE[verdict]
   const text = PHOSPHATE_VERDICT_TEXT[verdict]
   return (
     <Icon
-      role="img"
-      aria-label={`${text.label}: ${text.description}`}
+      {...(decorative
+        ? { "aria-hidden": true }
+        : { role: "img", "aria-label": `${text.label}: ${text.description}` })}
       className={cn("shrink-0 rounded-full p-0", icon, className)}
     />
   )
@@ -105,7 +75,7 @@ export function PhosphateVerdictBadge({
   verdict: PhosphateVerdict
   className?: string
 }) {
-  const { Icon, badge } = VERDICT_STYLE[verdict]
+  const { Icon, badge } = PHOSPHATE_VERDICT_STYLE[verdict]
   const text = PHOSPHATE_VERDICT_TEXT[verdict]
   return (
     <InfoTip content={`${text.description}.`} className="max-w-xs">
@@ -153,7 +123,7 @@ function MoreDetails({
     <Collapsible className={cn("border-t pt-2", className)}>
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex w-full items-center justify-between text-sm">
         {title}
-        <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+        <ChevronDown className="h-4 w-4 transition-transform group-data-panel-open:rotate-180 motion-reduce:transition-none" />
       </CollapsibleTrigger>
       <CollapsibleContent className="text-muted-foreground space-y-2 pt-2 text-xs">
         {children}

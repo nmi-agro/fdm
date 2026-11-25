@@ -459,7 +459,7 @@ export function PhosphateAdviceCard({
                 <CollapsibleTrigger className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 group flex items-center gap-2 rounded-sm text-xs outline-none focus-visible:ring-[3px]">
                   <TriangleAlert className="size-3.5 shrink-0 text-amber-700" aria-hidden="true" />
                   Ontbrekende of geschatte gegevens ({warnings.length})
-                  <ChevronDown className="size-3.5 transition-transform group-data-[state=open]:rotate-180" />
+                  <ChevronDown className="size-3.5 transition-transform group-data-panel-open:rotate-180 motion-reduce:transition-none" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 pt-2 pl-5 text-xs">
                   {warnings.map((warning) => (
