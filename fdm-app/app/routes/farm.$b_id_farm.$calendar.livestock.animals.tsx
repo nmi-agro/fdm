@@ -8,7 +8,7 @@ import {
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronRight, Filter, Plus, Search } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -16,6 +16,7 @@ import {
   type MetaFunction,
   NavLink,
   useLoaderData,
+  useLocation,
   useNavigate,
   useSearchParams,
 } from "react-router"
@@ -180,6 +181,15 @@ export default function AnimalsOverviewPage() {
   } = useLoaderData<typeof loader>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+
+  // "Dieren bekijken" links to the list (#vee-dieren). The app restores the scroll position per
+  // path, which wins over the hash on a second visit or a click on this page itself, so scroll to
+  // the list after that restore (a layout effect) on every such navigation
+  useEffect(() => {
+    if (location.hash !== "#vee-dieren") return
+    document.getElementById("vee-dieren")?.scrollIntoView()
+  }, [location.key, location.hash])
 
   // The herd filter lives in the URL, so "Dieren bekijken" on a herd card filters the table
   const selectedHerdFilter = searchParams.get("herd") ?? "all"
