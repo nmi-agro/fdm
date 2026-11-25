@@ -102,6 +102,15 @@ export function SidebarApps({
     omBalanceLink = undefined
   }
 
+  let phosphateBalanceLink: string | undefined
+  if (isCreateFarmWizard || isFarmOverview) {
+    phosphateBalanceLink = undefined
+  } else if (farmId && farmId !== "undefined") {
+    phosphateBalanceLink = `/farm/${farmId}/${selectedCalendar}/balance/phosphate`
+  } else {
+    phosphateBalanceLink = undefined
+  }
+
   let indicatorsLink: string | undefined
   if (isCreateFarmWizard) {
     indicatorsLink = undefined
@@ -317,6 +326,18 @@ export function SidebarApps({
                           render={
                             <NavLink to={omBalanceLink}>
                               <span>Organische stof</span>
+                            </NavLink>
+                          }
+                        />
+                      ) : null}
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      {phosphateBalanceLink ? (
+                        <SidebarMenuSubButton
+                          isActive={location.pathname.includes(phosphateBalanceLink)}
+                          render={
+                            <NavLink to={phosphateBalanceLink}>
+                              <span>Fosfaat</span>
                             </NavLink>
                           }
                         />

@@ -3,6 +3,7 @@ title: Samenwerken
 description: Geef je adviseur, een collega of een organisatie toegang tot je bedrijf, kies de juiste rol en werk samen in organisaties.
 section: Samenwerken en account
 order: 1
+updated: 2026-11-23
 inApp:
   - Instellingen
   - Toegang
@@ -62,7 +63,7 @@ Eigenaren en beheerders kunnen leden uitnodigen, rollen aanpassen en de instelli
 Kies je in de zijbalk een organisatie, dan krijg je overzichten over alle bedrijven waar de organisatie toegang toe heeft, per jaar:
 
 - **Bedrijven**: alle bedrijven met eigenaar, gewassen, gebruikte meststoffen en oppervlakte.
-- **Balans**: de stikstof- en organische-stofbalans over alle bedrijven, en per bedrijf de afwijking van het gemiddelde.
+- **Balans**: de stikstof-, organische-stof- en fosfaatbalans over alle bedrijven, en per bedrijf de afwijking van het gemiddelde.
 - **Indicatoren**: de BLN3-bodemkwaliteit over alle bedrijven, ook op de kaart.
 - **Maatregelen**: welke bodemmaatregelen er op welke bedrijven worden genomen.
 

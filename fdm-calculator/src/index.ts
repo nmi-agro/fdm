@@ -54,6 +54,46 @@ export type {
   OrganicMatterSupplyNumeric,
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
+export {
+  calculatePhosphateBalance,
+  calculatePhosphateBalanceField,
+  calculatePhosphateBalanceForFarms,
+  calculatePhosphateBalancesFieldToFarm,
+  getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
+} from "./balance/phosphate/index"
+export {
+  collectInputForPhosphateBalance,
+  collectInputForPhosphateBalanceForFarms,
+} from "./balance/phosphate/input"
+export type { PhosphateInputOptions } from "./balance/phosphate/input"
+export {
+  assessPhosphateStatus,
+  PHOSPHATE_STATUS_RULES,
+  PHOSPHATE_VERDICT_ORDER,
+} from "./balance/phosphate/status"
+export type {
+  PhosphateBalance,
+  PhosphateBalanceField,
+  PhosphateBalanceFieldInput,
+  PhosphateBalanceFieldResult,
+  PhosphateBalanceHistoryYear,
+  PhosphateBalanceInput,
+  PhosphateFieldInput,
+  PhosphateFrame,
+  PhosphateLeaching,
+  PhosphateLongTermBalance,
+  PhosphateProjection,
+  PhosphateSaturation,
+  PhosphateSaturationSource,
+  PhosphateSaturationThreshold,
+  PhosphateStatus,
+  PhosphateSupplyDeposition,
+  PhosphateSupplyMineralization,
+  PhosphateVerdict,
+  ValueWithRange,
+  YearsClass,
+} from "./balance/phosphate/types"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"
 export type {
@@ -114,7 +154,11 @@ export type {
 } from "./bln3/types"
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
-export { getNitrogenBalanceForFarms, getOrganicMatterBalanceForFarms } from "./balance/farms"
+export {
+  getNitrogenBalanceForFarms,
+  getOrganicMatterBalanceForFarms,
+  getPhosphateBalanceForFarms,
+} from "./balance/farms"
 export { combineFarmMeasureSummaries, getFarmMeasureSummary } from "./bln3/farm-measures"
 export type {
   CombinedMeasureSummary,

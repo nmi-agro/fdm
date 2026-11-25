@@ -2,8 +2,11 @@ import {
   calculateDose,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
+  calculatePhosphateBalance,
+  calculatePhosphateBalancesFieldToFarm,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
+  collectInputForPhosphateBalance,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
   type GebruiksnormResult,
@@ -17,6 +20,9 @@ import {
   type NutrientAdvice,
   type OrganicMatterBalanceFieldResultNumeric,
   type OrganicMatterBalanceNumeric,
+  type PhosphateBalance,
+  type PhosphateBalanceFieldResult,
+  type PhosphateFieldInput,
 } from "@nmi-agro/fdm-calculator"
 import {
   type FdmType,
@@ -304,6 +310,74 @@ export async function getOrganicMatterBalanceForFarm({
     ...input,
     timeFrame: getRequiredTimeFrame(input.timeFrame),
   })
+}
+
+// Get phosphate balance for a field (experimental)
+export async function getPhosphateBalanceForField({
+  fdm,
+  principal_id,
+  b_id_farm,
+  b_id,
+  timeframe,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
+  b_id: Field["b_id"]
+  timeframe: Timeframe
+}): Promise<{
+  fieldResult: PhosphateBalanceFieldResult
+  fieldInput: PhosphateFieldInput
+}> {
+  const input = await collectInputForPhosphateBalance(
+    fdm,
+    principal_id,
+    b_id_farm,
+    timeframe,
+    b_id,
+    { nmiApiKey: getNmiApiKey() },
+  )
+  const { fields } = await calculatePhosphateBalance(fdm, input)
+  if (input.fields.length === 0 || fields.length === 0) {
+    throw new Error(`Field ${b_id} not found for farm ${b_id_farm}`)
+  }
+  return { fieldResult: fields[0], fieldInput: input.fields[0] }
+}
+
+// Get phosphate balance for a farm (experimental)
+export async function getPhosphateBalanceForFarm({
+  fdm,
+  principal_id,
+  b_id_farm,
+  timeframe,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
+  timeframe: Timeframe
+}): Promise<PhosphateBalance> {
+  const input = await collectInputForPhosphateBalance(
+    fdm,
+    principal_id,
+    b_id_farm,
+    timeframe,
+    undefined,
+    { nmiApiKey: getNmiApiKey() },
+  )
+  return calculatePhosphateBalance(fdm, input)
+}
+
+/**
+ * Phosphate balance of a farm that could not be calculated: no fields, with the error message.
+ *
+ * @param errorMessage - Why the farm could not be calculated.
+ * @returns The failed farm result.
+ */
+export function failedPhosphateFarmResult(errorMessage: string): PhosphateBalance {
+  return {
+    ...calculatePhosphateBalancesFieldToFarm([], true, [errorMessage]),
+    errorMessage,
+  }
 }
 
 export async function getNutrientAdviceForField({

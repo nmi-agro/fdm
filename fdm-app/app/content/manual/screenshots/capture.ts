@@ -202,6 +202,13 @@ export const captures = {
     // Fails when a field could not be calculated.
     steps: [{ waitForHidden: { text: "Bekijk foutmelding" } }],
   },
+  "balans-fosfaat": {
+    route: "/farm/{farm}/{year}/balance/phosphate",
+    // Only shown when the farm balance was calculated, not in its error state
+    ready: { text: "Fosfaattoestand van de percelen" },
+    // Fails when a field could not be calculated.
+    steps: [{ waitForHidden: { text: "kon niet worden berekend" } }],
+  },
   "gebruiksruimte-perceel": {
     route: "/farm/{farm}/{year}/norms/{field:grasland-huiskavel}",
     ready: { text: "Fosfaat" },

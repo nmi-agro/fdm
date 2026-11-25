@@ -860,7 +860,8 @@ export async function isMeasureCatalogueEnabled(
  * measures catalogues in the FDM database.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
- * @param options Optional configuration. Provide `nmiApiKey` to also sync the measures catalogue from the NMI API.
+ * @param options Optional configuration. Provide `nmiApiKey` to also sync the measures catalogue from the NMI API
+ * and to add the phosphate contents (`b_lu_p_harvestable`, `b_lu_p_residue`) to the cultivation catalogue.
  * @returns A promise that resolves when the synchronization is complete.
  */
 export async function syncCatalogues(
@@ -872,7 +873,7 @@ export async function syncCatalogues(
   // them again, so a farm can turn them off
   await syncFertilizerCatalogue(fdm)
   await syncFeedCatalogue(fdm)
-  await syncCultivationCatalogue(fdm)
+  await syncCultivationCatalogue(fdm, options?.nmiApiKey)
   if (options?.nmiApiKey) {
     await syncMeasuresCatalogue(fdm, options.nmiApiKey)
   }
@@ -1052,15 +1053,43 @@ async function extendCatalogueFertilizer(catalogueFertilizer: CatalogueFertilize
   }
 }
 
-async function syncCultivationCatalogue(fdm: FdmType) {
-  const brpCatalogue = await getCultivationCatalogue("brp")
+/**
+ * Synchronises the BRP cultivation catalogue.
+ *
+ * The phosphate contents (`b_lu_p_harvestable`, `b_lu_p_residue`) come from the NMI API and are
+ * only available with an NMI API key. Without a key, the existing phosphate contents are kept
+ * instead of being cleared. With a key, a row is also updated when it lacks phosphate contents that
+ * the NMI API does provide, even if its stored hash is unchanged (e.g. after the columns were
+ * re-created), so the catalogue repairs itself on the next start.
+ *
+ * When the NMI API lookup fails, the catalogue is synchronised as without a key (the stored
+ * phosphate contents are kept), so an outage of the NMI API does not block the synchronisation.
+ */
+async function syncCultivationCatalogue(fdm: FdmType, nmiApiKey?: string) {
+  let hasNmiApiKey = typeof nmiApiKey === "string" && nmiApiKey.length > 0
+  let brpCatalogue: Awaited<ReturnType<typeof getCultivationCatalogue>>
+  try {
+    brpCatalogue = await getCultivationCatalogue("brp", { nmiApiKey })
+  } catch (error) {
+    if (!hasNmiApiKey) throw error
+    console.warn(
+      "The NMI cultivations lookup failed; the cultivation catalogue is synchronised without phosphate contents and the stored values are kept:",
+      error,
+    )
+    hasNmiApiKey = false
+    brpCatalogue = await getCultivationCatalogue("brp")
+  }
 
   await fdm.transaction(async (tx) => {
     try {
       for (const item of brpCatalogue) {
         const hash = await hashCultivation(item)
         const existing = await tx
-          .select({ hash: schema.cultivationsCatalogue.hash })
+          .select({
+            hash: schema.cultivationsCatalogue.hash,
+            b_lu_p_harvestable: schema.cultivationsCatalogue.b_lu_p_harvestable,
+            b_lu_p_residue: schema.cultivationsCatalogue.b_lu_p_residue,
+          })
           .from(schema.cultivationsCatalogue)
           .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, item.b_lu_catalogue))
           .limit(1)
@@ -1071,15 +1100,28 @@ async function syncCultivationCatalogue(fdm: FdmType) {
             hash: hash,
           })
         } else {
-          // update the hash if it is undefined, null or different
+          const missingPhosphate =
+            hasNmiApiKey &&
+            ((existing[0].b_lu_p_harvestable == null && item.b_lu_p_harvestable != null) ||
+              (existing[0].b_lu_p_residue == null && item.b_lu_p_residue != null))
+          // update if the hash is undefined, null or different, or phosphate contents are missing
           if (
             existing[0].hash === null ||
             existing[0].hash === undefined ||
-            existing[0].hash !== hash
+            existing[0].hash !== hash ||
+            missingPhosphate
           ) {
+            // Without an NMI API key the phosphate contents are unknown: keep the stored values
+            const { b_lu_p_harvestable, b_lu_p_residue, ...withoutPhosphate } = item
             await tx
               .update(schema.cultivationsCatalogue)
-              .set({ ...item, hash: hash, updated: new Date() })
+              .set({
+                ...(hasNmiApiKey
+                  ? { ...withoutPhosphate, b_lu_p_harvestable, b_lu_p_residue }
+                  : withoutPhosphate),
+                hash: hash,
+                updated: new Date(),
+              })
               .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, item.b_lu_catalogue))
           }
         }
