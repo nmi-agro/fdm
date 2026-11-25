@@ -5,6 +5,9 @@ import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import { useCookieConsentStore } from "~/store/cookie-consent"
 
+/** Marks the open banner, so a page can keep content it scrolls to clear of it. */
+export const COOKIE_BANNER_ATTRIBUTE = "data-cookie-banner"
+
 export function Banner() {
   const consentGiven = useCookieConsentStore((state) => state.consent)
   const isVisible = useCookieConsentStore((state) => state.isBannerVisible)
@@ -29,7 +32,10 @@ export function Banner() {
   return (
     <div>
       {isVisible && (
-        <div className="fixed right-0 bottom-0 left-0 z-200 w-full translate-y-0 opacity-100 transition-[opacity,transform] duration-700 sm:bottom-4 sm:left-4 sm:max-w-md">
+        <div
+          {...{ [COOKIE_BANNER_ATTRIBUTE]: "" }}
+          className="fixed right-0 bottom-0 left-0 z-200 w-full translate-y-0 opacity-100 transition-[opacity,transform] duration-700 sm:bottom-4 sm:left-4 sm:max-w-md"
+        >
           {/* Compact below sm, so the banner leaves most of a phone screen free */}
           <section
             aria-label="Cookies"

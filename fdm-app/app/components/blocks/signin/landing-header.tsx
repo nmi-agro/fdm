@@ -1,19 +1,28 @@
 import type { ComponentProps, MouseEvent } from "react"
 import { Link } from "react-router"
+import { COOKIE_BANNER_ATTRIBUTE } from "~/components/custom/banner"
 import { buttonVariants } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import { SIGN_IN_CARD_ID, SIGN_IN_EMAIL_INPUT_ID } from "./sign-in-card"
 
 /**
  * Scrolls to the sign-in card at the top of the page and puts the cursor in the e-mail field.
- * On a low screen it scrolls just far enough to bring the field into view.
+ * On a low screen it scrolls just far enough to bring the field into view, above the cookie
+ * banner while that is open. It never scrolls the field up behind the sticky header: when the
+ * banner leaves too little room, the field stays just below the header.
  */
 function goToSignIn() {
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
   const input = document.getElementById(SIGN_IN_EMAIL_INPUT_ID)
-  const fieldBottom = input ? input.getBoundingClientRect().bottom + window.scrollY + 24 : 0
+  const banner = document.querySelector(`[${COOKIE_BANNER_ATTRIBUTE}]`)
+  const header = document.querySelector("header")
+  const visibleTop = (header?.getBoundingClientRect().height ?? 0) + 8
+  const visibleBottom = banner ? banner.getBoundingClientRect().top : window.innerHeight
+  const field = input?.getBoundingClientRect()
+  const fieldTop = field ? field.top + window.scrollY : 0
+  const fieldBottom = field ? field.bottom + window.scrollY + 24 : 0
   window.scrollTo({
-    top: Math.max(0, fieldBottom - window.innerHeight),
+    top: Math.max(0, Math.min(fieldBottom - visibleBottom, fieldTop - visibleTop)),
     behavior: reduce ? "instant" : "smooth",
   })
   input?.focus({ preventScroll: true })
@@ -33,6 +42,9 @@ export function SignInLink({
       {...props}
       href={`#${SIGN_IN_CARD_ID}`}
       onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        // Leave modified and non-primary clicks (new tab, new window) to the browser
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+          return
         event.preventDefault()
         goToSignIn()
       }}
