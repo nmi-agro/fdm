@@ -103,10 +103,18 @@ export function buildApp(
   app.use("*", createPathExistenceGuard(appUrl))
   app.use(
     "*",
-    createApiKeyAuth(auth, [`${pathPrefix}/docs`, `${pathPrefix}/openapi.json`, `${pathPrefix}/`]),
+    createApiKeyAuth(auth, [
+      `${pathPrefix}/docs`,
+      `${pathPrefix}/openapi.json`,
+      `${pathPrefix}/health`,
+      `${pathPrefix}/`,
+    ]),
   )
 
   app.get("/", (c) => c.redirect(`${pathPrefix}/docs`, 302))
+  // Liveness check for container healthchecks. It needs no API key and does not touch the
+  // database, and it is not part of the OpenAPI document.
+  app.get("/health", (c) => c.json({ status: "ok" }))
 
   registerFarmRoutes(app, fdm, services)
   registerFarmGroupRoutes(app, fdm, services)

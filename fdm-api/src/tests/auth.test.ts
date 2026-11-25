@@ -117,6 +117,30 @@ describe("createApiKeyAuth: skip-listed paths bypass", () => {
     const res = await app.request("/openapi.json")
     expect(res.status).toBe(200)
   })
+
+  it("GET /health returns 200 without an API key and does not call verifyApiKey", async () => {
+    const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
+    const app = makeApp(mockAuth)
+    const res = await app.request("/health")
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ status: "ok" })
+    expect(mockAuth.api.verifyApiKey).not.toHaveBeenCalled()
+  })
+
+  it("GET /health is served under the base path", async () => {
+    const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
+    const app = createFdmApi(mockFdm, mockAuth, { ...config, basePath: "/api" }, {})
+    const res = await app.request("/api/health")
+    expect(res.status).toBe(200)
+    expect(mockAuth.api.verifyApiKey).not.toHaveBeenCalled()
+  })
+
+  it("does not list /health in the OpenAPI document", async () => {
+    const mockAuth = { api: { verifyApiKey: vi.fn() } } as any
+    const app = makeApp(mockAuth)
+    const doc = await (await app.request("/openapi.json")).json()
+    expect(doc.paths["/health"]).toBeUndefined()
+  })
 })
 
 // ---------------------------------------------------------------------------

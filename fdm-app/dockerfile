@@ -87,7 +87,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
 WORKDIR /app/fdm-app
 # Run node directly instead of via `pnpm start` to bypass pnpm v11's pre-script
