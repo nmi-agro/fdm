@@ -1,6 +1,6 @@
 import type { EntryContext } from "react-router"
 import { describe, expect, it } from "vitest"
-import { getCacheControlHeaders } from "./cache.server"
+import { applyCacheControlHeaders, getCacheControlHeaders } from "./cache.server"
 
 /** Returns the Cache-Control header that a document request to `path` gets. */
 function cacheControlFor(path: string, method = "GET"): string | null {
@@ -9,20 +9,10 @@ function cacheControlFor(path: string, method = "GET"): string | null {
 }
 
 describe("getCacheControlHeaders", () => {
-  it("caches static assets for a year", () => {
-    expect(cacheControlFor("/assets/root-abc123.js")).toBe(
-      "public, max-age=31536000, stale-while-revalidate=86400",
-    )
-  })
-
-  it.each(["/api/farms", "/health"])("never stores %s", (path) => {
-    expect(cacheControlFor(path)).toBe("no-store, no-cache, must-revalidate")
-  })
-
   it.each(["/manual", "/manual/bemestingsplan", "/manual/background/stikstof"])(
-    "caches the manual page %s for at most an hour",
+    "lets the browser keep the manual page %s for at most an hour",
     (path) => {
-      expect(cacheControlFor(path)).toBe("public, max-age=3600")
+      expect(cacheControlFor(path)).toBe("private, max-age=3600")
     },
   )
 
@@ -53,6 +43,13 @@ describe("getCacheControlHeaders", () => {
     expect(cacheControlFor("/signinx")).toBe("private, no-cache")
   })
 
+  it.each(["/assets/missing-abc123.js", "/api/unknown"])(
+    "does not cache the 404 page for the missing path %s",
+    (path) => {
+      expect(cacheControlFor(path)).toBe("private, no-cache")
+    },
+  )
+
   it.each(["POST", "PUT", "DELETE"])(
     "never stores the response to a %s on a farm page",
     (method) => {
@@ -61,4 +58,31 @@ describe("getCacheControlHeaders", () => {
       )
     },
   )
+
+  it("gives a HEAD request on a farm page the same header as a GET", () => {
+    expect(cacheControlFor("/farm/abc123/2026/field", "HEAD")).toBe("private, no-cache")
+  })
+})
+
+describe("applyCacheControlHeaders", () => {
+  it("replaces the Cache-Control that a route set with a single value", () => {
+    const responseHeaders = new Headers({ "Cache-Control": "public, max-age=600" })
+    applyCacheControlHeaders(
+      new Request("https://example.com/manual"),
+      {} as EntryContext,
+      responseHeaders,
+    )
+    expect(responseHeaders.get("Cache-Control")).toBe("private, max-age=3600")
+  })
+
+  it("keeps the other response headers", () => {
+    const responseHeaders = new Headers({ "Set-Cookie": "toast-session=e30%3D; Path=/" })
+    applyCacheControlHeaders(
+      new Request("https://example.com/signin"),
+      {} as EntryContext,
+      responseHeaders,
+    )
+    expect(responseHeaders.get("Set-Cookie")).toBe("toast-session=e30%3D; Path=/")
+    expect(responseHeaders.get("Cache-Control")).toBe("no-cache")
+  })
 })

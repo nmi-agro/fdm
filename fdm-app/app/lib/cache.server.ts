@@ -2,37 +2,8 @@ import type { EntryContext } from "react-router"
 import { clientConfig } from "~/lib/config"
 import { MANUAL_CACHE_CONTROL } from "~/lib/manual/seo"
 
-type CacheControl = {
-  maxAge: number
-  staleWhileRevalidate?: number
-  isPublic?: boolean
-  noStore?: boolean
-}
-
-/**
- * Generate Cache-Control header value based on provided options
- */
-function generateCacheControl({
-  maxAge,
-  staleWhileRevalidate,
-  isPublic = true,
-  noStore = false,
-}: CacheControl): string {
-  const directives: string[] = []
-
-  if (noStore) {
-    return "no-store, no-cache, must-revalidate"
-  }
-
-  directives.push(isPublic ? "public" : "private")
-  directives.push(`max-age=${maxAge}`)
-
-  if (staleWhileRevalidate) {
-    directives.push(`stale-while-revalidate=${staleWhileRevalidate}`)
-  }
-
-  return directives.join(", ")
-}
+/** Cache header for responses that no cache may keep, such as the result of a form submission. */
+const NO_STORE_CACHE_CONTROL = "no-store, no-cache, must-revalidate"
 
 /**
  * Cache header for HTML pages without personal data. Browsers and shared caches revalidate on
@@ -57,46 +28,15 @@ function isInSection(pathname: string, section: string): boolean {
 /**
  * Get the cache headers for an HTML document request, based on its path and method. Pages behind
  * sign-in are private; every page except the manual revalidates on every request.
+ *
+ * Only document requests reach this function: static files are served by `server.js`, and
+ * resource routes (such as `/api/*` and `/health`) and single-fetch `.data` requests do not pass
+ * through `entry.server.tsx`. A request for a missing static file or API path does arrive here,
+ * as the 404 page.
  */
 export function getCacheControlHeaders(request: Request, _context: EntryContext): Headers {
   const url = new URL(request.url)
   const headers = new Headers()
-
-  // Static assets (JS, CSS, images)
-  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff2?)$/)) {
-    headers.set(
-      "Cache-Control",
-      generateCacheControl({
-        maxAge: 31536000, // 1 year
-        staleWhileRevalidate: 86400, // 1 day
-      }),
-    )
-    return headers
-  }
-
-  // API endpoints
-  if (url.pathname.startsWith("/api")) {
-    headers.set(
-      "Cache-Control",
-      generateCacheControl({
-        maxAge: 0,
-        noStore: true,
-      }),
-    )
-    return headers
-  }
-
-  // Health check endpoint
-  if (url.pathname === "/health") {
-    headers.set(
-      "Cache-Control",
-      generateCacheControl({
-        maxAge: 0,
-        noStore: true,
-      }),
-    )
-    return headers
-  }
 
   // Public user manual: static content that changes only with a release
   if (isInSection(url.pathname, "/manual")) {
@@ -105,14 +45,8 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
   }
 
   // Farm form submissions without JavaScript (POST, PUT, DELETE) are never stored
-  if (isInSection(url.pathname, "/farm") && request.method !== "GET") {
-    headers.set(
-      "Cache-Control",
-      generateCacheControl({
-        maxAge: 0,
-        noStore: true,
-      }),
-    )
+  if (isInSection(url.pathname, "/farm") && request.method !== "GET" && request.method !== "HEAD") {
+    headers.set("Cache-Control", NO_STORE_CACHE_CONTROL)
     return headers
   }
 
@@ -125,6 +59,20 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
   // All other pages, including farm pages, show data of the signed-in user
   headers.set("Cache-Control", PRIVATE_PAGE_CACHE_CONTROL)
   return headers
+}
+
+/**
+ * Set the cache headers of a document response. They replace any `Cache-Control` that a route's
+ * `headers` export set, so every document follows the policy of {@link getCacheControlHeaders}.
+ */
+export function applyCacheControlHeaders(
+  request: Request,
+  context: EntryContext,
+  responseHeaders: Headers,
+): void {
+  getCacheControlHeaders(request, context).forEach((value, key) => {
+    responseHeaders.set(key, value)
+  })
 }
 
 /**

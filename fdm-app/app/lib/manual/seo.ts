@@ -3,10 +3,12 @@ import type { ManualFaqItem } from "./parse"
 
 /**
  * Cache header for the public manual pages, the sitemap and robots.txt. The content only changes
- * with a release, so caches may keep it for at most an hour. A longer lifetime would keep serving
- * HTML that loads the JavaScript of a previous build after a deploy.
+ * with a release, so the browser may keep it for at most an hour. A longer lifetime would keep
+ * serving HTML that loads the JavaScript of a previous build after a deploy. It is `private`
+ * because every page response also carries the visitor's toast and its cookie from the root
+ * loader, which a shared cache must not hand to others.
  */
-export const MANUAL_CACHE_CONTROL = "public, max-age=3600"
+export const MANUAL_CACHE_CONTROL = "private, max-age=3600"
 
 /**
  * Areas of the app behind sign-in. They are disallowed in robots.txt: crawlers would only meet a
