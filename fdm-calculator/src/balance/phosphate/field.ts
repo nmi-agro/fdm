@@ -58,6 +58,19 @@ function getMainCultivationOfField(
 }
 
 /**
+ * Whether a field is grassland in a year: its main cultivation (see `getMainCultivation`) is in the
+ * `grass` rotation group. A grass catch crop or a sward that ends in spring does not make an arable
+ * field grassland, so the sampling depth (0–10 cm) and the mineralisation factor stay those of arable
+ * land.
+ */
+function isGrasslandInYear(
+  fieldInput: Pick<PhosphateFieldInput, "cultivations">,
+  year: number,
+): boolean {
+  return getMainCultivationOfField(fieldInput, year)?.b_lu_croprotation === "grass"
+}
+
+/**
  * Whether a field is left out of the phosphate balance, and why: buffer strips, and fields whose
  * main cultivation of the year (see `getMainCultivation`) is a landscape element or a nature
  * cultivation. These fields are not farmed for production, so a balance and a soil P aim say little
@@ -291,7 +304,7 @@ function calculateRemovalByHarvests(
         const b_lu_p_harvestable = analysis.b_lu_p_harvestable ?? detail.b_lu_p_harvestable
         if (b_lu_p_harvestable == null) {
           warnings.push(
-            `Voor ${name} is geen fosfaatgehalte bekend: de afvoer met de oogst is op 0 gezet. Vul het fosfaatgehalte van de oogst in als u het weet.`,
+            `Voor ${name} is geen fosfaatgehalte bekend in de gewascatalogus: de afvoer met de oogst is op 0 gezet.`,
           )
         }
         if (b_lu_yield == null) {
@@ -426,7 +439,7 @@ export function calculatePhosphateBalanceField(
 ): PhosphateBalanceField {
   const { fieldInput, timeFrame } = input
   const { field } = fieldInput
-  const isGrassland = fieldInput.cultivations.some((c) => c.b_lu_croprotation === "grass")
+  const isGrassland = isGrasslandInYear(fieldInput, yearOfTimeFrame(timeFrame))
   const saturation = calculatePhosphateSaturation(fieldInput.soilAnalyses)
   const frame = determinePhosphateFrame(
     saturation.a_p_al,
@@ -535,7 +548,7 @@ export function calculatePhosphateBalanceField(
       harvests: past.fieldInput.harvests.filter((h) => hasDetails(h.b_lu)),
     }
     // The land use of that year, not of the selected year
-    const pastIsGrassland = pastInput.cultivations.some((c) => c.b_lu_croprotation === "grass")
+    const pastIsGrassland = isGrasslandInYear(pastInput, year)
     const pastTerms = calculateFieldTerms(
       pastInput,
       fertilizerDetails,

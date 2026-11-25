@@ -115,6 +115,52 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.projection?.balance_effective_per_year).toBeCloseTo(20.2 * 0.94 - 20)
   })
 
+  describe("land use for the sampling depth", () => {
+    const grass = (b_lu: string, start: string, end: string | null, croprotation = "grass") => ({
+      b_lu,
+      b_lu_catalogue: "nl_265",
+      b_lu_name: "Grasland",
+      b_lu_croprotation: croprotation,
+      m_cropresidue: null,
+      b_lu_start: new Date(start),
+      b_lu_end: end ? new Date(end) : null,
+    })
+    const depthOf = (cultivations: PhosphateBalanceInput["fields"][number]["cultivations"]) =>
+      calculatePhosphateBalanceField({
+        fieldInput: { ...input.fields[0], harvests: [], cultivations },
+        fertilizerDetails: input.fertilizerDetails,
+        cultivationDetails: input.cultivationDetails,
+        timeFrame: input.timeFrame,
+      }).projection?.depth
+
+    it("should use the arable depth when the main cultivation is arable and grass follows as catch crop", () => {
+      const depth = depthOf([
+        input.fields[0].cultivations[0],
+        grass("g1", "2025-09-15", null, "catchcrop"),
+      ])
+      expect(depth).toEqual({ value: 0.25, source: "default_arable" })
+    })
+
+    it("should use the arable depth when last year's sward ends in spring before an arable crop", () => {
+      const depth = depthOf([
+        grass("g1", "2020-04-01", "2025-03-15"),
+        {
+          ...input.fields[0].cultivations[0],
+          b_lu_catalogue: "nl_259",
+          b_lu_croprotation: "maize",
+        },
+      ])
+      expect(depth).toEqual({ value: 0.25, source: "default_arable" })
+    })
+
+    it("should use the grassland depth when grass is the main cultivation", () => {
+      expect(depthOf([grass("g1", "2020-04-01", null)])).toEqual({
+        value: 0.1,
+        source: "default_grassland",
+      })
+    })
+  })
+
   it("should average the balance over the years with data, with default yields for missing harvests", () => {
     const pastYear = (year: number, tspAmount: number | null, harvested = false) => ({
       timeFrame: { start: new Date(`${year}-01-01`), end: new Date(`${year}-12-31`) },
@@ -418,7 +464,9 @@ describe("calculatePhosphateBalanceField", () => {
     })
     expect(result.removal.harvests.total).toBe(0)
     expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toMatch(/Voor Aardappelen is geen fosfaatgehalte bekend/)
+    expect(result.warnings[0]).toBe(
+      "Voor Aardappelen is geen fosfaatgehalte bekend in de gewascatalogus: de afvoer met de oogst is op 0 gezet.",
+    )
     expect(result.warnings[0]).not.toMatch(/NMI API-sleutel/)
   })
 

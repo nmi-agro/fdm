@@ -36,7 +36,7 @@ The calculations are performed for a user-defined **Time Frame**, normally one c
 
 - **Field Information:** ID, area (ha) and whether the field is a buffer strip. Buffer strips and fields whose main cultivation is a nature cultivation or a landscape element are not calculated: their field result has `exclusion` (`bufferstrip`, `nature` or `landscape_element`) instead of a balance, and they are left out of the farm average (Section 4).
 - **Cultivation Data (per field):**
-  - Crop type (`b_lu_catalogue`) and crop rotation group (`b_lu_croprotation`). A field with a cultivation in the `grass` rotation group is treated as grassland (sampling depth 0–10 cm), otherwise as arable land (0–25 cm).
+  - Crop type (`b_lu_catalogue`) and crop rotation group (`b_lu_croprotation`). A field whose main cultivation of the year (the crop on the field on 15 May) is in the `grass` rotation group is treated as grassland (sampling depth 0–10 cm), otherwise as arable land (0–25 cm). A grass catch crop, or a sward that ends in spring before an arable crop, does not make the field grassland.
   - Crop residue management (`m_cropresidue`): `false` means the residues are removed from the field.
 - **Harvest Data (per field):**
   - Yield (`b_lu_yield`, kg DM / ha) and phosphate content (`b_lu_p_harvestable`, g P₂O₅ / kg DM) from the `harvestable_analyses` of the harvest. When a value is missing, the default of the cultivation catalogue is used.
