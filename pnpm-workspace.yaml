@@ -43,6 +43,7 @@ minimumReleaseAgeExclude:
 allowBuilds:
   "@google/genai": true
   "@nmi-agro/fdm-agents@file:fdm-agents": true
+  "@nmi-agro/fdm-api@file:fdm-api": true
   "@nmi-agro/fdm-calculator@file:fdm-calculator": true
   "@nmi-agro/fdm-core@file:fdm-core": true
   "@nmi-agro/fdm-data@file:fdm-data": true
