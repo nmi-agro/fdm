@@ -216,6 +216,7 @@ describe("farms created per day", () => {
     enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
     enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
     enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+    enableAnimalCategoryCatalogue: vi.fn().mockResolvedValue(undefined),
     getFertilizersFromCatalogue: vi.fn().mockResolvedValue([]),
     addFertilizer: vi.fn(),
     getFarm: vi.fn().mockResolvedValue({

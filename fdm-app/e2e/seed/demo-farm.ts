@@ -76,6 +76,8 @@ export interface DemoFarmIds {
   records: Partial<Record<DemoFieldKey, SeededFieldRecords>>
   /** Fertilizer ids (`p_id`) of the farm, by catalogue id (`p_id_catalogue`). */
   fertilizers: Record<string, string>
+  /** Animal ids (`l_id_animal`) of the farm's dairy herd. */
+  animals: string[]
   year: number
   /** The e-mail address of the demo user. */
   email: string

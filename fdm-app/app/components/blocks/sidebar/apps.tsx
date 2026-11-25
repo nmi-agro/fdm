@@ -179,7 +179,9 @@ export function SidebarApps({
                                             ? "de bodemanalyses"
                                             : info.value === "nutrient-advice"
                                               ? "het bemestingsadvies"
-                                              : info.label.toLowerCase(),
+                                              : info.value === "grazing"
+                                                ? "de beweiding"
+                                                : info.label.toLowerCase(),
                                         (b_id_farm) =>
                                           info.config.url({
                                             ...params,
@@ -196,6 +198,25 @@ export function SidebarApps({
                               <TooltipContent side="right">
                                 {info.label} is beschikbaar nadat u een bedrijf heeft geselecteerd
                               </TooltipContent>
+                            </Tooltip>
+                          </SidebarMenuSubItem>
+                        )
+                      }
+                      if (info.disabled) {
+                        return (
+                          <SidebarMenuSubItem key={info.value}>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <SidebarMenuSubButton
+                                    aria-disabled="true"
+                                    className="text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent"
+                                  >
+                                    <span>{info.label}</span>
+                                  </SidebarMenuSubButton>
+                                }
+                              />
+                              <TooltipContent side="right">{info.disabledReason}</TooltipContent>
                             </Tooltip>
                           </SidebarMenuSubItem>
                         )
