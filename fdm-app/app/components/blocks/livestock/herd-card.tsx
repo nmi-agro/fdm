@@ -321,7 +321,7 @@ export function HerdCard({
 
       {/* Add animals: how many and since when */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <form onSubmit={handleAddSubmit}>
             <DialogHeader>
               <DialogTitle>Dieren toevoegen aan {herd.l_herd_name ?? "koppel"}</DialogTitle>
@@ -362,7 +362,7 @@ export function HerdCard({
 
       {/* Rename Dialog */}
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <form onSubmit={handleRenameSubmit}>
             <DialogHeader>
               <DialogTitle>Koppelnaam wijzigen</DialogTitle>
@@ -392,7 +392,7 @@ export function HerdCard({
 
       {/* Reassign Dialog */}
       <Dialog open={isReassignOpen} onOpenChange={setIsReassignOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-sm">
           <form onSubmit={handleReassignSubmit}>
             <DialogHeader>
               <DialogTitle>Dieren verplaatsen</DialogTitle>

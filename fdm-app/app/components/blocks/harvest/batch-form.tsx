@@ -637,7 +637,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
 
   return (
     <Dialog open={true} onOpenChange={() => navigate("..")}>
-      <DialogContent className="flex max-h-svh max-w-2xl flex-col">
+      <DialogContent className="flex max-h-svh flex-col sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             Meerdere {getHarvestTerm(props.b_lu_croprotation, true, props.b_lu_harvestable)}{" "}

@@ -580,7 +580,7 @@ export function ImageGallery({
           }
         }}
       >
-        <DialogContent className="max-h-[95dvh] w-full max-w-5xl overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-h-[95dvh] w-full overflow-y-auto p-4 sm:max-w-5xl sm:p-6">
           {selectedImage ? (
             <>
               <DialogHeader>
