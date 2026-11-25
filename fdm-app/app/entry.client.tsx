@@ -23,7 +23,7 @@ if (clientConfig.analytics.sentry) {
   const sentryConfig = clientConfig.analytics.sentry
   Sentry.init({
     dsn: sentryConfig.dsn,
-    release: import.meta.env.PUBLIC_APP_VERSION,
+    release: sentryConfig.release,
     environment: import.meta.env.NODE_ENV,
     ignoreErrors: [/BodyStreamBuffer was aborted/],
     integrations: [
