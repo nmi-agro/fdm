@@ -88,7 +88,7 @@ Ligt P-AL onder 35 terwijl de PSD boven de milieugrens zit, dan vragen opbrengst
 
 Bij **Fosfaattoestand** zie je welke kant het perceel op gaat bij de gemiddelde balans en hoe lang het duurt voordat het doel bereikt is. Het oordeel is **Goed**, **Aandacht**, **Bijsturen** of **Onbekend**. Onder **Mogelijke aanpak** staat welke balans nodig is om bij te sturen. Zijn de bodemgegevens geschat of is de fosfaatverzadiging voor jouw grondsoort minder betrouwbaar, dan staat er bij het oordeel dat het indicatief is.
 
-Op de bedrijfspagina zie je bij **Fosfaattoestand van de percelen** hoeveel hectare elk oordeel heeft, en onder **Percelen** de percelen met hun doel en oordeel. Bufferstroken, natuur en landschapselementen tellen niet mee; die staan apart onder "Niet meegenomen".
+Op de bedrijfspagina zie je bij **Fosfaattoestand van de percelen** hoeveel hectare elk oordeel heeft, en onder **Percelen** de percelen met hun doel en oordeel. Je kunt de percelen filteren op oordeel en sorteren, bijvoorbeeld op oppervlakte; open je een perceel en ga je terug, dan blijft die keuze staan. Bufferstroken, natuur en landschapselementen tellen niet mee; die staan apart onder "Niet meegenomen".
 
 Hoe de balans, de fosfaattoestand en het oordeel worden bepaald, lees je in [Fosfaatbalans](/manual/background/fosfaatbalans).
 

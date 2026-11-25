@@ -6,6 +6,7 @@ import {
   type MetaFunction,
   NavLink,
   Outlet,
+  type ShouldRevalidateFunctionArgs,
   useLoaderData,
   useParams,
 } from "react-router"
@@ -22,8 +23,20 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { isPhosphateFieldListChange } from "~/lib/phosphate-field-list"
 
 export const handle: HelpHandle = { help: "fosfaatbalans" }
+
+/** Filtering or sorting the field table of the farm page changes only the URL. */
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (!formMethod && isPhosphateFieldListChange(currentUrl, nextUrl)) return false
+  return defaultShouldRevalidate
+}
 
 // Meta
 export const meta: MetaFunction = () => {

@@ -2,14 +2,16 @@ import type { Cultivation, Harvest } from "@nmi-agro/fdm-core"
 import { PHOSPHATE_VERDICT_ORDER, type PhosphateVerdict } from "@nmi-agro/fdm-calculator/browser"
 import { getCultivationsForFarm, getFarm, getFields, getHarvestsForFarm } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
-import { ArrowUpDown, Info, TriangleAlert } from "lucide-react"
-import { Suspense, use, useEffect, useState } from "react"
+import { ArrowDown, ArrowUp, ArrowUpDown, Info, TriangleAlert } from "lucide-react"
+import { Suspense, use, useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
+  type ShouldRevalidateFunctionArgs,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { PhosphateBalanceCard } from "~/components/blocks/balance/phosphate-balance-card"
@@ -21,7 +23,6 @@ import {
 import {
   PhosphateFieldListItem,
   type PhosphateFieldRow,
-  type PhosphateFieldSortKey,
   PhosphateFieldTableRow,
   sortPhosphateFieldRows,
 } from "~/components/blocks/balance/phosphate-field-list"
@@ -44,6 +45,24 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import {
+  isPhosphateFieldListChange,
+  type PhosphateFieldListState,
+  type PhosphateFieldSortKey,
+  readPhosphateFieldListState,
+  writePhosphateFieldListState,
+} from "~/lib/phosphate-field-list"
+
+/** Filtering or sorting the field table changes only the URL: keep the loaded balance. */
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (!formMethod && isPhosphateFieldListChange(currentUrl, nextUrl)) return false
+  return defaultShouldRevalidate
+}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -167,11 +186,18 @@ function FarmBalancePhosphateOverview({
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { phosphateBalanceResult } = use(asyncData)
-  const [filter, setFilter] = useState<PhosphateVerdict | "all">("all")
-  const [sort, setSort] = useState<{ key: PhosphateFieldSortKey; dir: "asc" | "desc" }>({
-    key: "verdict",
-    dir: "asc",
-  })
+  // Filter and sorting live in the URL, so they survive opening a field and going back
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { filter, sort } = readPhosphateFieldListState(searchParams)
+  const updateList = (change: Partial<PhosphateFieldListState>) =>
+    setSearchParams(
+      (previous) =>
+        writePhosphateFieldListState(previous, {
+          ...readPhosphateFieldListState(previous),
+          ...change,
+        }),
+      { replace: true, preventScrollReset: true },
+    )
 
   const cultivationsMap = new Map(cultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
@@ -231,6 +257,8 @@ function FarmBalancePhosphateOverview({
     align: "left" | "right" = "left",
   ) => {
     const active = sort.key === key
+    // The active column shows its direction; the others show that they can be sorted
+    const SortIcon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown
     return (
       <TableHead
         aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
@@ -239,10 +267,9 @@ function FarmBalancePhosphateOverview({
         <button
           type="button"
           onClick={() =>
-            setSort((current) => ({
-              key,
-              dir: current.key === key && current.dir === "asc" ? "desc" : "asc",
-            }))
+            updateList({
+              sort: { key, dir: active && sort.dir === "asc" ? "desc" : "asc" },
+            })
           }
           className={cn(
             "hover:text-foreground focus-visible:ring-ring/50 inline-flex items-center gap-1 rounded-sm whitespace-nowrap outline-none focus-visible:ring-[3px]",
@@ -250,7 +277,7 @@ function FarmBalancePhosphateOverview({
           )}
         >
           {label}
-          <ArrowUpDown className="size-3.5" aria-hidden="true" />
+          <SortIcon className={cn("size-3.5", !active && "opacity-50")} aria-hidden="true" />
         </button>
       </TableHead>
     )
@@ -279,7 +306,7 @@ function FarmBalancePhosphateOverview({
                     className="pointer-coarse:h-10"
                     variant={activeFilter === v ? "secondary" : "ghost"}
                     aria-pressed={activeFilter === v}
-                    onClick={() => setFilter(v)}
+                    onClick={() => updateList({ filter: v })}
                   >
                     {v === "all" ? "Alle" : PHOSPHATE_VERDICT_TEXT[v].label}
                     <span className="text-muted-foreground tabular-nums">
@@ -311,7 +338,7 @@ function FarmBalancePhosphateOverview({
                     PhosphateFieldSortKey,
                     "asc" | "desc",
                   ]
-                  setSort({ key, dir })
+                  updateList({ sort: { key, dir } })
                 }}
                 className="border-input bg-background text-foreground focus-visible:ring-ring/50 h-9 w-full min-w-0 rounded-md border px-2 text-sm outline-none focus-visible:ring-[3px] @md/fields:w-auto pointer-coarse:h-11"
               >

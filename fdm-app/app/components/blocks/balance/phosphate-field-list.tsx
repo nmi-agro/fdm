@@ -7,6 +7,7 @@ import {
 } from "@nmi-agro/fdm-calculator/browser"
 import { ArrowDownRight, ArrowRight, ArrowUpRight, OctagonAlert } from "lucide-react"
 import { NavLink } from "react-router"
+import type { PhosphateFieldSortKey } from "~/lib/phosphate-field-list"
 import { TableCell, TableRow } from "~/components/ui/table"
 import {
   describePhosphateDirection,
@@ -19,9 +20,6 @@ import {
   PHOSPHATE_VERDICT_TEXT,
 } from "./phosphate-format"
 import { PhosphateStatusIcon } from "./phosphate-soil"
-
-/** Columns of the field table that can be sorted. */
-export type PhosphateFieldSortKey = "verdict" | "name" | "area" | "saldo"
 
 /** One field in the table: its result, status and name. */
 export type PhosphateFieldRow = {

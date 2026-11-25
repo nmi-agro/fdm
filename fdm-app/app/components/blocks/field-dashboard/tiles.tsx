@@ -4,6 +4,7 @@ import { nl } from "date-fns/locale"
 import {
   Calculator,
   CheckCircle2,
+  CircleAlert,
   ClipboardCheck,
   ClipboardList,
   Layers,
@@ -22,6 +23,7 @@ import {
 } from "~/components/blocks/balance/phosphate-format"
 import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
+import { InfoTip } from "~/components/blocks/fertilizer-applications/bulk/info-tip"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
@@ -595,11 +597,14 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                 >
                   {data.balance <= data.target ? (
                     <>
-                      <CheckCircle2 className="size-3.5" />
+                      <CheckCircle2 className="size-3.5" aria-hidden="true" />
                       <span>Onder streefwaarde</span>
                     </>
                   ) : (
-                    <span>Boven streefwaarde</span>
+                    <>
+                      <CircleAlert className="size-3.5" aria-hidden="true" />
+                      <span>Boven streefwaarde</span>
+                    </>
                   )}
                 </span>
               }
@@ -676,11 +681,14 @@ export function FieldDashboardOrganicMatterBalanceTile({
                 >
                   {data.balance > 0 ? (
                     <>
-                      <CheckCircle2 className="size-3.5" />
+                      <CheckCircle2 className="size-3.5" aria-hidden="true" />
                       <span>Positief</span>
                     </>
                   ) : (
-                    <span>Negatief</span>
+                    <>
+                      <CircleAlert className="size-3.5" aria-hidden="true" />
+                      <span>Negatief</span>
+                    </>
                   )}
                 </span>
               }
@@ -735,16 +743,19 @@ export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDas
                 title={tile.title}
                 detailHref={tile.detailHref}
                 statusBadge={
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium",
-                      pill,
-                    )}
-                    title={badgeText.description}
-                  >
-                    <BadgeIcon className="size-3.5" aria-hidden="true" />
-                    <span>{badgeText.label}</span>
-                  </span>
+                  // The meaning of the verdict opens on hover, keyboard focus and tap
+                  <InfoTip content={`${badgeText.description}.`} className="max-w-xs">
+                    <button
+                      type="button"
+                      className={cn(
+                        "focus-visible:ring-ring/50 inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px]",
+                        pill,
+                      )}
+                    >
+                      <BadgeIcon className="size-3.5" aria-hidden="true" />
+                      <span>{badgeText.label}</span>
+                    </button>
+                  </InfoTip>
                 }
               >
                 <div className="space-y-4">

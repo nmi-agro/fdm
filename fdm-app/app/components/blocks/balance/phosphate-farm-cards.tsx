@@ -39,7 +39,7 @@ export function PhosphateStatusDistributionCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {total > 0 ? (
-          <div className="flex h-3 w-full overflow-hidden rounded-full" aria-hidden="true">
+          <div className="flex h-3 w-full gap-px overflow-hidden rounded-full" aria-hidden="true">
             {verdicts.map((v) => (
               <div
                 key={v}
