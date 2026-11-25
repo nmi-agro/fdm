@@ -130,6 +130,10 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
       hasNotificationPromise,
     ])
 
+    // Whether the farm has ever had a herd, from the farm itself, so the shell needs no extra
+    // query; a farm whose herds have ended keeps the Melkvee pages for its earlier years
+    const hasHerds = farm?.b_farm_livestock ?? false
+
     const fieldOptions = buildFieldOptions(
       fields,
       cultivationsByField,
@@ -148,6 +152,7 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
       hasNotification: hasNotification,
       farmWritePermission: farmWritePermission,
       fieldOptions: fieldOptions,
+      hasHerds: hasHerds,
     }
   } catch (error) {
     // If getSession throws (e.g., invalid token), it might result in a 401
@@ -217,6 +222,8 @@ function FarmShell({
             fields={loaderData.fieldOptions}
             activeFieldId={activeFieldId}
             fieldWritePermission={fieldWritePermission}
+            hasHerds={loaderData.hasHerds}
+            farmWritePermission={loaderData.farmWritePermission}
           />
           <SidebarApps farms={loaderData.farmOptions} />
           <SidebarLabs farms={loaderData.farmOptions} />

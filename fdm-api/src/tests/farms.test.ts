@@ -279,6 +279,7 @@ describe("POST /farms", () => {
       enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
       enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
       enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableAnimalCategoryCatalogue: vi.fn().mockResolvedValue(undefined),
       getFertilizersFromCatalogue: vi
         .fn()
         .mockResolvedValue([{ p_id_catalogue: "baat_1" }, { p_id_catalogue: "baat_2" }]),
@@ -324,6 +325,12 @@ describe("POST /farms", () => {
       "user-1",
       body.b_id_farm,
       "bln",
+    )
+    expect(services.enableAnimalCategoryCatalogue).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      body.b_id_farm,
+      "rvo",
     )
 
     // Check if the catalogue fertilizers were added to the farm.
@@ -401,6 +408,7 @@ describe("POST /farms", () => {
       enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
       enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
       enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableAnimalCategoryCatalogue: vi.fn().mockResolvedValue(undefined),
       getFertilizersFromCatalogue: vi.fn().mockResolvedValue([]),
       addFertilizer: vi.fn().mockResolvedValue("p-1"),
       getFarm,
@@ -433,6 +441,7 @@ describe("POST /farms", () => {
         .mockRejectedValue(new Error("Database connection was lost")),
       enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
       enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableAnimalCategoryCatalogue: vi.fn().mockResolvedValue(undefined),
     })
     const res = await app.request("/farms", {
       method: "POST",
@@ -587,6 +596,7 @@ describe("Farm mutations — failures after the main write", () => {
       enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
       enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
       enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableAnimalCategoryCatalogue: vi.fn().mockResolvedValue(undefined),
       getFertilizersFromCatalogue: vi
         .fn()
         .mockResolvedValue([{ p_id_catalogue: "baat_1" }, { p_id_catalogue: "baat_2" }]),

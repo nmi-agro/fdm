@@ -21,3 +21,7 @@ coverage:
         flags:
           - fdm-app
         informational: true
+
+ignore:
+  # Declarative Drizzle schema and generated migrations: no logic to cover
+  - "fdm-core/src/db/**"

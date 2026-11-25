@@ -324,5 +324,46 @@ export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
+export {
+  GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY,
+  GRAZING_HOURS_PER_KG_DM_MIN,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
+  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_DAY_AND_NIGHT_HOURS,
+  NNW_PLOT_AREA_HA_PER_COW,
+  NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
+  STOCKING_DENSITY_BENCHMARKS,
+  SWARD_HEIGHT_CM,
+  UITSCHAREN_SUPPLEMENTATION_SIGNAL_CM,
+  WEIDEMELK_CATEGORY_CODE,
+  WEIDEMELK_MIN_HOURS_PER_DAY,
+  WEIDEMELK_TARGET_DAYS,
+  GRAZING_SYSTEMS,
+  calculateGrazingAllocationArea,
+  calculateGrazingMetrics,
+  calculatePlatformArea,
+  calculateRestBeforeUses,
+  estimateGrassIntake,
+  zonesOverlap,
+} from "./grazing/index"
+export type {
+  FieldInput as GrazingFieldInput,
+  FieldUse as GrazingFieldUse,
+  FieldUseRest as GrazingFieldUseRest,
+  GrassGrowthSeason,
+  GrassIntakeInput,
+  GrassIntakeResult,
+  GrazingAllocationInput,
+  GrazingAllocationResult,
+  GrazingInput as GrazingRecordInput,
+  GrazingMetricsInput,
+  GrazingMetricsResult,
+  GrazingSystemKey,
+  PlatformAreaInput,
+  HarvestInput as GrazingHarvestInput,
+  HerdInput as GrazingHerdInput,
+  MonthlyDistributionEntry as GrazingMonthlyDistributionEntry,
+  RestPeriodDetail as GrazingRestPeriodDetail,
+} from "./grazing/index"
 export type { FieldExclusionReason } from "./shared/field-exclusion"
 export { getFieldExclusionReason, LANDSCAPE_ELEMENT_BRP_CODES } from "./shared/field-exclusion"

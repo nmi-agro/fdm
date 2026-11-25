@@ -21,7 +21,8 @@ export function Header({
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-1 h-4 md:mr-2" />
       </div>
-      <Breadcrumb className="min-w-0 flex-1">
+      {/* Keeps room for the trail; a long action label moves to its own line on a phone */}
+      <Breadcrumb className="min-w-36 flex-1">
         <BreadcrumbList>{children}</BreadcrumbList>
       </Breadcrumb>
       {help ? <HelpLink target={help} className="shrink-0" /> : null}

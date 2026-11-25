@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react"
 import { NavLink } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
+  AtlasLayerLabel,
   AvailableAtlasLayerInfo,
   useAvailableAtlasLayers,
   useCurrentAtlasLayer,
@@ -28,6 +29,13 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
   const otherLayers = availableLayers.filter((layer) => !layer.requiresFarm)
 
   function makeOption(info: AvailableAtlasLayerInfo) {
+    if (info.disabled) {
+      return (
+        <DropdownMenuCheckedRadioItem key={info.value} value={info.value} disabled>
+          <AtlasLayerLabel info={info} />
+        </DropdownMenuCheckedRadioItem>
+      )
+    }
     return (
       <DropdownMenuCheckedRadioItem
         key={info.value}

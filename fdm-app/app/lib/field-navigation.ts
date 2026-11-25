@@ -31,6 +31,11 @@ export function getFieldNavigationItems(
       segment: "bcs",
     },
     {
+      to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/grazing`,
+      title: "Beweiding",
+      segment: "grazing",
+    },
+    {
       to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/settings`,
       title: "Gegevens",
       segment: "settings",

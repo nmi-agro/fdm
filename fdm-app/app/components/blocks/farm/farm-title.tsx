@@ -65,7 +65,8 @@ export function FarmTitle({
           )}
         </div>
         <div className="mt-4 ml-auto flex shrink-0 items-center gap-3 xl:mt-0">
-          {rightNode && <div className="flex-shrink-0">{rightNode}</div>}
+          {/* May shrink below xl, so a row of buttons wraps instead of running off a phone */}
+          {rightNode && <div className="min-w-0">{rightNode}</div>}
           {action && (
             <NavLink to={action.to} className={buttonVariants({})} data-slot="button">
               {action.label}
