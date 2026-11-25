@@ -18,6 +18,7 @@ import { signInAs } from "../session"
 const MEASURE_A = "bln_TEST_FARM_MEASURES_A"
 const MEASURE_B = "bln_TEST_FARM_MEASURES_B"
 const MEASURE_C = "bln_TEST_FARM_MEASURES_C"
+const MEASURE_D = "bln_TEST_FARM_MEASURES_D"
 
 let owner: SeededUser
 let calendar: string
@@ -31,7 +32,7 @@ beforeAll(async () => {
 
   await syncMeasuresCatalogueArray(
     fdm,
-    [MEASURE_A, MEASURE_B, MEASURE_C].map((m_id) => ({
+    [MEASURE_A, MEASURE_B, MEASURE_C, MEASURE_D].map((m_id) => ({
       m_id,
       m_source: "bln",
       m_name: `Testmaatregel ${m_id}`,
@@ -80,6 +81,24 @@ describe("farm measures actions", () => {
     for (const b_id of fieldIds) {
       expect(await measuresOf(b_id, MEASURE_A)).toHaveLength(1)
     }
+  })
+
+  it("skips fields that already have the measure and adds it to the others", async () => {
+    // Its own measure, so this test does not depend on the other tests
+    const [first, second] = fieldIds
+    await addMeasure(fdm, owner.user.id, first, MEASURE_D, new Date(`${calendar}-01-01`))
+
+    signInAs(owner.user)
+    const { status } = await submit([
+      ["intent", "add"],
+      ["m_id", MEASURE_D],
+      ["m_start", `${calendar}-03-01`],
+      ["b_id", first],
+      ["b_id", second],
+    ])
+    expect(status).toBe(200)
+    expect(await measuresOf(first, MEASURE_D)).toHaveLength(1)
+    expect(await measuresOf(second, MEASURE_D)).toHaveLength(1)
   })
 
   it("keeps every measure unchanged when one of the updates fails", async () => {

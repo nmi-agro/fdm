@@ -299,6 +299,20 @@ export function matchesErrorMessage(error: unknown, pattern: RegExp): boolean {
 }
 
 /**
+ * Checks whether fdm-core refused to add or update a measure because the same measure already
+ * runs on that field in an overlapping period.
+ *
+ * @param error - The caught value.
+ * @returns `true` if the error (or one of its causes) is the overlap validation of a measure.
+ */
+export function isMeasureOverlapError(error: unknown): boolean {
+  return containsErrorMessage(
+    error,
+    "already exists for this field with an overlapping time window",
+  )
+}
+
+/**
  * Returns the first error in the cause chain (the error itself included) with the given `name`.
  *
  * @param error - The caught value.
@@ -536,6 +550,16 @@ export async function handleActionError(error: unknown) {
   if (containsErrorMessage(error, "A grazing needs a field")) {
     console.warn("Grazing without a field:", error)
     return dataWithWarning(null, "Kies een perceel voor de beweiding.")
+  }
+
+  // Validation: the same measure already runs on the field in an overlapping period
+  if (isMeasureOverlapError(error)) {
+    console.warn("Overlapping measure refused:", error)
+    return dataWithWarning(
+      null,
+      "Deze maatregel loopt al op dit perceel in (een deel van) deze periode. Pas de bestaande maatregel aan of kies een andere periode.",
+      { status: 400 },
+    )
   }
 
   // Validation: applied amount of a fertilizer application out of range (checked by fdm-core)

@@ -29,7 +29,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import { dataWithError, dataWithSuccess } from "remix-toast"
+import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
@@ -70,7 +70,12 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
+import {
+  handleActionError,
+  handleLoaderError,
+  isMeasureOverlapError,
+  reportError,
+} from "~/lib/error"
 import { type FarmRecommendationsData, getFarmNextSteps } from "~/lib/farm-measures.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
@@ -550,23 +555,42 @@ export async function action({ request, params }: ActionFunctionArgs) {
           ? new Date(m_end_str)
           : undefined
 
-      // All fields in one transaction: either every field gets the measure, or none does
+      // All fields in one transaction. A field that already has this measure in the period is
+      // skipped; any other error rolls back every field. The overlap check of fdm-core throws
+      // before it writes, so the transaction stays usable after a skipped field.
+      let count = 0
       await fdm.transaction(async (tx) => {
         for (const b_id of eligibleBIds) {
-          await addMeasure(tx, session.principal_id, b_id, m_id, m_start, m_end)
+          try {
+            await addMeasure(tx, session.principal_id, b_id, m_id, m_start, m_end)
+            count++
+          } catch (error) {
+            if (!isMeasureOverlapError(error)) throw error
+          }
         }
       })
 
-      const count = eligibleBIds.length
-      return dataWithSuccess(
-        { result: "Maatregelen toegevoegd" },
-        {
-          message:
-            count === 1
-              ? "Maatregel toegevoegd voor 1 perceel."
-              : `Maatregel toegevoegd voor ${count} percelen.`,
-        },
-      )
+      const skipped = eligibleBIds.length - count
+      const fieldsLabel = (n: number) => (n === 1 ? "1 perceel" : `${n} percelen`)
+
+      if (count === 0) {
+        return dataWithWarning(
+          { result: "Geen maatregelen toegevoegd" },
+          skipped === 1
+            ? "Deze maatregel loopt al op dit perceel in (een deel van) deze periode."
+            : `Deze maatregel loopt al op alle ${skipped} percelen in (een deel van) deze periode.`,
+        )
+      }
+
+      const added = `Maatregel toegevoegd voor ${fieldsLabel(count)}.`
+      if (skipped > 0) {
+        return dataWithWarning(
+          { result: "Maatregelen deels toegevoegd" },
+          `${added} Overgeslagen: ${fieldsLabel(skipped)} waar deze maatregel al loopt in (een deel van) deze periode.`,
+        )
+      }
+
+      return dataWithSuccess({ result: "Maatregelen toegevoegd" }, { message: added })
     }
 
     if (intent === "update") {
