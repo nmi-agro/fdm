@@ -57,7 +57,7 @@ export function LandingRecord() {
         <p>
           Het inzicht is zo goed als de gegevens eronder. Percelen en bodemanalyses haalt u op met
           een import. Bemesting en oogst voert u zelf in. Dat kost wat tijd, maar we maken het zo
-          eenvoudig mogelijk, en de tijdlijn laat zien wat er nog ontbreekt.
+          eenvoudig mogelijk.
         </p>
       </SectionHeading>
       <ProductShot
