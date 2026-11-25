@@ -24,7 +24,6 @@ const initializeRuntimeEnvMap = (): RuntimeConfig => {
     "PUBLIC_FDM_URL",
     "PUBLIC_FDM_NAME",
     "PUBLIC_FDM_DATASETS_URL",
-    "PUBLIC_FDM_DATASETS_URL",
     "PUBLIC_FDM_API_URL",
     "PUBLIC_FDM_MCP_URL",
     "PUBLIC_MAP_PROVIDER",
@@ -37,6 +36,7 @@ const initializeRuntimeEnvMap = (): RuntimeConfig => {
     "PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR",
     "PUBLIC_SENTRY_PROFILE_SAMPLE_RATE",
     "PUBLIC_SENTRY_SECURITY_REPORT_URI",
+    "SENTRY_RELEASE",
     "PUBLIC_POSTHOG_KEY",
     "PUBLIC_POSTHOG_HOST",
   ]
@@ -85,6 +85,10 @@ const sentryConfig =
         ),
         profile_sample_rate: Number(getConfigValue("PUBLIC_SENTRY_PROFILE_SAMPLE_RATE", 1)),
         security_report_uri: String(getConfigValue("PUBLIC_SENTRY_SECURITY_REPORT_URI", "")),
+        // The release is set per deploy at runtime; the package version from the build is the fallback.
+        release: getConfigValue("SENTRY_RELEASE")
+          ? String(getConfigValue("SENTRY_RELEASE"))
+          : import.meta.env.PUBLIC_APP_VERSION,
       }
     : null
 
