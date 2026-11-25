@@ -467,7 +467,7 @@ function MeasureEditDialog({
 }) {
   return (
     <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
         </DialogHeader>

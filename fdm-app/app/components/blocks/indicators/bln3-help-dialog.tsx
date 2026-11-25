@@ -27,7 +27,7 @@ export function Bln3HelpDialog() {
           </Button>
         }
       />
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Wat is BLN3?</DialogTitle>
         </DialogHeader>

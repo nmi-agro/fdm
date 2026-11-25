@@ -834,7 +834,7 @@ export default function GerritApp() {
       </PageContainer>
       {blockerDialog}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
-        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />
