@@ -225,7 +225,7 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
           }}
         />
         <ChartLegend
-          content={
+          content={() => (
             <div className="flex flex-wrap items-center justify-center gap-4">
               {legend.map((term) => (
                 <div key={term} className="flex items-center gap-1.5">
@@ -237,7 +237,7 @@ export function PhosphateBalanceChart(props: PhosphateBalanceChartProps): JSX.El
                 </div>
               ))}
             </div>
-          }
+          )}
         />
         {renderBar(supply)}
         {renderBar(removal)}
