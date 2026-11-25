@@ -166,7 +166,7 @@ function IndicatorCalculationFlowVertical() {
         <FlowStep
           icon={LayersIcon}
           title="Invoerdata"
-          description="Bodemanalyse, teeltgegevens, perceelseigenschappen en locatie: de ruwe data die u al heeft."
+          description="Bodemanalyse, teeltgegevens, perceelseigenschappen en locatie: de ruwe gegevens van uw bedrijf."
           detail={FLOW_STEP_DETAILS.invoerdata}
           className="w-full text-center [&>div]:mx-auto"
         />
