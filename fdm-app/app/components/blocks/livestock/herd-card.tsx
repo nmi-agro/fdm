@@ -283,7 +283,7 @@ export function HerdCard({
             nativeButton={false}
             render={
               <NavLink
-                to={`/farm/${b_id_farm}/${calendar}/livestock/animals?herd=${herd.l_id_herd}`}
+                to={`/farm/${b_id_farm}/${calendar}/livestock/animals?herd=${herd.l_id_herd}#vee-dieren`}
               />
             }
           >

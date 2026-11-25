@@ -229,6 +229,15 @@ export default function AnimalsOverviewPage() {
     })
   }, [animals, selectedHerdFilter, search, herdNameMap])
 
+  // "Dieren van Melkkoeien (60 van 80)": the herd that is chosen, and how many of all animals
+  // the list shows when a filter or search leaves some out
+  const selectedHerdName =
+    selectedHerdFilter === "all" ? null : (herdNameMap.get(selectedHerdFilter) ?? null)
+  const shownCount = filteredAnimals.length
+  const animalsHeading = `${selectedHerdName ? `Dieren van ${selectedHerdName}` : "Dieren"} (${
+    shownCount === animals.length ? shownCount : `${shownCount} van ${animals.length}`
+  })`
+
   const handleHerdFilterChange = (val: string) => {
     if (val === "all") {
       searchParams.delete("herd")
@@ -328,9 +337,18 @@ export default function AnimalsOverviewPage() {
             </section>
 
             <section className="space-y-4" aria-labelledby="vee-dieren">
-              <h2 id="vee-dieren" className="text-lg font-semibold">
-                Dieren ({animals.length})
-              </h2>
+              <div className="space-y-0.5">
+                {/* The heading says which animals the list shows: of one herd, and how many of
+                    all animals when a filter or search hides some. "Dieren bekijken" on a herd
+                    card links here (#vee-dieren). */}
+                <h2 id="vee-dieren" className="scroll-mt-4 text-lg font-semibold">
+                  <span key={`${selectedHerdName ?? "all"}-${shownCount}`}>{animalsHeading}</span>
+                </h2>
+                <p className="text-muted-foreground text-xs">
+                  Alle dieren in je koppels. Kies een koppel om alleen de dieren van die koppel te
+                  zien.
+                </p>
+              </div>
               {/* Filters Bar */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex max-w-md flex-1 items-center gap-3">
