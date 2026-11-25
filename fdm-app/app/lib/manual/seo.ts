@@ -3,10 +3,10 @@ import type { ManualFaqItem } from "./parse"
 
 /**
  * Cache header for the public manual pages, the sitemap and robots.txt. The content only changes
- * with a release, so shared caches may keep it for ten minutes and serve it stale for a day while
- * they revalidate.
+ * with a release, so caches may keep it for at most an hour. A longer lifetime would keep serving
+ * HTML that loads the JavaScript of a previous build after a deploy.
  */
-export const MANUAL_CACHE_CONTROL = "public, max-age=600, stale-while-revalidate=86400"
+export const MANUAL_CACHE_CONTROL = "public, max-age=3600"
 
 /**
  * Areas of the app behind sign-in. They are disallowed in robots.txt: crawlers would only meet a

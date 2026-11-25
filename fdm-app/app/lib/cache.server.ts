@@ -6,7 +6,6 @@ type CacheControl = {
   maxAge: number
   staleWhileRevalidate?: number
   isPublic?: boolean
-  mustRevalidate?: boolean
   noStore?: boolean
 }
 
@@ -17,7 +16,6 @@ function generateCacheControl({
   maxAge,
   staleWhileRevalidate,
   isPublic = true,
-  mustRevalidate = false,
   noStore = false,
 }: CacheControl): string {
   const directives: string[] = []
@@ -33,15 +31,32 @@ function generateCacheControl({
     directives.push(`stale-while-revalidate=${staleWhileRevalidate}`)
   }
 
-  if (mustRevalidate) {
-    directives.push("must-revalidate")
-  }
-
   return directives.join(", ")
 }
 
 /**
- * Get cache control headers based on the request path and context
+ * Cache header for HTML pages without personal data. Browsers and shared caches revalidate on
+ * every request, so after a deploy no one gets HTML that loads the JavaScript of the previous build.
+ */
+const PUBLIC_PAGE_CACHE_CONTROL = "no-cache"
+
+/**
+ * Cache header for HTML pages with data of the signed-in user: revalidate on every request, and
+ * keep the page out of shared caches.
+ */
+const PRIVATE_PAGE_CACHE_CONTROL = "private, no-cache"
+
+/** Sections of the app whose pages show no personal data. */
+const PUBLIC_PAGE_SECTIONS = ["/signin", "/privacy"]
+
+/** Whether `pathname` is `section` itself or a page below it. */
+function isInSection(pathname: string, section: string): boolean {
+  return pathname === section || pathname.startsWith(`${section}/`)
+}
+
+/**
+ * Get the cache headers for an HTML document request, based on its path and method. Pages behind
+ * sign-in are private; every page except the manual revalidates on every request.
  */
 export function getCacheControlHeaders(request: Request, _context: EntryContext): Headers {
   const url = new URL(request.url)
@@ -84,43 +99,31 @@ export function getCacheControlHeaders(request: Request, _context: EntryContext)
   }
 
   // Public user manual: static content that changes only with a release
-  if (url.pathname === "/manual" || url.pathname.startsWith("/manual/")) {
+  if (isInSection(url.pathname, "/manual")) {
     headers.set("Cache-Control", MANUAL_CACHE_CONTROL)
     return headers
   }
 
-  // Dynamic routes (farm data, etc.)
-  if (url.pathname.startsWith("/farm")) {
-    // Check if it's a data mutation (POST, PUT, DELETE) or viewing data
-    if (request.method !== "GET") {
-      headers.set(
-        "Cache-Control",
-        generateCacheControl({
-          maxAge: 0,
-          noStore: true,
-        }),
-      )
-    } else {
-      headers.set(
-        "Cache-Control",
-        generateCacheControl({
-          maxAge: 0, // No caching for farm data views
-          staleWhileRevalidate: 5, // Very short stale time
-          mustRevalidate: true,
-        }),
-      )
-    }
+  // Farm form submissions without JavaScript (POST, PUT, DELETE) are never stored
+  if (isInSection(url.pathname, "/farm") && request.method !== "GET") {
+    headers.set(
+      "Cache-Control",
+      generateCacheControl({
+        maxAge: 0,
+        noStore: true,
+      }),
+    )
     return headers
   }
 
-  // Default for other routes
-  headers.set(
-    "Cache-Control",
-    generateCacheControl({
-      maxAge: 300, // 5 minutes
-      staleWhileRevalidate: 3600, // 1 hour
-    }),
-  )
+  // Pages without personal data
+  if (PUBLIC_PAGE_SECTIONS.some((section) => isInSection(url.pathname, section))) {
+    headers.set("Cache-Control", PUBLIC_PAGE_CACHE_CONTROL)
+    return headers
+  }
+
+  // All other pages, including farm pages, show data of the signed-in user
+  headers.set("Cache-Control", PRIVATE_PAGE_CACHE_CONTROL)
   return headers
 }
 
