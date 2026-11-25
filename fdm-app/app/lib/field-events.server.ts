@@ -13,6 +13,7 @@ import {
   getCultivation,
   getFertilizerParametersDescription,
   getFertilizers,
+  getHarvest,
   getHarvests,
   getParametersForHarvestCat,
   type HarvestParameters,
@@ -131,6 +132,18 @@ export async function handleFieldEvent(
   // A harvest, new or changed
   if (!values.b_lu || (values.intent === "update_single_harvest" && !values.b_id_harvesting)) {
     return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
+  }
+  // A mowing changed in the grazing calendar stays with its own cultivation, so the grass check
+  // below applies to the harvest that is changed and not to a cultivation sent along with it
+  if (
+    context.source === "grazing_calendar" &&
+    values.intent === "update_single_harvest" &&
+    values.b_id_harvesting
+  ) {
+    const harvest = await getHarvest(fdm, principal_id, values.b_id_harvesting)
+    if (harvest.b_lu !== values.b_lu) {
+      return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
+    }
   }
   const cultivation = await getCultivation(fdm, principal_id, values.b_lu)
   // The grazing calendar only records mowing of grass, also on a field that grows another crop

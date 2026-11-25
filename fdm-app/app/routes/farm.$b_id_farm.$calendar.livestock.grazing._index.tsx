@@ -12,6 +12,7 @@ import {
   useActionData,
   useLoaderData,
 } from "react-router"
+import { toast } from "sonner"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -208,16 +209,27 @@ export default function BeweidingskalenderPage() {
     sheetState && !(actionData !== sheetState.openedWithActionData && actionData?.closeSheet)
       ? sheetState.request
       : undefined
-  const openSheet = (request: AddEventSheetRequest | undefined) =>
-    setSheetState(
-      request
-        ? { request: withGrassCultivation(request), openedWithActionData: actionData }
-        : undefined,
-    )
+  const openSheet = (request: AddEventSheetRequest | undefined) => {
+    if (!request) {
+      setSheetState(undefined)
+      return
+    }
+    const withGrass = withGrassCultivation(request)
+    // Without a grass cultivation on that date the form would open on another crop, which the
+    // calendar does not record
+    if (!withGrass) {
+      toast.error(
+        "Op deze datum staat geen grasgewas op dit perceel. Leg de oogst vast op de Tijdlijn.",
+      )
+      return
+    }
+    setSheetState({ request: withGrass, openedWithActionData: actionData })
+  }
 
   // A new mowing belongs to the grass cultivation on its date, also on a field that grows
-  // another crop later in the year; the form would otherwise pick that crop
-  const withGrassCultivation = (request: AddEventSheetRequest): AddEventSheetRequest => {
+  // another crop later in the year; the form would otherwise pick that crop. `null` when the
+  // field has no grass cultivation on that date.
+  const withGrassCultivation = (request: AddEventSheetRequest): AddEventSheetRequest | null => {
     if (request.type !== "harvest" || request.context.b_lu || !request.context.date) return request
     const field = grasslandFields.find((f) => f.b_id === request.context.b_id)
     const grass = findActiveCultivationForDate(
@@ -225,7 +237,7 @@ export default function BeweidingskalenderPage() {
       request.context.date,
       new Date(8640000000000000),
     )
-    return grass ? { ...request, context: { ...request.context, b_lu: grass.b_lu } } : request
+    return grass ? { ...request, context: { ...request.context, b_lu: grass.b_lu } } : null
   }
 
   // New grazing, mowing and fertilizing default to today in the Netherlands, or the same day in
