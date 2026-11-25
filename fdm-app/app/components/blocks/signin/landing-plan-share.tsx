@@ -7,10 +7,7 @@ export function LandingPlan() {
   return (
     <LandingSection tone="muted">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
-        <SectionHeading
-          label="Van inzicht naar plan"
-          title="Een bemestingsplan dat u kunt meegeven"
-        >
+        <SectionHeading label="Van inzicht naar plan" title="Bewaar en deel uw bemestingsplan">
           <p>
             De inzichten komen samen in één plan voor het komende seizoen, dat u zelf opstelt of
             laat voorstellen.
@@ -21,8 +18,8 @@ export function LandingPlan() {
             <FeatureItem icon={FileText} title="Bemestingsplan als pdf">
               <p>
                 Maak een bemestingsplan als pdf met de gebruiksruimte, het advies, de
-                organische-stofbalans en per perceel de geplande bemestingen. Handig om mee te geven
-                aan een teler of controleur.
+                organische-stofbalans en per perceel de geplande bemestingen. Om te printen of door
+                te sturen naar uw adviseur, loonwerker of klant.
               </p>
               <ManualLink target="bemestingsplan" className="mt-2">
                 Lees meer over het bemestingsplan
