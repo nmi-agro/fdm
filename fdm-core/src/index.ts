@@ -66,6 +66,7 @@ export {
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getDefaultDatesOfCultivation,
+  getDefaultDatesOfCultivations,
   isCultivationUnavailableInPeriod,
   removeCultivation,
   updateCultivation,
@@ -100,6 +101,7 @@ export {
   getFarmIdsOfOrganization,
   isFarmGroupMembershipInYear,
   listFarmGroups,
+  listFarmGroupsOfOrganizations,
   removeFarmFromGroup,
   removeFarmGroup,
   removeFarmGroupMembership,
@@ -183,6 +185,7 @@ export {
   determineIfFieldIsBuffer,
   getField,
   getFields,
+  getFieldsForFarms,
   listAvailableAcquiringMethods,
   removeField,
   updateField,
@@ -229,12 +232,13 @@ export {
   addMeasure,
   getMeasure,
   getMeasures,
+  getMeasureFromCatalogue,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
   removeMeasure,
   updateMeasure,
 } from "./measure"
-export type { Measure, MeasureCatalogue } from "./measure.types"
+export type { Measure, MeasureCatalogue, MeasureCatalogueDetails } from "./measure.types"
 export { runMigration } from "./migrate"
 export {
   addOrganicCertification,
@@ -245,6 +249,7 @@ export {
   listOrganicCertifications,
   removeOrganicCertification,
 } from "./organic"
+export { listOrganizationRolesOfUser } from "./organization"
 export type { OrganicCertification } from "./organic.types"
 export {
   getPrincipal,

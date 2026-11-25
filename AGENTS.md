@@ -1,6 +1,6 @@
 # AGENTS.md — Agent Instructions for `nmi-agro/fdm`
 
-Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pnpm@12.8.1` enforced). It is a public open-source repository; PRs target `development`, except `release/*` and `hotfix/*` branches, which target `main` (see [Branches, PRs and issues](#5-branches-prs-and-issues)).
+Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=26`, `pnpm@12.8.1` enforced). It is a public open-source repository; PRs target `development`, except `release/*` and `hotfix/*` branches, which target `main` (see [Branches, PRs and issues](#5-branches-prs-and-issues)).
 
 ## 0. Working agreements
 
@@ -15,6 +15,7 @@ Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pn
 - **PostgreSQL / PostGIS environment**: The fdm-core, fdm-calculator and fdm-helpdesk tests, and the `db` test project of fdm-mcp, need a local PostgreSQL with PostGIS, configured via `.env` (`POSTGRES_HOST/PORT/DB/USER/PASSWORD`, see `fdm-core/.env.example`) and run through `dotenvx run --`. Do not assume Docker.
 - **Public open-source repository**: Never commit real farm/field coordinates, identifiers, personal data, or internal error/log payloads. Use synthetic fixtures. The one exception: the manual's demo farm may use public BRP parcel outlines from PDOK (open data, with a source note); everything else about that farm stays synthetic.
 - **No internal sources in public text**: Don't name internal systems, lab software or spreadsheets in code comments, TSDoc, docs, changesets or PR descriptions. Describe the formula and its parameters only.
+- **No agent session links in public text**: Commit messages, PR descriptions, issues and comments are public. Never add links to agent sessions or chats (for example `claude.ai/code/session_…`) or `Claude-Session:` trailers, even when your tool's default attribution adds them. A `Co-Authored-By` trailer and a "Generated with" line are fine.
 - **React Router v8 framework mode in `fdm-app`**: Do not use `react-router-dom`. Use `loaderData` in `useMatches`/`MetaArgs`. Respect `.server.ts` vs `.client.ts` module boundaries.
 - **Production runs in Europe/Amsterdam.** Review findings that assume a UTC host (for example around `getFullYear()` on a local-midnight year start) don't apply; don't "fix" local-time date handling unless asked.
 
@@ -46,7 +47,8 @@ Test isolation: `fdm-core` and the fdm-app integration project run with `isolate
 - **Domain column prefixes** in the `fdm` PG schema, not camelCase: `b_` (farms, fields, cultivations), `p_` (fertilizer products), `a_` (soil analyses), `m_` (measures), `l_` (livestock), `f_` (feed). Enforced by `pnpm check-schema`; details and exceptions in the `fdm-schema` skill. Generated schemas (`fdm-authn`) are exempt.
 - **`fdm-core` function conventions**:
   - Signature: `fn(fdm: FdmType, principal_id: string, ...)`.
-  - Mutations run inside `fdm.transaction(...)`, generate IDs via `createId()`, and enforce access via `src/authorization.ts` (`checkPermission`, `grantRole`).
+  - Every exported function, read or write, checks the permission itself before it touches data: with `checkPermission` (`src/authorization.ts`) for farm data, or with the membership check the module already uses for organization data (as in `farm-group.ts`). Don't add unchecked variants that rely on the caller to check, also not for batching; a private helper may skip the check only when every exported caller checks first.
+  - Mutations run inside `fdm.transaction(...)`, generate IDs via `createId()`, and grant roles via `grantRole`.
   - Errors: wrap exceptions with `handleError(err, message, context)`, which returns a `BaseError`.
 - **Feature logic in its own package**: put a new feature area in its own workspace package (like `fdm-rvo` or `fdm-reports`), not in `fdm-core`; only touch `fdm-core` for small, unavoidable changes.
 - **`fdm-app` UI**: Dutch-only user interface (keep copy i18n-ready).

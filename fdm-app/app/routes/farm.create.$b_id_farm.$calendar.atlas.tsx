@@ -41,8 +41,8 @@ import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import FieldDetailsInfoPopup from "~/components/blocks/field/popup"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Skeleton } from "~/components/ui/skeleton"
 import { getMapStyle } from "~/integrations/map"
 import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
@@ -204,11 +204,11 @@ export default function Index() {
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined} help="kaart">
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-10 pb-0">
           <div className="flex items-center">
             <div className="space-y-0.5">
@@ -313,7 +313,7 @@ export default function Index() {
             )}
           </ClientOnly>
         </div>
-      </main>
+      </div>
       {selectedField && (
         <FieldDetailsInfoPopup
           open={open}
@@ -322,7 +322,7 @@ export default function Index() {
           hint="Dit perceel is al opgeslagen. U kunt percelen verwijderen op de volgende pagina."
         />
       )}
-    </SidebarInset>
+    </PageContainer>
   )
 }
 

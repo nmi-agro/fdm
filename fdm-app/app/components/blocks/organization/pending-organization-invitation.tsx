@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Bell, Check, Clock, X } from "lucide-react"
-import { Form } from "react-router"
+import { useFetcher } from "react-router"
 import type { auth } from "@/app/lib/auth.server"
 import { Button } from "~/components/ui/button"
 import {
@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { Field } from "~/components/ui/field"
+import { Spinner } from "~/components/ui/spinner"
 import { getOrganizationRoleLabel } from "~/lib/organization-helpers"
 
 type Props = {
@@ -30,6 +31,9 @@ type Props = {
 }
 
 export function PendingOrganizationInvitationCard({ invitation }: Props) {
+  const acceptFetcher = useFetcher()
+  const declineFetcher = useFetcher()
+  const isPending = acceptFetcher.state !== "idle" || declineFetcher.state !== "idle"
   const organizationLabel = invitation.organizationName ?? invitation.organizationId
   const expiresText = formatDistanceToNow(invitation.expiresAt, {
     addSuffix: true,
@@ -61,20 +65,30 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
         </div>
       </CardContent>
       <CardFooter className="flex gap-2">
-        <Form method="post" className="flex-1">
+        <acceptFetcher.Form method="post" className="flex-1">
           <input type="hidden" name="intent" value="accept_organization_invitation" />
           <input type="hidden" name="invitation_id" value={invitation.id} />
-          <Button type="submit" size="sm" className="w-full">
-            <Check className="mr-1 h-3 w-3" />
-            Accepteren
+          <Button type="submit" size="sm" className="w-full" disabled={isPending}>
+            {acceptFetcher.state !== "idle" ? (
+              <Spinner className="mr-1 h-3 w-3" />
+            ) : (
+              <Check className="mr-1 h-3 w-3" />
+            )}
+            <span>Accepteren</span>
           </Button>
-        </Form>
+        </acceptFetcher.Form>
         <Dialog>
           <DialogTrigger
             render={
-              <Button type="button" size="sm" variant="outline" className="flex-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                disabled={isPending}
+              >
                 <X className="mr-1 h-3 w-3" />
-                Weigeren
+                <span>Weigeren</span>
               </Button>
             }
           />
@@ -86,7 +100,7 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Form method="post">
+              <declineFetcher.Form method="post">
                 <Field orientation="horizontal">
                   <input type="hidden" name="intent" value="decline_organization_invitation" />
                   <input type="hidden" name="invitation_id" value={invitation.id} />
@@ -96,8 +110,10 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                     name="intent"
                     value="decline_organization_invitation"
                     size="sm"
+                    disabled={isPending}
                   >
-                    Ja, weigeren
+                    {declineFetcher.state !== "idle" && <Spinner />}
+                    <span>Ja, weigeren</span>
                   </Button>
                   <DialogClose
                     render={
@@ -107,7 +123,7 @@ export function PendingOrganizationInvitationCard({ invitation }: Props) {
                     }
                   />
                 </Field>
-              </Form>
+              </declineFetcher.Form>
             </DialogFooter>
           </DialogContent>
         </Dialog>

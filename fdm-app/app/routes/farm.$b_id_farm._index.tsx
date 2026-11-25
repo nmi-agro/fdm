@@ -8,7 +8,6 @@ import {
   getFields,
 } from "@nmi-agro/fdm-core"
 import { cn } from "cn"
-import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -16,7 +15,6 @@ import {
   // BadgeAlert,
   // BadgeCheck,
   BookOpenText,
-  ChevronDown,
   ChevronUp,
   CloudDownload,
   CloudUpload,
@@ -25,50 +23,42 @@ import {
   Home,
   Icon,
   Landmark,
-  Loader2,
   MapIcon,
   PlusIcon,
   ScrollText,
   Shapes,
-  Sparkles,
   Sprout,
   Square,
   Trash2,
   UserRoundCheck,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useRef } from "react"
 import {
   type ActionFunctionArgs,
+  Await,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
   redirect,
-  useFetcher,
   useLoaderData,
   useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import type { HelpHandle } from "~/lib/manual/help-targets"
-import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
+import {
+  CultivationAssistant,
+  type FieldCultivationSuggestion,
+} from "~/components/blocks/cultivation/assistant"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { Badge } from "~/components/ui/badge"
-import { Button, buttonVariants } from "~/components/ui/button"
+import { PageContainer } from "~/components/custom/page-container"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { Checkbox } from "~/components/ui/checkbox"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -77,14 +67,14 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { useFarmWarmup } from "~/hooks/use-farm-warmup"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
+import { getCultivationSuggestionResultsForFarm } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError, isToastResponse } from "~/lib/error"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
@@ -94,7 +84,8 @@ import { useCalendarStore } from "~/store/calendar"
 
 // Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
 // missing a main cultivation don't overload the external NMI API with unbounded parallel
-// requests (same concurrency-limiting approach as the nutrient advice overview loader).
+// requests (same concurrency-limiting approach as the nutrient advice overview loader). Also
+// caps the cultivations that are added at the same time when suggestions are accepted.
 const CULTIVATION_SUGGESTION_CONCURRENCY = 4
 
 /** Splits an array into consecutive chunks of at most `size` items each. */
@@ -187,32 +178,25 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 
     // For fields missing a main cultivation, look up an NMI-estimate-based suggestion (BRP guess)
     // so the user can accept it instead of searching for the crop from scratch. Silently omitted
-    // (never blocks the dashboard) when no NMI API key is configured or no estimate is available.
-    // Looked up in small concurrency-limited batches so a farm with many affected fields doesn't
-    // fire unbounded parallel requests at the external NMI API.
-    const nmiApiKey = getNmiApiKey()
-    const fieldsMissingCultivationDetails: {
-      b_id: string
-      b_name: string
-      result: Awaited<ReturnType<typeof getCultivationSuggestionResult>>
-    }[] = []
-    for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
-      const chunkResults = await Promise.all(
-        fieldsChunk.map(async (field) => ({
+    // when no NMI API key is configured or no estimate is available. The database is read once
+    // for the farm and the NMI API gets a limited number of requests at the same time. Not
+    // awaited, so the dashboard renders without waiting for the NMI API.
+    const fieldsMissingCultivationDetails: Promise<FieldCultivationSuggestion[]> =
+      getCultivationSuggestionResultsForFarm(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        fieldsMissingCultivation.map((field) => field.b_id),
+        activeYear,
+        getNmiApiKey(),
+        { concurrency: CULTIVATION_SUGGESTION_CONCURRENCY },
+      ).then((results) =>
+        fieldsMissingCultivation.map((field) => ({
           b_id: field.b_id,
           b_name: field.b_name,
-          result: await getCultivationSuggestionResult(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            field.b_id,
-            activeYear,
-            nmiApiKey,
-          ),
+          result: results.get(field.b_id) ?? { status: "unavailable" },
         })),
       )
-      fieldsMissingCultivationDetails.push(...chunkResults)
-    }
 
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, session.principal_id)
@@ -308,13 +292,10 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       }
 
       // Fetch fields and cultivations for the farm
-      const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-      const cultivationsByField = await getCultivationsForFarm(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-        timeframe,
-      )
+      const [fields, cultivationsByField] = await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      ])
 
       const fieldsMissingCultivation = fields
         .filter((field) => selectedBIds.includes(field.b_id))
@@ -322,55 +303,50 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
           (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
         )
 
-      const nmiApiKey = getNmiApiKey()
+      // The suggestions of all selected fields, with one database read for the farm and a limited
+      // number of NMI API requests at the same time
+      const suggestions = await getCultivationSuggestionResultsForFarm(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        fieldsMissingCultivation.map((field) => field.b_id),
+        activeYear,
+        getNmiApiKey(),
+        { concurrency: CULTIVATION_SUGGESTION_CONCURRENCY },
+      )
+      const suggestedFields = fieldsMissingCultivation.flatMap((field) => {
+        const result = suggestions.get(field.b_id)
+        return result?.status === "suggested" ? [{ b_id: field.b_id, ...result.suggestion }] : []
+      })
+
       let acceptedCount = 0
       let failedCount = 0
 
-      for (const fieldsChunk of chunk(
-        fieldsMissingCultivation,
-        CULTIVATION_SUGGESTION_CONCURRENCY,
-      )) {
+      for (const fieldsChunk of chunk(suggestedFields, CULTIVATION_SUGGESTION_CONCURRENCY)) {
         const results = await Promise.allSettled(
-          fieldsChunk.map(async (field) => {
-            const result = await getCultivationSuggestionResult(
+          fieldsChunk.map(async (suggestion) => {
+            await addCultivation(
               fdm,
               session.principal_id,
-              b_id_farm,
-              field.b_id,
-              activeYear,
-              nmiApiKey,
+              suggestion.b_lu_catalogue,
+              suggestion.b_id,
+              suggestion.b_lu_start,
+              suggestion.b_lu_end,
             )
 
-            if (result.status === "suggested" && result.suggestion) {
-              await addCultivation(
-                fdm,
-                session.principal_id,
-                result.suggestion.b_lu_catalogue,
-                field.b_id,
-                result.suggestion.b_lu_start,
-                result.suggestion.b_lu_end,
-              )
-
-              captureEvent(session.principal_id, "cultivation_added", {
-                b_id_farm,
-                b_id: field.b_id,
-                b_lu_catalogue: result.suggestion.b_lu_catalogue,
-                calendar: activeYear,
-                source: "batch_brp_suggestion",
-              })
-
-              return true
-            }
-
-            return false
+            captureEvent(session.principal_id, "cultivation_added", {
+              b_id_farm,
+              b_id: suggestion.b_id,
+              b_lu_catalogue: suggestion.b_lu_catalogue,
+              calendar: activeYear,
+              source: "batch_brp_suggestion",
+            })
           }),
         )
 
         for (const res of results) {
           if (res.status === "fulfilled") {
-            if (res.value) {
-              acceptedCount++
-            }
+            acceptedCount++
           } else {
             failedCount++
           }
@@ -452,14 +428,21 @@ function ActionLink({
 
 export default function FarmDashboardIndex() {
   const loaderData = useLoaderData<typeof loader>()
-  const fetcher = useFetcher()
 
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // Fill the calculation cache in the background, so the calculation pages open faster. Only for
+  // the year that stays: without a year in the URL, the page first switches to the selected year.
+  useFarmWarmup(
+    loaderData.b_id_farm,
+    loaderData.activeYear,
+    loaderData.fieldsNumber > 0 &&
+      (searchParams.get("calendar") === loaderData.activeYear ||
+        calendar === loaderData.activeYear),
+  )
   const years = getCalendarSelection()
-  const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
-  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
   const lastRedirectedCalendarVal = useRef(loaderData.activeYear)
   const pendingCalendarVal = useRef<string | null>(null)
@@ -488,49 +471,8 @@ export default function FarmDashboardIndex() {
     }
   }, [loaderData.activeYear, searchParams, setSearchParams, calendar, setCalendar])
 
-  const isAcceptingAll = fetcher.state !== "idle"
-  const suggestedFields = useMemo(
-    () =>
-      loaderData.fieldsMissingCultivationDetails.filter(
-        (field) => field.result.status === "suggested",
-      ),
-    [loaderData.fieldsMissingCultivationDetails],
-  )
-  const suggestedFieldsCount = suggestedFields.length
-
-  // Pruned against the current suggestedFields during render, instead of via an effect, so a
-  // field that drops out of the list (e.g. after a revalidation) can't linger as "selected".
-  const [rawSelectedFieldIds, setSelectedFieldIds] = useState<string[]>([])
-  const selectedFieldIds = rawSelectedFieldIds.filter((id) =>
-    suggestedFields.some((f) => f.b_id === id),
-  )
-
-  const toggleFieldSelection = (b_id: string) => {
-    setSelectedFieldIds((prev) =>
-      prev.includes(b_id) ? prev.filter((id) => id !== b_id) : [...prev, b_id],
-    )
-  }
-
-  const toggleAllFields = () => {
-    if (selectedFieldIds.length === suggestedFields.length) {
-      setSelectedFieldIds([])
-    } else {
-      setSelectedFieldIds(suggestedFields.map((f) => f.b_id))
-    }
-  }
-
-  const handleOpenReviewDialog = () => {
-    setSelectedFieldIds(suggestedFields.map((f) => f.b_id))
-    setIsReviewDialogOpen(true)
-  }
-
-  const handleOpenReviewForSingleField = (b_id: string) => {
-    setSelectedFieldIds([b_id])
-    setIsReviewDialogOpen(true)
-  }
-
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: "/",
@@ -540,7 +482,7 @@ export default function FarmDashboardIndex() {
       >
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={`${loaderData.b_name_farm}`}
           description={"Een overzicht van de bedrijfsgegevens en applicaties."}
@@ -815,89 +757,30 @@ export default function FarmDashboardIndex() {
                     </div>
                     */}
                     {loaderData.fieldsMissingCultivation > 0 && (
-                      <div className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3.5 transition-all dark:border-amber-500/20 dark:bg-amber-500/10">
-                        <div className="flex items-start gap-2.5">
-                          <div className="mt-0.5 shrink-0 rounded-md bg-amber-500/15 p-1.5 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
-                            <Sparkles className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
-                              Teeltassistent
-                            </p>
-                            <p className="mt-0.5 text-xs text-amber-800/90 dark:text-amber-200/90">
-                              {loaderData.fieldsMissingCultivation}{" "}
-                              {loaderData.fieldsMissingCultivation === 1
-                                ? "perceel heeft"
-                                : "percelen hebben"}{" "}
-                              nog geen hoofdteelt voor dit jaar.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-500/15 pt-1">
-                          {suggestedFieldsCount > 0 && loaderData.farmWritePermission ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={handleOpenReviewDialog}
-                              disabled={isAcceptingAll}
-                              className="h-8 cursor-pointer gap-1.5 bg-amber-600 text-xs font-medium text-white shadow-xs transition-all hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
-                            >
-                              Controleer & accepteer ({suggestedFieldsCount})
-                            </Button>
-                          ) : (
-                            <div />
+                      // The suggestions come from the NMI API; the dashboard does not wait for them
+                      <Suspense
+                        fallback={
+                          <CultivationAssistant
+                            b_id_farm={loaderData.b_id_farm}
+                            cultivationYear={loaderData.cultivationYear}
+                            fieldsMissingCultivation={loaderData.fieldsMissingCultivation}
+                            fields={undefined}
+                            canWrite={loaderData.farmWritePermission}
+                          />
+                        }
+                      >
+                        <Await resolve={loaderData.fieldsMissingCultivationDetails}>
+                          {(fieldsMissingCultivationDetails) => (
+                            <CultivationAssistant
+                              b_id_farm={loaderData.b_id_farm}
+                              cultivationYear={loaderData.cultivationYear}
+                              fieldsMissingCultivation={loaderData.fieldsMissingCultivation}
+                              fields={fieldsMissingCultivationDetails}
+                              canWrite={loaderData.farmWritePermission}
+                            />
                           )}
-
-                          <button
-                            type="button"
-                            onClick={() => setShowMissingCultivationDetails((prev) => !prev)}
-                            className="ml-auto flex cursor-pointer items-center gap-1 text-xs font-medium text-amber-800 underline underline-offset-2 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100"
-                          >
-                            {showMissingCultivationDetails ? (
-                              <>
-                                <ChevronUp className="h-3.5 w-3.5" />
-                                <span key="hide">Verberg details</span>
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3.5 w-3.5" />
-                                <span key="show">Details per perceel</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {showMissingCultivationDetails && (
-                          <div className="max-h-80 space-y-2.5 overflow-y-auto border-t border-amber-500/20 pt-3">
-                            {loaderData.fieldsMissingCultivationDetails.map((field) => (
-                              <div key={field.b_id} className="space-y-1">
-                                <CultivationSuggestionStatusBanner
-                                  b_id_farm={loaderData.b_id_farm}
-                                  calendar={loaderData.cultivationYear}
-                                  b_id={field.b_id}
-                                  b_name={field.b_name}
-                                  result={field.result}
-                                  onAccept={
-                                    loaderData.farmWritePermission
-                                      ? () => handleOpenReviewForSingleField(field.b_id)
-                                      : undefined
-                                  }
-                                  canWrite={loaderData.farmWritePermission}
-                                />
-                                {field.result.status !== "suggested" && (
-                                  <NavLink
-                                    to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
-                                    className="block text-xs text-amber-800/80 underline underline-offset-2 hover:text-amber-950 dark:text-amber-300/80 dark:hover:text-amber-100"
-                                  >
-                                    {field.b_name}: hoofdteelt handmatig toevoegen →
-                                  </NavLink>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        </Await>
+                      </Suspense>
                     )}
                     <Separator />
                     {/* Role + Year */}
@@ -1005,152 +888,7 @@ export default function FarmDashboardIndex() {
             </div>
           </div>
         </FarmContent>
-      </main>
-      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-        <DialogContent className="max-w-md sm:max-w-lg">
-          <DialogHeader>
-            <div className="flex items-center gap-2.5">
-              <div className="rounded-md bg-amber-500/15 p-2 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div className="text-left">
-                <DialogTitle>Teeltassistent: BRP-voorstellen controleren</DialogTitle>
-                <DialogDescription className="mt-1 text-xs">
-                  Controleer de BRP-schattingen voor {suggestedFields.length}{" "}
-                  {suggestedFields.length === 1 ? "perceel" : "percelen"}. Vink percelen aan of uit
-                  voordat je ze in 1 stap toevoegt.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <div className="text-muted-foreground flex items-center justify-between border-b pb-2 text-xs">
-              <span className="font-medium">
-                {selectedFieldIds.length} van {suggestedFields.length} percelen geselecteerd
-              </span>
-              <button
-                type="button"
-                onClick={toggleAllFields}
-                className="text-primary cursor-pointer text-xs font-medium hover:underline"
-              >
-                <span key={selectedFieldIds.length === suggestedFields.length ? "none" : "all"}>
-                  {selectedFieldIds.length === suggestedFields.length
-                    ? "Alles deselecteren"
-                    : "Alles selecteren"}
-                </span>
-              </button>
-            </div>
-
-            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-              {suggestedFields.map((field) => {
-                const isChecked = selectedFieldIds.includes(field.b_id)
-                const suggestion =
-                  field.result.status === "suggested" ? field.result.suggestion : undefined
-
-                if (!suggestion) return null
-
-                return (
-                  <div
-                    key={field.b_id}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={isChecked}
-                    onClick={() => toggleFieldSelection(field.b_id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        toggleFieldSelection(field.b_id)
-                      }
-                    }}
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-left transition-colors",
-                      isChecked
-                        ? "border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10"
-                        : "border-border bg-muted/20 opacity-60 hover:opacity-100",
-                    )}
-                  >
-                    <Checkbox
-                      checked={isChecked}
-                      tabIndex={-1}
-                      className="pointer-events-none mt-0.5"
-                    />
-                    <div className="min-w-0 flex-1 space-y-1 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-foreground font-semibold">{field.b_name}</p>
-                        <Badge variant="secondary" className="py-0 text-[10px] font-normal">
-                          BRP-schatting
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground font-medium">
-                        Voorgesteld gewas:{" "}
-                        <span className="text-foreground font-semibold">
-                          {suggestion.b_lu_name}
-                        </span>
-                      </p>
-                      <div className="text-muted-foreground flex items-center gap-3 text-[11px]">
-                        <span>
-                          Start:{" "}
-                          <span className="text-foreground font-medium">
-                            {format(new Date(suggestion.b_lu_start), "dd-MM-yyyy")}
-                          </span>
-                        </span>
-                        {suggestion.b_lu_end && (
-                          <span>
-                            Einde:{" "}
-                            <span className="text-foreground font-medium">
-                              {format(new Date(suggestion.b_lu_end), "dd-MM-yyyy")}
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsReviewDialogOpen(false)}
-              disabled={isAcceptingAll}
-            >
-              Annuleren
-            </Button>
-            <fetcher.Form
-              method="post"
-              onSubmit={() => {
-                setTimeout(() => setIsReviewDialogOpen(false), 200)
-              }}
-            >
-              <input type="hidden" name="intent" value="accept_all_suggestions" />
-              <input type="hidden" name="calendar" value={loaderData.cultivationYear} />
-              {selectedFieldIds.map((b_id) => (
-                <input key={b_id} type="hidden" name="selected_b_id" value={b_id} />
-              ))}
-              <Button
-                type="submit"
-                disabled={selectedFieldIds.length === 0 || isAcceptingAll}
-                className="cursor-pointer gap-1.5 bg-amber-600 font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
-              >
-                {isAcceptingAll ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Toevoegen...</span>
-                  </>
-                ) : (
-                  <span key={selectedFieldIds.length}>
-                    {`Bevestigen en toevoegen (${selectedFieldIds.length})`}
-                  </span>
-                )}
-              </Button>
-            </fetcher.Form>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

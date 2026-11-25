@@ -24,9 +24,9 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { type CropRow, columns, FieldRow } from "~/components/blocks/rotation/columns"
 import { RotationTableFormSchema } from "~/components/blocks/rotation/schema"
 import { DataTable } from "~/components/blocks/rotation/table"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { buttonVariants } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -338,6 +338,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  * @example
  * <FarmFieldIndex />
  */
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function FarmRotationIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const { capture } = useAnalytics()
@@ -351,7 +353,7 @@ export default function FarmRotationIndex() {
     ""
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${loaderData.b_id_farm}`,
@@ -364,7 +366,7 @@ export default function FarmRotationIndex() {
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Bouwplan</BreadcrumbItem>
       </Header>
-      <main className="min-w-0">
+      <div className="min-w-0">
         {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
@@ -424,9 +426,9 @@ export default function FarmRotationIndex() {
             </FarmContent>
           </>
         )}
-      </main>
+      </div>
       <Outlet />
-    </SidebarInset>
+    </PageContainer>
   )
 }
 

@@ -285,17 +285,22 @@ export async function getFieldMeasuresForIndicators({
  * Collects inputs and fetches BLN3 measure applicability for a single field.
  *
  * Returns a record mapping measure IDs (`bln_BM86`) to their applicability status and message.
+ * An excluded field, a missing API key and, by default, a failed NMI request all return an
+ * empty record. With `throwOnError`, a failed NMI request throws instead, so callers can tell
+ * it apart from a successful empty result.
  */
 export async function getMeasureApplicabilityForField({
   principal_id,
   b_id,
   b_year,
   timeframe,
+  throwOnError = false,
 }: {
   principal_id: PrincipalId
   b_id: string
   b_year: number
   timeframe?: Timeframe
+  throwOnError?: boolean
 }): Promise<Record<string, MeasureApplicabilityInfo>> {
   const inputs = await collectInputForBln3MeasureApplicability(
     fdm,
@@ -329,6 +334,7 @@ export async function getMeasureApplicabilityForField({
     return map
   } catch (err) {
     console.error(`Failed to fetch BLN3 measure applicability for field ${b_id}:`, err)
+    if (throwOnError) throw err
     return {}
   }
 }
@@ -355,19 +361,26 @@ function errorMessage(error: unknown): string {
 }
 
 /**
+ * The measure inputs of the fields of a farm, collected once and shared by the applicability and
+ * the advice of the measures. Create it with {@link collectFarmMeasureInputs}.
+ */
+export type FarmMeasureInputs = Map<string, ApplicabilityInputsResult>
+
+/**
  * Collects the measure applicability inputs of the given fields with farm-level queries. These
  * inputs serve both the applicability and the advice of the measures.
  *
  * A field missing from the farm inputs (for example one outside the timeframe) is collected on
- * its own. When the farm inputs cannot be collected, every field gets the error.
+ * its own. When the farm inputs cannot be collected, every field gets the error. The returned
+ * promise never rejects.
  */
-async function collectApplicabilityInputsForFields({
+export async function collectFarmMeasureInputs({
   principal_id,
   b_id_farm,
   b_ids,
   b_year,
   timeframe,
-}: FarmFieldsArgs): Promise<Map<string, ApplicabilityInputsResult>> {
+}: FarmFieldsArgs): Promise<FarmMeasureInputs> {
   const farmInputs = await collectInputForBln3MeasureApplicabilityForFarm(
     fdm,
     principal_id,
@@ -446,9 +459,15 @@ function toApplicabilityRecord(
   return map
 }
 
-/** Requests the measure applicability of the fields whose inputs were collected. */
+/**
+ * Requests the measure applicability of the fields whose inputs were collected. A field whose
+ * inputs cannot be collected maps to `null`. A field whose request fails maps to an empty record,
+ * or to `null` with `reportFailures`, so callers can tell a failure apart from "no applicable
+ * measures".
+ */
 async function getApplicabilityFromInputs(
   inputsByField: Map<string, ApplicabilityInputsResult>,
+  { reportFailures = false }: { reportFailures?: boolean } = {},
 ): Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>> {
   const results = await requestForFields(inputsByField, getBln3MeasureApplicability)
   const fieldApplicabilityMap: Record<string, Record<string, MeasureApplicabilityInfo> | null> = {}
@@ -463,7 +482,7 @@ async function getApplicabilityFromInputs(
       fieldApplicabilityMap[b_id] = null
     } else if ("error" in result) {
       console.error(`Failed to fetch BLN3 measure applicability for field ${b_id}:`, result.error)
-      fieldApplicabilityMap[b_id] = {}
+      fieldApplicabilityMap[b_id] = reportFailures ? null : {}
     } else {
       fieldApplicabilityMap[b_id] = result.value ? toApplicabilityRecord(result.value) : {}
     }
@@ -491,17 +510,22 @@ async function getAdviceFromInputs(
 /**
  * Fetches BLN3 measure applicability for multiple fields of a farm.
  *
- * The inputs are collected with farm-level queries and the cached results of all fields are
- * looked up at once; at most 5 missing results are requested from the NMI API at the same
- * time. A field whose request fails returns an empty record, and a field whose inputs cannot
- * be collected returns `null`, rather than failing the entire request.
+ * Takes the inputs from {@link collectFarmMeasureInputs}, so a page that also needs the measure
+ * advice collects them only once. The cached results of all fields are looked up at once; at
+ * most 5 missing results are requested from the NMI API at the same time. A field whose request
+ * fails returns an empty record, and a field whose inputs cannot be collected returns `null`,
+ * rather than failing the entire request. With `reportFailures`, a field whose request fails
+ * also returns `null`, so callers can tell a failure apart from "no applicable measures".
  *
+ * @param inputsByField - The inputs from {@link collectFarmMeasureInputs}.
+ * @param options.reportFailures - Map a failed request to `null` instead of an empty record.
  * @returns A record mapping `b_id` to a record mapping `m_id` to `MeasureApplicabilityInfo`.
  */
 export async function getMeasureApplicabilityForFields(
-  args: FarmFieldsArgs,
+  inputsByField: FarmMeasureInputs,
+  options: { reportFailures?: boolean } = {},
 ): Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>> {
-  return getApplicabilityFromInputs(await collectApplicabilityInputsForFields(args))
+  return getApplicabilityFromInputs(inputsByField, options)
 }
 
 /**
@@ -563,18 +587,19 @@ export async function getMeasureAdviceForField({
 /**
  * Fetches BLN3 measure advice for multiple fields of a farm.
  *
- * The inputs are collected with farm-level queries and the cached advice of all fields is
- * looked up at once; at most 5 missing results are requested from the NMI API at the same
- * time, so a farm-level page never fires 50+ concurrent NMI requests. An individual field's
- * failure maps to `null` (advice unavailable) rather than failing the whole request — callers
- * must not treat `null` as "no recommendations".
+ * Takes the inputs from {@link collectFarmMeasureInputs}, so a caller that also needs the
+ * measure applicability collects them only once. The cached advice of all fields is looked up
+ * at once; at most 5 missing results are requested from the NMI API at the same time, so a
+ * farm-level page never fires 50+ concurrent NMI requests. An individual field's failure maps
+ * to `null` (advice unavailable) rather than failing the whole request — callers must not
+ * treat `null` as "no recommendations".
  *
  * @returns A record mapping `b_id` to a `Bln3MeasureAdviceResult`, or `null` for failed fields.
  */
 export async function getMeasureAdviceForFields(
-  args: FarmFieldsArgs,
+  inputsByField: FarmMeasureInputs,
 ): Promise<Record<string, Bln3MeasureAdviceResult | null>> {
-  return getAdviceFromInputs(await collectApplicabilityInputsForFields(args))
+  return getAdviceFromInputs(inputsByField)
 }
 
 /**
@@ -622,9 +647,20 @@ export type FarmMeasureOpportunity = FieldTopOpportunity & {
  * best variant). `candidates` holds every eligible variant per field, so
  * callers can choose one variant per family over several fields.
  *
- * Advice failures are represented by missing entries and skipped. A rejection
+ * Fields whose advice, applicability or score could not be loaded are skipped;
+ * `adviceAvailable` is `true` only when at least one field had all three. A rejection
  * of either batch fetch is intentionally propagated so route loaders can
  * report it and hide the lazy recommendation surface.
+ *
+ * A page that already collected the inputs or requested the applicability
+ * passes them as `measureInputs` and `applicabilityByField`, so neither is
+ * collected or requested twice. The scores may be passed as a promise: they
+ * are only needed after the NMI requests, so both run at the same time.
+ *
+ * Only successful applicability lookups are reused: fields that are missing from
+ * `applicabilityByField` or map to `null` (a failed lookup) are requested again. The
+ * applicability that is used, including these retries, is returned as
+ * `applicabilityByField`, so callers can show the same result.
  */
 export async function getFarmMeasureOpportunities({
   principal_id,
@@ -635,26 +671,53 @@ export async function getFarmMeasureOpportunities({
   scoreByBid,
   activeMeasureIdsByField,
   measureNameById,
+  measureInputs,
+  applicabilityByField: knownApplicabilityByField,
 }: FarmFieldsArgs & {
-  scoreByBid: Map<string, Bln3Score | null>
+  scoreByBid: Map<string, Bln3Score | null> | Promise<Map<string, Bln3Score | null>>
   activeMeasureIdsByField: Map<string, Set<string>>
   measureNameById: Map<string, string>
+  /** The inputs from {@link collectFarmMeasureInputs}, covering at least `b_ids`. */
+  measureInputs?: Promise<FarmMeasureInputs>
+  /**
+   * The applicability from {@link getMeasureApplicabilityForFields}. Fields that are missing or
+   * `null` are requested again.
+   */
+  applicabilityByField?:
+    | Record<string, Record<string, MeasureApplicabilityInfo> | null>
+    | Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>>
 }): Promise<{
   opportunities: FarmMeasureOpportunity[]
   candidates: FarmMeasureOpportunity[]
   adviceAvailable: boolean
+  /** The applicability per field that was used, including the fields requested again */
+  applicabilityByField: Record<string, Record<string, MeasureApplicabilityInfo> | null>
 }> {
   // Applicability and advice use the same inputs, so collect them once
-  const inputsByField = await collectApplicabilityInputsForFields({
-    principal_id,
-    b_id_farm,
-    b_ids,
-    b_year,
-    timeframe,
-  })
-  const [applicabilityByField, adviceByField] = await Promise.all([
-    getApplicabilityFromInputs(inputsByField),
+  const collectedInputs = await (measureInputs ??
+    collectFarmMeasureInputs({ principal_id, b_id_farm, b_ids, b_year, timeframe }))
+  // Request the advice only for the given fields, also when the inputs cover more
+  const inputsByField: FarmMeasureInputs = new Map()
+  for (const b_id of b_ids) {
+    const inputs = collectedInputs.get(b_id)
+    if (inputs) inputsByField.set(b_id, inputs)
+  }
+  // Reuse the successful applicability lookups and request the fields that are missing or failed.
+  // A failed request stays `null`, so the field is skipped instead of read as "nothing applicable".
+  const applicabilityRequest = (async () => {
+    const known = (await knownApplicabilityByField) ?? {}
+    const missing: FarmMeasureInputs = new Map()
+    for (const [b_id, inputs] of inputsByField) {
+      if (!known[b_id]) missing.set(b_id, inputs)
+    }
+    const requested =
+      missing.size > 0 ? await getApplicabilityFromInputs(missing, { reportFailures: true }) : {}
+    return { ...known, ...requested }
+  })()
+  const [applicabilityByField, adviceByField, scores] = await Promise.all([
+    applicabilityRequest,
     getAdviceFromInputs(inputsByField),
+    scoreByBid,
   ])
 
   const opportunities: FarmMeasureOpportunity[] = []
@@ -668,10 +731,14 @@ export async function getFarmMeasureOpportunities({
     const applicability = applicabilityByField[b_id]
     if (applicability === null || applicability === undefined) continue
 
+    // Without a score the weak indicators are unknown, so the field cannot get recommendations
+    const score = scores.get(b_id) ?? null
+    if (!score) continue
+
     adviceAvailable = true
     const fieldCandidates = getFieldOpportunityCandidates({
       advice,
-      score: scoreByBid.get(b_id) ?? null,
+      score,
       applicability,
       activeMeasureIds: activeMeasureIdsByField.get(b_id) ?? new Set(),
     })
@@ -690,5 +757,5 @@ export async function getFarmMeasureOpportunities({
     }
   }
 
-  return { opportunities, candidates, adviceAvailable }
+  return { opportunities, candidates, adviceAvailable, applicabilityByField }
 }

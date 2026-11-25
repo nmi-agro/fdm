@@ -13,10 +13,10 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v7
 
-      - name: Use Node.js 24
+      - name: Use Node.js 26
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       # Zero-dependency check, so it needs no install and runs in seconds.
       # Rules are documented in .claude/skills/fdm-schema/SKILL.md

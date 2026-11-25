@@ -2,7 +2,7 @@ import type { ZodError } from "zod"
 import {
   addFarmVerification,
   type Field,
-  getCultivations,
+  getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getFarm,
   getFarms,
@@ -46,6 +46,7 @@ import {
   getImportValidationMessage,
   ImportReviewChoicesSchema,
 } from "~/components/blocks/rvo/schema"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -59,7 +60,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import { SidebarInset } from "~/components/ui/sidebar"
 import {
   createConfiguredRvoClient,
   createRvoState,
@@ -231,22 +231,19 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
         })
       }
 
-      const localFields = await getFields(fdm, session.principal_id, b_id_farm)
-      const localFieldsExtended = await Promise.all(
-        localFields.map(async (field) => {
-          const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, {
-            start: new Date(`${yearString}-01-01`),
-            end: new Date(`${yearString}-12-31`),
-          })
-          return { ...field, cultivations }
+      // Read the fields, the cultivations of all fields in the year and the catalogue at once
+      const [localFields, cultivationsByField, cultivationsCatalogue] = await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm),
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
+          start: new Date(`${yearString}-01-01`),
+          end: new Date(`${yearString}-12-31`),
         }),
-      )
-
-      const cultivationsCatalogue = await getCultivationsFromCatalogue(
-        fdm,
-        session.principal_id,
-        b_id_farm,
-      )
+        getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+      ])
+      const localFieldsExtended = localFields.map((field) => ({
+        ...field,
+        cultivations: cultivationsByField.get(field.b_id) ?? [],
+      }))
 
       rvoImportReviewData = compareFields(
         localFieldsExtended,
@@ -375,7 +372,7 @@ export default function RvoImportReviewPage() {
 
   if (error) {
     return (
-      <SidebarInset>
+      <PageContainer>
         <Header
           action={{
             to: `/farm/${b_id_farm}`,
@@ -387,7 +384,7 @@ export default function RvoImportReviewPage() {
           <BreadcrumbSeparator />
           <BreadcrumbItem className="hidden md:block">Percelen ophalen bij RVO</BreadcrumbItem>
         </Header>
-        <main>
+        <div>
           <div className="flex items-center justify-between">
             <FarmTitle
               title={accessDenied ? "Geen toegang bij RVO" : "Fout bij ophalen percelen bij RVO"}
@@ -415,13 +412,13 @@ export default function RvoImportReviewPage() {
               </div>
             </div>
           </FarmContent>
-        </main>
-      </SidebarInset>
+        </div>
+      </PageContainer>
     )
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${b_id_farm}`,
@@ -433,7 +430,7 @@ export default function RvoImportReviewPage() {
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Percelen ophalen bij RVO</BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         {actionData?.message && (
           <div className="p-6">
             <Alert variant={actionData.success ? "default" : "destructive"}>
@@ -566,8 +563,8 @@ export default function RvoImportReviewPage() {
             </FarmContent>
           </>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

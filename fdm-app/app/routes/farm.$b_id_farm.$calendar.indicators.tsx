@@ -11,7 +11,7 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderIndicators } from "~/components/blocks/header/indicators"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -76,6 +76,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function IndicatorsLayout() {
   const loaderData = useLoaderData<typeof loader>()
   const { b_id } = useParams()
@@ -93,14 +95,14 @@ export default function IndicatorsLayout() {
       }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderIndicators b_id_farm={loaderData.b_id_farm} />
       </Header>
-      <main className="min-w-0">
+      <div className="min-w-0">
         <Outlet />
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

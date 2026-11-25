@@ -110,7 +110,7 @@ export default function OrganizationIndex() {
   const permissions = organization.permissions
 
   return (
-    <main>
+    <div>
       <FarmTitle
         title={`Leden van ${organization.name}`}
         description="Beheer de leden met toegang tot deze organisatie."
@@ -167,7 +167,7 @@ export default function OrganizationIndex() {
           ) : null}
         </div>
       </div>
-    </main>
+    </div>
   )
 }
 

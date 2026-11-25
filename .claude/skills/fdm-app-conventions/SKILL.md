@@ -1,7 +1,7 @@
 ---
 name: fdm-app-conventions
 description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this large, lightly tested package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
-version: 1.1.0
+version: 1.3.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
@@ -88,6 +88,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 - **Actions branch on an intent field** and end with `throw data("Ongeldige actie", { status: 400 })` for an unrecognised branch.
 - **Successful actions return `dataWithSuccess(...)`** from `remix-toast` so the user gets feedback; `dataWithError` / `dataWithWarning` are the failure equivalents.
 - **Bound external calls.** Loaders that fan out to an external API per field limit concurrency with an explicit constant rather than issuing unbounded `Promise.all`.
+- **Read per farm, not per item.** A page about many fields, cultivations or farms uses the batched fdm-core reads (`getCultivationsForFarm`, `getHarvestsForFarm`, `getCurrentSoilDataForFarm`, `getSoilAnalysesForFarm`, `getFertilizerApplicationsForFarm`, `getMeasuresForFarm`, `getFieldsForFarms`) once and looks items up in the returned `Map`, so the number of queries does not grow with the data. Run independent reads in one `Promise.all`. Cached calculations have a `.many` path that batches cache reads and writes. A field inherits its permissions from its farm, so one farm check replaces a check per field.
+- **Keep prefetched loaders database-only.** Sidebar links use `prefetch="intent"` only for pages whose loaders don't call an external API. When such a page needs NMI data that is not essential, load it after render from a resource route with a fetcher (as the fields table does with `farm.$b_id_farm.$calendar.cultivation-suggestions`), or return it as an unawaited promise for `<Await>` on pages that are not prefetched.
 
 Every route also exports `meta` returning a title of the form `` `Pagina | ${clientConfig.name}` `` plus a description.
 
@@ -110,7 +112,7 @@ Decide placement before writing:
 | `components/blocks/<domain>/` | Feature components (306 files) | The default home for new UI. Group by domain: `farm/`, `field/`, `fertilizer-applications/`, `soil/`, `norms/`, … |
 | `components/custom/` | Cross-feature shared components | Only when a component is genuinely used across domains and is not a shadcn primitive. |
 
-Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep relative paths. Class names compose through `cn()` from `~/lib/utils`.
+Imports use the `~/` alias (`~/components/ui/button`, `~/lib/calendar`), never deep relative paths. Class names compose through `cn()` from the `cn` package (`import { cn } from "cn"`), not from `~/lib/utils`. The shadcn `utils` alias in `components.json` is `"cn"`, so generated primitives import it the same way.
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
 
@@ -119,6 +121,7 @@ UI copy is **Dutch**, including error and empty states. Keep strings out of deep
 Consistency is what makes `fdm-app` easy to use: a user who has learned one screen should already know how the next one works. Treat it as a requirement, not a polish item.
 
 - **Reuse before you build.** Before adding a page, form, table, card, dialog or empty state, find the closest existing screen and follow its structure: title block, layout, spacing, button placement and order, wording, loading and error states. Reuse the existing block or custom component instead of making a near-copy.
+- **One `main` per page.** The shells (`farm.tsx`, `organization.tsx`, `user.tsx`, `support.tsx`, `about.tsx`) render the page's only `main` landmark through `SidebarInset`. A page inside a shell wraps its header and content in `PageContainer` from `~/components/custom/page-container` and uses plain elements below it, never a second `SidebarInset` or a `<main>`. A page outside a shell (sign-in, welcome, privacy, manual) renders its own single `<main>`; the sign-in steps and the welcome page get it from `AuthLayout`. The smoke crawler fails on a page with more than one `main`.
 - **Same thing, same name, same place.** A concept keeps one Dutch term everywhere (for example "bodemanalyse", not a synonym on another page). Actions sit where users already expect them on similar screens.
 - **One control per job.** Every date input uses `DatePicker` from `~/components/custom/date-picker-v2` (Dutch text parsing and a calendar popover), never a native `<input type="date">`. It expects a react-hook-form `field`/`fieldState`; for plain React state use the `DateField` adapter in `components/blocks/mineralization/date-field.tsx`, and in fetcher forms submit the date through a hidden input.
 - **One status scale.** Nutrient-advice status (map, overview table, progress bars, tooltips, KPI cards) is red below 90 % of the advice, green from 90 to 110 % and orange above 110 %; EOC is never "over", so only red or green. Use `computeAdviceProgress` and the colour maps in `components/blocks/nutrient-advice/progress-bar.tsx` (map colours in `atlas-nutrient-advice.ts`) and never add local thresholds. Gebruiksruimte (usage norms) follows its own rules; don't apply these colours there.
@@ -208,6 +211,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Returning a caught error's `.message` to the UI | `handleLoaderError` / `handleActionError` |
 | An action with no `dataWithSuccess` feedback | Return a toast helper from `remix-toast` |
 | Unbounded `Promise.all` over every field to an external API | A concurrency constant, as in the existing loaders |
+| `getCultivations` / `getHarvests` / `checkPermission` inside a loop over fields or cultivations | One `*ForFarm` read or one farm check, then a `Map` lookup |
 | New component dropped into `components/ui/` | `components/blocks/<domain>/` |
 | Hand-editing a shadcn primitive for one screen | Compose around it, or add a variant |
 | `asChild` or `@radix-ui/*` / `radix-ui` imports on a primitive | Base UI: `render={<Component />}` and `@base-ui/react/<part>` imports (`asChild` only remains on `cmdk` parts) |

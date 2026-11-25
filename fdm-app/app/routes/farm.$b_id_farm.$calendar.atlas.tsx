@@ -5,7 +5,7 @@ import type { HelpHandle } from "~/lib/manual/help-targets"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { Skeleton } from "~/components/ui/skeleton"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -84,6 +84,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  *
  * @returns The React element representing the farm atlas content block.
  */
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function FarmContentBlock() {
   const loaderData = useLoaderData<typeof loader>()
 
@@ -96,16 +98,16 @@ export default function FarmContentBlock() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action} help="atlas">
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderAtlas b_id_farm={loaderData.b_id_farm} />
       </Header>
-      <main>
+      <div>
         <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
           {() => <Outlet />}
         </ClientOnly>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
