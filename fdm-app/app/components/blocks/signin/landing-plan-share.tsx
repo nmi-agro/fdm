@@ -2,7 +2,7 @@ import { Bot, Building2, FileText, KeyRound, Plug, UserPlus } from "lucide-react
 import { clientConfig } from "~/lib/config"
 import { FeatureItem, LandingSection, ManualLink, SectionHeading } from "./landing-primitives"
 
-/** From insight to a plan: the bemestingsplan PDF and Gerrit (Labs). */
+/** From insight to a plan: the bemestingsplan PDF and Gerrit (experimental). */
 export function LandingPlan() {
   return (
     <LandingSection tone="muted">
@@ -28,7 +28,7 @@ export function LandingPlan() {
                 Lees meer over het bemestingsplan
               </ManualLink>
             </FeatureItem>
-            <FeatureItem icon={Bot} title="Gerrit, de AI-bemestingsassistent" badge="Labs">
+            <FeatureItem icon={Bot} title="Gerrit, de AI-bemestingsassistent" badge="Experimenteel">
               <p>
                 Gerrit stelt een bemestingsplan voor uw hele bedrijf voor: welke meststof, hoeveel
                 en wanneer, per perceel. Daarbij telt Gerrit de gebruiksnormen, het
@@ -41,7 +41,8 @@ export function LandingPlan() {
             </FeatureItem>
           </div>
           <p className="text-muted-foreground mt-8 text-sm leading-relaxed">
-            Functies onder Labs zijn nog in ontwikkeling. Ze werken al, maar kunnen nog veranderen.
+            Experimentele functies zijn nog in ontwikkeling. Ze werken al, maar kunnen nog
+            veranderen.
           </p>
         </div>
       </div>

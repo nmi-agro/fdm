@@ -38,9 +38,14 @@ import { extractFormValuesFromRequest } from "../lib/form"
 const SOCIAL_IMAGE_URL =
   "https://images.unsplash.com/photo-1717702576954-c07131c54169?q=80&w=1200&auto=format&fit=crop"
 
+/** `/` redirects here, so this page (as listed in the sitemap) is the canonical URL. */
+const CANONICAL_URL = new URL("/signin", clientConfig.url).href
+
 export const meta: MetaFunction = () => {
-  const title = `${clientConfig.name}: Bemestingsadvies, Doelsturing & Perceelsdata`
-  const description = `Faciliteert datagedreven inzicht in bodem en bemesting voor ondernemers en adviseurs. ${clientConfig.name} ondersteunt doelsturing via de stikstofbalans, optimalisatie van de organische stofbalans, bemestingsadvies, wettelijke gebruiksruimte en BLN-bodemindicatoren (waaronder Open Bodem Index/OBI en BedrijfsBodemWaterPlan/BBWP) met maatregelen voor bodemgezondheid, aangevuld met gedetailleerde perceelsdata zoals AHN4 en gewashistorie.`
+  // Search results show about 60 characters of a title and 155 of a description
+  const title = `${clientConfig.name}: inzicht in bodem, nutriënten en emissies`
+  const description =
+    "Bereken per perceel en voor uw bedrijf de gebruiksruimte, het bemestingsadvies, de stikstofbalans en de bodemkwaliteit. Open source en gratis tijdens de pilot."
   const ogImage = SOCIAL_IMAGE_URL
 
   return [
@@ -49,18 +54,36 @@ export const meta: MetaFunction = () => {
     { property: "og:title", content: title },
     { property: "og:description", content: description },
     { property: "og:image", content: ogImage },
-    { property: "og:url", content: clientConfig.url },
+    { property: "og:url", content: CANONICAL_URL },
     { property: "og:type", content: "website" },
+    { property: "og:site_name", content: clientConfig.name },
+    { property: "og:locale", content: "nl_NL" },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
     { name: "twitter:image", content: ogImage },
+    {
+      "script:ld+json": {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        name: clientConfig.name,
+        description,
+        url: CANONICAL_URL,
+        image: ogImage,
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        inLanguage: "nl-NL",
+        isAccessibleForFree: true,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+        publisher: { "@type": "Organization", name: clientConfig.name },
+      },
+    },
   ]
 }
 
 export const links: LinksFunction = () => {
   return [
-    { rel: "canonical", href: clientConfig.url },
+    { rel: "canonical", href: CANONICAL_URL },
     { rel: "preload", as: "image", href: HERO_PHOTO_URL },
   ]
 }
