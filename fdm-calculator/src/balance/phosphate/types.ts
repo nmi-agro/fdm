@@ -33,7 +33,10 @@ export type PhosphateSoilAnalysis = Pick<
 
 /** Input of one field for the phosphate balance. */
 export type PhosphateFieldInput = {
-  field: Pick<Field, "b_id" | "b_area" | "b_bufferstrip">
+  /** The field; `b_centroid` is used to add the NMI soil estimates and crop history */
+  field: Pick<Field, "b_id" | "b_area" | "b_bufferstrip"> & {
+    b_centroid?: Field["b_centroid"]
+  }
   cultivations: Pick<
     Cultivation,
     | "b_lu"
@@ -94,6 +97,16 @@ export type PhosphateBalanceInput = {
    * the years with data (crop rotation), instead of the balance of this year only.
    */
   history?: PhosphateBalanceHistoryYear[]
+}
+
+/** Input of the phosphate balance of one field, with the details it needs. */
+export type PhosphateBalanceFieldInput = {
+  fieldInput: PhosphateFieldInput
+  fertilizerDetails: PhosphateFertilizerDetail[]
+  cultivationDetails: PhosphateCultivationDetail[]
+  timeFrame: { start: Date; end: Date }
+  /** Optional: the same field in earlier years, for the long-term average balance */
+  history?: { timeFrame: { start: Date; end: Date }; fieldInput: PhosphateFieldInput }[]
 }
 
 /**

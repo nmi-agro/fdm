@@ -1,11 +1,9 @@
 import {
-  calculatePhosphateBalance,
-  calculatePhosphateBalanceFieldsToFarm,
-  collectInputForPhosphateBalanceForFarms,
+  getPhosphateBalanceForFarms,
   type PhosphateBalance,
   type PhosphateVerdict,
 } from "@nmi-agro/fdm-calculator"
-import { getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getFarms, getFieldsForFarms } from "@nmi-agro/fdm-core"
 import { CircleAlert } from "lucide-react"
 import { Suspense, use } from "react"
 import {
@@ -33,7 +31,8 @@ import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import { addPhosphateCropHistory, failedPhosphateFarmResult } from "~/integrations/calculator"
+import { failedPhosphateFarmResult } from "~/integrations/calculator"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -108,13 +107,16 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
     async function getAsyncData(principal_id: string): Promise<AsyncData> {
       const farmIdsSet = new Set(searchParamFarmIds ?? [])
 
-      const farmsExtended = await Promise.all(
-        farms.map(async (farm) => {
-          const fields = await getFields(fdm, principal_id, farm.b_id_farm)
-          const b_area_farm = fields.reduce((total, field) => total + (field.b_area ?? 0), 0)
-          return { ...farm, hasFields: fields.length > 0, b_area_farm }
-        }),
+      const fieldsByFarm = await getFieldsForFarms(
+        fdm,
+        principal_id,
+        farms.map((farm) => farm.b_id_farm),
       )
+      const farmsExtended = farms.map((farm) => {
+        const fields = fieldsByFarm.get(farm.b_id_farm) ?? []
+        const b_area_farm = fields.reduce((total, field) => total + (field.b_area ?? 0), 0)
+        return { ...farm, hasFields: fields.length > 0, b_area_farm }
+      })
       // Largest farms first
       farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
 
@@ -131,83 +133,37 @@ export async function loader({ request, params, url }: LoaderFunctionArgs): Prom
         .filter((farm) => farmIdsSet.has(farm.b_id_farm))
         .map((farm) => farm.b_id_farm)
 
-      const inputs = await collectInputForPhosphateBalanceForFarms(
+      // The balance of all selected farms together (area-weighted over their fields), and per farm
+      const { total: combinedResult, farms: perFarmResults } = await getPhosphateBalanceForFarms(
         fdm,
         principal_id,
         farmIds,
         timeframe,
+        { nmiApiKey: getNmiApiKey() },
       )
-      const inputsByFarm = new Map(inputs.map((input) => [input.b_id_farm, input]))
+      const resultsByFarm = new Map(perFarmResults.map((result) => [result.b_id_farm, result]))
 
-      const farmResults: FarmResult[] = await Promise.all(
-        farmsExtended
-          .filter((farm) => farmIdsSet.has(farm.b_id_farm))
-          .map(async (farm) => {
-            const input = inputsByFarm.get(farm.b_id_farm)
-            if (!input) {
-              // The input of this farm could not be collected (logged by the calculator)
-              return {
-                farm,
-                totalArea: farm.b_area_farm,
-                phosphateBalanceResult: failedPhosphateFarmResult(
-                  "De fosfaatbalans van dit bedrijf kon niet worden berekend.",
-                ),
-              }
-            }
-            if (input.fields.length === 0) {
-              return {
-                farm,
-                totalArea: farm.b_area_farm,
-                phosphateBalanceResult: failedPhosphateFarmResult("No fields in input"),
-              }
-            }
-            try {
-              // Inside the try: a failing crop history marks only this farm as failed
-              const inputWithHistory = await addPhosphateCropHistory(
-                fdm,
-                principal_id,
-                farm.b_id_farm,
-                input,
-              )
-              const phosphateBalanceResult = await calculatePhosphateBalance(fdm, inputWithHistory)
-              if (phosphateBalanceResult.hasErrors) {
-                reportError(
-                  phosphateBalanceResult.fieldErrorMessages.join(",\n"),
-                  {
-                    page: "organization/{slug}/{calendar}/balance/phosphate/_index",
-                    scope: "loader",
-                  },
-                  { b_id_farm: farm.b_id_farm, timeframe, userId: session.principal_id },
-                )
-              }
-              return { farm, totalArea: farm.b_area_farm, phosphateBalanceResult }
-            } catch (error) {
-              // Report the details; the deferred payload only carries a generic message with the code
-              const errorId = reportError(
-                error,
-                {
-                  page: "organization/{slug}/{calendar}/balance/phosphate/_index",
-                  scope: "loader",
-                },
-                { b_id_farm: farm.b_id_farm, timeframe, userId: session.principal_id },
-              )
-              return {
-                farm,
-                totalArea: farm.b_area_farm,
-                phosphateBalanceResult: failedPhosphateFarmResult(
-                  `De fosfaatbalans van dit bedrijf kon niet worden berekend (foutcode ${errorId}).`,
-                ),
-              }
-            }
-          }),
-      )
-
-      // Organisation average: area-weighted over all fields of the selected farms
-      const allFields = farmResults.flatMap((r) => r.phosphateBalanceResult.fields)
-      const combinedResult = calculatePhosphateBalanceFieldsToFarm(
-        allFields,
-        farmResults.flatMap((r) => r.phosphateBalanceResult.fieldErrorMessages),
-      )
+      const farmResults: FarmResult[] = farmsExtended
+        .filter((farm) => resultsByFarm.has(farm.b_id_farm))
+        .map((farm) => {
+          const result = resultsByFarm.get(farm.b_id_farm)
+          if (result?.balance?.hasErrors) {
+            reportError(
+              result.balance.fieldErrorMessages.join(",\n"),
+              {
+                page: "organization/{slug}/{calendar}/balance/phosphate/_index",
+                scope: "loader",
+              },
+              { b_id_farm: farm.b_id_farm, timeframe, userId: session.principal_id },
+            )
+          }
+          return {
+            farm,
+            totalArea: farm.b_area_farm,
+            phosphateBalanceResult:
+              result?.balance ?? failedPhosphateFarmResult(result?.errorMessage ?? "Unknown error"),
+          }
+        })
 
       return { farmIds, farms: farmsExtended, farmResults, combinedResult }
     }

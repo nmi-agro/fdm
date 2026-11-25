@@ -57,12 +57,6 @@ async function main() {
       )
     }
     await syncCatalogues(fdm, { nmiApiKey })
-    const [phosphate] = await client`
-      select count(*)::int as total, count(b_lu_p_harvestable)::int as with_phosphate
-      from "fdm"."cultivations_catalogue" where b_lu_source = 'brp'`
-    console.log(
-      `Cultivation catalogue: ${phosphate.with_phosphate} of ${phosphate.total} BRP crops have a phosphate content`,
-    )
     console.log("Sync completed ✅")
   } catch (error) {
     console.error("Error during migration/sync 🚨:", error)

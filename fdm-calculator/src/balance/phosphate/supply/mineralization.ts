@@ -1,21 +1,17 @@
 import type { SoilAnalysis } from "@nmi-agro/fdm-core"
-import { addDays, differenceInDays } from "date-fns"
 import Decimal from "decimal.js"
-import type { CultivationDetail as OrganicMatterCultivationDetail } from "../organic-matter/types"
+import type { CultivationDetail as OrganicMatterCultivationDetail } from "../../organic-matter/types"
 import type {
   PhosphateCultivationDetail,
   PhosphateFieldInput,
   PhosphateSoilAnalysis,
-  PhosphateSupplyDeposition,
   PhosphateSupplyMineralization,
-} from "./types"
-import { calculateOrganicMatterDegradation } from "../organic-matter/degradation"
-import { getPhosphateSoilTypeParameters } from "./alpha-max"
-import { P_TO_P2O5 } from "./projection"
-import { sortSoilAnalyses } from "./saturation"
-
-/** Atmospheric P deposition (kg P2O5 / ha / year). Small but included for completeness. */
-export const PHOSPHATE_DEPOSITION_PER_YEAR = 0.7
+} from "../types"
+import { calculateOrganicMatterDegradation } from "../../organic-matter/degradation"
+import { getPhosphateSoilTypeParameters } from "../alpha-max"
+import { P_TO_P2O5 } from "../projection"
+import { sortSoilAnalyses } from "../saturation"
+import { yearsInTimeframe } from "./deposition"
 
 /** Net / gross mineralisation: part of the mineralised P that is not immobilised by microbes (range 0.5–0.75). */
 const F_NET_GROSS = 0.65
@@ -46,11 +42,6 @@ const PEAT_F_GWL: Record<string, number> = {
 }
 
 type SoilInput = Partial<PhosphateSoilAnalysis>
-
-/** Number of years in the timeframe (days / 365), as in the organic matter balance. */
-export function yearsInTimeframe(timeFrame: { start: Date; end: Date }): Decimal {
-  return new Decimal(differenceInDays(addDays(timeFrame.end, 1), timeFrame.start)).dividedBy(365)
-}
 
 /**
  * Factor for the oxidation of peat for a groundwater class, relative to Gt V.
@@ -148,20 +139,4 @@ export function calculatePhosphateMineralization(
     .times(isGrassland ? F_P2O5_GRASSLAND : F_P2O5_ARABLE)
     .times(F_NET_GROSS)
   return { total: total.toNumber(), track: "mineral", warnings }
-}
-
-/**
- * Atmospheric phosphate deposition (kg P2O5 / ha for the timeframe): 0.7 kg P2O5 / ha / year.
- *
- * @param timeFrame - The timeframe of the balance.
- * @returns The deposition.
- * @alpha
- */
-export function calculatePhosphateDeposition(timeFrame: {
-  start: Date
-  end: Date
-}): PhosphateSupplyDeposition {
-  return {
-    total: new Decimal(PHOSPHATE_DEPOSITION_PER_YEAR).times(yearsInTimeframe(timeFrame)).toNumber(),
-  }
 }

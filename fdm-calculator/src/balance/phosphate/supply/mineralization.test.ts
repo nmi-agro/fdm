@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest"
-import type { PhosphateCultivationDetail, PhosphateFieldInput } from "./types"
-import {
-  calculatePhosphateDeposition,
-  calculatePhosphateMineralization,
-  getPeatGroundwaterFactor,
-} from "./mineralization"
+import type { PhosphateCultivationDetail, PhosphateFieldInput } from "../types"
+import { calculatePhosphateDeposition } from "./deposition"
+import { calculatePhosphateMineralization, getPeatGroundwaterFactor } from "./mineralization"
 
 const year = { start: new Date("2025-01-01"), end: new Date("2025-12-31") }
 

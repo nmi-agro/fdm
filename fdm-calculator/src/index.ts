@@ -55,56 +55,45 @@ export type {
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
 export {
-  assessPhosphateStatus,
   calculatePhosphateBalance,
   calculatePhosphateBalanceField,
-  calculatePhosphateBalanceFieldsToFarm,
-  calculatePhosphateDeposition,
-  calculatePhosphateLeaching,
-  calculatePhosphateMineralization,
-  calculatePhosphateProjection,
-  calculatePhosphateSaturation,
-  calculatePhosphateSaturationThreshold,
-  classifyYears,
-  collectInputForPhosphateBalance,
-  collectInputForPhosphateBalanceForFarms,
-  PHOSPHATE_HISTORY_YEARS,
-  determinePhosphateFrame,
-  getPeatGroundwaterFactor,
+  calculatePhosphateBalanceForFarms,
+  calculatePhosphateBalancesFieldToFarm,
   getPhosphateBalanceField,
   getPhosphateFieldExclusion,
-  getPhosphateSoilTypeParameters,
-  ghgPerGroundwaterClass,
-  ghgRangePerGroundwaterClass,
-  PHOSPHATE_DEPOSITION_PER_YEAR,
+} from "./balance/phosphate/index"
+export {
+  collectInputForPhosphateBalance,
+  collectInputForPhosphateBalanceForFarms,
+} from "./balance/phosphate/input"
+export type { PhosphateInputOptions } from "./balance/phosphate/input"
+export {
+  assessPhosphateStatus,
   PHOSPHATE_STATUS_RULES,
   PHOSPHATE_VERDICT_ORDER,
-  phosphateSoilTypeParameters,
-} from "./balance/phosphate/index"
+} from "./balance/phosphate/status"
 export type {
   PhosphateBalance,
   PhosphateBalanceField,
-  PhosphateBalanceFieldCalculationInput,
+  PhosphateBalanceFieldInput,
   PhosphateBalanceFieldResult,
+  PhosphateBalanceHistoryYear,
   PhosphateBalanceInput,
   PhosphateFieldInput,
   PhosphateFrame,
-  PhosphateInputOptions,
-  PhosphateLongTermBalance,
-  PhosphateBalanceHistoryYear,
   PhosphateLeaching,
+  PhosphateLongTermBalance,
   PhosphateProjection,
   PhosphateSaturation,
   PhosphateSaturationSource,
   PhosphateSaturationThreshold,
-  PhosphateSoilTypeParameters,
   PhosphateStatus,
-  PhosphateVerdict,
   PhosphateSupplyDeposition,
   PhosphateSupplyMineralization,
+  PhosphateVerdict,
   ValueWithRange,
   YearsClass,
-} from "./balance/phosphate/index"
+} from "./balance/phosphate/types"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"
 export type {
@@ -165,7 +154,11 @@ export type {
 } from "./bln3/types"
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
-export { getNitrogenBalanceForFarms, getOrganicMatterBalanceForFarms } from "./balance/farms"
+export {
+  getNitrogenBalanceForFarms,
+  getOrganicMatterBalanceForFarms,
+  getPhosphateBalanceForFarms,
+} from "./balance/farms"
 export { combineFarmMeasureSummaries, getFarmMeasureSummary } from "./bln3/farm-measures"
 export type {
   CombinedMeasureSummary,

@@ -1,12 +1,9 @@
 import type { FdmType, Harvest } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import type { PhosphateBalanceInput } from "./types"
-import {
-  calculatePhosphateBalance,
-  calculatePhosphateBalanceField,
-  calculatePhosphateBalanceFieldsToFarm,
-  determinePhosphateFrame,
-} from "./field"
+import { calculatePhosphateBalanceField, calculatePhosphateBalancesFieldToFarm } from "./field"
+import { calculatePhosphateBalance } from "./index"
+import { determinePhosphateFrame } from "./target"
 
 // Minimal FDM mock: every cache lookup misses and cache writes are ignored
 const mockFdm = {
@@ -116,7 +113,13 @@ describe("calculatePhosphateBalanceField", () => {
   })
 
   describe("land use for the sampling depth", () => {
-    const grass = (b_lu: string, start: string, end: string | null, croprotation = "grass") => ({
+    type Cultivation = PhosphateBalanceInput["fields"][number]["cultivations"][number]
+    const grass = (
+      b_lu: string,
+      start: string,
+      end: string | null,
+      croprotation: Cultivation["b_lu_croprotation"] = "grass",
+    ): Cultivation => ({
       b_lu,
       b_lu_catalogue: "nl_265",
       b_lu_name: "Grasland",
@@ -364,10 +367,10 @@ describe("calculatePhosphateBalanceField", () => {
     const grass = run("grass")
     const arable = run("potato")
     // The arable year 2024 counts the same in both, so the long-term difference is only half the
-    // difference of the selected year
+    // difference of the selected year (the balance is rounded to 2 decimals)
     expect(grass.long_term.balance - arable.long_term.balance).toBeCloseTo(
       (grass.balance - arable.balance) / 2,
-      6,
+      2,
     )
   })
 
@@ -626,12 +629,28 @@ describe("calculatePhosphateBalance", () => {
     expect(result.errorMessage).toBe("No fields in input")
     expect(result.balance).toBe(0)
   })
+
+  it("should not calculate excluded fields and keep the order of the fields", async () => {
+    const result = await calculatePhosphateBalance(mockFdm, {
+      ...input,
+      fields: [input.fields[1], input.fields[0]],
+    })
+    expect(result.fields.map((f) => f.b_id)).toEqual(["strip", "f1"])
+    expect(result.fields[0]).toEqual({
+      b_id: "strip",
+      b_area: 1,
+      b_bufferstrip: true,
+      exclusion: expect.any(String),
+    })
+    expect(result.fields[1].balance?.balance).toBeCloseTo(20.2)
+  })
 })
 
-describe("calculatePhosphateBalanceFieldsToFarm", () => {
+describe("calculatePhosphateBalancesFieldToFarm", () => {
   it("should return zeros when no field has an area", () => {
-    const result = calculatePhosphateBalanceFieldsToFarm(
+    const result = calculatePhosphateBalancesFieldToFarm(
       [{ b_id: "f", b_area: 0, b_bufferstrip: false }],
+      false,
       [],
     )
     expect(result.balance).toBe(0)

@@ -72,7 +72,7 @@ import {
 } from "~/components/blocks/soil/download"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getIndicatorsForField } from "~/integrations/bln3.server"
-import { addPhosphateCropHistory, getNorms } from "~/integrations/calculator"
+import { getNorms } from "~/integrations/calculator"
 import { getMapStyle } from "~/integrations/map"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getFieldAggregationScore } from "~/lib/aggregations"
@@ -938,19 +938,10 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
             : exclusion === "nature"
               ? "Natuurpercelen hebben geen fosfaatbalans."
               : "Bufferstroken hebben geen fosfaatbalans.",
-        collectInput: async () =>
-          addPhosphateCropHistory(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            await collectInputForPhosphateBalance(
-              fdm,
-              session.principal_id,
-              b_id_farm,
-              timeframe,
-              b_id,
-            ),
-          ),
+        collectInput: () =>
+          collectInputForPhosphateBalance(fdm, session.principal_id, b_id_farm, timeframe, b_id, {
+            nmiApiKey: getNmiApiKey(),
+          }),
         calculate: (input) =>
           calculatePhosphateBalance(fdm, input as Parameters<typeof calculatePhosphateBalance>[1]),
         b_id,
