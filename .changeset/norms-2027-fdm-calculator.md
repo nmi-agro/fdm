@@ -10,5 +10,5 @@ Fixes in the 2026 norms (and so in the 2027 copy):
 
 - The nitrogen norm of "Aardappel, bestrijdingsmaatregel": Tabel 2 matched it to the BRP code `nl_2026` (fallow land with forest) instead of `nl_2025` (potato control measure).
 - Red fescue (roodzwenkgras) grown as a follow-up crop no longer stops the nitrogen norm calculation with an error; it gets the "Roodzwenkgras, volgteelt" norm ("1e jaars" or "overjarig").
-- A nature area (`nl_335`) after temporary grassland no longer counts as renewed grass, so the grassland keeps its nitrogen norm. The new `graslandCodes` list holds the grass codes that can replace a grass stand.
+- A nature area (`nl_335`) no longer counts as grass in the grassland rules: after temporary grassland it no longer replaces the grass stand (so the grassland keeps its nitrogen norm), and it no longer triggers the grassland renewal or destruction reduction. The new `graslandCodes` list holds the grass codes these rules use.
 - The phosphate filling of organic-rich fertilizers now says "% meegeteld" (the share that counts towards the norm) instead of "% korting", also for 2025.

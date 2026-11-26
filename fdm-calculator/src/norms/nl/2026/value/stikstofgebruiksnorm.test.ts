@@ -2881,4 +2881,42 @@ describe("NL2026 stikstof follow-up red fescue and grassland renewal", () => {
     expect(grassOnly.normValue).toBeGreaterThan(0)
     expect(withNature.normValue).toBe(grassOnly.normValue)
   })
+
+  it("does not apply the grassland renewal reduction when a nature area follows grassland", async () => {
+    setupGeoMock(4, 0) // zand_nwc, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_266", // Tijdelijk grasland, overwintered until 30 June
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 5, 30),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_335", // Natuurterrein, not grass
+          b_lu_start: new Date(2026, 6, 1),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).not.toContain("graslandvernieuwing")
+  })
+
+  it("still applies the grassland renewal reduction for grass followed by grass", async () => {
+    setupGeoMock(4, 0) // zand_nwc, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 8, 1),
+          b_lu_end: new Date(2026, 5, 30),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 6, 1),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("graslandvernieuwing")
+  })
 })

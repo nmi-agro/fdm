@@ -312,8 +312,9 @@ function calculateKorting(
       ns.b_lu_catalogue_match.includes(currCult.b_lu_catalogue),
     )
 
-    const isPrevGrass = nonBouwlandCodes.includes(prevCult.b_lu_catalogue)
-    const isCurrGrass = nonBouwlandCodes.includes(currCult.b_lu_catalogue)
+    // Only grass, not a nature area (nl_335), can be renewed or destroyed as grassland
+    const isPrevGrass = graslandCodes.includes(prevCult.b_lu_catalogue)
+    const isCurrGrass = graslandCodes.includes(currCult.b_lu_catalogue)
 
     // 1. Grassland Renewal (Gras-na-Gras) -> 50 kg N/ha korting
     if (isPrevGrass && isCurrGrass) {

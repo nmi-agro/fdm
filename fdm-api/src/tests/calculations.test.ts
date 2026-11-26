@@ -1102,10 +1102,12 @@ describe("Calculations — edge cases", () => {
   it("farm and field norms return 400 without a year", async () => {
     const { services } = normServices("resolve")
     const app = makeApp(services)
-    const farmRes = await app.request("/farms/farm-1/calculations/norms", { headers })
-    expect(farmRes.status).toBe(400)
-    const fieldRes = await app.request("/fields/field-1/calculations/norms", { headers })
-    expect(fieldRes.status).toBe(400)
+    for (const path of ["/farms/farm-1/calculations/norms", "/fields/field-1/calculations/norms"]) {
+      const res = await app.request(path, { headers })
+      expect(res.status).toBe(400)
+      expect(res.headers.get("content-type")).toContain("application/problem+json")
+      expect((await res.json()).type).toMatch(/\/problems\/validation-failed$/)
+    }
     expect(services.createFunctionsForNorms).not.toHaveBeenCalled()
   })
 
