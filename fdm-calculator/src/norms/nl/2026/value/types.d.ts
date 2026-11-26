@@ -41,9 +41,12 @@ export type NL2026NormsInput = {
   /** An array of all cultivations on the field with their required norm inputs. */
   cultivations: NL2026NormsInputForCultivation[]
   /**
-   * The current soil analysis values up to the end of the norm year (31 December), as collected
-   * by the input collectors. Each parameter is the most recent value of that parameter, so
-   * `a_p_cc` and `a_p_al` can come from different samplings.
+   * The current soil analysis values of the field, as collected by the input collectors with
+   * `getCurrentSoilData`: only analyses sampled up to and including 31 December of the norm year
+   * count, plus analyses without a sampling date. Each parameter is determined on its own: the
+   * value of the most recent whole-field analysis, or, when the most recent analysis is of a
+   * sampling zone, the area-weighted mean of the zones. So `a_p_cc` and `a_p_al` can come from
+   * different samplings.
    */
   soilAnalysis: Pick<SoilAnalysis, "a_p_cc" | "a_p_al">
 }

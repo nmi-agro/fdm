@@ -64,24 +64,21 @@ function pickHarvestDates(harvests: Harvest[]): Pick<Harvest, "b_lu_harvest_date
 }
 
 /**
- * The timeframes of a norm year: the year itself, its harvests (until the end of 31 December) and
- * the cultivations (from 1 January of the previous year, for the cultivation history).
+ * The timeframes of a norm year: the year itself (for the harvests and the soil analyses) and the
+ * cultivations (from 1 January of the previous year, for the cultivation history). Both end at the
+ * end of 31 December, because dates are timestamps: everything on that day is included, not only
+ * what is at midnight.
  *
  * @param year - The norm year.
  * @returns The timeframes to collect the input with.
  */
 function getNormYearTimeframes(year: NL2026NormsYear): {
   timeframeYear: Timeframe
-  timeframeHarvests: Timeframe
   timeframeCultivation: Timeframe
 } {
-  const startOfYear = new Date(year, 0, 1)
-  const endOfYear = new Date(year, 11, 31)
-  // Dates are timestamps: include everything on 31 December, not only what starts at midnight
   const endOfLastDay = new Date(year, 11, 31, 23, 59, 59, 999)
   return {
-    timeframeYear: { start: startOfYear, end: endOfYear },
-    timeframeHarvests: { start: startOfYear, end: endOfLastDay },
+    timeframeYear: { start: new Date(year, 0, 1), end: endOfLastDay },
     timeframeCultivation: { start: new Date(year - 1, 0, 1), end: endOfLastDay },
   }
 }
@@ -109,7 +106,7 @@ export async function collectNL2026InputForNorms(
   year: NL2026NormsYear,
   operations: NL2026SingleFdmCoreOperations = defaultOperations,
 ): Promise<NL2026NormsInput> {
-  const { timeframeYear, timeframeHarvests, timeframeCultivation } = getNormYearTimeframes(year)
+  const { timeframeYear, timeframeCultivation } = getNormYearTimeframes(year)
 
   // 1. Get the details for the field.
   const field = await operations.getField(fdm, principal_id, b_id)
@@ -137,7 +134,7 @@ export async function collectNL2026InputForNorms(
         fdm,
         principal_id,
         cultivation.b_lu,
-        timeframeHarvests,
+        timeframeYear,
       )
       return { ...cultivation, harvests: pickHarvestDates(harvests) }
     }),
@@ -196,7 +193,7 @@ export async function collectNL2026InputForNormsForFarm(
   year: NL2026NormsYear,
   operations: NL2026FarmFdmCoreOperations = defaultOperations,
 ): Promise<Map<string, NL2026NormsInput>> {
-  const { timeframeYear, timeframeHarvests, timeframeCultivation } = getNormYearTimeframes(year)
+  const { timeframeYear, timeframeCultivation } = getNormYearTimeframes(year)
 
   const [
     farmFields,
@@ -208,7 +205,7 @@ export async function collectNL2026InputForNormsForFarm(
     operations.getFields(fdm, principal_id, b_id_farm, timeframeCultivation),
     operations.getGrazingIntention(fdm, principal_id, b_id_farm, year),
     operations.getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframeCultivation),
-    operations.getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframeHarvests),
+    operations.getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframeYear),
     operations.getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframeYear),
   ])
 
