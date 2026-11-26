@@ -19,6 +19,7 @@ import {
 import { calculateVanggewasWinterteeltKorting } from "../../2025/value/vanggewas-winterteelt"
 import {
   graanCodes,
+  graslandCodes,
   graszaadCodes,
   koolzaadCodes,
   maisCodes,
@@ -209,7 +210,11 @@ function determineSubTypeOmschrijving(
   }
 
   // Roodzwenkgras logic based on cultivation history
-  if (standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras") {
+  // (both the main crop row and the "volgteelt" row have "1e jaars" and "overjarig" sub-types)
+  if (
+    standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras" ||
+    standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras, volgteelt"
+  ) {
     const roodzwenkgrasCultivationCodes = standard.b_lu_catalogue_match
     const hasRoodzwenkgrasCultivationInPreviousYear = cultivations.some(
       (c) =>
@@ -307,8 +312,9 @@ function calculateKorting(
       ns.b_lu_catalogue_match.includes(currCult.b_lu_catalogue),
     )
 
-    const isPrevGrass = nonBouwlandCodes.includes(prevCult.b_lu_catalogue)
-    const isCurrGrass = nonBouwlandCodes.includes(currCult.b_lu_catalogue)
+    // Only grass, not a nature area (nl_335), can be renewed or destroyed as grassland
+    const isPrevGrass = graslandCodes.includes(prevCult.b_lu_catalogue)
+    const isCurrGrass = graslandCodes.includes(currCult.b_lu_catalogue)
 
     // 1. Grassland Renewal (Gras-na-Gras) -> 50 kg N/ha korting
     if (isPrevGrass && isCurrGrass) {
@@ -686,7 +692,7 @@ export async function calculateNL2026StikstofGebruiksNorm(
     const replacement = cultivations.find(
       (other) =>
         other !== c &&
-        nonBouwlandCodes.includes(other.b_lu_catalogue) &&
+        graslandCodes.includes(other.b_lu_catalogue) &&
         other.b_lu_start &&
         new Date(other.b_lu_start) >= standEnd &&
         new Date(other.b_lu_start) < october15 &&

@@ -335,7 +335,7 @@ describe("computeFertilizerPlanData", () => {
     calculator.getNutrientAdvice.mockRejectedValue(new Error("NMI down"))
     const data = await computeFertilizerPlanData(
       fdm,
-      input(2027, [field("f1", { cultivations: [mainCultivation], b_area: null })], null),
+      input(2028, [field("f1", { cultivations: [mainCultivation], b_area: null })], null),
       options,
     )
     expect(calculator.calculateNormsForFields).not.toHaveBeenCalled()

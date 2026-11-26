@@ -76,7 +76,7 @@ function inputFor(year: number): NL2026NormsFillingInput {
 }
 
 describe("calculateFertilizerApplicationFillingsWithRegion", () => {
-  it.each(["2025", "2026"] as const)(
+  it.each(["2025", "2026", "2027"] as const)(
     "equals the uncached filling functions for %s",
     async (year) => {
       const input = inputFor(Number(year))
@@ -95,9 +95,25 @@ describe("calculateFertilizerApplicationFillingsWithRegion", () => {
       const result = calculateFertilizerApplicationFillingsWithRegion(year, input, "zand_nwc")
       expect(result).toEqual(expected)
       expect(result.nitrogen.normFilling).toBeGreaterThan(0)
-      expect(result.renure !== undefined).toBe(year === "2026")
+      expect(result.renure !== undefined).toBe(year !== "2025")
     },
   )
+
+  it("gives the same fillings for 2027 as for 2026 (provisional copy)", () => {
+    for (const b_region of ["zand_nwc", "klei", "veen", "loess"] as const) {
+      const fillings2026 = calculateFertilizerApplicationFillingsWithRegion(
+        "2026",
+        inputFor(2026),
+        b_region,
+      )
+      const fillings2027 = calculateFertilizerApplicationFillingsWithRegion(
+        "2027",
+        inputFor(2027),
+        b_region,
+      )
+      expect(fillings2027).toEqual(fillings2026)
+    }
+  })
 
   it("uses the given region for the nitrogen filling", () => {
     const input = inputFor(2026)

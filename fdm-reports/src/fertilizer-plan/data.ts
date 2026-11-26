@@ -11,6 +11,7 @@ import {
   getNutrientAdvice,
   getOrganicMatterBalanceField,
   getYearTimeframe,
+  isNormsYear,
   NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -67,9 +68,6 @@ function formatDate(date: Date | string | number | undefined): string {
 }
 
 const DEROGATION_GRANTED_NEEDED_FOR_YEARS = [2025]
-function isNormYear(year: string): year is "2025" | "2026" {
-  return year === "2025" || year === "2026"
-}
 
 /** Maximum number of nutrient advice requests to the NMI API at the same time. */
 const NUTRIENT_ADVICE_CONCURRENCY = 10
@@ -223,7 +221,7 @@ export async function computeFertilizerPlanData(
 
   const timeframe = getCalendarYearTimeframe(year)
   const yearStr = String(year)
-  const normYear = isNormYear(yearStr) ? yearStr : undefined
+  const normYear = isNormsYear(yearStr) ? yearStr : undefined
 
   // The inputs of the cached calculations per field
   const prepareField = (fieldExtended: (typeof fields)[number]) => {

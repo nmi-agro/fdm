@@ -24,7 +24,7 @@ vi.mock("~/lib/nutrient-advice.server", () => ({
   startFarmNutrientAdviceCalculation: mocks.startFarmNutrientAdviceCalculation,
 }))
 vi.mock("./farm-norms.server", () => ({
-  isNormsCalendar: (calendar: string) => calendar === "2025" || calendar === "2026",
+  isNormsCalendar: (calendar: string) => ["2025", "2026", "2027"].includes(calendar),
   collectFarmNormsContext: mocks.collectFarmNormsContext,
   calculateFarmNorms: mocks.calculateFarmNorms,
 }))

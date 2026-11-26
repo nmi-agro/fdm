@@ -243,6 +243,8 @@ export type {
   FertilizerApplicationFillings,
 } from "./norms/filling"
 export { calculateFertilizerApplicationFillingsWithRegion } from "./norms/filling"
+export type { NormsYear } from "./norms/years"
+export { isNormsYear, NORMS_YEARS } from "./norms/years"
 export {
   isFieldInGWGBGebied,
   isFieldInNatura2000Gebied,

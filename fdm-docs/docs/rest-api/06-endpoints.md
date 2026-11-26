@@ -160,17 +160,17 @@ Farm groups are named, organization-scoped groupings of farms. The API key owner
 
 Calculation endpoints operate on **stored FDM resource identifiers** — they do not accept standalone calculation payloads. They are `GET` requests and share a stricter rate limit of **10 requests per minute per key** (`calc` bucket); the nutrient advice uses the NMI API and counts in the `nmi` bucket instead.
 
-| Method | Path                                                         | Description                                                                |
-| ------ | ------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `GET`  | `/api/farms/{b_id_farm}/calculations/nitrogen-balance`       | Nitrogen balance of a farm (`start`, `end`, optional `effective_nitrogen`) |
-| `GET`  | `/api/fields/{b_id}/calculations/nitrogen-balance`           | Nitrogen balance of a field                                                |
-| `GET`  | `/api/farms/{b_id_farm}/calculations/organic-matter-balance` | Organic matter balance of a farm (`start`, `end`)                          |
-| `GET`  | `/api/fields/{b_id}/calculations/organic-matter-balance`     | Organic matter balance of a field                                          |
-| `GET`  | `/api/fields/{b_id}/calculations/dose`                       | Nutrient dose applied with fertilizers on a field                          |
-| `GET`  | `/api/farms/{b_id_farm}/calculations/norms`                  | Usage norms per field of a farm (`year`: 2025 or 2026)                     |
-| `GET`  | `/api/fields/{b_id}/calculations/norms`                      | Usage norms of a field                                                     |
-| `GET`  | `/api/farms/{b_id_farm}/calculations/nutrient-advice`        | Nutrient advice, dose and remaining advice per field (`year`)              |
-| `GET`  | `/api/fields/{b_id}/calculations/nutrient-advice`            | Nutrient advice, dose and remaining advice of a field (`year`)             |
+| Method | Path                                                         | Description                                                                                                |
+| ------ | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/nitrogen-balance`       | Nitrogen balance of a farm (`start`, `end`, optional `effective_nitrogen`)                                 |
+| `GET`  | `/api/fields/{b_id}/calculations/nitrogen-balance`           | Nitrogen balance of a field                                                                                |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/organic-matter-balance` | Organic matter balance of a farm (`start`, `end`)                                                          |
+| `GET`  | `/api/fields/{b_id}/calculations/organic-matter-balance`     | Organic matter balance of a field                                                                          |
+| `GET`  | `/api/fields/{b_id}/calculations/dose`                       | Nutrient dose applied with fertilizers on a field                                                          |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/norms`                  | Usage norms per field of a farm (required `year`: 2025, 2026 or 2027; 2027 is provisional, a copy of 2026) |
+| `GET`  | `/api/fields/{b_id}/calculations/norms`                      | Usage norms of a field (required `year`: 2025, 2026 or 2027; 2027 is provisional, a copy of 2026)          |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/nutrient-advice`        | Nutrient advice, dose and remaining advice per field (`year`)                                              |
+| `GET`  | `/api/fields/{b_id}/calculations/nutrient-advice`            | Nutrient advice, dose and remaining advice of a field (`year`)                                             |
 
 The nutrient advice is for the main cultivation of the year: the cultivation present longest between 15 May and 15 July. A field that cannot be calculated is returned with an `error` code (`no_cultivation`, `no_main_cultivation`, `farm_data_unavailable` or `advice_failed`); the other fields are still calculated. Without an NMI configuration on the server the endpoints return `503`.
 

@@ -1,7 +1,9 @@
 import type { NL2025NormsFillingInput } from "./nl/2025/filling/types"
 import type { RegionKey } from "./nl/2025/value/types"
 import type { NL2026NormsFillingInput } from "./nl/2026/filling/types"
+import type { NL2027NormsFillingInput } from "./nl/2027/filling/types"
 import type { NormFilling } from "./nl/types"
+import type { NormsYear } from "./years"
 import { calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2025/filling/dierlijke-mest-gebruiksnorm"
 import { calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2025/filling/fosfaatgebruiksnorm"
 import { calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNormWithRegion } from "./nl/2025/filling/stikstofgebruiksnorm"
@@ -9,6 +11,10 @@ import { calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
 import { calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2026/filling/fosfaatgebruiksnorm"
 import { calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2026/filling/renure-gebruiksnorm"
 import { calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNormWithRegion } from "./nl/2026/filling/stikstofgebruiksnorm"
+import { calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2027/filling/dierlijke-mest-gebruiksnorm"
+import { calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2027/filling/fosfaatgebruiksnorm"
+import { calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2027/filling/renure-gebruiksnorm"
+import { calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNormWithRegion } from "./nl/2027/filling/stikstofgebruiksnorm"
 
 /** The fillings of the legal application norms of a single field, in kg per hectare. */
 export type FertilizerApplicationFillings = {
@@ -23,6 +29,7 @@ export type FertilizerApplicationFillings = {
 export type FertilizerApplicationFillingInputByYear = {
   "2025": NL2025NormsFillingInput
   "2026": NL2026NormsFillingInput
+  "2027": NL2027NormsFillingInput
 }
 
 /**
@@ -38,15 +45,27 @@ export type FertilizerApplicationFillingInputByYear = {
  * @param year - The year of the norms.
  * @param input - The filling input of the field, as collected by `collectInputForFertilizerApplicationFilling`.
  * @param b_region - The soil region of the field, as returned by `getRegion`.
- * @returns The filling per norm. `renure` is only present for 2026.
+ * @returns The filling per norm. `renure` is only present from 2026 on.
  * @throws When the input is not valid for the norms, for example an application with a fertilizer
  *   that is not in `input.fertilizers` or a manure without RVO code.
  */
-export function calculateFertilizerApplicationFillingsWithRegion<Y extends "2025" | "2026">(
+export function calculateFertilizerApplicationFillingsWithRegion<Y extends NormsYear>(
   year: Y,
   input: FertilizerApplicationFillingInputByYear[Y],
   b_region: RegionKey,
 ): FertilizerApplicationFillings {
+  if (year === "2027") {
+    const input2027 = input as NL2027NormsFillingInput
+    return {
+      nitrogen: calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNormWithRegion(
+        input2027,
+        b_region,
+      ),
+      manure: calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm(input2027),
+      phosphate: calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm(input2027),
+      renure: calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm(input2027),
+    }
+  }
   if (year === "2026") {
     const input2026 = input as NL2026NormsFillingInput
     return {
