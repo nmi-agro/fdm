@@ -1099,10 +1099,20 @@ describe("Calculations — edge cases", () => {
     expect(getOrganicMatterBalanceField).not.toHaveBeenCalled()
   })
 
-  it("farm norms use the 2026 rules when no year is given", async () => {
+  it("farm and field norms return 400 without a year", async () => {
     const { services } = normServices("resolve")
     const app = makeApp(services)
-    const res = await app.request("/farms/farm-1/calculations/norms", { headers })
+    const farmRes = await app.request("/farms/farm-1/calculations/norms", { headers })
+    expect(farmRes.status).toBe(400)
+    const fieldRes = await app.request("/fields/field-1/calculations/norms", { headers })
+    expect(fieldRes.status).toBe(400)
+    expect(services.createFunctionsForNorms).not.toHaveBeenCalled()
+  })
+
+  it("farm norms use the 2026 rules for year=2026", async () => {
+    const { services } = normServices("resolve")
+    const app = makeApp(services)
+    const res = await app.request("/farms/farm-1/calculations/norms?year=2026", { headers })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       b_id_farm: "farm-1",

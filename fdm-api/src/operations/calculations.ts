@@ -563,13 +563,15 @@ export const FarmNormsSchema = z
   })
   .openapi("FarmNorms")
 
-/** Calendar year of the usage norms; only the years with implemented norms are accepted. */
+/**
+ * Calendar year of the usage norms; only the years with implemented norms are accepted. The year
+ * is required, so a client never silently gets the norms of a default year.
+ */
 export const NormsYearQuerySchema = z.object({
   year: z
     .enum(NORMS_YEARS)
-    .default("2026")
     .describe(
-      "Calendar year. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: a copy of 2026 until the official 2027 tables are published.",
+      "Calendar year, required. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: a copy of 2026 until the official 2027 tables are published.",
     ),
 })
 
