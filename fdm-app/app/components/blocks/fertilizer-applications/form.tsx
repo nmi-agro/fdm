@@ -317,11 +317,29 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                         value={p_id ?? null}
                         onValueChange={(value) => field.onChange(value ?? undefined)}
                       >
-                        <ComboboxInput
-                          id={field.name}
-                          onBlur={field.onBlur}
-                          aria-invalid={fieldState.invalid}
-                        />
+                        <div className="flex flex-row gap-2">
+                          <ComboboxInput
+                            id={field.name}
+                            onBlur={field.onBlur}
+                            aria-invalid={fieldState.invalid}
+                            className="grow"
+                          />
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={handleManageFertilizers}
+                                  aria-label="Voeg een nieuwe meststof toe"
+                                >
+                                  <Plus className="size-4" />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent>Voeg een nieuwe meststof toe</TooltipContent>
+                          </Tooltip>
+                        </div>
                         <ComboboxContent>
                           <ComboboxEmpty>Geen meststoffen gevonden.</ComboboxEmpty>
                           <ComboboxList>
@@ -340,22 +358,6 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
               />
               <div className="shrink-0 grow-0 space-y-2">
                 <Label className="invisible">&nbsp;</Label>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="ml-2"
-                        onClick={handleManageFertilizers}
-                        aria-label="Voeg een nieuwe meststof toe"
-                      >
-                        <Plus className="size-4" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>Voeg een nieuwe meststof toe</TooltipContent>
-                </Tooltip>
               </div>
             </div>
             {typeof intent === "string" && <input type="hidden" name="intent" value={intent} />}
