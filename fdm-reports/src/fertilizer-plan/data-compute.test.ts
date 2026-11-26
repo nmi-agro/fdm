@@ -165,7 +165,7 @@ describe("collectFertilizerPlanInput", () => {
     })
   })
 
-  const normInputF1 = { year: 2025, field: { b_id: "f1" } }
+  const normInputF1 = { year: 2025, field: { b_id: "f1" }, farm: { has_grazing_intention: true } }
 
   it("combines the farm data per field, with empty lists for fields without data", async () => {
     const result = await collectFertilizerPlanInput(fdm, "p1", "farm-1", 2025)
@@ -193,6 +193,18 @@ describe("collectFertilizerPlanInput", () => {
     const { collectInputForNormsForFarm } = calculator.createFunctionsForNorms.mock.results[0]
       ?.value as { collectInputForNormsForFarm: ReturnType<typeof vi.fn> }
     expect(collectInputForNormsForFarm).toHaveBeenCalledWith(fdm, "p1", "farm-1")
+  })
+
+  it("uses the grazing intention of the plan in the norm input, so norms and fillings agree", async () => {
+    // The collector read a different value than the plan, e.g. because it changed in between
+    calculator.createFunctionsForNorms.mockReturnValue({
+      collectInputForNormsForFarm: vi.fn(
+        async () => new Map([["f1", { ...normInputF1, farm: { has_grazing_intention: false } }]]),
+      ),
+    })
+    const result = await collectFertilizerPlanInput(fdm, "p1", "farm-1", 2026)
+    expect(result.has_grazing_intention).toBe(true)
+    expect(result.fields[0]?.normInput).toMatchObject({ farm: { has_grazing_intention: true } })
   })
 
   it("collects no norm input for a year without norms", async () => {

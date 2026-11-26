@@ -101,6 +101,22 @@ async function settleForFields<T_Input extends object, T_Output>(
 }
 
 /**
+ * Returns the norm input with the given grazing intention, so a plan uses one value for its norms
+ * and its fillings.
+ *
+ * @param normInput - The norm input of a field, as collected by the calculator.
+ * @param has_grazing_intention - The grazing intention of the farm for the plan year.
+ * @returns The norm input with that grazing intention, or `undefined` without a norm input.
+ */
+function withGrazingIntention(
+  normInput: { farm: object } | undefined,
+  has_grazing_intention: boolean,
+): object | undefined {
+  if (!normInput) return undefined
+  return { ...normInput, farm: { ...normInput.farm, has_grazing_intention } }
+}
+
+/**
  * Collects all data a fertilizer plan of a farm is based on: the farm, its fields with their
  * cultivations, fertilizer applications and soil data, the catalogues, and the derogation,
  * organic certification and grazing intention of the year.
@@ -171,8 +187,10 @@ export async function collectFertilizerPlanInput(
       fertilizerApplications: fertilizerApplicationsMap.get(field.b_id) ?? [],
       cultivations: cultivationsMap.get(field.b_id) ?? [],
       currentSoilData: currentSoilDataMap.get(field.b_id) ?? [],
-      // The norm input of the field, or `undefined` for a year without norms
-      normInput: normInputsByField?.get(field.b_id) as object | undefined,
+      // The norm input of the field, or `undefined` for a year without norms. The grazing
+      // intention is the one read above, so the norms and the fillings of the plan use the same
+      // value even if it changes between the two reads.
+      normInput: withGrazingIntention(normInputsByField?.get(field.b_id), has_grazing_intention),
     })),
     fertilizersCatalogue: fertilizersCatalogue,
     cultivationsCatalogue: cultivationsCatalogue,
