@@ -1,13 +1,15 @@
 import type { Cultivation, CurrentSoilData, FdmType, Field, Harvest } from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
 import {
-  collectNL2027InputForNorms,
-  collectNL2027InputForNormsForFarm,
-  type NL2027FarmFdmCoreOperations,
-  type NL2027SingleFdmCoreOperations,
-} from "./input"
+  collectNL2026InputForNorms,
+  collectNL2026InputForNormsForFarm,
+  type NL2026FarmFdmCoreOperations,
+  type NL2026SingleFdmCoreOperations,
+} from "../../2026/value/input"
 
-describe("collectNL2027InputForNorms", () => {
+// 2027 uses the rules introduced in 2026 (provisional), so these tests run the 2026 collectors
+// for the norm year 2027.
+describe("2027, collectNL2026InputForNorms", () => {
   it("should collect input correctly", async () => {
     const mockFdm = {} as FdmType
     const mockPrincipalId = "principal-1"
@@ -30,15 +32,17 @@ describe("collectNL2027InputForNorms", () => {
       getHarvests: async () => [],
       getCurrentSoilData: async () => mockCurrentSoilData as unknown as CurrentSoilData,
       getGrazingIntention: async () => false,
-    } as NL2027SingleFdmCoreOperations
+    } as NL2026SingleFdmCoreOperations
 
-    const result = await collectNL2027InputForNorms(
+    const result = await collectNL2026InputForNorms(
       mockFdm,
       mockPrincipalId,
       mockFieldId,
+      2027,
       operations,
     )
 
+    expect(result.year).toBe(2027)
     expect(result.farm.has_grazing_intention).toBe(false)
     expect(result.field).toBe(mockField)
     expect(result.cultivations).toEqual([{ ...mockCultivations[0], harvests: [] }])
@@ -61,19 +65,20 @@ describe("collectNL2027InputForNorms", () => {
       getHarvests: async () => [],
       getCurrentSoilData: async () => [] as unknown as CurrentSoilData,
       getGrazingIntention: async () => false,
-    } as NL2027SingleFdmCoreOperations
+    } as NL2026SingleFdmCoreOperations
 
-    const result = await collectNL2027InputForNorms(
+    const result = await collectNL2026InputForNorms(
       mockFdm,
       mockPrincipalId,
       mockFieldId,
+      2027,
       operations,
     )
     expect(result.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
   })
 })
 
-describe("collectNL2027InputForNormsForFarm", () => {
+describe("2027, collectNL2026InputForNormsForFarm", () => {
   it("should collect farm input correctly", async () => {
     const mockFdm = {} as FdmType
     const mockPrincipalId = "principal-1"
@@ -97,18 +102,20 @@ describe("collectNL2027InputForNormsForFarm", () => {
       getCultivationsForFarm: async () => new Map([[mockFieldId, mockCultivations]]),
       getHarvestsForFarm: async () => new Map(),
       getCurrentSoilDataForFarm: async () => new Map([[mockFieldId, mockSoilData]]),
-    } as NL2027FarmFdmCoreOperations
+    } as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2027InputForNormsForFarm(
+    const result = await collectNL2026InputForNormsForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
+      2027,
       operations,
     )
 
     expect(result).toBeInstanceOf(Map)
     expect(result.has(mockFieldId)).toBe(true)
     const fieldInput = result.get(mockFieldId)!
+    expect(fieldInput.year).toBe(2027)
     expect(fieldInput.farm.has_grazing_intention).toBe(false)
     expect(fieldInput.field).toBe(mockField)
     expect(fieldInput.cultivations).toEqual([{ ...mockCultivations[0], harvests: [] }])
@@ -134,12 +141,13 @@ describe("collectNL2027InputForNormsForFarm", () => {
       getHarvestsForFarm: async () => new Map(),
       getCurrentSoilDataForFarm: async () =>
         new Map([[mockFieldId, { not: "an-array" } as unknown as CurrentSoilData]]),
-    } as NL2027FarmFdmCoreOperations
+    } as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2027InputForNormsForFarm(
+    const result = await collectNL2026InputForNormsForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
+      2027,
       operations,
     )
     const fieldInput = result.get(mockFieldId)!
@@ -166,19 +174,20 @@ describe("collectNL2027InputForNormsForFarm", () => {
       getCultivationsForFarm: async () => new Map(),
       getHarvestsForFarm: async () => new Map(),
       getCurrentSoilDataForFarm: async () => new Map(),
-    } as NL2027FarmFdmCoreOperations
+    } as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2027InputForNormsForFarm(
+    const result = await collectNL2026InputForNormsForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
+      2027,
       operations,
     )
     expect(result.get(mockFieldId)?.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
   })
 })
 
-describe("NL2027 norm input harvests", () => {
+describe("2027, NL2026 norm input harvests", () => {
   const mockFdm = {} as FdmType
   const mockPrincipalId = "principal-1"
   const mockFarmId = "farm-1"
@@ -209,12 +218,13 @@ describe("NL2027 norm input harvests", () => {
       getHarvests,
       getCurrentSoilData: async () => [] as unknown as CurrentSoilData,
       getGrazingIntention: async () => false,
-    } as unknown as NL2027SingleFdmCoreOperations
+    } as unknown as NL2026SingleFdmCoreOperations
 
-    const result = await collectNL2027InputForNorms(
+    const result = await collectNL2026InputForNorms(
       mockFdm,
       mockPrincipalId,
       mockFieldId,
+      2027,
       operations,
     )
 
@@ -236,12 +246,13 @@ describe("NL2027 norm input harvests", () => {
       getCultivationsForFarm: async () => new Map([[mockFieldId, mockCultivations]]),
       getHarvestsForFarm,
       getCurrentSoilDataForFarm: async () => new Map(),
-    } as unknown as NL2027FarmFdmCoreOperations
+    } as unknown as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2027InputForNormsForFarm(
+    const result = await collectNL2026InputForNormsForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
+      2027,
       operations,
     )
 
@@ -263,22 +274,22 @@ describe("NL2027 norm input harvests", () => {
     const nextYear = new Date(2028, 0, 1)
 
     const getHarvests = vi.fn(async () => [])
-    await collectNL2027InputForNorms(mockFdm, mockPrincipalId, mockFieldId, {
+    await collectNL2026InputForNorms(mockFdm, mockPrincipalId, mockFieldId, 2027, {
       getField: async () => mockField,
       getCultivations: async () => mockCultivations,
       getHarvests,
       getCurrentSoilData: async () => [] as unknown as CurrentSoilData,
       getGrazingIntention: async () => false,
-    } as unknown as NL2027SingleFdmCoreOperations)
+    } as unknown as NL2026SingleFdmCoreOperations)
 
     const getHarvestsForFarm = vi.fn(async () => new Map())
-    await collectNL2027InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId, {
+    await collectNL2026InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId, 2027, {
       getFields: async () => [mockField],
       getGrazingIntention: async () => false,
       getCultivationsForFarm: async () => new Map([[mockFieldId, mockCultivations]]),
       getHarvestsForFarm,
       getCurrentSoilDataForFarm: async () => new Map(),
-    } as unknown as NL2027FarmFdmCoreOperations)
+    } as unknown as NL2026FarmFdmCoreOperations)
 
     const timeframes = [
       ...getHarvests.mock.calls.map((call) => (call as unknown[])[3]),

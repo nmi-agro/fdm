@@ -1,14 +1,24 @@
 import type { Cultivation, Field, Harvest, SoilAnalysis } from "@nmi-agro/fdm-core"
 
 /**
- * Represents the collected input for a single cultivation, required for NL 2026 norm calculations.
+ * The norm years that use the NL rules introduced in 2026.
+ *
+ * A later year uses the functions of the earliest year whose rules it shares, until a
+ * regulation or RVO table changes them. The 2027 norms are provisional: as of now no regulation
+ * or RVO table changes them compared with 2026.
+ */
+export type NL2026NormsYear = 2026 | 2027
+
+/**
+ * Represents the collected input for a single cultivation, required for the NL norm
+ * calculations from 2026 on.
  */
 export type NL2026NormsInputForCultivation = Pick<
   Cultivation,
   "b_lu" | "b_lu_catalogue" | "b_lu_start" | "b_lu_end" | "b_lu_variety"
 > & {
   /**
-   * Harvests of this cultivation within the norm year (1 January to 31 December 2026).
+   * Harvests of this cultivation within the norm year (1 January to 31 December).
    * Used to tell a single harvest (eenmalige oogst) from multiple harvests (meermalige oogst).
    * When omitted, the cultivation is treated as harvested at most once.
    */
@@ -16,9 +26,12 @@ export type NL2026NormsInputForCultivation = Pick<
 }
 
 /**
- * Represents the complete set of inputs required to calculate all NL 2026 norms for a given farm.
+ * Represents the complete set of inputs required to calculate all NL norms of a field, for the
+ * norm years that use the rules introduced in 2026.
  */
 export type NL2026NormsInput = {
+  /** The norm year. The dates of the rules (main crop period, reduction windows) are of this year. */
+  year: NL2026NormsYear
   /** Farm-level properties, such as grazing intention. */
   farm: {
     has_grazing_intention: boolean

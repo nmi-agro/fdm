@@ -1,3 +1,6 @@
+import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
+import type { NL2026NormsFillingInput } from "./nl/2026/filling/types"
+import type { NL2026NormsInput, NL2026NormsYear } from "./nl/2026/value/types"
 import type { NormFilling } from "./nl/types"
 import type { NormsYear } from "./years"
 import { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./farm"
@@ -39,31 +42,18 @@ import { getNL2026FosfaatGebruiksNorm } from "./nl/2026/value/fosfaatgebruiksnor
 import {
   collectNL2026InputForNorms,
   collectNL2026InputForNormsForFarm,
+  type NL2026FarmFdmCoreOperations,
+  type NL2026SingleFdmCoreOperations,
 } from "./nl/2026/value/input"
 import { getNL2026RenureGebruiksNorm } from "./nl/2026/value/renure-gebruiksnorm"
 import { getNL2026StikstofGebruiksNorm } from "./nl/2026/value/stikstofgebruiksnorm"
-import { calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2027/filling/dierlijke-mest-gebruiksnorm"
-import { getNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2027/filling/dierlijke-mest-gebruiksnorm-cache"
-import { calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2027/filling/fosfaatgebruiksnorm"
-import { getNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2027/filling/fosfaatgebruiksnorm-cache"
-import {
-  collectNL2027InputForFertilizerApplicationFilling,
-  collectNL2027InputForFertilizerApplicationFillingForFarm,
-} from "./nl/2027/filling/input"
-import { calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2027/filling/renure-gebruiksnorm"
-import { getNL2027FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2027/filling/renure-gebruiksnorm-cache"
-import {
-  calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-  getNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-} from "./nl/2027/filling/stikstofgebruiksnorm-cache"
-import { getNL2027DierlijkeMestGebruiksNorm } from "./nl/2027/value/dierlijke-mest-gebruiksnorm"
-import { getNL2027FosfaatGebruiksNorm } from "./nl/2027/value/fosfaatgebruiksnorm"
-import {
-  collectNL2027InputForNorms,
-  collectNL2027InputForNormsForFarm,
-} from "./nl/2027/value/input"
-import { getNL2027RenureGebruiksNorm } from "./nl/2027/value/renure-gebruiksnorm"
-import { getNL2027StikstofGebruiksNorm } from "./nl/2027/value/stikstofgebruiksnorm"
+
+// A norm year uses the functions of the earliest year whose rules it shares, until a regulation
+// or RVO table changes them. Those functions read the norm year from their input, and the input
+// collectors below are bound to it. For now:
+// - 2025: the 2025 rules.
+// - 2026 and 2027: the rules introduced in 2026. The 2027 norms are provisional: no regulation or
+//   RVO table changes them compared with 2026 so far.
 
 type Regions = "NL"
 
@@ -75,22 +65,23 @@ type Norms2025Functions = {
   calculateNormForPhosphate: typeof getNL2025FosfaatGebruiksNorm
   aggregateNormsToFarmLevel: typeof aggregateNormsToFarmLevel
 }
-type Norms2026Functions = {
-  collectInputForNorms: typeof collectNL2026InputForNorms
-  collectInputForNormsForFarm: typeof collectNL2026InputForNormsForFarm
+type NL2026NormsFunctions = {
+  collectInputForNorms: (
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id: string,
+    operations?: NL2026SingleFdmCoreOperations,
+  ) => Promise<NL2026NormsInput>
+  collectInputForNormsForFarm: (
+    fdm: FdmType,
+    principal_id: PrincipalId,
+    b_id_farm: string,
+    operations?: NL2026FarmFdmCoreOperations,
+  ) => Promise<Map<string, NL2026NormsInput>>
   calculateNormForNitrogen: typeof getNL2026StikstofGebruiksNorm
   calculateNormForManure: typeof getNL2026DierlijkeMestGebruiksNorm
   calculateNormForPhosphate: typeof getNL2026FosfaatGebruiksNorm
   calculateNormForRenure: typeof getNL2026RenureGebruiksNorm
-  aggregateNormsToFarmLevel: typeof aggregateNormsToFarmLevel
-}
-type Norms2027Functions = {
-  collectInputForNorms: typeof collectNL2027InputForNorms
-  collectInputForNormsForFarm: typeof collectNL2027InputForNormsForFarm
-  calculateNormForNitrogen: typeof getNL2027StikstofGebruiksNorm
-  calculateNormForManure: typeof getNL2027DierlijkeMestGebruiksNorm
-  calculateNormForPhosphate: typeof getNL2027FosfaatGebruiksNorm
-  calculateNormForRenure: typeof getNL2027RenureGebruiksNorm
   aggregateNormsToFarmLevel: typeof aggregateNormsToFarmLevel
 }
 // The shapes are keyed by year, so a year without an entry is a type error instead of
@@ -99,16 +90,37 @@ type Norms2027Functions = {
 // (for call sites that pass a runtime, non-literal year).
 type NormsFunctionsByYear = {
   "2025": Norms2025Functions
-  "2026": Norms2026Functions
-  "2027": Norms2027Functions
+  "2026": NL2026NormsFunctions
+  "2027": NL2026NormsFunctions
+}
+
+/**
+ * Returns the norm functions of the rules introduced in 2026, with the input collectors bound
+ * to a norm year that uses those rules.
+ *
+ * @param year - The norm year.
+ * @returns The norm functions of that year.
+ */
+function createNL2026NormsFunctions(year: NL2026NormsYear): NL2026NormsFunctions {
+  return {
+    collectInputForNorms: (fdm, principal_id, b_id, operations) =>
+      collectNL2026InputForNorms(fdm, principal_id, b_id, year, operations),
+    collectInputForNormsForFarm: (fdm, principal_id, b_id_farm, operations) =>
+      collectNL2026InputForNormsForFarm(fdm, principal_id, b_id_farm, year, operations),
+    calculateNormForNitrogen: getNL2026StikstofGebruiksNorm,
+    calculateNormForManure: getNL2026DierlijkeMestGebruiksNorm,
+    calculateNormForPhosphate: getNL2026FosfaatGebruiksNorm,
+    calculateNormForRenure: getNL2026RenureGebruiksNorm,
+    aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
+  }
 }
 
 /**
  * Returns the functions to collect the input for and calculate the legal application norms
  * (gebruiksnormen) of a region and year.
  *
- * The norms of 2027 are provisional: they are a copy of the 2026 norms until the official
- * 2027 RVO tables are published.
+ * The norms of 2027 are provisional: they use the 2026 rules until the official 2027 RVO tables
+ * are published.
  *
  * @param b_region - The region of the norms.
  * @param year - The year of the norms.
@@ -131,26 +143,10 @@ export function createFunctionsForNorms<Y extends NormsYear>(
       } satisfies Norms2025Functions as NormsFunctionsByYear[Y]
     }
     if (year === "2026") {
-      return {
-        collectInputForNorms: collectNL2026InputForNorms,
-        collectInputForNormsForFarm: collectNL2026InputForNormsForFarm,
-        calculateNormForNitrogen: getNL2026StikstofGebruiksNorm,
-        calculateNormForManure: getNL2026DierlijkeMestGebruiksNorm,
-        calculateNormForPhosphate: getNL2026FosfaatGebruiksNorm,
-        calculateNormForRenure: getNL2026RenureGebruiksNorm,
-        aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
-      } satisfies Norms2026Functions as NormsFunctionsByYear[Y]
+      return createNL2026NormsFunctions(2026) as NormsFunctionsByYear[Y]
     }
     if (year === "2027") {
-      return {
-        collectInputForNorms: collectNL2027InputForNorms,
-        collectInputForNormsForFarm: collectNL2027InputForNormsForFarm,
-        calculateNormForNitrogen: getNL2027StikstofGebruiksNorm,
-        calculateNormForManure: getNL2027DierlijkeMestGebruiksNorm,
-        calculateNormForPhosphate: getNL2027FosfaatGebruiksNorm,
-        calculateNormForRenure: getNL2027RenureGebruiksNorm,
-        aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
-      } satisfies Norms2027Functions as NormsFunctionsByYear[Y]
+      return createNL2026NormsFunctions(2027) as NormsFunctionsByYear[Y]
     }
     throw new Error("Year not supported")
   }
@@ -165,36 +161,81 @@ type FillingFunctions2025 = {
   calculateFertilizerApplicationFillingForPhosphate: typeof getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm
   aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
 }
-type FillingFunctions2026 = {
-  collectInputForFertilizerApplicationFilling: typeof collectNL2026InputForFertilizerApplicationFilling
-  collectInputForFertilizerApplicationFillingForFarm: typeof collectNL2026InputForFertilizerApplicationFillingForFarm
+type CollectNL2026FillingInput = (
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: string,
+  fosfaatgebruiksnorm: number,
+) => Promise<NL2026NormsFillingInput>
+type CollectNL2026FillingInputForFarm = (
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: string,
+  fosfaatgebruiksnormByField: Map<string, number>,
+) => Promise<Map<string, NL2026NormsFillingInput>>
+type NL2026FillingFunctions = {
+  collectInputForFertilizerApplicationFilling: CollectNL2026FillingInput
+  collectInputForFertilizerApplicationFillingForFarm: CollectNL2026FillingInputForFarm
   calculateFertilizerApplicationFillingForNitrogen: typeof getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm
   calculateFertilizerApplicationFillingForManure: typeof getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
   calculateFertilizerApplicationFillingForPhosphate: typeof getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm
   calculateFertilizerApplicationFillingForRenure: typeof getNL2026FertilizerApplicationFillingForRenureGebruiksNorm
   aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
 }
-type FillingFunctions2027 = {
-  collectInputForFertilizerApplicationFilling: typeof collectNL2027InputForFertilizerApplicationFilling
-  collectInputForFertilizerApplicationFillingForFarm: typeof collectNL2027InputForFertilizerApplicationFillingForFarm
-  calculateFertilizerApplicationFillingForNitrogen: typeof getNL2027FertilizerApplicationFillingForStikstofGebruiksNorm
-  calculateFertilizerApplicationFillingForManure: typeof getNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
-  calculateFertilizerApplicationFillingForPhosphate: typeof getNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm
-  calculateFertilizerApplicationFillingForRenure: typeof getNL2027FertilizerApplicationFillingForRenureGebruiksNorm
-  aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
-}
 type FillingFunctionsByYear = {
   "2025": FillingFunctions2025
-  "2026": FillingFunctions2026
-  "2027": FillingFunctions2027
+  "2026": NL2026FillingFunctions
+  "2027": NL2026FillingFunctions
+}
+
+/**
+ * Returns the cached filling functions of the rules introduced in 2026, with the input
+ * collectors bound to a norm year that uses those rules.
+ *
+ * @param year - The norm year.
+ * @returns The filling functions of that year.
+ */
+function createNL2026FillingFunctions(year: NL2026NormsYear): NL2026FillingFunctions {
+  return {
+    collectInputForFertilizerApplicationFilling: (fdm, principal_id, b_id, fosfaatgebruiksnorm) =>
+      collectNL2026InputForFertilizerApplicationFilling(
+        fdm,
+        principal_id,
+        b_id,
+        fosfaatgebruiksnorm,
+        year,
+      ),
+    collectInputForFertilizerApplicationFillingForFarm: (
+      fdm,
+      principal_id,
+      b_id_farm,
+      fosfaatgebruiksnormByField,
+    ) =>
+      collectNL2026InputForFertilizerApplicationFillingForFarm(
+        fdm,
+        principal_id,
+        b_id_farm,
+        fosfaatgebruiksnormByField,
+        year,
+      ),
+    calculateFertilizerApplicationFillingForNitrogen:
+      getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+    calculateFertilizerApplicationFillingForManure:
+      getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+    calculateFertilizerApplicationFillingForPhosphate:
+      getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+    calculateFertilizerApplicationFillingForRenure:
+      getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+    aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
+  }
 }
 
 /**
  * Returns the cached functions to collect the input for and calculate how far the fertilizer
  * applications fill the legal application norms of a region and year.
  *
- * The norms of 2027 are provisional: they are a copy of the 2026 norms until the official
- * 2027 RVO tables are published.
+ * The norms of 2027 are provisional: they use the 2026 rules until the official 2027 RVO tables
+ * are published.
  *
  * @param b_region - The region of the norms.
  * @param year - The year of the norms.
@@ -222,38 +263,10 @@ export function createFunctionsForFertilizerApplicationFilling<Y extends NormsYe
       } satisfies FillingFunctions2025 as FillingFunctionsByYear[Y]
     }
     if (year === "2026") {
-      return {
-        collectInputForFertilizerApplicationFilling:
-          collectNL2026InputForFertilizerApplicationFilling,
-        collectInputForFertilizerApplicationFillingForFarm:
-          collectNL2026InputForFertilizerApplicationFillingForFarm,
-        calculateFertilizerApplicationFillingForNitrogen:
-          getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
-        calculateFertilizerApplicationFillingForManure:
-          getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-        calculateFertilizerApplicationFillingForPhosphate:
-          getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
-        calculateFertilizerApplicationFillingForRenure:
-          getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
-        aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      } satisfies FillingFunctions2026 as FillingFunctionsByYear[Y]
+      return createNL2026FillingFunctions(2026) as FillingFunctionsByYear[Y]
     }
     if (year === "2027") {
-      return {
-        collectInputForFertilizerApplicationFilling:
-          collectNL2027InputForFertilizerApplicationFilling,
-        collectInputForFertilizerApplicationFillingForFarm:
-          collectNL2027InputForFertilizerApplicationFillingForFarm,
-        calculateFertilizerApplicationFillingForNitrogen:
-          getNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-        calculateFertilizerApplicationFillingForManure:
-          getNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-        calculateFertilizerApplicationFillingForPhosphate:
-          getNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm,
-        calculateFertilizerApplicationFillingForRenure:
-          getNL2027FertilizerApplicationFillingForRenureGebruiksNorm,
-        aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      } satisfies FillingFunctions2027 as FillingFunctionsByYear[Y]
+      return createNL2026FillingFunctions(2027) as FillingFunctionsByYear[Y]
     }
     throw new Error("Year not supported")
   }
@@ -269,26 +282,43 @@ type UncachedFillingFunctions2025 = {
   calculateFertilizerApplicationFillingForPhosphate: typeof calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm
   aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
 }
-type UncachedFillingFunctions2026 = {
-  collectInputForFertilizerApplicationFilling: typeof collectNL2026InputForFertilizerApplicationFilling
+type NL2026UncachedFillingFunctions = {
+  collectInputForFertilizerApplicationFilling: CollectNL2026FillingInput
   calculateFertilizerApplicationFillingForNitrogen: typeof calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm
   calculateFertilizerApplicationFillingForManure: typeof calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
   calculateFertilizerApplicationFillingForPhosphate: typeof calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm
   calculateFertilizerApplicationFillingForRenure: typeof calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm
   aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
 }
-type UncachedFillingFunctions2027 = {
-  collectInputForFertilizerApplicationFilling: typeof collectNL2027InputForFertilizerApplicationFilling
-  calculateFertilizerApplicationFillingForNitrogen: typeof calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm
-  calculateFertilizerApplicationFillingForManure: typeof calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
-  calculateFertilizerApplicationFillingForPhosphate: typeof calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm
-  calculateFertilizerApplicationFillingForRenure: typeof calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm
-  aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
-}
 type UncachedFillingFunctionsByYear = {
   "2025": UncachedFillingFunctions2025
-  "2026": UncachedFillingFunctions2026
-  "2027": UncachedFillingFunctions2027
+  "2026": NL2026UncachedFillingFunctions
+  "2027": NL2026UncachedFillingFunctions
+}
+
+/**
+ * Returns the uncached filling functions of the rules introduced in 2026, with the input
+ * collector bound to a norm year that uses those rules.
+ *
+ * @param year - The norm year.
+ * @returns The uncached filling functions of that year.
+ */
+function createNL2026UncachedFillingFunctions(
+  year: NL2026NormsYear,
+): NL2026UncachedFillingFunctions {
+  return {
+    collectInputForFertilizerApplicationFilling:
+      createNL2026FillingFunctions(year).collectInputForFertilizerApplicationFilling,
+    calculateFertilizerApplicationFillingForNitrogen:
+      calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+    calculateFertilizerApplicationFillingForManure:
+      calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+    calculateFertilizerApplicationFillingForPhosphate:
+      calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+    calculateFertilizerApplicationFillingForRenure:
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+    aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
+  }
 }
 
 /**
@@ -297,8 +327,8 @@ type UncachedFillingFunctionsByYear = {
  * where caching provides no benefit and direct calculation is preferred.
  * The returned functions take a single `input` argument (no `fdm` database instance).
  *
- * The norms of 2027 are provisional: they are a copy of the 2026 norms until the official
- * 2027 RVO tables are published.
+ * The norms of 2027 are provisional: they use the 2026 rules until the official 2027 RVO tables
+ * are published.
  *
  * @param b_region - The region of the norms.
  * @param year - The year of the norms.
@@ -325,34 +355,10 @@ export function createUncachedFunctionsForFertilizerApplicationFilling<Y extends
       } satisfies UncachedFillingFunctions2025 as UncachedFillingFunctionsByYear[Y]
     }
     if (year === "2026") {
-      return {
-        collectInputForFertilizerApplicationFilling:
-          collectNL2026InputForFertilizerApplicationFilling,
-        calculateFertilizerApplicationFillingForNitrogen:
-          calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
-        calculateFertilizerApplicationFillingForManure:
-          calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-        calculateFertilizerApplicationFillingForPhosphate:
-          calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
-        calculateFertilizerApplicationFillingForRenure:
-          calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
-        aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      } satisfies UncachedFillingFunctions2026 as UncachedFillingFunctionsByYear[Y]
+      return createNL2026UncachedFillingFunctions(2026) as UncachedFillingFunctionsByYear[Y]
     }
     if (year === "2027") {
-      return {
-        collectInputForFertilizerApplicationFilling:
-          collectNL2027InputForFertilizerApplicationFilling,
-        calculateFertilizerApplicationFillingForNitrogen:
-          calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-        calculateFertilizerApplicationFillingForManure:
-          calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-        calculateFertilizerApplicationFillingForPhosphate:
-          calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm,
-        calculateFertilizerApplicationFillingForRenure:
-          calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm,
-        aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      } satisfies UncachedFillingFunctions2027 as UncachedFillingFunctionsByYear[Y]
+      return createNL2026UncachedFillingFunctions(2027) as UncachedFillingFunctionsByYear[Y]
     }
     throw new Error("Year not supported")
   }

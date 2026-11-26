@@ -1,9 +1,11 @@
 import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
-import type { NL2027NormsFillingInput } from "./types"
-import { calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm } from "./renure-gebruiksnorm"
+import type { NL2026NormsFillingInput } from "../../2026/filling/types"
+import { calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm } from "../../2026/filling/renure-gebruiksnorm"
 
-describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () => {
+// 2027 uses the rules introduced in 2026 (provisional), so these tests run the 2026 functions
+// with applications in 2027.
+describe("2027, calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm", () => {
   const mockFertilizers = [
     {
       p_id: "1",
@@ -40,7 +42,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
   ] as unknown as FertilizerApplication[]
 
   it("should calculate the norm filling for a Renure application", () => {
-    const result = calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+    const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
       applications: [mockApplications[0]],
       fertilizers: mockFertilizers,
       cultivations: [],
@@ -48,7 +50,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
       has_grazing_intention: false,
       fosfaatgebruiksnorm: 0,
       b_centroid: [0, 0],
-    } as NL2027NormsFillingInput)
+    } as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(60)
     expect(result.applicationFilling).toEqual([
@@ -60,7 +62,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
   })
 
   it("should return zero filling for non-Renure fertilizers", () => {
-    const result = calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+    const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
       applications: [mockApplications[1]],
       fertilizers: mockFertilizers,
       cultivations: [],
@@ -68,7 +70,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
       has_grazing_intention: false,
       fosfaatgebruiksnorm: 0,
       b_centroid: [0, 0],
-    } as NL2027NormsFillingInput)
+    } as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([
@@ -81,7 +83,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
 
   it("should throw an error if a fertilizer has an unknown p_type_rvo", () => {
     expect(() =>
-      calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
         applications: [
           {
             p_app_id: "app3",
@@ -96,12 +98,12 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
         has_grazing_intention: false,
         fosfaatgebruiksnorm: 0,
         b_centroid: [0, 0],
-      } as NL2027NormsFillingInput),
+      } as NL2026NormsFillingInput),
     ).toThrow("Fertilizer 3 has unknown p_type_rvo 200")
   })
 
   it("should return zero filling when no applications are provided", () => {
-    const result = calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+    const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
       applications: [],
       fertilizers: mockFertilizers,
       cultivations: [],
@@ -109,7 +111,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
       has_grazing_intention: false,
       fosfaatgebruiksnorm: 0,
       b_centroid: [0, 0],
-    } as NL2027NormsFillingInput)
+    } as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([])
@@ -117,7 +119,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
 
   it("should throw an error if a fertilizer is not found in the map", () => {
     expect(() =>
-      calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
         applications: [
           {
             p_app_id: "app_missing",
@@ -132,13 +134,13 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
         has_grazing_intention: false,
         fosfaatgebruiksnorm: 0,
         b_centroid: [0, 0],
-      } as NL2027NormsFillingInput),
+      } as NL2026NormsFillingInput),
     ).toThrow("Fertilizer missing_id not found for application app_missing")
   })
 
   it("should throw an error if a fertilizer has no p_type_rvo", () => {
     expect(() =>
-      calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
         applications: [
           {
             p_app_id: "app_no_rvo",
@@ -159,12 +161,12 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
         has_grazing_intention: false,
         fosfaatgebruiksnorm: 0,
         b_centroid: [0, 0],
-      } as NL2027NormsFillingInput),
+      } as NL2026NormsFillingInput),
     ).toThrow("Fertilizer no_rvo_id has no p_type_rvo")
   })
 
   it("should default missing p_n_rt to zero for zero-amount Renure applications", () => {
-    const result = calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+    const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
       applications: [
         {
           p_app_id: "app_default_n",
@@ -185,14 +187,14 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
       has_grazing_intention: false,
       fosfaatgebruiksnorm: 0,
       b_centroid: [0, 0],
-    } as NL2027NormsFillingInput)
+    } as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([{ p_app_id: "app_default_n", normFilling: 0 }])
   })
 
   it("should apply the Renure Table 11 fallback with a positive amount", () => {
-    const result = calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm({
+    const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
       applications: [
         {
           p_app_id: "app_fallback_n",
@@ -213,7 +215,7 @@ describe("calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm", () 
       has_grazing_intention: false,
       fosfaatgebruiksnorm: 0,
       b_centroid: [0, 0],
-    } as NL2027NormsFillingInput)
+    } as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([{ p_app_id: "app_fallback_n", normFilling: 0 }])

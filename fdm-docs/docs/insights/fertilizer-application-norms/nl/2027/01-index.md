@@ -7,9 +7,9 @@ position: 1
 The FDM Calculator supports the Dutch legal usage norms (`gebruiksnormen`) for 2027 with `createFunctionsForNorms("NL", "2027")` and the two filling factories.
 
 :::warning Provisional
-At the time of writing, no regulation or RVO table has been published that changes the norm values or filling parameters for 2027. The 2027 norms are therefore a **copy of the 2026 norms**: the same four norms, the same values and the same rules, applied to the 2027 calendar year.
+At the time of writing, no regulation or RVO table has been published that changes the norm values or filling parameters for 2027. The 2027 norms therefore **use the 2026 rules**: the calculator runs the 2026 functions for the 2027 calendar year, with the same four norms, the same values and the same rules.
 
-They will be checked against the official 2027 RVO tables once those are published, and updated where they differ. Until then, treat the 2027 results as provisional.
+They will be checked against the official 2027 RVO tables once those are published. Where 2027 differs, it gets its own functions for what changes. Until then, treat the 2027 results as provisional.
 :::
 
 For the rules and parameters, see the 2026 pages. They apply to 2027 with the year-relative rules shifted by one year (the norm year, the previous year and dates within them). Historical facts are not shifted: derogation still ended after 2025, and Renure has been recognised since 2026.

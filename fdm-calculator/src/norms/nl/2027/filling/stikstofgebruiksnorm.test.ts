@@ -1,10 +1,13 @@
 import type { BaseFertilizerApplication, Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { RegionKey } from "../value/types"
-import type { NL2027NormsFillingInput } from "./types"
+import type { NL2026NormsFillingInput } from "../../2026/filling/types"
+import type { RegionKey } from "../../2026/value/types"
 import { getRegion } from "../../2025/value/stikstofgebruiksnorm"
-import { getWorkingCoefficient, isBouwland } from "./stikstofgebruiksnorm"
-import { calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm } from "./stikstofgebruiksnorm-cache"
+import { getWorkingCoefficient, isBouwland } from "../../2026/filling/stikstofgebruiksnorm"
+import { calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm } from "../../2026/filling/stikstofgebruiksnorm-cache"
+
+// 2027 uses the rules introduced in 2026 (provisional), so these tests run the 2026 functions
+// with applications in 2027.
 
 // Mock getRegion
 vi.mock("../../2025/value/stikstofgebruiksnorm", async (importOriginal) => {
@@ -20,7 +23,7 @@ beforeEach(() => {
   vi.mocked(getRegion).mockResolvedValue("zand_nwc")
 })
 
-describe("isBouwland", () => {
+describe("2027, isBouwland", () => {
   it("should return true if cultivation is not in non-bouwland codes", () => {
     const cultivations: Cultivation[] = [
       {
@@ -211,7 +214,7 @@ describe("isBouwland", () => {
   })
 })
 
-describe("getWorkingCoefficient", () => {
+describe("2027, getWorkingCoefficient", () => {
   it("should return default details if p_type_rvo is null or undefined", () => {
     const result = getWorkingCoefficient(null, "zand_nwc", true, true, new Date(), false)
     expect(result.p_n_wcl).toBe(1.0)
@@ -564,7 +567,7 @@ describe("getWorkingCoefficient", () => {
   })
 })
 
-describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", () => {
+describe("2027, calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", () => {
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -645,7 +648,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
     const has_grazing_intention = false
     const cultivations: Cultivation[] = []
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications,
       fertilizers,
       b_centroid,
@@ -653,7 +656,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // Expected: 1000 kg * 5 kg/ton * 1.0 (100%) / 1000 = 5
     expect(result.normFilling).toBeCloseTo(5)
@@ -806,7 +809,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
     const has_grazing_intention = false
     const cultivations: Cultivation[] = []
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications,
       fertilizers,
       b_centroid,
@@ -814,7 +817,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // App1: 1000 * 5 * 1.0 / 1000 = 5
     // App2: 500 * 10 * 0.1 / 1000 = 0.5
@@ -906,7 +909,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
     const has_grazing_intention = true // Drijfmest graasdieren, met beweiding -> 0.45
     const cultivations: Cultivation[] = []
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications,
       fertilizers,
       b_centroid,
@@ -914,7 +917,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // Expected: 1000 * 4.0 (from Table 11) * 0.45 (from Table 9) / 1000 = 1.8
     expect(result.normFilling).toBeCloseTo(1.8)
@@ -943,7 +946,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
     const cultivations: Cultivation[] = []
 
     await expect(
-      calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+      calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
         applications,
         fertilizers,
         b_centroid,
@@ -951,7 +954,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
         cultivations,
         has_organic_certification: false, // Default value for tests
         fosfaatgebruiksnorm: 0, // Default value for tests
-      } as unknown as NL2027NormsFillingInput),
+      } as unknown as NL2026NormsFillingInput),
     ).rejects.toThrow("Fertilizer nonExistentFert not found for application app1")
   })
 
@@ -1032,7 +1035,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
     const has_grazing_intention = false // No grazing intention, so onFarmProduced should be false
     const cultivations: Cultivation[] = []
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications,
       fertilizers,
       b_centroid,
@@ -1040,7 +1043,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false,
       fosfaatgebruiksnorm: 0,
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // For p_type_rvo "14" (Drijfmest rundvee), if onFarmProduced is false,
     // it falls into "Drijfmest van graasdieren aangevoerd" which has p_n_wcl of 0.60.
@@ -1150,7 +1153,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       },
     ]
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications,
       fertilizers,
       b_centroid,
@@ -1158,7 +1161,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // For p_type_rvo "10" (Vaste mest rundvee), onFarmProduced: true in table9.
     // Since has_grazing_intention is false, onFarmProduced will be false in the main function.
@@ -1174,7 +1177,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
   it("should use table11 fallback nitrogen and default zero amount", async () => {
     vi.mocked(getRegion).mockResolvedValue("klei")
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications: [
         {
           p_app_id: "app-defaults",
@@ -1251,7 +1254,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations: [],
       has_organic_certification: false,
       fosfaatgebruiksnorm: 0,
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling[0].normFilling).toBe(0)
@@ -1260,7 +1263,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
   it("should default nitrogen content to zero when table11 has no matching type", async () => {
     vi.mocked(getRegion).mockResolvedValue("klei")
 
-    const result = await calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm({
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
       applications: [
         {
           p_app_id: "app-no-table11",
@@ -1337,7 +1340,7 @@ describe("calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations: [],
       has_organic_certification: false,
       fosfaatgebruiksnorm: 0,
-    } as unknown as NL2027NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling[0].normFilling).toBe(0)
