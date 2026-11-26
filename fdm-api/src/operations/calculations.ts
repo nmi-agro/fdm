@@ -5,8 +5,10 @@ import { z } from "@hono/zod-openapi"
 import {
   FARM_NUTRIENT_ADVICE_NUTRIENTS,
   getYearTimeframe,
+  isNormsYear,
   NormNotApplicableError,
   NORMS_YEARS,
+  type NormsYear,
 } from "@nmi-agro/fdm-calculator"
 import { ApiError, getErrorMessages } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
@@ -564,16 +566,37 @@ export const FarmNormsSchema = z
   .openapi("FarmNorms")
 
 /**
- * Calendar year of the usage norms; only the years with implemented norms are accepted. The year
- * is required, so a client never silently gets the norms of a default year.
+ * Calendar year of the usage norms; only the years with implemented norms are accepted. Without a
+ * year the current calendar year is used (see {@link resolveNormsYear}).
  */
 export const NormsYearQuerySchema = z.object({
   year: z
     .enum(NORMS_YEARS)
+    .optional()
     .describe(
-      "Calendar year, required. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: a copy of 2026 until the official 2027 tables are published.",
+      "Calendar year. Defaults to the current calendar year. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: a copy of 2026 until the official 2027 tables are published.",
     ),
 })
+
+/**
+ * Resolves the year of the usage norms: the requested year, or else the current calendar year.
+ *
+ * @param year - The requested year, if any.
+ * @returns The year to calculate the norms for.
+ * @throws {ApiError} 400 when no year is given and the current calendar year has no norms yet.
+ */
+function resolveNormsYear(year: NormsYear | undefined): NormsYear {
+  if (year) return year
+  const currentYear = String(new Date().getFullYear())
+  if (!isNormsYear(currentYear)) {
+    throw new ApiError(
+      400,
+      "validation-failed",
+      `No norms are available for the current year ${currentYear}. Pass one of the supported years: ${NORMS_YEARS.join(", ")}.`,
+    )
+  }
+  return currentYear
+}
 
 // ---------------------------------------------------------------------------
 // Nutrient advice schema
@@ -1019,11 +1042,12 @@ export const getFarmFertilizationNorms = defineOperation({
     { fdm, services, principal }: OperationContext<CalculationServices>,
     { b_id_farm, year },
   ) => {
+    const normsYear = resolveNormsYear(year)
     await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const fields: z.infer<typeof FarmNormsFieldSchema>[] = []
 
-    // The schema only accepts NORMS_YEARS, so each year gets its own norm functions.
-    const normFunctions = services.createFunctionsForNorms("NL", year)
+    // Only NORMS_YEARS get here, so each year gets its own norm functions.
+    const normFunctions = services.createFunctionsForNorms("NL", normsYear)
     const inputMap = await normFunctions.collectInputForNormsForFarm(
       fdm,
       principal.effectivePrincipalId,
@@ -1035,7 +1059,9 @@ export const getFarmFertilizationNorms = defineOperation({
       fields.push({ b_id, ...result })
     }
 
-    return { b_id_farm, year: Number.parseInt(year, 10), fields } as z.infer<typeof FarmNormsSchema>
+    return { b_id_farm, year: Number.parseInt(normsYear, 10), fields } as z.infer<
+      typeof FarmNormsSchema
+    >
   },
 })
 
@@ -1050,13 +1076,14 @@ export const getFieldFertilizationNorms = defineOperation({
     { fdm, services, principal }: OperationContext<CalculationServices>,
     { b_id, year },
   ) => {
+    const normsYear = resolveNormsYear(year)
     const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
     if (!field) {
       throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
     }
 
-    // The schema only accepts NORMS_YEARS, so each year gets its own norm functions.
-    const normFunctions = services.createFunctionsForNorms("NL", year)
+    // Only NORMS_YEARS get here, so each year gets its own norm functions.
+    const normFunctions = services.createFunctionsForNorms("NL", normsYear)
     const input = await normFunctions.collectInputForNorms(
       fdm,
       principal.effectivePrincipalId,
@@ -1070,7 +1097,7 @@ export const getFieldFertilizationNorms = defineOperation({
 
     return {
       b_id,
-      year: Number.parseInt(year, 10),
+      year: Number.parseInt(normsYear, 10),
       nitrogen,
       manure,
       phosphate,
