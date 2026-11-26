@@ -164,7 +164,7 @@ const farmNormsRoute = createRoute({
   path: "/farms/{b_id_farm}/calculations/norms",
   summary: "Calculate usage norms for all fields on a farm",
   description:
-    "Computes the NL nitrogen, manure, and phosphate usage norms per field for the given calendar year. Only years 2025 and 2026 are currently supported.",
+    "Computes the NL nitrogen, manure, and phosphate usage norms per field for the given calendar year. Only years 2025, 2026 and 2027 are currently supported; the 2027 norms are provisional.",
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
@@ -186,7 +186,7 @@ const fieldNormsRoute = createRoute({
   path: "/fields/{b_id}/calculations/norms",
   summary: "Calculate usage norms for a field",
   description:
-    "Computes the NL nitrogen, manure, and phosphate usage norms for the given field and calendar year. Only years 2025 and 2026 are currently supported.",
+    "Computes the NL nitrogen, manure, and phosphate usage norms for the given field and calendar year. Only years 2025, 2026 and 2027 are currently supported; the 2027 norms are provisional.",
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {

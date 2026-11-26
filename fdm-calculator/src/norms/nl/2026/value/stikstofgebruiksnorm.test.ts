@@ -96,6 +96,41 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     expect(result.normSource).toEqual("Akkerbouwgewas, pootaardappelen (hoge norm).")
   })
 
+  it("matches the potato control measure (nl_2025) to its Tabel 2 row, not to nl_2026", async () => {
+    const potatoControlMeasure = StikstofData.nitrogenStandardsData.filter((ns) =>
+      ns.b_lu_catalogue_match.includes("nl_2025"),
+    )
+    expect(potatoControlMeasure.map((ns) => ns.cultivation_rvo_table2)).toEqual([
+      "Akkerbouwgewas, Aardappel, bestrijdingsmaatregel",
+    ])
+    // nl_2026 is "braak met bos (sbl-regeling)" in the BRP catalogue, not a potato.
+    expect(
+      StikstofData.nitrogenStandardsData.some(
+        (ns) => ns.type === "aardappel" && ns.b_lu_catalogue_match.includes("nl_2026"),
+      ),
+    ).toBe(false)
+
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: {
+        b_id: "1",
+        b_centroid: [5.6279889, 51.975571],
+      } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_2025", // Aardappelen, bestrijdingsmaatregel
+          b_lu_start: new Date(2026, 3, 1),
+          b_lu_end: new Date(2026, 8, 1),
+        } as Partial<NL2026NormsInputForCultivation>,
+      ] as NL2026NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+    expect(result.normValue).toBe(0)
+    expect(result.normSource).toEqual("Akkerbouwgewas, Aardappel, bestrijdingsmaatregel.")
+  })
+
   it("should apply 0 korting if winterteelt is present in zand_nwc region (hoofdteelt 2026)", async () => {
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: true },

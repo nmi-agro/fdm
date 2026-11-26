@@ -6,6 +6,7 @@ import {
   FARM_NUTRIENT_ADVICE_NUTRIENTS,
   getYearTimeframe,
   NormNotApplicableError,
+  NORMS_YEARS,
 } from "@nmi-agro/fdm-calculator"
 import { ApiError, getErrorMessages } from "../error"
 import { FarmIdSchema, FieldIdSchema } from "../fields"
@@ -565,9 +566,11 @@ export const FarmNormsSchema = z
 /** Calendar year of the usage norms; only the years with implemented norms are accepted. */
 export const NormsYearQuerySchema = z.object({
   year: z
-    .enum(["2025", "2026"])
+    .enum(NORMS_YEARS)
     .default("2026")
-    .describe("Calendar year. Only 2025 and 2026 are currently supported for norms."),
+    .describe(
+      "Calendar year. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: a copy of 2026 until the official 2027 tables are published.",
+    ),
 })
 
 // ---------------------------------------------------------------------------
@@ -1017,30 +1020,17 @@ export const getFarmFertilizationNorms = defineOperation({
     await assertFarmSizeSupported(fdm, services, principal.effectivePrincipalId, b_id_farm)
     const fields: z.infer<typeof FarmNormsFieldSchema>[] = []
 
-    if (year === "2025") {
-      const normFunctions = services.createFunctionsForNorms("NL", "2025")
-      const inputMap = await normFunctions.collectInputForNormsForFarm(
-        fdm,
-        principal.effectivePrincipalId,
-        b_id_farm,
-      )
+    // The schema only accepts NORMS_YEARS, so each year gets its own norm functions.
+    const normFunctions = services.createFunctionsForNorms("NL", year)
+    const inputMap = await normFunctions.collectInputForNormsForFarm(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id_farm,
+    )
 
-      for (const [b_id, input] of inputMap) {
-        const result = await calculateNormResults(fdm, normFunctions as never, input)
-        fields.push({ b_id, ...result })
-      }
-    } else {
-      const normFunctions = services.createFunctionsForNorms("NL", "2026")
-      const inputMap = await normFunctions.collectInputForNormsForFarm(
-        fdm,
-        principal.effectivePrincipalId,
-        b_id_farm,
-      )
-
-      for (const [b_id, input] of inputMap) {
-        const result = await calculateNormResults(fdm, normFunctions as never, input)
-        fields.push({ b_id, ...result })
-      }
+    for (const [b_id, input] of inputMap) {
+      const result = await calculateNormResults(fdm, normFunctions as never, input)
+      fields.push({ b_id, ...result })
     }
 
     return { b_id_farm, year: Number.parseInt(year, 10), fields } as z.infer<typeof FarmNormsSchema>
@@ -1063,37 +1053,18 @@ export const getFieldFertilizationNorms = defineOperation({
       throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
     }
 
-    let nitrogen: z.infer<typeof NormResultSchema> | null = null
-    let manure: z.infer<typeof NormResultSchema> | null = null
-    let phosphate: z.infer<typeof NormResultSchema> | null = null
-
-    if (year === "2025") {
-      const normFunctions = services.createFunctionsForNorms("NL", "2025")
-      const input = await normFunctions.collectInputForNorms(
-        fdm,
-        principal.effectivePrincipalId,
-        b_id,
-      )
-
-      ;({ nitrogen, manure, phosphate } = await calculateNormResults(
-        fdm,
-        normFunctions as never,
-        input,
-      ))
-    } else {
-      const normFunctions = services.createFunctionsForNorms("NL", "2026")
-      const input = await normFunctions.collectInputForNorms(
-        fdm,
-        principal.effectivePrincipalId,
-        b_id,
-      )
-
-      ;({ nitrogen, manure, phosphate } = await calculateNormResults(
-        fdm,
-        normFunctions as never,
-        input,
-      ))
-    }
+    // The schema only accepts NORMS_YEARS, so each year gets its own norm functions.
+    const normFunctions = services.createFunctionsForNorms("NL", year)
+    const input = await normFunctions.collectInputForNorms(
+      fdm,
+      principal.effectivePrincipalId,
+      b_id,
+    )
+    const { nitrogen, manure, phosphate } = await calculateNormResults(
+      fdm,
+      normFunctions as never,
+      input,
+    )
 
     return {
       b_id,

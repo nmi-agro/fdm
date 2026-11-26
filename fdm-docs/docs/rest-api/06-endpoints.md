@@ -167,7 +167,7 @@ Calculation endpoints operate on **stored FDM resource identifiers** — they do
 | `GET`  | `/api/farms/{b_id_farm}/calculations/organic-matter-balance` | Organic matter balance of a farm (`start`, `end`)                          |
 | `GET`  | `/api/fields/{b_id}/calculations/organic-matter-balance`     | Organic matter balance of a field                                          |
 | `GET`  | `/api/fields/{b_id}/calculations/dose`                       | Nutrient dose applied with fertilizers on a field                          |
-| `GET`  | `/api/farms/{b_id_farm}/calculations/norms`                  | Usage norms per field of a farm (`year`: 2025 or 2026)                     |
+| `GET`  | `/api/farms/{b_id_farm}/calculations/norms`                  | Usage norms per field of a farm (`year`: 2025, 2026 or 2027)               |
 | `GET`  | `/api/fields/{b_id}/calculations/norms`                      | Usage norms of a field                                                     |
 | `GET`  | `/api/farms/{b_id_farm}/calculations/nutrient-advice`        | Nutrient advice, dose and remaining advice per field (`year`)              |
 | `GET`  | `/api/fields/{b_id}/calculations/nutrient-advice`            | Nutrient advice, dose and remaining advice of a field (`year`)             |

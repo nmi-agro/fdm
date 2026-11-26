@@ -15,13 +15,13 @@ Providing these insights is relevant for farmers who need to adhere to environme
 The norm calculation system in `fdm-calculator` is designed to be extensible across different regions and timeframes. The internal architecture organizes logic by:
 
 - **Region:** Supporting different countries or regulatory zones (e.g., `NL` for Netherlands).
-- **Year:** Allowing for annual updates to regulations (e.g., `2025`, `2026`).
+- **Year:** Allowing for annual updates to regulations (e.g., `2025`, `2026`, `2027`).
 
 This structure enables the addition of new regional rule sets or the updating of existing ones as regulations evolve, without disrupting previous implementations.
 
-## Current Implementation: Netherlands 2025 and 2026
+## Current Implementation: Netherlands 2025, 2026 and 2027
 
-The current implementation in `fdm-calculator` covers the Dutch nutrient management regulations for **2025** and **2026**.
+The current implementation in `fdm-calculator` covers the Dutch nutrient management regulations for **2025**, **2026** and, provisionally, **2027**. The supported years are exported as `NORMS_YEARS`.
 
 ### 2025
 
@@ -35,6 +35,10 @@ The current implementation in `fdm-calculator` covers the Dutch nutrient managem
 - **[Phosphate Usage Norm (`Fosfaatgebruiksnorm`)](./nl/2026/fosfaatgebruiksnorm.md):** Unchanged from 2025.
 - **[Animal Manure Usage Norm (`Dierlijke Mest Gebruiksnorm`)](./nl/2026/dierlijke-mest-gebruiksnorm.md):** A flat 170 kg N/ha, because derogation was phased out after 2025.
 - **[Renure Usage Norm (`Renure Gebruiksnorm`)](./nl/2026/renure-gebruiksnorm.md):** New in 2026. Renure products have their own ceiling of 80 kg N/ha on top of the animal manure norm.
+
+### 2027 (provisional)
+
+- **[2027 overview](./nl/2027/01-index.md):** The same four norms, values and rules as 2026, until the official 2027 tables are published.
 
 For detailed logic and specific parameters of these norms, refer to their respective pages.
 

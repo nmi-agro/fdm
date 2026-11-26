@@ -1121,6 +1121,20 @@ describe("Calculations — edge cases", () => {
     expect(services.createFunctionsForNorms).toHaveBeenCalledWith("NL", "2026")
   })
 
+  it("farm and field norms use the 2027 rules for year=2027", async () => {
+    const { services } = normServices("resolve")
+    const app = makeApp(services)
+    const farmRes = await app.request("/farms/farm-1/calculations/norms?year=2027", { headers })
+    expect(farmRes.status).toBe(200)
+    expect((await farmRes.json()).year).toBe(2027)
+    expect(services.createFunctionsForNorms).toHaveBeenLastCalledWith("NL", "2027")
+
+    const fieldRes = await app.request("/fields/field-1/calculations/norms?year=2027", { headers })
+    expect(fieldRes.status).toBe(200)
+    expect(await fieldRes.json()).toEqual({ b_id: "field-1", year: 2027, ...mockFarmNorms })
+    expect(services.createFunctionsForNorms).toHaveBeenLastCalledWith("NL", "2027")
+  })
+
   it("field norms return 404 when the field does not exist", async () => {
     const { services } = normServices("resolve")
     services.getField.mockResolvedValue(null)

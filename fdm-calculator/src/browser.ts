@@ -59,6 +59,8 @@ export type {
   FertilizerApplicationFillings,
 } from "./norms/filling"
 export { calculateFertilizerApplicationFillingsWithRegion } from "./norms/filling"
+export type { NormsYear } from "./norms/years"
+export { isNormsYear, NORMS_YEARS } from "./norms/years"
 export type { RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export type {

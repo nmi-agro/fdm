@@ -100,7 +100,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
     const asyncData = (async () => {
-      // Currently only 2025 and 2026 are supported
+      // Only the years with implemented norms (NORMS_YEARS in fdm-calculator) are supported
       if (!isNormsCalendar(calendar)) {
         return {} as Partial<FarmNormsResult> & { errorMessage?: string | null }
       }
@@ -274,8 +274,8 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
             Helaas, nog geen gebruiksnormen beschikbaar voor {loaderData.calendar}
           </h1>
           <p className="text-muted-foreground text-sm">
-            Op dit moment kunnen we alleen nog de gebruiksnormen voor 2025 en 2026 berekenen en
-            weergeven.
+            Op dit moment kunnen we alleen nog de gebruiksnormen voor 2025 tot en met 2027 berekenen
+            en weergeven.
           </p>
           <NavLink to={`/farm/${loaderData.b_id_farm}/2026/norms`}>
             <Button>Ga naar 2026</Button>

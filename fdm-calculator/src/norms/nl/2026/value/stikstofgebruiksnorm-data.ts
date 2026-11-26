@@ -2517,7 +2517,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewas, Aardappel, bestrijdingsmaatregel",
-    b_lu_catalogue_match: ["nl_2026"],
+    b_lu_catalogue_match: ["nl_2025"],
     type: "aardappel",
     is_winterteelt: false,
     is_vanggewas: false,
