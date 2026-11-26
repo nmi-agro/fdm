@@ -47,7 +47,8 @@ export const table9: Table9 = [
   },
   {
     description: "Dunne fractie na mestbewerking en gier",
-    p_type_rvo: ["12", "17", "41", "42"],
+    // 11 and 41: filtraat na mestscheiding (Tabel 11), the thin fraction after manure separation
+    p_type_rvo: ["11", "12", "17", "41", "42"],
     p_n_wcl: 0.8,
   },
   {
@@ -115,22 +116,8 @@ export const table9: Table9 = [
   },
   {
     description: "Vaste mest van overige diersoorten",
-    p_type_rvo: [
-      "11",
-      "13",
-      "24",
-      "30",
-      "76",
-      "81",
-      "90",
-      "91",
-      "92",
-      "102",
-      "103",
-      "104",
-      "105",
-      "106",
-    ],
+    // Slurry of other animal species (30, 76, 81, 91, 92) is in "Drijfmest van overige diersoorten"
+    p_type_rvo: ["13", "24", "90", "102", "103", "104", "105", "106"],
     subTypes: [
       {
         description: "Op bouwland op klei en veen, van 1 september t/m 31 januari",

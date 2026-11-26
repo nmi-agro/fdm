@@ -229,6 +229,34 @@ describe("2027, getWorkingCoefficient", () => {
     expect(result.subTypeDescription).toBeUndefined()
   })
 
+  it("counts cattle filtrate after manure separation (code 11) as thin fraction: always 80%", () => {
+    for (const soilType of ["klei", "zand_nwc"] as RegionKey[]) {
+      for (const grazing of [true, false]) {
+        for (const onFarm of [true, false]) {
+          // 1 October on arable land: the period in which solid manure on clay gets 30%
+          const result = getWorkingCoefficient(
+            "11",
+            soilType,
+            grazing,
+            true,
+            new Date(2027, 9, 1),
+            onFarm,
+          )
+          expect(result.p_n_wcl).toBe(0.8)
+          expect(result.description).toBe("Dunne fractie na mestbewerking en gier")
+        }
+      }
+    }
+  })
+
+  it("counts slurry of other animal species only as slurry (60%)", () => {
+    for (const code of ["30", "76", "81", "91", "92"]) {
+      const result = getWorkingCoefficient(code, "klei", false, true, new Date(2027, 9, 1), false)
+      expect(result.p_n_wcl).toBe(0.6)
+      expect(result.description).toBe("Drijfmest van overige diersoorten")
+    }
+  })
+
   // Drijfmest van graasdieren op het eigen bedrijf geproduceerd
   describe("Drijfmest van graasdieren op het eigen bedrijf geproduceerd (onFarmProduced: true)", () => {
     const p_type_rvo = "14" // Drijfmest rundvee

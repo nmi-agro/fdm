@@ -19,5 +19,6 @@ Fixes in the 2026 norms (and so in 2027):
 - The potato control measure (`nl_2025`) no longer triggers the 65 kg N/ha grassland destruction reduction, which applies to maize and to consumption and starch potatoes only (also for 2025).
 - The norm input includes cultivations and soil analyses dated during 31 December, not only those at midnight.
 - Peony (`nl_1025`, `nl_1026`) only matches "Buitenbloemen, hoog", as in the RVO crop code list, instead of first matching "Bloembollengewassen, overig" (also for 2025).
+- Cattle filtrate after manure separation (RVO code 11) counts as thin fraction with a working coefficient of 80%, as in Tabel 9, instead of as solid manure (30% or 40%) (also for 2025). Slurry of chickens, mink, ducks and rabbits (codes 30, 76, 81, 91, 92) is only listed as slurry; the result does not change.
 - The animal manure and Renure fillings treat a nitrogen content of 0 as unknown and use the Table 11 value, as the nitrogen filling already did (also for 2025).
 - The Renure nitrogen above 80 kg N/ha now counts towards the animal manure norm at the later applications of the year, also when the applications are passed newest first. The year total does not change.
