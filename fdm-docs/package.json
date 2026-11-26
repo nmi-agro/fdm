@@ -16,6 +16,7 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "node ./node_modules/typescript-7/bin/tsc --noEmit",
+    "check-types": "pnpm run typecheck",
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
@@ -43,6 +44,7 @@
     "@nmi-agro/fdm-reports": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:*",
     "@nmi-agro/fdm-storage": "workspace:*",
+    "@types/react": "^19.3.0",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "^4.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
