@@ -20,9 +20,6 @@ import { operationContext } from "./operation-context"
 
 export type { IndicatorServices } from "../operations/indicators"
 
-/** Badge shown in the API reference next to recently added operations. Remove it once the endpoints are no longer new. */
-const NEW_BADGE = { name: "New", color: "#16a34a" }
-
 const indicatorErrorResponses = {
   ...commonErrorResponses,
   400: {
@@ -41,7 +38,6 @@ const fieldIndicatorsRoute = createRoute({
   method: "get",
   path: "/fields/{b_id}/indicators",
   tags: ["Indicators"],
-  "x-badges": [NEW_BADGE],
   summary: "Get indicator scores of a field",
   description:
     "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips, nature fields and fields without a main cultivation in the year return `is_excluded: true` with their `exclusion_reason` and empty arrays. Counts against the `nmi` rate limit.",
@@ -61,7 +57,6 @@ const farmIndicatorsRoute = createRoute({
   method: "get",
   path: "/farms/{b_id_farm}/indicators",
   tags: ["Indicators"],
-  "x-badges": [NEW_BADGE],
   summary: "Get indicator scores of a farm",
   description:
     "Returns indicator scores of all eligible fields of a farm and the area-weighted farm scores for a calendar year. Fields that cannot be scored fail the whole request with 503. A farm without eligible fields returns empty `fields` and empty farm aggregates. Counts as one request against the `nmi` rate limit, regardless of the number of fields.",
@@ -81,7 +76,6 @@ const fieldMeasureOptionsRoute = createRoute({
   method: "get",
   path: "/fields/{b_id}/measures/catalogue",
   tags: ["Measures"],
-  "x-badges": [NEW_BADGE],
   summary: "Get measure options and recommendations for a field",
   description:
     "Lists field-level catalogue measures with descriptions, applicability, active and conflicting status, predicted impacts and recommendations for a calendar year. These are catalogue candidates, not adopted measures; use `m_id` of a selectable option with `POST /fields/{b_id}/measures`. Predicted impacts are advice for this field and year, not stored properties. Counts against the `nmi` rate limit.",
