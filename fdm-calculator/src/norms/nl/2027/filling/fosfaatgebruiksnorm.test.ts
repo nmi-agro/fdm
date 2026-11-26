@@ -322,7 +322,7 @@ describe("calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm", ()
       b_centroid: [0, 0],
     } as NL2027NormsFillingInput)
     expect(result.normFilling).toBeCloseTo(22.5) // 30 * 0.75 = 22.5
-    expect(result.applicationFilling[0].normFillingDetails).toContain("75% korting")
+    expect(result.applicationFilling[0].normFillingDetails).toContain("75% meegeteld")
   })
 
   it("should count organic pig manure at 100% on a non-organic farm", () => {
@@ -406,7 +406,7 @@ describe("calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm", ()
     expect(result.normFilling).toBeCloseTo(187.5)
     expect(result.applicationFilling[1].normFilling).toBeCloseTo(177.5) // 7.5 (discounted) + 170 (100% counted)
     expect(result.applicationFilling[1].normFillingDetails).toContain(
-      "OS-rijke meststof (25% korting) draagt 7.50kg bij aan de norm. Plus 170.00kg (100% geteld) boven de kortingslimiet.",
+      "OS-rijke meststof (25% meegeteld) draagt 7.50kg bij aan de norm. Plus 170.00kg (100% geteld) boven de kortingslimiet.",
     )
   })
 

@@ -673,6 +673,11 @@ describe("calculateNL2027StikstofGebruiksNorm", () => {
   })
 
   describe("Tijdelijk grasland time-based matching", () => {
+    // Restore the table spy even when a test fails, so later tests see the real Tabel 2
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
     const kleiCentroid: [number, number] = [5.6279889, 51.975571] // Klei region
 
     it("should select the highest norm (longest period) for full-year temporary grassland", async () => {
@@ -2347,16 +2352,18 @@ describe("calculateNL2027StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
       } as unknown as NitrogenStandard,
     ])
 
+    // The first crop covers the whole main crop window (15 May - 15 July), so the second crop is a
+    // follow-up crop and has to fall back to the standard with sub-types.
     const result = await calculateNL2027StikstofGebruiksNorm(
       baseInput([
         {
           b_lu_catalogue: "nl_preceding_2026",
           b_lu_start: new Date(2027, 2, 1),
-          b_lu_end: new Date(2027, 5, 1),
+          b_lu_end: new Date(2027, 6, 15),
         } as NL2027NormsInputForCultivation,
         {
           b_lu_catalogue: "nl_hoofd_only_2026",
-          b_lu_start: new Date(2027, 5, 2),
+          b_lu_start: new Date(2027, 6, 16),
           b_lu_end: new Date(2027, 9, 1),
         } as NL2027NormsInputForCultivation,
       ]),
@@ -2383,10 +2390,9 @@ describe("getNormsForCultivation - tijdelijk grasland periods (RVO Tabel 2)", ()
   const select = (start: Date | null, end: Date) => {
     const standard = getTijdelijkGrasland()
     const result = getNormsForCultivation(standard, end, start)
-    const subType = standard.sub_types?.find((sub) => sub.norms === result?.norms)
     return {
       klei: result?.norms.klei.standard,
-      period: subType?.period_description,
+      period: result?.periodDescription,
       minimumPeriodNotMet: result?.minimumPeriodNotMet ?? false,
     }
   }
@@ -2823,5 +2829,59 @@ describe("NL2027 stikstof eenmalige vs. meermalige oogst", () => {
     )
     expect(result.normValue).toBe(275)
     expect(result.normSource).toEqual("Kruiden (bladgewas, meermalig oogsten).")
+  })
+})
+
+describe("NL2027 stikstof follow-up red fescue and grassland renewal", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("uses the 'Roodzwenkgras, volgteelt' row for red fescue sown after the main crop", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2027StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_233", // Wintertarwe, main crop
+          b_lu_start: new Date(2026, 9, 15),
+          b_lu_end: new Date(2027, 7, 1),
+        } as NL2027NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_6784", // Roodzwenkgras, sown after the main crop
+          b_lu_start: new Date(2027, 7, 15),
+          b_lu_end: null,
+        } as unknown as NL2027NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
+  })
+
+  it("does not treat a nature crop as renewed grass replacing temporary grassland", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const withNature = await calculateNL2027StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_266", // Tijdelijk grasland, overwintered until 1 May
+          b_lu_start: new Date(2026, 8, 1),
+          b_lu_end: new Date(2027, 4, 1),
+        } as NL2027NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_335", // Natuurterrein, not grass
+          b_lu_start: new Date(2027, 5, 1),
+          b_lu_end: null,
+        } as unknown as NL2027NormsInputForCultivation,
+      ]),
+    )
+    const grassOnly = await calculateNL2027StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2026, 8, 1),
+          b_lu_end: new Date(2027, 4, 1),
+        } as NL2027NormsInputForCultivation,
+      ]),
+    )
+    expect(grassOnly.normValue).toBeGreaterThan(0)
+    expect(withNature.normValue).toBe(grassOnly.normValue)
   })
 })
