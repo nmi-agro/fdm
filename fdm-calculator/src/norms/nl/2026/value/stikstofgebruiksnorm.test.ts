@@ -2925,6 +2925,8 @@ describe("NL2026 stikstof follow-up red fescue and grassland renewal", () => {
     expect(rowsFor("nl_6785")).toEqual(["Akkerbouwgewassen, Roodzwenkgras, volgteelt"])
     expect(rowsFor("nl_6788")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
     expect(rowsFor("nl_6789")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_1025")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, overige
+    expect(rowsFor("nl_1026")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, droogbloemen
   })
 
   it("uses the 'Roodzwenkgras, volgteelt' row for nl_6785 also when it is the main crop", async () => {

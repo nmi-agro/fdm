@@ -2061,8 +2061,6 @@ export const nitrogenStandardsData = [
       "nl_1013",
       "nl_1014",
       "nl_1015",
-      "nl_1025",
-      "nl_1026",
       "nl_1027",
       "nl_6795",
       "nl_6796",

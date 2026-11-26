@@ -64,14 +64,20 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
       if (rvoTypeProperties.p_type_nitratesdirective) {
         const amount = new Decimal(application.p_app_amount ?? 0)
         // Determine the nitrogen content, using specific values if available, otherwise fallback to default.
-        const p_n_rt = new Decimal(fertilizer.p_n_rt ?? rvoTypeProperties.p_n_rt ?? 0)
+        // A nitrogen content of 0 means unknown, as in the nitrogen filling: use Table 11 then.
+        const p_n_rt = new Decimal(
+          fertilizer.p_n_rt ? fertilizer.p_n_rt : (rvoTypeProperties.p_n_rt ?? 0),
+        )
         // Calculate the norm filling for this application.
         normFilling = amount.times(p_n_rt).dividedBy(1000)
       } else if (rvoTypeProperties.p_type_renure) {
         // Renure products (codes 130-134): nitrogen up to 80 kg N/ha is excluded from animal manure norm.
         // Any cumulative Renure nitrogen above 80 kg N/ha spills over into animal manure norm filling.
         const amount = new Decimal(application.p_app_amount ?? 0)
-        const p_n_rt = new Decimal(fertilizer.p_n_rt ?? rvoTypeProperties.p_n_rt ?? 0)
+        // A nitrogen content of 0 means unknown, as in the nitrogen filling: use Table 11 then.
+        const p_n_rt = new Decimal(
+          fertilizer.p_n_rt ? fertilizer.p_n_rt : (rvoTypeProperties.p_n_rt ?? 0),
+        )
         const appRenureN = amount.times(p_n_rt).dividedBy(1000)
 
         const beforeN = cumulativeRenureN

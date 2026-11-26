@@ -18,4 +18,6 @@ Fixes in the 2026 norms (and so in 2027):
 - A nature area (`nl_335`) earlier in the year no longer uses up the grassland allowance of grass sown later that year.
 - The potato control measure (`nl_2025`) no longer triggers the 65 kg N/ha grassland destruction reduction, which applies to maize and to consumption and starch potatoes only (also for 2025).
 - The norm input includes cultivations that start during 31 December, not only those that start at midnight.
+- Peony (`nl_1025`, `nl_1026`) only matches "Buitenbloemen, hoog", as in the RVO crop code list, instead of first matching "Bloembollengewassen, overig" (also for 2025).
+- The animal manure and Renure fillings treat a nitrogen content of 0 as unknown and use the Table 11 value, as the nitrogen filling already did (also for 2025).
 - The Renure nitrogen above 80 kg N/ha now counts towards the animal manure norm at the later applications of the year, also when the applications are passed newest first. The year total does not change.
