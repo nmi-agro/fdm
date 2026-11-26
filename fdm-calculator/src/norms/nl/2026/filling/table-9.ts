@@ -53,7 +53,8 @@ export const table9: Table9 = [
   },
   {
     description: "Vaste mest van graasdieren op het eigen bedrijf geproduceerd",
-    p_type_rvo: ["10", "56", "61", "25", "26", "27", "95", "96"],
+    // 13: koek na mestscheiding of cattle; Tabel 9 counts the thick fraction as solid manure
+    p_type_rvo: ["10", "13", "56", "61", "25", "26", "27", "95", "96"],
     onFarmProduced: true,
     subTypes: [
       {
@@ -77,7 +78,8 @@ export const table9: Table9 = [
   },
   {
     description: "Vaste mest van graasdieren aangevoerd",
-    p_type_rvo: ["10", "56", "61", "25", "26", "27", "95", "96"],
+    // 13: koek na mestscheiding of cattle; Tabel 9 counts the thick fraction as solid manure
+    p_type_rvo: ["10", "13", "56", "61", "25", "26", "27", "95", "96"],
     onFarmProduced: false,
     subTypes: [
       {
@@ -117,7 +119,7 @@ export const table9: Table9 = [
   {
     description: "Vaste mest van overige diersoorten",
     // Slurry of other animal species (30, 76, 81, 91, 92) is in "Drijfmest van overige diersoorten"
-    p_type_rvo: ["13", "24", "90", "102", "103", "104", "105", "106"],
+    p_type_rvo: ["24", "90", "102", "103", "104", "105", "106"],
     subTypes: [
       {
         description: "Op bouwland op klei en veen, van 1 september t/m 31 januari",
