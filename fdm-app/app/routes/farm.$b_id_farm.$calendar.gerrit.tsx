@@ -279,7 +279,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return null
 }
 
-export default function GerritApp() {
+/**
+ * Mounts Gerrit anew for each farm and year, so a plan generated for one year is discarded when
+ * the user switches to another year and can never be accepted there.
+ */
+export default function GerritRoute() {
+  const { farm, calendar } = useLoaderData<typeof loader>()
+  return <GerritApp key={`${farm.b_id_farm}-${calendar}`} />
+}
+
+function GerritApp() {
   const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
     useLoaderData<typeof loader>()
   const navigation = useNavigation()

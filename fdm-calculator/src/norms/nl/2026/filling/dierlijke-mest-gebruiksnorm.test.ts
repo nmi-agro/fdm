@@ -256,6 +256,38 @@ describe("calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNor
       expect(result.applicationFilling).toEqual([{ p_app_id: "app_above", normFilling: 20 }])
     })
 
+    it("attributes the Renure excess to the later application when the input is newest first", () => {
+      // 6000 kg * 10 g/kg / 1000 = 60 kg N/ha each: March 60 (no excess), September 120 (40 excess)
+      const result = calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
+        applications: [
+          {
+            p_app_id: "app_september",
+            p_id_catalogue: "6",
+            p_app_amount: 6000,
+            p_app_date: new Date(2026, 8, 1),
+          },
+          {
+            p_app_id: "app_march",
+            p_id_catalogue: "6",
+            p_app_amount: 6000,
+            p_app_date: new Date(2026, 2, 1),
+          },
+        ] as unknown as FertilizerApplication[],
+        fertilizers: renureFertilizers,
+        cultivations: [],
+        has_organic_certification: false,
+        has_grazing_intention: false,
+        fosfaatgebruiksnorm: 0,
+        b_centroid: [0, 0],
+      } as NL2026NormsFillingInput)
+
+      expect(result.normFilling).toBe(40)
+      expect(result.applicationFilling).toEqual([
+        { p_app_id: "app_september", normFilling: 40 },
+        { p_app_id: "app_march", normFilling: 0 },
+      ])
+    })
+
     it("should calculate Renure N spillover cumulatively across multiple applications", () => {
       // Application 1: 5000 kg * 10 g/kg / 1000 = 50 kg N/ha (cumulative: 50 -> 0 excess)
       // Application 2: 5000 kg * 10 g/kg / 1000 = 50 kg N/ha (cumulative: 100 -> 20 excess)

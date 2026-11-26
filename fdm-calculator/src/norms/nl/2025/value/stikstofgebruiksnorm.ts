@@ -561,8 +561,11 @@ function calculateKorting(
     )
     const isMaize = currStandard?.cultivation_rvo_table2.includes("mais")
     const isPotato = currStandard?.type === "aardappel"
+    // Only consumption and starch potatoes count: not seed potatoes, early harvest or the
+    // potato control measure (bestrijdingsmaatregel).
     const isExcludedPotato =
       currStandard?.cultivation_rvo_table2.includes("pootaardappelen") ||
+      currStandard?.cultivation_rvo_table2.includes("bestrijdingsmaatregel") ||
       currCult.b_lu_catalogue === "nl_2015" ||
       currCult.b_lu_catalogue === "nl_2016" ||
       currCult.b_lu_catalogue === "nl_1911" ||

@@ -77,11 +77,12 @@ function getNormYearTimeframes(year: NL2026NormsYear): {
 } {
   const startOfYear = new Date(year, 0, 1)
   const endOfYear = new Date(year, 11, 31)
+  // Dates are timestamps: include everything on 31 December, not only what starts at midnight
+  const endOfLastDay = new Date(year, 11, 31, 23, 59, 59, 999)
   return {
     timeframeYear: { start: startOfYear, end: endOfYear },
-    // Harvest dates are timestamps: include every harvest on 31 December, not only those at midnight
-    timeframeHarvests: { start: startOfYear, end: new Date(year, 11, 31, 23, 59, 59, 999) },
-    timeframeCultivation: { start: new Date(year - 1, 0, 1), end: endOfYear },
+    timeframeHarvests: { start: startOfYear, end: endOfLastDay },
+    timeframeCultivation: { start: new Date(year - 1, 0, 1), end: endOfLastDay },
   }
 }
 

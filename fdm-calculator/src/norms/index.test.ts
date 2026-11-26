@@ -99,7 +99,7 @@ describe.each([
     expect(getGrazingIntention).toHaveBeenCalledWith(mockFdm, "principal-1", "farm-1", normYear)
     expect(getCultivations).toHaveBeenCalledWith(mockFdm, "principal-1", "field-1", {
       start: new Date(normYear - 1, 0, 1),
-      end: new Date(normYear, 11, 31),
+      end: new Date(normYear, 11, 31, 23, 59, 59, 999),
     })
   })
 

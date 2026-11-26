@@ -24,7 +24,6 @@ import {
   graszaadCodes,
   koolzaadCodes,
   maisCodes,
-  nonBouwlandCodes,
   tijdelijkGraslandCodes,
 } from "../../constant"
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
@@ -348,8 +347,11 @@ function calculateKorting(
     // 2. Grassland Destruction (Gras-naar-Bouwland) -> 65 kg N/ha korting
     const isMaize = currStandard?.cultivation_rvo_table2.includes("mais")
     const isPotato = currStandard?.type === "aardappel"
+    // Only consumption and starch potatoes count: not seed potatoes, early harvest or the
+    // potato control measure (bestrijdingsmaatregel).
     const isExcludedPotato =
       currStandard?.cultivation_rvo_table2.includes("pootaardappelen") ||
+      currStandard?.cultivation_rvo_table2.includes("bestrijdingsmaatregel") ||
       currCult.b_lu_catalogue === "nl_2015" ||
       currCult.b_lu_catalogue === "nl_2016" ||
       currCult.b_lu_catalogue === "nl_1911" ||
@@ -624,10 +626,11 @@ function calculateSingleCultivationNorm(
     }
   }
 
-  // Grassland renewal: multiple grass crops on the same field in the same year share the annual grassland allowance
-  const isGrass = nonBouwlandCodes.includes(cultivation.b_lu_catalogue)
+  // Grassland renewal: multiple grass crops on the same field in the same year share the annual grassland allowance.
+  // A nature area (nl_335) is not grass, so it neither uses nor shares that allowance.
+  const isGrass = graslandCodes.includes(cultivation.b_lu_catalogue)
   const hasGrassBeforeInYear = prevCultivationsInYear.some((c) =>
-    nonBouwlandCodes.includes(c.b_lu_catalogue),
+    graslandCodes.includes(c.b_lu_catalogue),
   )
   if (isGrass && hasGrassBeforeInYear) {
     normValue = new Decimal(0)

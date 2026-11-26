@@ -1142,6 +1142,36 @@ describe("calculateNL2025StikstofGebruiksNorm - Korting Logic", () => {
       expect(result.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
     })
 
+    it("should NOT apply the discount for the potato control measure (nl_2025)", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: {
+          is_derogatie_bedrijf: false,
+          has_grazing_intention: false,
+        },
+        field: {
+          b_id: "1",
+          b_centroid: sandCentroid,
+        } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_265", // Grass
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 1, 15), // Feb 15
+          },
+          {
+            b_lu_catalogue: "nl_2025", // Akkerbouwgewas, Aardappel, bestrijdingsmaatregel
+            b_lu_start: new Date(2025, 1, 16),
+            b_lu_end: new Date(2025, 9, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Aardappel, bestrijdingsmaatregel")
+      expect(result.normSource).not.toContain("graslandvernietiging")
+    })
+
     it("should apply 65 discount on Clay for derogation farm (Consumption Potato, Feb 1 - May 31)", async () => {
       const mockInput: NL2025NormsInput = {
         farm: {

@@ -40,7 +40,11 @@ export type NL2026NormsInput = {
   field: Pick<Field, "b_id" | "b_centroid" | "b_bufferstrip">
   /** An array of all cultivations on the field with their required norm inputs. */
   cultivations: NL2026NormsInputForCultivation[]
-  /** The most recent soil analysis data available before the start of the cultivation. */
+  /**
+   * The current soil analysis values up to the end of the norm year (31 December), as collected
+   * by the input collectors. Each parameter is the most recent value of that parameter, so
+   * `a_p_cc` and `a_p_al` can come from different samplings.
+   */
   soilAnalysis: Pick<SoilAnalysis, "a_p_cc" | "a_p_al">
 }
 

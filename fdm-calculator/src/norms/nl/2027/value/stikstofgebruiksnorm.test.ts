@@ -3041,4 +3041,47 @@ describe("NL2027 stikstof follow-up red fescue and grassland renewal", () => {
     )
     expect(result.normSource).toContain("graslandvernieuwing")
   })
+
+  it("does not let a nature area use the grassland allowance of grass sown later in the year", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const grass = {
+      b_lu_catalogue: "nl_265", // Grasland, from 1 May
+      b_lu_start: new Date(2027, 4, 1),
+      b_lu_end: null,
+    } as unknown as NL2026NormsInputForCultivation
+    const afterNature = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_335", // Natuurterrein until 30 April, not grass
+          b_lu_start: new Date(2027, 0, 1),
+          b_lu_end: new Date(2027, 3, 30),
+        } as NL2026NormsInputForCultivation,
+        grass,
+      ]),
+    )
+    const grassOnly = await calculateNL2026StikstofGebruiksNorm(baseInput([grass]))
+    expect(grassOnly.normValue).toBeGreaterThan(0)
+    expect(afterNature.normSource).not.toContain("heringezaaid")
+    expect(afterNature.normValue).toBeGreaterThanOrEqual(grassOnly.normValue)
+  })
+
+  it("does not apply the grassland destruction reduction to the potato control measure", async () => {
+    setupGeoMock(4, 0) // zand_nwc, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_265", // Grasland, destroyed on 15 February
+          b_lu_start: new Date(2027, 0, 1),
+          b_lu_end: new Date(2027, 1, 15),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_2025", // Akkerbouwgewas, Aardappel, bestrijdingsmaatregel
+          b_lu_start: new Date(2027, 1, 16),
+          b_lu_end: new Date(2027, 9, 1),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Aardappel, bestrijdingsmaatregel")
+    expect(result.normSource).not.toContain("graslandvernietiging")
+  })
 })

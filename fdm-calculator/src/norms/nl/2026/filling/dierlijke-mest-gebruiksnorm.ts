@@ -28,8 +28,14 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
 
   let cumulativeRenureN = new Decimal(0)
 
+  // The Renure excess above 80 kg N/ha is attributed to the applications in date order, so the
+  // applications are processed oldest first. The result keeps the order of the input.
+  const applicationsByDate = [...applications].sort(
+    (a, b) => new Date(a.p_app_date).getTime() - new Date(b.p_app_date).getTime(),
+  )
+
   // Use reduce to iterate over applications and calculate the total norm filling.
-  const { totalFilling, applicationFilling } = applications.reduce(
+  const { totalFilling, applicationFilling: applicationFillingByDate } = applicationsByDate.reduce(
     (acc, application) => {
       // Retrieve the fertilizer for the current application.
       const fertilizer = fertilizersMap.get(application.p_id_catalogue)
@@ -96,6 +102,15 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
       }[],
     },
   )
+
+  const fillingById = new Map(
+    applicationFillingByDate.map((filling) => [filling.p_app_id, filling]),
+  )
+  const applicationFilling = applications.map((application) => {
+    const filling = fillingById.get(application.p_app_id)
+    if (!filling) throw new Error(`No filling calculated for application ${application.p_app_id}`)
+    return filling
+  })
 
   // Return the total norm filling and the breakdown per application.
   return {
