@@ -5,6 +5,7 @@ import {
   calculateDose,
   calculateNormFillingsForFields,
   calculateNormsForFields,
+  createFunctionsForNorms,
   fdmCalculator,
   type GebruiksnormResult,
   getMainCultivation,
@@ -117,6 +118,7 @@ export async function collectFertilizerPlanInput(
   year: number,
 ) {
   const timeframe = getCalendarYearTimeframe(year)
+  const normYear = String(year)
 
   const [
     farm,
@@ -129,6 +131,7 @@ export async function collectFertilizerPlanInput(
     derogationGranted,
     has_organic_certification,
     has_grazing_intention,
+    normInputsByField,
   ] = await Promise.all([
     getFarm(fdm, principal_id, b_id_farm),
     getFields(fdm, principal_id, b_id_farm, timeframe),
@@ -147,6 +150,16 @@ export async function collectFertilizerPlanInput(
       new Date(year, 4, 15), // May 15th of the specified year
     ),
     getGrazingIntention(fdm, principal_id, b_id_farm, year),
+    // The norm input as the calculator collects it for the norm year: with the cultivations of
+    // the previous year (for the previous-year rules) and the harvests (for single or multiple
+    // harvests). Only for years with norms.
+    isNormsYear(normYear)
+      ? createFunctionsForNorms("NL", normYear).collectInputForNormsForFarm(
+          fdm,
+          principal_id,
+          b_id_farm,
+        )
+      : undefined,
   ])
 
   // `config` is not part of this since it is purely stylistic and it doesn't affect the contemporary data
@@ -158,6 +171,8 @@ export async function collectFertilizerPlanInput(
       fertilizerApplications: fertilizerApplicationsMap.get(field.b_id) ?? [],
       cultivations: cultivationsMap.get(field.b_id) ?? [],
       currentSoilData: currentSoilDataMap.get(field.b_id) ?? [],
+      // The norm input of the field, or `undefined` for a year without norms
+      normInput: normInputsByField?.get(field.b_id) as object | undefined,
     })),
     fertilizersCatalogue: fertilizersCatalogue,
     cultivationsCatalogue: cultivationsCatalogue,
@@ -211,7 +226,6 @@ export async function computeFertilizerPlanData(
     fields,
     fertilizersCatalogue,
     cultivationsCatalogue,
-    derogationGranted,
     has_organic_certification,
     has_grazing_intention,
   }: FertilizerPlanInput,
@@ -225,8 +239,12 @@ export async function computeFertilizerPlanData(
 
   // The inputs of the cached calculations per field
   const prepareField = (fieldExtended: (typeof fields)[number]) => {
-    const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
+    const { fertilizerApplications, cultivations, currentSoilData, normInput, ...field } =
+      fieldExtended
     const mainCultivation = getMainCultivation(cultivations, year)
+    if (normYear && !normInput) {
+      throw new Error(`No norm input was collected for field ${field.b_id}`)
+    }
     return {
       inputsError: undefined as unknown,
       fieldExtended,
@@ -235,22 +253,8 @@ export async function computeFertilizerPlanData(
       cultivations,
       currentSoilData,
       mainCultivation,
-      normInput: {
-        farm: {
-          ...((derogationGranted === null
-            ? {}
-            : { is_derogatie_bedrijf: derogationGranted }) as any),
-          has_grazing_intention: has_grazing_intention,
-        },
-        field: field,
-        cultivations: cultivations,
-        soilAnalysis: {
-          a_p_cc: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_cc")
-            ?.value as number | null,
-          a_p_al: currentSoilData.find((x: { parameter: string }) => x.parameter === "a_p_al")
-            ?.value as number | null,
-        },
-      },
+      // Collected by the calculator for the norm year, see collectFertilizerPlanInput
+      normInput,
       adviceInput: mainCultivation
         ? {
             b_lu_catalogue: mainCultivation.b_lu_catalogue,
@@ -278,7 +282,13 @@ export async function computeFertilizerPlanData(
     try {
       return prepareField(fieldExtended)
     } catch (error) {
-      const { fertilizerApplications, cultivations, currentSoilData, ...field } = fieldExtended
+      const {
+        fertilizerApplications,
+        cultivations,
+        currentSoilData,
+        normInput: _normInput,
+        ...field
+      } = fieldExtended
       return {
         inputsError: error,
         fieldExtended,
