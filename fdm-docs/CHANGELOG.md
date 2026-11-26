@@ -1,5 +1,31 @@
 # fdm-docs
 
+## 0.15.0
+
+### Minor Changes
+
+- [#878](https://github.com/nmi-agro/fdm/pull/878) [`9c3e86f`](https://github.com/nmi-agro/fdm/commit/9c3e86f0cdbdec414278eaaf1c40a5be010ca6cd) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Document the phosphate balance (`insights/balance/03-phosphate-balance.md`): the input, supply, removal and leaching, the phosphorus saturation degree and its field threshold, the long-term average balance, the projection with its sampling depth, the status assessment and the output. The database schema, cultivation and harvest pages describe the phosphate contents of the cultivation catalogue.
+
+### Patch Changes
+
+- [#916](https://github.com/nmi-agro/fdm/pull/916) [`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1) Thanks [@SvenVw](https://github.com/SvenVw)! - List the new REST API endpoints, correct the calculation endpoints (GET requests, including the organic matter balance, norms and nutrient advice), and document the upload limits and the endpoints that count towards the NMI rate limit. Add fdm-storage and fdm-reports to the API reference.
+
+- [#926](https://github.com/nmi-agro/fdm/pull/926) [`993c4dd`](https://github.com/nmi-agro/fdm/commit/993c4dd50c3eff32f01c1a3a3440ecc3b19feae3) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Describe Base UI instead of Radix UI as the component library behind the shadcn/ui components in the fdm-app introduction.
+
+- [#975](https://github.com/nmi-agro/fdm/pull/975) [`be625c0`](https://github.com/nmi-agro/fdm/commit/be625c0934aca9c72c126bc461eaa793bbccc8ca) Thanks [@SvenVw](https://github.com/SvenVw)! - Describe `getFieldsForFarms` on the fields page, for reading the fields of several farms at once.
+
+- [#952](https://github.com/nmi-agro/fdm/pull/952) [`3e30598`](https://github.com/nmi-agro/fdm/commit/3e30598e090fe52afcac52eb9951cd283d20c522) Thanks [@SvenVw](https://github.com/SvenVw)! - Correct the naming conventions page: fertilizer picking links a fertilizer to its catalogue entry and is not a lifecycle ending.
+
+- [#937](https://github.com/nmi-agro/fdm/pull/937) [`104576e`](https://github.com/nmi-agro/fdm/commit/104576e826ff758b74250b3edb132204b557c6c5) Thanks [@SvenVw](https://github.com/SvenVw)! - A new "MCP server" section documents the MCP server for AI assistants: overview, tools with their annotations and rate buckets, client configurations, and local development and adding tools. The audit-channel section lists the `mcp` channel and the limits of audit coverage. The API reference now includes the fdm-api operations layer (`@nmi-agro/fdm-api/operations`), and the REST API limits page describes the write limit of 120 requests per minute and the new usage limits: at most 500 fields per farm and 10 new farms per user per 24 hours. The endpoints page lists the RVO fertilizer codes (`p_type_rvo`) with their Dutch names.
+
+- [#951](https://github.com/nmi-agro/fdm/pull/951) [`e1d8e0c`](https://github.com/nmi-agro/fdm/commit/e1d8e0cda1ce0a21932f68a33dd3a0449d35bff2) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Document the nitrous oxide (N₂O) emission of the nitrogen balance (direct sources, emission factors, its place in the balance, CO₂-equivalent and output), describe the target of the surplus and why its values still apply now that the N₂O emission is subtracted, and correct the description of `m_cropresidue`: `true` means the crop residues are left on the field.
+
+- [#973](https://github.com/nmi-agro/fdm/pull/973) [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - The local setup guide now requires Node.js 26 and installs pnpm with npm, because Node.js 26 no longer bundles Corepack.
+
+- [#908](https://github.com/nmi-agro/fdm/pull/908) [`905679c`](https://github.com/nmi-agro/fdm/commit/905679cc6e8b474c3252d53113f05d45c06a7e99) Thanks [@SvenVw](https://github.com/SvenVw)! - Document the sampling zone of soil analyses and how the current soil data combines sampling zones, and list the current soil data endpoints in the REST API reference.
+
+- [#982](https://github.com/nmi-agro/fdm/pull/982) [`8a35089`](https://github.com/nmi-agro/fdm/commit/8a35089906181bd1afc9ed0ca621d959ceb8ee73) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix the type check of the documentation site: drop the deprecated `baseUrl` option inherited from the Docusaurus base config, add the missing React type definitions and include the site in `pnpm check-types`.
+
 ## 0.14.1
 
 ### Patch Changes
