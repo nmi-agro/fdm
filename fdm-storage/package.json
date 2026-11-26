@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-storage",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "File storage for FDM: a storage interface with a Google Cloud Storage implementation and upload validation",
   "homepage": "https://svenvw.github.io/fdm/",

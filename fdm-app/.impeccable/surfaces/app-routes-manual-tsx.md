@@ -2,7 +2,7 @@
 version: 1
 slug: "app-routes-manual-tsx"
 primary_target: "app/routes/manual.tsx"
-related_targets: ["app/routes/manual.$slug.tsx","app/routes/manual.background.$slug.tsx"]
+related_targets: ["app/routes/manual.$slug.tsx", "app/routes/manual.background.$slug.tsx"]
 ---
 
 ## Scope

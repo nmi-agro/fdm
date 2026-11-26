@@ -1,5 +1,21 @@
 # @nmi-agro/fdm-agents
 
+## 0.7.0
+
+### Minor Changes
+
+- [#973](https://github.com/nmi-agro/fdm/pull/973) [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Require Node.js 26 or higher (`engines.node` is now `>=26.0.0`) and build for the `node26` target.
+
+### Patch Changes
+
+- [#975](https://github.com/nmi-agro/fdm/pull/975) [`9cad66c`](https://github.com/nmi-agro/fdm/commit/9cad66c633ae4e1a213491a73169ffa28875bfd5) Thanks [@SvenVw](https://github.com/SvenVw)! - Read the data of the fertilizer planner tools once for the whole farm instead of once per field. `getFarmFields` reads the cultivations and current soil data for the farm. `getFarmNutrientAdvice` and `simulateFarmPlan` read the fields, cultivations and soil data for the farm, and look up the nutrient advice of all fields with batched cache lookups, with at most four requests to the NMI API at the same time per tool call. `getFarmLegalNorms` and `simulateFarmPlan` collect the norm input for the farm and calculate the norms of all fields together; `simulateFarmPlan` also collects the norm filling input for the farm. A field outside the farm, or every field when the farm cannot be read, is still read on its own, so the tool output does not change.
+
+- [#967](https://github.com/nmi-agro/fdm/pull/967) [`08fe4a4`](https://github.com/nmi-agro/fdm/commit/08fe4a48a82db4d4c77001412d6380335aa60636) Thanks [@SvenVw](https://github.com/SvenVw)! - Update `posthog-node` to version 6.
+- Updated dependencies [[`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1), [`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1), [`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1), [`7ff6748`](https://github.com/nmi-agro/fdm/commit/7ff67483a033d2b92f4015d8eaa630490cbb885e), [`97d64f0`](https://github.com/nmi-agro/fdm/commit/97d64f08103a4e5978ecb3305e76651c36cc3018), [`97d64f0`](https://github.com/nmi-agro/fdm/commit/97d64f08103a4e5978ecb3305e76651c36cc3018), [`e33bc95`](https://github.com/nmi-agro/fdm/commit/e33bc95a03a642c9c348289810db6bd22f135732), [`55ae6ba`](https://github.com/nmi-agro/fdm/commit/55ae6ba549684808aa83aba0ea0f446c82fad64b), [`2b531e7`](https://github.com/nmi-agro/fdm/commit/2b531e7314856701cf8b4117da44a3e21d562636), [`466047e`](https://github.com/nmi-agro/fdm/commit/466047e621fa28f294124d25b8e8db0549cbbe9a), [`9a8d4e0`](https://github.com/nmi-agro/fdm/commit/9a8d4e0fa0af4567ecb0fbed6d270ebb178a9941), [`104576e`](https://github.com/nmi-agro/fdm/commit/104576e826ff758b74250b3edb132204b557c6c5), [`0d3b76d`](https://github.com/nmi-agro/fdm/commit/0d3b76d810ffb925beac26311dc075936f0c9f7f), [`0d3b76d`](https://github.com/nmi-agro/fdm/commit/0d3b76d810ffb925beac26311dc075936f0c9f7f), [`865695a`](https://github.com/nmi-agro/fdm/commit/865695a5b240ccd3806ecb91276653cbc75610df), [`e1d8e0c`](https://github.com/nmi-agro/fdm/commit/e1d8e0cda1ce0a21932f68a33dd3a0449d35bff2), [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c), [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c), [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c), [`9c3e86f`](https://github.com/nmi-agro/fdm/commit/9c3e86f0cdbdec414278eaaf1c40a5be010ca6cd), [`9c3e86f`](https://github.com/nmi-agro/fdm/commit/9c3e86f0cdbdec414278eaaf1c40a5be010ca6cd), [`9c3e86f`](https://github.com/nmi-agro/fdm/commit/9c3e86f0cdbdec414278eaaf1c40a5be010ca6cd), [`06b5af6`](https://github.com/nmi-agro/fdm/commit/06b5af679259944b36df57734bb4a8e18ef0aa5d), [`905679c`](https://github.com/nmi-agro/fdm/commit/905679cc6e8b474c3252d53113f05d45c06a7e99), [`905679c`](https://github.com/nmi-agro/fdm/commit/905679cc6e8b474c3252d53113f05d45c06a7e99), [`2c9cc22`](https://github.com/nmi-agro/fdm/commit/2c9cc22ce8043d60dc8bd8c36d569bef18af52af)]:
+  - @nmi-agro/fdm-calculator@0.21.0
+  - @nmi-agro/fdm-core@0.40.0
+  - @nmi-agro/fdm-data@0.25.0
+
 ## 0.6.1
 
 ### Patch Changes

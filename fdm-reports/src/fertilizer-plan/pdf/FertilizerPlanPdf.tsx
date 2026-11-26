@@ -1,13 +1,10 @@
 import { Document, Image, Link, Page, Text, View } from "@react-pdf/renderer"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import {
-  getApplicationAmountTotalUnitLabel,
-  getApplicationAmountUnitLabel,
-} from "../units"
 import type { FertilizerPlanData } from "../types"
 import { PdfCard } from "../../pdf/PdfCard"
 import { PdfTable, PdfTableCell, PdfTableHeader, PdfTableRow } from "../../pdf/PdfTable"
+import { getApplicationAmountTotalUnitLabel, getApplicationAmountUnitLabel } from "../units"
 import { pdfStyles } from "./styles"
 
 const Footer = ({

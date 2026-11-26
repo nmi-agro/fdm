@@ -23,6 +23,10 @@
     "width": 1920,
     "height": 1080
   },
+  "balans-fosfaat": {
+    "width": 1920,
+    "height": 1080
+  },
   "balans-organische-stof": {
     "width": 1920,
     "height": 1080
@@ -45,7 +49,7 @@
   },
   "bcs-overzicht": {
     "width": 1920,
-    "height": 1471
+    "height": 1429
   },
   "bedrijf-aanmaken-bouwplan": {
     "width": 1920,

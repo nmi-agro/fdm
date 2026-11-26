@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-reports",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": false,
   "description": "Reports for FDM, such as the yearly fertilizer plan (bemestingsplan) as PDF",
   "homepage": "https://svenvw.github.io/fdm/",

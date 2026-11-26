@@ -101,7 +101,7 @@ export interface CaptureDefinition {
   signedOut?: boolean
   /**
    * A fixed moment for the browser clock, for pages that mark today, such as the timeline. Without
-   * it the clock stops at the start of the run, so such a page would change every day. It takes
+   * it the clock starts at the start of the run, so such a page would change every day. It takes
    * effect once the page has loaded (an earlier change would make the browser disagree with the
    * server's render), so `steps` must open the page that marks today, for example through the menu. An ISO date and time in
    * which `{year}` becomes the current year, for example `"{year}-05-15T12:00:00+02:00"`.

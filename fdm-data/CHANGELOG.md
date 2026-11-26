@@ -1,5 +1,21 @@
 # fdm-data
 
+## 0.25.0
+
+### Minor Changes
+
+- [#916](https://github.com/nmi-agro/fdm/pull/916) [`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1) Thanks [@SvenVw](https://github.com/SvenVw)! - Export `fertilizerCatalogueNames`, the names of the standard fertilizer catalogues. A fertilizer with another `p_source` is a custom fertilizer of a farm.
+
+- [#736](https://github.com/nmi-agro/fdm/pull/736) [`466047e`](https://github.com/nmi-agro/fdm/commit/466047e621fa28f294124d25b8e8db0549cbbe9a) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the animal category catalogue `getAnimalCategoriesCatalogue`, with the Dutch RVO animal categories as its first dataset (`rvo`), and the feed catalogue `getFeedCatalogue`, with a first dataset (`nmi`) of example feeds derived from the RVO feed types plus some additions. Each feed has a fixed catalogue ID. RVO categories that include animals of both sexes (122, 600, 971 and 981) allow both.
+
+  Add `parseCattleEartag`, which checks a cattle life number (levensnummer) and returns its normalized form and its work number (werknummer). A Dutch life number has 9 digits or 12 digits in the 120… or 130…–133… series, with the work number in the 4 digits before the check digit. The check digit is verified for the 9-digit and the electronic 130…–133… series. Life numbers from other countries are returned as entered.
+
+- [#923](https://github.com/nmi-agro/fdm/pull/923) [`0d3b76d`](https://github.com/nmi-agro/fdm/commit/0d3b76d810ffb925beac26311dc075936f0c9f7f) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - The BLN measures catalogue now includes the cost indication (`m_effect_costs`), the effect type (`m_effect_type`), the affected score variables (`m_impacts_score`), the applicability conditions (`m_applicability`), the effect sizes (`m_effect_size`) and the IDs of the measure in related schemes (`m_external_ids`, from the `m_id_*` fields). New types `CatalogueMeasureCondition`, `CatalogueMeasureEffectSize` and `CatalogueMeasureImpact` describe the nested fields. Changes in these fields change the hash of a measure, so they are picked up by the next sync.
+
+- [#973](https://github.com/nmi-agro/fdm/pull/973) [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Require Node.js 26 or higher (`engines.node` is now `>=26.0.0`) and build for the `node26` target.
+
+- [#878](https://github.com/nmi-agro/fdm/pull/878) [`9c3e86f`](https://github.com/nmi-agro/fdm/commit/9c3e86f0cdbdec414278eaaf1c40a5be010ca6cd) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Add `b_lu_p_harvestable` and `b_lu_p_residue` (g P₂O₅ / kg DM) to the cultivation catalogue items. `getCultivationCatalogue("brp", { nmiApiKey })` retrieves these phosphate contents from the NMI API cultivations lookup; without a key they are `null`. Blank values from the NMI API are read as `null`, not as 0, and BRP codes and numeric strings are accepted. The hashes of the catalogue items change because of the new fields.
+
 ## 0.24.0
 
 ### Minor Changes
