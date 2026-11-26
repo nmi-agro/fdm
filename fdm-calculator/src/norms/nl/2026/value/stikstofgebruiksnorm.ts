@@ -425,7 +425,9 @@ function calculateKorting(
  * 5. **Footnote 7b Compliance (Graszaadstoppel)**:
  *    - Requires cultivation start on or before 16 September; otherwise grants 0 kg N/ha.
  * 6. **Grassland Renewal Sod Continuation**:
- *    - Resown grassland (`isGrass && hasGrassBeforeInYear`) shares the single annual grassland allowance (0 kg N/ha for 2nd sod).
+ *    - Resown grassland (`isGrass && grasslandAllowanceUsed`) shares the single annual grassland allowance (0 kg N/ha for 2nd sod).
+ *      Only an earlier grass stand that earned a norm uses up the allowance; a stand that got 0 (for example because its
+ *      minimum period was not met) does not.
  *
  * @param cultivation - The cultivation being calculated.
  * @param isHoofdteelt - True if this cultivation is the designated main crop of the year.
@@ -435,6 +437,7 @@ function calculateKorting(
  * @param region - Soil region classification.
  * @param is_nv_area - Nutrient-polluted area (NV-gebied) indicator.
  * @param year - The norm year.
+ * @param grasslandAllowanceUsed - Whether an earlier grass stand in the norm year earned a norm.
  * @returns Object containing the calculated norm value, standard name, subtype text, and explanatory footnote note.
  * @throws {NormNotApplicableError} If no matching crop standard exists in Tabel 2.
  */
@@ -447,6 +450,7 @@ function calculateSingleCultivationNorm(
   region: RegionKey,
   is_nv_area: boolean,
   year: NL2026NormsYear,
+  grasslandAllowanceUsed: boolean,
 ): { normValue: Decimal; sourceName: string; subTypeText: string; noteText: string } {
   const b_lu_catalogue = cultivation.b_lu_catalogue
 
@@ -627,12 +631,10 @@ function calculateSingleCultivationNorm(
   }
 
   // Grassland renewal: multiple grass crops on the same field in the same year share the annual grassland allowance.
-  // A nature area (nl_335) is not grass, so it neither uses nor shares that allowance.
+  // Only an earlier grass stand that earned a norm uses it up. A nature area (nl_335) is not grass, so it neither uses
+  // nor shares that allowance.
   const isGrass = graslandCodes.includes(cultivation.b_lu_catalogue)
-  const hasGrassBeforeInYear = prevCultivationsInYear.some((c) =>
-    graslandCodes.includes(c.b_lu_catalogue),
-  )
-  if (isGrass && hasGrassBeforeInYear) {
+  if (isGrass && grasslandAllowanceUsed) {
     normValue = new Decimal(0)
     noteText = " (heringezaaid)"
   }
@@ -777,6 +779,10 @@ export async function calculateNL2026StikstofGebruiksNorm(
     normValue: Decimal
   }> = []
 
+  // Becomes true once a grass stand in the norm year has earned a norm: later grass stands then
+  // share that one grassland allowance.
+  let grasslandAllowanceUsed = false
+
   for (let i = 0; i < sortedCultivations.length; i++) {
     const cult = sortedCultivations[i]
     const isHoofd = hoofdteeltIndex !== -1 ? i === hoofdteeltIndex : i === 0
@@ -791,7 +797,11 @@ export async function calculateNL2026StikstofGebruiksNorm(
       region,
       is_nv_area,
       year,
+      grasslandAllowanceUsed,
     )
+    if (graslandCodes.includes(cult.b_lu_catalogue) && result.normValue.greaterThan(0)) {
+      grasslandAllowanceUsed = true
+    }
     if (renewedGrassCultivations.has(cult) && !result.noteText.includes("heringezaaid")) {
       result.noteText = `${result.noteText} (heringezaaid)`
     }

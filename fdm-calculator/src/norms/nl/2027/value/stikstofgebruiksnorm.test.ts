@@ -3068,6 +3068,52 @@ describe("NL2027 stikstof follow-up red fescue and grassland renewal", () => {
     expect(afterNature.normValue).toBeGreaterThanOrEqual(grassOnly.normValue)
   })
 
+  it("lets a grass stand that earned no norm leave the grassland allowance to a later stand", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const secondStand = {
+      b_lu_catalogue: "nl_266", // Tijdelijk grasland, 20 April until after 15 October
+      b_lu_start: new Date(2027, 3, 20),
+      b_lu_end: new Date(2027, 9, 20),
+    } as NL2026NormsInputForCultivation
+    const afterFailedStand = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_266", // 1 January until 14 April: misses "tot minstens 15 april"
+          b_lu_start: new Date(2027, 0, 1),
+          b_lu_end: new Date(2027, 3, 14),
+        } as NL2026NormsInputForCultivation,
+        secondStand,
+      ]),
+    )
+    const secondStandOnly = await calculateNL2026StikstofGebruiksNorm(baseInput([secondStand]))
+    expect(secondStandOnly.normValue).toBeGreaterThan(0)
+    expect(afterFailedStand.normValue).toBe(secondStandOnly.normValue)
+    expect(afterFailedStand.normSource).not.toContain("heringezaaid")
+  })
+
+  it("still lets two grass stands that both earn a norm share one grassland allowance", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const firstStand = {
+      b_lu_catalogue: "nl_266", // 1 January until 20 May: "tot minstens 15 mei"
+      b_lu_start: new Date(2027, 0, 1),
+      b_lu_end: new Date(2027, 4, 20),
+    } as NL2026NormsInputForCultivation
+    const twoStands = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        firstStand,
+        {
+          b_lu_catalogue: "nl_266", // re-sown on 1 June, until after 15 October
+          b_lu_start: new Date(2027, 5, 1),
+          b_lu_end: new Date(2027, 9, 20),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+    const firstStandOnly = await calculateNL2026StikstofGebruiksNorm(baseInput([firstStand]))
+    expect(firstStandOnly.normValue).toBeGreaterThan(0)
+    expect(twoStands.normValue).toBe(firstStandOnly.normValue)
+    expect(twoStands.normSource).toContain("heringezaaid")
+  })
+
   it("does not apply the grassland destruction reduction to the potato control measure", async () => {
     setupGeoMock(4, 0) // zand_nwc, not in an NV-gebied
     const result = await calculateNL2026StikstofGebruiksNorm(
