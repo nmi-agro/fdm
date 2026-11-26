@@ -12,7 +12,7 @@ At the time of writing, no regulation or RVO table has been published that chang
 They will be checked against the official 2027 RVO tables once those are published, and updated where they differ. Until then, treat the 2027 results as provisional.
 :::
 
-For the rules and parameters, see the 2026 pages; they apply to 2027 with every year shifted by one:
+For the rules and parameters, see the 2026 pages. They apply to 2027 with the year-relative rules shifted by one year (the norm year, the previous year and dates within them). Historical facts are not shifted: derogation still ended after 2025, and Renure has been recognised since 2026.
 
 - **[Nitrogen Usage Norm (`Stikstofgebruiksnorm`)](../2026/stikstofgebruiksnorm.md)**
 - **[Phosphate Usage Norm (`Fosfaatgebruiksnorm`)](../2026/fosfaatgebruiksnorm.md)**
