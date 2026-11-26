@@ -119,7 +119,7 @@ export const table9: Table9 = [
   {
     description: "Vaste mest van overige diersoorten",
     // Slurry of other animal species (30, 76, 81, 91, 92) is in "Drijfmest van overige diersoorten"
-    p_type_rvo: ["24", "90", "102", "103", "104", "105", "106"],
+    p_type_rvo: ["90", "102", "103", "104", "105", "106"],
     subTypes: [
       {
         description: "Op bouwland op klei en veen, van 1 september t/m 31 januari",
