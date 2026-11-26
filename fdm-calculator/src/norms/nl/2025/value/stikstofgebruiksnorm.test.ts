@@ -3286,6 +3286,7 @@ describe("NL2025 stikstof grass seed and green manure codes (RVO gewascodelijst)
     expect(rowsFor("nl_6789")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
     expect(rowsFor("nl_1025")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, overige
     expect(rowsFor("nl_1026")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, droogbloemen
+    expect(rowsFor("nl_1949")).toEqual(["Akkerbouwgewassen, Luzerne"]) // Aardperen
   })
 
   it("uses the 'Roodzwenkgras, volgteelt' row for nl_6785, with its 1e jaars sub-type", async () => {

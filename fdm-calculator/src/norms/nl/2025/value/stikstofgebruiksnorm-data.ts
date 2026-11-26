@@ -1742,15 +1742,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Stengel/knol/wortelgewassen, overig",
-    b_lu_catalogue_match: [
-      "nl_2793",
-      "nl_2794",
-      "nl_1949",
-      "nl_2711",
-      "nl_2712",
-      "nl_3521",
-      "nl_6632",
-    ],
+    b_lu_catalogue_match: ["nl_2793", "nl_2794", "nl_2711", "nl_2712", "nl_3521", "nl_6632"],
     type: "stengel_knol_wortelgewas",
     is_winterteelt: true,
     is_vanggewas: false,
