@@ -3237,3 +3237,36 @@ describe("NL2025 stikstof eenmalige vs. meermalige oogst", () => {
     expect(result.normSource).toEqual("Kruiden (bladgewas, meermalig oogsten).")
   })
 })
+
+describe("NL2025 stikstof grass seed and green manure codes (RVO gewascodelijst)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("matches the grass seed and green manure codes to their own Tabel 2 rows", () => {
+    const rowsFor = (code: string) =>
+      StikstofData.nitrogenStandardsData
+        .filter((ns) => ns.b_lu_catalogue_match.includes(code))
+        .map((ns) => ns.cultivation_rvo_table2)
+    expect(rowsFor("nl_6782")).toEqual(["Akkerbouwgewassen, Rietzwenkgras"])
+    expect(rowsFor("nl_6783")).toEqual(["Akkerbouwgewassen, Rietzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6784")).toEqual(["Akkerbouwgewassen, Roodzwenkgras"])
+    expect(rowsFor("nl_6785")).toEqual(["Akkerbouwgewassen, Roodzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6788")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_6789")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+  })
+
+  it("uses the 'Roodzwenkgras, volgteelt' row for nl_6785, with its 1e jaars sub-type", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2025StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_6785",
+          b_lu_start: new Date(2025, 2, 1),
+          b_lu_end: null,
+        } as unknown as NL2025NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
+  })
+})

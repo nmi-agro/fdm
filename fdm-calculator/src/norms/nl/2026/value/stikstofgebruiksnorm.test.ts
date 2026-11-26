@@ -2844,13 +2844,61 @@ describe("NL2026 stikstof follow-up red fescue and grassland renewal", () => {
           b_lu_end: new Date(2026, 7, 1),
         } as NL2026NormsInputForCultivation,
         {
-          b_lu_catalogue: "nl_6784", // Roodzwenkgras, sown after the main crop
+          b_lu_catalogue: "nl_6785", // Roodzwenkgras, groenbemesting/vanggewas, after the main crop
           b_lu_start: new Date(2026, 7, 15),
           b_lu_end: null,
         } as unknown as NL2026NormsInputForCultivation,
       ]),
     )
     expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
+  })
+
+  it("matches the grass seed and green manure codes to their own Tabel 2 rows (RVO gewascodelijst)", () => {
+    const rowsFor = (code: string) =>
+      StikstofData.nitrogenStandardsData
+        .filter((ns) => ns.b_lu_catalogue_match.includes(code))
+        .map((ns) => ns.cultivation_rvo_table2)
+    expect(rowsFor("nl_6782")).toEqual(["Akkerbouwgewassen, Rietzwenkgras"])
+    expect(rowsFor("nl_6783")).toEqual(["Akkerbouwgewassen, Rietzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6784")).toEqual(["Akkerbouwgewassen, Roodzwenkgras"])
+    expect(rowsFor("nl_6785")).toEqual(["Akkerbouwgewassen, Roodzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6788")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_6789")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+  })
+
+  it("uses the 'Roodzwenkgras, volgteelt' row for nl_6785 also when it is the main crop", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_6785",
+          b_lu_start: new Date(2026, 2, 1),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normValue).toBe(35)
+    expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
+  })
+
+  it("uses the 'Roodzwenkgras' row for nl_6784 (graszaad) also when it follows the main crop", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_233", // Wintertarwe, main crop
+          b_lu_start: new Date(2025, 9, 15),
+          b_lu_end: new Date(2026, 7, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_6784", // Roodzwenkgras, graszaad
+          b_lu_start: new Date(2026, 7, 15),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Roodzwenkgras (1e jaars)")
+    expect(result.normSource).not.toContain("Roodzwenkgras, volgteelt")
   })
 
   it("does not treat a nature crop as renewed grass replacing temporary grassland", async () => {
