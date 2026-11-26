@@ -16,14 +16,15 @@ import {
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { BulkFertilizerPage } from "~/components/blocks/fertilizer-applications/bulk/bulk-page"
 import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { loadBulkCurrentState } from "~/integrations/fertilizer-application-impact.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -39,6 +40,8 @@ import {
 import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
+
+export const handle: HelpHandle = { help: "bemesting" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -157,7 +160,7 @@ export default function FarmFieldFertilizerAddIndex() {
   const [searchParams] = useSearchParams()
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: loaderData.returnUrl,
@@ -173,7 +176,7 @@ export default function FarmFieldFertilizerAddIndex() {
         <BreadcrumbSeparator className="hidden md:block" />
         <BreadcrumbItem className="hidden md:block">Bemesting toevoegen</BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title="Bemesting toevoegen"
           description="Voeg één bemesting toe aan meerdere percelen en zie direct het effect op gebruiksruimte, advies en stikstofbalans."
@@ -191,8 +194,8 @@ export default function FarmFieldFertilizerAddIndex() {
             formStoreKey={searchParams.get("fieldIds") || ""}
           />
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

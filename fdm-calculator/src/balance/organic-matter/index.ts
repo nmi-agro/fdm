@@ -12,7 +12,7 @@ import type {
 } from "./types"
 import pkg from "../../package"
 import { convertDecimalToNumberRecursive } from "../shared/conversion"
-import { combineSoilAnalyses } from "../shared/soil"
+import { resolveSoilParameters } from "../shared/soil"
 import { calculateOrganicMatterDegradation } from "./degradation"
 import { calculateOrganicMatterSupply } from "./supply"
 
@@ -93,35 +93,25 @@ export async function calculateOrganicMatterBalanceBatched(
     }
   }
 
-  // Process fields in batches to avoid overwhelming the system with concurrent promises,
-  // especially for farms with a large number of fields.
-  const fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[] = []
-  const batchSize = 50
-
-  for (let i = 0; i < fieldInputs.length; i += batchSize) {
-    const batch = fieldInputs.slice(i, i + batchSize)
-    const batchResults = await Promise.all(
-      batch.map(async (fieldInput) => {
-        try {
-          const balance = await getOrganicMatterBalanceField(fdm, fieldInput)
-          return {
-            b_id: fieldInput.fieldInput.field.b_id,
-            b_area: fieldInput.fieldInput.field.b_area ?? 0,
-            b_bufferstrip: fieldInput.fieldInput.field.b_bufferstrip ?? false,
-            balance,
+  // Look up all fields in the cache at once and calculate only the misses
+  const balances = await Promise.allSettled(getOrganicMatterBalanceField.many(fdm, fieldInputs))
+  const fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[] = fieldInputs.map(
+    (fieldInput, index) => {
+      const result = balances[index]
+      const field = {
+        b_id: fieldInput.fieldInput.field.b_id,
+        b_area: fieldInput.fieldInput.field.b_area ?? 0,
+        b_bufferstrip: fieldInput.fieldInput.field.b_bufferstrip ?? false,
+      }
+      return result.status === "fulfilled"
+        ? { ...field, balance: result.value }
+        : {
+            ...field,
+            errorMessage:
+              result.reason instanceof Error ? result.reason.message : String(result.reason),
           }
-        } catch (error) {
-          return {
-            b_id: fieldInput.fieldInput.field.b_id,
-            b_area: fieldInput.fieldInput.field.b_area ?? 0,
-            b_bufferstrip: fieldInput.fieldInput.field.b_bufferstrip ?? false,
-            errorMessage: error instanceof Error ? error.message : String(error),
-          }
-        }
-      }),
-    )
-    fieldsWithBalanceResults.push(...batchResults)
-  }
+    },
+  )
 
   const hasErrors = fieldsWithBalanceResults.some((result) => result.errorMessage !== undefined)
   const fieldErrorMessages = fieldsWithBalanceResults
@@ -153,7 +143,7 @@ export function calculateOrganicMatterBalanceField(
   const { fieldInput, fertilizerDetails, cultivationDetails, timeFrame } =
     organicMatterBalanceFieldInput
 
-  const { field, cultivations, fertilizerApplications, soilAnalyses } = fieldInput
+  const { field, cultivations, fertilizerApplications, currentSoilData } = fieldInput
 
   if (field.b_bufferstrip) {
     return {
@@ -182,10 +172,10 @@ export function calculateOrganicMatterBalanceField(
   )
   const fieldDetails = field
 
-  // 1. Combine multiple soil analyses into a single representative record for the field.
+  // 1. Read the soil parameters from the current soil data of the field.
   // We need 'a_som_loi' and 'a_density_sa' for the degradation calculation.
-  const soilAnalysis = combineSoilAnalyses<SoilAnalysisPicked>(
-    soilAnalyses,
+  const soilAnalysis = resolveSoilParameters<SoilAnalysisPicked>(
+    currentSoilData,
     ["a_som_loi", "a_density_sa", "b_soiltype_agr"],
     true, // Enable estimation of missing values if possible
   )

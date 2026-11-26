@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import type { HelpTargetId } from "~/lib/manual/help-targets"
+import { HelpLink } from "~/components/custom/help-link"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
 
@@ -16,6 +18,14 @@ interface FarmTitleProps {
     label: string
   }
   children?: ReactNode
+  /**
+   * The manual page that explains this screen, shown as a "?" next to the title. Only pass it on
+   * screens whose results or input need explaining, once per screen; elsewhere the sidebar
+   * "Handleiding" item (driven by the route's `handle.help`) is enough.
+   */
+  help?: HelpTargetId
+  /** Wrap a long title over several lines instead of cutting it off on narrow screens. */
+  wrapTitle?: boolean
 }
 
 export function FarmTitle({
@@ -25,26 +35,42 @@ export function FarmTitle({
   rightNode,
   action,
   children,
+  help,
+  wrapTitle = false,
 }: FarmTitleProps) {
   return (
     <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
         <div className="min-w-0 flex-1 space-y-0.5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
+          {/* A wrapping title keeps the help icon beside its first line instead of on a line
+              of its own */}
+          <div
+            className={wrapTitle ? "flex items-start gap-3" : "flex flex-wrap items-center gap-3"}
+          >
+            <h2
+              className={
+                wrapTitle
+                  ? "min-w-0 text-2xl font-bold tracking-tight wrap-break-word"
+                  : "truncate text-2xl font-bold tracking-tight xl:whitespace-normal"
+              }
+            >
               {title}
             </h2>
+            {help ? (
+              <HelpLink target={help} className={wrapTitle ? "-ml-1 shrink-0" : "-ml-1"} />
+            ) : null}
           </div>
           {descriptionNode ?? (
             <p className="text-muted-foreground wrap-break-word">{description}</p>
           )}
         </div>
         <div className="mt-4 ml-auto flex shrink-0 items-center gap-3 xl:mt-0">
-          {rightNode && <div className="flex-shrink-0">{rightNode}</div>}
+          {/* May shrink below xl, so a row of buttons wraps instead of running off a phone */}
+          {rightNode && <div className="min-w-0">{rightNode}</div>}
           {action && (
-            <Button asChild>
-              <NavLink to={action.to}>{action.label}</NavLink>
-            </Button>
+            <NavLink to={action.to} className={buttonVariants({})} data-slot="button">
+              {action.label}
+            </NavLink>
           )}
         </div>
       </div>

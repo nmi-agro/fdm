@@ -1,12 +1,17 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type {
-  FdmType,
-  getGrazingIntentions,
-  removeGrazingIntention,
-  setGrazingIntention,
-} from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
+import type { ApiEnv } from "../types"
+import { FarmParamsSchema } from "../operations/farms"
+import {
+  deleteGrazingIntention,
+  GrazingIntentionParamsSchema,
+  GrazingIntentionSchema,
+  type GrazingIntentionServices,
+  listGrazingIntentions,
+  SetGrazingIntentionBodySchema,
+  setGrazingIntention,
+} from "../operations/grazing-intentions"
 import {
   commonErrorResponses,
   PaginationQuerySchema,
@@ -14,31 +19,12 @@ import {
   paginatedSchema,
   writeErrorResponses,
 } from "../schemas"
+import { operationContext } from "./operation-context"
 
-/** Defines the grazing intention data access functions required by the grazing intention routes. */
-export interface GrazingIntentionServices {
-  getGrazingIntentions: typeof getGrazingIntentions
-  setGrazingIntention: typeof setGrazingIntention
-  removeGrazingIntention: typeof removeGrazingIntention
-}
-
-const GrazingIntentionSchema = z
-  .object({
-    b_id_farm: z.string(),
-    b_grazing_intention_year: z.number().int(),
-    b_grazing_intention: z.boolean(),
-  })
-  .openapi("GrazingIntention")
-
-const SetGrazingIntentionBodySchema = z
-  .object({
-    b_grazing_intention: z
-      .boolean()
-      .describe("Whether the farm intends to graze in the specified year."),
-  })
-  .openapi("SetGrazingIntention")
+export type { GrazingIntentionServices } from "../operations/grazing-intentions"
 
 const listGrazingIntentionsRoute = createRoute({
+  operationId: listGrazingIntentions.name,
   method: "get",
   path: "/farms/{b_id_farm}/grazing-intentions",
   tags: ["Grazing Intentions"],
@@ -46,7 +32,7 @@ const listGrazingIntentionsRoute = createRoute({
   description: "Returns all grazing intentions for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: FarmParamsSchema,
     query: PaginationQuerySchema,
   },
   responses: {
@@ -63,6 +49,7 @@ const listGrazingIntentionsRoute = createRoute({
 })
 
 const putGrazingIntentionRoute = createRoute({
+  operationId: setGrazingIntention.name,
   method: "put",
   path: "/farms/{b_id_farm}/grazing-intentions/{b_grazing_intention_year}",
   tags: ["Grazing Intentions"],
@@ -70,13 +57,7 @@ const putGrazingIntentionRoute = createRoute({
   description: "Creates or updates a grazing intention for the specified farm and year.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({
-      b_id_farm: z.string(),
-      b_grazing_intention_year: z.coerce
-        .number()
-        .int()
-        .openapi({ type: "integer", param: { required: true } }),
-    }),
+    params: GrazingIntentionParamsSchema,
     body: {
       content: {
         "application/json": { schema: SetGrazingIntentionBodySchema },
@@ -94,6 +75,7 @@ const putGrazingIntentionRoute = createRoute({
 })
 
 const deleteGrazingIntentionRoute = createRoute({
+  operationId: deleteGrazingIntention.name,
   method: "delete",
   path: "/farms/{b_id_farm}/grazing-intentions/{b_grazing_intention_year}",
   tags: ["Grazing Intentions"],
@@ -101,13 +83,7 @@ const deleteGrazingIntentionRoute = createRoute({
   description: "Deletes a grazing intention for the specified farm and year.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({
-      b_id_farm: z.string(),
-      b_grazing_intention_year: z.coerce
-        .number()
-        .int()
-        .openapi({ type: "integer", param: { required: true } }),
-    }),
+    params: GrazingIntentionParamsSchema,
   },
   responses: {
     204: { description: "Grazing intention deleted." },
@@ -136,58 +112,30 @@ export function registerGrazingIntentionRoutes(
   const listGrazingIntentionsHandler: RouteHandler<typeof listGrazingIntentionsRoute> = async (
     c,
   ) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof FarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const intentions = await services.getGrazingIntentions(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-    )
+    const intentions = await listGrazingIntentions.run(operationContext(c, fdm, services), params)
     return c.json(paginatedResponse(intentions, limit, offset), 200)
   }
 
   const putGrazingIntentionHandler: RouteHandler<typeof putGrazingIntentionRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
-    const { b_id_farm, b_grazing_intention_year } = c.req.valid("param" as never) as {
-      b_id_farm: string
-      b_grazing_intention_year: number
-    }
+    const params = c.req.valid("param" as never) as z.infer<typeof GrazingIntentionParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof SetGrazingIntentionBodySchema>
-    await services.setGrazingIntention(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      b_grazing_intention_year,
-      body.b_grazing_intention,
-    )
-    return c.json(
-      {
-        b_id_farm,
-        b_grazing_intention_year,
-        b_grazing_intention: body.b_grazing_intention,
-      },
-      200,
-    )
+    const intention = await setGrazingIntention.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    return c.json(intention, 200)
   }
 
   const deleteGrazingIntentionHandler: RouteHandler<typeof deleteGrazingIntentionRoute> = async (
     c,
   ) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
-    const { b_id_farm, b_grazing_intention_year } = c.req.valid("param" as never) as {
-      b_id_farm: string
-      b_grazing_intention_year: number
-    }
-    await services.removeGrazingIntention(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-      b_grazing_intention_year,
-    )
+    const params = c.req.valid("param" as never) as z.infer<typeof GrazingIntentionParamsSchema>
+    await deleteGrazingIntention.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 

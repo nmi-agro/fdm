@@ -1,14 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { type Cultivation } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { useEffect, useState } from "react"
-import { useWatch, type FieldValues, type Resolver, type UseFormReturn } from "react-hook-form"
+import {
+  Controller,
+  useWatch,
+  type FieldValues,
+  type Resolver,
+  type UseFormReturn,
+} from "react-hook-form"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
+import { Field, FieldLabel, FieldError, FieldContent } from "~/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -18,7 +25,6 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
-import { cn } from "~/lib/utils"
 import {
   CultivationAvailabilityWarning,
   getCultivationAvailabilityMessage,
@@ -154,46 +160,44 @@ export function CultivationDetailsCard({
                 )}
               </div>
               <div className="grid items-end gap-4 lg:grid-cols-2">
-                <FormField
-                  control={form.control}
+                <Controller
                   name="m_cropresidue"
-                  render={({ field }) => (
-                    <FormItem
+                  render={({ field, fieldState }) => (
+                    <Field
                       className={cn(
                         "flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4",
                         /* Hide for non-cereals */ cultivation.b_lu_croprotation !== "cereal" &&
                           "invisible",
                       )}
                     >
-                      <FormControl>
-                        <Checkbox
-                          checked={Boolean(field.value)}
-                          onCheckedChange={field.onChange}
-                          disabled={
-                            !editable || form.formState.isSubmitting || fetcher.state !== "idle"
-                          }
-                        />
-                      </FormControl>
+                      <Checkbox
+                        id={field.name}
+                        checked={Boolean(field.value)}
+                        onCheckedChange={field.onChange}
+                        disabled={
+                          !editable || form.formState.isSubmitting || fetcher.state !== "idle"
+                        }
+                      />
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Gewasresten achterlaten</FormLabel>
-                        <FormMessage />
+                        <FieldLabel htmlFor={field.name}>Gewasresten achterlaten</FieldLabel>
+                        <FieldError errors={[fieldState.error]} />
                       </div>
-                    </FormItem>
+                    </Field>
                   )}
                 />
-                <FormField
-                  control={form.control}
+                <Controller
                   name="b_lu_variety"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Variëteit</FormLabel>
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Variëteit</FieldLabel>
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value ?? undefined}
+                        value={field.value ?? null}
+                        items={b_lu_variety_options}
                         disabled={!editable || b_lu_variety_options.length === 0}
                       >
-                        <FormControl>
-                          <SelectTrigger>
+                        <FieldContent>
+                          <SelectTrigger id={field.name}>
                             <SelectValue
                               placeholder={
                                 b_lu_variety_options.length === 0
@@ -202,7 +206,7 @@ export function CultivationDetailsCard({
                               }
                             />
                           </SelectTrigger>
-                        </FormControl>
+                        </FieldContent>
                         <SelectContent>
                           {b_lu_variety_options.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
@@ -211,8 +215,8 @@ export function CultivationDetailsCard({
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
+                      <FieldError errors={[fieldState.error]} />
+                    </Field>
                   )}
                 />
               </div>

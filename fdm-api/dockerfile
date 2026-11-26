@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_VERSION=24
+ARG NODE_VERSION=26
 ARG PROJECT=@nmi-agro/fdm-api
 
 # Base stage
 FROM node:${NODE_VERSION}-alpine AS base
-RUN apk update && apk add --no-cache libc6-compat git
+RUN apk update && apk add --no-cache libc6-compat
 RUN npm install -g pnpm turbo
 WORKDIR /app
 
@@ -74,6 +74,12 @@ COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-api/pac
 # Copy built artifacts from the builder stage
 COPY --from=builder --chown=user:nodejs /app/fdm-api/dist ./fdm-api/dist
 COPY --from=builder --chown=user:nodejs /app/fdm-api/instrument.server.mjs ./fdm-api/instrument.server.mjs
+
+# Default report images, the same files that fdm-app shows in its reports
+COPY --from=pruner --chown=user:nodejs \
+    /app/fdm-app/public/fdm-high-resolution-logo-transparent-no-text.png \
+    /app/fdm-app/public/bemestingsplan_cover.jpg \
+    ./fdm-api/public/
 
 # Set production environment
 ENV NODE_ENV=production

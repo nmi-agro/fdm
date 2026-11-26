@@ -1,9 +1,9 @@
 import type { Tag } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { Trash2 } from "lucide-react"
 import { type SetStateAction, useEffect, useState } from "react"
 import { Form, useFetcher } from "react-router"
 import { toast } from "sonner"
-import { cn } from "@/app/lib/utils"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -52,7 +52,7 @@ export function HelpdeskTagManager({
           />
         </CardHeader>
       )}
-      <CardContent className="first:pt-6">
+      <CardContent>
         {availableTags.length > 0 ? (
           <Table className="w-full">
             <TableBody>
@@ -117,8 +117,9 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
       <TableCell className="align-middle">
         {canModify ? (
           <Select
-            value={tag.color ?? undefined}
+            value={tag.color ?? null}
             onValueChange={(value) => {
+              if (typeof value !== "string") return
               const formData = new FormData()
               formData.append("intent", "update_tag")
               formData.append("tag_id", tag.tag_id)
@@ -158,11 +159,13 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
       {canModify && (
         <TableCell className="text-end align-middle">
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button type="button" variant="ghost" disabled={isSubmitting} title="Verwijderen">
-                <Trash2 />
-              </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+              render={
+                <Button type="button" variant="ghost" disabled={isSubmitting} title="Verwijderen">
+                  <Trash2 />
+                </Button>
+              }
+            />
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>

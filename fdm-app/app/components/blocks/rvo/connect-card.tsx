@@ -1,8 +1,9 @@
+import { cn } from "cn"
 import { AlertTriangle, ExternalLink, Info, LifeBuoy, Loader2 } from "lucide-react"
 import { type FormEvent, useId, useState } from "react"
 import { Form, Link } from "react-router"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -14,7 +15,6 @@ import {
 import { Label } from "~/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { cn } from "~/lib/utils"
 
 /** Whose RVO data the user requests. Mirrors `RvoRequestMode` in `~/integrations/rvo.server`. */
 export type RvoRequestMode = "own_farm" | "machtiging"
@@ -99,28 +99,26 @@ export function RvoConnectCard({
 
   return (
     <Card className="w-full">
-      <Form method="post" noValidate onSubmit={handleSubmit}>
+      <Form method="post" noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
         <input type="hidden" name="intent" value="start_import" />
-        <CardHeader className="space-y-2">
+        <CardHeader>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle role="heading" aria-level={2}>
               Percelen ophalen bij RVO
             </CardTitle>
             <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="focus-visible:ring-ring/50 rounded-md outline-none focus-visible:ring-[3px]"
-                  aria-label="In ontwikkeling: meer informatie"
+              <PopoverTrigger
+                type="button"
+                className="focus-visible:ring-ring/50 rounded-md outline-none focus-visible:ring-[3px]"
+                aria-label="In ontwikkeling: meer informatie"
+              >
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground hover:bg-accent gap-1 font-normal"
                 >
-                  <Badge
-                    variant="outline"
-                    className="text-muted-foreground hover:bg-accent gap-1 font-normal"
-                  >
-                    In ontwikkeling
-                    <Info className="h-3 w-3" aria-hidden="true" />
-                  </Badge>
-                </button>
+                  In ontwikkeling
+                  <Info className="h-3 w-3" aria-hidden="true" />
+                </Badge>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-80 space-y-3 text-sm">
                 <p className="font-medium">Deze functie is nog in ontwikkeling</p>
@@ -133,12 +131,14 @@ export function RvoConnectCard({
                   Werkt iets niet zoals verwacht, of heeft u een idee om het te verbeteren? Laat het
                   ons weten via Ondersteuning.
                 </p>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/support/new">
-                    <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                    Contact opnemen met Ondersteuning
-                  </Link>
-                </Button>
+                <Link
+                  to="/support/new"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                  data-slot="button"
+                >
+                  <LifeBuoy className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                  Contact opnemen met Ondersteuning
+                </Link>
               </PopoverContent>
             </Popover>
           </div>
@@ -177,7 +177,7 @@ export function RvoConnectCard({
                     key={option.value}
                     className={cn(
                       "relative flex items-start gap-3 rounded-md border p-3 transition-colors",
-                      "has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5",
+                      "has-data-checked:border-primary has-data-checked:bg-primary/5",
                       "has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-[3px]",
                       showModeError && "border-destructive",
                     )}
@@ -255,9 +255,13 @@ export function RvoConnectCard({
               )}
             </Button>
           ) : (
-            <Button variant="outline" asChild className="w-full">
-              <Link to={kvkHref}>KvK-nummer toevoegen</Link>
-            </Button>
+            <Link
+              to={kvkHref}
+              className={buttonVariants({ variant: "outline", className: "w-full" })}
+              data-slot="button"
+            >
+              KvK-nummer toevoegen
+            </Link>
           )}
           <p id={statusId} className="text-muted-foreground text-center text-xs" aria-live="polite">
             {isImporting

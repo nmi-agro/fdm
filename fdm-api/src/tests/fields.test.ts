@@ -37,7 +37,10 @@ const baseField = {
 }
 
 function makeApp(services: Partial<FdmApiServices> = {}) {
-  return createFdmApi(mockFdm, mockAuth, config, services)
+  return createFdmApi(mockFdm, mockAuth, config, {
+    countFieldsOfFarms: async () => ({}),
+    ...services,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -237,7 +240,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
         b_name: "Nieuw perceel",
         b_geometry: validGeometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(201)
@@ -261,7 +264,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
         b_name: "Too big",
         b_geometry: geometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(422)
@@ -291,7 +294,7 @@ describe("POST /farms/:b_id_farm/fields", () => {
         b_name: "Perceel",
         b_geometry: validGeometry,
         b_start: "2024-01-01",
-        b_acquiring_method: "purchase",
+        b_acquiring_method: "nl_01",
       }),
     })
     expect(res.status).toBe(403)
@@ -338,9 +341,11 @@ describe("PATCH /fields/:b_id", () => {
   })
 
   it("returns 200 with the updated field", async () => {
+    const updatedField = { ...baseField, b_name: "Perceel Zuid" }
     const app = makeApp({
-      getField: vi.fn().mockResolvedValue(baseField),
-      updateField: vi.fn().mockResolvedValue({ ...baseField, b_name: "Perceel Zuid" }),
+      // The field before the update, then the field read back after it.
+      getField: vi.fn().mockResolvedValueOnce(baseField).mockResolvedValueOnce(updatedField),
+      updateField: vi.fn().mockResolvedValue(updatedField),
     })
     const res = await app.request("/fields/field-1", {
       method: "PATCH",
@@ -352,6 +357,40 @@ describe("PATCH /fields/:b_id", () => {
     })
     expect(res.status).toBe(200)
     expect((await res.json()).b_name).toBe("Perceel Zuid")
+  })
+
+  it("returns 404 when the field was removed before it could be read back", async () => {
+    const { b_centroid: _centroid, b_area: _area, b_perimeter: _perimeter, ...stored } = baseField
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValueOnce(baseField).mockResolvedValueOnce(undefined),
+      updateField: vi.fn().mockResolvedValue({ ...stored, b_name: "Perceel Zuid" }),
+    })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_name: "Perceel Zuid" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toContain("not-found")
+  })
+
+  it("returns the derived centroid and area, which updateField does not return", async () => {
+    const { b_centroid: _centroid, b_area: _area, b_perimeter: _perimeter, ...stored } = baseField
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(baseField),
+      updateField: vi.fn().mockResolvedValue(stored),
+    })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_name: "Perceel Noord" }),
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      b_centroid: baseField.b_centroid,
+      b_area: baseField.b_area,
+      b_perimeter: baseField.b_perimeter,
+    })
   })
 
   it("leaves b_end untouched when it is not provided", async () => {
@@ -401,5 +440,101 @@ describe("PATCH /fields/:b_id", () => {
       body: JSON.stringify({ b_name: "Perceel Zuid" }),
     })
     expect(res.status).toBe(403)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Not-found and integrity branches of POST and PATCH
+// ---------------------------------------------------------------------------
+describe("Field mutations — missing records", () => {
+  beforeEach(() => {
+    validKey()
+  })
+
+  const validGeometry = {
+    type: "Polygon",
+    coordinates: [
+      [
+        [5.0, 52.0],
+        [5.1, 52.0],
+        [5.1, 52.1],
+        [5.0, 52.1],
+        [5.0, 52.0],
+      ],
+    ],
+  }
+
+  const jsonHeaders = { "x-api-key": "valid", "content-type": "application/json" }
+
+  it("POST returns 500 when the created field cannot be read back", async () => {
+    const app = makeApp({
+      addField: vi.fn().mockResolvedValue("field-new"),
+      getField: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/farms/farm-1/fields", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        b_name: "Nieuw perceel",
+        b_geometry: validGeometry,
+        b_start: "2024-01-01",
+        b_acquiring_method: "nl_01",
+      }),
+    })
+    expect(res.status).toBe(500)
+    expect((await res.json()).type).toMatch(/\/problems\/internal-error$/)
+  })
+
+  it("PATCH returns 404 when the field does not exist", async () => {
+    const updateField = vi.fn()
+    const app = makeApp({ getField: vi.fn().mockResolvedValue(undefined), updateField })
+    const res = await app.request("/fields/field-x", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_name: "Perceel Zuid" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
+    expect(updateField).not.toHaveBeenCalled()
+  })
+
+  it("PATCH passes a new geometry on to the service", async () => {
+    const updateField = vi.fn().mockResolvedValue(baseField)
+    const app = makeApp({ getField: vi.fn().mockResolvedValue(baseField), updateField })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_geometry: validGeometry }),
+    })
+    expect(res.status).toBe(200)
+    expect(updateField.mock.calls[0][5]).toEqual(validGeometry)
+  })
+
+  it("PATCH returns 422 when the new geometry has too many coordinates", async () => {
+    const tooManyCoords = Array.from({ length: 10_001 }, (_, i) => [i * 0.0001, 52.0])
+    tooManyCoords.push(tooManyCoords[0])
+    const updateField = vi.fn()
+    const app = makeApp({ getField: vi.fn().mockResolvedValue(baseField), updateField })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_geometry: { type: "Polygon", coordinates: [tooManyCoords] } }),
+    })
+    expect(res.status).toBe(422)
+    expect(updateField).not.toHaveBeenCalled()
+  })
+
+  it("PATCH returns 404 when the service returns no updated field", async () => {
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(baseField),
+      updateField: vi.fn().mockResolvedValue(undefined),
+    })
+    const res = await app.request("/fields/field-1", {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_name: "Perceel Zuid" }),
+    })
+    expect(res.status).toBe(404)
+    expect((await res.json()).type).toMatch(/\/problems\/not-found$/)
   })
 })

@@ -1,4 +1,11 @@
-import { getCurrentSoilData, getFarm, getFarms, getField } from "@nmi-agro/fdm-core"
+import {
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
+  getFarm,
+  getFarms,
+  getField,
+  getFields,
+} from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -10,13 +17,14 @@ import { NewFieldsSidebar } from "~/components/blocks/fields-new/sidebar"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
+import { PageContainer } from "~/components/custom/page-container"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getSoilStatus, type SoilStatus } from "~/lib/soil-status"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -65,10 +73,16 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
-    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+    // Read the farm-level data at once: the fields of the farm (all years, like getField) and the
+    // current soil data of every field, instead of one read per field
+    const [farm, farms, farmFields, currentSoilDataByField] = await Promise.all([
+      getFarm(fdm, session.principal_id, b_id_farm),
+      getFarms(fdm, session.principal_id),
+      getFields(fdm, session.principal_id, b_id_farm),
+      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
 
     // Get a list of possible farms of the user
-    const farms = await getFarms(fdm, session.principal_id)
     const farmOptions = farms.map((farm) => {
       if (!farm?.b_id_farm || !farm?.b_name_farm) {
         throw new Error("Invalid farm data structure")
@@ -79,39 +93,28 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       }
     })
 
-    // Get the fields
-    const fields = await Promise.all(
-      fieldIds.map((b_id) => getField(fdm, session.principal_id, b_id)),
+    // A requested field that is not on this farm (normally there is none) is read on its own, as
+    // before
+    const fieldsById = new Map(farmFields.map((field) => [field.b_id, field]))
+    await Promise.all(
+      fieldIds
+        .filter((b_id) => !fieldsById.has(b_id))
+        .map(async (b_id) => {
+          const field = await getField(fdm, session.principal_id, b_id)
+          fieldsById.set(b_id, field)
+          currentSoilDataByField.set(
+            b_id,
+            await getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+          )
+        }),
     )
+    const fields = fieldIds.flatMap((b_id) => fieldsById.get(b_id) ?? [])
 
     // Get soil status for each field
-    const soilStatus: Record<string, "estimated" | "measured" | "missing"> = {}
-
-    await Promise.all(
-      fields.map(async (field) => {
-        const currentSoilData = await getCurrentSoilData(
-          fdm,
-          session.principal_id,
-          field.b_id,
-          timeframe,
-        )
-
-        if (currentSoilData.length === 0) {
-          soilStatus[field.b_id] = "missing"
-        } else {
-          const sources = new Set(currentSoilData.map((i) => i.a_source))
-          const hasMeasured = Array.from(sources).some((s) => s !== "nl-other-nmi")
-
-          if (hasMeasured) {
-            soilStatus[field.b_id] = "measured"
-          } else if (sources.has("nl-other-nmi")) {
-            soilStatus[field.b_id] = "estimated"
-          } else {
-            soilStatus[field.b_id] = "missing"
-          }
-        }
-      }),
-    )
+    const soilStatus: Record<string, SoilStatus> = {}
+    for (const field of fields) {
+      soilStatus[field.b_id] = getSoilStatus(currentSoilDataByField.get(field.b_id) ?? [])
+    }
 
     return {
       fields: fields,
@@ -132,7 +135,7 @@ export default function Index() {
   const { fields, soilStatus, b_id_farm, calendar } = loaderData
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
@@ -143,7 +146,7 @@ export default function Index() {
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderField b_id_farm={loaderData.b_id_farm} fieldOptions={[]} b_id={undefined} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-10 pb-16">
           <div className="flex items-center">
             <div className="space-y-0.5">
@@ -169,7 +172,7 @@ export default function Index() {
             </div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

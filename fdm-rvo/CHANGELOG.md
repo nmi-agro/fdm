@@ -1,5 +1,18 @@
 # @nmi-agro/fdm-rvo
 
+## 0.7.0
+
+### Minor Changes
+
+- [#916](https://github.com/nmi-agro/fdm/pull/916) [`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1) Thanks [@SvenVw](https://github.com/SvenVw)! - Add `applyRvoImport`, which saves a reviewed field import (fields to add, update and remove) in one transaction, and the building blocks of a two-step import: `reviewShapefileImport` (reads a shapefile export and compares it with a farm), `compareShapefileFields` (with the buffer strip estimate for shapefiles), `getAllowedImportActions`, `getReviewHash`, `getImportItemValues` and `resolveImportChoices`, which turns one action per item with optional per-field values into the changes to save. `processRvoImport` now uses the same code: `UPDATE_FROM_REMOTE` only changes the values that differ or are missing locally, `CLOSE_LOCAL` only sets the end date, and a new field without buffer strip information is not a buffer strip. It returns the created, updated, closed and removed fields and throws `ImportChoiceError` when an action does not fit the status of its item. Each review status has one action that changes nothing: `KEEP_LOCAL` for items with a local field and `IGNORE` for new fields from RVO. `processRvoImport` follows the same rule, so `IGNORE` for an item with a local field now throws `ImportChoiceError`; use `KEEP_LOCAL` or `NO_ACTION` instead.
+
+- [#973](https://github.com/nmi-agro/fdm/pull/973) [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Require Node.js 26 or higher (`engines.node` is now `>=26.0.0`) and build for the `node26` target.
+
+### Patch Changes
+
+- Updated dependencies [[`971f138`](https://github.com/nmi-agro/fdm/commit/971f138a51fe4a3fa02b77d6c00930a81adf4fd1), [`97d64f0`](https://github.com/nmi-agro/fdm/commit/97d64f08103a4e5978ecb3305e76651c36cc3018), [`2b531e7`](https://github.com/nmi-agro/fdm/commit/2b531e7314856701cf8b4117da44a3e21d562636), [`9a8d4e0`](https://github.com/nmi-agro/fdm/commit/9a8d4e0fa0af4567ecb0fbed6d270ebb178a9941), [`104576e`](https://github.com/nmi-agro/fdm/commit/104576e826ff758b74250b3edb132204b557c6c5), [`0d3b76d`](https://github.com/nmi-agro/fdm/commit/0d3b76d810ffb925beac26311dc075936f0c9f7f), [`865695a`](https://github.com/nmi-agro/fdm/commit/865695a5b240ccd3806ecb91276653cbc75610df), [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c), [`9c3e86f`](https://github.com/nmi-agro/fdm/commit/9c3e86f0cdbdec414278eaaf1c40a5be010ca6cd), [`06b5af6`](https://github.com/nmi-agro/fdm/commit/06b5af679259944b36df57734bb4a8e18ef0aa5d), [`905679c`](https://github.com/nmi-agro/fdm/commit/905679cc6e8b474c3252d53113f05d45c06a7e99), [`2c9cc22`](https://github.com/nmi-agro/fdm/commit/2c9cc22ce8043d60dc8bd8c36d569bef18af52af)]:
+  - @nmi-agro/fdm-core@0.40.0
+
 ## 0.6.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-docs",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
@@ -16,6 +16,7 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "node ./node_modules/typescript-7/bin/tsc --noEmit",
+    "check-types": "pnpm run typecheck",
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
@@ -25,7 +26,7 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.62.0",
+    "lucide-react": "^1.76.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -39,7 +40,11 @@
     "@nmi-agro/fdm-calculator": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
     "@nmi-agro/fdm-data": "workspace:*",
+    "@nmi-agro/fdm-mcp": "workspace:*",
+    "@nmi-agro/fdm-reports": "workspace:*",
     "@nmi-agro/fdm-rvo": "workspace:*",
+    "@nmi-agro/fdm-storage": "workspace:*",
+    "@types/react": "^19.3.0",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "^4.14.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
@@ -58,7 +63,7 @@
     ]
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
   "packageManager": "pnpm@12.8.1"
 }

@@ -127,12 +127,12 @@ export default function SupportSettingsProfile() {
   const { agent, helpdeskWritePermission } = useLoaderData<typeof loader>()
 
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Mijn Info"
         description="Hier kun je jouw informatie als medewerker beheren."
       />
       <AgentForm agent={agent} isAdmin={helpdeskWritePermission} person="second" />
-    </main>
+    </div>
   )
 }

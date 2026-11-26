@@ -4,10 +4,12 @@ import type { ReactNode } from "react"
 import type { ControllerFieldState, ControllerRenderProps, FieldValues } from "react-hook-form"
 import { nl as calenderLocale } from "@daypicker/react/locale"
 import * as chrono from "chrono-node"
-import { format } from "date-fns"
+import { cn } from "cn"
+import { format, parseISO } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useState } from "react"
+import { flushSync } from "react-dom"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
@@ -15,7 +17,6 @@ import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { endMonth } from "~/lib/calendar"
-import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 
 type DatePickerProps = {
@@ -111,21 +112,34 @@ export function DatePicker({
               e.preventDefault()
               setOpen(true)
             }
+            // Enter can submit the form before the field loses focus: commit the typed date
+            // first, synchronously, so the form reads the date that is shown
+            if (e.key === "Enter") {
+              const date = parseDateText(inputValue, calendarYear)
+              if (date) {
+                flushSync(() => {
+                  setMonth(date)
+                  field.onChange(date.toISOString())
+                })
+              }
+            }
           }}
           required={required}
         />
         <Popover open={effectiveOpen} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              id="date-picker"
-              variant="ghost"
-              className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
-              disabled={field.disabled}
-            >
-              <CalendarIcon className="size-3.5" />
-              <span className="sr-only">{placeholder ?? "Kies een datum"}</span>
-            </Button>
-          </PopoverTrigger>
+          <PopoverTrigger
+            render={
+              <Button
+                id="date-picker"
+                variant="ghost"
+                className="absolute top-1/2 right-2 size-6 -translate-y-1/2"
+                disabled={field.disabled}
+              >
+                <CalendarIcon className="size-3.5" />
+                <span className="sr-only">{placeholder ?? "Kies een datum"}</span>
+              </Button>
+            }
+          />
           <PopoverContent className="w-auto overflow-hidden p-0" align="end">
             <Calendar
               mode="single"
@@ -172,8 +186,10 @@ export function parseDateText(
 
   // Only treat as ISO string when it matches YYYY-MM-DD... to avoid JS's lenient Date parsing
   // (e.g. new Date("1-4-2025") returns January 4th — American order — before Dutch pre-processor runs).
+  // A date without a time is a calendar day: parse it as local midnight, like a day picked in the
+  // calendar, so it does not move to the previous day west of UTC. A full timestamp stays exact.
   if (/^\d{4}-\d{2}-\d{2}/.test(date)) {
-    const isoDate = new Date(date)
+    const isoDate = parseISO(date)
     if (!Number.isNaN(isoDate.getTime())) {
       return isoDate
     }

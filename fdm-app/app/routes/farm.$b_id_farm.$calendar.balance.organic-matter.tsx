@@ -7,10 +7,12 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { HelpLink } from "~/components/custom/help-link"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -18,6 +20,9 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "organische-stofbalans" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Organische stof | Nutriëntenbalans| ${clientConfig.name}` },
@@ -138,7 +143,7 @@ export default function FarmBalanceOrganicMatterBlock() {
       }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderBalance
@@ -147,18 +152,19 @@ export default function FarmBalanceOrganicMatterBlock() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 px-10 py-5 pb-0">
           <div className="flex items-center gap-4">
-            <div className="space-y-0.5 ">
+            <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold tracking-tight">Organische stof</h2>
+              <HelpLink target="organische-stofbalans" />
             </div>
           </div>
           <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
             <div className="flex-1">{<Outlet />}</div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

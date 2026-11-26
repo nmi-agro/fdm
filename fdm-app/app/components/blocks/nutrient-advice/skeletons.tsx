@@ -6,7 +6,7 @@ import { FieldNutrientAdviceLayout } from "./layout"
 export function NutrientCardSkeleton() {
   return (
     <Card className="relative animate-pulse">
-      <CardHeader className="pb-2">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-muted h-10 w-10 rounded-md" />

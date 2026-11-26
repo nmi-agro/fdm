@@ -1,7 +1,7 @@
 ---
 name: fdm-schema
 description: Use when working on the FDM database schema or data model — adding or changing tables and columns in fdm-core/src/db/schema.ts, generating or reviewing Drizzle migrations, naming columns and parameters, modelling a new farm asset or farm event, registering a new authorization resource, or reviewing a schema diff for convention drift. Covers the Asset–Action model, the b_/p_/a_/m_/l_/f_ column prefix vocabulary, table naming, enum and custom-type patterns, the schema-change workflow, and schema anti-patterns. Not for fdm-app UI work, agronomic calculation logic in fdm-calculator, agent prompts in fdm-agents, or REST endpoint design in fdm-api.
-version: 1.0.0
+version: 1.1.0
 user-invocable: true
 argument-hint: "[explain|add-table|add-column|review|check] [target]"
 license: MIT
@@ -75,14 +75,12 @@ If a calculation is expensive enough to need caching, cache it in the `fdm-calcu
 
 ### Time and lifecycle, not deletion
 
-An asset that stops being relevant is *ended*, not deleted, because the history of what happened to it stays true. Ending is itself an action, in its own table: `field_discarding` (`b_end`), `cultivation_ending` (`b_lu_end`), `fertilizer_picking` (`p_picking_date`), `organic_certifications_holding`. Start and end timestamps use the owning domain's prefix: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. `b_end` and `m_end` are the last day of the period (inclusive, Europe/Amsterdam); fdm-core stores them as entered and, when reading, returns 1 January as the end of 31 December of the previous year (`adjustEndDateAtYearStart`).
+An asset that stops being relevant is *ended*, not deleted, because the history of what happened to it stays true. Ending is itself an action, in its own table: `field_discarding` (`b_end`), `cultivation_ending` (`b_lu_end`), `organic_certifications_holding`. (`fertilizer_picking` is not an ending: it links a farm's fertilizer to its catalogue entry.) Start and end timestamps use the owning domain's prefix: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. `b_end` and `m_end` are the last day of the period (inclusive, Europe/Amsterdam); fdm-core stores them as entered and, when reading, returns 1 January as the end of 31 December of the previous year (`adjustEndDateAtYearStart`).
+
+Deleting is for something else: the `remove*` functions hard-delete a record that was entered by mistake.
 
 ```ts
-// WRONG — flags and jsonb bags lose who, when and why
-b_deleted: boolean().notNull().default(false),
-b_deletion_metadata: jsonb(),
-
-// RIGHT — a dedicated, typed action table
+// The end of an asset is a dedicated, typed action table
 export const fieldDiscarding = fdmSchema.table("field_discarding", {
   b_id: text().primaryKey().notNull().references(() => fields.b_id),
   b_end: timestamp({ withTimezone: true }),
@@ -104,7 +102,7 @@ Column names are **not** camelCase and are **not** English sentences. They are p
 | `p_` | Fertilizer products and their application | `p_id`, `p_id_catalogue`, `p_app_id`, `p_app_amount`, `p_app_method`, `p_n_rt`, `p_dm` |
 | `a_` | Soil analysis parameters and soil imagery | `a_id`, `a_date`, `a_source`, `a_p_al`, `a_som_loi`, `a_image_type` |
 | `m_` | Measures (agronomic practices) | `m_id`, `m_name`, `m_start`, `m_end`, `m_stage_applicability` |
-| `l_` | Livestock: animals, herds, barns (in development) | `l_id_animal`, `l_id_herd`, `l_species`, `l_birthdate` |
+| `l_` | Livestock: animals, herds, milking, grazing (in development); barns and manure pits are `b_` assets | `l_id_animal`, `l_id_herd`, `l_specie`, `l_birth_date`, `l_grazing_start` |
 | `f_` | Feed and feed analysis (in development) | `f_id_batch`, `f_dm`, `f_vem`, `f_cp` |
 
 Only `created` and `updated` are unprefixed. Everything else in the `fdm` schema carries a prefix; if none of the above fits, the change likely needs a new domain and should be discussed rather than invented. The one standing exception is the `hash` column on catalogue tables, which stores a content hash used to detect `fdm-data` changes.
@@ -195,9 +193,9 @@ Work these steps in order. Steps 2 and 3 are the ones agents skip, and skipping 
 
 If your schema change introduces a resource users can be granted access to, it is not finished until it is registered in `fdm-core/src/authorization.ts` (PG schema `fdm-authz`).
 
-- Add the resource to `resources` (currently `user`, `organization`, `farm`, `field`, `cultivation`, `fertilizer_application`, `soil_analysis`, `soil_image`, `harvesting`) and add its `permissions` entries for each of the roles `owner`, `advisor`, `researcher` across the actions `read`, `write`, `list`, `share`.
+- Add the resource to the `resources` array in that file and add its `permissions` entries for each of the roles `owner`, `advisor`, `researcher` across the actions `read`, `write`, `list`, `share`. Also teach `getResourceChain` how to find the farm the new resource belongs to, so access is inherited from the farm.
 - Public `fdm-core` functions take the instance and the acting principal first: `fn(fdm: FdmType, principal_id: string, …)`.
-- Mutations run inside `fdm.transaction(async (tx) => …)`, call `checkPermission(tx, resource, action, resource_id, principal_id, "fnName")` before touching data, generate IDs with `createId()`, `grantRole` on creation, and are wrapped in `try/catch` re-throwing via `handleError(err, "Exception for fnName", { …context })` — never a raw `throw`.
+- Call `checkPermission(fdm, resource, action, resource_id, principal_id, "fnName")` before touching data: on `fdm` before the transaction, or on `tx` inside it. A mutation that writes more than once runs inside `fdm.transaction(async (tx) => …)`; a single insert, update or delete may run on `fdm` directly. Generate IDs with `createId()`. `grantRole` only for a new top-level resource that a principal gets direct access to (such as a farm); other records inherit access through their parent. Wrap the body in `try/catch` and re-throw via `handleError(err, "Exception for fnName", { …context })` — never a raw `throw` that escapes the function.
 - Reads check permission too. A query that filters by `b_id_farm` alone is not access control.
 
 The broader conventions for authoring core functions are the future `fdm-core-api` skill; here, do only what the schema change requires.
@@ -222,10 +220,10 @@ A genuine exception goes in the `ALLOWLIST` at the top of the script **with a wr
 | A column storing a computed total or balance | Record the underlying actions; compute in `fdm-calculator`, cache in the `fdm-calculator` PG schema. |
 | A soil parameter without a method suffix (`a_p`) | `a_p_al`, `a_p_cc`, `a_p_wa` — the method is part of the meaning. |
 | A numeric column with no unit comment | `numericCasted(), // kg N / ha` |
-| `b_deleted` flag or a hard `DELETE` | A `*_discarding` / `*_ending` action table with an end timestamp. |
+| Deleting an asset to record that it stopped | A `*_discarding` / `*_ending` action table with an end timestamp. A hard delete (the `remove*` functions) is only for taking out a record that was entered by mistake. |
 | Table without `created`/`updated` | Add both; every table is auditable. |
 | Missing `TypeSelect`/`TypeInsert` exports | Export both; downstream packages depend on them. |
 | Enum values as Dutch display text | Machine codes as `value`, Dutch as `label` in the `Options` array. |
 | `throw new Error(...)` in core | `throw handleError(err, "Exception for fnName", { context })` |
-| Query scoped by farm id instead of `checkPermission` | Always `checkPermission` first, inside the transaction. |
+| Query scoped by farm id instead of `checkPermission` | Always `checkPermission` first, before touching data. |
 | Schema edit with no generated migration | `pnpm db:generate` and commit the SQL. |

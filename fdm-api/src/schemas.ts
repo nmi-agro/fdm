@@ -1,16 +1,19 @@
 import { toFdmDateString } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+import { soilParameterShape } from "./fields"
 
 /**
  * Describes the RFC 9457 problem details payload returned by API error responses.
  */
 export const ProblemDetailsSchema = z.object({
-  type: z.string().url(),
-  title: z.string(),
-  status: z.number().int(),
-  detail: z.string(),
-  instance: z.string(),
-  error_id: z.string(),
+  type: z.string().url().describe("URI that identifies the problem type."),
+  title: z.string().describe("Short, human-readable summary of the problem type."),
+  status: z.number().int().describe("HTTP status code of the response."),
+  detail: z.string().describe("Human-readable explanation of this occurrence of the problem."),
+  instance: z.string().describe("URI of the request that caused the problem."),
+  error_id: z
+    .string()
+    .describe("Unique identifier of this error occurrence, to quote when contacting support."),
 })
 
 /**
@@ -108,10 +111,10 @@ export function paginatedResponse<T>(data: T[], limit: number, offset: number) {
  */
 export function paginatedSchema<T extends z.ZodTypeAny>(itemSchema: T) {
   return z.object({
-    data: z.array(itemSchema),
-    limit: z.number().int(),
-    offset: z.number().int(),
-    total: z.number().int(),
+    data: z.array(itemSchema).describe("Items on this page."),
+    limit: z.number().int().describe("Maximum number of items on this page, as requested."),
+    offset: z.number().int().describe("Number of items skipped before this page, as requested."),
+    total: z.number().int().describe("Total number of items across all pages."),
   })
 }
 
@@ -183,59 +186,116 @@ export const writeErrorResponses = {
 }
 
 /**
+ * Builds an OpenAPI response definition for an RFC 9457 problem document, for a status that is
+ * not part of `commonErrorResponses` or `writeErrorResponses`.
+ *
+ * @param description - Description of when the status is returned.
+ * @returns A response definition for use in `createRoute({ responses })`.
+ * @example
+ * ```ts
+ * responses: { 503: problemResponseDefinition("Service unavailable — storage is not configured.") }
+ * ```
+ */
+export function problemResponseDefinition(description: string) {
+  return {
+    description,
+    content: { "application/problem+json": { schema: ProblemDetailsSchema } },
+  }
+}
+
+/**
+ * Error responses for write operations that accept `multipart/form-data` uploads.
+ * Same as `writeErrorResponses`, with upload-specific 413 and 415 descriptions.
+ */
+export const uploadErrorResponses = {
+  ...writeErrorResponses,
+  413: {
+    description: "Payload too large — the upload exceeds the size limit of this endpoint.",
+    content: {
+      "application/problem+json": { schema: ProblemDetailsSchema },
+    },
+  },
+  415: {
+    description:
+      "Unsupported media type — Content-Type must be multipart/form-data, or an uploaded file has a type this endpoint does not accept.",
+    content: {
+      "application/problem+json": { schema: ProblemDetailsSchema },
+    },
+  },
+}
+
+/**
+ * Builds an OpenAPI response definition for a binary file download.
+ *
+ * @param mediaType - Media type of the returned file, for example `application/pdf`.
+ * @param description - Description of the response shown in the API reference.
+ * @returns A response definition for use in `createRoute({ responses })`.
+ * @example
+ * ```ts
+ * responses: { 200: binaryResponse("application/pdf", "The fertilizer plan as PDF.") }
+ * ```
+ */
+export function binaryResponse(mediaType: string, description: string) {
+  return {
+    description,
+    content: {
+      [mediaType]: {
+        schema: z.string().openapi({ format: "binary" }).describe(`File contents (${mediaType}).`),
+      },
+    },
+  }
+}
+
+/**
  * Reusable schema for optional soil measurement fields accepted in create and update requests.
  */
-export const SoilAnalysisDataSchema = z.object({
-  a_al_ox: z.number().nullable().optional(),
-  a_c_of: z.number().nullable().optional(),
-  a_ca_co: z.number().nullable().optional(),
-  a_ca_co_po: z.number().nullable().optional(),
-  a_caco3_if: z.number().nullable().optional(),
-  a_cec_co: z.number().nullable().optional(),
-  a_clay_mi: z.number().nullable().optional(),
-  a_cn_fr: z.number().nullable().optional(),
-  a_com_fr: z.number().nullable().optional(),
-  a_cu_cc: z.number().nullable().optional(),
-  a_density_sa: z.number().nullable().optional(),
-  a_fe_ox: z.number().nullable().optional(),
-  a_k_cc: z.number().nullable().optional(),
-  a_k_co: z.number().nullable().optional(),
-  a_k_co_po: z.number().nullable().optional(),
-  a_mg_cc: z.number().nullable().optional(),
-  a_mg_co: z.number().nullable().optional(),
-  a_mg_co_po: z.number().nullable().optional(),
-  a_n_pmn: z.number().nullable().optional(),
-  a_n_rt: z.number().nullable().optional(),
-  a_nh4_cc: z.number().nullable().optional(),
-  a_nmin_cc: z.number().nullable().optional(),
-  a_no3_cc: z.number().nullable().optional(),
-  a_p_al: z.number().nullable().optional(),
-  a_p_cc: z.number().nullable().optional(),
-  a_p_ox: z.number().nullable().optional(),
-  a_p_rt: z.number().nullable().optional(),
-  a_p_sg: z.number().nullable().optional(),
-  a_p_wa: z.number().nullable().optional(),
-  a_ph_cc: z.number().nullable().optional(),
-  a_s_rt: z.number().nullable().optional(),
-  a_sand_mi: z.number().nullable().optional(),
-  a_silt_mi: z.number().nullable().optional(),
-  a_som_loi: z.number().nullable().optional(),
-  a_zn_cc: z.number().nullable().optional(),
-  b_gwl_class: z.string().nullable().optional(),
-  b_soiltype_agr: z.string().nullable().optional(),
+export const SoilAnalysisDataSchema = z.object(soilParameterShape("optional"))
+
+const GeoJsonPositionSchema = z
+  .tuple([z.number(), z.number()])
+  .describe("Position as [longitude, latitude] in WGS84 (EPSG:4326) decimal degrees.")
+
+/**
+ * Validates a GeoJSON Polygon.
+ */
+export const GeoJsonPolygonSchema = z.object({
+  type: z.literal("Polygon").describe("GeoJSON geometry type."),
+  coordinates: z
+    .array(z.array(GeoJsonPositionSchema))
+    .describe(
+      "Linear rings of the polygon: the first ring is the exterior, any further rings are holes. Each ring is closed (first and last position are equal).",
+    ),
 })
 
-const GeoJsonPositionSchema = z.tuple([z.number(), z.number()])
-
-const GeoJsonPolygonSchema = z.object({
-  type: z.literal("Polygon"),
-  coordinates: z.array(z.array(GeoJsonPositionSchema)),
+/**
+ * Validates a GeoJSON MultiPolygon.
+ */
+export const GeoJsonMultiPolygonSchema = z.object({
+  type: z.literal("MultiPolygon").describe("GeoJSON geometry type."),
+  coordinates: z
+    .array(z.array(z.array(GeoJsonPositionSchema)))
+    .describe("Polygons of the geometry, each as a list of linear rings."),
 })
 
-const GeoJsonMultiPolygonSchema = z.object({
-  type: z.literal("MultiPolygon"),
-  coordinates: z.array(z.array(z.array(GeoJsonPositionSchema))),
-})
+/**
+ * Validates a GeoJSON MultiPoint, used for the locations of soil subsamples.
+ */
+export const GeoJsonMultiPointSchema = z
+  .object({
+    type: z.literal("MultiPoint").describe("GeoJSON geometry type."),
+    coordinates: z
+      .array(GeoJsonPositionSchema)
+      .describe("Positions of the points, each as [longitude, latitude] in WGS84."),
+  })
+  .openapi("GeoJsonMultiPoint")
+
+/**
+ * Validates the area a soil analysis represents: a Polygon or MultiPolygon.
+ */
+export const SamplingZoneGeometrySchema = z
+  .union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema])
+  .describe("Area a soil analysis represents (GeoJSON Polygon or MultiPolygon, WGS84).")
+  .openapi("SamplingZoneGeometry")
 
 /**
  * Validates the GeoJSON geometry shapes accepted by field endpoints.

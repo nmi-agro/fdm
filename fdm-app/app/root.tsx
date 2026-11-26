@@ -24,6 +24,7 @@ import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 import styles from "~/tailwind.css?url"
 import type { Route } from "./+types/root"
+import { TooltipProvider } from "./components/ui/tooltip"
 
 export const middleware: Route.MiddlewareFunction[] = [
   async function auditMiddleware({ request }, next) {
@@ -65,6 +66,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       PUBLIC_FDM_NAME: process.env.PUBLIC_FDM_NAME,
       PUBLIC_FDM_DATASETS_URL: process.env.PUBLIC_FDM_DATASETS_URL,
       PUBLIC_FDM_API_URL: process.env.PUBLIC_FDM_API_URL,
+      PUBLIC_FDM_MCP_URL: process.env.PUBLIC_FDM_MCP_URL,
       PUBLIC_MAP_PROVIDER: process.env.PUBLIC_MAP_PROVIDER,
       PUBLIC_MAPTILER_API_KEY: process.env.PUBLIC_MAPTILER_API_KEY,
       PUBLIC_SENTRY_DSN: process.env.PUBLIC_SENTRY_DSN,
@@ -76,6 +78,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         process.env.PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR,
       PUBLIC_SENTRY_PROFILE_SAMPLE_RATE: process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE,
       PUBLIC_SENTRY_SECURITY_REPORT_URI: process.env.PUBLIC_SENTRY_SECURITY_REPORT_URI,
+      SENTRY_RELEASE: process.env.SENTRY_RELEASE,
       PUBLIC_POSTHOG_KEY: process.env.PUBLIC_POSTHOG_KEY,
       PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST,
     }
@@ -200,16 +203,18 @@ export function Layout() {
         <Links />
       </head>
       <body>
-        <Outlet />
-        <NavigationProgress />
-        <Banner />
-        <Toaster />
-        <ErrorBoundary error={null} params={{}} />
-        <ScrollRestoration
-          getKey={(location) => {
-            return location.pathname
-          }}
-        />
+        <TooltipProvider>
+          <Outlet />
+          <NavigationProgress />
+          <Banner />
+          <Toaster />
+          <ErrorBoundary error={null} params={{}} />
+          <ScrollRestoration
+            getKey={(location) => {
+              return location.pathname
+            }}
+          />
+        </TooltipProvider>
         {/* Inject runtime environment variables */}
         {runtimeEnv && (
           <script

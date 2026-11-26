@@ -1,4 +1,4 @@
-import { getPrincipal, lookupPrincipal } from "@nmi-agro/fdm-core"
+import { getPrincipal, identifyPrincipal } from "@nmi-agro/fdm-core"
 import {
   addMessageFromInboundEmailUnchecked,
   assignTicketToAnAdmin,
@@ -139,10 +139,12 @@ export async function action({ params, request }: Route.ActionArgs) {
     }
 
     // Try to find the ticket that the user is replying to, either from the ticket subject or the In-Reply-To header.
-    const principals = await lookupPrincipal(fdm, normalizedEmail)
-    const senderPrincipal = principals.find(
-      (u) => u.email?.toLowerCase() === normalizedEmail.toLowerCase(),
-    )
+    const identified = await identifyPrincipal(fdm, normalizedEmail)
+    const senderPrincipal =
+      identified?.type === "user" &&
+      identified.email?.toLowerCase() === normalizedEmail.toLowerCase()
+        ? identified
+        : undefined
     const messageSubject = email.Subject ?? "Subject"
     const MailboxHash =
       email.ToFull && email.ToFull.length > 0 ? (email.ToFull[0].MailboxHash ?? null) : null

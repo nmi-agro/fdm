@@ -1,20 +1,29 @@
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import {
   Calculator,
   CheckCircle2,
+  CircleAlert,
   ClipboardCheck,
   ClipboardList,
+  Layers,
   Microscope,
   MoveRight,
   Sparkles,
   Sprout,
+  TriangleAlert,
   User,
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import {
+  PHOSPHATE_VERDICT_STYLE,
+  PHOSPHATE_VERDICT_TEXT,
+} from "~/components/blocks/balance/phosphate-format"
 import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
+import { InfoTip } from "~/components/blocks/fertilizer-applications/bulk/info-tip"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
@@ -23,11 +32,10 @@ import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Badge } from "~/components/ui/badge"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 import { Dialog, DialogTrigger } from "../../ui/dialog"
 import {
   FieldDashboardTile,
@@ -170,7 +178,7 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
         </div>
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">Oppervlakte</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">Oppervlakte</dt>
             <dd className="mt-1 text-sm font-medium">
               {dashboard.field.b_area != null && Number.isFinite(dashboard.field.b_area)
                 ? `${dashboard.field.b_area.toFixed(1).replace(".", ",")} ha`
@@ -178,15 +186,17 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">Eigendom / pacht</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">
+              Eigendom / pacht
+            </dt>
             <dd className="mt-1 text-sm font-medium">{ownershipLabel}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">In gebruik</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">In gebruik</dt>
             <dd className="mt-1 text-sm font-medium">{inUseLabel}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground text-xs uppercase">Bufferstrook</dt>
+            <dt className="text-muted-foreground text-xs hyphens-auto uppercase">Bufferstrook</dt>
             <dd className="mt-1 text-sm font-medium">
               {dashboard.field.b_bufferstrip ? "Ja" : "Nee"}
             </dd>
@@ -264,7 +274,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
         </Suspense>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase">Teeltperiode</p>
+            <p className="text-muted-foreground text-xs hyphens-auto uppercase">Teeltperiode</p>
             <p className="mt-1 text-sm font-medium">
               {formatDateLabel(activeCultivation.startDate)} –{" "}
               {formatDateLabel(activeCultivation.endDate, "Lopend")}
@@ -287,15 +297,19 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
           <div className="rounded-lg border p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-muted-foreground text-xs uppercase">{harvestDateTerm}</p>
+                <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                  {harvestDateTerm}
+                </p>
                 <p className="mt-1 text-sm font-medium">{formatDateLabel(latestHarvest.date)}</p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link to={latestHarvest.detailHref}>
-                  Bekijken
-                  <MoveRight className="size-4" />
-                </Link>
-              </Button>
+              <Link
+                to={latestHarvest.detailHref}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                data-slot="button"
+              >
+                Bekijken
+                <MoveRight className="size-4" />
+              </Link>
             </div>
             {latestHarvest.metrics.length > 0 ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -512,7 +526,9 @@ export function FieldDashboardNutrientAdviceTile({ dashboard, tile }: FieldDashb
                 {data.items.map((item) => (
                   <div key={item.label} className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-muted-foreground text-xs uppercase">{item.label}</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {item.label}
+                      </p>
                       <p className="text-sm font-semibold">
                         {Math.round(item.current)} / {Math.round(item.target)} {item.unit}
                       </p>
@@ -545,7 +561,9 @@ export function FieldDashboardNormsTile({ dashboard, tile }: FieldDashboardTileP
                 {data.items.map((item) => (
                   <div key={item.label} className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-muted-foreground text-xs uppercase">{item.label}</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {item.label}
+                      </p>
                       <p className="text-sm font-semibold">
                         {Math.round(item.used)} / {Math.round(item.limit)} {item.unit}
                       </p>
@@ -587,11 +605,14 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                 >
                   {data.balance <= data.target ? (
                     <>
-                      <CheckCircle2 className="size-3.5" />
+                      <CheckCircle2 className="size-3.5" aria-hidden="true" />
                       <span>Onder streefwaarde</span>
                     </>
                   ) : (
-                    <span>Boven streefwaarde</span>
+                    <>
+                      <CircleAlert className="size-3.5" aria-hidden="true" />
+                      <span>Boven streefwaarde</span>
+                    </>
                   )}
                 </span>
               }
@@ -607,25 +628,29 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Aanvoer</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Aanvoer</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.supply, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Afvoer</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Afvoer</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.removal, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Ammoniakemissie</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                      Ammoniakemissie
+                    </p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.emissionAmmonia, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Nitraatuitspoeling</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                      Nitraatuitspoeling
+                    </p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.emissionNitrate, data.unit)}
                     </p>
@@ -668,11 +693,14 @@ export function FieldDashboardOrganicMatterBalanceTile({
                 >
                   {data.balance > 0 ? (
                     <>
-                      <CheckCircle2 className="size-3.5" />
+                      <CheckCircle2 className="size-3.5" aria-hidden="true" />
                       <span>Positief</span>
                     </>
                   ) : (
-                    <span>Negatief</span>
+                    <>
+                      <CircleAlert className="size-3.5" aria-hidden="true" />
+                      <span>Negatief</span>
+                    </>
                   )}
                 </span>
               }
@@ -684,13 +712,13 @@ export function FieldDashboardOrganicMatterBalanceTile({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Aanvoer</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Aanvoer</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.supply, data.unit)}
                     </p>
                   </div>
                   <div className="rounded-lg border p-3">
-                    <p className="text-muted-foreground text-xs uppercase">Afbraak</p>
+                    <p className="text-muted-foreground text-xs hyphens-auto uppercase">Afbraak</p>
                     <p className="mt-1 text-sm font-semibold">
                       {formatNumberLabel(data.degradation, data.unit)}
                     </p>
@@ -699,6 +727,79 @@ export function FieldDashboardOrganicMatterBalanceTile({
               </div>
             </FieldDashboardTile>
           ))
+        }
+      </Await>
+    </Suspense>
+  )
+}
+
+/**
+ * Phosphate balance tile: the saldo, the verdict and aim of the soil phosphorus status, the PSD now and its threshold, the
+ * years until the threshold is crossed (as a class) and whether the PSD is measured or estimated.
+ */
+export function FieldDashboardPhosphateBalanceTile({ dashboard, tile }: FieldDashboardTileProps) {
+  return (
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
+      <Await
+        resolve={dashboard.asyncInsights.phosphateBalance}
+        errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
+      >
+        {(result) =>
+          renderAsyncState(tile.title, tile.detailHref, result, (data) => {
+            const { Icon: BadgeIcon, pill } = PHOSPHATE_VERDICT_STYLE[data.status]
+            const badgeText = PHOSPHATE_VERDICT_TEXT[data.status]
+            return (
+              <FieldDashboardTile
+                title={tile.title}
+                detailHref={tile.detailHref}
+                statusBadge={
+                  // The meaning of the verdict opens on hover, keyboard focus and tap
+                  <InfoTip content={`${badgeText.description}.`} className="max-w-xs">
+                    <button
+                      type="button"
+                      className={cn(
+                        "focus-visible:ring-ring/50 inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium outline-none focus-visible:ring-[3px]",
+                        pill,
+                      )}
+                    >
+                      <BadgeIcon className="size-3.5" aria-hidden="true" />
+                      <span>{badgeText.label}</span>
+                    </button>
+                  </InfoTip>
+                }
+              >
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-3xl font-semibold">{Math.round(data.balance)}</p>
+                    <p className="text-muted-foreground text-sm">Balans in {data.unit}</p>
+                    <p className="text-muted-foreground text-sm">{data.aim}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border p-3">
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        Verzadiging (PSD)
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {data.psd === null ? "–" : `${Math.round(data.psd)} %`}
+                        {data.threshold === null ? "" : ` / grens ${Math.round(data.threshold)} %`}
+                      </p>
+                      {data.psdSource ? (
+                        <p className="text-muted-foreground text-xs">{data.psdSource}</p>
+                      ) : null}
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {data.years?.label ?? "Grens"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">{data.years?.value ?? "–"}</p>
+                    </div>
+                  </div>
+                </div>
+              </FieldDashboardTile>
+            )
+          })
         }
       </Await>
     </Suspense>
@@ -733,18 +834,20 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
               ? "Onbekend"
               : card.type === "enum"
                 ? (card.label ?? String(card.value))
-                : `${card.value}${card.unit ? ` ${card.unit}` : ""}`
+                : `${typeof card.value === "number" ? Math.round(card.value * 10) / 10 : card.value}${card.unit ? ` ${card.unit}` : ""}`
 
           return (
             <div key={card.parameter} className="rounded-lg border p-4">
               <div className="space-y-1">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
-                        {card.title}
-                      </p>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <p className="decoration-muted-foreground/50 cursor-help text-sm font-medium underline decoration-dotted underline-offset-4">
+                          {card.title}
+                        </p>
+                      }
+                    />
                     <TooltipContent className="max-w-xs">{card.description}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -762,6 +865,22 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
                         : "Onbekende bron"}
                 </span>
               </div>
+              {card.zoneCount > 1 && (
+                <div className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                  <Layers className="size-3.5" />
+                  <span>Gemiddelde van {card.zoneCount} zones</span>
+                </div>
+              )}
+              {card.hasCoverageWarning && card.coverage !== null && (
+                <Link
+                  to={`${tile.detailHref}/analysis/${card.a_id}`}
+                  className="mt-1 flex items-center gap-2 text-xs text-amber-700 hover:underline"
+                  title="Bekijk de bemonstering op de kaart"
+                >
+                  <TriangleAlert className="size-3.5" />
+                  <span>Dekt {Math.round(card.coverage * 100)}% van perceel</span>
+                </Link>
+              )}
             </div>
           )
         })}
@@ -798,9 +917,9 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
           </div>
           {latestAnalysisPdf && (
             <Dialog>
-              <DialogTrigger asChild>
-                <ViewPdfButton variant="outline" size="sm" className="shrink-0" />
-              </DialogTrigger>
+              <DialogTrigger
+                render={<ViewPdfButton variant="outline" size="sm" className="shrink-0" />}
+              />
               <PdfViewerDialogContent
                 downloadUrl={`/api/soil-analysis/download/${latestAnalysisPdf.a_id}.pdf`}
                 filename={latestAnalysisPdf.filename}
@@ -885,6 +1004,7 @@ export function FieldDashboardBcsTile({ dashboard, tile }: FieldDashboardTilePro
           scoreColor={bcs.scoreColor}
           scoreLabel={bcs.scoreLabel}
           measuredAt={bcs.measuredAt ? formatDateLabel(bcs.measuredAt) : undefined}
+          showTopRightBadge={false}
           collapsibleIndicators
         />
       </div>
@@ -917,7 +1037,9 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                 <div className="grid grid-cols-2 gap-3">
                   {data.aggregations.map((aggregation) => (
                     <div key={aggregation.id} className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
+                      <p className="text-muted-foreground text-xs hyphens-auto uppercase">
+                        {aggregation.label}
+                      </p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
                           <span>Onbekend</span>
@@ -1000,11 +1122,11 @@ export function FieldDashboardMeasuresTile({ dashboard, tile }: FieldDashboardTi
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase">Actief</p>
+            <p className="text-muted-foreground text-xs hyphens-auto uppercase">Actief</p>
             <p className="mt-1 text-xl font-semibold">{dashboard.measures.activeCount}</p>
           </div>
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase">Doorlopend</p>
+            <p className="text-muted-foreground text-xs hyphens-auto uppercase">Doorlopend</p>
             <p className="mt-1 text-xl font-semibold">{dashboard.measures.ongoingCount}</p>
           </div>
         </div>

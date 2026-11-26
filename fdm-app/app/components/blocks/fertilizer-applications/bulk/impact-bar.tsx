@@ -1,4 +1,4 @@
-import { cn } from "~/lib/utils"
+import { cn } from "cn"
 
 export type ImpactBarTone = "ok" | "under" | "over"
 

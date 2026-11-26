@@ -1,4 +1,3 @@
-import { ApiError } from "@google-cloud/storage"
 import {
   getFarm,
   getFertilizerPlan,
@@ -6,18 +5,17 @@ import {
   getSoilAnalysis,
   getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
-import { Readable } from "node:stream"
 import { data } from "react-router"
 import { getBemestingsplanDownloadName } from "~/components/blocks/bemestingsplan/util"
 import { getSoilAnalysisDownloadName } from "~/components/blocks/soil/download"
-import { getObjectStream } from "~/integrations/gcs.server"
+import { downloadObject, FileNotFoundError } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { Route } from "./+types/api.$object_type.download.$a_id[.]pdf"
 
 /**
- * Streams the soil analysis PDF through the app server instead of
+ * Proxies the soil analysis or fertilizer plan PDF through the app server instead of
  * redirecting to a signed GCS URL. Keeping the response same-origin means
  * `<a download>` works as a real download and the file can be embedded
  * inline (e.g. in an iframe viewer) without the browser navigating away to
@@ -75,19 +73,17 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
     const disposition = url.searchParams.get("disposition") === "inline" ? "inline" : "attachment"
 
     try {
-      const { stream, contentType, size } = await getObjectStream(filePath)
+      const { buffer, contentType } = await downloadObject(filePath)
 
       const headers = new Headers({
         "Content-Type": contentType ?? "application/pdf",
         "Content-Disposition": `${disposition}; filename="${filename}"`,
+        "Content-Length": String(buffer.byteLength),
       })
-      if (size !== undefined) {
-        headers.set("Content-Length", String(size))
-      }
 
-      return new Response(Readable.toWeb(stream) as ReadableStream, { headers })
+      return new Response(new Uint8Array(buffer), { headers })
     } catch (gcsError) {
-      if (gcsError instanceof ApiError && gcsError.code === 404) {
+      if (gcsError instanceof FileNotFoundError) {
         return data("Not Found", { status: 404 })
       }
       throw gcsError

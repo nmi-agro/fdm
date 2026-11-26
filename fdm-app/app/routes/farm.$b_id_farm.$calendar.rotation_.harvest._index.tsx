@@ -1,13 +1,14 @@
 import {
   addHarvest,
   type Cultivation,
-  getCultivations,
+  getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getDefaultsForHarvestParameters,
   getFarms,
   getFields,
-  getHarvests,
+  getHarvestsForFarm,
   getParametersForHarvestCat,
+  type Harvest,
   removeHarvest,
 } from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
@@ -26,6 +27,7 @@ import {
 } from "react-router"
 import { dataWithError, dataWithWarning, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { BatchHarvestForm } from "~/components/blocks/harvest/batch-form"
@@ -35,9 +37,10 @@ import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -57,7 +60,6 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { Label } from "~/components/ui/label"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useKeyedState } from "~/hooks/use-keyed-state"
@@ -68,6 +70,8 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { modifySearchParams } from "~/lib/url-utils"
+
+export const handle: HelpHandle = { help: "bouwplan" }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   const term = getHarvestTerm(
@@ -160,26 +164,25 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       }
     })
 
+    // Read the farm-level data at once instead of per field or per cultivation. The harvests are
+    // read without a timeframe, as the form shows the latest harvest of a cultivation.
+    const [fields, cultivationsByField, harvestsByCultivation, cultivationCatalogueData] =
+      await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getHarvestsForFarm(fdm, session.principal_id, b_id_farm),
+        getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+      ])
+
     // Get all fields for the farm and their cultivations
-    const allFieldsWithCultivations = await Promise.all(
-      (await getFields(fdm, session.principal_id, b_id_farm, timeframe)).map(async (field) => {
-        const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
-        return {
-          ...field,
-          cultivations: cultivations,
-        }
-      }),
-    )
+    const allFieldsWithCultivations = fields.map((field) => ({
+      ...field,
+      cultivations: cultivationsByField.get(field.b_id) ?? [],
+    }))
 
     // Get fieldIds from search params (if any)
     const fieldIdsFromSearchParams =
       url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? null
-
-    const cultivationCatalogueData = await getCultivationsFromCatalogue(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-    )
 
     const targetCultivation = cultivationCatalogueData.find(
       (c) => c.b_lu_catalogue === cultivationIds[0],
@@ -208,40 +211,38 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       )
     }
 
-    type HarvestApplication = Awaited<ReturnType<typeof getHarvests>>[number]
+    type HarvestApplication = Harvest
 
-    const selectedFields = await Promise.all(
-      selectedFieldsData.map(async (field) => {
-        let harvestApplication: HarvestApplication | undefined
-        let harvestableAnalysis: Partial<
-          HarvestApplication["harvestable"]["harvestable_analyses"][number]
-        > = {}
-        let hasHarvest = false
+    const selectedFields = selectedFieldsData.map((field) => {
+      let harvestApplication: HarvestApplication | undefined
+      let harvestableAnalysis: Partial<
+        HarvestApplication["harvestable"]["harvestable_analyses"][number]
+      > = {}
+      let hasHarvest = false
 
-        const targetFieldCultivation = field.cultivations.find(
-          (c) => c.b_lu_catalogue === targetCultivation.b_lu_catalogue,
-        )
+      const targetFieldCultivation = field.cultivations.find(
+        (c) => c.b_lu_catalogue === targetCultivation.b_lu_catalogue,
+      )
 
-        if (targetFieldCultivation) {
-          const harvests = await getHarvests(fdm, session.principal_id, targetFieldCultivation.b_lu)
-          if (harvests.length > 0) {
-            harvestApplication = harvests[0]
-            harvestableAnalysis = harvestApplication.harvestable?.harvestable_analyses[0] ?? {}
-            hasHarvest =
-              harvestableAnalysis.b_lu_yield !== undefined ||
-              harvestableAnalysis.b_lu_n_harvestable !== undefined ||
-              harvestApplication.b_lu_harvest_date !== undefined
-          }
+      if (targetFieldCultivation) {
+        const harvests = harvestsByCultivation.get(targetFieldCultivation.b_lu) ?? []
+        if (harvests.length > 0) {
+          harvestApplication = harvests[0]
+          harvestableAnalysis = harvestApplication.harvestable?.harvestable_analyses[0] ?? {}
+          hasHarvest =
+            harvestableAnalysis.b_lu_yield !== undefined ||
+            harvestableAnalysis.b_lu_n_harvestable !== undefined ||
+            harvestApplication.b_lu_harvest_date !== undefined
         }
+      }
 
-        return {
-          ...field,
-          hasHarvest,
-          harvestApplication,
-          harvestableAnalysis,
-        }
-      }),
-    )
+      return {
+        ...field,
+        hasHarvest,
+        harvestApplication,
+        harvestableAnalysis,
+      }
+    })
 
     let firstFieldWithData: (typeof selectedFields)[number] | undefined
     if (targetCultivation.b_lu_harvestable === "once") {
@@ -470,7 +471,7 @@ export default function FarmRotationHarvestAddIndex() {
       : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`)
   const backlinkLabel = loaderData.returnUrl ? "Terug" : "Terug naar bouwplan"
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: backlink,
@@ -486,7 +487,7 @@ export default function FarmRotationHarvestAddIndex() {
           {isHarvestUpdate ? `${getCapitalizedTerm} bijwerken` : `${getCapitalizedTerm} toevoegen`}
         </BreadcrumbItem>
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={
             isHarvestUpdate
@@ -532,9 +533,16 @@ export default function FarmRotationHarvestAddIndex() {
                             ) && (
                               <TooltipProvider>
                                 <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                  </TooltipTrigger>
+                                  <TooltipTrigger
+                                    render={
+                                      <button
+                                        type="button"
+                                        aria-label="Dit perceel heeft het geselecteerde gewas niet"
+                                      >
+                                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                      </button>
+                                    }
+                                  />
                                   <TooltipContent>
                                     <p>Dit perceel heeft het geselecteerde gewas niet</p>
                                   </TooltipContent>
@@ -554,19 +562,25 @@ export default function FarmRotationHarvestAddIndex() {
                         Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
                         filtermogelijkheden.
                       </p>
-                      <Button asChild variant="link" className="mt-4">
-                        <NavLink to={backlink}>{backlinkLabel}</NavLink>
-                      </Button>
+                      <NavLink
+                        to={backlink}
+                        className={buttonVariants({ variant: "link", className: "mt-4" })}
+                        data-slot="button"
+                      >
+                        {backlinkLabel}
+                      </NavLink>
                     </div>
                   )}
                 </CardContent>
                 <CardFooter>
                   <Dialog open={open} onOpenChange={handleSelectionDialogOpenChange}>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" className="w-full">
-                        Wijzig selectie
-                      </Button>
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={
+                        <Button variant="secondary" className="w-full">
+                          Wijzig selectie
+                        </Button>
+                      }
+                    />
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
                         <DialogTitle>Percelen selecteren</DialogTitle>
@@ -722,8 +736,8 @@ export default function FarmRotationHarvestAddIndex() {
             </DialogContent>
           </Dialog>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 
@@ -741,7 +755,10 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    const fieldIds = url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
+    // Without duplicates, so each field is saved once
+    const fieldIds = [
+      ...new Set(url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []),
+    ]
     const cultivationIds = url.searchParams.get("cultivationIds")?.split(",").filter(Boolean) ?? []
 
     if (!fieldIds || fieldIds.length === 0) {
@@ -796,15 +813,14 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     )
 
     if (request.method === "DELETE") {
-      for (const fieldId of fieldIds) {
-        const cultivationsForField = await getCultivations(
-          fdm,
-          session.principal_id,
-          fieldId,
-          timeframe,
-        )
+      // Read the cultivations and harvests of the farm once, instead of per field
+      const [cultivationsByField, harvestsByCultivation] = await Promise.all([
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getHarvestsForFarm(fdm, session.principal_id, b_id_farm),
+      ])
 
-        const targetCultivationInstance = cultivationsForField.find(
+      for (const fieldId of fieldIds) {
+        const targetCultivationInstance = (cultivationsByField.get(fieldId) ?? []).find(
           (c) => c.b_lu_catalogue === cultivationIds[0],
         )
 
@@ -814,9 +830,9 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
 
         const b_lu = targetCultivationInstance.b_lu
 
-        // Check for existing harvests for this specific cultivation instance
-        const existingHarvests = await getHarvests(fdm, session.principal_id, b_lu)
-        // If there are existing harvests, remove them before adding new ones
+        // Remove the existing harvests of this specific cultivation instance
+        const existingHarvests = harvestsByCultivation.get(b_lu) ?? []
+        harvestsByCultivation.delete(b_lu)
         for (const harvest of existingHarvests) {
           await removeHarvest(fdm, session.principal_id, harvest.b_id_harvesting)
         }
@@ -829,9 +845,17 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
 
     const formValues = await extractFormValuesFromRequest(request, ActionSchema)
 
-    const firstTargetCultivation = (
-      await getCultivations(fdm, session.principal_id, fieldIds[0], timeframe)
-    ).find((c) => c.b_lu_catalogue === cultivationIds[0])
+    // Read the cultivations of the farm once, instead of per field
+    const cultivationsByField = await getCultivationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+    const findTargetCultivation = (fieldId: string) =>
+      (cultivationsByField.get(fieldId) ?? []).find((c) => c.b_lu_catalogue === cultivationIds[0])
+
+    const firstTargetCultivation = findTargetCultivation(fieldIds[0])
 
     if (!firstTargetCultivation) {
       return dataWithError(null, `Gewas niet gevonden voor perceel ${fieldIds[0]}.`)
@@ -878,31 +902,23 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       }
     }
 
-    const targetCultivationInstances = [firstTargetCultivation].concat(
-      await Promise.all(
-        fieldIds.slice(1).map(async (fieldId) => {
-          const cultivationsForField = await getCultivations(
-            fdm,
-            session.principal_id,
-            fieldId,
-            timeframe,
-          )
-
-          const targetCultivationInstance = cultivationsForField.find(
-            (c) => c.b_lu_catalogue === cultivationIds[0],
-          )
-
-          if (!targetCultivationInstance) {
-            throw dataWithError(null, `Gewas niet gevonden voor perceel ${fieldId}.`)
-          }
-
-          return targetCultivationInstance
-        }),
-      ),
-    )
+    const targetCultivationInstances: Cultivation[] = [firstTargetCultivation]
+    for (const fieldId of fieldIds.slice(1)) {
+      const targetCultivationInstance = findTargetCultivation(fieldId)
+      if (!targetCultivationInstance) {
+        return dataWithError(null, `Gewas niet gevonden voor perceel ${fieldId}.`)
+      }
+      targetCultivationInstances.push(targetCultivationInstance)
+    }
 
     if (formValues.intent === "batch_harvest") {
       await fdm.transaction(async (tx) => {
+        const existingHarvests = await getReplaceableHarvests(
+          tx,
+          session.principal_id,
+          b_id_farm,
+          targetCultivationInstances,
+        )
         for (let f = 0; f < fieldIds.length; f++) {
           await Promise.all(
             formValues.harvests.map((row, h) =>
@@ -912,6 +928,7 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
                 targetCultivationInstances[f],
                 row,
                 h === 0,
+                existingHarvests,
               ),
             ),
           )
@@ -924,6 +941,12 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
 
     if (formValues.intent === "single_harvest") {
       await fdm.transaction(async (tx) => {
+        const existingHarvests = await getReplaceableHarvests(
+          tx,
+          session.principal_id,
+          b_id_farm,
+          targetCultivationInstances,
+        )
         for (let f = 0; f < fieldIds.length; f++) {
           await addHarvestFromRow(
             tx,
@@ -931,6 +954,7 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
             targetCultivationInstances[f],
             formValues,
             true,
+            existingHarvests,
           )
         }
       })
@@ -970,12 +994,38 @@ function validateRow(targetCultivationInstance: Cultivation, row: z.infer<typeof
   return errors
 }
 
+/** The ids of the existing harvests per cultivation (`b_lu`). */
+type ExistingHarvests = Map<string, Pick<Harvest, "b_id_harvesting">[]>
+
+/**
+ * Reads, inside the transaction, the existing harvests that saving a harvest replaces: those of
+ * the cultivations that can be harvested only once. All harvests of the farm are read at once
+ * instead of per cultivation; when no cultivation is harvested only once, nothing is read.
+ */
+async function getReplaceableHarvests(
+  tx: Omit<typeof fdm, "$client">,
+  principal_id: string,
+  b_id_farm: string,
+  targetCultivationInstances: Cultivation[],
+): Promise<ExistingHarvests> {
+  const replacesHarvests = targetCultivationInstances.some(
+    (cultivation) =>
+      getEffectiveHarvestable(
+        cultivation.b_lu_harvestable ?? "once",
+        cultivation.b_lu_croprotation,
+      ) === "once",
+  )
+  if (!replacesHarvests) return new Map()
+  return await getHarvestsForFarm(tx, principal_id, b_id_farm)
+}
+
 async function addHarvestFromRow(
   tx: Omit<typeof fdm, "$client">,
   principal_id: string,
   targetCultivationInstance: Cultivation,
   formValues: z.infer<typeof FormSchema>,
   first: boolean,
+  existingHarvestsByCultivation: ExistingHarvests,
 ) {
   // Get required harvest parameters for the cultivation's harvest category
   const requiredHarvestParameters = getParametersForHarvestCat(
@@ -994,23 +1044,25 @@ async function addHarvestFromRow(
     targetCultivationInstance.b_lu_harvestable ?? "once",
     targetCultivationInstance.b_lu_croprotation,
   )
-  if (first && effectiveHarvestable === "once") {
-    // Check for existing harvests for this specific cultivation instance
-    const existingHarvests = await getHarvests(tx, principal_id, targetCultivationInstance.b_lu)
-
-    if (existingHarvests.length > 0) {
-      // If there are existing harvests, remove them before adding new ones
-      for (const harvest of existingHarvests) {
-        await removeHarvest(tx, principal_id, harvest.b_id_harvesting)
-      }
+  const replaceExisting = first && effectiveHarvestable === "once"
+  if (replaceExisting) {
+    // Remove the existing harvests of this specific cultivation instance before adding the new one
+    const existingHarvests = existingHarvestsByCultivation.get(targetCultivationInstance.b_lu) ?? []
+    for (const harvest of existingHarvests) {
+      await removeHarvest(tx, principal_id, harvest.b_id_harvesting)
     }
   }
 
-  await addHarvest(
+  const b_id_harvesting = await addHarvest(
     tx,
     principal_id,
     targetCultivationInstance.b_lu,
     formValues.b_lu_harvest_date,
     harvestProperties,
   )
+
+  // Keep the existing harvests in step with the database, in case a field is listed twice
+  if (replaceExisting) {
+    existingHarvestsByCultivation.set(targetCultivationInstance.b_lu, [{ b_id_harvesting }])
+  }
 }

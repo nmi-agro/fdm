@@ -28,6 +28,9 @@ export function SidebarOrganizationApps() {
   const omBalanceLink = params.slug
     ? `/organization/${params.slug}/${calendar}/balance/organic-matter`
     : undefined
+  const phosphateBalanceLink = params.slug
+    ? `/organization/${params.slug}/${calendar}/balance/phosphate`
+    : undefined
   const indicatorsLink = params.slug
     ? `/organization/${params.slug}/${calendar}/indicators`
     : undefined
@@ -43,22 +46,27 @@ export function SidebarOrganizationApps() {
         <SidebarMenu>
           {indicatorsAtlasLink ? (
             <Collapsible defaultOpen={!!indicatorsAtlasLink} className="group/collapsible">
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton isActive={location.pathname.includes("/atlas")}>
-                  <MapIcon />
-                  <span>Atlas</span>
-                  <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                  <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
+              <CollapsibleTrigger
+                render={
+                  <SidebarMenuButton isActive={location.pathname.includes("/atlas")}>
+                    <MapIcon />
+                    <span>Atlas</span>
+                    <Plus className="ml-auto group-data-open/collapsible:hidden" />
+                    <Minus className="ml-auto hidden group-data-open/collapsible:block" />
+                  </SidebarMenuButton>
+                }
+              />
               <CollapsibleContent>
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={activeAtlasTab === "indicators"}>
-                      <NavLink to={indicatorsAtlasLink}>
-                        <span>Indicatoren</span>
-                      </NavLink>
-                    </SidebarMenuSubButton>
+                    <SidebarMenuSubButton
+                      isActive={activeAtlasTab === "indicators"}
+                      render={
+                        <NavLink to={indicatorsAtlasLink}>
+                          <span>Indicatoren</span>
+                        </NavLink>
+                      }
+                    />
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </CollapsibleContent>
@@ -68,25 +76,29 @@ export function SidebarOrganizationApps() {
           <Collapsible defaultOpen={!!nitrogenBalanceLink} className="group/collapsible">
             <SidebarMenuItem>
               {nitrogenBalanceLink ? (
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton>
-                    <ArrowRightLeft />
-                    <span>Balans</span>
-                    <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
-                    <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
+                <CollapsibleTrigger
+                  render={
+                    <SidebarMenuButton>
+                      <ArrowRightLeft />
+                      <span>Balans</span>
+                      <Plus className="ml-auto group-data-open/collapsible:hidden" />
+                      <Minus className="ml-auto hidden group-data-open/collapsible:block" />
+                    </SidebarMenuButton>
+                  }
+                />
               ) : (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      isActive={false}
-                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
-                    >
-                      <ArrowRightLeft className="text-muted-foreground" />
-                      <span className="text-muted-foreground">Balans</span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        isActive={false}
+                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
+                      >
+                        <ArrowRightLeft className="text-muted-foreground" />
+                        <span className="text-muted-foreground">Balans</span>
+                      </SidebarMenuButton>
+                    }
+                  />
                   <TooltipContent side="right">
                     Selecteer een bedrijf om de balansen te raadplegen
                   </TooltipContent>
@@ -97,25 +109,37 @@ export function SidebarOrganizationApps() {
                   <SidebarMenuSubItem>
                     {nitrogenBalanceLink ? (
                       <SidebarMenuSubButton
-                        asChild
                         isActive={location.pathname.includes(nitrogenBalanceLink)}
-                      >
-                        <NavLink to={nitrogenBalanceLink}>
-                          <span>Stikstof</span>
-                        </NavLink>
-                      </SidebarMenuSubButton>
+                        render={
+                          <NavLink to={nitrogenBalanceLink}>
+                            <span>Stikstof</span>
+                          </NavLink>
+                        }
+                      />
                     ) : null}
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
                     {omBalanceLink ? (
                       <SidebarMenuSubButton
-                        asChild
                         isActive={location.pathname.includes(omBalanceLink)}
-                      >
-                        <NavLink to={omBalanceLink}>
-                          <span>Organische stof</span>
-                        </NavLink>
-                      </SidebarMenuSubButton>
+                        render={
+                          <NavLink to={omBalanceLink}>
+                            <span>Organische stof</span>
+                          </NavLink>
+                        }
+                      />
+                    ) : null}
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    {phosphateBalanceLink ? (
+                      <SidebarMenuSubButton
+                        isActive={location.pathname.includes(phosphateBalanceLink)}
+                        render={
+                          <NavLink to={phosphateBalanceLink}>
+                            <span>Fosfaat</span>
+                          </NavLink>
+                        }
+                      />
                     ) : null}
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
@@ -124,17 +148,17 @@ export function SidebarOrganizationApps() {
           </Collapsible>
           {indicatorsLink && (
             <SidebarMenuButton
-              asChild
               isActive={
                 location.pathname.includes("/indicators") &&
                 !location.pathname.includes("/atlas/indicators")
               }
-            >
-              <NavLink to={indicatorsLink}>
-                <Gauge />
-                <span>Indicatoren</span>
-              </NavLink>
-            </SidebarMenuButton>
+              render={
+                <NavLink to={indicatorsLink}>
+                  <Gauge />
+                  <span>Indicatoren</span>
+                </NavLink>
+              }
+            />
           )}
         </SidebarMenu>
       </SidebarGroupContent>

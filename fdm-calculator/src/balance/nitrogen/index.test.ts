@@ -1,6 +1,6 @@
 import type { FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type {
   NitrogenBalanceFieldInput,
   NitrogenBalanceFieldResultNumeric,
@@ -11,6 +11,7 @@ import {
   calculateNitrogenBalancesFieldToFarm,
   getNitrogenBalanceField,
 } from "."
+import { currentSoilDataFixture } from "../shared/soil.test-helpers"
 import { calculateNitrogenSupplyBySoilMineralizationUsingMinip } from "./supply/mineralization"
 
 // Mock FdmType
@@ -77,19 +78,15 @@ describe("calculateNitrogenBalance", () => {
               },
             },
           ],
-          soilAnalyses: [
-            {
-              a_id: "soil1",
-              b_sampling_date: new Date(),
-              a_c_of: 20,
-              a_cn_fr: 10,
-              a_density_sa: 1.2,
-              a_n_rt: 3000,
-              a_som_loi: 2,
-              b_soiltype_agr: "dekzand",
-              b_gwl_class: "II",
-            },
-          ],
+          currentSoilData: currentSoilDataFixture({
+            a_c_of: 20,
+            a_cn_fr: 10,
+            a_density_sa: 1.2,
+            a_n_rt: 3000,
+            a_som_loi: 2,
+            b_soiltype_agr: "dekzand",
+            b_gwl_class: "II",
+          }),
           fertilizerApplications: [
             {
               p_id_catalogue: "fertilizer1",
@@ -162,6 +159,9 @@ describe("calculateNitrogenBalance", () => {
     assertValidFertilizerBreakdown(result.emission.ammonia.fertilizers)
     expect(typeof result.emission.ammonia.residues).toBe("number")
     expect(typeof result.emission.nitrate).toBe("number")
+    expect(typeof result.emission.nitrous_oxide.total).toBe("number")
+    expect(result.emission.nitrous_oxide.total).toBeLessThanOrEqual(0)
+    expect(result.emission.nitrous_oxide.co2eq).toBeGreaterThanOrEqual(0)
     expect(typeof result.target).toBe("number")
     expect(Array.isArray(result.fields)).toBe(true)
   })
@@ -218,19 +218,15 @@ describe("calculateNitrogenBalance", () => {
               },
             },
           ],
-          soilAnalyses: [
-            {
-              a_id: "soil1",
-              b_sampling_date: new Date(),
-              a_c_of: 20,
-              a_cn_fr: 10,
-              a_density_sa: 1.2,
-              a_n_rt: 3000,
-              a_som_loi: 2,
-              b_soiltype_agr: "dekzand",
-              b_gwl_class: "II",
-            },
-          ],
+          currentSoilData: currentSoilDataFixture({
+            a_c_of: 20,
+            a_cn_fr: 10,
+            a_density_sa: 1.2,
+            a_n_rt: 3000,
+            a_som_loi: 2,
+            b_soiltype_agr: "dekzand",
+            b_gwl_class: "II",
+          }),
           fertilizerApplications: [
             {
               p_id_catalogue: "fertilizer1",
@@ -319,7 +315,7 @@ describe("calculateNitrogenBalance", () => {
           },
           cultivations: [],
           harvests: [],
-          soilAnalyses: [],
+          currentSoilData: [],
           fertilizerApplications: [],
           depositionSupply: {
             total: new Decimal(0),
@@ -354,7 +350,7 @@ describe("calculateNitrogenBalance", () => {
           },
           cultivations: [],
           harvests: [],
-          soilAnalyses: [],
+          currentSoilData: [],
           fertilizerApplications: [],
           depositionSupply: {
             total: new Decimal(0),
@@ -377,6 +373,8 @@ describe("calculateNitrogenBalance", () => {
     expect(result.supply.total).toBe(0)
     expect(result.removal.total).toBe(0)
     expect(result.emission.total).toBe(0)
+    expect(result.emission.nitrous_oxide.total).toBe(0)
+    expect(result.emission.nitrous_oxide.co2eq).toBe(0)
   })
 
   it("should return correct error message for no fields in input", async () => {
@@ -435,6 +433,7 @@ describe("calculateNitrogenBalance", () => {
               residues: { total: 0 },
             },
             nitrate: { total: 0 },
+            nitrous_oxide: nitrousOxideOfField(0, 0),
           } as any,
         } as any,
       },
@@ -470,7 +469,133 @@ describe("calculateNitrogenBalance", () => {
     expect(farmBalance.balance).toBe(100)
     expect(farmBalance.supply.total).toBe(100)
   })
+
+  it("averages the N2O emission by area and subtracts it in the farm balance", () => {
+    const fieldResult = (
+      b_id: string,
+      b_area: number,
+      nitrousOxide: number,
+      co2eq: number,
+    ): NitrogenBalanceFieldResultNumeric => ({
+      b_id,
+      b_area,
+      b_bufferstrip: false,
+      balance: {
+        b_id,
+        balance: 100 + nitrousOxide,
+        supply: {
+          total: 100,
+          deposition: { total: 0 },
+          fixation: { total: 0 },
+          mineralisation: { total: 0 },
+          fertilizers: {
+            total: 0,
+            mineral: { total: 0 },
+            manure: { total: 0 },
+            compost: { total: 0 },
+            other: { total: 0 },
+          },
+        } as any,
+        removal: { total: 0, harvests: { total: 0 }, residues: { total: 0 } } as any,
+        target: 0,
+        emission: {
+          total: nitrousOxide,
+          ammonia: {
+            total: 0,
+            fertilizers: {
+              total: 0,
+              mineral: { total: 0 },
+              manure: { total: 0 },
+              compost: { total: 0 },
+              other: { total: 0 },
+            },
+            residues: { total: 0 },
+          },
+          nitrate: { total: 0 },
+          nitrous_oxide: nitrousOxideOfField(nitrousOxide, co2eq),
+        } as any,
+      },
+    })
+
+    const farmBalance = calculateNitrogenBalancesFieldToFarm(
+      [fieldResult("field1", 10, -1, 416.429), fieldResult("field2", 30, -3, 1249.286)],
+      false,
+      [],
+    )
+
+    expect(farmBalance.emission.nitrous_oxide.total).toBe(-2.5)
+    expect(farmBalance.emission.nitrous_oxide.fertilizers.mineral).toBe(-2.5)
+    expect(farmBalance.emission.nitrous_oxide.co2eq).toBeCloseTo(1041.1, 1)
+    expect(farmBalance.emission.total).toBe(-2.5)
+    // 100 supply minus 2.5 N2O, rounded to a whole number
+    expect(farmBalance.balance).toBe(98)
+  })
+
+  it("averages the CO2-equivalents of the fields, so that small N2O emissions still count", () => {
+    const results = [0.0004, 0].map((value, i): NitrogenBalanceFieldResultNumeric => ({
+      b_id: `field${i}`,
+      b_area: 10,
+      b_bufferstrip: false,
+      balance: {
+        b_id: `field${i}`,
+        balance: 0,
+        supply: {
+          total: 0,
+          deposition: { total: 0 },
+          fixation: { total: 0 },
+          mineralisation: { total: 0 },
+          fertilizers: {
+            total: 0,
+            mineral: { total: 0 },
+            manure: { total: 0 },
+            compost: { total: 0 },
+            other: { total: 0 },
+          },
+        } as any,
+        removal: { total: 0, harvests: { total: 0 }, residues: { total: 0 } } as any,
+        target: 0,
+        emission: {
+          total: 0,
+          ammonia: {
+            total: 0,
+            fertilizers: {
+              total: 0,
+              mineral: { total: 0 },
+              manure: { total: 0 },
+              compost: { total: 0 },
+              other: { total: 0 },
+            },
+            residues: { total: 0 },
+          },
+          nitrate: { total: 0 },
+          // N2O-N rounded to 0 in the field result, CO2-eq kept
+          nitrous_oxide: nitrousOxideOfField(0, value === 0 ? 0 : 1.5),
+        } as any,
+      },
+    }))
+
+    const farmBalance = calculateNitrogenBalancesFieldToFarm(results, false, [])
+    expect(farmBalance.emission.nitrous_oxide.total).toBe(0)
+    expect(farmBalance.emission.nitrous_oxide.co2eq).toBeCloseTo(0.8, 8)
+  })
 })
+
+/** An N₂O emission of a field, all from mineral fertilizer. */
+function nitrousOxideOfField(total: number, co2eq: number) {
+  return {
+    total,
+    fertilizers: {
+      total,
+      mineral: { total, applications: [] },
+      manure: { total: 0, applications: [] },
+      compost: { total: 0, applications: [] },
+      other: { total: 0, applications: [] },
+    },
+    residues: { total: 0, cultivations: [] },
+    soil: { total: 0 },
+    co2eq,
+  }
+}
 
 describe("getNitrogenBalanceField", () => {
   it("should use the same cache entry for useEffectiveNitrogen false and omitted", async () => {
@@ -500,7 +625,7 @@ describe("getNitrogenBalanceField", () => {
         },
         cultivations: [],
         harvests: [],
-        soilAnalyses: [],
+        currentSoilData: [],
         fertilizerApplications: [],
         depositionSupply: { total: new Decimal(0) },
       },
@@ -519,5 +644,69 @@ describe("getNitrogenBalanceField", () => {
     expect(cachedHashes).toHaveLength(3)
     expect(cachedHashes[1]).toBe(cachedHashes[0])
     expect(cachedHashes[2]).not.toBe(cachedHashes[0])
+  })
+
+  it("should use the same cache entry for a field in the farm balance as for a single field", async () => {
+    // Record the hash of every cache write (always a cache miss), for single and batched writes
+    const cachedHashes: string[] = []
+    const emptyRows = {
+      limit: async () => [],
+      // eslint-disable-next-line unicorn/no-thenable -- simulates awaiting a Drizzle query
+      then: (resolve: (rows: unknown[]) => unknown) => Promise.resolve(resolve([])),
+    }
+    const recordingFdm = {
+      select: () => recordingFdm,
+      from: () => recordingFdm,
+      where: () => emptyRows,
+      insert: () => recordingFdm,
+      values: (rows: { calculation_hash: string } | { calculation_hash: string }[]) => {
+        for (const row of Array.isArray(rows) ? rows : [rows]) {
+          cachedHashes.push(row.calculation_hash)
+        }
+        return { onConflictDoNothing: async () => undefined }
+      },
+    } as unknown as FdmType
+
+    const fieldInput: NitrogenBalanceFieldInput["fieldInput"] = {
+      field: {
+        b_id: "field1",
+        b_centroid: [5.0, 52.0],
+        b_area: 1,
+        b_start: new Date("2023-01-01"),
+        b_end: null,
+        b_bufferstrip: true,
+      },
+      cultivations: [],
+      harvests: [],
+      currentSoilData: [],
+      fertilizerApplications: [],
+      depositionSupply: { total: new Decimal(0) },
+    }
+    const timeFrame = { start: new Date("2023-01-01"), end: new Date("2023-12-31") }
+    const farmInput: NitrogenBalanceInput = {
+      fields: [fieldInput],
+      fertilizerDetails: [],
+      cultivationDetails: [],
+      timeFrame,
+    }
+
+    // The farm balance adds the farm ID to the input of each field
+    await getNitrogenBalanceField(recordingFdm, {
+      b_id_farm: "farm",
+      fieldInput,
+      fertilizerDetails: [],
+      cultivationDetails: [],
+      timeFrame,
+      useEffectiveNitrogen: false,
+    } as NitrogenBalanceFieldInput)
+    await calculateNitrogenBalance(recordingFdm, farmInput)
+    await calculateNitrogenBalance(recordingFdm, { ...farmInput, useEffectiveNitrogen: false })
+    await calculateNitrogenBalance(recordingFdm, { ...farmInput, useEffectiveNitrogen: true })
+
+    // The batched writes are fire-and-forget
+    await vi.waitFor(() => expect(cachedHashes).toHaveLength(4))
+    expect(cachedHashes[1]).toBe(cachedHashes[0])
+    expect(cachedHashes[2]).toBe(cachedHashes[0])
+    expect(cachedHashes[3]).not.toBe(cachedHashes[0])
   })
 })

@@ -76,6 +76,11 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
 
     const hasFarmParam = Boolean(params.b_id_farm && params.b_id_farm !== "undefined")
 
+    // The helpdesk notification does not depend on the farm, so start it right away
+    const hasNotificationPromise = getHasHelpdeskNotification(session.principal_id)
+    // Avoid an unhandled rejection when a farm read fails first; the promise is awaited below
+    hasNotificationPromise.catch(() => undefined)
+
     let farm: Awaited<ReturnType<typeof getFarm>> | undefined
     let farmAccessDenied = false
     if (hasFarmParam && params.b_id_farm) {
@@ -101,30 +106,33 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
           }))
         : []
 
-    const farmWritePermission =
-      hasFarmParam && !farmAccessDenied && params.b_id_farm
-        ? await checkPermission(
+    const timeframe = getTimeframe(params)
+
+    const accessibleFarmId =
+      hasFarmParam && !farmAccessDenied && params.b_id_farm ? params.b_id_farm : undefined
+
+    const [farmWritePermission, fields, cultivationsByField, hasNotification] = await Promise.all([
+      accessibleFarmId
+        ? checkPermission(
             fdm,
             "farm",
             "write",
-            params.b_id_farm,
+            accessibleFarmId,
             session.principal_id,
             url.pathname,
             false,
           )
-        : false
+        : false,
+      accessibleFarmId ? getFields(fdm, session.principal_id, accessibleFarmId, timeframe) : [],
+      accessibleFarmId
+        ? getCultivationsForFarm(fdm, session.principal_id, accessibleFarmId, timeframe)
+        : new Map(),
+      hasNotificationPromise,
+    ])
 
-    const timeframe = getTimeframe(params)
-
-    const shouldFetchFarmData = Boolean(hasFarmParam && !farmAccessDenied && params.b_id_farm)
-
-    const [fields, cultivationsByField] =
-      shouldFetchFarmData && params.b_id_farm
-        ? await Promise.all([
-            getFields(fdm, session.principal_id, params.b_id_farm, timeframe),
-            getCultivationsForFarm(fdm, session.principal_id, params.b_id_farm, timeframe),
-          ])
-        : [[], new Map()]
+    // Whether the farm has ever had a herd, from the farm itself, so the shell needs no extra
+    // query; a farm whose herds have ended keeps the Melkvee pages for its earlier years
+    const hasHerds = farm?.b_farm_livestock ?? false
 
     const fieldOptions = buildFieldOptions(
       fields,
@@ -132,23 +140,6 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
       params.calendar,
       timeframe.start?.getFullYear(),
     )
-
-    const helpdeskReadPermission = await checkHelpdeskPermission(
-      fdm,
-      "helpdesk",
-      "read",
-      "",
-      session.principal_id,
-      "routes/farm",
-      false,
-    )
-    const [numUnread, numUnassigned] = await Promise.all([
-      helpdeskReadPermission
-        ? getUnreadAssignedTicketCount(fdm, session.principal_id)
-        : getUnreadRequestedTicketCount(fdm, session.principal_id),
-      helpdeskReadPermission ? getUnassignedTicketCount(fdm, session.principal_id) : 0,
-    ])
-    const hasNotification = numUnread > 0 || numUnassigned > 0
 
     // Return user information from loader
     return {
@@ -161,6 +152,7 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
       hasNotification: hasNotification,
       farmWritePermission: farmWritePermission,
       fieldOptions: fieldOptions,
+      hasHerds: hasHerds,
     }
   } catch (error) {
     // If getSession throws (e.g., invalid token), it might result in a 401
@@ -174,6 +166,33 @@ export async function loader({ params, request, url }: LoaderFunctionArgs) {
     throw handleLoaderError(error)
   }
 }
+
+/**
+ * Whether the user has unread or unassigned helpdesk tickets, for the dot in the sidebar.
+ */
+async function getHasHelpdeskNotification(principal_id: string): Promise<boolean> {
+  const helpdeskReadPermission = await checkHelpdeskPermission(
+    fdm,
+    "helpdesk",
+    "read",
+    "",
+    principal_id,
+    "routes/farm",
+    false,
+  )
+  const [numUnread, numUnassigned] = await Promise.all([
+    helpdeskReadPermission
+      ? getUnreadAssignedTicketCount(fdm, principal_id)
+      : getUnreadRequestedTicketCount(fdm, principal_id),
+    helpdeskReadPermission ? getUnassignedTicketCount(fdm, principal_id) : 0,
+  ])
+  return numUnread > 0 || numUnassigned > 0
+}
+
+// The sidebar data depends on the farm and the calendar year only, so switching between fields or
+// pages of the same farm keeps it. The helpdesk notification dot is refreshed at the same moments
+// (another farm or year, a submission, or opening a page outside /farm), not on every navigation.
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
 
 /**
  * Renders the farm app shell: sidebar and a content pane. Shared between the normal route
@@ -203,6 +222,8 @@ function FarmShell({
             fields={loaderData.fieldOptions}
             activeFieldId={activeFieldId}
             fieldWritePermission={fieldWritePermission}
+            hasHerds={loaderData.hasHerds}
+            farmWritePermission={loaderData.farmWritePermission}
           />
           <SidebarApps farms={loaderData.farmOptions} />
           <SidebarLabs farms={loaderData.farmOptions} />

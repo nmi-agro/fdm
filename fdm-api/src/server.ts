@@ -8,6 +8,15 @@
  *   PUBLIC_SENTRY_DSN        — Sentry DSN; omit to disable error reporting
  *   SENTRY_RELEASE           — Sentry release tag (defaults to npm_package_version)
  *   FDM_API_ALLOWED_ORIGINS  — comma-separated allowed CORS origins; omit to allow all origins (*)
+ *   GCS_BUCKET_NAME          — bucket for uploaded and generated files; omit to disable file endpoints
+ *   GOOGLE_APPLICATION_CREDENTIALS, GCS_SERVICE_ACCOUNT_EMAIL, GCS_SERVICE_ACCOUNT_KEY
+ *                            — optional GCS credentials; omit to use Application Default Credentials
+ *   NMI_API_KEY              — NMI API key for nutrient advice, indicators, lab report reading and fertilizer plans
+ *   FDM_REPORT_LOGO          — path to the logo (PNG or JPEG) shown in generated reports
+ *   FDM_REPORT_LOGO_INVERTED — path to the logo for dark backgrounds, such as the report cover
+ *   FDM_REPORT_COVER         — path to the cover image (PNG or JPEG) of generated reports
+ *                            — each defaults to the image fdm-app uses, from `public` (in the container)
+ *                              or `fdm-app/public` (in the monorepo)
  *   PORT                     — HTTP port (default: 6173)
  */
 // Sentry must be initialized before any other imports
@@ -15,6 +24,7 @@ import "../instrument.server.mjs"
 import { serve } from "@hono/node-server"
 import { createFdmAuth, createFdmServer } from "@nmi-agro/fdm-core"
 import { createFdmApi } from "./index"
+import { loadReportBranding } from "./report-branding"
 
 const fdm = createFdmServer(
   process.env.POSTGRES_HOST,
@@ -40,10 +50,21 @@ if (!appUrl) {
   process.exit(1)
 }
 
+const appName = String(process.env.PUBLIC_FDM_NAME ?? "FDM")
+let reportBranding: ReturnType<typeof loadReportBranding> | undefined
+
 const app = createFdmApi(fdm, auth, {
-  appName: String(process.env.PUBLIC_FDM_NAME ?? "FDM"),
+  appName,
   appUrl,
   allowedOrigins,
+  reportBranding: () => {
+    reportBranding ??= loadReportBranding(appName, {
+      logo: process.env.FDM_REPORT_LOGO,
+      logoInverted: process.env.FDM_REPORT_LOGO_INVERTED,
+      coverImage: process.env.FDM_REPORT_COVER,
+    })
+    return reportBranding
+  },
 })
 
 const port = Number(process.env.PORT ?? 6173)

@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-rvo",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "private": false,
   "description": "RVO Synchronization Logic for FDM",
   "homepage": "https://svenvw.github.io/fdm/",
@@ -68,9 +68,10 @@
     "@turf/bbox": "^7.4.0",
     "@turf/helpers": "^7.4.0",
     "@turf/intersect": "^7.4.0",
+    "@turf/length": "^7.4.0",
     "@turf/union": "^7.4.0",
     "@types/geojson": "^7946.0.16",
-    "proj4": "^2.22.0",
+    "proj4": "^2.23.0",
     "shpjs": "^6.2.0",
     "zod": "catalog:"
   },
@@ -84,7 +85,7 @@
     "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
   "packageManager": "pnpm@12.8.1"
 }

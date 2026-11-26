@@ -31,7 +31,7 @@ export function HeaderOrganization({
     (match) => match.id === "routes/organization.invitations.$invitation_id.respond",
   )
   const isNewOrganizationRoute = !!matches.find((match) => match.id === "routes/organization.new")
-  const typesOfBalanceRoutes = ["nitrogen", "organic-matter"] as const
+  const typesOfBalanceRoutes = ["nitrogen", "organic-matter", "phosphate"] as const
   const farmBalanceRouteType = typesOfBalanceRoutes.find((type) =>
     matches.find(
       (match) => match.id === `routes/organization.$slug.$calendar.balance.${type}._index`,
@@ -128,7 +128,11 @@ export function HeaderOrganization({
                 <DropdownMenu>
                   <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
                     <span className="truncate">
-                      {farmBalanceRouteType === "nitrogen" ? "Stikstof" : "Organische stof"}
+                      {farmBalanceRouteType === "nitrogen"
+                        ? "Stikstof"
+                        : farmBalanceRouteType === "phosphate"
+                          ? "Fosfaat"
+                          : "Organische stof"}
                     </span>
                     <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
                   </DropdownMenuTrigger>
@@ -151,6 +155,16 @@ export function HeaderOrganization({
                         to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/organic-matter${location.search}`}
                       >
                         Organische stof
+                      </NavLink>
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={farmBalanceRouteType === "phosphate"}
+                      key={"phosphate"}
+                    >
+                      <NavLink
+                        to={`/organization/${selectedOrganizationSlug}/${params.calendar}/balance/phosphate${location.search}`}
+                      >
+                        Fosfaat
                       </NavLink>
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>

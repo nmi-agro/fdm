@@ -20,6 +20,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FieldFertilizerPage } from "~/components/blocks/fertilizer-applications/bulk/field-fertilizer-page"
 import {
   FormSchema,
@@ -35,6 +36,9 @@ import { getFertilizerOptions, toBulkFieldOptions } from "~/lib/fertilizer-appli
 import { extractFormValuesFromRequest } from "~/lib/form"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bemesting" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bemesting - Perceel | ${clientConfig.name}` },

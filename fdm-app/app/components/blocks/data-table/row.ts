@@ -1,5 +1,5 @@
 import { Row, RowData, rowSelectionFeature, TableFeatures } from "@tanstack/react-table"
-import { cn } from "~/lib/utils"
+import { cn } from "cn"
 
 type AssumedTableFeatures = {
   rowSelectionFeature: typeof rowSelectionFeature

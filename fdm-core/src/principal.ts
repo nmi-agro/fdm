@@ -1,4 +1,4 @@
-import { eq, ilike, inArray, or } from "drizzle-orm"
+import { ilike, inArray, or, sql } from "drizzle-orm"
 import type { FdmType } from "./fdm.types"
 import type { Principal } from "./principal.types"
 import * as authNSchema from "./db/schema-authn"
@@ -186,7 +186,8 @@ export async function getPrincipals(fdm: FdmType, principal_ids: string[]) {
  * Identifies a principal (either a user or an organization) based on a username, email, or org slug.
  *
  * This function searches for a principal, first by checking the user table for a matching username or email,
- * and then, if not found, by checking the organization table for a matching slug.
+ * and then, if not found, by checking the organization table for a matching slug. The match is exact, but
+ * case-insensitive and ignores surrounding whitespace.
  *
  * @param fdm - The FDM instance providing the connection to the database.
  * @param identifier - The username, email, or organization slug to search for.
@@ -211,12 +212,17 @@ export async function identifyPrincipal(
 ): Promise<Principal | undefined> {
   try {
     return await fdm.transaction(async (tx) => {
+      const normalizedIdentifier = identifier.trim().toLowerCase()
+
       // Check if principal is an user
       let principal_id = await tx
         .select({ id: authNSchema.user.id })
         .from(authNSchema.user)
         .where(
-          or(eq(authNSchema.user.username, identifier), eq(authNSchema.user.email, identifier)),
+          or(
+            sql`lower(${authNSchema.user.username}) = ${normalizedIdentifier}`,
+            sql`lower(${authNSchema.user.email}) = ${normalizedIdentifier}`,
+          ),
         )
         .limit(1)
 
@@ -225,7 +231,7 @@ export async function identifyPrincipal(
         principal_id = await tx
           .select({ id: authNSchema.organization.id })
           .from(authNSchema.organization)
-          .where(eq(authNSchema.organization.slug, identifier))
+          .where(sql`lower(${authNSchema.organization.slug}) = ${normalizedIdentifier}`)
           .limit(1)
       }
 
@@ -246,14 +252,28 @@ export async function identifyPrincipal(
 }
 
 /**
+ * Options for {@link lookupPrincipal}.
+ */
+export type LookupPrincipalOptions = {
+  /**
+   * When `true`, users are also found by a partial match on username, firstname, surname and name.
+   * Only enable this for privileged callers (e.g. the helpdesk): names are not unique and exposing
+   * them lets any caller enumerate other users. Defaults to `false`.
+   */
+  includeUserNameSearch?: boolean
+}
+
+/**
  * Looks up principals (users or organizations) based on a partial or complete identifier.
  *
- * This function searches for principals by matching the provided identifier against user emails,
- * and also performs a fuzzy search against organization names and slugs, as well as user usernames,
- * firstnames, surnames and names. It then returns a list of Principal objects representing the matching entities.
+ * By default, a user is only found by an exact email address (case-insensitive, surrounding whitespace
+ * ignored), so that an account can be unambiguously identified and other users' names cannot be
+ * listed. Organizations are found by a partial match on name or slug. Set
+ * `options.includeUserNameSearch` to also match users by a partial username, firstname, surname or name.
  *
  * @param fdm - The FDM instance providing the connection to the database.
- * @param identifier - The string to search for within principal identifiers (email, username, name or slug). Should have at least 1 character
+ * @param identifier - The string to search for. Should have at least 2 characters.
+ * @param options - Optional settings, see {@link LookupPrincipalOptions}.
  * @returns A promise that resolves to an array of Principal objects that match the identifier.
  *
  * @throws {Error} - Throws an error if any database operation fails.
@@ -261,20 +281,25 @@ export async function identifyPrincipal(
  *
  * @example
  * ```typescript
- * // Example usage:
- * const searchResults = await lookupPrincipal(fdm, "john");
- * if (searchResults.length > 0) {
- *   console.log("Found Principals:", searchResults);
- * } else {
- *   console.log("No principals found matching the identifier.");
- * }
+ * // Find a user by email, or organizations by name
+ * const searchResults = await lookupPrincipal(fdm, "john.doe@example.com");
+ *
+ * // Privileged: also search users by name
+ * const byName = await lookupPrincipal(fdm, "john", { includeUserNameSearch: true });
  * ```
  */
-export async function lookupPrincipal(fdm: FdmType, identifier: string): Promise<Principal[]> {
+export async function lookupPrincipal(
+  fdm: FdmType,
+  identifier: string,
+  options: LookupPrincipalOptions = {},
+): Promise<Principal[]> {
+  const { includeUserNameSearch = false } = options
   try {
     return await fdm.transaction(async (tx) => {
-      // Lookup if identifier is 1 or more characters
-      if (identifier.length <= 1) {
+      const trimmedIdentifier = identifier.trim()
+
+      // Lookup if identifier is 2 or more characters
+      if (trimmedIdentifier.length <= 1) {
         return []
       }
 
@@ -282,7 +307,7 @@ export async function lookupPrincipal(fdm: FdmType, identifier: string): Promise
       const principals = await tx
         .select({ id: authNSchema.user.id })
         .from(authNSchema.user)
-        .where(eq(authNSchema.user.email, identifier))
+        .where(sql`lower(${authNSchema.user.email}) = ${trimmedIdentifier.toLowerCase()}`)
         .limit(1)
 
       if (principals.length === 0) {
@@ -292,28 +317,30 @@ export async function lookupPrincipal(fdm: FdmType, identifier: string): Promise
           .from(authNSchema.organization)
           .where(
             or(
-              ilike(authNSchema.organization.name, `%${identifier}%`),
-              ilike(authNSchema.organization.slug, `%${identifier}%`),
+              ilike(authNSchema.organization.name, `%${trimmedIdentifier}%`),
+              ilike(authNSchema.organization.slug, `%${trimmedIdentifier}%`),
             ),
           )
           .limit(5)
 
         principals.push(...principalOrganizations)
 
-        // Check if identifier is close to name of user
-        const principalUsers = await tx
-          .select({ id: authNSchema.user.id })
-          .from(authNSchema.user)
-          .where(
-            or(
-              ilike(authNSchema.user.username, `%${identifier}%`),
-              ilike(authNSchema.user.firstname, `%${identifier}%`),
-              ilike(authNSchema.user.surname, `%${identifier}%`),
-              ilike(authNSchema.user.name, `%${identifier}%`),
-            ),
-          )
-          .limit(5)
-        principals.push(...principalUsers)
+        if (includeUserNameSearch) {
+          // Check if identifier is close to name of user
+          const principalUsers = await tx
+            .select({ id: authNSchema.user.id })
+            .from(authNSchema.user)
+            .where(
+              or(
+                ilike(authNSchema.user.username, `%${trimmedIdentifier}%`),
+                ilike(authNSchema.user.firstname, `%${trimmedIdentifier}%`),
+                ilike(authNSchema.user.surname, `%${trimmedIdentifier}%`),
+                ilike(authNSchema.user.name, `%${trimmedIdentifier}%`),
+              ),
+            )
+            .limit(5)
+          principals.push(...principalUsers)
+        }
       }
 
       // Collect details of principals

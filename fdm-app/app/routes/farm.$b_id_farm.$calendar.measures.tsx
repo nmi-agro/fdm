@@ -5,23 +5,28 @@ import {
   type MetaFunction,
   Outlet,
   useLoaderData,
+  useLocation,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderMeasures } from "~/components/blocks/header/measures"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getCatalogueReturnSearch, getMeasuresCataloguePath } from "~/lib/measures-catalogue"
+
+export const handle: HelpHandle = { help: "maatregelen" }
 
 export const meta: MetaFunction = () => {
   return [
     { title: `Maatregelen | ${clientConfig.name}` },
     {
       name: "description",
-      content: "Beheer de bodembeheersmaatregelen voor je percelen en bedrijf.",
+      content: "Beheer de bodembeheersmaatregelen voor uw percelen en bedrijf.",
     },
   ]
 }
@@ -73,31 +78,46 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+export { revalidateOnFarmOrCalendarChange as shouldRevalidate } from "~/lib/revalidation"
+
 export default function MeasuresLayout() {
   const loaderData = useLoaderData<typeof loader>()
-  const { b_id } = useParams()
+  const { b_id, m_id } = useParams()
+  const { pathname, state } = useLocation()
+  const isCatalogue = pathname.startsWith(
+    `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures/catalogue`,
+  )
 
-  const action = b_id
+  const action = m_id
     ? {
-        to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures`,
-        label: "Terug naar maatregelen",
+        // Back to the filtered list the measure was opened from, if any
+        to:
+          getMeasuresCataloguePath(loaderData.b_id_farm, loaderData.calendar) +
+          getCatalogueReturnSearch(state),
+        label: "Terug naar catalogus",
         disabled: false,
       }
-    : {
-        to: `/farm/${loaderData.b_id_farm}`,
-        label: "Terug naar bedrijf",
-        disabled: false,
-      }
+    : b_id || isCatalogue
+      ? {
+          to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/measures`,
+          label: "Terug naar maatregelen",
+          disabled: false,
+        }
+      : {
+          to: `/farm/${loaderData.b_id_farm}`,
+          label: "Terug naar bedrijf",
+          disabled: false,
+        }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderMeasures b_id_farm={loaderData.b_id_farm} />
       </Header>
-      <main className="min-w-0">
+      <div className="min-w-0">
         <Outlet />
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

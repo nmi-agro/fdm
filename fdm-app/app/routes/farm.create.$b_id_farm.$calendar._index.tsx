@@ -1,9 +1,12 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { getFarm } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
 import { data, NavLink, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
+import { PageContainer } from "~/components/custom/page-container"
 import {
   Accordion,
   AccordionContent,
@@ -12,14 +15,15 @@ import {
 } from "~/components/ui/accordion"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 import { getSession } from "../lib/auth.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen-importeren" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -61,11 +65,11 @@ export default function ChooseFieldImportMethod() {
   const showRvoOption = isRvoConfigured
 
   return (
-    <SidebarInset>
-      <Header action={undefined}>
+    <PageContainer>
+      <Header action={undefined} help="percelen-importeren">
         <HeaderFarmCreate b_name_farm={farm.b_name_farm} />
       </Header>
-      <main className="flex flex-1 flex-col items-center justify-center p-4">
+      <div className="flex flex-1 flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           <h1 className="mb-2 text-center text-2xl font-bold">Percelen importeren</h1>
           <p className="text-muted-foreground mb-8 text-center">
@@ -82,7 +86,7 @@ export default function ChooseFieldImportMethod() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex grow flex-col justify-between">
-                  <Accordion type="single" collapsible className="w-full">
+                  <Accordion className="w-full">
                     <AccordionItem value="item-1">
                       <AccordionTrigger>
                         Wat heb ik nodig om percelen te importeren vanuit RVO?
@@ -114,7 +118,7 @@ export default function ChooseFieldImportMethod() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex grow flex-col justify-between">
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion className="w-full">
                   <AccordionItem value="item-1">
                     <AccordionTrigger>
                       Hoe download ik een shapefile van mijn.rvo.nl?
@@ -161,7 +165,7 @@ export default function ChooseFieldImportMethod() {
             </Card>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

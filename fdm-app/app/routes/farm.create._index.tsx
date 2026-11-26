@@ -5,6 +5,7 @@ import {
   addFarm,
   addFertilizer,
   addOrganicCertification,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -25,6 +26,7 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import {
   isValidKvkNumber,
   KvkLookupButton,
@@ -34,6 +36,7 @@ import {
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
+import { PageContainer } from "~/components/custom/page-container"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -53,7 +56,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
 import { isKvkConfigured } from "~/integrations/kvk.server"
@@ -68,6 +70,9 @@ import { getCalendarSelection } from "../lib/calendar"
 const { isPostalCode } = validator
 
 // Meta
+
+export const handle: HelpHandle = { help: "bedrijf-aanmaken" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bedrijf toevoegen | ${clientConfig.name}` },
@@ -272,18 +277,18 @@ export default function AddFarmPage() {
   }, [formSetValue, selectedYear])
 
   return (
-    <SidebarInset>
-      <Header action={undefined}>
+    <PageContainer>
+      <Header action={undefined} help="bedrijf-aanmaken">
         <HeaderFarmCreate b_name_farm={undefined} />
       </Header>
-      <main className="bg-muted/20 flex-1 overflow-y-auto">
+      <div className="bg-muted/20 flex-1 overflow-y-auto">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 p-4 lg:grid-cols-3 lg:p-8">
           {/* Left Column: Form */}
           <div className="lg:col-span-2">
             <Card className="w-full">
               <RemixFormProvider {...form}>
                 <Form id="formFarm" onSubmit={form.handleSubmit} method="POST">
-                  <fieldset disabled={form.formState.isSubmitting}>
+                  <fieldset disabled={form.formState.isSubmitting} className="flex flex-col gap-6">
                     <CardHeader>
                       <CardTitle>Bedrijf toevoegen</CardTitle>
                       <CardDescription>
@@ -736,8 +741,8 @@ export default function AddFarmPage() {
             </div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 
@@ -821,6 +826,7 @@ export async function action({ request }: ActionFunctionArgs) {
       enableFertilizerCatalogue(fdm, session.principal_id, b_id_farm, b_id_farm),
       enableCultivationCatalogue(fdm, session.principal_id, b_id_farm, "brp"),
       enableMeasureCatalogue(fdm, session.principal_id, b_id_farm, "bln"),
+      enableAnimalCategoryCatalogue(fdm, session.principal_id, b_id_farm, "rvo"),
     )
 
     await Promise.all(setupPromises)

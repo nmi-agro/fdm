@@ -158,6 +158,8 @@ This schema holds the primary data related to farm operations.
 | **b_lu_hi**                | `numeric` (custom)         |             | Harvest index (ratio of harvested biomass to total biomass).                          |
 | **b_lu_n_harvestable**     | `numeric` (custom)         |             | Nitrogen content in the harvested portion.                                            |
 | **b_lu_n_residue**         | `numeric` (custom)         |             | Nitrogen content in the crop residue.                                                 |
+| **b_lu_p_harvestable**     | `numeric` (custom)         |             | Phosphate content in the harvested portion (g P₂O₅ / kg DM), from the NMI API.        |
+| **b_lu_p_residue**         | `numeric` (custom)         |             | Phosphate content in the crop residue (g P₂O₅ / kg DM), from the NMI API.             |
 | **b_n_fixation**           | `numeric` (custom)         |             | Nitrogen fixation rate (for legumes).                                                 |
 | **b_lu_rest_oravib**       | `boolean`                  |             | Is the cultivation a 'rustgewas' with regards to Dutch manure legislation             |
 | **b_lu_variety_options**   | `text[]`                   |             | A set of varieties (cultivars) that a cultivation may be                              |
@@ -277,8 +279,8 @@ This schema holds the primary data related to farm operations.
 | **b_lu_cp**                   | `numeric` (custom)         |             | Measured crude protein content of the harvestable product (g RE / kg DM).         |
 | **b_lu_n_harvestable**        | `numeric` (custom)         |             | Nitrogen content in the harvested portion (g N/ kg DM).                           |
 | **b_lu_n_residue**            | `numeric` (custom)         |             | Nitrogen content in the crop residue.                                             |
-| **b_lu_p_harvestable**        | `numeric` (custom)         |             | Phosphorus content in the harvested portion.                                      |
-| **b_lu_p_residue**            | `numeric` (custom)         |             | Phosphorus content in the crop residue.                                           |
+| **b_lu_p_harvestable**        | `numeric` (custom)         |             | Phosphate content in the harvested portion (g P₂O₅ / kg DM).                      |
+| **b_lu_p_residue**            | `numeric` (custom)         |             | Phosphate content in the crop residue (g P₂O₅ / kg DM).                           |
 | **b_lu_k_harvestable**        | `numeric` (custom)         |             | Potassium content in the harvested portion.                                       |
 | **b_lu_k_residue**            | `numeric` (custom)         |             | Potassium content in the crop residue.                                            |
 | **created**                   | `timestamp with time zone` | Not Null    | Timestamp when this record was created (default: now()).                          |
@@ -538,19 +540,157 @@ This schema holds the primary data related to farm operations.
 
 **Purpose**: Records the details of a soil sampling event, linking a field location to a soil analysis.
 
-| Column                  | Type                               | Constraints                                            | Description                                                                                                |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| **b_id_sampling**       | `text`                             | Primary Key                                            | Unique identifier for the soil sampling event.                                                             |
-| **b_id**                | `text`                             | Not Null, Foreign Key (references `fields.b_id`)       | Identifier of the field where the sample was taken.                                                        |
-| **a_id**                | `text`                             | Not Null, Foreign Key (references `soilAnalysis.a_id`) | Identifier of the analysis performed on this sample.                                                       |
-| **a_depth_upper**       | `numeric` (custom)                 | Not Null, Default: 0                                   | Upper depth of the soil sample (e.g., cm).                                                                 |
-| **a_depth_lower**       | `numeric` (custom)                 |                                                        | Lower depth of the soil sample (e.g., cm).                                                                 |
-| **b_sampling_date**     | `timestamp with time zone`         |                                                        | Timestamp when the sample was collected.                                                                   |
-| **b_sampling_geometry** | `geometry` (MultiPoint, SRID 4326) |                                                        | MultiPoint geometry representing the location(s) where the sample(s) were taken. See Custom Types section. |
-| **created**             | `timestamp with time zone`         | Not Null                                               | Timestamp when this record was created (default: now()).                                                   |
-| **updated**             | `timestamp with time zone`         |                                                        | Timestamp when this record was last updated.                                                               |
+| Column                       | Type                                 | Constraints                                            | Description                                                                                                                 |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| **b_id_sampling**            | `text`                               | Primary Key                                            | Unique identifier for the soil sampling event.                                                                              |
+| **b_id**                     | `text`                               | Not Null, Foreign Key (references `fields.b_id`)       | Identifier of the field where the sample was taken.                                                                         |
+| **a_id**                     | `text`                               | Not Null, Foreign Key (references `soilAnalysis.a_id`) | Identifier of the analysis performed on this sample.                                                                        |
+| **a_depth_upper**            | `numeric` (custom)                   | Not Null, Default: 0                                   | Upper depth of the soil sample (e.g., cm).                                                                                  |
+| **a_depth_lower**            | `numeric` (custom)                   |                                                        | Lower depth of the soil sample (e.g., cm).                                                                                  |
+| **b_sampling_date**          | `timestamp with time zone`           |                                                        | Timestamp when the sample was collected.                                                                                    |
+| **b_sampling_geometry**      | `geometry` (MultiPoint, SRID 4326)   |                                                        | MultiPoint geometry representing the location(s) where the sample(s) were taken. See Custom Types section.                  |
+| **b_sampling_geometry_zone** | `geometry` (MultiPolygon, SRID 4326) | GiST index                                             | Area the analysis represents: a zone within the field. `null` means the whole field. A Polygon is stored as a MultiPolygon. |
+| **created**                  | `timestamp with time zone`           | Not Null                                               | Timestamp when this record was created (default: now()).                                                                    |
+| **updated**                  | `timestamp with time zone`           |                                                        | Timestamp when this record was last updated.                                                                                |
 
 ---
+
+### Livestock
+
+#### `animal_categories_catalogue`
+
+**Purpose**: Standardised list of livestock category definitions used for UI lists, reporting and conversion to livestock units (LSU).
+
+| Column                             | Type                 | Constraints | Description                                                                                   |
+| ---------------------------------- | -------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| **l_id_category**                  | `text`               | Primary Key | Catalogue identifier (opaque id).                                                             |
+| **l_category_source**              | `text`               | Not Null    | Source identifier for the catalogue entry (e.g. an official dataset such as RVO).             |
+| **l_category**                     | `text`               | Not Null    | Human-readable category label (e.g. "adult dairy cow").                                       |
+| **l_specie**                       | `l_specie` enum      | Not Null    | Species code (see `l_specie` enum: `cattle`, `pig`, `poultry`, ...).                          |
+| **l_sex_options**                  | `l_sex`[]            | Not Null    | Allowed sex codes for this category (array of `l_sex`, e.g. `['female']`).                    |
+| **l_lsu**                          | `numeric`            | Not Null    | Livestock units per animal. Numeric conversion factor available to calculators and reporting. |
+| **hash**, **created**, **updated** | `text` / `timestamp` |             | Standard catalogue bookkeeping columns.                                                       |
+
+**Indexes:**
+
+- Unique index on `l_id_category`.
+- Index on `l_category_source`.
+
+#### `animal_category_catalogue_selecting`
+
+**Purpose**: Links a farm to the livestock category sources it uses.
+
+| Column                   | Type        | Constraints                                          | Description                                      |
+| ------------------------ | ----------- | ---------------------------------------------------- | ------------------------------------------------ |
+| **b_id_farm**            | `text`      | Not Null, Foreign Key (references `farms.b_id_farm`) | Identifier of the farm.                          |
+| **l_category_source**    | `text`      | Not Null                                             | Identifier of the chosen animal-category source. |
+| **created**, **updated** | `timestamp` |                                                      | Bookkeeping timestamps.                          |
+
+**Constraints:**
+
+- Primary Key on (`b_id_farm`, `l_category_source`).
+
+#### Herds and animals
+
+- **`herds.l_id_category`**: required reference to `animal_categories_catalogue.l_id_category`. Every herd has a standard category, and the animals in it must fit the category's species and sex options.
+- **`animals.l_specie`**: species enum used on animal rows (default `cattle`). Note the singular column name `l_specie`.
+- **`l_sex` / `l_sex_options`**: `l_sex` is an enum for animal sex; category rows enumerate allowed `l_sex_options` that animals in that category may use.
+- **`l_lsu`**: livestock units per animal stored on the catalogue row; calculators sum `count * l_lsu` to obtain total LSU for a herd or farm.
+
+**RVO source:**
+
+- The Dutch Rijksdienst voor Ondernemend Nederland (RVO) publishes official conversion tables and normative category definitions used by Dutch reporting and calculators. The bundled RVO catalogue uses `l_category_source = "rvo"`. Use the `l_category_source` column to record provenance for additional sources.
+
+**Naming note:**
+
+- The catalogue table has the plural name `animal_categories_catalogue`, while the farm-selection table has the singular name `animal_category_catalogue_selecting`. Integrations and queries must use these exact names.
+
+#### Herds, animals and barns
+
+The livestock assets and their actions follow the asset–action model: an asset table holds what a thing is, and action tables named `<asset>_<verb>ing` record what happened to it over time.
+
+| Table                                                | Kind   | Purpose                                                                                                                                                                                                                  |
+| ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`herds`**                                          | Asset  | A group of animals of one animal category (`l_id_category`, required), with an optional name (`l_herd_name`).                                                                                                            |
+| **`herd_starting`** / **`herd_ending`**              | Action | When a herd starts and ends on a farm (`b_id_farm`, `l_start`, `l_end`). No `l_start` means no known start: the herd runs from the beginning. An animal can only be moved into a herd that runs on the date of the move. |
+| **`animals`**                                        | Asset  | An individual animal: life number (`l_id_eartag`), work number (`l_id_worknumber`), species, breed, coat colour, birth date, sex.                                                                                        |
+| **`animal_arriving`** / **`animal_leaving`**         | Action | When and how an animal arrives on (born, purchased, imported) or leaves (died, sold, slaughtered, exported) a farm.                                                                                                      |
+| **`animal_assigning`**                               | Action | Which herd an animal belongs to over time (`l_assigning_start`, `l_assigning_end`; `null` end means current).                                                                                                            |
+| **`barns`**                                          | Asset  | A barn with an optional name, floor area (`b_floor_area`, m²) and outline (`b_barn_geometry`).                                                                                                                           |
+| **`barn_constructing`** / **`barn_decommissioning`** | Action | When a barn is built on and taken out of use on a farm.                                                                                                                                                                  |
+| **`herd_housing`**                                   | Action | A herd housed in a barn for a period (`b_housing_start`, `b_housing_end`).                                                                                                                                               |
+
+#### Milk, feed and manure
+
+| Table                                           | Kind   | Purpose                                                                                       |
+| ----------------------------------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| **`milk_tanks`**                                | Asset  | A milk tank on a farm.                                                                        |
+| **`herd_milking`** / **`animal_milking`**       | Action | Milk (`l_milking_amount`, kg) from a herd or a single animal into a tank over a period.       |
+| **`milk_deliveries`**, **`milk_delivering`**    | Action | Milk delivered from a tank (`l_milkdelivery_date`, `l_milkdelivery_amount`).                  |
+| **`milk_sampling`**, **`milk_analyses`**        | Action | Analysis of a delivery: fat, protein, lactose, urea and somatic cell count.                   |
+| **`feed_batches`**                              | Asset  | A batch of feed on a farm, linked to a feed catalogue item (`f_id_catalogue`) and its origin. |
+| **`feed_sampling`**, **`feed_analyses`**        | Action | Analysis of a feed batch: dry matter, crude protein, VEM, OEB and NDF.                        |
+| **`herd_feeding`** / **`animal_feeding`**       | Action | Feed from a batch given to a herd or a single animal over a period (`f_amount`).              |
+| **`manure_pits`**                               | Asset  | A manure pit on a farm, with an optional area (`b_pit_area`).                                 |
+| **`herd_excreting`**                            | Action | Manure a herd excretes into a pit over a period (`l_excreting_amount`).                       |
+| **`manure_deliveries`**, **`manure_disposing`** | Action | Manure taken out of a pit (`p_disposing_date`, `p_disposing_amount`, kg).                     |
+| **`manure_sampling`**, **`manure_analyses`**    | Action | Analysis of a manure delivery: total N, phosphate, dry matter and organic matter.             |
+
+Milk can be recorded both per herd and per animal. `getMilkProductionForHerd` counts it once: when animal-level records exist in the timeframe, only those are summed; otherwise the herd-level records are used. Feed works the other way round: feed given to a single animal comes on top of the herd's feed, so `getFeedingSummaryForAnimal` adds herd-level and animal-level feedings together.
+
+#### **`herd_grazing`**
+
+**Purpose**: Records a period in which a herd grazed, on a field or without a known field.
+
+| Column                      | Type                                 | Constraints                                          | Description                                                                                                                                                                               |
+| --------------------------- | ------------------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **l_id_grazing**            | `text`                               | Primary Key                                          | Unique identifier of the grazing record.                                                                                                                                                  |
+| **b_id**                    | `text`                               | Foreign Key (references `fields.b_id`)               | The grazed field. `null` when the field is not known.                                                                                                                                     |
+| **l_id_herd**               | `text`                               | Not Null, Foreign Key (references `herds.l_id_herd`) | The herd that grazed.                                                                                                                                                                     |
+| **l_grazing_start**         | `timestamp with time zone`           | Not Null                                             | Start of the grazing period.                                                                                                                                                              |
+| **l_grazing_end**           | `timestamp with time zone`           |                                                      | Last day of the grazing period (inclusive); equal to the start for a grazing of one day. `null` while the herd is still grazing. A herd's grazings on the same field may not share a day. |
+| **l_grazing_hours**         | `numeric`                            |                                                      | Grazing hours per day.                                                                                                                                                                    |
+| **l_grazing_area**          | `numeric`                            |                                                      | Grazed part of the field (ha) when its location is not known. Only set without a zone.                                                                                                    |
+| **l_grazing_geometry_zone** | `geometry` (MultiPolygon, SRID 4326) | GiST index                                           | Grazed part of the field as a zone within the field. `null` means the whole field, or the part given by `l_grazing_area`. A Polygon is stored as a MultiPolygon.                          |
+| **created**                 | `timestamp with time zone`           | Not Null                                             | Timestamp when this record was created (default: now()).                                                                                                                                  |
+| **updated**                 | `timestamp with time zone`           |                                                      | Timestamp when this record was last updated.                                                                                                                                              |
+
+As with soil sampling zones, a zone is stored as given and clipped to the field outline when areas are calculated. The grazing functions in `fdm-core` return the derived `l_grazing_area_grazed` (ha), and `getGrazedAreaForFarm` combines all zones on a field into one grazed area, so successive strips add up.
+
+---
+
+### Feeds
+
+#### **`feeds_catalogue`**
+
+**Purpose**: Stores standardized and farm-specific feed catalogue entries.
+
+| Column             | Type                       | Constraints | Description                                   |
+| ------------------ | -------------------------- | ----------- | --------------------------------------------- |
+| **f_id_catalogue** | `text`                     | Primary Key | Opaque catalogue identifier.                  |
+| **f_source**       | `text`                     | Not Null    | Catalogue source, such as `nmi` or a farm ID. |
+| **f_name_nl**      | `text`                     | Not Null    | Dutch feed name.                              |
+| **f_type_rvo**     | `text`                     | Not Null    | Original stable feed option code.             |
+| **f_dm**           | `numeric` (custom)         |             | g DM / kg fresh product.                      |
+| **f_n_dm**         | `numeric` (custom)         |             | g N / kg DM.                                  |
+| **f_p_dm**         | `numeric` (custom)         |             | g P2O5 / kg DM.                               |
+| **hash**           | `text`                     |             | Content hash for catalogue synchronization.   |
+| **created**        | `timestamp with time zone` | Not Null    | Timestamp when the row was created.           |
+| **updated**        | `timestamp with time zone` |             | Timestamp when the row was last updated.      |
+
+The bundled `nmi` source is based on [RVO Tabel 8 (January 2026)](https://www.rvo.nl/sites/default/files/2026-02/Tabel-8-Opbrengst-en-stikstof-en-fosfaat-in-diervoer-2026.pdf). The former `overig` enum value is removed.
+
+#### **`feedCatalogueEnabling`**
+
+**Purpose**: Records which feed catalogue sources a farm has enabled.
+
+The primary key is (`b_id_farm`, `f_source`). Farm-created catalogue entries use the farm ID as `f_source`.
+
+#### **`feed_batches`**
+
+**Purpose**: Stores feed batches and their catalogue reference.
+
+`f_id_catalogue` is a not-null foreign key to `feeds_catalogue.f_id_catalogue`. Batch analysis values remain in `feed_analyses` and do not replace catalogue defaults.
 
 ### Derogations & Certifications
 
@@ -628,6 +768,42 @@ This schema holds the primary data related to farm operations.
 **Constraints:**
 
 - Primary Key on (`b_id_farm`, `b_grazing_intention_year`).
+
+### Measures
+
+#### **`measuresCatalogue`**
+
+**Purpose**: A catalogue of soil management measures, synchronized from an external source (currently BLN). The nested fields are a read-only copy of the source: they are displayed, not queried.
+
+| Column                    | Type                         | Constraints | Description                                                                                                   |
+| ------------------------- | ---------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| **m_id**                  | `text`                       | Primary Key | Unique identifier of the measure, prefixed with its source (e.g., 'bln_BM1').                                 |
+| **m_source**              | `text`                       | Not Null    | The catalogue the measure comes from (e.g., 'bln').                                                           |
+| **m_name**                | `text`                       | Not Null    | Name of the measure.                                                                                          |
+| **m_description**         | `text`                       |             | Full description of the measure.                                                                              |
+| **m_summary**             | `text`                       |             | Short summary of the measure.                                                                                 |
+| **m_source_url**          | `text`                       |             | Link to the source document of the measure.                                                                   |
+| **m_conflicts**           | `text[]`                     |             | `m_id` values of measures that cannot be taken together with this one on the same field.                      |
+| **m_stage_applicability** | `stageApplicabilityTypeEnum` |             | Whether the measure is recorded per field or for the whole farm ('field', 'farm').                            |
+| **m_effect_costs**        | `numeric` (custom)           |             | Cost indication: 0 (low), 1 (medium) or 2 (high).                                                             |
+| **m_effect_type**         | `text`                       |             | How the effect is described: 'qual' (fixed effect), 'classed' (depends on field conditions) or 'quant'.       |
+| **m_impacts_score**       | `text[]`                     |             | Score variables the measure affects (e.g., 'S_NUT_N').                                                        |
+| **m_applicability**       | `jsonb`                      |             | Conditions that must be met for the measure to apply: per variable the allowed values or a `min`/`max` range. |
+| **m_effect_size**         | `jsonb`                      |             | Effect sizes per score variable: base effects and effects that apply under conditions.                        |
+| **m_external_ids**        | `jsonb`                      |             | IDs of the measure in related schemes (e.g., `{ "bbwp": "B121" }`).                                           |
+| **hash**                  | `text`                       |             | A hash value representing the content of the catalogue entry, for change tracking.                            |
+| **created**               | `timestamp with time zone`   | Not Null    | Timestamp when this record was created (default: now()).                                                      |
+| **updated**               | `timestamp with time zone`   |             | Timestamp when this record was last updated by a catalogue sync.                                              |
+
+**Indexes:**
+
+- Unique index on `m_id`.
+- Index on `m_source`.
+
+##### `stageApplicabilityTypeEnum`
+
+- **Name**: `m_stage_applicability`
+- **Possible values**: `farm`, `field`
 
 ---
 

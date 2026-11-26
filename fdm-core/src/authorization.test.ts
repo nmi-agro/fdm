@@ -1,11 +1,14 @@
+import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
+import { addAnimal } from "./animal"
 import { type BetterAuth, createFdmAuth } from "./authentication"
 import {
   actions,
   checkPermission,
   getRolesOfPrincipalForResource,
+  getRolesOfPrincipalForResources,
   grantRole,
   listPrincipalsForResource,
   listResources,
@@ -13,12 +16,24 @@ import {
   revokePrincipal,
   roles,
   updateRole,
+  withAuditContext,
 } from "./authorization"
+import { addBarn } from "./barn"
+import {
+  enableAnimalCategoryCatalogue,
+  syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
+} from "./catalogues"
+import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
+import { addFeedBatch, addFeedingAnimal, addFeedingHerd } from "./feed"
+import { addHerd } from "./herd"
 import { createId } from "./id"
+import { addExcreting, addManureDisposing, addManurePit } from "./manure"
+import { addMilkDelivery, addMilkingAnimal, addMilkingHerd, addMilkTank } from "./milk"
 
 describe("Authorization Functions", () => {
   let fdm: FdmServerType
@@ -124,6 +139,13 @@ describe("Authorization Functions", () => {
   })
 
   describe("checkPermission", () => {
+    beforeAll(async () => {
+      // addAnimal derives its category from the herd, and addFeedBatch looks up its feed type,
+      // so both catalogues must exist, also when this file runs on its own
+      await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+      await syncFeedCatalogueArray(fdm, await getFeedCatalogue("nmi"))
+    })
+
     it("should allow access if principal has the required role", async () => {
       await grantRole(fdm, "farm", "owner", farm_id, principal_id)
       await checkPermission(fdm, "farm", "read", farm_id, principal_id, "test")
@@ -168,6 +190,166 @@ describe("Authorization Functions", () => {
       ).rejects.toThrowError("Exception for checkPermission")
     })
 
+    it("should resolve resource chains for barn, herd, and animal resources, including not-found cases", async () => {
+      const real_farm_id = await addFarm(
+        fdm,
+        principal_id,
+        "Livestock Test Farm",
+        "123456",
+        "Farm Lane 1",
+        "1234AB",
+      )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
+
+      const b_id_barn = await addBarn(fdm, principal_id, real_farm_id)
+      await checkPermission(fdm, "barn", "read", b_id_barn, principal_id, "test")
+
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
+      await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "test")
+
+      const l_id_animal = await addAnimal(fdm, principal_id, real_farm_id, l_id_herd)
+      await checkPermission(fdm, "animal", "read", l_id_animal, principal_id, "test")
+
+      await expect(
+        checkPermission(fdm, "barn", "read", "non_existent_barn", principal_id, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+      await expect(
+        checkPermission(fdm, "herd", "read", "non_existent_herd", principal_id, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+      await expect(
+        checkPermission(fdm, "animal", "read", "non_existent_animal", principal_id, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+    })
+
+    it("should resolve the milk resource chain via tank, herd milking, delivery, and animal milking records", async () => {
+      const real_farm_id = await addFarm(
+        fdm,
+        principal_id,
+        "Milk Test Farm",
+        "123456",
+        "Farm Lane 1",
+        "1234AB",
+      )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
+
+      // Branch 1: resource_id matches a milk tank directly
+      const l_id_milktank = await addMilkTank(fdm, principal_id, real_farm_id)
+      await checkPermission(fdm, "milk", "read", l_id_milktank, principal_id, "test")
+
+      // Branch 2: resource_id matches a herd-level milking record (l_id_herd)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
+      await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, new Date())
+      await checkPermission(fdm, "milk", "read", l_id_herd, principal_id, "test")
+
+      // Branch 3: resource_id matches a milk delivering record (l_id_milkdelivery)
+      await addMilkDelivery(fdm, principal_id, l_id_milktank, new Date(), 100)
+      const [delivering] = await fdm
+        .select({ l_id_milkdelivery: schema.milkDelivering.l_id_milkdelivery })
+        .from(schema.milkDelivering)
+        .where(eq(schema.milkDelivering.l_id_milktank, l_id_milktank))
+        .limit(1)
+      await checkPermission(fdm, "milk", "read", delivering.l_id_milkdelivery, principal_id, "test")
+
+      // Branch 4: resource_id matches an animal-level milking record (l_id_animal)
+      const l_id_animal = await addAnimal(fdm, principal_id, real_farm_id, l_id_herd)
+      await addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, new Date())
+      await checkPermission(fdm, "milk", "read", l_id_animal, principal_id, "test")
+
+      // No branch matches: chain is empty, permission denied
+      await expect(
+        checkPermission(fdm, "milk", "read", "non_existent_milk_resource", principal_id, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+    })
+
+    it("should resolve the feed resource chain via batch, herd feeding, and animal feeding records", async () => {
+      const real_farm_id = await addFarm(
+        fdm,
+        principal_id,
+        "Feed Test Farm",
+        "123456",
+        "Farm Lane 1",
+        "1234AB",
+      )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
+
+      // Branch 1: resource_id matches a feed batch directly
+      const f_id_batch = await addFeedBatch(
+        fdm,
+        principal_id,
+        real_farm_id,
+        "gras_kuil",
+        "own_land",
+      )
+      await checkPermission(fdm, "feed", "read", f_id_batch, principal_id, "test")
+
+      // Branch 2: resource_id matches a herd feeding record (l_id_herd)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
+      await addFeedingHerd(fdm, principal_id, f_id_batch, l_id_herd, new Date())
+      await checkPermission(fdm, "feed", "read", l_id_herd, principal_id, "test")
+
+      // Branch 3: resource_id matches an animal feeding record (l_id_animal)
+      const l_id_animal = await addAnimal(fdm, principal_id, real_farm_id, l_id_herd)
+      await addFeedingAnimal(fdm, principal_id, f_id_batch, l_id_animal, new Date())
+      await checkPermission(fdm, "feed", "read", l_id_animal, principal_id, "test")
+
+      // No branch matches: chain is empty, permission denied
+      await expect(
+        checkPermission(fdm, "feed", "read", "non_existent_feed_resource", principal_id, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+    })
+
+    it("should resolve the manure resource chain via pit, excreting, and disposing records", async () => {
+      const real_farm_id = await addFarm(
+        fdm,
+        principal_id,
+        "Manure Test Farm",
+        "123456",
+        "Farm Lane 1",
+        "1234AB",
+      )
+      await enableAnimalCategoryCatalogue(fdm, principal_id, real_farm_id, "rvo")
+
+      // Branch 1: resource_id matches a manure pit directly
+      const b_id_manurepit = await addManurePit(fdm, principal_id, real_farm_id)
+      await checkPermission(fdm, "manure", "read", b_id_manurepit, principal_id, "test")
+
+      // Branch 2: resource_id matches an excreting record (l_id_excreting)
+      const l_id_herd = await addHerd(fdm, principal_id, real_farm_id, {
+        l_id_category: "rvo_100",
+      })
+      const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit)
+      await checkPermission(fdm, "manure", "read", l_id_excreting, principal_id, "test")
+
+      // Branch 3: resource_id matches a manure disposing record (p_id_disposing)
+      await addManureDisposing(fdm, principal_id, b_id_manurepit, new Date(), 1000)
+      const [disposing] = await fdm
+        .select({ p_id_disposing: schema.manureDisposing.p_id_delivery })
+        .from(schema.manureDisposing)
+        .where(eq(schema.manureDisposing.b_id_manurepit, b_id_manurepit))
+        .limit(1)
+      await checkPermission(fdm, "manure", "read", disposing.p_id_disposing, principal_id, "test")
+
+      // No branch matches: chain is empty, permission denied
+      await expect(
+        checkPermission(
+          fdm,
+          "manure",
+          "read",
+          "non_existent_manure_resource",
+          principal_id,
+          "test",
+        ),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+    })
+
     it("should store the audit log when a permission check is performed and allowed", async () => {
       await grantRole(fdm, "farm", "owner", farm_id, principal_id)
       await checkPermission(fdm, "farm", "read", farm_id, principal_id, "test")
@@ -201,6 +383,44 @@ describe("Authorization Functions", () => {
       expect(auditLogs[0].target_resource_id).toBe(farm_id)
       expect(auditLogs[0].action).toBe("read")
       expect(auditLogs[0].allowed).toBe(false)
+    })
+
+    it.each(["app", "api", "mcp"] as const)(
+      "should store the audit channel and credential when the channel is %s",
+      async (channel) => {
+        const principal_id_new = createId()
+        const credential_id = createId()
+
+        await withAuditContext({ channel, credential_id }, () =>
+          expect(
+            checkPermission(fdm, "farm", "read", farm_id, principal_id_new, "test"),
+          ).rejects.toThrowError("Principal does not have permission to perform this action"),
+        )
+
+        const auditLogs = await fdm
+          .select()
+          .from(authZSchema.audit)
+          .where(eq(authZSchema.audit.principal_id, principal_id_new))
+        expect(auditLogs).toHaveLength(1)
+        expect(auditLogs[0].audit_channel).toBe(channel)
+        expect(auditLogs[0].credential_id).toBe(credential_id)
+      },
+    )
+
+    it("should store channel app without a credential outside an audit context", async () => {
+      const principal_id_new = createId()
+
+      await expect(
+        checkPermission(fdm, "farm", "read", farm_id, principal_id_new, "test"),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+      const auditLogs = await fdm
+        .select()
+        .from(authZSchema.audit)
+        .where(eq(authZSchema.audit.principal_id, principal_id_new))
+      expect(auditLogs).toHaveLength(1)
+      expect(auditLogs[0].audit_channel).toBe("app")
+      expect(auditLogs[0].credential_id).toBeNull()
     })
 
     it("should not store the audit log if non-strict", async () => {
@@ -694,6 +914,63 @@ describe("Authorization Functions", () => {
     })
   })
 
+  describe("getRolesOfPrincipalForResources", () => {
+    it("should get the roles per resource, including organization roles", async () => {
+      const other_farm_id = createId()
+      const farm_without_roles_id = createId()
+      await grantRole(fdm, "farm", "owner", farm_id, organization_member_id)
+      await grantRole(fdm, "farm", "advisor", other_farm_id, organization_id)
+
+      const rolesByFarm = await getRolesOfPrincipalForResources(
+        fdm,
+        "farm",
+        [farm_id, other_farm_id, farm_without_roles_id],
+        organization_member_id,
+      )
+
+      expect(rolesByFarm.get(farm_id)).toEqual([
+        { principal_id: organization_member_id, principal_type: "user", role: "owner" },
+      ])
+      expect(rolesByFarm.get(other_farm_id)).toEqual([
+        { principal_id: organization_id, principal_type: "organization", role: "advisor" },
+      ])
+      expect(rolesByFarm.has(farm_without_roles_id)).toBe(false)
+    })
+
+    it("should return the same roles as getRolesOfPrincipalForResource", async () => {
+      await grantRole(fdm, "farm", "researcher", farm_id, organization_member_id)
+      await grantRole(fdm, "farm", "owner", farm_id, organization_id)
+
+      const single = await getRolesOfPrincipalForResource(
+        fdm,
+        "farm",
+        farm_id,
+        organization_member_id,
+      )
+      const batched = await getRolesOfPrincipalForResources(
+        fdm,
+        "farm",
+        [farm_id],
+        organization_member_id,
+      )
+      expect(batched.get(farm_id)).toHaveLength(single.length)
+      for (const role of single) {
+        expect(batched.get(farm_id)).toContainEqual(role)
+      }
+    })
+
+    it("should return an empty map for an empty list of resources", async () => {
+      const rolesByFarm = await getRolesOfPrincipalForResources(fdm, "farm", [], principal_id)
+      expect(rolesByFarm.size).toBe(0)
+    })
+
+    it("should throw error with invalid resource", async () => {
+      await expect(
+        getRolesOfPrincipalForResources(fdm, "unknown_resource" as any, [farm_id], principal_id),
+      ).rejects.toThrowError("Exception for getRolesOfPrincipalForResources")
+    })
+  })
+
   describe("listPrincipalsForResource", () => {
     let principal_id2: string
 
@@ -803,6 +1080,12 @@ describe("Authorization Functions", () => {
         "soil_image",
         "harvesting",
         "farm_group",
+        "barn",
+        "herd",
+        "animal",
+        "milk",
+        "feed",
+        "manure",
       ])
     })
 

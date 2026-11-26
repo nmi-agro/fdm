@@ -13,6 +13,7 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import fuzzysort from "fuzzysort"
 import { Plus } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -28,7 +29,6 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 import type { getFieldSummaryColumns, FieldSummaryRow } from "./field-summary-columns"
 import { fieldSummaryTableFeatures } from "./field-summary-table-features"
@@ -133,14 +133,16 @@ export function FieldSummaryTable({
           {canModify && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={cn(!hasSelection && "cursor-not-allowed")}>
-                    <Button disabled={!hasSelection} onClick={() => onAddMeasure(selectedIds)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Toevoegen
-                    </Button>
-                  </span>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <span className={cn(!hasSelection && "cursor-not-allowed")}>
+                      <Button disabled={!hasSelection} onClick={() => onAddMeasure(selectedIds)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Toevoegen
+                      </Button>
+                    </span>
+                  }
+                />
                 <TooltipContent>
                   {hasSelection
                     ? `Maatregel toevoegen aan ${selectedIds.length} perceel${selectedIds.length === 1 ? "" : "en"}`

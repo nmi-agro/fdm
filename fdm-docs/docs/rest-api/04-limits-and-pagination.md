@@ -13,7 +13,17 @@ sidebar_position: 4
 | Maximum JSON body size | **5 MB**           | `413 payload-too-large`      |
 | Accepted content type  | `application/json` | `415 unsupported-media-type` |
 
-Requests with a body larger than 5 MB are rejected before processing. The limit applies to all JSON endpoints, including field creation with GeoJSON geometry.
+Requests with a body larger than 5 MB are rejected before processing. The limit applies to all JSON endpoints, including field creation with GeoJSON geometry. A write request without a body, such as accepting an invitation, needs no `Content-Type`.
+
+### File uploads
+
+Upload endpoints accept `multipart/form-data` instead of JSON, with their own limit for the whole request. The type of each file is checked from its contents, not from its name. Let your HTTP client set the `Content-Type` header: it must include the `boundary` of the parts, and a request without it returns `400`.
+
+| Endpoint                                                               | Accepted files                    | Limit                             |
+| ---------------------------------------------------------------------- | --------------------------------- | --------------------------------- |
+| `POST /soil-analyses/{a_id}/images`                                    | JPEG, PNG, WebP or HEIC photo     | **10 MB**                         |
+| `POST /farms/{b_id_farm}/soil-analyses/import/compare` and `.../apply` | 1 to 10 lab report PDFs           | **5 MB per file, 50 MB in total** |
+| `POST /farms/{b_id_farm}/fields/import/compare` and `.../apply`        | `.shp`, `.shx`, `.dbf` and `.prj` | **20 MB**                         |
 
 ```json title="413 response — payload-too-large"
 {
@@ -38,13 +48,15 @@ The coordinate count is the total number of `[longitude, latitude]` pairs across
 
 Rate limits are enforced **per API key**. Limits reset on a rolling one-minute window.
 
-| Request category                             | Limit                                            |
-| -------------------------------------------- | ------------------------------------------------ |
-| General (all GET requests)                   | **120 requests / minute**                        |
-| Write / delete (POST, PATCH, DELETE)         | **30 requests / minute**                         |
-| Calculation endpoints                        | **10 requests / minute**                         |
-| Indicator and measure-option endpoints (NMI) | **10 requests / minute** (separate `nmi` bucket) |
-| Key-management endpoints                     | Subject to the general limit                     |
+| Request category                     | Limit                                            |
+| ------------------------------------ | ------------------------------------------------ |
+| General (all GET requests)           | **120 requests / minute**                        |
+| Write / delete (POST, PATCH, DELETE) | **120 requests / minute**                        |
+| Calculation endpoints                | **10 requests / minute**                         |
+| Endpoints that use the NMI API       | **10 requests / minute** (separate `nmi` bucket) |
+| Key-management endpoints             | Subject to the general limit                     |
+
+The `nmi` bucket covers the indicators and measure options, the nutrient advice, reading lab reports (`POST /farms/{b_id_farm}/soil-analyses/import/compare`), the fertilizer plans of a farm (`/farms/{b_id_farm}/fertilizer-plans`), applying a field import (it requests soil estimates for every new field) and the indicators of a farm group. These requests do not also count in the general or write bucket.
 
 When a limit is exceeded, the API returns `429` with a `Retry-After` header indicating the number of seconds until the limit resets.
 
@@ -53,7 +65,7 @@ When a limit is exceeded, the API returns `429` with a `Retry-After` header indi
   "type": "https://fdm.app/api/errors/rate-limit-exceeded",
   "title": "Rate Limit Exceeded",
   "status": 429,
-  "detail": "You have exceeded the rate limit of 30 write requests per minute.",
+  "detail": "You have exceeded the rate limit of 120 write requests per minute.",
   "instance": "/api/farms",
   "error_id": "QRST-7890"
 }
@@ -64,6 +76,18 @@ HTTP/1.1 429 Too Many Requests
 Retry-After: 23
 Content-Type: application/problem+json
 ```
+
+## Usage limits
+
+To prevent misuse, the API supports farms up to a fixed size and limits how many farms a user can create. These limits apply to the REST API and the MCP server; the web application does not have them.
+
+| Limit              | Value                                                | Error on violation                                    |
+| ------------------ | ---------------------------------------------------- | ----------------------------------------------------- |
+| Fields per farm    | **500**                                              | `422 unprocessable-entity`                            |
+| New farms per user | **10 per 24 hours**, across all API keys of the user | `429 rate-limit-exceeded` with a `Retry-After` header |
+
+- **Fields per farm.** Adding a field (`POST /farms/{b_id_farm}/fields`) or applying a field import fails when the farm would have more than 500 fields. Fields that an import removes make room for the fields it adds. For a farm that already has more than 500 fields, farm-level lists and calculations fail: the fields, cultivations, harvests, fertilizer applications, measures, soil analyses and current soil data of the farm, its balances, norms, nutrient advice and indicators, and the aggregations of a farm group or organization that includes it, and the comparison and application of a field import. Requests for a single field, cultivation or other record keep working. The count includes every field that was ever linked to the farm.
+- **New farms per user.** The 24 hours start at the first farm the user creates in a new window. The `Retry-After` header and the `retry_after` member of the problem document give the number of seconds until the window ends.
 
 ## Pagination
 

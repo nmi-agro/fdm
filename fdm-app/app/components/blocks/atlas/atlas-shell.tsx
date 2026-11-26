@@ -42,6 +42,11 @@ export function Atlas(
     interactiveLayerIds?: string[]
     /** Which set of map images to show in the background. */
     mapStyle?: MapStyleVariant
+    /**
+     * Whether the map sets the cursor on hover (grab, or pointer over an interactive layer).
+     * Turn it off when a drawing tool, such as terra-draw, sets the cursor itself. Defaults to true.
+     */
+    manageCursor?: boolean
     children?: any
   },
 ) {
@@ -52,6 +57,7 @@ export function Atlas(
     updateFromInitialViewState = false,
     interactive,
     interactiveLayerIds,
+    manageCursor = true,
     children,
     style,
     mapStyle,
@@ -92,7 +98,7 @@ export function Atlas(
 
   const onMouseMove = useCallback(
     (e: maplibregl.MapLayerMouseEvent) => {
-      if (mapRef.current) {
+      if (mapRef.current && manageCursor) {
         mapRef.current.getCanvas().style.cursor =
           interactiveLayerIdsSet.size > 0 && e.features && e.features.length > 0
             ? "pointer"
@@ -101,21 +107,28 @@ export function Atlas(
               : ""
       }
     },
-    [interactive, interactiveLayerIdsSet],
+    [interactive, interactiveLayerIdsSet, manageCursor],
   )
 
   const onMouseLeave = useCallback(() => {
-    if (mapRef.current) {
+    if (mapRef.current && manageCursor) {
       mapRef.current.getCanvas().style.cursor = interactive ? "grab" : ""
     }
-  }, [interactive])
+  }, [interactive, manageCursor])
 
   const onViewportChange = useCallback(
     (event: ViewStateChangeEvent) => {
-      setViewState(event.viewState)
+      // An embedded map (useStoredViewState false) must not move the main maps on the next visit
+      if (useStoredViewState) setViewState(event.viewState)
     },
-    [setViewState],
+    [setViewState, useStoredViewState],
   )
+
+  // `data-map-idle` tells automated tooling (such as the manual's screenshot run) that the map has
+  // finished loading tiles and rendering. It is set directly on the element to avoid re-renders.
+  const setMapIdle = useCallback((idle: boolean) => {
+    containerRef.current?.setAttribute("data-map-idle", String(idle))
+  }, [])
 
   return (
     <div
@@ -126,6 +139,7 @@ export function Atlas(
         ...style,
       }}
       ref={containerRef}
+      data-map-idle="false"
     >
       <MapContainerContext.Provider value={containerRef}>
         <MapGL
@@ -157,6 +171,18 @@ export function Atlas(
           onMouseLeave={(e) => {
             onMouseLeave()
             mapGlProps.onMouseLeave?.(e)
+          }}
+          onMoveStart={(e) => {
+            setMapIdle(false)
+            mapGlProps.onMoveStart?.(e)
+          }}
+          onData={(e) => {
+            setMapIdle(false)
+            mapGlProps.onData?.(e)
+          }}
+          onIdle={(e) => {
+            setMapIdle(true)
+            mapGlProps.onIdle?.(e)
           }}
         >
           {children}

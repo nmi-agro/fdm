@@ -1,18 +1,10 @@
 import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import {
-  addCultivation,
   addFarmVerification,
-  addField,
-  addSoilAnalysis,
   type Cultivation,
   type Field,
-  type FieldGeometry,
   getCultivationsFromCatalogue,
-  getDefaultDatesOfCultivation,
   getFarm,
-  removeCultivation,
-  removeField,
-  updateField,
 } from "@nmi-agro/fdm-core"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -31,6 +23,7 @@ import {
   ShouldRevalidateFunctionArgs,
 } from "react-router"
 import { type ZodError } from "zod"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -48,11 +41,10 @@ import {
   getImportValidationMessage,
   ImportReviewChoicesSchema,
 } from "~/components/blocks/rvo/schema"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
-import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
   createRvoState,
@@ -67,6 +59,7 @@ import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { saveRvoImport } from "~/lib/rvo-import.server"
 import {
   compareFields,
   fetchRvoFields,
@@ -76,6 +69,8 @@ import {
 } from "~/lib/rvo.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
+
+export const handle: HelpHandle = { help: "rvo" }
 
 export const meta: MetaFunction = ({ params }) => {
   const b_id_farm = params.b_id_farm
@@ -348,7 +343,7 @@ export default function RvoImportCreatePage() {
 
   if (error) {
     return (
-      <SidebarInset>
+      <PageContainer>
         <Header action={undefined}>
           <HeaderFarmCreate b_name_farm={b_name_farm} />
           <BreadcrumbSeparator />
@@ -356,7 +351,7 @@ export default function RvoImportCreatePage() {
             <BreadcrumbLink>Percelen ophalen bij RVO</BreadcrumbLink>
           </BreadcrumbItem>
         </Header>
-        <main className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto">
           <div className="flex items-center justify-between">
             <FarmTitle
               title={accessDenied ? "Geen toegang bij RVO" : "Fout bij ophalen percelen bij RVO"}
@@ -384,13 +379,13 @@ export default function RvoImportCreatePage() {
               </div>
             </div>
           </FarmContent>
-        </main>
-      </SidebarInset>
+        </div>
+      </PageContainer>
     )
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderFarmCreate b_name_farm={b_name_farm} />
         <BreadcrumbSeparator />
@@ -398,7 +393,7 @@ export default function RvoImportCreatePage() {
           <BreadcrumbLink>Percelen ophalen bij RVO</BreadcrumbLink>
         </BreadcrumbItem>
       </Header>
-      <main className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto">
         {actionData?.message && (
           <div className="p-6">
             <Alert variant={actionData.success ? "default" : "destructive"}>
@@ -501,8 +496,8 @@ export default function RvoImportCreatePage() {
             </FarmContent>
           </>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 
@@ -578,134 +573,12 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
         fieldsToUpdate: JSON.parse(fieldsToUpdateJson),
       })
 
-      const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
-
-      await fdm.transaction(async (tx) => {
-        for (const field of formValues.fieldsToAdd) {
-          const b_id = await addField(
-            tx,
-            session.principal_id,
-            b_id_farm,
-            field.b_name,
-            field.b_id_source,
-            field.b_geometry as unknown as FieldGeometry,
-            field.b_start,
-            field.b_acquiring_method,
-            field.b_end,
-            field.b_bufferstrip,
-          )
-
-          // Soil estimates depend on the location only, so every added field gets them.
-          addedFields.push({
-            b_id: b_id,
-            geometry: field.b_geometry as unknown as FieldGeometry,
-          })
-
-          if (typeof field.b_lu_catalogue === "string") {
-            const defaultDates = await getDefaultDatesOfCultivation(
-              tx,
-              session.principal_id,
-              b_id_farm,
-              field.b_lu_catalogue,
-              year,
-            )
-
-            await addCultivation(
-              tx,
-              session.principal_id,
-              field.b_lu_catalogue,
-              b_id,
-              defaultDates.b_lu_start,
-              defaultDates.b_lu_end,
-            )
-          }
-        }
-
-        for (const field of formValues.fieldsToUpdate) {
-          const b_id = field.b_id
-          const b_bufferstrip = field.b_bufferstrip
-
-          await updateField(
-            tx,
-            session.principal_id,
-            b_id,
-            field.b_name ?? undefined,
-            field.b_id_source,
-            field.b_geometry as unknown as FieldGeometry,
-            field.b_start,
-            field.b_acquiring_method,
-            field.b_end,
-            b_bufferstrip,
-          )
-
-          if (typeof field.b_lu_catalogue !== "undefined") {
-            if (field.b_lu) {
-              // Always remove the existing cultivation
-              await removeCultivation(tx, session.principal_id, field.b_lu)
-            }
-
-            if (field.b_lu_catalogue) {
-              // Add the new cultivation if not null
-              const b_lu_catalogue = field.b_lu_catalogue
-              const defaultDates = await getDefaultDatesOfCultivation(
-                tx,
-                session.principal_id,
-                b_id_farm,
-                field.b_lu_catalogue,
-                year,
-              )
-
-              await addCultivation(
-                tx,
-                session.principal_id,
-                b_lu_catalogue,
-                b_id,
-                defaultDates.b_lu_start,
-                defaultDates.b_lu_end,
-              )
-            }
-          }
-        }
-
-        for (const b_id of formValues.fieldsToRemove) {
-          await removeField(tx, session.principal_id, b_id)
-        }
-      })
-
-      const nmiApiKey = getNmiApiKey()
-      if (nmiApiKey) {
-        const chunkSize = 10
-        const chunkedFeatures: { b_id: string; geometry: FieldGeometry }[][] = []
-        for (let i = 0; i < addedFields.length; i += chunkSize) {
-          chunkedFeatures.push(addedFields.slice(i, i + chunkSize))
-        }
-        for (const chunk of chunkedFeatures) {
-          await Promise.all(
-            chunk.map(async ({ b_id, geometry }) => {
-              try {
-                const soilEstimates = await getSoilParameterEstimatesForGeometry(
-                  fdm,
-                  geometry,
-                  nmiApiKey,
-                )
-                await addSoilAnalysis(
-                  fdm,
-                  session.principal_id,
-                  undefined,
-                  "nl-other-nmi",
-                  b_id,
-                  soilEstimates.a_depth_lower ?? 30,
-                  undefined,
-                  soilEstimates,
-                  soilEstimates.a_depth_upper,
-                )
-              } catch (e) {
-                console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
-              }
-            }),
-          )
-        }
-      }
+      const { created: addedFields } = await saveRvoImport(
+        session.principal_id,
+        b_id_farm,
+        year,
+        formValues,
+      )
 
       captureEvent(session.principal_id, "fields_imported_rvo", {
         b_id_farm,

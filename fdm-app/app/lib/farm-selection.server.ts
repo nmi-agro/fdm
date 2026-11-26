@@ -1,7 +1,7 @@
-import { listFarmGroups } from "@nmi-agro/fdm-core"
+import { getFarmIdsOfFarmGroupInYear, listFarmGroups } from "@nmi-agro/fdm-core"
 import { data } from "react-router"
+import type { OrganizationFarmGroup } from "~/lib/farm-groups"
 import { reportError } from "~/lib/error"
-import { getFarmIdsInCalendar, type OrganizationFarmGroup } from "~/lib/farm-groups"
 import { fdm } from "~/lib/fdm.server"
 
 /**
@@ -77,9 +77,10 @@ export async function getOrganizationFarmGroups(
     return groups.map((group) => ({
       b_id_group: group.b_id_group,
       b_name_group: group.b_name_group,
-      b_id_farms: getFarmIdsInCalendar(group.memberships, calendar).filter((b_id_farm) =>
-        known.has(b_id_farm),
-      ),
+      b_id_farms: getFarmIdsOfFarmGroupInYear(
+        group,
+        /^\d{4}$/.test(calendar) ? Number(calendar) : undefined,
+      ).filter((b_id_farm) => known.has(b_id_farm)),
     }))
   } catch (error) {
     reportError(error)

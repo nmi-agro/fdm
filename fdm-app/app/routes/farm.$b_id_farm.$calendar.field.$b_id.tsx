@@ -14,23 +14,28 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
+import { useFieldPageDescription } from "~/lib/field-page"
 import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "percelen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Perceel | ${clientConfig.name}` },
@@ -167,6 +172,7 @@ export default function FarmFieldIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const calendar = useCalendarStore((state) => state.calendar)
   const location = useLocation()
+  const pageDescription = useFieldPageDescription()
   const isDashboardRoute =
     location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}` ||
     location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}/`
@@ -200,7 +206,7 @@ export default function FarmFieldIndex() {
         }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={backAction}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderField
@@ -209,13 +215,14 @@ export default function FarmFieldIndex() {
           b_id={loaderData.b_id}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={loaderData.field?.b_name}
           description={
-            isDashboardRoute
+            pageDescription ??
+            (isDashboardRoute
               ? "Overzicht van dit perceel"
-              : "Beheer hier de gegevens van dit perceel"
+              : "Beheer hier de gegevens van dit perceel")
           }
         />
         <FarmContent>
@@ -232,7 +239,7 @@ export default function FarmFieldIndex() {
             <Outlet />
           )}
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

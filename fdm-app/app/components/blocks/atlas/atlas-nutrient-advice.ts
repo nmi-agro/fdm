@@ -5,6 +5,7 @@ import type {
   LineLayerSpecification,
 } from "maplibre-gl"
 import type { FieldNutrientValue } from "~/components/blocks/nutrient-advice/overview-types"
+import { getDottedFieldOutlineStyle } from "~/components/blocks/atlas/atlas-styles"
 import {
   type AdviceProgressStatus,
   computeAdviceProgress,
@@ -472,16 +473,8 @@ export function getNutrientAdviceOutlineStyle(): {
   layout: LineLayerSpecification["layout"]
   paint: LineLayerSpecification["paint"]
 } {
-  return {
-    type: "line",
-    layout: { "line-cap": "round", "line-join": "round" },
-    paint: {
-      "line-color": NUTRIENT_ADVICE_OUTLINE_COLOR,
-      "line-width": 2.5,
-      // Dash lengths are in line widths: a near-zero dash + round cap = a dot, then a 2-width gap.
-      "line-dasharray": [0.1, 2],
-    },
-  }
+  // Shared with the other thematic layers, so all atlas layers outline fields the same way
+  return getDottedFieldOutlineStyle()
 }
 
 /* ================ FORMATTING ================ */

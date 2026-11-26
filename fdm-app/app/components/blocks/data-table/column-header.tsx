@@ -4,6 +4,7 @@ import {
   type RowData,
   columnVisibilityFeature,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import {
@@ -13,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { cn } from "~/lib/utils"
 
 type AssumedTableFeatures = {
   rowSortingFeature: typeof rowSortingFeature
@@ -41,18 +41,20 @@ export function DataTableColumnHeader<TData extends RowData, TValue>({
   return (
     <div className={cn("flex items-center space-x-2", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="data-[state=open]:bg-accent -ml-3 h-8">
-            <span>{title}</span>
-            {column.getIsSorted?.() === "desc" ? (
-              <ArrowDown />
-            ) : column.getIsSorted?.() === "asc" ? (
-              <ArrowUp />
-            ) : (
-              <ChevronsUpDown />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button variant="ghost" size="sm" className="data-popup-open:bg-accent -ml-3 h-8">
+              <span>{title}</span>
+              {column.getIsSorted?.() === "desc" ? (
+                <ArrowDown />
+              ) : column.getIsSorted?.() === "asc" ? (
+                <ArrowUp />
+              ) : (
+                <ChevronsUpDown />
+              )}
+            </Button>
+          }
+        />
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={() => column.toggleSorting?.(false)}>
             <ArrowUp className="text-muted-foreground/70 h-3.5 w-3.5" />

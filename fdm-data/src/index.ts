@@ -11,6 +11,19 @@
  * @packageDocumentation
  */
 
+export { getAnimalCategoriesCatalogue } from "./animal-categories"
+export type {
+  AnimalCategorySex,
+  AnimalCategorySpecies,
+  CatalogueAnimalCategorySource,
+  CatalogueAnimalCategories,
+  CatalogueAnimalCategory,
+  CatalogueAnimalCategoryItem,
+  CatalogueAnimalCategoryName,
+} from "./animal-categories/d"
+export { hashAnimalCategory } from "./animal-categories/hash"
+export { parseCattleEartag } from "./animal-identification/cattle-eartag"
+export type { CattleEartagResult } from "./animal-identification/cattle-eartag"
 export { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "./cultivations"
 export type {
   CatalogueCultivation,
@@ -18,7 +31,7 @@ export type {
   CatalogueCultivationName,
 } from "./cultivations/d"
 export { hashCultivation } from "./cultivations/hash"
-export { getFertilizersCatalogue } from "./fertilizers"
+export { fertilizerCatalogueNames, getFertilizersCatalogue } from "./fertilizers"
 export type {
   ApplicationMethods,
   CatalogueFertilizer,
@@ -26,6 +39,16 @@ export type {
   CatalogueFertilizerName,
 } from "./fertilizers/d"
 export { hashFertilizer } from "./fertilizers/hash"
+export { feedTypeOptions, getFeedCatalogue } from "./feed"
+export type { CatalogueFeed, CatalogueFeedItem, CatalogueFeedName } from "./feed/d"
+export { hashFeed } from "./feed/hash"
 export { getMeasuresCatalogue } from "./measures"
-export type { CatalogueMeasure, CatalogueMeasureItem, CatalogueMeasureName } from "./measures/d"
+export type {
+  CatalogueMeasure,
+  CatalogueMeasureCondition,
+  CatalogueMeasureEffectSize,
+  CatalogueMeasureImpact,
+  CatalogueMeasureItem,
+  CatalogueMeasureName,
+} from "./measures/d"
 export { hashMeasure } from "./measures/hash"

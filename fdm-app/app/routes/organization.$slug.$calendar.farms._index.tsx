@@ -2,11 +2,11 @@ import {
   type Cultivation,
   type Fertilizer,
   addFarmToGroup,
-  getCultivations,
+  getCultivationsForFarm,
   getFarms,
-  getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
   getFertilizers,
-  getFields,
+  getFieldsForFarms,
   listFarmGroups,
   listPrincipalsForFarm,
   removeFarmFromGroup,
@@ -18,7 +18,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type FarmExtended } from "~/components/blocks/farms/columns"
 import { DataTable } from "~/components/blocks/farms/table"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { auth, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -76,128 +76,121 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         )
         .map((group) => ({ b_id_group: group.b_id_group, b_name_group: group.b_name_group }))
 
-    const allFarms: FarmExtended[] = await Promise.all(
-      farms.map(async (farm) => {
-        const myOrganization = organization
-        async function getOwners() {
-          const accessors = (
-            await listPrincipalsForFarm(fdm, myOrganization.id, farm.b_id_farm)
-          ).filter((accessor) => accessor.type === "user")
+    // The fields of all farms in one read; the other reads run once per farm, not per field
+    const [fieldsByFarm, farmReads] = await Promise.all([
+      getFieldsForFarms(
+        fdm,
+        organization.id,
+        farms.map((farm) => farm.b_id_farm),
+        timeframe,
+      ),
+      Promise.all(
+        farms.map(async (farm) => {
+          const [principals, fertilizers, cultivationsByField, fertilizerApplicationsByField] =
+            await Promise.all([
+              listPrincipalsForFarm(fdm, organization.id, farm.b_id_farm),
+              getFertilizers(fdm, organization.id, farm.b_id_farm),
+              getCultivationsForFarm(fdm, organization.id, farm.b_id_farm, timeframe),
+              getFertilizerApplicationsForFarm(fdm, organization.id, farm.b_id_farm, timeframe),
+            ])
+          return { principals, fertilizers, cultivationsByField, fertilizerApplicationsByField }
+        }),
+      ),
+    ])
 
-          return accessors.filter((accessor) => accessor.role === "owner")
+    const allFarms: FarmExtended[] = farms.map((farm, index) => {
+      const { principals, fertilizers, cultivationsByField, fertilizerApplicationsByField } =
+        farmReads[index]
+      const owners = principals.filter(
+        (accessor) => accessor.type === "user" && accessor.role === "owner",
+      )
+      const fields = fieldsByFarm.get(farm.b_id_farm) ?? []
+
+      // Total area
+      let b_area = 0
+      fields.forEach((field) => {
+        b_area += field.b_area ?? 0
+      })
+
+      const fieldsExtended: FarmExtended[] = fields.map((field) => {
+        const collectedCultivations: Record<
+          string,
+          Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">
+        > = {}
+
+        const collectedFertilizers: Record<
+          string,
+          Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">
+        > = {}
+
+        for (const cultivation of cultivationsByField.get(field.b_id) ?? []) {
+          collectedCultivations[cultivation.b_lu_catalogue] ??= {
+            b_lu_catalogue: cultivation.b_lu_catalogue,
+            b_lu_name: cultivation.b_lu_name,
+            b_lu_croprotation: cultivation.b_lu_croprotation,
+          }
         }
 
-        async function reduceFields() {
-          const fields = await getFields(fdm, myOrganization.id, farm.b_id_farm, timeframe)
-
-          // Total area
-          let b_area = 0
-          fields.forEach((field) => {
-            b_area += field.b_area ?? 0
-          })
-
-          const fertilizers = await getFertilizers(fdm, myOrganization.id, farm.b_id_farm)
-
-          const fieldsExtended: FarmExtended[] = await Promise.all(
-            fields.map(async (field) => {
-              const cultivations = getCultivations(fdm, myOrganization.id, field.b_id, timeframe)
-
-              const fertilizerApplications = getFertilizerApplications(
-                fdm,
-                myOrganization.id,
-                field.b_id,
-                timeframe,
-              )
-
-              const collectedCultivations: Record<
-                string,
-                Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">
-              > = {}
-
-              const collectedFertilizers: Record<
-                string,
-                Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">
-              > = {}
-
-              ;(await cultivations).forEach((cultivation) => {
-                collectedCultivations[cultivation.b_lu_catalogue] ??= {
-                  b_lu_catalogue: cultivation.b_lu_catalogue,
-                  b_lu_name: cultivation.b_lu_name,
-                  b_lu_croprotation: cultivation.b_lu_croprotation,
-                }
-              })
-
-              ;(await fertilizerApplications).forEach((fertilizerApplication) => {
-                const fertilizer = fertilizers.find(
-                  (fertilizer) => fertilizer.p_id === fertilizerApplication.p_id,
-                )
-
-                if (fertilizer) {
-                  collectedFertilizers[fertilizer.p_id] = {
-                    p_id: fertilizer.p_id,
-                    p_name_nl: fertilizer.p_name_nl,
-                    p_type: fertilizer.p_type,
-                    p_type_rvo: fertilizer.p_type_rvo,
-                  }
-                }
-              })
-
-              return {
-                type: "field",
-                b_id_farm: field.b_id,
-                b_name_farm: field.b_name,
-                owner: null,
-                b_area: field.b_area,
-                cultivations: Object.values(collectedCultivations),
-                fertilizers: Object.values(collectedFertilizers),
-              }
-            }),
+        for (const fertilizerApplication of fertilizerApplicationsByField.get(field.b_id) ?? []) {
+          const fertilizer = fertilizers.find(
+            (fertilizer) => fertilizer.p_id === fertilizerApplication.p_id,
           )
 
-          const collectedCultivations: Record<
-            string,
-            Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">
-          > = {}
-
-          const collectedFertilizers: Record<
-            string,
-            Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">
-          > = {}
-
-          for (const field of fieldsExtended) {
-            field.cultivations.forEach((cultivation) => {
-              collectedCultivations[cultivation.b_lu_catalogue] ??= cultivation
-            })
-            field.fertilizers.forEach((fertilizer) => {
-              collectedFertilizers[fertilizer.p_id] ??= fertilizer
-            })
-          }
-
-          return {
-            fields: fieldsExtended,
-            b_area: b_area,
-            cultivations: Object.values(collectedCultivations),
-            fertilizers: Object.values(collectedFertilizers),
+          if (fertilizer) {
+            collectedFertilizers[fertilizer.p_id] = {
+              p_id: fertilizer.p_id,
+              p_name_nl: fertilizer.p_name_nl,
+              p_type: fertilizer.p_type,
+              p_type_rvo: fertilizer.p_type_rvo,
+            }
           }
         }
-
-        const ownersPromise = getOwners()
-        const reduceFieldsPromise = reduceFields()
-        const farmGroups = groupsOfFarm(farm.b_id_farm)
-        const reduced = await reduceFieldsPromise
 
         return {
-          type: "farm",
-          b_id_farm: farm.b_id_farm,
-          b_name_farm: farm.b_name_farm,
-          owners: await ownersPromise,
-          groups: farmGroups,
-          ...reduced,
-          // Fields carry the groups of their farm so that filtering on a group keeps them
-          fields: reduced.fields.map((field) => ({ ...field, groups: farmGroups })),
+          type: "field",
+          b_id_farm: field.b_id,
+          b_name_farm: field.b_name,
+          owner: null,
+          b_area: field.b_area,
+          cultivations: Object.values(collectedCultivations),
+          fertilizers: Object.values(collectedFertilizers),
         }
-      }),
-    )
+      })
+
+      const collectedCultivations: Record<
+        string,
+        Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">
+      > = {}
+
+      const collectedFertilizers: Record<
+        string,
+        Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">
+      > = {}
+
+      for (const field of fieldsExtended) {
+        field.cultivations.forEach((cultivation) => {
+          collectedCultivations[cultivation.b_lu_catalogue] ??= cultivation
+        })
+        field.fertilizers.forEach((fertilizer) => {
+          collectedFertilizers[fertilizer.p_id] ??= fertilizer
+        })
+      }
+
+      const farmGroups = groupsOfFarm(farm.b_id_farm)
+
+      return {
+        type: "farm",
+        b_id_farm: farm.b_id_farm,
+        b_name_farm: farm.b_name_farm,
+        owners: owners,
+        groups: farmGroups,
+        b_area: b_area,
+        cultivations: Object.values(collectedCultivations),
+        fertilizers: Object.values(collectedFertilizers),
+        // Fields carry the groups of their farm so that filtering on a group keeps them
+        fields: fieldsExtended.map((field) => ({ ...field, groups: farmGroups })),
+      }
+    })
 
     return {
       data: allFarms,
@@ -323,7 +316,7 @@ export default function OrganizationFarmsPage() {
   const { data, organization, groups, defaultJoined, calendar } = useLoaderData<typeof loader>()
   const groupsPath = `/organization/${organization.slug}/${calendar}/groups`
   return (
-    <main>
+    <div>
       <FarmTitle
         title={`Bedrijven met toegang door ${organization.name}`}
         description="Klik op een bedrijfsnaam voor meer informatie."
@@ -332,9 +325,9 @@ export default function OrganizationFarmsPage() {
           to: `/organization/${organization.slug}`,
         }}
         rightNode={
-          <Button variant="outline" asChild>
-            <NavLink to={groupsPath}>Groepen beheren</NavLink>
-          </Button>
+          <NavLink to={groupsPath} className={buttonVariants({ variant: "outline" })}>
+            Groepen beheren
+          </NavLink>
         }
       />
       <FarmContent>
@@ -358,6 +351,6 @@ export default function OrganizationFarmsPage() {
           />
         )}
       </FarmContent>
-    </main>
+    </div>
   )
 }

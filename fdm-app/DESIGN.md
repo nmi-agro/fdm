@@ -14,7 +14,7 @@ colors:
   muted-foreground: "#64748b"
   accent: "#f1f5f9"
   accent-foreground: "#0f172a"
-  destructive: "#ef4444"
+  destructive: "#dc2626"
   destructive-foreground: "#f8fafc"
   border: "#e2e8f0"
   input: "#e2e8f0"
@@ -106,7 +106,7 @@ components:
 
 **Creative North Star: "The Agronomist's Workbench"**
 
-fdm-app is a quiet, expert tool that disappears into the task. The user comes with raw farm data they already know — fields, cultivations, soil analyses, fertilizer applications, harvests — and leaves with connected agronomic insight: nutrient balances, gebruiksruimte, advice, soil-health indicators, and spatial overviews. The interface earns trust by getting out of the way: a calm near-monochrome surface, a single well-tuned sans, and consistent shadcn/Radix components mean attention stays on the data and the decision, never on the chrome.
+fdm-app is a quiet, expert tool that disappears into the task. The user comes with raw farm data they already know — fields, cultivations, soil analyses, fertilizer applications, harvests — and leaves with connected agronomic insight: nutrient balances, gebruiksruimte, advice, soil-health indicators, and spatial overviews. The interface earns trust by getting out of the way: a calm near-monochrome surface, a single well-tuned sans, and consistent shadcn/Base UI components mean attention stays on the data and the decision, never on the chrome.
 
 The personality is calm, trustworthy, and modern. Density is honest — tables, panels, and forms carry real information without decoration — but never cluttered for its own sake. Color is earned, not sprayed: the surface is neutral slate so that the few moments of hue (chart series, status, the current selection) read instantly. This is the opposite of an overselling consumer app or a cluttered legacy agri-portal; it should feel available to an individual advisor or farmer, not gated behind an enterprise wall.
 
@@ -118,7 +118,7 @@ The system explicitly rejects: clutter that buries insight, hype and unsubstanti
 - One typeface (Inter) across headings, labels, body, and data.
 - Flat by default; subtle shadows only as a response to state.
 - Full light/dark parity via CSS custom properties.
-- Standard, consistent component vocabulary (shadcn "new-york" + Radix).
+- Standard, consistent component vocabulary (shadcn `base-vega` + Base UI).
 
 ## 2. Colors
 
@@ -142,7 +142,7 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 
 ### Status
 
-- **Destructive Red** (`#ef4444`): Errors, destructive actions, invalid fields. Muted to a darker red in dark mode.
+- **Destructive Red** (`#dc2626`): Errors, destructive actions, invalid fields. Dark enough for white button text and red text on white to meet AA (≥4.5:1). Muted to a darker red in dark mode.
 
 ### Named Rules
 
@@ -182,7 +182,7 @@ Mostly flat. Surfaces sit at rest with hairline borders doing the separation; de
 
 ## 5. Components
 
-Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwind v4 tokens. Refined and restrained: standard affordances, consistent shape, every interactive state defined.
+Built on shadcn/ui (`base-vega` style) over Base UI primitives, styled with Tailwind v4 tokens. Refined and restrained: standard affordances, consistent shape, every interactive state defined.
 
 ### Buttons
 
@@ -242,7 +242,15 @@ The authenticated app is the primary surface and sets the defaults above: it is 
 - All absolute bans (side-stripe borders, gradient text, glassmorphism, identical card grids, hero-metric template, etc.) apply without exception.
 - Any functional form or action component (auth card, error recovery) stays on **interior** rules: flat-by-default, `shadow-sm`, no oversized type, calm and focused. The marketing _around_ it can be advanced; the action itself must remain calm.
 - The 14-inch laptop constraint is not relaxed — unauthenticated pages are often the first screens seen on a work machine.
-- Dutch formal address (`u/uw`), WCAG AA contrast, and full keyboard/screen-reader accessibility apply in full.
+- Dutch formal address (`u/uw`), WCAG AA contrast, and full keyboard/screen-reader accessibility apply in full. Exception: the user manual (`/manual`) addresses the reader as `je`, like a colleague explaining the app.
+
+### User manual (`/manual`)
+
+The manual is a **Read** surface in the public frame: a 56px header with the logomark, a section-grouped left navigation (a sheet on phones), a reading column of about 70 characters and a right rail with "Op deze pagina" and a calm sign-up card that stays visible while the contents list scrolls. Below 1280px the card follows the text. No kicker above the title; a breadcrumb gives the location.
+
+- **Type:** rendered Markdown is set with shadcn typeset (`app/typeset.css`, preset `.typeset-manual`: 16px body, leading 1.75, flow 1.25em). The page title is 30–36px semibold; the lede under it is 20px in muted ink, set apart from the body by a hairline rule.
+- **UI-label chip** (the manual's signature): every UI label in the text renders like the app's own control — 1px border, white fill, weight 500, `rounded-md`, `shadow-xs`, never wrapping. A "Zo vind je het in de app" row strings chips together with chevrons. No hue: chips stay as neutral as the buttons they depict.
+- **Tables** scroll inside their own container on narrow screens instead of squeezing cells; numbers use tabular figures.
 
 ## 7. Do's and Don'ts
 

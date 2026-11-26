@@ -2,6 +2,11 @@ export interface ServerConfig {
   name: string
   url: string
   privacy_url: string | undefined
+  /**
+   * Whether search engines may index the public pages (`FDM_SEO_INDEXING=true`). Off by default,
+   * so forks and staging environments are not indexed.
+   */
+  seo_indexing: boolean
   datasets_url: string
   auth: {
     fdm_session_secret: string
@@ -97,6 +102,8 @@ export interface ClientConfig {
   url: string
   /** Base URL of the fdm-api service. When set, a link to the API docs is shown in the UI. */
   apiUrl?: string
+  /** Base URL of the fdm-mcp service for AI assistants. Used in the manual. */
+  mcpUrl?: string
   datasets_url: string
   analytics: {
     sentry?: {
@@ -108,6 +115,8 @@ export interface ClientConfig {
       replay_sample_rate_on_error: number
       profile_sample_rate: number
       security_report_uri: string
+      /** Sentry release: `SENTRY_RELEASE` at runtime, else the package version from the build. */
+      release?: string
     } | null
     posthog?: {
       key: string

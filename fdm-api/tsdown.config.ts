@@ -1,12 +1,16 @@
 import { defineConfig } from "tsdown"
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/server.ts"],
+  entry: {
+    index: "src/index.ts",
+    server: "src/server.ts",
+    "operations/index": "src/operations/index.ts",
+  },
   format: "esm",
   outDir: "dist",
   dts: true,
   sourcemap: true,
-  target: "node24",
+  target: "node26",
   clean: true,
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
   copy: [{ from: "src/changelog.md", to: "dist" }],

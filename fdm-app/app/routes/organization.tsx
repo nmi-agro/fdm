@@ -8,6 +8,7 @@ import {
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import { Outlet, redirect, useLoaderData, useLocation } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
 import { SidebarOrganization } from "~/components/blocks/sidebar/organization"
@@ -36,6 +37,9 @@ type OrganizationLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
  *
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
+
+export const handle: HelpHandle = { help: "organisaties" }
+
 export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the session

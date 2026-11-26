@@ -1,4 +1,4 @@
-import type { FdmType } from "@nmi-agro/fdm-core"
+import type { CachedCalculationManyOptions, FdmType } from "@nmi-agro/fdm-core"
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import type {
   Bln3MeasureAdviceInputs,
@@ -117,7 +117,8 @@ const getBln3ScoreCached = withCalculationCache(
  * Uses `withCalculationCache` to store and retrieve results from the
  * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
  * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
+ * redacted). The calculator version contains a hash of the calculator source,
+ * so a change to the calculator code invalidates all
  * existing cache entries. Aggregations without a numeric score are also removed
  * from cached results stored before they were filtered.
  *
@@ -131,6 +132,32 @@ export async function getBln3Score(
 ): Promise<Bln3Score | null> {
   const score = await getBln3ScoreCached(fdm, inputs)
   return score ? withNumericAggregations(score) : null
+}
+
+/**
+ * Cached version of `requestBln3Score` for several fields at once.
+ *
+ * Gives the same results as calling {@link getBln3Score} for each input, but reads the cache
+ * with one query and writes the new scores with one insert. Only the fields without a cached
+ * score are requested from the NMI API.
+ *
+ * @param fdm - The FDM instance used for the cache.
+ * @param inputs - Field data and NMI API key per field, as for `requestBln3Score`.
+ * @param options - Optional `concurrency`: the maximum number of NMI API requests at the same
+ *   time. Defaults to no limit.
+ * @returns The outcome per input, in the same order: the BLN3 score (or `null` if the field is
+ *   excluded), or the reason why the request failed.
+ */
+export async function getBln3Scores(
+  fdm: FdmType,
+  inputs: readonly Bln3ScoreInputs[],
+  options?: CachedCalculationManyOptions,
+): Promise<PromiseSettledResult<Bln3Score | null>[]> {
+  return Promise.allSettled(
+    getBln3ScoreCached
+      .many(fdm, inputs, options)
+      .map((score) => score.then((value) => (value ? withNumericAggregations(value) : null))),
+  )
 }
 
 /**
@@ -230,7 +257,8 @@ export async function requestBln3MeasureApplicability(
  * Uses `withCalculationCache` to store and retrieve results from the
  * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
  * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
+ * redacted). The calculator version contains a hash of the calculator source,
+ * so a change to the calculator code invalidates all
  * existing cache entries.
  */
 export const getBln3MeasureApplicability = withCalculationCache(
@@ -363,7 +391,8 @@ export async function requestBln3MeasureAdvice(
  * Uses `withCalculationCache` to store and retrieve results from the
  * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
  * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
+ * redacted). The calculator version contains a hash of the calculator source,
+ * so a change to the calculator code invalidates all
  * existing cache entries.
  */
 export const getBln3MeasureAdvice = withCalculationCache(

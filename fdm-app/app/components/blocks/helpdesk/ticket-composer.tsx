@@ -2,10 +2,10 @@ import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRef } from "react"
 import { Controller } from "react-hook-form"
-import { NavLink, useSubmit } from "react-router"
+import { NavLink, useFormAction, useNavigation, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from "~/components/ui/field"
 import {
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
 import {
   ALLOWED_ATTACHMENT_EXTENSIONS,
@@ -32,6 +33,13 @@ export function TicketComposer({
   initial_context_farm_id?: string | null
 }) {
   const submit = useSubmit()
+  const navigation = useNavigation()
+  const formAction = useFormAction()
+  // Only this form's submission, not another POST such as signing out from the sidebar
+  const isSubmitting =
+    navigation.state !== "idle" &&
+    navigation.formMethod?.toUpperCase() === "POST" &&
+    navigation.formAction === formAction
   const formRef = useRef<HTMLFormElement>(null)
 
   const form = useRemixForm<z.infer<typeof TicketSchema>>({
@@ -62,7 +70,7 @@ export function TicketComposer({
         onSubmit={form.handleSubmit}
       >
         <Card>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <Controller
               name="context_farm_id"
               render={({ field, fieldState }) => (
@@ -75,6 +83,13 @@ export function TicketComposer({
                   </FieldDescription>
                   <Select
                     value={field.value ?? "NO_SELECTION"}
+                    items={[
+                      { value: "NO_SELECTION", label: "Geen specifiek bedrijf" },
+                      ...(farmOptions ?? []).map((opt) => ({
+                        value: opt.b_id_farm,
+                        label: opt.b_name_farm,
+                      })),
+                    ]}
                     onValueChange={(value) => {
                       field.onChange(value === "NO_SELECTION" ? null : value)
                     }}
@@ -141,10 +156,17 @@ export function TicketComposer({
               }}
             />
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button variant="outline" asChild>
-                <NavLink to="/support">Annuleren</NavLink>
+              <NavLink
+                to="/support"
+                className={buttonVariants({ variant: "outline" })}
+                data-slot="button"
+              >
+                Annuleren
+              </NavLink>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Spinner />}
+                <span>Verzenden</span>
               </Button>
-              <Button type="submit">Verzenden</Button>
             </div>
           </CardContent>
         </Card>

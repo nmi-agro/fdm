@@ -1,0 +1,367 @@
+/**
+ * How each screenshot of the manual is captured. Every id used as `screenshot:<id>` in a chapter
+ * needs an entry here, and every entry must be used; `pnpm --filter @nmi-agro/fdm-app test:unit`
+ * checks both. See the README in the manual folder for how to add one and run the capture.
+ */
+import type { CaptureDefinition, CaptureStep } from "~/lib/manual/capture-types"
+
+/**
+ * The day (`MM-DD` of the run's year) that the livestock and grazing captures show as today. The
+ * browser clock is fixed to it, and the run sets `FDM_FIXED_TODAY` to it for the server (see
+ * playwright.config.ts), so both agree on the grazing status and the rest days.
+ */
+export const GRAZING_CAPTURE_DAY = "06-15"
+
+// Shared parts of the livestock and grazing captures. These pages depend on "today" (grazing
+// status, rest days, default dates), so they start on the dashboard with the fixed clock and open
+// the page through the menu. The seed grazes strips on the home plot on 13, 14 and 15 June.
+const GRAZING_DASHBOARD_START = {
+  route: "/farm/{farm}?calendar={year}",
+  ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+  clock: `{year}-${GRAZING_CAPTURE_DAY}T12:00:00+02:00`,
+} satisfies Partial<CaptureDefinition>
+const GRAZING_FIELD_START = {
+  route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
+  ready: { text: "Perceelskaart", exact: true },
+  clock: `{year}-${GRAZING_CAPTURE_DAY}T12:00:00+02:00`,
+} satisfies Partial<CaptureDefinition>
+const OPEN_MELKVEE: CaptureStep = { click: { selector: 'a[href$="/livestock"]' } }
+const OPEN_GRAZING_CALENDAR: CaptureStep = { click: { selector: 'a[href$="/livestock/grazing"]' } }
+const OPEN_ZONE_EDITOR: CaptureStep[] = [
+  { click: { role: "link", name: "Beweiding", exact: true } },
+  { waitFor: { text: "Gebruikshistorie", exact: false } },
+  { click: { role: "button", name: "Beweiding toevoegen" } },
+  { click: { text: "Zone op de kaart", exact: true } },
+  { waitFor: { text: "Eerder gebruikte zones" } },
+]
+
+export const captures = {
+  "bedrijf-dashboard": {
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+  },
+  // The KvK step only appears when the app has a KvK API key; the run uses the KvK test
+  // environment (see playwright.config.ts).
+  "bedrijf-aanmaken-gegevens": {
+    route: "/farm/create",
+    ready: { text: "Begin met je KvK-nummer" },
+  },
+  // 68750110 is a fictional company in the KvK test environment.
+  "bedrijf-aanmaken-kvk-opgehaald": {
+    route: "/farm/create",
+    ready: { text: "Begin met je KvK-nummer" },
+    steps: [
+      { fill: { placeholder: "12345678" }, value: "68750110" },
+      { click: { role: "button", name: "Ophalen uit KvK" } },
+      { waitFor: { text: "Gegevens ingevuld vanuit het KvK Handelsregister" } },
+    ],
+  },
+  "perceel-pagina": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}",
+    ready: { text: "Perceelskaart", exact: true },
+    map: true,
+  },
+  "bouwplan-tabel": {
+    route: "/farm/{farm}/{year}/rotation",
+    ready: { text: "mais, snij-", exact: true },
+    // Expand the maize row to show its fields.
+    steps: [
+      { click: { selector: 'tbody tr:has-text("mais, snij-") td:first-child button' } },
+      { waitFor: { text: "Maïsakker", exact: true } },
+    ],
+  },
+  "bemesting-effect": {
+    route: "/farm/{farm}/{year}/field/{field:mais}/fertilizer",
+    ready: { text: "Nieuwe gift", exact: true },
+    // Fill in a gift; the effect appears next to the form without saving it.
+    steps: [
+      { click: { role: "combobox", name: "Meststof" } },
+      { type: "KAS" },
+      { click: { role: "option", name: "KAS", exact: true } },
+      { click: { text: "Selecteer een methode", exact: true } },
+      { click: { role: "option", name: "Breedwerpig uitstrooien" } },
+      { fill: { placeholder: "Bv. " }, value: "200" },
+      { fill: { placeholder: "Kies een datum" }, value: "15-04-{year}" },
+      { press: "Tab" },
+      { waitFor: { text: "Advies perceel", exact: true } },
+      { waitForHidden: { text: "Effect berekenen…" } },
+    ],
+    // The effect is below the list of gifts.
+    fullPage: true,
+  },
+  "meststoffen-lijst": {
+    route: "/farm/{farm}/fertilizers",
+    ready: { text: "Rundveedrijfmest", exact: true },
+  },
+  "bodem-perceel": {
+    route: "/farm/{farm}/{year}/field/{field:mais}/soil",
+    ready: { text: "Ander laboratorium" },
+  },
+  tijdlijn: {
+    // Starts on the dashboard and opens the timeline from the menu, so the browser draws it with
+    // the fixed clock; otherwise the "Vandaag" line would move every day.
+    route: "/farm/{farm}?calendar={year}",
+    ready: { role: "heading", name: "Demobedrijf De Proefhoeve" },
+    clock: "{year}-05-15T12:00:00+02:00",
+    steps: [
+      { click: { role: "link", name: "Tijdlijn" } },
+      { waitFor: { text: "Maïsakker" } },
+      // The quarterly view shows the whole year.
+      { click: { text: "Maandelijks", exact: true } },
+      { click: { role: "option", name: "Kwartaal" } },
+    ],
+  },
+  // The overview only: the details of a clicked parcel show the real crop history from the BRP.
+  "atlas-gewaspercelen": {
+    route: "/farm/{farm}/{year}/atlas/fields",
+    ready: { selector: ".maplibregl-canvas" },
+    map: true,
+  },
+  "balans-stikstof": {
+    route: "/farm/{farm}/{year}/balance/nitrogen",
+    ready: { text: "Aanvoer" },
+    // Fails when a field could not be calculated.
+    steps: [{ waitForHidden: { text: "Bekijk foutmelding" } }],
+  },
+  "gebruiksruimte-bedrijf": {
+    route: "/farm/{farm}/{year}/norms",
+    ready: { text: "Stikstof" },
+  },
+  "bemestingsadvies-perceel": {
+    route: "/farm/{farm}/{year}/nutrient_advice/{field:mais}",
+    ready: { text: "Risico voor opbrengst" },
+  },
+  "bodemkwaliteit-scores": {
+    route: "/farm/{farm}/{year}/indicators",
+    ready: { text: "Maïsakker" },
+  },
+  aanmelden: {
+    route: "/signin",
+    ready: { role: "button", name: "Aanmelden met e-mail" },
+    signedOut: true,
+  },
+  "mijn-bedrijven": {
+    route: "/farm",
+    ready: { text: "Demobedrijf De Proefhoeve" },
+  },
+  "bedrijf-aanmaken-shapefile": {
+    route: "/farm/create/{farm}/{year}/upload",
+    ready: { role: "button", name: "Uploaden" },
+  },
+  "bedrijf-aanmaken-kaart": {
+    route: "/farm/create/{farm}/{year}/atlas",
+    ready: { selector: ".maplibregl-canvas" },
+    map: true,
+  },
+  "bedrijf-aanmaken-percelen": {
+    route: "/farm/create/{farm}/{year}/fields",
+    ready: { text: "met bodemanalyse" },
+  },
+  "bedrijf-aanmaken-bouwplan": {
+    route: "/farm/create/{farm}/{year}/rotation",
+    ready: { text: "mais, snij-", exact: true },
+  },
+  "bedrijf-aanmaken-toegang": {
+    route: "/farm/create/{farm}/{year}/access",
+    ready: { text: "Demo Gebruiker" },
+  },
+  bedrijfsinstellingen: {
+    route: "/farm/{farm}/settings",
+    ready: { text: "Bedrijfsnaam" },
+  },
+  "percelen-lijst": {
+    route: "/farm/{farm}/{year}/field",
+    ready: { text: "Kleiakker" },
+  },
+  "gewas-toevoegen": {
+    route: "/farm/{farm}/{year}/field/{field:tarwe}/cultivation",
+    ready: { text: "Gewas toevoegen" },
+  },
+  "meststof-toevoegen": {
+    route: "/farm/{farm}/fertilizers/new/custom",
+    ready: { text: "Meststof opslaan" },
+  },
+  "bodemanalyses-uploaden": {
+    route: "/farm/{farm}/soil-analysis/bulk",
+    ready: { selector: "input[type=file]" },
+  },
+  "bodemanalyse-toevoegen": {
+    route: "/farm/{farm}/{year}/field/{field:mais}/soil/analysis/new",
+    ready: { text: "Standaard bodemanalyse" },
+  },
+  "atlas-hoogtekaart": {
+    route: "/farm/{farm}/{year}/atlas/elevation",
+    ready: { selector: ".maplibregl-canvas" },
+    // The legend shows its default range until the elevation data has loaded.
+    steps: [{ waitForHidden: { text: "-5.0m", exact: true } }],
+    map: true,
+  },
+  "balans-organische-stof": {
+    route: "/farm/{farm}/{year}/balance/organic-matter",
+    ready: { text: "Aanvoer" },
+    // Fails when a field could not be calculated.
+    steps: [{ waitForHidden: { text: "Bekijk foutmelding" } }],
+  },
+  "balans-fosfaat": {
+    route: "/farm/{farm}/{year}/balance/phosphate",
+    // Only shown when the farm balance was calculated, not in its error state
+    ready: { text: "Fosfaattoestand van de percelen" },
+    // Fails when a field could not be calculated.
+    steps: [{ waitForHidden: { text: "kon niet worden berekend" } }],
+  },
+  "gebruiksruimte-perceel": {
+    route: "/farm/{farm}/{year}/norms/{field:grasland-huiskavel}",
+    ready: { text: "Fosfaat" },
+  },
+  "bemestingsadvies-overzicht": {
+    route: "/farm/{farm}/{year}/nutrient_advice",
+    ready: { text: "Kleiakker" },
+  },
+  "bemestingsadvies-grasland": {
+    route: "/farm/{farm}/{year}/nutrient_advice/{field:grasland-huiskavel}",
+    ready: { text: "Risico voor opbrengst" },
+  },
+  maatregelen: {
+    route: "/farm/{farm}/{year}/measures",
+    ready: { text: "Maatregel" },
+  },
+  "toegang-delen": {
+    route: "/farm/{farm}/settings/access",
+    ready: { text: "Demo Gebruiker" },
+  },
+  "account-profiel": {
+    route: "/user/settings/profile",
+    ready: { text: "demo@example.com" },
+  },
+  "api-sleutels": {
+    route: "/user/settings/api-keys",
+    ready: { text: "Nieuwe sleutel" },
+  },
+  // A soil analysis with its sampling locations and zone: the Huiskavel is sampled as two zones.
+  "bodemanalyse-monsterpunten": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-huiskavel}/soil",
+    ready: { text: "Gemiddelde van 2 zones" },
+    map: true,
+  },
+  // BodemConditieScore: the Achterweide has two assessments, without photos.
+  "bcs-metingen": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs",
+    ready: { text: "Nieuwe meting toevoegen" },
+  },
+  "bcs-meting-starten": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs/new",
+    ready: { text: "pH en organische stof", exact: true },
+    // The date picker starts at today; a fixed date keeps the image the same between runs.
+    steps: [{ fill: { placeholder: "Kies een datum" }, value: "15-04-{year}" }, { press: "Tab" }],
+  },
+  "bcs-kenmerk-scoren": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs/new",
+    ready: { text: "pH en organische stof", exact: true },
+    steps: [
+      { click: { role: "button", name: "Volgende" } },
+      { waitFor: { text: "Wat beoordeel je?" } },
+      { click: { selector: 'button:has(span:text-is("Goed"))' } },
+    ],
+  },
+  "bcs-overzicht": {
+    route: "/farm/{farm}/{year}/field/{field:grasland-achter}/bcs",
+    ready: { text: "Nieuwe meting toevoegen" },
+    // The newest assessment is at the top of the list.
+    steps: [
+      { click: { selector: 'a[href*="/bcs/"]:not([href$="/new"])' } },
+      { waitFor: { role: "link", name: "Bewerken" } },
+    ],
+    // The partial scores run below the fold.
+    fullPage: true,
+  },
+  "atlas-bodemanalyses": {
+    route: "/farm/{farm}/{year}/atlas/soil-analysis",
+    ready: { selector: ".maplibregl-canvas" },
+    map: true,
+  },
+  // The review after reading lab reports; the reports are made up (see e2e/screenshots/mocks.ts).
+  "bodemanalyses-controleren": {
+    route: "/farm/{farm}/soil-analysis/bulk",
+    ready: { selector: "input[type=file]" },
+    mock: "soil-reader",
+    steps: [
+      { upload: { selector: "input[type=file]" } },
+      { click: { role: "button", name: "PDF's uitlezen" } },
+      { click: { role: "button", name: "Alles" } },
+      { waitFor: { text: "Bodemanalyse Lange akker.pdf" } },
+    ],
+  },
+  "bodemanalyses-aandacht": {
+    route: "/farm/{farm}/soil-analysis/bulk",
+    ready: { selector: "input[type=file]" },
+    mock: "soil-reader",
+    steps: [
+      { upload: { selector: "input[type=file]" } },
+      { click: { role: "button", name: "PDF's uitlezen" } },
+      { click: { role: "button", name: "Aandacht nodig" } },
+    ],
+  },
+  "veestapel-overzicht": {
+    ...GRAZING_DASHBOARD_START,
+    steps: [OPEN_MELKVEE, { waitFor: { text: "Al het vee bekijken" } }],
+  },
+  "beweiding-kalender": {
+    ...GRAZING_DASHBOARD_START,
+    steps: [OPEN_MELKVEE, OPEN_GRAZING_CALENDAR, { waitFor: { text: "Vastleggen voor:" } }],
+  },
+  "beweiding-zone-tekenen": {
+    ...GRAZING_FIELD_START,
+    steps: [
+      ...OPEN_ZONE_EDITOR,
+      // Move the pointer off the drawing toolbar, whose disabled buttons explain themselves in a tooltip
+      { hover: { text: "Leg de beweidingsperiode en uren vast voor dit perceel." } },
+    ],
+    element: { role: "dialog", name: "Beweiding" },
+    map: true,
+  },
+  "beweiding-strook": {
+    ...GRAZING_FIELD_START,
+    steps: [
+      ...OPEN_ZONE_EDITOR,
+      { click: { role: "button", name: "Strook berekenen" } },
+      { click: { role: "button", name: "Strook maken" } },
+      { waitFor: { text: "binnen het perceel" } },
+    ],
+    element: { role: "dialog", name: "Beweiding" },
+    map: true,
+  },
+  beweidingsplan: {
+    ...GRAZING_DASHBOARD_START,
+    // The plan's preview map loads after the steps; wait for it, or it shows as an empty box
+    map: true,
+    steps: [
+      OPEN_MELKVEE,
+      OPEN_GRAZING_CALENDAR,
+      { click: { role: "link", name: "Beweidingsplanner" } },
+      { click: { text: "Stripgrazen", exact: true } },
+      { click: { role: "button", name: "Stroken op de kaart" } },
+      { waitFor: { text: "Strook op de kaart", exact: true } },
+    ],
+  },
+  "beweiding-vandaag": {
+    // The map reads "today" from the browser when it first loads, so it opens through the
+    // dashboard action after the clock is fixed. The demo farm grazes the home plot in mid-June.
+    ...GRAZING_DASHBOARD_START,
+    steps: [
+      { click: { role: "link", name: "Beweiding vandaag" } },
+      // Without the weekday, which changes with the year of the run
+      { waitFor: { text: "15 juni" } },
+    ],
+    map: true,
+  },
+  "beweiding-inzichten": {
+    ...GRAZING_DASHBOARD_START,
+    steps: [
+      // The farm page links to the grazing calendar; Weidegang opens from the Melkvee overview
+      OPEN_MELKVEE,
+      { click: { role: "link", name: "Weidegang", exact: true } },
+      // A text of Weidegang only: the Weidemelk label is on the overview too
+      { waitFor: { text: "Weidedagen per maand" } },
+    ],
+  },
+} satisfies Record<string, CaptureDefinition>

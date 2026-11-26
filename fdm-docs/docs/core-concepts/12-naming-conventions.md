@@ -11,15 +11,17 @@ The same names are used throughout the stack: in the PostgreSQL database, in the
 
 Every domain column in the `fdm` schema begins with a prefix identifying its domain. The prefixes derive from Dutch agronomic terminology, which is why they are not always mnemonic in English.
 
-| Prefix  | Domain                                                                                                        | Examples                                                                          |
-| ------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `b_`    | Farm, field and business-level data (Dutch _bedrijf_, farm business)                                          | `b_id_farm`, `b_name_farm`, `b_id`, `b_geometry`, `b_soiltype_agr`, `b_gwl_class` |
-| `b_lu_` | Cultivation data (Dutch _landgebruik_, land use); a sub-namespace of `b_` used for anything describing a crop | `b_lu`, `b_lu_catalogue`, `b_lu_start`, `b_lu_end`, `b_lu_yield`, `b_lu_variety`  |
-| `p_`    | Fertilizer products and their application (Dutch _product_)                                                   | `p_id`, `p_id_catalogue`, `p_app_id`, `p_app_amount`, `p_app_method`, `p_n_rt`    |
-| `a_`    | Soil analysis parameters and soil imagery (_analysis_)                                                        | `a_id`, `a_date`, `a_source`, `a_p_al`, `a_som_loi`, `a_image_type`               |
-| `m_`    | Measures, meaning agronomic practices a farm can adopt                                                        | `m_id`, `m_name`, `m_start`, `m_end`, `m_stage_applicability`                     |
-| `l_`    | Livestock: animals, herds and barns (under development)                                                       | `l_id_animal`, `l_id_herd`, `l_species`, `l_birthdate`                            |
-| `f_`    | Feed and feed analysis (under development)                                                                    | `f_id_batch`, `f_dm`, `f_vem`, `f_cp`                                             |
+| Prefix  | Domain                                                                                                                            | Examples                                                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `b_`    | Farm, field and business-level data (Dutch _bedrijf_, farm business)                                                              | `b_id_farm`, `b_name_farm`, `b_id`, `b_geometry`, `b_soiltype_agr`, `b_gwl_class` |
+| `b_lu_` | Cultivation data (Dutch _landgebruik_, land use); a sub-namespace of `b_` used for anything describing a crop                     | `b_lu`, `b_lu_catalogue`, `b_lu_start`, `b_lu_end`, `b_lu_yield`, `b_lu_variety`  |
+| `p_`    | Fertilizer products and their application (Dutch _product_)                                                                       | `p_id`, `p_id_catalogue`, `p_app_id`, `p_app_amount`, `p_app_method`, `p_n_rt`    |
+| `a_`    | Soil analysis parameters and soil imagery (_analysis_)                                                                            | `a_id`, `a_date`, `a_source`, `a_p_al`, `a_som_loi`, `a_image_type`               |
+| `m_`    | Measures, meaning agronomic practices a farm can adopt                                                                            | `m_id`, `m_name`, `m_start`, `m_end`, `m_stage_applicability`                     |
+| `l_`    | Livestock: animals, herds, categories and housing (in development). Includes species, sex options and livestock-unit conversions. | `l_id_animal`, `l_id_herd`, `l_specie`, `l_sex_options`, `l_lsu`                  |
+| `f_`    | Feed, feed catalogues and feed analysis (under development)                                                                       | `f_id_batch`, `f_id_catalogue`, `f_dm`, `f_n_dm`, `f_p_dm`, `f_vem`, `f_cp`       |
+
+Note on livestock naming: the schema uses the singular column name `l_specie` (not `l_species`) and a set of supporting columns for livestock categories. `l_lsu` stores livestock units per animal (a numeric conversion factor used by `fdm-calculator` and reports), and `l_sex_options` holds the allowed sex codes for a catalogue category. The catalogue and selection tables are named `animal_categories_catalogue` (plural) and `animal_category_catalogue_selecting` (singular) respectively; callers should use the exact schema names shown in the reference.
 
 Only the two audit columns, `created` and `updated`, carry no prefix. They are present on every table in the `fdm` schema and record when a row was inserted and last modified.
 
@@ -31,7 +33,9 @@ The prefix system applies to the `fdm` schema, which holds the farm data model. 
 
 An asset's own identifier is `<prefix>_id` where that is unambiguous: `b_id` for a field, `p_id` for a fertilizer, `a_id` for a soil analysis, `m_id` for a measure. Where the prefix alone would be ambiguous, the entity is appended: `b_id_farm`, `b_id_harvesting`, `b_id_sampling`. Cultivations are the exception and use `b_lu` as their identifier.
 
-References to a catalogue entry end in `_catalogue`: `p_id_catalogue` points at a fertilizer in the fertilizer catalogue, `b_lu_catalogue` at a crop in the cultivation catalogue. See [Catalogues](./08-catalogues.md).
+References to a catalogue entry end in `_catalogue`: `p_id_catalogue` points at a fertilizer, `b_lu_catalogue` at a crop, and `f_id_catalogue` at a feed. See [Catalogues](./08-catalogues.md).
+
+Feed catalogue defaults use `f_dm` for g DM / kg fresh product, `f_n_dm` for g N / kg DM, and `f_p_dm` for g P2O5 / kg DM. Feed batch analysis fields such as `f_dm`, `f_cp`, `f_vem`, `f_oeb`, and `f_ndf` are measurements on the batch and are not catalogue defaults.
 
 Identifiers are 16-character random strings generated by the application, not sequential numbers. They are opaque and carry no meaning.
 
@@ -84,7 +88,7 @@ The gerund form of action tables is intentional: the row records that an event t
 
 **Audit timestamps.** Each table carries `created` and `updated`, both timestamps with time zone.
 
-**Lifecycle instead of deletion.** Assets are ended rather than removed, so that the recorded history remains valid. Ending is itself an action with its own table: `field_discarding` holds `b_end`, `cultivation_ending` holds `b_lu_end`, `fertilizer_picking` records when a fertilizer stock was taken out of use. Validity periods use the prefix of their domain: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. The end dates of fields (`b_end`) and measures (`m_end`) are the last day of the period, inclusive, in Europe/Amsterdam. fdm-core stores them as entered and returns an end date on 1 January as the end of 31 December of the previous year (see [Fields](./03-fields.md#start-and-end-dates)).
+**Lifecycle instead of deletion.** Assets are ended rather than removed, so that the recorded history remains valid. Ending is itself an action with its own table: `field_discarding` holds `b_end`, `cultivation_ending` holds `b_lu_end`. Validity periods use the prefix of their domain: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. The end dates of fields (`b_end`) and measures (`m_end`) are the last day of the period, inclusive, in Europe/Amsterdam. fdm-core stores them as entered and returns an end date on 1 January as the end of 31 December of the previous year (see [Fields](./03-fields.md#start-and-end-dates)).
 
 **Coded values.** Columns with a fixed set of options store stable machine codes, with the human-readable label supplied separately by the application. Where a national code list exists it is used unchanged, such as `nl_01` and `nl_02` for land tenure types and `HC010` and `HC020` for harvest categories. Codes are therefore stable across releases and translations.
 

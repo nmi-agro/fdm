@@ -14,7 +14,7 @@ import {
   FarmSummary,
 } from "~/components/blocks/mineralization/farm-overview"
 import { useSettledOutcomes } from "~/components/blocks/mineralization/use-settled-outcomes"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -25,7 +25,7 @@ import {
 } from "~/components/ui/empty"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
-  calculateFieldMineralization,
+  calculateFarmMineralization,
   getMineralizationTimeframe,
   getMineralizationYear,
   loadFarmMineralizationContext,
@@ -73,17 +73,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_id_farm,
       year,
     })
+    // All fields are calculated together, so they share the cache lookups and weather forecasts
+    const outcomesPromise = contextPromise.then((ctx) =>
+      calculateFarmMineralization(
+        ctx,
+        fields.map((field) => field.b_id),
+        session.principal_id,
+        b_id_farm,
+      ),
+    )
     // Rows handle a failed load themselves; without rows nothing else observes the promise
-    contextPromise.catch(() => undefined)
+    outcomesPromise.catch(() => undefined)
 
-    const rows = fields.map((field) => ({
+    const rows = fields.map((field, index) => ({
       b_id: field.b_id,
       b_name: field.b_name,
       b_area: field.b_area,
-      outcome: contextPromise
-        .then((ctx) =>
-          calculateFieldMineralization(ctx, field.b_id, session.principal_id, b_id_farm),
-        )
+      outcome: outcomesPromise
+        .then((outcomes) => outcomes[index])
         .catch((error: unknown): FieldMineralizationOutcome => {
           reportError(error, { page: "mineralization", scope: "farm-overview" })
           return {
@@ -162,9 +169,13 @@ function FarmOverview({
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button asChild>
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Percelen toevoegen</NavLink>
-          </Button>
+          <NavLink
+            to={`/farm/${b_id_farm}/${calendar}/field/new`}
+            className={buttonVariants({})}
+            data-slot="button"
+          >
+            Percelen toevoegen
+          </NavLink>
         </EmptyContent>
       </Empty>
     )

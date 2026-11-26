@@ -65,6 +65,71 @@ export function compareVersions(a: string, b: string): number {
  */
 export const changelogReleases: ChangelogRelease[] = [
   {
+    version: "v0.40.0",
+    date: "2026-11-26",
+    title: "Melkvee en beweiding, fosfaatbalans en lachgasemissie in de stikstofbalans",
+    description:
+      "U kunt nu uw melkvee en de beweiding per perceel vastleggen, de beweiding plannen en de weidegang over het jaar volgen. De stikstofbalans bevat de lachgasemissie, en er is een experimentele fosfaatbalans. Bodemanalyses onthouden de zone van het perceel waarin is bemonsterd, en u controleert de waarden uit een labrapport voordat ze worden opgeslagen. Verder zijn er een handleiding met schermafbeeldingen en een catalogus van alle bodemmaatregelen.",
+    items: [
+      {
+        title: "Melkvee vastleggen",
+        body: "In de zijbalk van een bedrijf staat het nieuwe onderdeel 'Melkvee'. Met 'Melkvee toevoegen' maakt u een koppel aan met een diercategorie, het aantal dieren en de dag sinds wanneer de dieren aanwezig zijn. Het overzicht toont het aantal dieren en GVE, de weidedagen, de voortgang voor Weidemelk en de beweiding van de afgelopen en de komende week. Op de pagina 'Vee' beheert u de koppels en de afzonderlijke dieren. Vult u bij een rund een Nederlands levensnummer in, dan wordt het werknummer daaruit overgenomen.",
+      },
+      {
+        title: "Beweidingskalender en beweidingszones",
+        body: "De 'Beweidingskalender' toont per graslandperceel elke dag van het weideseizoen, van 1 maart tot en met 31 oktober, met beweiding, maaien en bemesting. U legt een beweiding vast door op een dag te klikken of over meerdere dagen te slepen. Per beweiding kiest u het hele perceel, een zone die u op de kaart tekent, of een percentage van het perceel. Voor stripgrazen berekent de app een strook die past bij het koppel en bij de stroken van de afgelopen 28 dagen. De eerste beweiding in een jaar zet beweiding aan voor de stikstofgebruiksnorm van dat jaar. In de Atlas ziet u in de kaartlaag 'Beweiding' per dag welke percelen worden beweid, zijn gemaaid of rusten.",
+      },
+      {
+        title: "Beweidingsplanner en weidegang",
+        body: "Met de 'Beweidingsplanner' maakt u een plan voor een graslandgebruikssysteem, zoals standweiden of Nieuw Nederlands Weiden. Kan een periode uit het plan niet worden vastgelegd, bijvoorbeeld omdat het koppel die dag al 24 uur weidt of omdat er op het perceel geen grasteelt staat, dan slaat de planner die periode over en meldt de reden. Op de pagina 'Weidegang' volgt u de weidedagen en weide-uren van het jaar, waaronder de voortgang voor Weidemelk (120 dagen × 6 uur). Per perceel ziet u de rust vóór elk gebruik in groeidagen. De app geeft daar geen oordeel over, omdat de grasgroei niet wordt berekend.",
+      },
+      {
+        title: "Fosfaatbalans (experimenteel)",
+        body: "Onder 'Balans' staat de nieuwe pagina 'Fosfaat', voor het bedrijf, per perceel en voor organisaties. De balans kijkt naar het gemiddelde van de laatste vijf jaar en naar de fosfaattoestand van de bodem. Per perceel ziet u of de bodemvoorraad binnen de streefzone ligt, in welke richting deze beweegt en hoe lang dat duurt, met het oordeel 'Goed', 'Aandacht' of 'Bijsturen'. Bufferstroken en natuur- en landschapselementen tellen niet mee. De fosfaatbalans is experimenteel: de rekenregels en parameters zijn voorlopig en kunnen nog wijzigen.",
+      },
+      {
+        title: "Lachgasemissie in de stikstofbalans",
+        body: "De stikstofbalans van een perceel, bedrijf en organisatie toont nu de directe lachgasemissie (N₂O) uit meststoffen, gewasresten en veen- en moerige gronden, in kg N/ha en als CO₂-equivalent. De lachgasemissie telt mee in de balans. Het overschot wordt daardoor lager dan in de vorige versie, en de berekende nitraatuitspoeling ook. De indirecte lachgasemissie wordt niet berekend. Beide balansen, voor stikstof en voor organische stof, gebruiken nu ook bodemanalyses van vóór de gekozen periode, net als de gebruiksnormen en het bemestingsadvies. Voor percelen met een oudere analyse kan de uitkomst daardoor veranderen.",
+      },
+      {
+        title: "Bodemanalyses per zone van een perceel",
+        body: "Een bodemanalyse uit een pdf-rapport bewaart nu waar is bemonsterd: de monsterpunten en de zone van het perceel waarvoor de analyse geldt. Is een perceel in meerdere zones bemonsterd, dan rekent de app met het naar oppervlakte gewogen gemiddelde van de zones en staat bij de waarde 'Gemiddelde van N zones' met de waarde per zone. Dekken de zones minder dan 95% van het perceel, dan ziet u dat bij de waarde. Op de bodempagina van een perceel staat een kaart met alle analyses, en in de Atlas kunt u de zones en monsterpunten tonen met 'Toon bemonstering'.",
+      },
+      {
+        title: "Labrapporten controleren vóór het opslaan",
+        body: "Bij het uploaden van een pdf-rapport wordt het rapport eerst gelezen. Daarna ziet u de waarden naast de pdf en kunt u ze controleren en aanvullen voordat ze worden opgeslagen. Waarden die niet zijn gevonden staan in een lijst, en waarden buiten het gebruikelijke bereik zijn gemarkeerd. Uploadt u de rapporten van veel percelen tegelijk, dan ziet u de voortgang en begint de controle met de analyses die aandacht vragen, bijvoorbeeld omdat het perceel ontbreekt of de analyse al bestaat. Een bodemanalyse opent in een leesweergave; met 'Bewerken' past u de waarden aan. Verwijderen vraagt eerst om bevestiging.",
+      },
+      {
+        title: "Maatregelencatalogus",
+        body: "Op de pagina 'Maatregelen' van een bedrijf opent de knop 'Maatregelencatalogus' een doorzoekbare lijst van alle bodemmaatregelen. U kunt filteren op status, soort effect, kosten en thema. Per maatregel ziet u op hoeveel percelen van het bedrijf deze in het gekozen jaar is toegepast, wordt aanbevolen of toepasbaar is. De detailpagina beschrijft de maatregel, de indicatoren waarop deze effect heeft en de voorwaarden. Met 'Toevoegen aan percelen' voegt u de maatregel toe aan de aanbevolen percelen. Een maatregel wordt alleen nog aanbevolen op percelen waar het effect positief is.",
+      },
+      {
+        title: "Handleiding met schermafbeeldingen",
+        body: "Er is een handleiding met een hoofdstuk voor elk onderdeel van de app en achtergrondpagina's over de berekeningen, zoals de balansen, de gebruiksnormen, het bemestingsadvies en de bodemkwaliteit. De schermafbeeldingen worden bij elke versie opnieuw gemaakt met een fictief bedrijf. U opent de handleiding met 'Handleiding' in de zijbalk, of met de knop met het vraagteken op een pagina, die naar het bijbehorende hoofdstuk gaat. De handleiding is ook zonder inloggen te lezen.",
+      },
+      {
+        title: "AI-assistent koppelen",
+        body: `Op de nieuwe accountpagina 'AI-assistenten' leest u hoe u een AI-assistent, zoals Claude, met een API-sleutel koppelt aan ${clientConfig.name}. De assistent kan daarna uw bedrijfsgegevens opvragen, berekeningen uitvoeren en gegevens invoeren. Let op: een assistent kan ook gegevens wijzigen en verwijderen, en of deze eerst om bevestiging vraagt, hangt af van de assistent. Uw gegevens gaan naar de aanbieder van de assistent. De pagina beschrijft deze risico's en hoe u een koppeling weer stopt.`,
+      },
+      {
+        title: "Meer gegevens beschikbaar via de API",
+        body: "Via de API zijn nu ook het bemestingsadvies, het bemestingsplan, eigen meststoffen, het inlezen van labrapporten, het importeren van percelen uit een shapefile en de overzichten van organisaties en bedrijfsgroepen beschikbaar. De opbouw van de actuele bodemgegevens in de API is gewijzigd; bestaande koppelingen moeten daarop worden aangepast. Per API-sleutel zijn nu 120 wijzigingen per minuut mogelijk. Meer informatie vindt u in de documentatie van de API.",
+      },
+      {
+        title: "Pagina's openen sneller",
+        body: "Bij het openen van een pagina ziet u een smalle voortgangsbalk bovenaan in plaats van het vervaagde scherm 'Even geduld…'; dat verschijnt alleen nog als het laden langer dan 2 seconden duurt. Nadat u het dashboard van een bedrijf hebt geopend, berekent de app op de achtergrond alvast de indicatoren, de maatregelen, het bemestingsadvies, de gebruiksruimte en de balansen, zodat die pagina's hun resultaten meestal direct tonen. Op bedrijven met veel percelen laden onder meer de percelentabel, de teeltpagina's en de organisatieoverzichten sneller.",
+      },
+      {
+        title: "Toegang delen met het e-mailadres",
+        body: "Wilt u iemand toegang geven tot een bedrijf, dan vult u het volledige e-mailadres van die persoon in. Zoeken op naam of gebruikersnaam is voor personen niet meer mogelijk. Organisaties voegt u nog steeds toe op naam.",
+      },
+      {
+        title: "Kleine verbeteringen",
+        body: "Een bemesting kan niet groter zijn dan 100.000 kg/ha; het formulier toont het maximum in de eenheid van de gekozen meststof. Voor een perceel zonder hoofdteelt in het gekozen jaar worden de indicatoren en de maatregelen niet berekend, en de pagina's leggen dat uit. Voegt u een maatregel toe die al op het perceel loopt, dan krijgt u een waarschuwing in plaats van een foutmelding. De 'Hoogtekaart' in de Atlas is technisch vernieuwd; uitschieters zoals dijken en slootbodems bepalen de kleurschaal niet meer. In de Tijdlijn kunt u een bemesting naar een andere teelt slepen. Pagina's lopen niet meer vast wanneer uw browser de app vertaalt, en een uitnodiging van een organisatie die niet meer geldig is, legt uit waarom. De aanmeldpagina en de welkomstmail zijn vernieuwd.",
+      },
+    ],
+  },
+  {
     version: "v0.39.0",
     date: "2026-10-28",
     title:

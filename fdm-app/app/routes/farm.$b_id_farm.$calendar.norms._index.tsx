@@ -8,6 +8,7 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -17,10 +18,10 @@ import { FarmNorms } from "~/components/blocks/norms/farm-norms"
 import { FieldNorms } from "~/components/blocks/norms/field-norms"
 import { NormsDisclaimer } from "~/components/blocks/norms/norms-disclaimer"
 import { NormsFallback } from "~/components/blocks/norms/skeletons"
+import { PageContainer } from "~/components/custom/page-container"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
   calculateFarmNorms,
@@ -36,6 +37,9 @@ import { fdm } from "~/lib/fdm.server"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 // Meta
+
+export const handle: HelpHandle = { help: "gebruiksruimte" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Gebruiksruimte - Bedrijf | ${clientConfig.name}` },
@@ -146,13 +150,14 @@ export default function FarmNormsBlock() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderNorms b_id_farm={loaderData.b_id_farm} />
       </Header>
-      <main>
+      <div>
         <FarmTitle
+          help="gebruiksruimte"
           title={"Gebruiksruimte"}
           description={"Bekijk de gebruiksruimte en opvulling voor je bedrijf en percelen."}
         >
@@ -164,8 +169,8 @@ export default function FarmNormsBlock() {
         >
           <Norms {...loaderData} />
         </Suspense>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

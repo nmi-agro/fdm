@@ -31,6 +31,7 @@ import {
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
@@ -44,6 +45,7 @@ import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { PageContainer } from "~/components/custom/page-container"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog"
-import { Button } from "~/components/ui/button"
+import { Button, buttonVariants } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import {
   Dialog,
@@ -63,8 +65,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useHydrated } from "~/hooks/use-hydrated"
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -73,7 +75,7 @@ import { fdm } from "~/lib/fdm.server"
 import { getGerritUsage } from "~/lib/gerrit-limit.server"
 import PostHogClient from "~/posthog.server"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "gerrit" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -166,17 +168,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const posthog = PostHogClient()
 
-  // If Gerrit is explicitly disabled for this user reject the request
-  let isGerritEnabled = false
+  // Gerrit is enabled by default, matching the Gerrit API routes; reject the request only when the
+  // flag explicitly disables it for this user. Without PostHog there are no flags, so Gerrit stays
+  // enabled. If evaluating the flags fails, the request is blocked (fail-closed).
+  let isGerritEnabled = !posthog
   try {
-    isGerritEnabled =
-      (
-        await posthog?.evaluateFlags(session.principal_id, {
-          flagKeys: ["gerrit"],
-        })
-      )?.isEnabled("gerrit") ?? false
+    if (posthog) {
+      isGerritEnabled =
+        (
+          await posthog.evaluateFlags(session.principal_id, {
+            flagKeys: ["gerrit"],
+          })
+        )?.isEnabled("gerrit", { defaultValue: true }) ?? true
+    }
   } catch {
-    // PostHog unavailable — default to blocked (fail-closed)
+    // Flag evaluation failed — default to blocked (fail-closed)
   }
   if (!isGerritEnabled) {
     throw data(null, {
@@ -290,7 +296,12 @@ export default function GerritApp() {
 
   const supportedYears = ["2025", "2026"]
   const isSupportedYear = supportedYears.includes(calendar)
-  const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? false
+  // Gerrit is enabled by default; only an explicit `false` flag disables it. Until hydration has
+  // finished, keep it enabled so the browser renders the same markup as the server, which has no
+  // feature flags.
+  const isHydrated = useHydrated()
+  const gerritFlag = useFeatureFlagEnabled("gerrit")
+  const isGerritEnabled = isHydrated ? (gerritFlag ?? true) : true
 
   // Optimistic usage counter: increments when generation starts, reverts on
   // error. This makes the counter immediately reflect an in-flight request
@@ -633,7 +644,7 @@ export default function GerritApp() {
 
   if (isGerritEnabled === false) {
     return (
-      <SidebarInset>
+      <PageContainer>
         <Header action={headerAction}>
           <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
         </Header>
@@ -652,14 +663,14 @@ export default function GerritApp() {
             </div>
           </div>
         </FarmContent>
-      </SidebarInset>
+      </PageContainer>
     )
   }
 
   if (!isSupportedYear) {
     return (
       <>
-        <SidebarInset>
+        <PageContainer>
           <Header action={headerAction}>
             <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
           </Header>
@@ -675,17 +686,25 @@ export default function GerritApp() {
                   en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Button asChild size="lg">
-                    <a href={`/farm/${farm.b_id_farm}/2025/gerrit`}>Switch naar 2025</a>
-                  </Button>
-                  <Button asChild size="lg">
-                    <a href={`/farm/${farm.b_id_farm}/2026/gerrit`}>Switch naar 2026</a>
-                  </Button>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2025/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2025
+                  </a>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2026/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2026
+                  </a>
                 </div>
               </div>
             </div>
           </FarmContent>
-        </SidebarInset>
+        </PageContainer>
         {blockerDialog}
       </>
     )
@@ -693,7 +712,7 @@ export default function GerritApp() {
 
   return (
     <>
-      <SidebarInset>
+      <PageContainer>
         <Header action={headerAction}>
           <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
         </Header>
@@ -795,7 +814,7 @@ export default function GerritApp() {
                   toggleRow={toggleRow}
                 />
               ) : (
-                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center border-dashed p-12 text-center">
+                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center gap-0 border-dashed p-12 text-center">
                   <div className="bg-primary/10 mb-6 rounded-full p-6">
                     <Bot className="text-primary h-12 w-12 opacity-80" />
                   </div>
@@ -812,10 +831,10 @@ export default function GerritApp() {
             </div>
           </div>
         </FarmContent>
-      </SidebarInset>
+      </PageContainer>
       {blockerDialog}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
-        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />

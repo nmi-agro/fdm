@@ -1,3 +1,4 @@
+import { cn } from "cn"
 import {
   AlertTriangle,
   ArrowDown,
@@ -8,7 +9,6 @@ import {
   Sprout,
   TriangleAlert,
 } from "lucide-react"
-import { cn } from "~/lib/utils"
 import type { FieldImpactStatus } from "./aggregate"
 import { InfoTip } from "./info-tip"
 

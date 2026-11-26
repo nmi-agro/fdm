@@ -1,5 +1,6 @@
+import { cn } from "cn"
 import { ChevronDown, ChevronRight, CornerDownRight, Info } from "lucide-react"
-import { useState } from "react"
+import { CSSProperties, useState } from "react"
 import { Link } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
@@ -21,7 +22,6 @@ import {
   getScoreVerdict,
   scoreToDisplay,
 } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
 
 type FieldEntry = {
   b_id: string
@@ -79,10 +79,10 @@ export function AggregationTree({
     const colorClass = getScoreBarClass(score100)
     // Extract the color name from the bg- class (e.g. bg-emerald-500 -> emerald-500)
     // to pass to our modified Progress component.
-    const colorBar = colorClass.replace("bg-", "")
+    const colorBar = `var(--color-${colorClass.replace("bg-", "")})`
     return (
       <div className="w-24 shrink-0 sm:w-32">
-        <Progress value={score100} colorBar={colorBar} />
+        <Progress value={score100} style={{ "--color-primary": colorBar } as CSSProperties} />
       </div>
     )
   }
@@ -139,13 +139,15 @@ export function AggregationTree({
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Info
-                  className="text-muted-foreground/60 h-3.5 w-3.5 shrink-0 cursor-help"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                />
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Info
+                    className="text-muted-foreground/60 h-3.5 w-3.5 shrink-0 cursor-help"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  />
+                }
+              />
               <TooltipContent
                 side="top"
                 className="bg-popover text-popover-foreground max-w-70 border p-2 text-xs shadow-md"
@@ -188,7 +190,7 @@ export function AggregationTree({
       >
         {/* Node row — the entire row is the single trigger when collapsible */}
         {isCollapsible ? (
-          <CollapsibleTrigger asChild>{nodeContent}</CollapsibleTrigger>
+          <CollapsibleTrigger nativeButton={false} render={nodeContent} />
         ) : (
           nodeContent
         )}
@@ -253,39 +255,39 @@ export function AggregationTree({
                     onOpenChange={(open) => toggleNode(indKey, open)}
                     className="space-y-0.5"
                   >
-                    <CollapsibleTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => onIndicatorClick?.(indId)}
-                        className={cn(
-                          "bg-card hover:bg-muted/40 flex w-full items-center justify-between gap-3 rounded-md border border-dashed p-2 text-left text-xs transition-colors",
-                          hasFieldData ? "cursor-pointer" : "",
-                        )}
-                        style={{
-                          paddingLeft: indHeaderPl,
-                        }}
-                      >
-                        <div className="flex min-w-0 items-center gap-2">
-                          {hasFieldData ? (
-                            isIndExpanded ? (
-                              <ChevronDown className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                            ) : (
-                              <ChevronRight className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                            )
+                    <CollapsibleTrigger
+                      type="button"
+                      onClick={() => onIndicatorClick?.(indId)}
+                      className={cn(
+                        "bg-card hover:bg-muted/40 flex w-full items-center justify-between gap-3 rounded-md border border-dashed p-2 text-left text-xs transition-colors",
+                        hasFieldData ? "cursor-pointer" : "",
+                      )}
+                      style={{
+                        paddingLeft: indHeaderPl,
+                      }}
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        {hasFieldData ? (
+                          isIndExpanded ? (
+                            <ChevronDown className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                           ) : (
-                            <div className="w-3.5 shrink-0" />
-                          )}
-                          <Badge variant="secondary" className="h-5 px-1.5 py-0 font-mono text-xs">
-                            {indId}
-                          </Badge>
-                          <span className="text-foreground/90 truncate font-medium">
-                            {indInfo.name}
-                          </span>
+                            <ChevronRight className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+                          )
+                        ) : (
+                          <div className="w-3.5 shrink-0" />
+                        )}
+                        <Badge variant="secondary" className="h-5 px-1.5 py-0 font-mono text-xs">
+                          {indId}
+                        </Badge>
+                        <span className="text-foreground/90 truncate font-medium">
+                          {indInfo.name}
+                        </span>
 
-                          {otherImpacted.length > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
+                        {otherImpacted.length > 0 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
                                   <Badge
                                     variant="outline"
                                     className="text-muted-foreground h-5 cursor-help px-1.5 py-0 text-xs font-medium"
@@ -293,38 +295,36 @@ export function AggregationTree({
                                     + {otherImpacted.length}{" "}
                                     {otherImpacted.length === 1 ? "ander thema" : "andere thema's"}
                                   </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-popover text-popover-foreground border shadow-md">
-                                  <p className="mb-1 text-xs font-semibold">
-                                    Heeft ook invloed op:
-                                  </p>
-                                  <ul className="text-muted-foreground list-disc pl-4">
-                                    {otherImpacted.map((oi) => (
-                                      <li key={oi}>{oi}</li>
-                                    ))}
-                                  </ul>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-3">
-                          {indDisplay !== null ? (
-                            <>
-                              <span className="w-6 text-right font-semibold tabular-nums">
-                                {indDisplay}
-                              </span>
-                              {renderScoreBar(indDisplay)}
-                              <span
-                                className={cn("h-2 w-2 rounded-full", getScoreDotClass(indDisplay))}
+                                }
                               />
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground text-xs italic">geen data</span>
-                          )}
-                        </div>
-                      </button>
+                              <TooltipContent className="bg-popover text-popover-foreground border shadow-md">
+                                <p className="mb-1 text-xs font-semibold">Heeft ook invloed op:</p>
+                                <ul className="text-muted-foreground list-disc pl-4">
+                                  {otherImpacted.map((oi) => (
+                                    <li key={oi}>{oi}</li>
+                                  ))}
+                                </ul>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-3">
+                        {indDisplay !== null ? (
+                          <>
+                            <span className="w-6 text-right font-semibold tabular-nums">
+                              {indDisplay}
+                            </span>
+                            {renderScoreBar(indDisplay)}
+                            <span
+                              className={cn("h-2 w-2 rounded-full", getScoreDotClass(indDisplay))}
+                            />
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground text-xs italic">geen data</span>
+                        )}
+                      </div>
                     </CollapsibleTrigger>
 
                     {hasFieldData && (

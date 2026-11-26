@@ -8,16 +8,19 @@ import {
   useSearchParams,
 } from "react-router"
 import { redirectWithError } from "remix-toast"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
 import type { Route } from "./+types/farm.$b_id_farm.fertilizers.new"
+
+export const handle: HelpHandle = { help: "meststoffen" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -104,7 +107,7 @@ export default function FarmFertilizerBlock({ params: _params }: Route.Component
   const returnUrl = returnUrlParam ? stripDataSuffixFromAddress(returnUrlParam) : null
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={
           returnUrl
@@ -127,11 +130,11 @@ export default function FarmFertilizerBlock({ params: _params }: Route.Component
           fertilizerOptions={[]}
         />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6">
           <Outlet />
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

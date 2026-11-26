@@ -1,104 +1,38 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import type {
-  addFertilizer,
-  FdmType,
-  Fertilizer,
-  FertilizerCatalogue,
-  getFertilizer,
-  getFertilizers,
-  getFertilizersFromCatalogue,
-  removeFertilizer,
-} from "@nmi-agro/fdm-core"
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
-import { ApiError } from "../error"
+import type { ApiEnv } from "../types"
+import {
+  CreateCustomFertilizerBodySchema,
+  CreateFertilizerBodySchema,
+  createCustomFertilizer,
+  createFertilizer,
+  deleteFertilizer,
+  FertilizerFarmParamsSchema,
+  FertilizerParamsSchema,
+  FertilizerSchema,
+  type FertilizerServices,
+  getFertilizer,
+  listFarmFertilizers,
+  UpdateCustomFertilizerBodySchema,
+  updateCustomFertilizer,
+} from "../operations/fertilizers"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
-  DateStringSchema,
   PaginationQuerySchema,
   paginatedResponse,
   paginatedSchema,
-  serializeDate,
   writeErrorResponses,
 } from "../schemas"
-import { FertilizerCatalogueSchema } from "./catalogues"
+import { operationContext } from "./operation-context"
+
+export type { FertilizerServices } from "../operations/fertilizers"
 
 const WRITE_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"])
-const FERTILIZER_NUMERIC_FIELDS = [
-  "p_dm",
-  "p_density",
-  "p_om",
-  "p_a",
-  "p_hc",
-  "p_eom",
-  "p_eoc",
-  "p_c_rt",
-  "p_c_of",
-  "p_c_if",
-  "p_c_fr",
-  "p_cn_of",
-  "p_n_rt",
-  "p_n_if",
-  "p_n_of",
-  "p_n_wc",
-  "p_no3_rt",
-  "p_nh4_rt",
-  "p_p_rt",
-  "p_k_rt",
-  "p_mg_rt",
-  "p_ca_rt",
-  "p_ne",
-  "p_s_rt",
-  "p_s_wc",
-  "p_cu_rt",
-  "p_zn_rt",
-  "p_na_rt",
-  "p_si_rt",
-  "p_b_rt",
-  "p_mn_rt",
-  "p_ni_rt",
-  "p_fe_rt",
-  "p_mo_rt",
-  "p_co_rt",
-  "p_as_rt",
-  "p_cd_rt",
-  "p_cr_rt",
-  "p_cr_vi",
-  "p_pb_rt",
-  "p_hg_rt",
-  "p_cl_rt",
-  "p_ef_nh3",
-] as const
-
-/** Defines the fertilizer data access functions required by the fertilizer routes. */
-export interface FertilizerServices {
-  getFertilizers: typeof getFertilizers
-  addFertilizer: typeof addFertilizer
-  getFertilizer: typeof getFertilizer
-  removeFertilizer: typeof removeFertilizer
-  getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
-}
-
-const FertilizerSchema = z
-  .object({
-    p_id: z.string(),
-    p_date_acquiring: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    p_picking_date: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    p_app_amount: z.number().nullable(),
-    ...FertilizerCatalogueSchema.shape,
-  })
-  .openapi("Fertilizer")
-
-const CreateFertilizerBodySchema = z
-  .object({
-    p_id_catalogue: z.string().describe("Fertilizer catalogue identifier."),
-    p_acquiring_amount: z.number().optional().nullable().describe("Acquired amount in kg."),
-    p_acquiring_date: DateStringSchema.optional().nullable().describe("Date in YYYY-MM-DD format."),
-  })
-  .openapi("CreateFertilizer")
 
 const listFertilizersRoute = createRoute({
+  operationId: listFarmFertilizers.name,
   method: "get",
   path: "/farms/{b_id_farm}/fertilizers",
   tags: ["Fertilizers"],
@@ -106,7 +40,7 @@ const listFertilizersRoute = createRoute({
   description: "Returns all fertilizers acquired for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: FertilizerFarmParamsSchema,
     query: PaginationQuerySchema,
   },
   responses: {
@@ -123,6 +57,7 @@ const listFertilizersRoute = createRoute({
 })
 
 const createFertilizerRoute = createRoute({
+  operationId: createFertilizer.name,
   method: "post",
   path: "/farms/{b_id_farm}/fertilizers",
   tags: ["Fertilizers"],
@@ -130,7 +65,7 @@ const createFertilizerRoute = createRoute({
   description: "Creates a fertilizer acquisition for the specified farm.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_farm: z.string() }),
+    params: FertilizerFarmParamsSchema,
     body: {
       content: {
         "application/json": { schema: CreateFertilizerBodySchema },
@@ -147,14 +82,71 @@ const createFertilizerRoute = createRoute({
   },
 })
 
+const createCustomFertilizerRoute = createRoute({
+  operationId: createCustomFertilizer.name,
+  method: "post",
+  path: "/farms/{b_id_farm}/fertilizers/custom",
+  tags: ["Fertilizers"],
+  summary: "Create a custom fertilizer",
+  description:
+    "Creates a fertilizer with its own composition, available only to this farm, and acquires it for the farm. Properties that are omitted are stored as unknown (`null`). When `p_type` is omitted, it is derived from the other fertilizers of the farm with the same `p_type_rvo`. When `p_app_amount_unit` is omitted, `kg/ha` is used.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: FertilizerFarmParamsSchema,
+    body: {
+      content: {
+        "application/json": { schema: CreateCustomFertilizerBodySchema },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    201: {
+      description: "Custom fertilizer created and acquired.",
+      content: { "application/json": { schema: FertilizerSchema } },
+    },
+    ...writeErrorResponses,
+  },
+})
+
+const updateCustomFertilizerRoute = createRoute({
+  operationId: updateCustomFertilizer.name,
+  method: "patch",
+  path: "/fertilizers/{p_id}",
+  tags: ["Fertilizers"],
+  summary: "Update a custom fertilizer",
+  description:
+    "Updates the properties of a custom fertilizer, one created with `POST /farms/{b_id_farm}/fertilizers/custom`. Only the properties in the body change. Fertilizers from a standard catalogue cannot be changed and return `422`.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  "x-badges": [{ name: "New", color: "#16a34a" }],
+  request: {
+    params: FertilizerParamsSchema,
+    body: {
+      content: {
+        "application/json": { schema: UpdateCustomFertilizerBodySchema },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "The updated fertilizer.",
+      content: { "application/json": { schema: FertilizerSchema } },
+    },
+    ...writeErrorResponses,
+  },
+})
+
 const getFertilizerRoute = createRoute({
+  operationId: getFertilizer.name,
   method: "get",
   path: "/fertilizers/{p_id}",
   tags: ["Fertilizers"],
   summary: "Get a fertilizer",
   description: "Returns a single fertilizer by ID.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_id: z.string() }) },
+  request: { params: FertilizerParamsSchema },
   responses: {
     200: {
       description: "The requested fertilizer.",
@@ -165,52 +157,19 @@ const getFertilizerRoute = createRoute({
 })
 
 const deleteFertilizerRoute = createRoute({
+  operationId: deleteFertilizer.name,
   method: "delete",
   path: "/fertilizers/{p_id}",
   tags: ["Fertilizers"],
   summary: "Delete a fertilizer",
   description: "Permanently deletes a fertilizer.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ p_id: z.string() }) },
+  request: { params: FertilizerParamsSchema },
   responses: {
     204: { description: "Fertilizer deleted." },
     ...commonErrorResponses,
   },
 })
-
-function serialiseFertilizerCatalogueBase(fertilizer: Fertilizer | FertilizerCatalogue) {
-  const serialised: Record<string, unknown> = {
-    p_id_catalogue: fertilizer.p_id_catalogue,
-    p_source: fertilizer.p_source,
-    p_name_nl: fertilizer.p_name_nl ?? null,
-    p_name_en: fertilizer.p_name_en ?? null,
-    p_description: fertilizer.p_description ?? null,
-    p_app_method_options: fertilizer.p_app_method_options ?? null,
-    p_app_amount_unit: fertilizer.p_app_amount_unit,
-    p_type: fertilizer.p_type ?? null,
-    p_type_rvo: fertilizer.p_type_rvo ?? null,
-  }
-  for (const field of FERTILIZER_NUMERIC_FIELDS) {
-    serialised[field] = fertilizer[field] ?? null
-  }
-  return serialised
-}
-
-function serialiseFertilizer(fertilizer: Fertilizer) {
-  const withLegacyNames = fertilizer as Fertilizer & {
-    p_acquiring_date?: Date | string | null
-    p_acquiring_amount?: number | null
-  }
-  return {
-    p_id: fertilizer.p_id,
-    p_date_acquiring: serializeDate(
-      fertilizer.p_date_acquiring ?? withLegacyNames.p_acquiring_date ?? null,
-    ),
-    p_picking_date: serializeDate(fertilizer.p_picking_date),
-    p_app_amount: fertilizer.p_app_amount ?? withLegacyNames.p_acquiring_amount ?? null,
-    ...serialiseFertilizerCatalogueBase(fertilizer),
-  }
-}
 
 /**
  * Registers the fertilizer CRUD routes on the API application.
@@ -239,64 +198,77 @@ export function registerFertilizerRoutes(
   )
 
   const listFertilizersHandler: RouteHandler<typeof listFertilizersRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof FertilizerFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const fertilizers = await services.getFertilizers(
-      fdm,
-      principal.effectivePrincipalId,
-      b_id_farm,
-    )
-    return c.json(paginatedResponse(fertilizers.map(serialiseFertilizer), limit, offset), 200)
+    const fertilizers = await listFarmFertilizers.run(operationContext(c, fdm, services), params)
+    return c.json(paginatedResponse(fertilizers, limit, offset), 200)
   }
 
   const createFertilizerHandler: RouteHandler<typeof createFertilizerRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
+    const params = c.req.valid("param") as z.infer<typeof FertilizerFarmParamsSchema>
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateFertilizerBodySchema>
-    const p_id = await services.addFertilizer(
-      fdm,
-      principal.effectivePrincipalId,
-      body.p_id_catalogue,
-      b_id_farm,
-      body.p_acquiring_amount ?? undefined,
-      body.p_acquiring_date ? new Date(body.p_acquiring_date) : undefined,
-    )
-    const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
-    if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
-      throw new ApiError(500, "internal-error", "Fertilizer created but could not be retrieved.")
-    }
+    const fertilizer = await createFertilizer.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
     const createdUrl = new URL(c.req.url)
     const basePath = createdUrl.pathname.replace(/\/+fertilizers.*$/, "")
-    c.header("Location", `${createdUrl.origin}${basePath}/fertilizers/${p_id}`)
-    return c.json(serialiseFertilizer(fertilizer), 201)
+    c.header("Location", `${createdUrl.origin}${basePath}/fertilizers/${fertilizer.p_id}`)
+    return c.json(fertilizer, 201)
+  }
+
+  const createCustomFertilizerHandler: RouteHandler<typeof createCustomFertilizerRoute> = async (
+    c,
+  ) => {
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const params = c.req.valid("param") as z.infer<typeof FertilizerFarmParamsSchema>
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const body = c.req.valid("json") as z.infer<typeof CreateCustomFertilizerBodySchema>
+    const fertilizer = await createCustomFertilizer.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    const createdUrl = new URL(c.req.url)
+    const basePath = createdUrl.pathname.replace(/\/+farms\/.*$/, "")
+    c.header("Location", `${createdUrl.origin}${basePath}/fertilizers/${fertilizer.p_id}`)
+    return c.json(fertilizer, 201)
+  }
+
+  const updateCustomFertilizerHandler: RouteHandler<typeof updateCustomFertilizerRoute> = async (
+    c,
+  ) => {
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const params = c.req.valid("param") as z.infer<typeof FertilizerParamsSchema>
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const body = c.req.valid("json") as z.infer<typeof UpdateCustomFertilizerBodySchema>
+    const fertilizer = await updateCustomFertilizer.run(operationContext(c, fdm, services), {
+      ...params,
+      ...body,
+    })
+    return c.json(fertilizer, 200)
   }
 
   const getFertilizerHandler: RouteHandler<typeof getFertilizerRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { p_id } = c.req.valid("param") as { p_id: string }
-    const fertilizer = await services.getFertilizer(fdm, p_id, principal.effectivePrincipalId)
-    if (!(fertilizer as Partial<Fertilizer>)?.p_id) {
-      throw new ApiError(404, "not-found", `Fertilizer '${p_id}' not found.`)
-    }
-    return c.json(serialiseFertilizer(fertilizer), 200)
+    const params = c.req.valid("param") as z.infer<typeof FertilizerParamsSchema>
+    return c.json(await getFertilizer.run(operationContext(c, fdm, services), params), 200)
   }
 
   const deleteFertilizerHandler: RouteHandler<typeof deleteFertilizerRoute> = async (c) => {
-    const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { p_id } = c.req.valid("param") as { p_id: string }
-    await services.removeFertilizer(fdm, p_id, principal.effectivePrincipalId)
+    const params = c.req.valid("param") as z.infer<typeof FertilizerParamsSchema>
+    await deleteFertilizer.run(operationContext(c, fdm, services), params)
     return c.newResponse(null, 204)
   }
 
   app.openapi(listFertilizersRoute, listFertilizersHandler)
   app.openapi(createFertilizerRoute, createFertilizerHandler)
+  app.openapi(createCustomFertilizerRoute, createCustomFertilizerHandler)
+  app.openapi(updateCustomFertilizerRoute, updateCustomFertilizerHandler)
   app.openapi(getFertilizerRoute, getFertilizerHandler)
   app.openapi(deleteFertilizerRoute, deleteFertilizerHandler)
 }

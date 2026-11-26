@@ -1,15 +1,15 @@
 ---
 name: fdm-app-conventions
-description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, and the conventions that keep this untested 100k-line package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
-version: 1.0.0
+description: Use when writing or changing code in the fdm-app package — adding or editing routes, loaders and actions, server/client module boundaries, session handling and permission checks in the UI, error handling with handleLoaderError and handleActionError, forms and toasts, Zustand stores, component placement under app/components, or integrations with external services. Covers React Router v8 framework mode, flat file-based routing, the .server.ts/.client.ts split, help links to the user manual, and the conventions that keep this large, lightly tested package consistent. Not for visual or UX design decisions (see the impeccable skill and DESIGN.md), the fdm-core data model (see fdm-schema), or REST endpoint design (see fdm-api).
+version: 1.4.0
 user-invocable: true
 argument-hint: "[explain|add-route|add-component|add-store|review] [target]"
 license: MIT
 ---
 
-`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines, with **no test suite**. Nothing will catch a broken convention for you, so consistency with the surrounding code is the actual safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
+`fdm-app` is the reference application and the only end-user surface: 616 files and roughly 104,000 lines. Its tests cover a small part of it: unit tests for a few modules in `app/lib` and `app/store`, loader and action tests for a few routes (`test/`), and a Playwright smoke suite that opens every page the seed can fill in (`e2e/smoke`). They catch a crashing page, not a broken convention, so consistency with the surrounding code is the main safety mechanism. Before writing anything new, read a neighbouring route or component and follow it.
 
-**Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement. It does not own how the interface should look or feel — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
+**Scope.** This skill owns the mechanics: routing, data loading, module boundaries, error handling, state and file placement, plus the app-wide UI rules that keep screens consistent. It does not own detailed visual design decisions — that is the `impeccable` skill together with `fdm-app/PRODUCT.md` and `fdm-app/DESIGN.md`. It does not own the data model (`fdm-schema`) or the REST API (`fdm-api`). See `.claude/skills/README.md`.
 
 ## Commands
 
@@ -24,7 +24,7 @@ license: MIT
 
 ## Stack
 
-React Router **v8** in framework mode, Vite with the Oxc React Compiler (see "Client-side state and the React Compiler" below), Tailwind v4, shadcn/ui (new-york, slate, CSS variables), radix-ui, Zustand, next-themes, lucide-react, recharts, maplibre-gl. Server-side data comes from `@nmi-agro/fdm-core` and `@nmi-agro/fdm-calculator`.
+React Router **v8** in framework mode, Vite with the Oxc React Compiler (see "Client-side state and the React Compiler" below), Tailwind v4, shadcn/ui (`base-vega` style, slate, CSS variables) on Base UI (`@base-ui/react`), Zustand, next-themes, lucide-react, recharts, maplibre-gl. Server-side data comes from `@nmi-agro/fdm-core` and `@nmi-agro/fdm-calculator`.
 
 The package imports the **built `dist`** of the workspace libraries. After changing `fdm-core` or `fdm-calculator`, run `pnpm turbo build` or the app will not see the change.
 
@@ -84,10 +84,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 - **The principal from the session** is passed to every `fdm-core` call. Never trust a principal id from params, the body, or a hidden form field.
 - **Permission checks are explicit.** Reads are enforced by the core functions, but anything that renders or gates a write uses `checkPermission(fdm, resource, action, id, session.principal_id, "<caller>")` and either hides the affordance or throws 403.
 - **Missing or invalid params throw `data(message, { status })`**, which is the dominant convention in the route modules (288 uses against 20 raw `Response` throws). The error helpers understand both shapes, but `data()` keeps status and statusText where the rest of the codebase expects them.
-- **Wrap the body in `try/catch`** and re-throw through `handleLoaderError(error)` in loaders and `handleActionError(error)` in actions. These map 400/401/403/404 to Dutch user-facing messages, redirect to sign-in on 401, and for anything unexpected generate a short error id, report it to Sentry, and surface that id to the user. Never render a raw error message.
+- **Wrap the body in `try/catch`**: loaders `throw handleLoaderError(error)`, actions `return handleActionError(error)` (it resolves to a toast response with the error, so the action returns it instead of throwing). These map 400/401/403/404 to Dutch user-facing messages, redirect to sign-in on 401, and for anything unexpected generate a short error id, report it to Sentry, and surface that id to the user. Never render a raw error message.
 - **Actions branch on an intent field** and end with `throw data("Ongeldige actie", { status: 400 })` for an unrecognised branch.
 - **Successful actions return `dataWithSuccess(...)`** from `remix-toast` so the user gets feedback; `dataWithError` / `dataWithWarning` are the failure equivalents.
 - **Bound external calls.** Loaders that fan out to an external API per field limit concurrency with an explicit constant rather than issuing unbounded `Promise.all`.
+- **Read per farm, not per item.** A page about many fields, cultivations or farms uses the batched fdm-core reads (`getCultivationsForFarm`, `getHarvestsForFarm`, `getCurrentSoilDataForFarm`, `getSoilAnalysesForFarm`, `getFertilizerApplicationsForFarm`, `getMeasuresForFarm`, `getFieldsForFarms`) once and looks items up in the returned `Map`, so the number of queries does not grow with the data. Run independent reads in one `Promise.all`. Cached calculations have a `.many` path that batches cache reads and writes. A field inherits its permissions from its farm, so one farm check replaces a check per field.
+- **Keep prefetched loaders database-only.** Sidebar links use `prefetch="intent"` only for pages whose loaders don't call an external API. When such a page needs NMI data that is not essential, load it after render from a resource route with a fetcher (as the fields table does with `farm.$b_id_farm.$calendar.cultivation-suggestions`), or return it as an unawaited promise for `<Await>` on pages that are not prefetched.
 
 Every route also exports `meta` returning a title of the form `` `Pagina | ${clientConfig.name}` `` plus a description.
 
@@ -98,7 +100,7 @@ Server-only modules end in `.server.ts` (29 of them) and client-only modules in 
 - Database access, secrets, and `serverConfig` are reachable only from `.server.ts` files and from loaders/actions. `app/lib/fdm.server.tsx` holds the single Drizzle connection; never construct another.
 - `~/lib/config.server` is server-only; the browser-safe subset is `~/lib/clientConfig` from `~/lib/config`.
 - External integrations live in `app/integrations/*.server.ts` and are called from loaders and actions, never from a component.
-- A component may not import a `.server` module, directly or transitively. If a component needs server data, the route loader fetches it and passes it down.
+- A component may not import a value from a `.server` module, directly or transitively. If a component needs server data, the route loader fetches it and passes it down. `import type` from a `.server` module is fine: types are erased from the client bundle, and components use it for the shape of loader data.
 
 ## Components
 
@@ -106,13 +108,28 @@ Decide placement before writing:
 
 | Directory | Contents | Rule |
 |---|---|---|
-| `components/ui/` | shadcn primitives (46 files) | Generated by the shadcn CLI. Do not hand-write files here; do not restyle a primitive to suit one screen. |
+| `components/ui/` | shadcn primitives (45 files, built on Base UI) | Generated by the shadcn CLI. Do not hand-write files here; do not restyle a primitive to suit one screen. |
 | `components/blocks/<domain>/` | Feature components (306 files) | The default home for new UI. Group by domain: `farm/`, `field/`, `fertilizer-applications/`, `soil/`, `norms/`, … |
 | `components/custom/` | Cross-feature shared components | Only when a component is genuinely used across domains and is not a shadcn primitive. |
 
-Imports use the `~/` alias (`~/components/ui/button`, `~/lib/utils`), never deep relative paths. Class names compose through `cn()` from `~/lib/utils`.
+Imports use the `~/` alias (`~/components/ui/button`, `~/lib/calendar`), never deep relative paths. Class names compose through `cn()` from the `cn` package (`import { cn } from "cn"`), not from `~/lib/utils`. The shadcn `utils` alias in `components.json` is `"cn"`, so generated primitives import it the same way.
 
 UI copy is **Dutch**, including error and empty states. Keep strings out of deeply nested logic so they remain extractable for future i18n.
+
+The app runs under the name each deployment configures, so never write "FDM" (or another product name) in UI copy. Use `clientConfig.name` from `~/lib/config`, which comes from `PUBLIC_FDM_NAME`, as the `meta` titles already do: `` `${clientConfig.name} schat de oppervlakte…` ``. Code comments, package names and identifiers are not UI copy.
+
+### Consistency across the app
+
+Consistency is what makes `fdm-app` easy to use: a user who has learned one screen should already know how the next one works. Treat it as a requirement, not a polish item.
+
+- **Reuse before you build.** Before adding a page, form, table, card, dialog or empty state, find the closest existing screen and follow its structure: title block, layout, spacing, button placement and order, wording, loading and error states. Reuse the existing block or custom component instead of making a near-copy.
+- **One `main` per page.** The shells (`farm.tsx`, `organization.tsx`, `user.tsx`, `support.tsx`, `about.tsx`) render the page's only `main` landmark through `SidebarInset`. A page inside a shell wraps its header and content in `PageContainer` from `~/components/custom/page-container` and uses plain elements below it, never a second `SidebarInset` or a `<main>`. A page outside a shell (sign-in, welcome, privacy, manual) renders its own single `<main>`; the sign-in steps and the welcome page get it from `AuthLayout`. The smoke crawler fails on a page with more than one `main`.
+- **Same thing, same name, same place.** A concept keeps one Dutch term everywhere (for example "bodemanalyse", not a synonym on another page). Actions sit where users already expect them on similar screens.
+- **One control per job.** Every date input uses `DatePicker` from `~/components/custom/date-picker-v2` (Dutch text parsing and a calendar popover), never a native `<input type="date">`. It expects a react-hook-form `field`/`fieldState`; for plain React state use the `DateField` adapter in `components/blocks/mineralization/date-field.tsx`, and in fetcher forms submit the date through a hidden input.
+- **One status scale.** Nutrient-advice status (map, overview table, progress bars, tooltips, KPI cards) is red below 90 % of the advice, green from 90 to 110 % and orange above 110 %; EOC is never "over", so only red or green. Use `computeAdviceProgress` and the colour maps in `components/blocks/nutrient-advice/progress-bar.tsx` (map colours in `atlas-nutrient-advice.ts`) and never add local thresholds. Gebruiksruimte (usage norms) follows its own rules; don't apply these colours there.
+- **No dark mode.** `DESIGN.md` describes dark tokens, but the app doesn't implement dark mode. Use the tokens for consistency, but don't treat light-only colours as dark-mode bugs.
+- **System-only data stays hidden.** The soil analysis source `nl-other-nmi` (an NMI estimate) is created by the system only. The soil form filters it out and no screen offers to edit such an analysis; that is intended.
+- **Finish with a design pass.** For UI/UX changes, use the `impeccable` skill while designing, and at the end run its `critique` on the changed screens, then `adapt` and `polish`. The critique should compare the screen with its neighbours, not only judge it in isolation.
 
 ### Browser translation
 
@@ -122,7 +139,7 @@ Users translate the Dutch UI with the browser (Chrome, Edge). The translator rep
 - Give conditional text its own keyed element, so React replaces it instead of patching a translated node: `<span key={isLoading ? "loading" : "idle"}>{isLoading ? "Ophalen..." : "Ophalen uit KvK"}</span>`.
 - In a ternary or fragment, never let a branch be bare text next to (or instead of) an element: `{isSubmitting ? <Spinner /> : <span>Opslaan</span>}`.
 - Text that appears or disappears goes in an element that mounts and unmounts as a whole.
-- Radix Select portals the selected item's text into the trigger. `ui/select.tsx` therefore wraps the item text and the placeholder in a `<span>`; keep that when regenerating the shadcn component. A custom picker trigger (such as `custom/combobox.tsx`) shows its value in a `<span>` keyed by the value.
+- Base UI `Select` renders the selected value (`SelectValue`) and the item text (`SelectItem`) in elements of its own. Keep the text inside those elements when regenerating the shadcn component; never replace them with bare text next to a conditional sibling. For a `Combobox` whose form value is an ID while the items are objects, pass a `createComboboxItems()` collection (memoized on the options) as `items`, so the input shows the label instead of the ID.
 
 ## State
 
@@ -148,15 +165,34 @@ Instead, pick the right tool for the shape of the problem, roughly in this order
 
 Where a component genuinely cannot be compiled (a third-party hook that returns a mutable object, for example), opt out explicitly with `"use no memo"` at the top of the component and say why, rather than suppressing an individual lint rule.
 
+## Help links and the user manual
+
+The public manual (`/manual`) is Markdown in `app/content/manual`: how-to chapters in `chapters/`, agronomic background in `background/`. Its author guide is `app/content/manual/README.md`. Screens link to it as follows:
+
+- **Declare the help target on the route**: `export const handle: HelpHandle = { help: "bouwplan" }` (from `~/lib/manual/help-targets`). Merge it into an existing `handle` instead of adding a second export. The deepest route with `help` wins.
+- **The sidebar "Handleiding" item follows `handle.help`**, so every screen with a handle gets contextual help without extra UI.
+- **A "?" next to the title is the exception, not the rule.** Add it only on screens whose results or input need explaining (calculations such as balances, gebruiksruimte, advice and indicators; complex input such as the bouwplan, timeline, bulk upload and the farm creation wizard), and only once per screen. Pass `help="…"` to that screen's `FarmTitle`, pass `help` to `Header` for screens without a title block, or place `<HelpLink target="…" />` next to a heading. List, overview and settings pages rely on the sidebar.
+- **Help targets live in `app/lib/manual/help-targets.ts`**, a typed registry of page plus optional anchor. Use an explicit `{#id}` on the heading in the content so the anchor survives a reworded heading. The content tests fail when a target no longer resolves.
+- **Analytics**: `HelpLink` captures `help_link_clicked` (`help_target`, `source`, `from_path`); manual pages capture `manual_page_viewed`, `manual_signup_clicked` and `manual_page_not_found`. Event names are in `MANUAL_EVENTS` (`~/lib/manual/analytics`); keep them stable, because the PostHog dashboard "Handleiding" depends on them.
+- **Keep the chapter in step**: changing a label, flow or page means updating the chapter whose `routes`/`watch` globs list the file, in the same PR. **Bold** text in a chapter must be an existing UI label.
+- **Manual routes are public**: no `getSession` under `/manual`.
+
 ## Verification
 
-There is no test suite. The available checks are:
+The available checks are:
 
 ```bash
 cd fdm-app && pnpm check-types   # react-router typegen && tsc --noEmit
 pnpm lint                        # oxlint, from the repository root
+pnpm --filter @nmi-agro/fdm-app test:unit         # unit tests, incl. manual content, labels and SEO (no database)
+pnpm --filter @nmi-agro/fdm-app test:integration  # loader/action tests against PostGIS (.env.test)
+pnpm --filter @nmi-agro/fdm-app e2e               # Playwright smoke suite (.env.e2e, built app, empty DB)
 pnpm --filter fdm-app dev        # http://localhost:5173
 ```
+
+Where the tests live and how to run them locally is described under "Tests" in `fdm-app/README.md`. When you add a route with a param, the smoke crawler fails until `e2e/smoke/route-params.ts` can fill it in or skips the route with a reason. Put unit tests next to the module (`app/lib/<module>.test.ts`), never in `app/routes`, where every file becomes a route.
+
+The manual tests cover the manual and its help links: content parsing, links and anchors, help targets, and that every bold label still exists in the app source outside comments. That check does not know which screen a label is on, so it catches stale and misspelled labels, not outdated steps. Rename a button and the test points to the chapter that still uses the old label. `node fdm-app/scripts/manual-route-drift.mjs` (with `BASE_SHA` set) lists chapters whose routes you changed.
 
 `dev` needs a PostgreSQL instance with PostGIS running and reachable through the `POSTGRES_*` variables in `fdm-app/.env`; developers normally run one locally on the machine.
 
@@ -170,19 +206,30 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 |---|---|
 | `import { … } from "react-router-dom"` | `react-router` — this repo is on v8 |
 | `useMatches()` match `.data` | `.loaderData` |
-| A component importing `~/lib/*.server` | Load in the route loader, pass as props |
+| A component importing a value from `~/lib/*.server` | Load in the route loader, pass as props (`import type` is fine) |
 | `new Drizzle(...)` or a second db connection | The shared `fdm` from `~/lib/fdm.server` |
 | Reading a principal id from params or a form field | `(await getSession(request)).principal_id` |
 | `throw new Response("...", { status })` in a route | `throw data("...", { status })` |
 | Returning a caught error's `.message` to the UI | `handleLoaderError` / `handleActionError` |
 | An action with no `dataWithSuccess` feedback | Return a toast helper from `remix-toast` |
 | Unbounded `Promise.all` over every field to an external API | A concurrency constant, as in the existing loaders |
+| `getCultivations` / `getHarvests` / `checkPermission` inside a loop over fields or cultivations | One `*ForFarm` read or one farm check, then a `Map` lookup |
 | New component dropped into `components/ui/` | `components/blocks/<domain>/` |
 | Hand-editing a shadcn primitive for one screen | Compose around it, or add a variant |
+| `asChild` or `@radix-ui/*` / `radix-ui` imports on a primitive | Base UI: `render={<Component />}` and `@base-ui/react/<part>` imports (`asChild` only remains on `cmdk` parts) |
 | Copying loader data into a Zustand store | Read it from `useLoaderData` |
 | `localStorage` directly in a persisted store | `ssrSafeJSONStorage` / `ssrSafeSessionJSONStorage` |
 | Ref-compare against a "previous value", or a `setTimeout`-deferred `setState`, to dodge a compiler lint error | Pick the matching pattern from "Client-side state and the React Compiler" |
 | A lazy `useState(() => window…)` initializer for a client-only value | `useSyncExternalStore` with an explicit server snapshot |
 | English UI strings | Dutch |
+| "FDM" written in UI copy | `clientConfig.name` (from `PUBLIC_FDM_NAME`) |
+| A new page or component that looks or behaves differently from its siblings | Follow the nearest existing screen; reuse its blocks (see "Consistency across the app") |
+| `<input type="date">` | `DatePicker` from `~/components/custom/date-picker-v2` |
+| Local advice thresholds or colours | `computeAdviceProgress` and the maps in `progress-bar.tsx` |
 | `{isSubmitting && <Spinner />}` followed by bare text, or a conditional string next to elements | Wrap the text in `<span>`; key conditional text (see "Browser translation") |
 | Editing `fdm-core` and testing here without rebuilding | `pnpm turbo build` first — this app consumes `dist` |
+| A hard-coded `/manual/...` href for in-app help | `handle.help` or `<HelpLink target>` with a registered help target |
+| A "?" on every title block, or several on one screen | One "?" on screens that need explaining; the sidebar covers the rest |
+| Renaming a label or changing a flow without touching the manual | Update the chapter that lists the route in its `routes`/`watch` globs, in the same PR |
+| **Bold** text in the manual that is not a UI label | Plain text, or *italics* for emphasis; bold is reserved for labels |
+| `getSession` in a `/manual` route | The manual is public; read deployment settings via `getManualContext()` |

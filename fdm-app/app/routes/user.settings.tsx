@@ -1,7 +1,7 @@
 import { type LoaderFunctionArgs, Outlet, useLoaderData, useLocation } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderUser } from "~/components/blocks/header/user"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 
@@ -24,27 +24,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 }
 
+/** The account pages, as named in the sidebar and the breadcrumb. The first is the default. */
+const SETTINGS_PAGES = [
+  { label: "Profiel", href: "/user/settings/profile" },
+  { label: "API-sleutels", href: "/user/settings/api-keys" },
+  { label: "AI-assistenten", href: "/user/settings/mcp" },
+]
+
 /**
  * Renders the layout for user account settings.
  *
- * Navigation between Profiel and API-sleutels lives in the main sidebar.
+ * Navigation between Profiel, API-sleutels and AI-assistenten lives in the main sidebar.
  */
 export default function UserSettingsLayout() {
   const { user } = useLoaderData<typeof loader>()
   const { pathname } = useLocation()
 
-  const page = pathname.includes("api-keys")
-    ? { label: "API-sleutels", href: "/user/settings/api-keys" }
-    : { label: "Profiel", href: "/user/settings/profile" }
+  const page =
+    SETTINGS_PAGES.find((candidate) => pathname.startsWith(candidate.href)) ?? SETTINGS_PAGES[0]
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderUser name={user.name} page={page} />
       </Header>
-      <main>
+      <div>
         <Outlet />
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

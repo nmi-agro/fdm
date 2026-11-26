@@ -5,6 +5,7 @@ import {
   type RowSelectionState,
   useTable,
 } from "@tanstack/react-table"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import fuzzysort from "fuzzysort"
@@ -36,7 +37,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { modifySearchParams } from "~/lib/url-utils"
-import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 import { useRotationSelectionStore } from "~/store/rotation-selection"
 import type {
@@ -338,12 +338,14 @@ export function DataTable<TData extends RotationExtended>({
         />
         <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Bekijk
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline">
+                  Bekijk
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               {table
                 .getAllColumns()
@@ -376,25 +378,27 @@ export function DataTable<TData extends RotationExtended>({
           <FieldFilterToggle />
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(!canAddItem ? "hidden" : "")}>
-                  {isFertilizerButtonDisabled ? (
-                    <Button disabled={isFertilizerButtonDisabled}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Bemesting
-                    </Button>
-                  ) : (
-                    <NavLink
-                      to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/fertilizer`)}
-                    >
-                      <Button>
+              <TooltipTrigger
+                render={
+                  <div className={cn(!canAddItem ? "hidden" : "")}>
+                    {isFertilizerButtonDisabled ? (
+                      <Button disabled={isFertilizerButtonDisabled}>
                         <Plus className="mr-2 h-4 w-4" />
                         Bemesting
                       </Button>
-                    </NavLink>
-                  )}
-                </div>
-              </TooltipTrigger>
+                    ) : (
+                      <NavLink
+                        to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/fertilizer`)}
+                      >
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Bemesting
+                        </Button>
+                      </NavLink>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent>
                 <p>{fertilizerTooltipContent}</p>
               </TooltipContent>
@@ -402,28 +406,32 @@ export function DataTable<TData extends RotationExtended>({
           </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <div className={cn(!canAddItem ? "hidden" : "")}>
-                  {isHarvestButtonDisabled ? (
-                    <Button disabled={isHarvestButtonDisabled}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
-                    </Button>
-                  ) : harvestErrorMessage ? (
-                    <Button onClick={() => notify.error(harvestErrorMessage)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
-                    </Button>
-                  ) : (
-                    <NavLink to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/harvest`)}>
-                      <Button>
+              <TooltipTrigger
+                render={
+                  <div className={cn(!canAddItem ? "hidden" : "")}>
+                    {isHarvestButtonDisabled ? (
+                      <Button disabled={isHarvestButtonDisabled}>
                         <Plus className="mr-2 h-4 w-4" />
                         <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
                       </Button>
-                    </NavLink>
-                  )}
-                </div>
-              </TooltipTrigger>
+                    ) : harvestErrorMessage ? (
+                      <Button onClick={() => notify.error(harvestErrorMessage)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
+                      </Button>
+                    ) : (
+                      <NavLink
+                        to={makeWizardUrl(`/farm/${b_id_farm}/${calendar}/rotation/harvest`)}
+                      >
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          <span key={harvestButtonLabel}>{harvestButtonLabel}</span>
+                        </Button>
+                      </NavLink>
+                    )}
+                  </div>
+                }
+              />
               <TooltipContent>
                 <p>{harvestTooltipContent}</p>
               </TooltipContent>

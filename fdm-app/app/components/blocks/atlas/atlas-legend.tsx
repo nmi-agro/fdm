@@ -1,15 +1,20 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
 import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
+import { cn } from "cn"
 import { ChevronUp, TriangleAlert } from "lucide-react"
 import { type ReactNode, useId, useMemo, useState } from "react"
 import { Bar, BarChart, type BarShapeProps, Rectangle, XAxis, YAxis } from "recharts"
 import type { AdviceProgressStatus } from "~/components/blocks/nutrient-advice/progress-bar"
-import { cn } from "@/app/lib/utils"
+import type { GrazingMapStatus } from "~/lib/grazing-map"
+import { SAMPLING_POINT_COLOR } from "~/components/blocks/soil/soil-sampling-colors"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
 import { Spinner } from "~/components/ui/spinner"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { GRAZING_MAP_STATUSES } from "~/lib/grazing-map"
+import { ELEVATION_LEGEND_GRADIENT } from "./atlas-elevation-colors"
+import { GRAZING_MAP_COPY, GRAZING_STATUS_COLORS } from "./atlas-grazing"
 import {
   formatKgPerHa,
   NUTRIENT_ADVICE_COPY,
@@ -31,6 +36,7 @@ import {
   getShadingParameterMapper,
   SHADED_SOIL_TYPES,
   type ShadedSoilParameters,
+  SOIL_SAMPLING_COPY,
   transformGradientStops,
 } from "./atlas-soil-analysis"
 
@@ -91,7 +97,7 @@ function ScoreLegendBar({
  */
 export function ScoreLegend({ label, showSelectedFieldSwatch }: ScoreLegendProps) {
   return (
-    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+    <Card className="pointer-events-none max-w-[200px] gap-0 p-2 text-xs shadow-sm">
       {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
       <div className="mb-5 flex h-2.5 w-full gap-px px-1.5">
         <ScoreLegendBar size={0} marker={0} color="#ef4444" />
@@ -118,7 +124,7 @@ export function MeasureCountLegend({
   showSelectedFieldSwatch?: boolean
 }) {
   return (
-    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+    <Card className="pointer-events-none max-w-[200px] gap-0 p-2 text-xs shadow-sm">
       <p className="text-foreground mb-1.5 font-medium">Maatregelen</p>
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1.5">
@@ -160,7 +166,7 @@ export function ElevationLegend({
 }: ElevationLegendProps) {
   return (
     <div className="w-40">
-      <Card className="shadow-xs">
+      <Card className="py-0 shadow-xs">
         <CardContent className="p-3">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -186,11 +192,7 @@ export function ElevationLegend({
               <div className="border-border relative flex h-4 w-full overflow-hidden rounded border">
                 <div
                   className="absolute inset-0 h-full w-full"
-                  style={{
-                    // BrewerSpectral11 Reversed (Blue -> Red)
-                    background:
-                      "linear-gradient(to right, #5e4fa2, #3288bd, #66c2a5, #abdda4, #e6f598, #ffffbf, #fee08b, #fdae61, #f46d43, #d53e4f, #9e0142)",
-                  }}
+                  style={{ background: ELEVATION_LEGEND_GRADIENT }}
                 />
               </div>
               <div className="text-muted-foreground flex justify-between text-xs font-medium tabular-nums">
@@ -215,6 +217,8 @@ interface SoilAnalysisLegendProps {
   soilParametersDescriptions: SoilParameterDescription
   min?: number
   max?: number
+  /** Adds the sampling zones and points to the legend. */
+  showSampling?: boolean
 }
 
 export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
@@ -244,7 +248,7 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
   const title = parameterDescription ? `${parameterDescription.name}${unitDisplay}` : undefined
 
   return (
-    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4 shadow-xs">
+    <Card className="min-h-0 flex-initial gap-0 space-y-2 overflow-y-auto p-4 shadow-xs">
       <CardHeader className="p-0">
         <CardTitle className="text-muted-foreground text-center text-xs">{title}</CardTitle>
       </CardHeader>
@@ -260,6 +264,25 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
             <TriangleAlert className="h-4 w-4 text-orange-500" />
             Geen data op hele bedrijf
           </p>
+        )}
+        {props.showSampling && (
+          <ul className="text-muted-foreground mt-2 space-y-1 border-t pt-2 text-xs">
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-4 rounded-[2px] border border-dashed border-white bg-slate-500 ring-1 ring-slate-300"
+                aria-hidden
+              />
+              {SOIL_SAMPLING_COPY.legendZone}
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="inline-block size-2.5 rounded-full ring-2 ring-white"
+                style={{ backgroundColor: SAMPLING_POINT_COLOR }}
+                aria-hidden
+              />
+              {SOIL_SAMPLING_COPY.legendPoint}
+            </li>
+          </ul>
         )}
       </CardContent>
     </Card>
@@ -418,7 +441,7 @@ interface NutrientAdviceLegendProps {
 }
 
 /** One legend row: swatch, label and the number of fields in that class. */
-function NutrientAdviceLegendRow({
+export function AtlasLegendCountRow({
   swatch,
   label,
   count,
@@ -550,7 +573,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
   // their header has no toggle.
   const staticHeader = renderHeader(false)
   const cardClassName =
-    "min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial space-y-3 overflow-y-auto p-3 shadow-xs md:p-4"
+    "min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial gap-0 space-y-3 overflow-y-auto p-3 shadow-xs md:p-4"
 
   // A failed load gets its own message and retry button instead of a legend that would suggest
   // the fields have no advice.
@@ -638,7 +661,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
 
   const percentageMax = excessExempt ? 100 : NUTRIENT_ADVICE_PERCENTAGE_MAX
   const overRow = excessExempt ? null : (
-    <NutrientAdviceLegendRow
+    <AtlasLegendCountRow
       swatch={swatch("over")}
       label={NUTRIENT_ADVICE_COPY.legendOver}
       count={counts.over}
@@ -675,12 +698,12 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
         <ul className="space-y-1">
           {mode === "percentage" && (
             <>
-              <NutrientAdviceLegendRow
+              <AtlasLegendCountRow
                 swatch={swatch("under")}
                 label={NUTRIENT_ADVICE_COPY.legendUnder}
                 count={counts.under}
               />
-              <NutrientAdviceLegendRow
+              <AtlasLegendCountRow
                 swatch={swatch("on-target")}
                 label={NUTRIENT_ADVICE_COPY.legendMet}
                 count={counts["on-target"]}
@@ -689,7 +712,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
             </>
           )}
           {counts.zero > 0 && (
-            <NutrientAdviceLegendRow
+            <AtlasLegendCountRow
               swatch={
                 <NutrientAdviceSwatch color={NUTRIENT_ADVICE_ZERO_COLOR} className="border" />
               }
@@ -698,7 +721,7 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
             />
           )}
           {counts.none > 0 && (
-            <NutrientAdviceLegendRow
+            <AtlasLegendCountRow
               swatch={<NutrientAdviceSwatch color={NUTRIENT_ADVICE_NONE_COLOR} />}
               label={NUTRIENT_ADVICE_COPY.noAdvice}
               count={counts.none}
@@ -707,6 +730,92 @@ export function NutrientAdviceLegend(props: NutrientAdviceLegendProps) {
         </ul>
         {progressLine}
       </CardContent>
+    </Card>
+  )
+}
+
+/** Colour swatch of a status of the Beweiding layer, shared by the legend and the popup. */
+export function GrazingStatusSwatch({ status }: { status: GrazingMapStatus }) {
+  return (
+    <NutrientAdviceSwatch
+      color={GRAZING_STATUS_COLORS[status]}
+      className={
+        status === "unused"
+          ? "border"
+          : // A grazed field has a dark outline on the map
+            status === "weiden"
+            ? "border-2 border-emerald-900"
+            : undefined
+      }
+    />
+  )
+}
+
+/**
+ * Legend of the Atlas "Beweiding" layer: the status of every field on the shown day, with the
+ * number of fields per status. On a phone it starts collapsed to its title, like the other legends.
+ */
+export function GrazingLegend({
+  dayLabel,
+  counts,
+}: {
+  /** The day shown, e.g. "maandag 15 juni 2026". */
+  dayLabel: string
+  /** Number of fields per status. */
+  counts: Record<GrazingMapStatus, number>
+}) {
+  const isMobile = useIsMobile()
+  const [expanded, setExpanded] = useState(false)
+  const collapsed = isMobile && !expanded
+
+  const title = (
+    <>
+      <span className="block text-sm leading-tight font-medium">{GRAZING_MAP_COPY.layerName}</span>
+      <span className="text-muted-foreground block text-xs">{dayLabel}</span>
+    </>
+  )
+
+  return (
+    <Card className="min-h-0 w-72 max-w-[calc(100vw-2rem)] flex-initial gap-0 space-y-3 overflow-y-auto p-3 shadow-xs md:p-4">
+      <CardHeader className="space-y-0.5 p-0" aria-live="polite">
+        {isMobile ? (
+          <button
+            type="button"
+            // The legend wrapper ignores pointer events so it never blocks the map.
+            className="pointer-events-auto -m-1 flex min-h-11 items-center justify-between gap-2 rounded-sm p-1 text-left"
+            aria-expanded={!collapsed}
+            onClick={() => setExpanded(!expanded)}
+          >
+            <span className="space-y-0.5">{title}</span>
+            <span className="sr-only">
+              {collapsed ? GRAZING_MAP_COPY.showLegend : GRAZING_MAP_COPY.hideLegend}
+            </span>
+            <ChevronUp
+              aria-hidden="true"
+              className={cn(
+                "text-muted-foreground size-4 shrink-0 transition-transform motion-reduce:transition-none",
+                collapsed && "rotate-180",
+              )}
+            />
+          </button>
+        ) : (
+          title
+        )}
+      </CardHeader>
+      {!collapsed && (
+        <CardContent className="p-0">
+          <ul className="space-y-1">
+            {GRAZING_MAP_STATUSES.map((status) => (
+              <AtlasLegendCountRow
+                key={status}
+                swatch={<GrazingStatusSwatch status={status} />}
+                label={GRAZING_MAP_COPY.status[status]}
+                count={counts[status]}
+              />
+            ))}
+          </ul>
+        </CardContent>
+      )}
     </Card>
   )
 }

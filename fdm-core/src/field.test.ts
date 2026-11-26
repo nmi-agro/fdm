@@ -1,8 +1,13 @@
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import { eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
-import { enableCultivationCatalogue } from "./catalogues"
+import {
+  enableAnimalCategoryCatalogue,
+  enableCultivationCatalogue,
+  syncAnimalCategoryCatalogueArray,
+} from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
 import { adjustEndDateAtYearStart } from "./date"
 import * as schema from "./db/schema"
@@ -13,11 +18,14 @@ import {
   determineIfFieldIsBuffer,
   getField,
   getFields,
+  getFieldsForFarms,
   listAvailableAcquiringMethods,
   removeField,
   updateField,
 } from "./field"
+import { addGrazing } from "./grazing"
 import { addHarvest } from "./harvest"
+import { addHerd } from "./herd"
 import { createId } from "./id"
 import { addSoilAnalysis } from "./soil"
 
@@ -34,6 +42,7 @@ describe("Farm Data Model", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = createId()
   })
 
@@ -822,6 +831,166 @@ describe("Farm Data Model", () => {
     })
   })
 
+  describe("getFieldsForFarms", () => {
+    // A synthetic square field with sides of `size` degrees
+    const square = (x: number, y: number, size: number): Polygon => ({
+      type: "Polygon",
+      coordinates: [
+        [
+          [x, y],
+          [x + size, y],
+          [x + size, y + size],
+          [x, y + size],
+          [x, y],
+        ],
+      ],
+    })
+
+    let b_id_farm_1: string
+    let b_id_farm_2: string
+    let b_id_farm_empty: string
+
+    beforeEach(async () => {
+      b_id_farm_1 = await addFarm(fdm, principal_id, "Farm 1", createId(), "Street 1", "1234 AB")
+      b_id_farm_2 = await addFarm(fdm, principal_id, "Farm 2", createId(), "Street 2", "1234 AB")
+      b_id_farm_empty = await addFarm(
+        fdm,
+        principal_id,
+        "Farm without fields",
+        createId(),
+        "Street 3",
+        "1234 AB",
+      )
+
+      // Farm 1: fields of different sizes, one ended at the turn of the year
+      await addField(
+        fdm,
+        principal_id,
+        b_id_farm_1,
+        "Small",
+        "f1-small",
+        square(5, 52, 0.001),
+        new Date("2023-01-01"),
+        "nl_01",
+      )
+      await addField(
+        fdm,
+        principal_id,
+        b_id_farm_1,
+        "Large",
+        "f1-large",
+        square(5.01, 52, 0.003),
+        new Date("2023-03-01"),
+        "nl_01",
+      )
+      await addField(
+        fdm,
+        principal_id,
+        b_id_farm_1,
+        "Ended on 1 January",
+        "f1-ended",
+        square(5.02, 52, 0.002),
+        new Date("2022-01-01"),
+        "nl_01",
+        new Date("2024-01-01"),
+      )
+      // Farm 2: one field acquired later and one ended in the middle of a year
+      await addField(
+        fdm,
+        principal_id,
+        b_id_farm_2,
+        "Acquired in 2025",
+        "f2-new",
+        square(5.03, 52, 0.0025),
+        new Date("2025-02-01"),
+        "nl_02",
+      )
+      await addField(
+        fdm,
+        principal_id,
+        b_id_farm_2,
+        "Ended in 2024",
+        "f2-ended",
+        square(5.04, 52, 0.0015),
+        new Date("2022-01-01"),
+        "nl_01",
+        new Date("2024-06-30"),
+      )
+    })
+
+    it("returns the same fields per farm as getFields", async () => {
+      const farmIds = [b_id_farm_1, b_id_farm_2, b_id_farm_empty]
+      const timeframes = [
+        undefined,
+        { start: new Date("2024-01-01"), end: new Date("2024-12-31T23:59:59.999") },
+        { start: new Date("2025-01-01"), end: new Date("2025-12-31T23:59:59.999") },
+        { start: new Date("2024-07-01"), end: undefined },
+        { start: undefined, end: new Date("2023-02-01") },
+      ]
+
+      for (const timeframe of timeframes) {
+        const fieldsByFarm = await getFieldsForFarms(fdm, principal_id, farmIds, timeframe)
+        expect([...fieldsByFarm.keys()]).toEqual(farmIds)
+        for (const b_id_farm of farmIds) {
+          const expected = await getFields(fdm, principal_id, b_id_farm, timeframe)
+          expect(fieldsByFarm.get(b_id_farm)).toEqual(expected)
+        }
+      }
+    })
+
+    it("filters by timeframe and orders by area per farm", async () => {
+      const fieldsByFarm = await getFieldsForFarms(fdm, principal_id, [b_id_farm_1, b_id_farm_2], {
+        start: new Date("2024-01-01"),
+        end: new Date("2024-12-31T23:59:59.999"),
+      })
+
+      // The field ended on 1 January 2024 counts as ended on 31 December 2023
+      expect(fieldsByFarm.get(b_id_farm_1)?.map((field) => field.b_name)).toEqual([
+        "Large",
+        "Small",
+      ])
+      expect(fieldsByFarm.get(b_id_farm_2)?.map((field) => field.b_name)).toEqual(["Ended in 2024"])
+      for (const field of fieldsByFarm.get(b_id_farm_1) ?? []) {
+        expect(field.b_id_farm).toBe(b_id_farm_1)
+        expect(field.b_area).toBeGreaterThan(0)
+        expect(field.b_centroid).toHaveLength(2)
+      }
+    })
+
+    it("returns an empty array for a farm without fields and ignores duplicate farm ids", async () => {
+      const fieldsByFarm = await getFieldsForFarms(fdm, principal_id, [
+        b_id_farm_empty,
+        b_id_farm_empty,
+      ])
+      expect(fieldsByFarm.size).toBe(1)
+      expect(fieldsByFarm.get(b_id_farm_empty)).toEqual([])
+    })
+
+    it("returns an empty map when no farms are given", async () => {
+      const fieldsByFarm = await getFieldsForFarms(fdm, principal_id, [])
+      expect(fieldsByFarm.size).toBe(0)
+    })
+
+    it("throws when the principal cannot read one of the farms", async () => {
+      const other_principal_id = createId()
+      const b_id_farm_other = await addFarm(
+        fdm,
+        other_principal_id,
+        "Farm of someone else",
+        createId(),
+        "Street 4",
+        "1234 AB",
+      )
+
+      await expect(getFields(fdm, principal_id, b_id_farm_other)).rejects.toThrowError(
+        "Principal does not have permission to perform this action",
+      )
+      await expect(
+        getFieldsForFarms(fdm, principal_id, [b_id_farm_1, b_id_farm_other]),
+      ).rejects.toThrowError("Principal does not have permission to perform this action")
+    })
+  })
+
   describe("removeField", () => {
     const b_lu_source = "custom"
     let b_lu_catalogue: string
@@ -830,6 +999,7 @@ describe("Farm Data Model", () => {
     beforeEach(async () => {
       // 1. Setup: Create a farm, enable catalogue and add cultivation to catalogue
       farmId = await addFarm(fdm, principal_id, "Test Farm", "123", "Address", "12345")
+      await enableAnimalCategoryCatalogue(fdm, principal_id, farmId, "rvo")
 
       await enableCultivationCatalogue(fdm, principal_id, farmId, b_lu_source)
       // Ensure catalogue entry exists before each test
@@ -851,6 +1021,8 @@ describe("Farm Data Model", () => {
         b_lu_hi: 0.4,
         b_lu_n_harvestable: 4,
         b_lu_n_residue: 2,
+        b_lu_p_harvestable: 1.6,
+        b_lu_p_residue: 0.8,
         b_n_fixation: 0,
         b_lu_rest_oravib: false, // Changed to boolean
         b_lu_variety_options: [], // Added missing property
@@ -902,6 +1074,15 @@ describe("Farm Data Model", () => {
         0,
       )
 
+      const l_id_herd = await addHerd(fdm, principal_id, farmId, {
+        l_herd_name: "Melkkoeien",
+        l_id_category: "rvo_100",
+      })
+      await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-01"), {
+        b_id: fieldId,
+        l_grazing_end: new Date("2025-05-01"),
+      })
+
       // 2. Action: Remove the field
       await removeField(fdm, principal_id, fieldId)
 
@@ -913,6 +1094,12 @@ describe("Farm Data Model", () => {
         .from(schema.cultivations)
         .where(eq(schema.cultivations.b_lu, cultivationId))
       expect(remainingCultivations.length).toBe(0)
+
+      const remainingGrazing = await fdm
+        .select()
+        .from(schema.herdGrazing)
+        .where(eq(schema.herdGrazing.b_id, fieldId))
+      expect(remainingGrazing.length).toBe(0)
 
       const remainingSoilAnalyses = await fdm
         .select()

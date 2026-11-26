@@ -2,6 +2,7 @@ import {
   DndContext,
   type DragEndEvent,
   type DragMoveEvent,
+  DragOverlay,
   MouseSensor,
   useDraggable,
   useSensor,
@@ -15,6 +16,7 @@ import {
   forwardRef,
   useContext,
   useEffect,
+  useId,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -103,34 +105,6 @@ function getDateFromOffsetX(offsetX: number, range: Range): Date {
   const pixelsPerDay = Math.round(columnWidth / daysInMonth)
   const dayOffset = Math.floor((offsetX % columnWidth) / pixelsPerDay)
   return addDays(month, dayOffset)
-}
-
-/**
- * Finds the cultivation covering `date` on this field, preferring the tightest-fitting one (same
- * "narrowest span wins" rule used to attach fertilizer/harvest/soil events to a bar in
- * `buildFieldFeatures`) — needed so an empty-space click or the "Oogst" quick-add option can
- * resolve which cultivation the date falls into.
- *
- * @param cultivations:
- */
-export function findActiveCultivationForDate(
-  cultivations: TimelineCultivation[],
-  date: Date,
-  openCultivationEndAt: Date,
-): TimelineCultivation | undefined {
-  let best: TimelineCultivation | undefined
-  let bestSpan = Number.POSITIVE_INFINITY
-  for (const cultivation of cultivations) {
-    if (!cultivation.b_lu_start) continue
-    const endAt = cultivation.b_lu_end ?? openCultivationEndAt
-    if (date < cultivation.b_lu_start || date > endAt) continue
-    const span = endAt.getTime() - cultivation.b_lu_start.getTime()
-    if (span < bestSpan) {
-      best = cultivation
-      bestSpan = span
-    }
-  }
-  return best
 }
 
 /**
@@ -258,6 +232,17 @@ export type TimelineSoilAnalysis = {
   a_date: Date | null
 }
 
+export type TimelineGrazing = {
+  l_id_grazing: string
+  l_id_herd: string
+  l_herd_name: string | null
+  l_grazing_start: Date
+  l_grazing_end: Date | null
+  l_grazing_hours: number | null
+  /** Grazed area (ha): the zone within the field, the recorded area, or the whole field. */
+  l_grazing_area_grazed: number | null
+}
+
 export type TimelineCultivation = {
   b_lu: string
   b_lu_catalogue: string
@@ -278,6 +263,7 @@ export type TimelineField = {
   fertilizerApplications: TimelineFertilizerApplication[]
   harvests: TimelineHarvest[]
   soilAnalyses: TimelineSoilAnalysis[]
+  grazings?: TimelineGrazing[]
 }
 
 export type TimelineFilters = {
@@ -286,6 +272,7 @@ export type TimelineFilters = {
   showFertilizers: boolean
   showHarvests: boolean
   showSoilSamplings: boolean
+  showGrazing?: boolean
   /** Mobile-only: desktop's Gantt always shows the full range regardless of this flag. */
   showFutureEvents: boolean
 }
@@ -679,6 +666,33 @@ function buildFieldFeatures(
     }
   }
 
+  if (filters.showGrazing && field.grazings) {
+    for (const grazing of field.grazings) {
+      const startAt = grazing.l_grazing_start
+      const endAt = grazing.l_grazing_end ?? openCultivationEndAt
+      const name = grazing.l_herd_name ?? "Beweiding"
+      const hoursText = grazing.l_grazing_hours ? ` (${grazing.l_grazing_hours}u/dag)` : ""
+      const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/grazing`
+      orphanFeatures.push({
+        id: `grazing-${grazing.l_id_grazing}`,
+        name: `${name}${hoursText}`,
+        startAt,
+        endAt,
+        status: {
+          id: "grazing",
+          name: "Beweiding",
+          color: hexToRgba("#10b981", 0.6),
+        },
+        color: hexToRgba("#10b981", 0.6),
+        lane: field.b_id,
+        kind: "cultivation",
+        href,
+        label: name,
+        detail: `Beweiding:${name}${hoursText}\n${field.b_name}\n${formatNl(startAt)} – ${grazing.l_grazing_end ? formatNl(grazing.l_grazing_end) : "nu actief"}`,
+      })
+    }
+  }
+
   // Events attached to the same cultivation can legitimately share (or nearly share) a date —
   // e.g. two fertilizer applications a few days apart. Left as raw percentages, those render as
   // overlapping icons. Spread them out left-to-right (preserving chronological order) so every
@@ -734,7 +748,9 @@ function EventIcon({
  * surrounding `DndContext`/menu/Tooltip stay in the parent.
  */
 function DraggableEventIcon({ event }: { event: AttachedEvent }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  // The moving copy is rendered by a `DragOverlay` in `EventOverlay`, because the cultivation bar
+  // clips its content and the icon must stay visible when dragged out of the bar.
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `event-${event.id}`,
   })
 
@@ -746,10 +762,7 @@ function DraggableEventIcon({ event }: { event: AttachedEvent }) {
         openMenuFromClick(domEvent)
       }}
       ref={setNodeRef}
-      style={{
-        opacity: isDragging ? 0.5 : 1,
-        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-      }}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
       type="button"
       {...attributes}
       {...listeners}
@@ -786,7 +799,10 @@ function EventOverlay({
   const gantt = useContext(GanttContext)
   const [scrollX] = useGanttScrollX()
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 4 } })
+  // A stable id keeps dnd-kit's accessibility attributes equal on the server and in the browser.
+  const dndId = useId()
   const [dragPreview, setDragPreview] = useState<{ date: Date; x: number; y: number } | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const entityId = event.entityId
   const entity: EditableEntity | null = !entityId
@@ -826,10 +842,15 @@ function EventOverlay({
   }
 
   const isDraggable = editing.canModify && !!entityId
-  // A harvest of a once-harvestable crop ends the cultivation, so it may also move past the
-  // cultivation's current end date.
+  // A fertilizer application is not tied to the cultivation it is drawn on, so it may be dragged
+  // out of it (to another cultivation or to a period without one). A harvest of a
+  // once-harvestable crop ends the cultivation, so it may also move past its current end date.
+  const moveFreely = event.kind === "fertilizer"
+  const earliestDate = moveFreely ? new Date(TIMELINE_START_YEAR, 0, 1) : cultivationStartAt
   const latestDate =
-    event.kind === "harvest" && b_lu_harvestable === "once" ? TIMELINE_END_DATE : cultivationEndAt
+    moveFreely || (event.kind === "harvest" && b_lu_harvestable === "once")
+      ? TIMELINE_END_DATE
+      : cultivationEndAt
 
   const getDragDate = (rect: { left: number; width: number } | null | undefined) => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -837,12 +858,10 @@ function EventOverlay({
     const centerX = rect.left + rect.width / 2
     const x = centerX - ganttRect.left + scrollX - gantt.sidebarWidth
     const rawDate = getDateFromOffsetX(x, range)
-    return rawDate < cultivationStartAt
-      ? cultivationStartAt
-      : rawDate > latestDate
-        ? latestDate
-        : rawDate
+    return rawDate < earliestDate ? earliestDate : rawDate > latestDate ? latestDate : rawDate
   }
+
+  const handleDragStart = () => setIsDragging(true)
 
   const handleDragMove = (dragEvent: DragMoveEvent) => {
     const translated = dragEvent.active.rect.current.translated
@@ -852,6 +871,7 @@ function EventOverlay({
   }
 
   const handleDragEnd = (dragEvent: DragEndEvent) => {
+    setIsDragging(false)
     setDragPreview(null)
     const date = getDragDate(dragEvent.active.rect.current.translated)
     if (!date || !entityId) return
@@ -880,17 +900,15 @@ function EventOverlay({
       <TimelineContextMenu sections={sections}>
         <span {...triggerProps} onMouseDown={(event_) => event_.stopPropagation()}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
-                onClick={(event_) => {
-                  event_.stopPropagation()
-                  openMenuFromClick(event_)
-                }}
-                type="button"
-              >
-                <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
-              </button>
+            <TooltipTrigger
+              className="bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
+              onClick={(event_) => {
+                event_.stopPropagation()
+                openMenuFromClick(event_)
+              }}
+              type="button"
+            >
+              <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
             </TooltipTrigger>
             <TooltipContent className="whitespace-pre-line">
               {event.label}
@@ -905,20 +923,27 @@ function EventOverlay({
 
   return (
     <DndContext
+      id={dndId}
       modifiers={[restrictToHorizontalAxis]}
-      onDragCancel={() => setDragPreview(null)}
+      onDragCancel={() => {
+        setIsDragging(false)
+        setDragPreview(null)
+      }}
       onDragEnd={handleDragEnd}
       onDragMove={handleDragMove}
+      onDragStart={handleDragStart}
       sensors={[mouseSensor]}
     >
       <TimelineContextMenu sections={sections}>
         <span {...triggerProps}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="flex">
-                <DraggableEventIcon event={event} />
-              </span>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <span className="flex">
+                  <DraggableEventIcon event={event} />
+                </span>
+              }
+            />
             <TooltipContent className="whitespace-pre-line">
               {event.label}
               {"\n"}
@@ -927,6 +952,17 @@ function EventOverlay({
           </Tooltip>
         </span>
       </TimelineContextMenu>
+      {isDragging &&
+        createPortal(
+          // Let the overlay size itself to the icon instead of the measured source rect, which
+          // can be narrower than the icon and would cut it off at the sides.
+          <DragOverlay dropAnimation={null}>
+            <span className="bg-background ring-border/50 flex w-fit cursor-grabbing items-center justify-center rounded-full p-1 shadow-md ring-1">
+              <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
+            </span>
+          </DragOverlay>,
+          document.body,
+        )}
       {dragPreview &&
         createPortal(
           <div
@@ -1087,29 +1123,31 @@ function FeatureContent({
     const bar = (
       <div className="relative h-full min-w-0 flex-1">
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="absolute inset-0 flex cursor-pointer items-start"
-              onClick={(event) => {
-                captureClickDate(event)
-                openMenuFromClick(event)
-              }}
-              onKeyDown={openMenuFromKeyboard}
-              role="button"
-              tabIndex={0}
-            >
-              <p
-                className="truncate px-1.5 pt-0.5 text-xs"
-                style={
-                  firstEventPercent !== null
-                    ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
-                    : undefined
-                }
+          <TooltipTrigger
+            render={
+              <div
+                className="absolute inset-0 flex cursor-pointer items-start"
+                onClick={(event) => {
+                  captureClickDate(event)
+                  openMenuFromClick(event)
+                }}
+                onKeyDown={openMenuFromKeyboard}
+                role="button"
+                tabIndex={0}
               >
-                {feature.name}
-              </p>
-            </div>
-          </TooltipTrigger>
+                <p
+                  className="truncate px-1.5 pt-0.5 text-xs"
+                  style={
+                    firstEventPercent !== null
+                      ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
+                      : undefined
+                  }
+                >
+                  {feature.name}
+                </p>
+              </div>
+            }
+          />
           <TooltipContent className="whitespace-pre-line">
             {feature.label}
             {"\n"}
@@ -1155,19 +1193,17 @@ function FeatureContent({
         onMouseLeave={() => editing.setHoveredEntityId(null)}
       >
         <Tooltip>
-          <TooltipTrigger asChild>
-            {/* Class "gantt-bar-hide-shadow" is needed to trigger the CSS rule defined in TimelineGanttView. */}
-            <button
-              className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
-              onClick={openMenuFromClick}
-              type="button"
-            >
-              <EventIcon
-                kind={feature.kind}
-                p_type={feature.p_type}
-                p_type_rvo={feature.p_type_rvo}
-              />
-            </button>
+          {/* Class "gantt-bar-hide-shadow" is needed to trigger the CSS rule defined in TimelineGanttView. */}
+          <TooltipTrigger
+            className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
+            onClick={openMenuFromClick}
+            type="button"
+          >
+            <EventIcon
+              kind={feature.kind}
+              p_type={feature.p_type}
+              p_type_rvo={feature.p_type_rvo}
+            />
           </TooltipTrigger>
           <TooltipContent className="whitespace-pre-line">
             {feature.label}
@@ -1658,12 +1694,13 @@ export const TimelineGanttView = forwardRef<
     Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 
   return (
-    <TooltipProvider delayDuration={150}>
+    <TooltipProvider delay={150}>
       <div className="timeline-gantt-view relative" ref={containerRef}>
         <style
           dangerouslySetInnerHTML={{
             __html: `
           .timeline-gantt-view div:has(> div > div > button.gantt-bar-hide-shadow) {
+            overflow: visible;
             box-shadow: none;
             border: none;
           }

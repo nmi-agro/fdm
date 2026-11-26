@@ -1,40 +1,17 @@
-import {
-  acquiringMethodOptions,
-  addCultivation,
-  addField,
-  type FdmType,
-  type Field,
-  type FieldGeometry,
-  getDefaultDatesOfCultivation,
-  removeCultivation,
-  removeField,
-  updateField,
-} from "@nmi-agro/fdm-core"
+import type { FdmType, Field, FieldGeometry } from "@nmi-agro/fdm-core"
 import type { RvoImportReviewItem, UserChoiceMap } from "./types"
+import { applyRvoImport, type RvoImportResult } from "./apply"
+import { type ImportChoice, resolveImportChoices } from "./review"
 import { getItemId } from "./utils"
 
-type AcquiringMethod = (typeof acquiringMethodOptions)[number]["value"]
 type ProcessLocalField = Pick<Field, "b_id"> & Partial<Omit<Field, "b_id">>
 
-function parseBufferstrip(value: string | undefined): boolean | undefined {
-  if (value === "J") return true
-  if (value === "N") return false
-  return undefined
-}
-
-function parseAcquiringMethod(useTitleCode: string | undefined): AcquiringMethod {
-  const candidate = `nl_${useTitleCode}`
-  if (acquiringMethodOptions.some((opt) => opt.value === candidate)) {
-    return candidate as AcquiringMethod
-  }
-  return "unknown"
-}
-
 /**
- * Processes the RVO import review results by applying user-selected actions.
+ * Processes the RVO import review results by applying one action per review item.
  *
- * Iterates through the provided review items and executes the corresponding action
- * (add, update, remove) based on the `userChoices` map.
+ * Equivalent to {@link resolveImportChoices} followed by `applyRvoImport`, without per-value
+ * overrides. Items without a choice, and choices for items that are not in the review, are
+ * ignored.
  *
  * @param fdm - The FDM client instance for database operations.
  * @param principal_id - The ID of the principal (user) performing the import.
@@ -42,7 +19,9 @@ function parseAcquiringMethod(useTitleCode: string | undefined): AcquiringMethod
  * @param rvoImportReviewData - The list of review items resulting from the comparison.
  * @param userChoices - A map where keys are item IDs and values are the chosen `ImportReviewAction`.
  * @param year - The calendar year for the import context.
- * @returns A promise that resolves when all actions have been processed.
+ * @param onFieldAdded - Optional hook called inside the transaction for every added field.
+ * @returns The IDs of the created, updated, closed and removed fields.
+ * @throws {ImportChoiceError} When a choice does not fit the status of its item.
  */
 export async function processRvoImport(
   fdm: FdmType,
@@ -52,172 +31,17 @@ export async function processRvoImport(
   userChoices: UserChoiceMap,
   year: number,
   onFieldAdded?: (tx: FdmType, b_id: string, geometry: FieldGeometry) => Promise<void>,
-) {
-  await fdm.transaction(async (tx) => {
-    const addedFields: Array<{ b_id: string; geometry: FieldGeometry }> = []
-    async function handleItem(item: RvoImportReviewItem<ProcessLocalField>) {
-      const id = getItemId(item)
-      const action = userChoices[id]
-
-      if (!action || action === "IGNORE" || action === "NO_ACTION") {
-        return
-      }
-
-      switch (action) {
-        case "ADD_REMOTE":
-          if (item.rvoField) {
-            const b_bufferstrip = parseBufferstrip(
-              item.rvoField.properties.mestData?.IndBufferstrook,
-            )
-
-            const b_id = await addField(
-              tx,
-              principal_id,
-              b_id_farm,
-              item.rvoField.properties.CropFieldDesignator ||
-                `RVO Perceel ${item.rvoField.properties.CropFieldID}`,
-              item.rvoField.properties.CropFieldID,
-              item.rvoField.geometry,
-              new Date(item.rvoField.properties.BeginDate),
-              parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
-              typeof item.rvoField.properties.EndDate === "string"
-                ? new Date(item.rvoField.properties.EndDate)
-                : item.rvoField.properties.EndDate,
-              b_bufferstrip,
-            )
-
-            // Add cultivation from RVO
-            const b_lu_catalogue = `nl_${item.rvoField.properties.CropTypeCode}`
-            const defaultDates = await getDefaultDatesOfCultivation(
-              tx,
-              principal_id,
-              b_id_farm,
-              b_lu_catalogue,
-              year,
-            )
-
-            await addCultivation(
-              tx,
-              principal_id,
-              b_lu_catalogue,
-              b_id,
-              defaultDates.b_lu_start,
-              defaultDates.b_lu_end,
-            )
-
-            addedFields.push({
-              b_id: b_id,
-              geometry: item.rvoField.geometry,
-            })
-          }
-          break
-        case "UPDATE_FROM_REMOTE":
-          if (item.localField && item.rvoField) {
-            const b_bufferstrip = parseBufferstrip(
-              item.rvoField.properties.mestData?.IndBufferstrook,
-            )
-
-            await updateField(
-              tx,
-              principal_id,
-              item.localField.b_id,
-              item.rvoField.properties.CropFieldDesignator || item.localField.b_name,
-              item.rvoField.properties.CropFieldID,
-              item.rvoField.geometry,
-              new Date(item.rvoField.properties.BeginDate),
-              parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
-              item.rvoField.properties.EndDate ? new Date(item.rvoField.properties.EndDate) : null,
-              b_bufferstrip,
-            )
-
-            // Update cultivation if different or add if missing
-            if (item.localCultivation) {
-              if (
-                item.localCultivation.b_lu_catalogue !==
-                `nl_${item.rvoField.properties.CropTypeCode}`
-              ) {
-                // Remove old cultivation
-                await removeCultivation(tx, principal_id, item.localCultivation.b_lu)
-
-                // Add new RVO cultivation
-                const b_lu_catalogue = `nl_${item.rvoField.properties.CropTypeCode}`
-                const defaultDates = await getDefaultDatesOfCultivation(
-                  tx,
-                  principal_id,
-                  b_id_farm,
-                  b_lu_catalogue,
-                  year,
-                )
-
-                await addCultivation(
-                  tx,
-                  principal_id,
-                  b_lu_catalogue,
-                  item.localField.b_id,
-                  defaultDates.b_lu_start,
-                  defaultDates.b_lu_end,
-                )
-              }
-            } else {
-              // Add new RVO cultivation as it was missing locally
-              const b_lu_catalogue = `nl_${item.rvoField.properties.CropTypeCode}`
-              const defaultDates = await getDefaultDatesOfCultivation(
-                tx,
-                principal_id,
-                b_id_farm,
-                b_lu_catalogue,
-                year,
-              )
-
-              await addCultivation(
-                tx,
-                principal_id,
-                b_lu_catalogue,
-                item.localField.b_id,
-                defaultDates.b_lu_start,
-                defaultDates.b_lu_end,
-              )
-            }
-          }
-          break
-        case "KEEP_LOCAL": // Keep Local for Conflict
-          break
-        case "REMOVE_LOCAL":
-          if (item.localField) {
-            await removeField(tx, principal_id, item.localField.b_id)
-          }
-          break
-        case "CLOSE_LOCAL":
-          if (item.localField) {
-            // Close the field on Dec 31st of the previous year (the last day the field is managed)
-            const closeDate = new Date(Date.UTC(year - 1, 11, 31))
-            const fieldStart =
-              item.localField.b_start instanceof Date
-                ? item.localField.b_start
-                : typeof item.localField.b_start === "string"
-                  ? new Date(item.localField.b_start)
-                  : undefined
-
-            await updateField(
-              tx,
-              principal_id,
-              item.localField.b_id,
-              item.localField.b_name,
-              item.localField.b_id_source,
-              item.localField.b_geometry,
-              fieldStart,
-              item.localField.b_acquiring_method,
-              closeDate,
-            )
-          }
-          break
-      }
-    }
-
-    await Promise.all(rvoImportReviewData.map((item) => handleItem(item)))
-
-    if (onFieldAdded) {
-      await Promise.all(addedFields.map(({ b_id, geometry }) => onFieldAdded(tx, b_id, geometry)))
-    }
-  })
+): Promise<RvoImportResult> {
+  const itemIds = new Set(rvoImportReviewData.map((item) => getItemId(item)))
+  const choices: Record<string, ImportChoice> = {}
+  for (const [item_id, action] of Object.entries(userChoices)) {
+    // Choices for items that are not in the review are ignored.
+    if (itemIds.has(item_id)) choices[item_id] = { action }
+  }
+  const plan = resolveImportChoices(
+    rvoImportReviewData as RvoImportReviewItem<Field>[],
+    choices,
+    year,
+  )
+  return applyRvoImport(fdm, principal_id, b_id_farm, plan, year, { onFieldAdded })
 }

@@ -3,6 +3,7 @@ interface RuntimeConfig {
   PUBLIC_FDM_NAME?: string
   PUBLIC_FDM_DATASETS_URL?: string
   PUBLIC_FDM_API_URL?: string
+  PUBLIC_FDM_MCP_URL?: string
   PUBLIC_MAP_PROVIDER?: "maptiler" | "osm"
   PUBLIC_MAPTILER_API_KEY?: string
   PUBLIC_SENTRY_DSN?: string
@@ -13,6 +14,7 @@ interface RuntimeConfig {
   PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR?: string | number
   PUBLIC_SENTRY_PROFILE_SAMPLE_RATE?: string | number
   PUBLIC_SENTRY_SECURITY_REPORT_URI?: string
+  SENTRY_RELEASE?: string
   PUBLIC_POSTHOG_KEY?: string
   PUBLIC_POSTHOG_HOST?: string
 }

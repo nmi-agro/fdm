@@ -5,8 +5,8 @@ import { HeaderAtlas } from "~/components/blocks/header/atlas"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
-import { Button } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
+import { buttonVariants } from "~/components/ui/button"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
@@ -72,23 +72,25 @@ export default function AtlasSoilAnalysisFieldDetailLayout() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
         <HeaderAtlas b_id_farm={b_id_farm} />
         <HeaderField b_id_farm={b_id_farm} b_id={b_id} fieldOptions={fieldOptions} compact />
       </Header>
-      <main className="p-6">
+      <div className="p-6">
         <Outlet />
         <div className="fixed right-6 bottom-6 z-50">
-          <Button asChild size="lg" className="rounded-full shadow-lg">
-            <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}>
-              <MapIcon className="mr-2 h-4 w-4" />
-              Terug naar kaart
-            </NavLink>
-          </Button>
+          <NavLink
+            to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}
+            className={buttonVariants({ size: "lg", className: "rounded-full shadow-lg" })}
+            data-slot="button"
+          >
+            <MapIcon className="mr-2 h-4 w-4" />
+            Terug naar kaart
+          </NavLink>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

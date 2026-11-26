@@ -83,10 +83,10 @@ export type MineralizationFertilizer = Pick<
 >
 
 /** Soil parameter value used for the mineralization calculation. */
-export type MineralizationSoilItem = Pick<
-  CurrentSoilData[number],
-  "parameter" | "value" | "a_source" | "b_sampling_date"
->
+export type MineralizationSoilItem = Pick<CurrentSoilData[number], "parameter" | "value"> & {
+  /** Contributing analyses, newest first. The newest one is reported as source and date. */
+  sources: Pick<CurrentSoilData[number]["sources"][number], "a_source" | "b_sampling_date">[]
+}
 
 /** All FDM data of one field that is needed to prepare a Dyna v2 calculation. */
 export interface MineralizationFieldData {
@@ -423,8 +423,10 @@ export function prepareMineralizationInput(
     usedInput.soil.push({
       parameter,
       value: item.value,
-      source: item.a_source ?? null,
-      date: item.b_sampling_date ? toFdmDateString(item.b_sampling_date) : null,
+      source: item.sources[0]?.a_source ?? null,
+      date: item.sources[0]?.b_sampling_date
+        ? toFdmDateString(item.sources[0].b_sampling_date)
+        : null,
     })
   }
   // Groundwater levels are only accepted as a pair

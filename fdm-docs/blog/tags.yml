@@ -48,6 +48,21 @@ fdm-helpdesk:
   description: Posts related to the FDM helpdesk back-end (@nmi-agro/fdm-helpdesk).
   permalink: /fdm-helpdesk
 
+fdm-mcp:
+  label: fdm-mcp
+  description: Posts related to the MCP server for AI assistants (@nmi-agro/fdm-mcp).
+  permalink: /fdm-mcp
+
+fdm-reports:
+  label: fdm-reports
+  description: Posts related to the FDM reports library (@nmi-agro/fdm-reports).
+  permalink: /fdm-reports
+
+fdm-storage:
+  label: fdm-storage
+  description: Posts related to the FDM file storage library (@nmi-agro/fdm-storage).
+  permalink: /fdm-storage
+
 update:
   label: Update
   description: General updates and improvements to the FDM ecosystem.

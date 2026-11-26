@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from "react"
 import type { Navigation } from "react-router"
 /* eslint-disable typescript/unbound-method -- react-hook-form registration and control references are unbound by design in standard React Hook Form usage. */
 import { zodResolver } from "@hookform/resolvers/zod"
+import { cn } from "cn"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
@@ -9,13 +10,20 @@ import { useEffect, useId, useMemo, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import { cn } from "@/app/lib/utils"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
-import { Combobox } from "~/components/custom/combobox"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
-import { Field, FieldError, FieldLabel } from "~/components/ui/field"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  createComboboxItems,
+} from "~/components/ui/combobox"
+import { Field, FieldContent, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import {
@@ -111,6 +119,14 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         withAppAmountRange(schema ?? (isModify ? FormSchemaModify : FormSchema), options),
       ) as never,
     [schema, isModify, options],
+  )
+  const fertilizerItems = useMemo(
+    () =>
+      createComboboxItems(options, {
+        getValue: (option) => option.value,
+        getLabel: (option) => option.label,
+      }),
+    [options],
   )
   const form = useRemixForm<FieldFertilizerFormValues>({
     mode: "onTouched",
@@ -285,36 +301,63 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
             )}
           >
             <div className="flex min-w-0 flex-row align-top">
-              <div className="min-w-0 flex-1">
-                <Combobox
-                  options={options}
-                  form={form}
-                  name="p_id"
-                  label={
-                    <span>
+              <Controller
+                name="p_id"
+                render={({ field, fieldState }) => (
+                  <Field className="min-w-0 flex-1" data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>
                       Meststof
                       {requiredMarker}
-                    </span>
-                  }
-                  defaultValue={fertilizerApplication?.p_id}
-                />
-              </div>
+                    </FieldLabel>
+                    <FieldContent>
+                      <Combobox
+                        items={fertilizerItems}
+                        // Use the watched value: for undefined (cleared), the Controller returns
+                        // the initial fertilizer, which would show it again while none is chosen.
+                        value={p_id ?? null}
+                        onValueChange={(value) => field.onChange(value ?? undefined)}
+                      >
+                        <div className="flex flex-row gap-2">
+                          <ComboboxInput
+                            id={field.name}
+                            onBlur={field.onBlur}
+                            aria-invalid={fieldState.invalid}
+                            className="grow"
+                          />
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={handleManageFertilizers}
+                                  aria-label="Voeg een nieuwe meststof toe"
+                                >
+                                  <Plus className="size-4" />
+                                </Button>
+                              }
+                            />
+                            <TooltipContent>Voeg een nieuwe meststof toe</TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <ComboboxContent>
+                          <ComboboxEmpty>Geen meststoffen gevonden.</ComboboxEmpty>
+                          <ComboboxList>
+                            {(item) => (
+                              <ComboboxItem key={item.value} value={item.value}>
+                                {item.label}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </FieldContent>
+                    <FieldError errors={[fieldState.error]} />
+                  </Field>
+                )}
+              />
               <div className="shrink-0 grow-0 space-y-2">
                 <Label className="invisible">&nbsp;</Label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="ml-2"
-                      onClick={handleManageFertilizers}
-                      aria-label="Voeg een nieuwe meststof toe"
-                    >
-                      <Plus className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Voeg een nieuwe meststof toe</TooltipContent>
-                </Tooltip>
               </div>
             </div>
             {typeof intent === "string" && <input type="hidden" name="intent" value={intent} />}
@@ -332,6 +375,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value ?? ""}
+                    items={selectedFertilizer?.applicationMethodOptions}
                     disabled={!selectedFertilizer}
                   >
                     <SelectTrigger>

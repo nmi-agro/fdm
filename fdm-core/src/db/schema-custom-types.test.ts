@@ -20,7 +20,34 @@ const MULTIPOLYGON_HEX =
   "0000000000000000" +
   "0000000000000000" //  (0,0) close
 
+// WKB hex for a MultiPoint with two points: (1,0) and (0,1)
+// Each point carries its own byte order and geometry type
+const MULTIPOINT_HEX =
+  "010400000002000000" + // header: LE, type=4, numPoints=2
+  "0101000000" + //         point header: LE, type=1
+  "000000000000F03F" +
+  "0000000000000000" + // (1,0)
+  "0101000000" + //         point header: LE, type=1
+  "0000000000000000" +
+  "000000000000F03F" //  (0,1)
+
 describe("parseHexToGeometry", () => {
+  it("parses a MultiPoint WKB hex string", () => {
+    expect(parseHexToGeometry(MULTIPOINT_HEX)).toEqual({
+      type: "MultiPoint",
+      coordinates: [
+        [1, 0],
+        [0, 1],
+      ],
+    })
+  })
+
+  it("throws when the MultiPoint buffer is too small for its points", () => {
+    expect(() => parseHexToGeometry(MULTIPOINT_HEX.slice(0, -16))).toThrowError(
+      "Failed to parse hex geometry",
+    )
+  })
+
   it("parses a MultiPolygon WKB hex string", () => {
     const result = parseHexToGeometry(MULTIPOLYGON_HEX)
     expect(result).toEqual({

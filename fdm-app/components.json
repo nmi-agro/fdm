@@ -1,6 +1,6 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "new-york",
+  "style": "base-vega",
   "rsc": false,
   "tsx": true,
   "tailwind": {
@@ -12,9 +12,12 @@
   },
   "aliases": {
     "components": "~/components",
-    "utils": "~/lib/utils",
+    "utils": "cn",
     "ui": "~/components/ui",
     "lib": "~/lib",
     "hooks": "~/hooks"
+  },
+  "registries": {
+    "@kibo-ui": "https://www.kibo-ui.com/r/{name}.json"
   }
 }

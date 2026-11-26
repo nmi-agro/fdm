@@ -181,7 +181,7 @@ export default function HelpdeskAgentSettings() {
   const { helpdeskUsers, helpdeskWritePermission } = useLoaderData<typeof loader>()
 
   return (
-    <main className="p-6">
+    <div className="p-6">
       <FarmTitle
         title="Medewerkers"
         description={
@@ -196,6 +196,6 @@ export default function HelpdeskAgentSettings() {
         canModify={helpdeskWritePermission}
       />
       <Outlet />
-    </main>
+    </div>
   )
 }

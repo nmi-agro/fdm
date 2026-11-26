@@ -2,7 +2,7 @@ import { getField } from "@nmi-agro/fdm-core"
 import { ArrowLeft } from "lucide-react"
 import { data, type LoaderFunctionArgs, NavLink, useLocation } from "react-router"
 import { SoilAnalysisFormSelection } from "~/components/blocks/soil/form-selection"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
@@ -69,23 +69,25 @@ export default function FarmFieldSoilOverviewBlock() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-medium">Bodem</h3>
+          <h3 className="text-lg font-medium">Bodemanalyse toevoegen</h3>
           <p className="text-muted-foreground text-sm">
-            Kies het type bodemanalyse voor uw formulier
+            Upload het PDF-rapport van het lab, of voer de waarden zelf in.
           </p>
         </div>
-        <Button asChild>
-          {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
-          <NavLink to={`../${location.search}`}>
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        {/* Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route */}
+        <NavLink
+          to={`../${location.search}`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+          data-slot="button"
+        >
+          <ArrowLeft />
+          Terug
+        </NavLink>
       </div>
       <Separator />
-      <SoilAnalysisFormSelection />
+      <SoilAnalysisFormSelection uploadHref="./upload" />
     </div>
   )
 }

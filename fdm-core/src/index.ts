@@ -19,31 +19,52 @@ import * as fdmSchema from "./db/schema"
 export type { FdmAuth } from "./authentication"
 // export { createFdmLocal } from './fdm-local'
 export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authentication"
-export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
-export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
+  checkPermission,
+  getAuditContext,
+  withAuditContext,
+  writeAuditEntry,
+} from "./authorization"
+export type { AuditContext, PrincipalId } from "./authorization.types"
+export { getAnimalCategoriesForFarm, getAnimalCategoriesFromCatalogues } from "./animal"
+export {
+  type CachedCalculation,
+  type CachedCalculationManyOptions,
+  type CachedCalculationRow,
   generateCalculationHash,
   getCachedCalculation,
+  getCachedCalculations,
   setCachedCalculation,
+  setCachedCalculations,
   setCalculationError,
   withCalculationCache,
 } from "./calculator"
 export {
   disableCultivationCatalogue,
+  disableAnimalCategoryCatalogue,
+  disableFeedCatalogue,
   disableFertilizerCatalogue,
   disableMeasureCatalogue,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
+  enableFeedCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
+  getEnabledAnimalCategoryCatalogues,
   getEnabledCultivationCatalogues,
   getEnabledCultivationCataloguesForFarms,
+  getEnabledFeedCatalogues,
   getEnabledFertilizerCatalogues,
   getEnabledFertilizerCataloguesForFarms,
   getEnabledMeasureCatalogues,
+  isAnimalCategoryCatalogueEnabled,
   isCultivationCatalogueEnabled,
+  isFeedCatalogueEnabled,
   isFertilizerCatalogueEnabled,
   isMeasureCatalogueEnabled,
   syncCatalogues,
+  syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
   syncMeasuresCatalogueArray,
 } from "./catalogues"
 export {
@@ -56,16 +77,23 @@ export {
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getDefaultDatesOfCultivation,
+  getDefaultDatesOfCultivations,
   isCultivationUnavailableInPeriod,
   removeCultivation,
   updateCultivation,
 } from "./cultivation"
 export type { Cultivation, CultivationCatalogue, CultivationPlan } from "./cultivation.types"
+export { feedTypeOptions } from "@nmi-agro/fdm-data"
 export {
   acquiringMethodOptions,
+  animalSexOptions,
+  animalSpeciesOptions,
   annotationTypeOptions,
+  arrivingMethodOptions,
   bcsIndicatorOptions,
+  feedOriginOptions,
   gwlClassesOptions,
+  leavingMethodOptions,
   soilTypesOptions,
   visualImageTypeOptions,
 } from "./db/schema"
@@ -86,7 +114,11 @@ export {
   addFarmToGroup,
   createFarmGroup,
   getFarmGroup,
+  getFarmIdsOfFarmGroupInYear,
+  getFarmIdsOfOrganization,
+  isFarmGroupMembershipInYear,
   listFarmGroups,
+  listFarmGroupsOfOrganizations,
   removeFarmFromGroup,
   removeFarmGroup,
   removeFarmGroupMembership,
@@ -126,6 +158,7 @@ export {
   getFertilizers,
   getFertilizersFromCatalogue,
   getFertilizersFromCatalogues,
+  getFertilizerTypesByRvoCode,
   removeFertilizer,
   removeFertilizerApplication,
   updateFertilizerApplication,
@@ -169,6 +202,7 @@ export {
   determineIfFieldIsBuffer,
   getField,
   getFields,
+  getFieldsForFarms,
   listAvailableAcquiringMethods,
   removeField,
   updateField,
@@ -184,6 +218,7 @@ export {
 export {
   addHarvest,
   getDefaultsForHarvestParameters,
+  getEffectiveHarvestable,
   getHarvest,
   getHarvestableTypeOfCultivation,
   getHarvests,
@@ -214,12 +249,13 @@ export {
   addMeasure,
   getMeasure,
   getMeasures,
+  getMeasureFromCatalogue,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
   removeMeasure,
   updateMeasure,
 } from "./measure"
-export type { Measure, MeasureCatalogue } from "./measure.types"
+export type { Measure, MeasureCatalogue, MeasureCatalogueDetails } from "./measure.types"
 export { runMigration } from "./migrate"
 export {
   addOrganicCertification,
@@ -230,12 +266,20 @@ export {
   listOrganicCertifications,
   removeOrganicCertification,
 } from "./organic"
+export { listOrganizationRolesOfUser } from "./organization"
 export type { OrganicCertification } from "./organic.types"
-export { getPrincipal, getPrincipals, lookupPrincipal } from "./principal"
+export {
+  getPrincipal,
+  getPrincipals,
+  identifyPrincipal,
+  lookupPrincipal,
+  type LookupPrincipalOptions,
+} from "./principal"
 export {
   addSoilAnalysis,
   getCurrentSoilData,
   getCurrentSoilDataForFarm,
+  getCurrentSoilDataPerZone,
   getSoilAnalyses,
   getSoilAnalysesForFarm,
   getSoilAnalysis,
@@ -245,10 +289,21 @@ export {
 } from "./soil"
 export type {
   CurrentSoilData,
+  CurrentSoilDataItem,
+  CurrentSoilDataSource,
   SoilAnalysis,
   SoilParameterDescription,
   SoilParameters,
+  SoilSamplingGeometries,
+  SoilZone,
 } from "./soil.types"
+export {
+  CATEGORICAL_SOIL_PARAMETERS,
+  SOIL_ZONE_COVERED_FRACTION,
+  SOIL_ZONE_MAX_DATE_SPAN_MONTHS,
+  SOIL_ZONE_MIN_COVERAGE,
+  SOIL_ZONE_SAME_IOU,
+} from "./soil-aggregation"
 export {
   addFarmVerification,
   getActiveFarmVerifications,
@@ -267,6 +322,8 @@ export type {
 export {
   addSoilImage,
   addSoilImageAnnotation,
+  getSoilImage,
+  getSoilImageAnnotation,
   getSoilImages,
   removeSoilImage,
   removeSoilImageAnnotation,
@@ -279,5 +336,155 @@ export type {
   SoilImageAnnotation,
   UpdateSoilImageAnnotationInput,
 } from "./soil-image.types"
-export type { Timeframe } from "./timeframe.d"
+export type { Timeframe } from "./timeframe"
+export {
+  addHerd,
+  getHerd,
+  getHerdsForFarm,
+  getHerdsForFarmInPeriod,
+  removeHerd,
+  updateHerd,
+} from "./herd"
+export type { Herd } from "./herd.types"
+export {
+  addAnimal,
+  addAnimalsToHerd,
+  assignAnimalToHerd,
+  createHerdWithAnimals,
+  getAnimalAssignmentHistory,
+  getAnimal,
+  getAnimalsForFarm,
+  getAnimalsForHerd,
+  getCensusForFarm,
+  leaveHerd,
+  reassignHerdAnimals,
+  removeAnimal,
+  removeAnimalAssigning,
+  removeAnimals,
+  removeAnimalsFromHerd,
+  updateAnimal,
+  updateAnimalAssigning,
+} from "./animal"
+export type {
+  Animal,
+  AnimalAssignmentHistory,
+  AnimalCategoryCatalogue,
+  HerdCensus,
+} from "./animal.types"
+export {
+  addBarn,
+  addHousing,
+  getBarn,
+  getBarnsForFarm,
+  getHousingForFarm,
+  getHousingForHerd,
+  removeBarn,
+  removeHousing,
+  updateBarn,
+  updateHousing,
+} from "./barn"
+export type { Barn, Housing } from "./barn.types"
+export {
+  addMilkDelivery,
+  addMilkingAnimal,
+  addMilkingHerd,
+  addMilkTank,
+  getMilkingEventsForAnimal,
+  getMilkingSummaryForAnimal,
+  getMilkDelivery,
+  getMilkDeliveriesForFarm,
+  getMilkingAnimal,
+  getMilkingHerd,
+  getMilkProductionForHerd,
+  getMilkTank,
+  getMilkTanksForFarm,
+  removeMilkDelivery,
+  removeMilkingAnimal,
+  removeMilkingHerd,
+  removeMilkTank,
+  updateMilkDelivery,
+  updateMilkingAnimal,
+  updateMilkingHerd,
+  updateMilkTank,
+} from "./milk"
+export type {
+  MilkDelivery,
+  Milking,
+  MilkingEventForAnimal,
+  MilkingEventFromAnimal,
+  MilkingEventFromHerd,
+  MilkingSummaryForAnimal,
+  MilkingHerd,
+  MilkingAnimal,
+  MilkTank,
+} from "./milk.types"
+export {
+  addFeedBatch,
+  addFeedToCatalogue,
+  addFeedingAnimal,
+  addFeedingHerd,
+  getFeedingEventsForAnimal,
+  getFeedingSummaryForAnimal,
+  getFeedBatch,
+  getFeedBatchesForFarm,
+  getFeedsFromCatalogue,
+  getFeedsFromCatalogues,
+  getFeedingAnimalForFarm,
+  getFeedingHerdForFarm,
+  removeFeedBatch,
+  removeFeedingAnimal,
+  removeFeedingHerd,
+  updateFeedBatch,
+  updateFeedingAnimal,
+  updateFeedingHerd,
+} from "./feed"
+export type {
+  FeedCatalogue,
+  FeedBatch,
+  Feeding,
+  FeedingEventForAnimal,
+  FeedingEventFromAnimal,
+  FeedingEventFromHerd,
+  FeedingSummaryForAnimal,
+  FeedingHerd,
+  FeedingAnimal,
+} from "./feed.types"
+export {
+  addExcreting,
+  addManureDisposing,
+  addManurePit,
+  getExcreting,
+  getExcretingsForFarm,
+  getManureDisposalsForFarm,
+  getManureDisposing,
+  getManurePit,
+  getManurePitsForFarm,
+  removeExcreting,
+  removeManureDisposing,
+  removeManurePit,
+  updateExcreting,
+  updateManureDisposing,
+  updateManurePit,
+} from "./manure"
+export type { Excreting, ManureDelivery, ManurePit } from "./manure.types"
+export {
+  addGrazing,
+  addGrazings,
+  getGrazing,
+  getGrazingCalendarForFarm,
+  getGrazingForFarm,
+  getGrazingForField,
+  getGrazingForHerd,
+  getGrazingZonesForField,
+  getGrazedAreaForFarm,
+  removeGrazing,
+  updateGrazing,
+} from "./grazing"
+export type {
+  GrazedFieldArea,
+  Grazing,
+  GrazingCalendarEntry,
+  GrazingZone,
+  GrazingZoneInput,
+} from "./grazing.types"
 export { fdmSchema }

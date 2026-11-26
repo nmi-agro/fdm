@@ -5,8 +5,12 @@
     "../fdm-data/src/index.ts",
     "../fdm-calculator/src/index.ts",
     "../fdm-rvo/src/index.ts",
+    "../fdm-storage/src/index.ts",
+    "../fdm-reports/src/index.ts",
     "../fdm-agents/src/index.ts",
-    "../fdm-api/src/index.ts"
+    "../fdm-api/src/index.ts",
+    "../fdm-api/src/operations/index.ts",
+    "../fdm-mcp/src/index.ts"
   ],
   "entryPointStrategy": "resolve",
   "plugin": ["typedoc-plugin-markdown"],
@@ -22,7 +26,17 @@
       "Measure": "#",
       "MeasureCatalogue": "#",
       "SoilAnalysis": "#",
-      "syncFertilizerCatalogueArray": "#"
+      "syncFertilizerCatalogueArray": "#",
+      "FertilizerApplication": "#",
+      "Harvest": "#",
+      "listPendingInvitationsForPrincipal": "#",
+      "AppAmountOutOfRangeError": "#"
+    },
+    "@nmi-agro/fdm-calculator": {
+      "startFarmNutrientAdviceRows": "#"
+    },
+    "@nmi-agro/fdm-storage": {
+      "buildObjectKey": "#"
     }
   }
 }

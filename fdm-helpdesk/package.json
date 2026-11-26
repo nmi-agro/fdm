@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-helpdesk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": false,
   "description": "Help desk back-end for FDM",
   "homepage": "https://svenvw.github.io/fdm/",
@@ -44,7 +44,7 @@
   "dependencies": {
     "drizzle-orm": "catalog:",
     "nanoid": "catalog:",
-    "postgres": "^3.4.9",
+    "postgres": "^4.1.1",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -58,7 +58,7 @@
     "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@12.8.1"
 }

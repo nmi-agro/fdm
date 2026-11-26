@@ -18,6 +18,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "~/components/ui/accordion"
+import { formatBalanceValue } from "~/lib/format"
 
 type OrganicMatterFieldInput = Awaited<
   ReturnType<typeof collectInputForOrganicMatterBalance>
@@ -48,7 +49,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
     return (
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>
-          {title} (Totaal): {applications.total} kg EOM / ha
+          {title} (Totaal): {formatBalanceValue(applications.total)} kg EOM / ha
         </AccordionTrigger>
         <AccordionContent>
           <ul className="ml-6 list-outside list-disc space-y-1">
@@ -65,7 +66,8 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
                     to={`/farm/${farmId}/${calendar}/field/${fieldInput.field.b_id}/fertilizer`}
                   >
                     {application.p_name_nl} op{" "}
-                    {format(application.p_app_date, "PP", { locale: nl })}: {app.value} kg EOM / ha
+                    {format(application.p_app_date, "PP", { locale: nl })}:{" "}
+                    {formatBalanceValue(app.value)} kg EOM / ha
                   </NavLink>
                 </li>
               )
@@ -82,9 +84,11 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
   ) => {
     return (
       <AccordionItem value="supply.fertilizers">
-        <AccordionTrigger>Bemesting (Totaal): {fertilizers.total} kg EOM / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Bemesting (Totaal): {formatBalanceValue(fertilizers.total)} kg EOM / ha
+        </AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {renderFertilizerApplications(
               fertilizers.manure,
               fieldInput,
@@ -128,7 +132,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
               key={item.id}
             >
               <li className="text-muted-foreground text-sm hover:underline">
-                {cultivation.b_lu_name}: {item.value} {unit}
+                {cultivation.b_lu_name}: {formatBalanceValue(item.value)} {unit}
               </li>
             </NavLink>
           )
@@ -144,7 +148,9 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
     if (cultivations.cultivations.length === 0) return null
     return (
       <AccordionItem value="supply.cultivations">
-        <AccordionTrigger>Gewassen (Totaal): {cultivations.total} kg EOM / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Gewassen (Totaal): {formatBalanceValue(cultivations.total)} kg EOM / ha
+        </AccordionTrigger>
         <AccordionContent>
           {renderCultivationsList(cultivations.cultivations, fieldInput, "kg EOM / ha")}
         </AccordionContent>
@@ -159,7 +165,9 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
     if (residues.cultivations.length === 0) return null
     return (
       <AccordionItem value="supply.residues">
-        <AccordionTrigger>Gewasresten (Totaal): {residues.total} kg EOM / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Gewasresten (Totaal): {formatBalanceValue(residues.total)} kg EOM / ha
+        </AccordionTrigger>
         <AccordionContent>
           {renderCultivationsList(residues.cultivations, fieldInput, "kg EOM / ha")}
         </AccordionContent>
@@ -173,9 +181,11 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
   ) => {
     return (
       <AccordionItem value="supply">
-        <AccordionTrigger>Aanvoer (Totaal): {supply.total} kg EOM / ha</AccordionTrigger>
+        <AccordionTrigger>
+          Aanvoer (Totaal): {formatBalanceValue(supply.total)} kg EOM / ha
+        </AccordionTrigger>
         <AccordionContent>
-          <Accordion type="multiple" className="ml-4">
+          <Accordion multiple className="ml-4">
             {renderFertilizersSupply(supply.fertilizers, fieldInput)}
             {renderCultivationsSupply(supply.cultivations, fieldInput)}
             {renderResiduesSupply(supply.residues, fieldInput)}
@@ -189,7 +199,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
     return (
       <AccordionItem value="degradation">
         <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
-          Afbraak: {degradation.total} kg OM / ha
+          Afbraak: {formatBalanceValue(degradation.total)} kg OM / ha
         </p>
       </AccordionItem>
     )
@@ -197,7 +207,7 @@ const OrganicMatterBalanceDetails: React.FC<OrganicMatterBalanceDetailsProps> = 
 
   return (
     <div>
-      <Accordion type="multiple" className="w-full">
+      <Accordion multiple className="w-full">
         {renderSupply(balanceData.supply, fieldInput)}
         {renderDegradation(balanceData.degradation)}
       </Accordion>

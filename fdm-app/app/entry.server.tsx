@@ -12,8 +12,11 @@ import { isbot } from "isbot"
 import { PassThrough } from "node:stream"
 import { renderToPipeableStream } from "react-dom/server"
 import { ServerRouter } from "react-router"
+import { maskSentrySecrets } from "~/lib/analytics-privacy"
 import { isInternalRouterNoise, reportError } from "~/lib/error"
-import { addSecurityHeaders, getCacheControlHeaders } from "./lib/cache.server"
+import { addSecurityHeaders, applyCacheControlHeaders } from "./lib/cache.server"
+
+maskSentrySecrets()
 
 export const streamTimeout = 180000
 
@@ -49,10 +52,7 @@ const handleRequest = async function handleRequest(
   }
 
   // Add cache control headers based on the request path
-  const cacheHeaders = getCacheControlHeaders(request, reactRouterContext)
-  cacheHeaders.forEach((value, key) => {
-    responseHeaders.set(key, value)
-  })
+  applyCacheControlHeaders(request, reactRouterContext, responseHeaders)
 
   // Add security headers
   addSecurityHeaders(responseHeaders)

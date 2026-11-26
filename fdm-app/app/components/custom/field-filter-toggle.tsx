@@ -13,22 +13,24 @@ export function FieldFilterToggle() {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleShowProductiveOnly}
-            className="hover:bg-accent hover:text-accent-foreground border"
-            aria-label={tooltipContent}
-            aria-pressed={showProductiveOnly}
-          >
-            {showProductiveOnly ? (
-              <Square className="text-primary h-4 w-4" />
-            ) : (
-              <PanelsRightBottom className="h-4 w-4" />
-            )}
-          </Button>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleShowProductiveOnly}
+              className="hover:bg-accent hover:text-accent-foreground border"
+              aria-label={tooltipContent}
+              aria-pressed={showProductiveOnly}
+            >
+              {showProductiveOnly ? (
+                <Square className="text-primary h-4 w-4" />
+              ) : (
+                <PanelsRightBottom className="h-4 w-4" />
+              )}
+            </Button>
+          }
+        />
         <TooltipContent>
           <p>{tooltipContent}</p>
         </TooltipContent>

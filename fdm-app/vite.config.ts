@@ -1,31 +1,47 @@
 import { reactRouter } from "@react-router/dev/vite"
 import { sentryReactRouter } from "@sentry/react-router/vite"
 import tailwindcss from "@tailwindcss/vite"
-import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { transform } from "oxc-transform-react"
-import { defineConfig, type Plugin } from "vite"
+import { defineConfig, normalizePath, type Plugin } from "vite"
+import {
+  CALCULATOR_VERSION_PLACEHOLDER,
+  getCalculatorVersionReplacement,
+  isCalculatorSource,
+} from "../fdm-calculator/calculator-version.mjs"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const calculatorPackagePath = path.resolve(__dirname, "../fdm-calculator/package.json")
-const calculatorPackage = JSON.parse(fs.readFileSync(calculatorPackagePath, "utf-8"))
+const calculatorPackageFile = path.resolve(__dirname, "../fdm-calculator/src/package.ts")
 
-const replaceCalculatorVersion = {
+/**
+ * Replaces the version placeholder of fdm-calculator, which is resolved from source, with the
+ * version and a hash of its source. The version is part of the key of cached calculations, so a
+ * change to the calculator code must not reuse results of the old code. When a calculator file
+ * changes, `package.ts` is updated too, so the new version reaches the modules that use it.
+ */
+const replaceCalculatorVersion: Plugin = {
   name: "replace-calculator-version",
-  transform(code: string, id: string) {
-    const cleanId = id.split("?", 1)[0]
-    const target = path.join("fdm-calculator", "src", "package.ts")
-    if (path.normalize(cleanId).endsWith(target)) {
-      const placeholder = `"fdm-calculator:{FDM_CALCULATOR_VERSION}"`
-      if (code.includes(placeholder)) {
-        const replacement = `"fdm-calculator:${calculatorPackage.version}"`
-        return {
-          code: code.replace(placeholder, replacement.padEnd(placeholder.length, " ")),
-          map: null,
-        }
+  transform(code, id) {
+    const cleanId = path.resolve(id.split("?", 1)[0])
+    if (cleanId === calculatorPackageFile && code.includes(CALCULATOR_VERSION_PLACEHOLDER)) {
+      return {
+        code: code.replace(CALCULATOR_VERSION_PLACEHOLDER, getCalculatorVersionReplacement()),
+        map: null,
       }
     }
+  },
+  hotUpdate({ file, modules }) {
+    if (!isCalculatorSource(file) || path.resolve(file) === calculatorPackageFile) {
+      return
+    }
+    const packageModules = this.environment.moduleGraph.getModulesByFile(
+      normalizePath(calculatorPackageFile),
+    )
+    if (!packageModules?.size) {
+      return
+    }
+    return [...modules, ...packageModules]
   },
 }
 
@@ -103,17 +119,16 @@ export default defineConfig((env) => {
     },
     envPrefix: "PUBLIC_",
     ssr: {
-      noExternal: [
-        "posthog-js",
-        "posthog-js/react",
-        "@geomatico/maplibre-cog-protocol",
-        "maplibre-gl",
-        "remix-hook-form",
-      ],
+      noExternal: ["posthog-js", "posthog-js/react", "maplibre-gl", "remix-hook-form"],
     },
     build: {
       sourcemap: true,
       target: "baseline-widely-available",
+    },
+    // The GeoTIFF decoder workers of @developmentseed/deck.gl-geotiff (Atlas elevation layer)
+    // are ES modules; `vite build` fails with the default "iife" worker format.
+    worker: {
+      format: "es",
     },
     optimizeDeps: {
       // Keep workspace packages excluded so Vite resolves them from source
@@ -127,6 +142,8 @@ export default defineConfig((env) => {
         "@nmi-agro/fdm-agents",
         "@nmi-agro/fdm-api",
         "@nmi-agro/fdm-helpdesk",
+        "@nmi-agro/fdm-storage",
+        "@nmi-agro/fdm-reports",
       ],
       // Pre-bundle heavy transitive deps that workspace packages pull in,
       // so they are processed once rather than on every cold dev start.

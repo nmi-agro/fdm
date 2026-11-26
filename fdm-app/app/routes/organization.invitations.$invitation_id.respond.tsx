@@ -8,6 +8,7 @@ import {
   type LoaderFunctionArgs,
   redirect,
   useLoaderData,
+  useNavigation,
   useSearchParams,
   useSubmit,
 } from "react-router"
@@ -16,6 +17,7 @@ import z from "zod"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
+import { Spinner } from "~/components/ui/spinner"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -179,6 +181,10 @@ export default function Respond() {
   const intent = intentRaw != null ? intentRaw.toLowerCase() : null
 
   const submit = useSubmit()
+  // This form leaves the page after saving, so the submission is a navigation
+  const navigation = useNavigation()
+  const pendingIntent =
+    navigation.state !== "idle" ? (navigation.formData?.get("intent") ?? null) : null
 
   useEffect(() => {
     if (intent && intent === "accept") {
@@ -224,11 +230,25 @@ export default function Respond() {
         <CardFooter>
           <Form method="post" className="flex flex-row gap-2">
             <input type="hidden" name="invitation_id" value={invitation.id} />
-            <Button variant="destructive" name="intent" value="reject">
-              Ja, afwijzen
+            <Button
+              type="submit"
+              variant="destructive"
+              name="intent"
+              value="reject"
+              disabled={pendingIntent !== null}
+            >
+              {pendingIntent === "reject" && <Spinner />}
+              <span>Ja, afwijzen</span>
             </Button>
-            <Button variant="secondary" name="intent" value="do_nothing">
-              Nee, terug naar Mijn Uitnodigingen
+            <Button
+              type="submit"
+              variant="secondary"
+              name="intent"
+              value="do_nothing"
+              disabled={pendingIntent !== null}
+            >
+              {pendingIntent === "do_nothing" && <Spinner />}
+              <span>Nee, terug naar Mijn Uitnodigingen</span>
             </Button>
           </Form>
         </CardFooter>
@@ -324,7 +344,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
             <CardFooter>
               <Form method="post" className="flex flex-row gap-2">
                 <input type="hidden" name="invitation_id" value={props.params.invitation_id} />
-                <Button variant="secondary" name="intent" value="do_nothing">
+                <Button type="submit" variant="secondary" name="intent" value="do_nothing">
                   Terug naar mijn organisaties
                 </Button>
               </Form>

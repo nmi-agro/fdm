@@ -10,14 +10,15 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderMineralization } from "~/components/blocks/header/mineralization"
 import { MineralizationExperimentalNote } from "~/components/blocks/mineralization/experimental-note"
+import { PageContainer } from "~/components/custom/page-container"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
-import { SidebarInset } from "~/components/ui/sidebar"
 import {
   getMineralizationTimeframe,
   getMineralizationYear,
@@ -29,7 +30,7 @@ import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 
 /** Calculations stream in with their own loading states; the global loader is not needed. */
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "mineralisatie" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -159,11 +160,11 @@ export default function MineralizationLayout() {
 
   if (isMineralizationEnabled === false) {
     return (
-      <SidebarInset>
+      <PageContainer>
         <Header action={action}>
           <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         </Header>
-        <main className="flex flex-1 flex-col items-center justify-center p-6">
+        <div className="flex flex-1 flex-col items-center justify-center p-6">
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -176,13 +177,13 @@ export default function MineralizationLayout() {
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
-        </main>
-      </SidebarInset>
+        </div>
+      </PageContainer>
     )
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderMineralization
@@ -191,8 +192,9 @@ export default function MineralizationLayout() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle
+          help="mineralisatie"
           title={title}
           description={description}
           descriptionNode={
@@ -205,7 +207,7 @@ export default function MineralizationLayout() {
         <FarmContent>
           <Outlet />
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

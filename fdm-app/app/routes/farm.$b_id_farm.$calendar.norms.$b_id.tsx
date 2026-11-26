@@ -13,6 +13,7 @@ import { nl } from "date-fns/locale"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
@@ -22,6 +23,7 @@ import { HeaderNorms } from "~/components/blocks/header/norms"
 import { NormCard } from "~/components/blocks/norms/norm-card"
 import { NormsDisclaimer } from "~/components/blocks/norms/norms-disclaimer"
 import { NormsFallback } from "~/components/blocks/norms/skeletons"
+import { PageContainer } from "~/components/custom/page-container"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -33,7 +35,6 @@ import {
   ItemTitle,
 } from "~/components/ui/item"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getNorms } from "~/integrations/calculator"
@@ -68,6 +69,9 @@ interface FieldNormData {
 type FertilizerApplication = Awaited<ReturnType<typeof getFertilizerApplications>>[number]
 
 // Meta
+
+export const handle: HelpHandle = { help: "gebruiksruimte" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Gebruiksruimte - Perceel | ${clientConfig.name}` },
@@ -255,7 +259,7 @@ export default function FieldNormsBlock() {
   }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderNorms
@@ -264,8 +268,9 @@ export default function FieldNormsBlock() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle
+          help="gebruiksruimte"
           title={"Gebruiksruimte"}
           description={`Bekijk de gebruiksruimte en opvulling voor ${loaderData.field.b_name}.`}
         >
@@ -287,8 +292,8 @@ export default function FieldNormsBlock() {
             <FieldNormsContent {...loaderData} asyncData={loaderData.asyncData} />
           </Suspense>
         )}
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 
@@ -340,9 +345,13 @@ const FertilizerApplicationCard = ({
           <ItemTitle>{title}</ItemTitle>
           {details && (
             <Tooltip>
-              <TooltipTrigger asChild>
-                <ItemDescription className="max-w-xs text-xs">{details}</ItemDescription>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <ItemDescription className="max-w-xs text-xs" tabIndex={0}>
+                    {details}
+                  </ItemDescription>
+                }
+              />
               <TooltipContent>{details}</TooltipContent>
             </Tooltip>
           )}

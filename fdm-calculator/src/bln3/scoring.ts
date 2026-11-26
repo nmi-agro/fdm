@@ -148,3 +148,53 @@ export function aggregateFarmScores(fields: FieldScoreWithArea[]): FarmScores {
     aggregations: reduce(aggregations).map(({ id, score }) => ({ aggregation_id: id, score })),
   }
 }
+
+/**
+ * Returns the lowest score of every indicator and aggregation across several scores, for example
+ * the weakest field of a farm or the weakest farm of a group. For each indicator, the index of the
+ * field with the lowest score is kept with it.
+ *
+ * Indicator results other than `score` and `index` (`status`, `target`, `impact`) have no meaning
+ * for a minimum and are set to `0`.
+ *
+ * @param scores - The scores to combine. `null` entries (no score available) are skipped.
+ * @returns The minimum scores.
+ */
+export function computeMinimumScores(scores: (Bln3Score | null | undefined)[]): Bln3Score {
+  const aggregations = new Map<string, number>()
+  const indicators = new Map<string, { score: number; index: number }>()
+
+  for (const score of scores) {
+    if (!score) continue
+    for (const aggregation of score.aggregations ?? []) {
+      const value = getFieldAggregationScore(score, aggregation.aggregation_id)
+      if (value === null) continue
+      const current = aggregations.get(aggregation.aggregation_id)
+      if (current === undefined || value < current) {
+        aggregations.set(aggregation.aggregation_id, value)
+      }
+    }
+    for (const indicator of score.indicators) {
+      if (indicator.score == null || Number.isNaN(indicator.score)) continue
+      const current = indicators.get(indicator.indicator_id)
+      if (current === undefined || indicator.score < current.score) {
+        indicators.set(indicator.indicator_id, {
+          score: indicator.score,
+          index: indicator.index ?? indicator.score,
+        })
+      }
+    }
+  }
+
+  return {
+    aggregations: [...aggregations].map(([aggregation_id, score]) => ({ aggregation_id, score })),
+    indicators: [...indicators].map(([indicator_id, { score, index }]) => ({
+      indicator_id,
+      score,
+      index,
+      status: 0,
+      target: 0,
+      impact: 0,
+    })),
+  }
+}

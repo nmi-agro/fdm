@@ -21,6 +21,8 @@ export type {
   NitrogenEmissionAmmoniaFertilizersNumeric,
   NitrogenEmissionAmmoniaNumeric,
   NitrogenEmissionAmmoniaResiduesNumeric,
+  NitrogenEmissionNitrousOxideFarmNumeric,
+  NitrogenEmissionNitrousOxideNumeric,
   NitrogenEmissionNumeric,
   NitrogenRemovalHarvestsNumeric,
   NitrogenRemovalNumeric,
@@ -52,6 +54,46 @@ export type {
   OrganicMatterSupplyNumeric,
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
+export {
+  calculatePhosphateBalance,
+  calculatePhosphateBalanceField,
+  calculatePhosphateBalanceForFarms,
+  calculatePhosphateBalancesFieldToFarm,
+  getPhosphateBalanceField,
+  getPhosphateFieldExclusion,
+} from "./balance/phosphate/index"
+export {
+  collectInputForPhosphateBalance,
+  collectInputForPhosphateBalanceForFarms,
+} from "./balance/phosphate/input"
+export type { PhosphateInputOptions } from "./balance/phosphate/input"
+export {
+  assessPhosphateStatus,
+  PHOSPHATE_STATUS_RULES,
+  PHOSPHATE_VERDICT_ORDER,
+} from "./balance/phosphate/status"
+export type {
+  PhosphateBalance,
+  PhosphateBalanceField,
+  PhosphateBalanceFieldInput,
+  PhosphateBalanceFieldResult,
+  PhosphateBalanceHistoryYear,
+  PhosphateBalanceInput,
+  PhosphateFieldInput,
+  PhosphateFrame,
+  PhosphateLeaching,
+  PhosphateLongTermBalance,
+  PhosphateProjection,
+  PhosphateSaturation,
+  PhosphateSaturationSource,
+  PhosphateSaturationThreshold,
+  PhosphateStatus,
+  PhosphateSupplyDeposition,
+  PhosphateSupplyMineralization,
+  PhosphateVerdict,
+  ValueWithRange,
+  YearsClass,
+} from "./balance/phosphate/types"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"
 export type {
@@ -72,6 +114,8 @@ export {
   getBcsScoreColor,
   getBcsScoreLabel,
 } from "./bcs/index"
+export type { BcsAnalysisLike, BcsVisualKey } from "./bcs/visual"
+export { BCS_VISUAL_KEYS, isBcsAnalysis } from "./bcs/visual"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
 export { calcPhDelta } from "./bcs/ph-delta"
 export type { FarmIndicators, FieldIndicators, FieldMeasureOptions } from "./bln3"
@@ -79,11 +123,15 @@ export {
   getFarmIndicators,
   getFieldIndicators,
   getFieldMeasureOptions,
+  getYearTimeframe,
   collectInputForBln3MeasureApplicability,
+  collectInputForBln3MeasureApplicabilityForFarm,
   collectInputForBln3Score,
+  collectInputForBln3ScoreForFarm,
   getBln3MeasureAdvice,
   getBln3MeasureApplicability,
   getBln3Score,
+  getBln3Scores,
   requestBln3MeasureAdvice,
   requestBln3MeasureApplicability,
   requestBln3Score,
@@ -106,6 +154,20 @@ export type {
 } from "./bln3/types"
 export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
+export {
+  getNitrogenBalanceForFarms,
+  getOrganicMatterBalanceForFarms,
+  getPhosphateBalanceForFarms,
+} from "./balance/farms"
+export { combineFarmMeasureSummaries, getFarmMeasureSummary } from "./bln3/farm-measures"
+export type {
+  CombinedMeasureSummary,
+  CombinedMeasureSummaryItem,
+  FarmMainCultivationArea,
+  FarmMeasureSummary,
+  FarmMeasureSummaryItem,
+} from "./bln3/farm-measures"
+export type { FarmBalanceResult, MultiFarmBalance } from "./balance/farms"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"
@@ -174,6 +236,8 @@ export type {
   InputAggregateNormsToFarmLevel,
 } from "./norms/farm"
 export { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./norms/farm"
+export type { NormGroup, NormGroupResult } from "./norms/fields"
+export { calculateNormFillingsForFields, calculateNormsForFields } from "./norms/fields"
 export type {
   FertilizerApplicationFillingInputByYear,
   FertilizerApplicationFillings,
@@ -187,6 +251,30 @@ export { getRegion, isFieldInNVGebied } from "./norms/nl/2025/value/stikstofgebr
 export type { NL2025NormsInput, RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"
+export {
+  FARM_NUTRIENT_ADVICE_NUTRIENTS,
+  findMainCultivation,
+  getFarmNutrientAdviceRows,
+  NUTRIENT_ADVICE_CONCURRENCY,
+  startFarmNutrientAdviceRows,
+} from "./nutrient-advice/farm"
+export type {
+  FarmNutrientAdviceErrorCode,
+  FarmNutrientAdviceField,
+  FarmNutrientAdviceInput,
+  FarmNutrientAdviceRow,
+  FarmNutrientAdviceValue,
+  FarmNutrientSymbol,
+} from "./nutrient-advice/farm"
+export {
+  getCultivationSuggestion,
+  getCultivationSuggestionResult,
+  getCultivationSuggestionResultsForFarm,
+} from "./other/cultivation-suggestion"
+export type {
+  CultivationSuggestion,
+  CultivationSuggestionResult,
+} from "./other/cultivation-suggestion"
 export type {
   AggregatedNutrientAdvice,
   InputAggregateNutrientAdviceToFarmLevel,
@@ -202,13 +290,73 @@ export type {
 } from "./nutrient-advice/types"
 export { collectInputForSoilParameterEstimates } from "./estimates/input"
 export { getSoilParameterEstimates, requestSoilParameterEstimates } from "./estimates/index"
+export {
+  addSoilParameterEstimatesToField,
+  getGeometryCentroid,
+  getSoilParameterEstimatesForGeometry,
+} from "./estimates/field"
 export type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./estimates/types"
 export { bln3Client, soilEstimatesClient, soilReaderClient } from "./nmi/client"
+export {
+  extractSoilAnalysesFromPdfs,
+  parseSamplingGeometry,
+  parseSoilReaderField,
+  SoilReaderError,
+} from "./soilreader"
+export type { ExtractedSoilAnalysis } from "./soilreader"
+export { matchSoilAnalysisToField } from "./soilreader/match"
+export type {
+  SoilAnalysisFieldMatch,
+  SoilAnalysisMatchField,
+  SoilAnalysisMatchReason,
+} from "./soilreader/match"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
+export { enrichCurrentSoilDataWithNlv } from "./other/current-soil-data"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
+export {
+  GRASS_GROWTH_REFERENCE_KG_DM_HA_DAY,
+  GRAZING_HOURS_PER_KG_DM_MIN,
+  GROWTH_DURING_GRAZING_KG_DM_HA_DAY,
+  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  NNW_DAY_AND_NIGHT_HOURS,
+  NNW_PLOT_AREA_HA_PER_COW,
+  NNW_TOTAL_ROUGHAGE_INTAKE_KG_DM,
+  STOCKING_DENSITY_BENCHMARKS,
+  SWARD_HEIGHT_CM,
+  UITSCHAREN_SUPPLEMENTATION_SIGNAL_CM,
+  WEIDEMELK_CATEGORY_CODE,
+  WEIDEMELK_MIN_HOURS_PER_DAY,
+  WEIDEMELK_TARGET_DAYS,
+  GRAZING_SYSTEMS,
+  calculateGrazingAllocationArea,
+  calculateGrazingMetrics,
+  calculatePlatformArea,
+  calculateRestBeforeUses,
+  estimateGrassIntake,
+  zonesOverlap,
+} from "./grazing/index"
+export type {
+  FieldInput as GrazingFieldInput,
+  FieldUse as GrazingFieldUse,
+  FieldUseRest as GrazingFieldUseRest,
+  GrassGrowthSeason,
+  GrassIntakeInput,
+  GrassIntakeResult,
+  GrazingAllocationInput,
+  GrazingAllocationResult,
+  GrazingInput as GrazingRecordInput,
+  GrazingMetricsInput,
+  GrazingMetricsResult,
+  GrazingSystemKey,
+  PlatformAreaInput,
+  HarvestInput as GrazingHarvestInput,
+  HerdInput as GrazingHerdInput,
+  MonthlyDistributionEntry as GrazingMonthlyDistributionEntry,
+  RestPeriodDetail as GrazingRestPeriodDetail,
+} from "./grazing/index"
 export type { FieldExclusionReason } from "./shared/field-exclusion"
 export { getFieldExclusionReason, LANDSCAPE_ELEMENT_BRP_CODES } from "./shared/field-exclusion"

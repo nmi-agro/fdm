@@ -1,13 +1,14 @@
 import { type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { genericAction, loader } from "~/components/blocks/mijnpercelen/loader-and-action.server"
 import { UploadMijnPercelenPage } from "~/components/blocks/mijnpercelen/upload-page"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { clientConfig } from "~/lib/config"
 import type { Route } from "./+types/farm.create.$b_id_farm.$calendar.upload"
 
-export const handle = { hideNavigationProgress: true }
+export const handle: HelpHandle = { hideNavigationProgress: true, help: "shapefile" }
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -33,8 +34,8 @@ export default function CreateWithMijnPercelenPage() {
   const loaderData = useLoaderData<typeof loader>()
 
   return (
-    <SidebarInset>
-      <Header action={undefined}>
+    <PageContainer>
+      <Header action={undefined} help="shapefile">
         <HeaderFarmCreate b_name_farm={loaderData.b_name_farm} />
       </Header>
       <UploadMijnPercelenPage
@@ -43,6 +44,6 @@ export default function CreateWithMijnPercelenPage() {
         backUrl={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}`}
         isFarmCreateWizard={true}
       />
-    </SidebarInset>
+    </PageContainer>
   )
 }

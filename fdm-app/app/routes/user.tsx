@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "react-router"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import { Outlet, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
@@ -26,6 +27,9 @@ type UserLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
  *
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
+
+export const handle: HelpHandle = { help: "account" }
+
 export async function loader({ request, url }: LoaderFunctionArgs) {
   try {
     // Get the session

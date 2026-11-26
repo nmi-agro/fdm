@@ -2,15 +2,15 @@ import {
   acceptInvitation,
   declineInvitation,
   getFarms,
-  getFields,
+  getFieldsForFarms,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { Square, UserGroup, Users } from "lucide-react"
 import { useRef } from "react"
 import { useEffect } from "react"
 import { data, NavLink, redirect, useLoaderData, useSearchParams } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
-import { cn } from "@/app/lib/utils"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -18,8 +18,9 @@ import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitati
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { OrganizationAvatar } from "~/components/blocks/organization/organization-avatar"
 import { Expandable, ExpandableContent, ExpandableTrigger } from "~/components/custom/expandable"
+import { PageContainer } from "~/components/custom/page-container"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Select,
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
-import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -126,25 +126,29 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
       activeYear,
     )
 
+    const fieldsByFarm = await getFieldsForFarms(
+      fdm,
+      session.principal_id,
+      farms.map((farm) => farm.b_id_farm),
+      timeframe,
+    )
     const farmsExtended: (FarmWithRoles & {
       b_area_farm: number | null
-    })[] = await Promise.all(
-      farms.map(async (farm) => {
-        const fields = await getFields(fdm, session.principal_id, farm.b_id_farm, timeframe)
+    })[] = farms.map((farm) => {
+      const fields = fieldsByFarm.get(farm.b_id_farm) ?? []
 
-        const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
+      const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
 
-        return {
-          ...farm,
-          roles: undefined,
-          b_area_farm: farmArea,
-          userRoles: [...new Set(farm.roles.map((role) => role.role))],
-          groups: farmGroups
-            .filter((group) => group.b_id_farms.includes(farm.b_id_farm))
-            .map((group) => ({ b_id_group: group.b_id_group, b_name_group: group.b_name_group })),
-        }
-      }),
-    )
+      return {
+        ...farm,
+        roles: undefined,
+        b_area_farm: farmArea,
+        userRoles: [...new Set(farm.roles.map((role) => role.role))],
+        groups: farmGroups
+          .filter((group) => group.b_id_farms.includes(farm.b_id_farm))
+          .map((group) => ({ b_id_group: group.b_id_group, b_name_group: group.b_name_group })),
+      }
+    })
 
     const totalArea = farmsExtended.reduce((acc, farm) => acc + (farm.b_area_farm ?? 0), 0)
 
@@ -211,8 +215,8 @@ export default function AppIndex() {
   const years = getCalendarSelection()
   const description = loaderData.organization.metadata.data?.description
   return (
-    <SidebarInset>
-      <main>
+    <PageContainer>
+      <div>
         <FarmTitle
           title={`Dashboard van ${loaderData.organization.name}`}
           description={"Bekijk alle informatie over deze organisatie"}
@@ -304,14 +308,18 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to="./settings" className={cn(!loaderData.canModify && "invisible")}>
-                      Instellingen
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to="./settings"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      !loaderData.canModify && "invisible",
+                    )}
+                  >
+                    Instellingen
+                  </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="space-y-4 pt-6">
+                  <CardContent className="space-y-4">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-muted/50 space-y-1 rounded-lg p-3">
@@ -330,7 +338,14 @@ export default function AppIndex() {
                     {/* Year selector */}
                     <div className="flex items-center justify-between">
                       <p className="text-muted-foreground text-sm">Jaar</p>
-                      <Select value={calendar} onValueChange={(value) => setCalendar(value)}>
+                      <Select
+                        value={calendar}
+                        onValueChange={(value) => {
+                          if (typeof value === "string") {
+                            setCalendar(value)
+                          }
+                        }}
+                      >
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Selecteer een jaar" />
                         </SelectTrigger>
@@ -364,12 +379,15 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Groepen</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to={`./${loaderData.calendar}/groups`}>Beheer</NavLink>
-                  </Button>
+                  <NavLink
+                    to={`./${loaderData.calendar}/groups`}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Beheer
+                  </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     {loaderData.groups.length === 0 ? (
                       <p className="text-muted-foreground text-sm">
                         Deze organisatie heeft nog geen groepen.
@@ -408,14 +426,18 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Leden</h2>
-                  <Button asChild variant="outline">
-                    <NavLink to="./members" className={cn(!loaderData.canModify && "invisible")}>
-                      Beheer
-                    </NavLink>
-                  </Button>
+                  <NavLink
+                    to="./members"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      !loaderData.canModify && "invisible",
+                    )}
+                  >
+                    Beheer
+                  </NavLink>
                 </div>
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent>
                     <div className="space-y-1">
                       <div className="grid gap-6">
                         {loaderData.members.map((member) => {
@@ -442,8 +464,8 @@ export default function AppIndex() {
             </div>
           </div>
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 

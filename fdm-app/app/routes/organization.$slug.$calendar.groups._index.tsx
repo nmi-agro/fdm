@@ -1,4 +1,5 @@
 import { createFarmGroup, getFarms, listFarmGroups } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { UserGroup } from "lucide-react"
 import { NavLink, redirect, useFetcher, useLoaderData } from "react-router"
 import { dataWithError } from "remix-toast"
@@ -19,7 +20,6 @@ import {
 } from "~/lib/farm-groups"
 import { fdm } from "~/lib/fdm.server"
 import { getOrganizationForGroups, serializeGroup } from "~/lib/organization-groups.server"
-import { cn } from "~/lib/utils"
 import type { Route } from "./+types/organization.$slug.$calendar.groups._index"
 
 // Meta
@@ -99,7 +99,7 @@ export default function OrganizationGroups() {
   const calendarLabel = formatCalendarLabel(calendar)
 
   return (
-    <main>
+    <div>
       <FarmTitle
         title={`Groepen van ${organization.name}`}
         description="Verdeel de bedrijven van deze organisatie in groepen, bijvoorbeeld per project. Een bedrijf kan in meerdere groepen zitten."
@@ -159,7 +159,7 @@ export default function OrganizationGroups() {
           <CreateGroupCard key={groups.length} />
         </div>
       </FarmContent>
-    </main>
+    </div>
   )
 }
 

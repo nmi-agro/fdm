@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.packages.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*", "package.json"]
+}

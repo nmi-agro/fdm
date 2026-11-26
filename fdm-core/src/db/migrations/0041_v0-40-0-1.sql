@@ -1,0 +1,2 @@
+ALTER TABLE "fdm"."soil_sampling" ADD COLUMN "b_sampling_geometry_zone" geometry(MultiPolygon,4326);--> statement-breakpoint
+CREATE INDEX "soil_sampling_zone_idx" ON "fdm"."soil_sampling" USING gist ("b_sampling_geometry_zone");

@@ -41,6 +41,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
+import { formatBalanceValue } from "~/lib/format"
 import { useCalendarStore } from "~/store/calendar"
 
 type OrganicMatterFieldResultWithErrorId = OrganicMatterBalanceFieldResultNumeric & {
@@ -291,14 +292,14 @@ function OrganicMatterBalance({
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Balans (Perceel)</CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{result.balance}</p>
+                <p>{formatBalanceValue(result.balance)}</p>
                 {result.balance > 0 ? (
                   <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
@@ -310,22 +311,22 @@ function OrganicMatterBalance({
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
             <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.supply.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.supply.total)}</div>
             <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
             <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{result.degradation.total}</div>
+            <div className="text-2xl font-bold">{formatBalanceValue(result.degradation.total)}</div>
             <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>

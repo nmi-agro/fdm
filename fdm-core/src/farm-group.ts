@@ -11,6 +11,7 @@ import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
+import { getFarms } from "./farm"
 import { createId } from "./id"
 
 const PERMISSION_DENIED = "Principal does not have permission to perform this action"
@@ -334,6 +335,66 @@ export async function listFarmGroups(
     }))
   } catch (err) {
     throw handleError(err, "Exception for listFarmGroups", { b_id_organization })
+  }
+}
+
+/**
+ * Lists the farm groups of several organizations with their members, with a fixed number of
+ * queries. Gives the same groups per organization as {@link listFarmGroups}.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id - The identifier of the principal requesting the groups. Must be a member of every organization.
+ * @param b_id_organizations - The identifiers of the organizations.
+ * @returns A map of organization id to the groups of that organization, ordered by name. Every requested organization is in the map, with an empty array when it has no groups.
+ *
+ * @throws {Error} If the principal is not a member of one of the organizations.
+ *
+ * @alpha
+ */
+export async function listFarmGroupsOfOrganizations(
+  fdm: FdmType,
+  principal_id: string,
+  b_id_organizations: schema.farmGroupsTypeSelect["b_id_organization"][],
+): Promise<Map<string, FarmGroup[]>> {
+  try {
+    const ids = [...new Set(b_id_organizations)]
+    const result = new Map<string, FarmGroup[]>(ids.map((id) => [id, []]))
+    if (ids.length === 0) {
+      return result
+    }
+
+    const memberships = await fdm
+      .select({ organizationId: authNSchema.member.organizationId })
+      .from(authNSchema.member)
+      .where(
+        and(
+          eq(authNSchema.member.userId, principal_id),
+          inArray(authNSchema.member.organizationId, ids),
+        ),
+      )
+    const memberOf = new Set(memberships.map((m: { organizationId: string }) => m.organizationId))
+    if (ids.some((id) => !memberOf.has(id))) {
+      throw new Error(PERMISSION_DENIED)
+    }
+
+    const groups = await fdm
+      .select()
+      .from(schema.farmGroups)
+      .where(inArray(schema.farmGroups.b_id_organization, ids))
+      .orderBy(asc(schema.farmGroups.b_name_group))
+    const periods = await getPeriods(
+      fdm,
+      groups.map((g: schema.farmGroupsTypeSelect) => g.b_id_group),
+    )
+    for (const g of groups as schema.farmGroupsTypeSelect[]) {
+      result.get(g.b_id_organization)?.push({
+        ...g,
+        ...summarizeMembers(periods.get(g.b_id_group)),
+      })
+    }
+    return result
+  } catch (err) {
+    throw handleError(err, "Exception for listFarmGroupsOfOrganizations", { b_id_organizations })
   }
 }
 
@@ -843,5 +904,73 @@ export async function removeFarmGroupMembership(
       b_id_farm,
       b_group_joined: b_group_joined?.toString(),
     })
+  }
+}
+
+/**
+ * Checks whether a period of a farm in a farm group lies (partly) in a calendar year.
+ *
+ * `b_group_leaved` is the first day the farm is no longer part of the group, so a period that
+ * ends on 1 January does not reach into that year. Dates are compared as `YYYY-MM-DD` days.
+ *
+ * @param membership - The period of the farm in the group.
+ * @param year - The calendar year. When `undefined`, every period counts.
+ * @returns `true` when the period overlaps the year.
+ */
+export function isFarmGroupMembershipInYear(
+  membership: Pick<FarmGroupMembership, "b_group_joined" | "b_group_leaved">,
+  year: number | undefined,
+): boolean {
+  if (year === undefined) return true
+  const toDay = (date: Date | string) =>
+    typeof date === "string" ? date.slice(0, 10) : date.toISOString().slice(0, 10)
+  return (
+    toDay(membership.b_group_joined) < `${year + 1}-01-01` &&
+    (membership.b_group_leaved === null || toDay(membership.b_group_leaved) > `${year}-01-01`)
+  )
+}
+
+/**
+ * Returns the farms that are part of a farm group at some point in a calendar year.
+ *
+ * @param group - The farm group, for example from `getFarmGroup`.
+ * @param year - The calendar year. When `undefined`, all farms that were ever part of the group are returned.
+ * @returns The unique farm IDs, in the order of the periods.
+ */
+export function getFarmIdsOfFarmGroupInYear(
+  group: Pick<FarmGroup, "memberships">,
+  year: number | undefined,
+): string[] {
+  return [
+    ...new Set(
+      group.memberships
+        .filter((membership) => isFarmGroupMembershipInYear(membership, year))
+        .map((membership) => membership.b_id_farm),
+    ),
+  ]
+}
+
+/**
+ * Returns the IDs of the farms an organization has access to, for a member of that organization.
+ * Use it to calculate results for all farms of an organization, as the organization overview of
+ * the web app does.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - The user requesting the farms. Must be a member of the organization.
+ * @param b_id_organization - The organization.
+ * @returns The IDs of the farms the organization has access to.
+ * @throws When the user is not a member of the organization.
+ */
+export async function getFarmIdsOfOrganization(
+  fdm: FdmType,
+  principal_id: string,
+  b_id_organization: string,
+): Promise<string[]> {
+  try {
+    await assertOrganizationMember(fdm, principal_id, b_id_organization)
+    const farms = await getFarms(fdm, b_id_organization)
+    return farms.map((farm) => farm.b_id_farm)
+  } catch (err) {
+    throw handleError(err, "Exception for getFarmIdsOfOrganization", { b_id_organization })
   }
 }

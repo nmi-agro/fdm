@@ -9,12 +9,13 @@ import {
   useLoaderData,
   useParams,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNutrientAdvice } from "~/components/blocks/header/nutrient-advice"
-import { Button } from "~/components/ui/button"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
+import { buttonVariants } from "~/components/ui/button"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -23,6 +24,9 @@ import { fdm } from "~/lib/fdm.server"
 import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bemestingsadvies" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Bemestingsadvies | ${clientConfig.name}` },
@@ -140,7 +144,7 @@ export default function FarmBalanceNitrogenBlock() {
       }
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={action}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderNutrientAdvice
@@ -149,20 +153,23 @@ export default function FarmBalanceNitrogenBlock() {
           fieldOptions={loaderData.fieldOptions}
         />
       </Header>
-      <main>
+      <div>
         {!loaderData.b_id && (
           <FarmTitle
+            help="bemestingsadvies"
             title={"Bemestingsadvies"}
             description={
               "Advies volgens Handboek Bodem en Bemesting (CBAV) en Adviesbasis Bemesting (CBGV)."
             }
             rightNode={
-              <Button asChild variant="outline">
-                <NavLink to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}>
-                  <MapIcon />
-                  Kaartweergave
-                </NavLink>
-              </Button>
+              <NavLink
+                to={`/farm/${loaderData.b_id_farm}/${calendar}/atlas/nutrient-advice`}
+                className={buttonVariants({ variant: "outline" })}
+                data-slot="button"
+              >
+                <MapIcon />
+                Kaartweergave
+              </NavLink>
             }
           />
         )}
@@ -171,7 +178,7 @@ export default function FarmBalanceNitrogenBlock() {
             <div className="min-w-0 flex-1">{<Outlet />}</div>
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

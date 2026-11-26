@@ -8,7 +8,7 @@
 import { Hono } from "hono"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createErrorHandler } from "../error"
-import { assertGeoJsonCoordinates, requestGuard } from "../guards"
+import { assertGeoJsonCoordinates, requestGuard, UPLOAD_ROUTES } from "../guards"
 import { createFdmApi } from "../index"
 
 // ---------------------------------------------------------------------------
@@ -138,6 +138,12 @@ describe("requestGuard: read methods bypass content-type check", () => {
 // requestGuard: write methods enforce application/json
 // ---------------------------------------------------------------------------
 describe("requestGuard: write methods enforce application/json Content-Type", () => {
+  it("POST without a body and without Content-Type passes", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/any-path", { method: "POST" })
+    expect(res.status).toBe(200)
+  })
+
   it("POST without Content-Type header returns 415", async () => {
     const app = makeGuardApp()
     const res = await app.request("/any-path", {
@@ -240,6 +246,91 @@ describe("requestGuard: body size limit", () => {
     expect(res.status).toBe(413)
     const body = await res.json()
     expect(body.type).toContain("payload-too-large")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// requestGuard: multipart uploads
+// ---------------------------------------------------------------------------
+describe("requestGuard: multipart upload routes", () => {
+  function multipartBody(size: number) {
+    const form = new FormData()
+    form.append("file", new Blob([new Uint8Array(size)], { type: "image/png" }), "a.png")
+    return form
+  }
+
+  it("accepts multipart/form-data on an upload route", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/soil-analyses/a1/images", {
+      method: "POST",
+      body: multipartBody(10),
+    })
+    expect(res.status).toBe(200)
+  })
+
+  it("rejects application/json on an upload route with 415", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/soil-analyses/a1/images", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    })
+    expect(res.status).toBe(415)
+    const body = await res.json()
+    expect(body.type).toContain("unsupported-media-type")
+  })
+
+  it("rejects multipart/form-data without a boundary with 400", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/soil-analyses/a1/images", {
+      method: "POST",
+      headers: { "content-type": "multipart/form-data" },
+      body: "--x",
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).detail).toContain("no boundary")
+  })
+
+  it("rejects multipart/form-data on a JSON-only route with 415", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/farms", {
+      method: "POST",
+      body: multipartBody(10),
+    })
+    expect(res.status).toBe(415)
+  })
+
+  it("rejects an upload above the route limit with 413", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/soil-analyses/a1/images", {
+      method: "POST",
+      body: multipartBody(10 * 1024 * 1024 + 1),
+    })
+    expect(res.status).toBe(413)
+    const body = await res.json()
+    expect(body.type).toContain("payload-too-large")
+  })
+
+  it("uses the default body limit for an upload route added after startup", async () => {
+    const policy = { method: "POST", pattern: /\/late-upload$/, maxBytes: 1024 }
+    UPLOAD_ROUTES.push(policy)
+    try {
+      const form = new FormData()
+      form.append("file", new Blob([new Uint8Array(10)]), "a.bin")
+      const res = await makeGuardApp().request("/late-upload", { method: "POST", body: form })
+      expect(res.status).toBe(200)
+    } finally {
+      UPLOAD_ROUTES.splice(UPLOAD_ROUTES.indexOf(policy), 1)
+    }
+  })
+
+  it("allows an upload above 5 MB but within the route limit", async () => {
+    const app = makeGuardApp()
+    const res = await app.request("/farms/f1/fields/import/compare", {
+      method: "POST",
+      body: multipartBody(6 * 1024 * 1024),
+    })
+    expect(res.status).toBe(200)
   })
 })
 

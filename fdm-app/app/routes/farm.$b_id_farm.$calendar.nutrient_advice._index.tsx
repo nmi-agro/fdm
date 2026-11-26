@@ -1,4 +1,5 @@
-import { checkPermission, getFields } from "@nmi-agro/fdm-core"
+import { checkPermission, getCultivationsForFarm, getFields } from "@nmi-agro/fdm-core"
+import { cn } from "cn"
 import { BookOpenText } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import {
@@ -11,7 +12,7 @@ import {
 import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
 import { NutrientAdviceOverviewTable } from "~/components/blocks/nutrient-advice/overview-table"
-import { Button } from "~/components/ui/button"
+import { buttonVariants } from "~/components/ui/button"
 import {
   Empty,
   EmptyContent,
@@ -27,8 +28,11 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { startFarmNutrientAdviceRows } from "~/lib/nutrient-advice.server"
-import { cn } from "~/lib/utils"
+
+/** A field as shown before its advice has arrived. */
+type PendingField = Pick<FieldNutrientRow, "b_id" | "b_name" | "b_area" | "mainCultivation">
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -66,23 +70,20 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // Get the fields of the farm
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
-    const farmWritePermission = await checkPermission(
-      fdm,
-      "farm",
-      "write",
-      b_id_farm,
-      session.principal_id,
-      url.pathname,
-      false,
-    )
-
-    const nutrientsDescription = getNutrientsDescription()
-
     // Per-field advice is shared with the Atlas "Bemestingsadvies" layer (FDM-361).
     const rowPromises: Promise<FieldNutrientRow>[] = startFarmNutrientAdviceRows(
       { principal_id: session.principal_id, b_id_farm, calendar, timeframe },
       fields,
     )
+
+    // The main cultivation is shown while the advice is still loading. It is chosen as in the
+    // advice rows: from the cultivations in the timeframe, for the calendar year.
+    const [farmWritePermission, cultivationsByField] = await Promise.all([
+      checkPermission(fdm, "farm", "write", b_id_farm, session.principal_id, url.pathname, false),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+
+    const nutrientsDescription = getNutrientsDescription()
 
     return {
       hasFields: fields.length > 0,
@@ -90,11 +91,21 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       calendar: calendar,
       farmWritePermission,
       nutrientsDescription,
-      pendingFields: fields.map((field) => ({
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: field.b_area ?? 0,
-      })),
+      pendingFields: fields.map((field): PendingField => {
+        const main = getMainCultivation(cultivationsByField.get(field.b_id) ?? [], calendar)
+        return {
+          b_id: field.b_id,
+          b_name: field.b_name,
+          b_area: field.b_area ?? 0,
+          mainCultivation: main
+            ? {
+                b_lu: main.b_lu,
+                b_lu_name: main.b_lu_name,
+                b_lu_croprotation: main.b_lu_croprotation ?? null,
+              }
+            : null,
+        }
+      }),
       rowPromises,
     }
   } catch (error) {
@@ -128,16 +139,19 @@ export default function FieldNutrientAdviceIndex() {
         </EmptyHeader>
         <EmptyContent>
           <div className="flex gap-2">
-            <Button
-              variant="default"
-              className={cn(!loaderData.farmWritePermission ? "hidden" : "")}
-              asChild
+            <NavLink
+              to={`/farm/${b_id_farm}/${calendar}/field/new`}
+              className={buttonVariants({
+                variant: "default",
+                className: cn(!loaderData.farmWritePermission ? "hidden" : ""),
+              })}
+              data-slot="button"
             >
-              <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Nieuw perceel</NavLink>
-            </Button>
-            <Button variant="outline" asChild>
-              <NavLink to="../">Naar bedrijfsoverzicht</NavLink>
-            </Button>
+              Nieuw perceel
+            </NavLink>
+            <NavLink to="../" className={buttonVariants({ variant: "outline" })} data-slot="button">
+              Naar bedrijfsoverzicht
+            </NavLink>
           </div>
         </EmptyContent>
       </Empty>
@@ -170,7 +184,7 @@ function NutrientAdviceOverview({
     () =>
       loaderData.pendingFields.map(
         (field, index): FieldNutrientRow =>
-          streamed.rows[index] ?? { ...field, mainCultivation: null, values: {}, pending: true },
+          streamed.rows[index] ?? { ...field, values: {}, pending: true },
       ),
     [loaderData.pendingFields, streamed.rows],
   )

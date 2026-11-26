@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
-ARG NODE_VERSION=24
+ARG NODE_VERSION=26
 ARG PROJECT=@nmi-agro/fdm-app
 
 # Base stage
 FROM node:${NODE_VERSION}-alpine AS base
-RUN apk update && apk add --no-cache libc6-compat git
+RUN apk update && apk add --no-cache libc6-compat
 RUN npm install -g pnpm turbo
 WORKDIR /app
 
@@ -59,8 +59,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     apk add --no-cache libc6-compat curl
 
 # Copy production node_modules from the deploy bundle.
-# This avoids re-fetching and re-building git-hosted packages (like
-# @geomatico/maplibre-cog-protocol) which fail when tsc is unavailable in --prod mode.
+# This avoids re-fetching and re-building packages in the runner stage.
 COPY --from=builder --chown=user:nodejs /app/deployed/node_modules ./fdm-app/node_modules
 COPY --from=builder --chown=user:nodejs /app/deployed/package.json ./fdm-app/package.json
 
@@ -88,7 +87,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
 WORKDIR /app/fdm-app
 # Run node directly instead of via `pnpm start` to bypass pnpm v11's pre-script

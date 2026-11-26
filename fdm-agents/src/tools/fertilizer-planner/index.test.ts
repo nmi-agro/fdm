@@ -12,7 +12,9 @@ import {
 vi.mock("@nmi-agro/fdm-core", () => ({
   getFields: vi.fn(),
   getCultivations: vi.fn(),
+  getCultivationsForFarm: vi.fn(),
   getCurrentSoilData: vi.fn(),
+  getCurrentSoilDataForFarm: vi.fn(),
   getField: vi.fn(),
   getFertilizers: vi.fn(),
 }))
@@ -21,8 +23,11 @@ vi.mock("@nmi-agro/fdm-core", () => ({
 // Mock fdm-calculator
 // ---------------------------------------------------------------------------
 vi.mock("@nmi-agro/fdm-calculator", () => ({
-  getNutrientAdvice: vi.fn(),
+  getNutrientAdvice: Object.assign(vi.fn(), { many: vi.fn() }),
+  NUTRIENT_ADVICE_CONCURRENCY: 4,
+  calculateNormsForFields: vi.fn(),
   createFunctionsForNorms: vi.fn(),
+  createFunctionsForFertilizerApplicationFilling: vi.fn(),
   createUncachedFunctionsForFertilizerApplicationFilling: vi.fn(),
   calculateOrganicMatterBalanceField: vi.fn(),
   collectInputForOrganicMatterBalance: vi.fn(),
@@ -40,16 +45,20 @@ import {
   calculateDose,
   calculateNitrogenBalanceField,
   calculateNitrogenBalancesFieldToFarm,
+  calculateNormsForFields,
   calculateOrganicMatterBalanceField,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
+  createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
   createUncachedFunctionsForFertilizerApplicationFilling,
   getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import {
   getCultivations,
+  getCultivationsForFarm,
   getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getFertilizers,
   getField,
   getFields,
@@ -144,19 +153,58 @@ function makeSimInput(
 function setupDefaultMocks() {
   ;(getField as any).mockResolvedValue({
     b_id: "field-1",
+    b_name: "Test Field",
     b_id_farm: "farm-1",
     b_area: 10,
     b_bufferstrip: false,
     b_centroid: [5.2, 52.1],
   })
-  ;(getFields as any).mockResolvedValue([
-    {
-      b_id: "field-1",
-      b_name: "Test Field",
-      b_area: 10,
-      b_bufferstrip: false,
-    },
+  // The farm-level reads return what the per-field reads return for the farm's field, so the
+  // farm-level and the per-field path of a tool see the same data
+  ;(getFields as any).mockImplementation(async (fdm: any, principalId: any) => [
+    await (getField as any)(fdm, principalId, "field-1"),
   ])
+  ;(getCultivationsForFarm as any).mockImplementation(
+    async (fdm: any, principalId: any, _farm: any, timeframe: any) =>
+      new Map([
+        ["field-1", await (getCultivations as any)(fdm, principalId, "field-1", timeframe)],
+      ]),
+  )
+  ;(getCurrentSoilDataForFarm as any).mockImplementation(
+    async (fdm: any, principalId: any, _farm: any, timeframe: any) =>
+      new Map([
+        ["field-1", await (getCurrentSoilData as any)(fdm, principalId, "field-1", timeframe)],
+      ]),
+  )
+  ;(getNutrientAdvice as any).many.mockImplementation((fdm: any, inputs: any[]) =>
+    inputs.map((input) => (getNutrientAdvice as any)(fdm, input)),
+  )
+  // Calculates the norms with the norm functions of the year, as the real function does
+  ;(calculateNormsForFields as any).mockImplementation(
+    (fdm: any, region: string, year: string, inputs: any[]) => {
+      const functions = (createFunctionsForNorms as any)(region, year)
+      return Promise.all(
+        inputs.map(async (input) => {
+          if (input === undefined) return undefined
+          try {
+            const [manure, phosphate, nitrogen, renure] = await Promise.all([
+              functions.calculateNormForManure(fdm, input),
+              functions.calculateNormForPhosphate(fdm, input),
+              functions.calculateNormForNitrogen(fdm, input),
+              functions.calculateNormForRenure?.(fdm, input),
+            ])
+            return { values: { manure, phosphate, nitrogen, renure } }
+          } catch (error) {
+            return { error }
+          }
+        }),
+      )
+    },
+  )
+  // By default the farm-level collection finds no fields, so the per-field collection is used
+  ;(createFunctionsForFertilizerApplicationFilling as any).mockReturnValue({
+    collectInputForFertilizerApplicationFillingForFarm: vi.fn().mockResolvedValue(new Map()),
+  })
   ;(getCultivations as any).mockResolvedValue([
     {
       b_lu_catalogue: "nl_265",
@@ -184,6 +232,7 @@ function setupDefaultMocks() {
   })
   ;(createFunctionsForNorms as any).mockReturnValue({
     collectInputForNorms: vi.fn().mockResolvedValue({}),
+    collectInputForNormsForFarm: vi.fn().mockResolvedValue(new Map()),
     calculateNormForManure: vi.fn().mockResolvedValue({ normValue: 170, normSource: "NL-2025" }),
     calculateNormForPhosphate: vi.fn().mockResolvedValue({ normValue: 80, normSource: "NL-2025" }),
     calculateNormForNitrogen: vi.fn().mockResolvedValue({ normValue: 230, normSource: "NL-2025" }),
@@ -1301,5 +1350,395 @@ describe("tool execute functions", () => {
         ),
       ).toBe(true)
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Farm-level reads: the tools read the fields of the farm together, and give the
+// same output as reading each field on its own (the path for fields outside the
+// farm, or when the farm cannot be read)
+// ---------------------------------------------------------------------------
+describe("farm-level reads", () => {
+  let tools: any[]
+
+  const farmFields = [
+    {
+      b_id: "field-1",
+      b_name: "Field 1",
+      b_id_farm: "farm-1",
+      b_area: 10,
+      b_bufferstrip: false,
+      b_centroid: [5.2, 52.1],
+    },
+    {
+      b_id: "field-2",
+      b_name: "Field 2",
+      b_id_farm: "farm-1",
+      b_area: 5,
+      b_bufferstrip: false,
+      b_centroid: [5.3, 52.2],
+    },
+  ]
+  const cultivationsByField: Record<string, any[]> = {
+    "field-1": [
+      {
+        b_lu_catalogue: "nl_265",
+        b_lu_name: "Gras",
+        b_lu_start: "2025-01-01",
+        b_lu_end: null,
+        b_lu_croprotation: "grass",
+      },
+    ],
+    "field-2": [
+      {
+        b_lu_catalogue: "nl_259",
+        b_lu_name: "Mais",
+        b_lu_start: "2025-04-20",
+        b_lu_end: "2025-10-01",
+        b_lu_croprotation: "maize",
+      },
+    ],
+  }
+  const soilByField: Record<string, any[]> = {
+    "field-1": [{ parameter: "a_som_loi", value: 3.5 }],
+    "field-2": [{ parameter: "a_som_loi", value: 6.1 }],
+  }
+
+  const normFunctions = {
+    collectInputForNorms: vi.fn(),
+    collectInputForNormsForFarm: vi.fn(),
+    calculateNormForManure: vi.fn(),
+    calculateNormForPhosphate: vi.fn(),
+    calculateNormForNitrogen: vi.fn(),
+  }
+  const fillingFunctions = {
+    collectInputForFertilizerApplicationFilling: vi.fn(),
+    calculateFertilizerApplicationFillingForManure: vi.fn(),
+    calculateFertilizerApplicationFillingForNitrogen: vi.fn(),
+    calculateFertilizerApplicationFillingForPhosphate: vi.fn(),
+  }
+  const collectFillingForFarm = vi.fn()
+
+  /** Sets the farm-level reads to return the data of both fields. */
+  function mockFarmReads() {
+    ;(getFields as any).mockResolvedValue(farmFields)
+    ;(getCultivationsForFarm as any).mockResolvedValue(new Map(Object.entries(cultivationsByField)))
+    ;(getCurrentSoilDataForFarm as any).mockResolvedValue(new Map(Object.entries(soilByField)))
+    normFunctions.collectInputForNormsForFarm.mockResolvedValue(
+      new Map(farmFields.map((f) => [f.b_id, { b_id: f.b_id }])),
+    )
+    collectFillingForFarm.mockImplementation(
+      async (_fdm: any, _pid: any, _farm: string, norms: Map<string, number>) =>
+        new Map([...norms].map(([b_id, norm]) => [b_id, { b_id, fosfaatgebruiksnorm: norm }])),
+    )
+  }
+
+  /** Lets every farm-level read fail, so the tools read each field on its own. */
+  function failFarmReads() {
+    const failure = () => Promise.reject(new Error("farm not readable"))
+    ;(getFields as any).mockImplementation((_fdm: any, _pid: any, _farm: any, timeframe: any) =>
+      timeframe ? Promise.resolve(farmFields) : failure(),
+    )
+    ;(getCultivationsForFarm as any).mockImplementation(failure)
+    ;(getCurrentSoilDataForFarm as any).mockImplementation(failure)
+    normFunctions.collectInputForNormsForFarm.mockImplementation(failure)
+    collectFillingForFarm.mockImplementation(failure)
+  }
+
+  beforeAll(() => {
+    tools = createFertilizerPlannerTools(mockFdm)
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setupDefaultMocks()
+    ;(getField as any).mockImplementation(async (_fdm: any, _pid: any, b_id: string) => {
+      const field = farmFields.find((f) => f.b_id === b_id)
+      if (!field) throw new Error(`Field ${b_id} not found`)
+      return field
+    })
+    ;(getCultivations as any).mockImplementation(
+      async (_fdm: any, _pid: any, b_id: string) => cultivationsByField[b_id] ?? [],
+    )
+    ;(getCurrentSoilData as any).mockImplementation(
+      async (_fdm: any, _pid: any, b_id: string) => soilByField[b_id] ?? [],
+    )
+    ;(getNutrientAdvice as any).mockImplementation(async (_fdm: any, input: any) => ({
+      d_n_req: input.b_lu_catalogue === "nl_265" ? 100 : 150,
+      d_p_req: 20,
+      d_k_req: 60,
+    }))
+
+    // The norms depend on the field, so mixed-up fields would show
+    normFunctions.collectInputForNorms.mockImplementation(
+      async (_fdm: any, _pid: any, b_id: string) => ({ b_id }),
+    )
+    normFunctions.calculateNormForManure.mockImplementation(async (_fdm: any, input: any) => ({
+      normValue: input.b_id === "field-1" ? 170 : 160,
+      normSource: "test",
+    }))
+    normFunctions.calculateNormForPhosphate.mockImplementation(async (_fdm: any, input: any) => ({
+      normValue: input.b_id === "field-1" ? 80 : 60,
+      normSource: "test",
+    }))
+    normFunctions.calculateNormForNitrogen.mockImplementation(async (_fdm: any, input: any) => ({
+      normValue: input.b_id === "field-1" ? 230 : 140,
+      normSource: "test",
+    }))
+    ;(createFunctionsForNorms as any).mockReturnValue(normFunctions)
+
+    fillingFunctions.collectInputForFertilizerApplicationFilling.mockImplementation(
+      async (_fdm: any, _pid: any, b_id: string, fosfaatgebruiksnorm: number) => ({
+        b_id,
+        fosfaatgebruiksnorm,
+      }),
+    )
+    fillingFunctions.calculateFertilizerApplicationFillingForManure.mockReturnValue({
+      normFilling: 10,
+      applicationFilling: [],
+    })
+    fillingFunctions.calculateFertilizerApplicationFillingForNitrogen.mockResolvedValue({
+      normFilling: 20,
+      applicationFilling: [],
+    })
+    fillingFunctions.calculateFertilizerApplicationFillingForPhosphate.mockImplementation(
+      (input: any) => ({ normFilling: input.fosfaatgebruiksnorm / 2, applicationFilling: [] }),
+    )
+    ;(createUncachedFunctionsForFertilizerApplicationFilling as any).mockReturnValue(
+      fillingFunctions,
+    )
+    ;(createFunctionsForFertilizerApplicationFilling as any).mockReturnValue({
+      collectInputForFertilizerApplicationFillingForFarm: collectFillingForFarm,
+    })
+    ;(collectInputForOrganicMatterBalance as any).mockResolvedValue({
+      fields: farmFields.map((f) => ({ field: { b_id: f.b_id } })),
+      fertilizerDetails: [],
+      cultivationDetails: [],
+    })
+    ;(collectInputForNitrogenBalance as any).mockResolvedValue({
+      fields: farmFields.map((f) => ({ field: { b_id: f.b_id } })),
+      fertilizerDetails: [],
+      cultivationDetails: [],
+    })
+    mockFarmReads()
+  })
+
+  function getTool(name: string) {
+    return tools.find((t) => t.name === name)
+  }
+
+  it("getFarmFields reads the cultivations and soil data once for the farm", async () => {
+    const result = await getTool("getFarmFields").invoke(
+      { b_id_farm: "farm-1", calendar: "2025" },
+      makeConfigurable(),
+    )
+
+    expect(result.fields.map((f: any) => [f.b_id, f.b_lu_catalogue, f.a_som_loi])).toEqual([
+      ["field-1", "nl_265", 3.5],
+      ["field-2", "nl_259", 6.1],
+    ])
+    const timeframe = { start: new Date("2025-01-01"), end: new Date("2025-12-31") }
+    expect(getCultivationsForFarm).toHaveBeenCalledTimes(1)
+    expect(getCultivationsForFarm).toHaveBeenCalledWith(mockFdm, "principal-1", "farm-1", timeframe)
+    expect(getCurrentSoilDataForFarm).toHaveBeenCalledTimes(1)
+    expect(getCurrentSoilDataForFarm).toHaveBeenCalledWith(
+      mockFdm,
+      "principal-1",
+      "farm-1",
+      timeframe,
+    )
+    expect(getCultivations).not.toHaveBeenCalled()
+    expect(getCurrentSoilData).not.toHaveBeenCalled()
+  })
+
+  it("getFarmNutrientAdvice reads the farm once and looks up all advice together", async () => {
+    const input = { b_ids: ["field-1", "field-2"] }
+    // Without a farm in the context, each field is read on its own
+    const perField = await getTool("getFarmNutrientAdvice").invoke(
+      input,
+      makeConfigurable({ nmiApiKey: "test-key" }),
+    )
+    expect(getField).toHaveBeenCalledTimes(2)
+
+    vi.clearAllMocks()
+    const farmLevel = await getTool("getFarmNutrientAdvice").invoke(
+      input,
+      makeConfigurable({ nmiApiKey: "test-key", b_id_farm: "farm-1" }),
+    )
+
+    expect(farmLevel).toEqual(perField)
+    expect(farmLevel.advicePerField.map((r: any) => r.advice.d_n_req)).toEqual([100, 150])
+    expect(getField).not.toHaveBeenCalled()
+    expect(getCultivations).not.toHaveBeenCalled()
+    expect(getCurrentSoilData).not.toHaveBeenCalled()
+    expect(getFields).toHaveBeenCalledTimes(1)
+    expect(getCultivationsForFarm).toHaveBeenCalledTimes(1)
+    expect(getCurrentSoilDataForFarm).toHaveBeenCalledTimes(1)
+    expect((getNutrientAdvice as any).many).toHaveBeenCalledTimes(1)
+    expect((getNutrientAdvice as any).many.mock.calls[0][1]).toHaveLength(2)
+    expect((getNutrientAdvice as any).many.mock.calls[0][2]).toEqual({ concurrency: 4 })
+  })
+
+  it("getFarmNutrientAdvice reads a field outside the farm on its own", async () => {
+    const result = await getTool("getFarmNutrientAdvice").invoke(
+      { b_ids: ["field-1", "field-elsewhere"] },
+      makeConfigurable({ nmiApiKey: "test-key", b_id_farm: "farm-1" }),
+    )
+    expect(getField).toHaveBeenCalledTimes(1)
+    expect(getField).toHaveBeenCalledWith(mockFdm, "principal-1", "field-elsewhere")
+    expect(result.advicePerField[0].advice.d_n_req).toBe(100)
+    expect(result.advicePerField[1]).toEqual({
+      b_id: "field-elsewhere",
+      advice: null,
+      error: "Field field-elsewhere not found",
+    })
+  })
+
+  it("getFarmNutrientAdvice reports a failed advice for that field only", async () => {
+    ;(getNutrientAdvice as any).mockImplementation(async (_fdm: any, input: any) => {
+      if (input.b_lu_catalogue === "nl_259") throw new Error("NMI API unavailable")
+      return { d_n_req: 100 }
+    })
+    const result = await getTool("getFarmNutrientAdvice").invoke(
+      { b_ids: ["field-1", "field-2"] },
+      makeConfigurable({ nmiApiKey: "test-key", b_id_farm: "farm-1" }),
+    )
+    expect(result.advicePerField).toEqual([
+      { b_id: "field-1", advice: { d_n_req: 100 } },
+      { b_id: "field-2", advice: null, error: "NMI API unavailable" },
+    ])
+  })
+
+  it("getFarmLegalNorms collects the input for the farm and calculates all norms together", async () => {
+    const input = { b_id_farm: "farm-1", b_ids: ["field-1", "field-2"] }
+    failFarmReads()
+    const perField = await getTool("getFarmLegalNorms").invoke(input, makeConfigurable())
+    expect(normFunctions.collectInputForNorms).toHaveBeenCalledTimes(2)
+
+    vi.clearAllMocks()
+    mockFarmReads()
+    const farmLevel = await getTool("getFarmLegalNorms").invoke(input, makeConfigurable())
+
+    expect(farmLevel).toEqual(perField)
+    expect(farmLevel.normsPerField).toEqual([
+      { b_id: "field-1", norms: { animalManureN: 170, workableN: 230, phosphate: 80 } },
+      { b_id: "field-2", norms: { animalManureN: 160, workableN: 140, phosphate: 60 } },
+    ])
+    expect(normFunctions.collectInputForNormsForFarm).toHaveBeenCalledWith(
+      mockFdm,
+      "principal-1",
+      "farm-1",
+    )
+    expect(normFunctions.collectInputForNorms).not.toHaveBeenCalled()
+    expect(calculateNormsForFields).toHaveBeenCalledTimes(1)
+    expect((calculateNormsForFields as any).mock.calls[0][3]).toEqual([
+      { b_id: "field-1" },
+      { b_id: "field-2" },
+    ])
+  })
+
+  it("getFarmLegalNorms reports a failed norm for that field only", async () => {
+    normFunctions.calculateNormForNitrogen.mockImplementation(async (_fdm: any, input: any) => {
+      if (input.b_id === "field-2") throw new Error("No cultivation")
+      return { normValue: 230, normSource: "test" }
+    })
+    const result = await getTool("getFarmLegalNorms").invoke(
+      { b_id_farm: "farm-1", b_ids: ["field-1", "field-2"] },
+      makeConfigurable(),
+    )
+    expect(result.normsPerField[0].norms.workableN).toBe(230)
+    expect(result.normsPerField[1]).toEqual({
+      b_id: "field-2",
+      norms: null,
+      error: "No cultivation",
+    })
+  })
+
+  function simulationInput() {
+    return makeSimInput({
+      fields: farmFields.map((f) => ({
+        b_id: f.b_id,
+        b_lu_catalogue: cultivationsByField[f.b_id][0].b_lu_catalogue,
+        b_lu_name: cultivationsByField[f.b_id][0].b_lu_name,
+        b_lu_start: cultivationsByField[f.b_id][0].b_lu_start,
+        applications: [
+          {
+            p_id_catalogue: "fert-1",
+            p_app_amount: 300,
+            p_app_date: "2025-04-01",
+            p_app_method: "broadcasting",
+          },
+        ],
+      })),
+    })
+  }
+
+  it("simulateFarmPlan reads the farm once and gives the same result as per field", async () => {
+    failFarmReads()
+    const perField = await getTool("simulateFarmPlan").invoke(
+      simulationInput(),
+      makeConfigurable({ nmiApiKey: "test-key" }),
+    )
+    expect(getField).toHaveBeenCalledTimes(2)
+    expect(normFunctions.collectInputForNorms).toHaveBeenCalledTimes(2)
+    expect(fillingFunctions.collectInputForFertilizerApplicationFilling).toHaveBeenCalledTimes(2)
+
+    vi.clearAllMocks()
+    mockFarmReads()
+    const farmLevel = await getTool("simulateFarmPlan").invoke(
+      simulationInput(),
+      makeConfigurable({ nmiApiKey: "test-key" }),
+    )
+
+    expect(farmLevel).toEqual(perField)
+    expect(
+      farmLevel.fieldResults.map((r: any) => r.fieldMetrics.norms.phosphate.normValue),
+    ).toEqual([80, 60])
+    expect(
+      farmLevel.fieldResults.map((r: any) => r.fieldMetrics.normsFilling.phosphate.normFilling),
+    ).toEqual([40, 30])
+    expect(farmLevel.fieldResults.map((r: any) => r.fieldMetrics.advice.d_n_req)).toEqual([
+      100, 150,
+    ])
+    // Farm-level reads only
+    expect(getField).not.toHaveBeenCalled()
+    expect(getCultivations).not.toHaveBeenCalled()
+    expect(getCurrentSoilData).not.toHaveBeenCalled()
+    expect(normFunctions.collectInputForNorms).not.toHaveBeenCalled()
+    expect(fillingFunctions.collectInputForFertilizerApplicationFilling).not.toHaveBeenCalled()
+    expect(normFunctions.collectInputForNormsForFarm).toHaveBeenCalledTimes(1)
+    expect(collectFillingForFarm).toHaveBeenCalledTimes(1)
+    // The norms of the proposed fields and of all farm fields are calculated together
+    expect(calculateNormsForFields).toHaveBeenCalledTimes(1)
+    expect((calculateNormsForFields as any).mock.calls[0][3]).toHaveLength(2)
+    expect((getNutrientAdvice as any).many).toHaveBeenCalledTimes(1)
+    expect((getNutrientAdvice as any).many.mock.calls[0][1]).toHaveLength(2)
+  })
+
+  it("simulateFarmPlan reports a failed norm or advice for that field only", async () => {
+    normFunctions.calculateNormForPhosphate.mockImplementation(async (_fdm: any, input: any) => {
+      if (input.b_id === "field-2") throw new Error("No soil analysis")
+      return { normValue: 80, normSource: "test" }
+    })
+    ;(getNutrientAdvice as any).mockRejectedValue(new Error("NMI API unavailable"))
+    const result = await getTool("simulateFarmPlan").invoke(
+      simulationInput(),
+      makeConfigurable({ nmiApiKey: "test-key" }),
+    )
+    expect(result.fieldResults[0].isValid).toBe(true)
+    expect(result.fieldResults[0].fieldMetrics.advice).toBeNull()
+    expect(result.fieldResults[0].fieldMetrics.adviceSkipped).toBe(
+      "Could not fetch NMI nutrient advice for field field-1",
+    )
+    expect(result.fieldResults[1]).toEqual({
+      b_id: "field-2",
+      b_area: null,
+      error: "No soil analysis",
+      isValid: false,
+      fieldMetrics: null,
+    })
+    expect(
+      result.agronomicWarnings.some((w: string) => w.includes("Normberekening mislukt voor 1")),
+    ).toBe(true)
   })
 })

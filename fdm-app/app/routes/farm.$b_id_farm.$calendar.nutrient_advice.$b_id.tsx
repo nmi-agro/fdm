@@ -103,7 +103,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
 
         if (!cultivations.length) {
-          throw handleLoaderError("missing: cultivations")
+          throw new Error("missing: cultivations")
         }
 
         const cultivationId = url.searchParams.get("cultivation")

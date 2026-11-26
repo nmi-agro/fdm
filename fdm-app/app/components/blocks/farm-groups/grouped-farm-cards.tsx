@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
@@ -92,9 +92,9 @@ export function GroupedFarmCards({
       {sections.map((section) => (
         <Collapsible key={section.id} defaultOpen>
           <CollapsibleTrigger className="group flex w-full items-center gap-2 px-4 py-2 text-left md:px-8">
-            <ChevronDown
+            <ChevronRight
               aria-hidden="true"
-              className="text-muted-foreground h-4 w-4 transition-transform group-data-[state=closed]:-rotate-90"
+              className="text-muted-foreground h-4 w-4 transition-transform group-data-panel-open:rotate-90"
             />
             <h3 className="font-semibold">{section.title}</h3>
             <Badge variant="secondary">{section.farms.length}</Badge>

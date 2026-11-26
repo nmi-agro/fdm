@@ -1,10 +1,18 @@
+import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
 import { eq } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
+import { addAnimal } from "./animal"
 import { createFdmAuth } from "./authentication"
 import { grantRole, listPrincipalsForResource } from "./authorization"
+import { addBarn, addHousing } from "./barn"
+import {
+  enableAnimalCategoryCatalogue,
+  syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
+} from "./catalogues"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -26,10 +34,15 @@ import {
   updateRoleOfPrincipalAtFarm,
 } from "./farm"
 import { createFdmServer } from "./fdm-server"
+import { addFeedBatch, addFeedingHerd } from "./feed"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
+import { addGrazing } from "./grazing"
+import { addHerd } from "./herd"
 import { createId } from "./id"
 import { acceptInvitation, declineInvitation } from "./invitation"
+import { addExcreting, addManureDisposing, addManurePit } from "./manure"
+import { addMilkDelivery, addMilkingHerd, addMilkTank } from "./milk"
 import { getPrincipal } from "./principal"
 import { addFarmVerification, revokeFarmVerification } from "./verification"
 
@@ -38,6 +51,7 @@ describe("Farm Functions", () => {
   let fdm: FdmServerType
   let principal_id: string
   let target_username: string
+  let target_email: string
   let target_id: string
   let b_id_farm: string
   let farmName: string
@@ -53,6 +67,9 @@ describe("Farm Functions", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+    // The livestock tests add a feed batch, which needs the feed catalogue
+    await syncFeedCatalogueArray(fdm, await getFeedCatalogue("nmi"))
 
     const googleAuth = {
       clientId: "mock_google_client_id",
@@ -81,6 +98,7 @@ describe("Farm Functions", () => {
 
     // Create target_username
     target_username = "user15"
+    target_email = "user15@example.com"
     const target = await fdmAuth.api.signUpEmail({
       headers: undefined,
       body: {
@@ -111,6 +129,7 @@ describe("Farm Functions", () => {
       farmAddress,
       farmPostalCode,
     )
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
   })
   describe("getFarm", () => {
     it("should retrieve a farm's details if the principal has read access", async () => {
@@ -122,6 +141,8 @@ describe("Farm Functions", () => {
           b_businessid_farm: farmBusinessId,
           b_address_farm: farmAddress,
           b_postalcode_farm: farmPostalCode,
+          b_farm_livestock: false,
+          b_farm_dairy: false,
           roles: [
             {
               principal_id: principal_id,
@@ -158,13 +179,45 @@ describe("Farm Functions", () => {
       )
     })
   })
-
   describe("getFarms", () => {
     it("should retrieve a list of farms accessible by the principal", async () => {
       const farms = await getFarms(fdm, principal_id)
       expect(farms).toBeDefined()
       expect(farms.length).toBeGreaterThanOrEqual(1)
       expect(farms.some((farm) => farm.b_id_farm === b_id_farm)).toBeTruthy() // Assert that the test farm is in the list
+    })
+
+    it("should return the roles of the principal for each farm", async () => {
+      const list_principal_id = createId()
+      const owned_farm_id = await addFarm(
+        fdm,
+        list_principal_id,
+        "Owned farm",
+        createId(),
+        "Address 1",
+        "1234 AB",
+      )
+      const shared_farm_id = await addFarm(
+        fdm,
+        principal_id,
+        "Shared farm",
+        createId(),
+        "Address 2",
+        "1234 AB",
+      )
+      await grantRole(fdm, "farm", "advisor", shared_farm_id, list_principal_id)
+
+      const farms = await getFarms(fdm, list_principal_id)
+
+      expect(farms.map((farm) => farm.b_id_farm).sort()).toEqual(
+        [owned_farm_id, shared_farm_id].sort(),
+      )
+      expect(farms.find((farm) => farm.b_id_farm === owned_farm_id)?.roles).toEqual([
+        { principal_id: list_principal_id, principal_type: "user", role: "owner" },
+      ])
+      expect(farms.find((farm) => farm.b_id_farm === shared_farm_id)?.roles).toEqual([
+        { principal_id: list_principal_id, principal_type: "user", role: "advisor" },
+      ])
     })
 
     it("should handle errors during farm list retrieval", async () => {
@@ -322,9 +375,39 @@ describe("Farm Functions", () => {
     })
   })
 
+  it("should include livestock and dairy flags in the getFarm response", async () => {
+    const herdId = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Status Kudde",
+      l_id_category: "rvo_100",
+    })
+    await addAnimal(fdm, principal_id, b_id_farm, herdId, {
+      l_id_eartag: "NL700000089",
+    })
+
+    const farmAfterAnimals = await getFarm(fdm, principal_id, b_id_farm)
+    expect(farmAfterAnimals.b_farm_livestock).toBe(true)
+    expect(farmAfterAnimals.b_farm_dairy).toBe(false)
+
+    const l_id_milktank = await addMilkTank(fdm, principal_id, b_id_farm, {
+      l_milktank_name: "Status Tank",
+    })
+    await addMilkingHerd(
+      fdm,
+      principal_id,
+      herdId,
+      l_id_milktank,
+      new Date("2025-05-15T06:00:00.000Z"),
+      { l_milking_amount: 80 },
+    )
+
+    const farmAfterDairy = await getFarm(fdm, principal_id, b_id_farm)
+    expect(farmAfterDairy.b_farm_livestock).toBe(true)
+    expect(farmAfterDairy.b_farm_dairy).toBe(true)
+  })
+
   describe("grantRoleToFarm", () => {
     it("should create an invitation for a principal for a given farm", async () => {
-      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor")
 
       // Verify invitation was created (not a direct role grant)
       const invitations = await fdm
@@ -356,7 +439,7 @@ describe("Farm Functions", () => {
     it("should throw an error if the principal does not have share permission", async () => {
       const other_principal_id = createId()
       await expect(
-        grantRoleToFarm(fdm, other_principal_id, target_username, b_id_farm, "advisor"),
+        grantRoleToFarm(fdm, other_principal_id, target_email, b_id_farm, "advisor"),
       ).rejects.toThrowError("Principal does not have permission to perform this action")
     })
 
@@ -371,7 +454,7 @@ describe("Farm Functions", () => {
       }
 
       await expect(
-        grantRoleToFarm(asFdm(fdmMock), principal_id, target_username, b_id_farm, "advisor"),
+        grantRoleToFarm(asFdm(fdmMock), principal_id, target_email, b_id_farm, "advisor"),
       ).rejects.toThrowError("Exception for grantRoleToFarm")
     })
 
@@ -385,7 +468,7 @@ describe("Farm Functions", () => {
     it("should throw an error if target is already a member of the farm", async () => {
       // target_id already has advisor role from the first test
       await expect(
-        grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor"),
+        grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor"),
       ).rejects.toThrowError("Exception for grantRoleToFarm")
     })
 
@@ -473,7 +556,7 @@ describe("Farm Functions", () => {
     })
 
     it("should retain point-in-time farm verifications after access is revoked", async () => {
-      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor")
       const invitation = (
         await fdm
           .select()
@@ -518,7 +601,7 @@ describe("Farm Functions", () => {
         ...fdm,
         revokePrincipal: mockRevokePrincipal,
       }
-      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, b_id_farm, "advisor")
 
       await expect(
         revokePrincipalFromFarm(asFdm(fdmMock), principal_id, target_username, b_id_farm),
@@ -621,7 +704,7 @@ describe("Farm Functions", () => {
         "Pending Lane",
         "20003",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, pendingFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, pendingFarmId, "advisor")
 
       const principals = await listPrincipalsForFarm(fdm, principal_id, pendingFarmId)
       const pending = principals.find((p) => p.status === "pending")
@@ -740,7 +823,7 @@ describe("Farm Functions", () => {
       await grantRoleToFarm(
         fdm,
         testPrincipalId,
-        target_username, // Using an existing target_username from outer scope
+        target_email, // Using an existing target_email from outer scope
         testFarmId,
         "advisor",
       )
@@ -783,6 +866,210 @@ describe("Farm Functions", () => {
         .from(authZSchema.invitation)
         .where(eq(authZSchema.invitation.resource_id, testFarmId))
       expect(farmInvitations).toEqual([])
+    })
+
+    it("should remove all livestock, dairy, manure, feed, and grazing data when removing a farm", async () => {
+      const livestockFarmId = await addFarm(
+        fdm,
+        testPrincipalId,
+        "Farm with Livestock",
+        "888888",
+        "Livestock Lane",
+        "88888",
+      )
+      await enableAnimalCategoryCatalogue(fdm, testPrincipalId, livestockFarmId, "rvo")
+
+      const b_id = await addField(
+        fdm,
+        testPrincipalId,
+        livestockFarmId,
+        "Grazing Field",
+        "source-livestock-field",
+        {
+          type: "Polygon",
+          coordinates: [
+            [
+              [0, 0],
+              [0, 1],
+              [1, 1],
+              [1, 0],
+              [0, 0],
+            ],
+          ],
+        },
+        new Date(),
+        "unknown",
+      )
+
+      const l_id_herd = await addHerd(fdm, testPrincipalId, livestockFarmId, {
+        l_herd_name: "Melkkoeien",
+        l_id_category: "rvo_100",
+      })
+      const l_id_animal = await addAnimal(fdm, testPrincipalId, livestockFarmId, l_id_herd, {
+        l_id_eartag: "NL700000096",
+      })
+
+      const b_id_barn = await addBarn(fdm, testPrincipalId, livestockFarmId, {
+        b_barn_name: "Stal 1",
+      })
+      await addHousing(fdm, testPrincipalId, l_id_herd, b_id_barn, new Date("2025-01-01"))
+
+      const l_id_milktank = await addMilkTank(fdm, testPrincipalId, livestockFarmId)
+      await addMilkingHerd(fdm, testPrincipalId, l_id_herd, l_id_milktank, new Date("2025-02-01"), {
+        l_milking_amount: 100,
+      })
+      await addMilkDelivery(fdm, testPrincipalId, l_id_milktank, new Date("2025-02-02"), 500, {
+        l_milk_fat: 4.1,
+      })
+
+      const b_id_manurepit = await addManurePit(fdm, testPrincipalId, livestockFarmId)
+      await addExcreting(fdm, testPrincipalId, l_id_herd, b_id_manurepit, {
+        l_excreting_amount: 1000,
+      })
+      await addManureDisposing(fdm, testPrincipalId, b_id_manurepit, new Date("2025-02-03"), 800, {
+        p_n_rt: 4.0,
+      })
+
+      const f_id_batch = await addFeedBatch(
+        fdm,
+        testPrincipalId,
+        livestockFarmId,
+        "krachtvoer",
+        "purchased",
+      )
+      await addFeedingHerd(fdm, testPrincipalId, f_id_batch, l_id_herd, new Date("2025-02-04"))
+
+      await addGrazing(fdm, testPrincipalId, l_id_herd, new Date("2025-03-01"), {
+        b_id,
+        l_grazing_end: new Date("2025-03-01"),
+      })
+
+      await removeFarm(fdm, testPrincipalId, livestockFarmId)
+
+      const remainingHerds = await fdm
+        .select()
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.b_id_farm, livestockFarmId))
+      expect(remainingHerds).toEqual([])
+      expect(
+        await fdm.select().from(schema.herds).where(eq(schema.herds.l_id_herd, l_id_herd)),
+      ).toEqual([])
+
+      expect(
+        await fdm.select().from(schema.animals).where(eq(schema.animals.l_id_animal, l_id_animal)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.animalAssigning)
+          .where(eq(schema.animalAssigning.l_id_animal, l_id_animal)),
+      ).toEqual([])
+
+      expect(
+        await fdm.select().from(schema.barns).where(eq(schema.barns.b_id_barn, b_id_barn)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.herdHousing)
+          .where(eq(schema.herdHousing.b_id_barn, b_id_barn)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.milkTanks)
+          .where(eq(schema.milkTanks.l_id_milktank, l_id_milktank)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.herdMilking)
+          .where(eq(schema.herdMilking.l_id_milktank, l_id_milktank)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.milkDelivering)
+          .where(eq(schema.milkDelivering.l_id_milktank, l_id_milktank)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.manurePits)
+          .where(eq(schema.manurePits.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.herdExcreting)
+          .where(eq(schema.herdExcreting.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.manureDisposing)
+          .where(eq(schema.manureDisposing.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.feedBatches)
+          .where(eq(schema.feedBatches.f_id_batch, f_id_batch)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.herdFeeding)
+          .where(eq(schema.herdFeeding.f_id_batch, f_id_batch)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.herdGrazing)
+          .where(eq(schema.herdGrazing.l_id_herd, l_id_herd)),
+      ).toEqual([])
+    })
+
+    it("should remove a farm whose fertilizer acquisition names its own manure pit", async () => {
+      const farmId = await addFarm(
+        fdm,
+        testPrincipalId,
+        "Farm with own manure",
+        "777777",
+        "Manure Lane",
+        "77777",
+      )
+      const b_id_manurepit = await addManurePit(fdm, testPrincipalId, farmId)
+      const p_id = createId()
+      await fdm.transaction(async (tx) => {
+        await tx.insert(schema.fertilizers).values({ p_id })
+        await tx.insert(schema.fertilizerAcquiring).values({
+          b_id_farm: farmId,
+          p_id,
+          p_acquiring_amount: 15000,
+          p_acquiring_date: new Date("2025-03-15"),
+          b_id_manurepit,
+        })
+      })
+
+      await removeFarm(fdm, testPrincipalId, farmId)
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.manurePits)
+          .where(eq(schema.manurePits.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.fertilizerAcquiring)
+          .where(eq(schema.fertilizerAcquiring.p_id, p_id)),
+      ).toEqual([])
     })
 
     it("should throw an error if the principal does not have write access", async () => {
@@ -848,7 +1135,7 @@ describe("Farm Functions", () => {
     })
 
     it("should accept a pending invitation and grant the role", async () => {
-      await grantRoleToFarm(fdm, principal_id, target_username, invitationFarmId, "researcher")
+      await grantRoleToFarm(fdm, principal_id, target_email, invitationFarmId, "researcher")
 
       const rows = await fdm
         .select()
@@ -885,7 +1172,7 @@ describe("Farm Functions", () => {
         "Other Lane",
         "22222",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, otherFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, otherFarmId, "advisor")
       const rows = await fdm
         .select()
         .from(authZSchema.invitation)
@@ -921,7 +1208,7 @@ describe("Farm Functions", () => {
         "Decline Lane",
         "33333",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, declineFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, declineFarmId, "advisor")
       const rows = await fdm
         .select()
         .from(authZSchema.invitation)
@@ -954,7 +1241,7 @@ describe("Farm Functions", () => {
         "Another Decline Lane",
         "44444",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, anotherFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, anotherFarmId, "advisor")
       const rows = await fdm
         .select()
         .from(authZSchema.invitation)
@@ -989,7 +1276,7 @@ describe("Farm Functions", () => {
         "List Lane",
         "55555",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, listFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, listFarmId, "advisor")
     })
 
     it("should return pending invitations for a farm", async () => {
@@ -1020,7 +1307,7 @@ describe("Farm Functions", () => {
         "Cancel Lane",
         "77001",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, cancelFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, cancelFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(fdm, principal_id, cancelFarmId)
       cancelInvitationId = invitations[0].invitation_id
     })
@@ -1055,7 +1342,7 @@ describe("Farm Functions", () => {
         "Cancel Lane 2",
         "77002",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, anotherCancelFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, anotherCancelFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(
         fdm,
         principal_id,
@@ -1084,7 +1371,7 @@ describe("Farm Functions", () => {
         "Update Lane",
         "88001",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, updateInvFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, updateInvFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(fdm, principal_id, updateInvFarmId)
       updateInvitationId = invitations[0].invitation_id
     })
@@ -1125,7 +1412,7 @@ describe("Farm Functions", () => {
         "Update Lane 2",
         "88002",
       )
-      await grantRoleToFarm(fdm, principal_id, target_username, anotherUpdateFarmId, "advisor")
+      await grantRoleToFarm(fdm, principal_id, target_email, anotherUpdateFarmId, "advisor")
       const invitations = await listPendingInvitationsForFarm(
         fdm,
         principal_id,

@@ -8,6 +8,7 @@ import {
   Outlet,
   useLoaderData,
 } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
@@ -16,7 +17,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { Badge } from "~/components/ui/badge"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { Toaster } from "~/components/ui/sonner"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -27,6 +28,9 @@ import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "bedrijfsinstellingen" }
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Instellingen - Bedrijf | ${clientConfig.name}` },
@@ -146,7 +150,7 @@ export default function FarmContentBlock() {
   const calendar = useCalendarStore((state) => state.calendar)
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header
         action={{
           to: `/farm/${loaderData.b_id_farm}/${calendar}/field`,
@@ -156,7 +160,7 @@ export default function FarmContentBlock() {
       >
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
       </Header>
-      <main>
+      <div>
         <FarmTitle
           title={"Instellingen"}
           // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
@@ -183,7 +187,7 @@ export default function FarmContentBlock() {
           <Outlet />
         </FarmContent>
         <Toaster />
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

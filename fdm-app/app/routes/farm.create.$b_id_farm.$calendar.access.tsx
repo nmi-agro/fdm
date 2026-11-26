@@ -2,9 +2,9 @@ import {
   cancelInvitationForFarm,
   getFarm,
   grantRoleToFarm,
+  identifyPrincipal,
   isAllowedToShareFarm,
   listPrincipalsForFarm,
-  lookupPrincipal,
   revokePrincipalFromFarm,
   updateRoleOfPrincipalAtFarm,
 } from "@nmi-agro/fdm-core"
@@ -18,12 +18,14 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import {
   AccessInfoCard,
   type AccessVerificationProvider,
 } from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
-import { Button } from "~/components/ui/button"
+import { PageContainer } from "~/components/custom/page-container"
+import { buttonVariants } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -42,9 +44,11 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 import { Header } from "../components/blocks/header/base"
 import { HeaderFarmCreate } from "../components/blocks/header/create-farm"
-import { SidebarInset } from "../components/ui/sidebar"
 
 // Meta
+
+export const handle: HelpHandle = { help: "toegang" }
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -105,11 +109,11 @@ export default function CreateFarmAccessStep() {
     useLoaderData<typeof loader>()
 
   return (
-    <SidebarInset>
-      <Header action={undefined}>
+    <PageContainer>
+      <Header action={undefined} help="toegang">
         <HeaderFarmCreate b_name_farm={b_name_farm} />
       </Header>
-      <main>
+      <div>
         <div className="space-y-6 p-10 pb-0">
           <div className="flex items-center">
             <div className="space-y-0.5">
@@ -122,13 +126,10 @@ export default function CreateFarmAccessStep() {
             </div>
 
             <div className="ml-auto">
-              <Button asChild>
-                <NavLink to={`/farm/${b_id_farm}`}>
-                  {" "}
-                  {/* Navigate to the main farm page */}
-                  Voltooien
-                </NavLink>
-              </Button>
+              <NavLink to={`/farm/${b_id_farm}`} className={buttonVariants({})} data-slot="button">
+                {" "}
+                {/* Navigate to the main farm page */}Voltooien
+              </NavLink>
             </div>
           </div>
           <Separator className="my-6" />
@@ -142,8 +143,8 @@ export default function CreateFarmAccessStep() {
             <AccessInfoCard />
           </div>
         </div>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }
 
@@ -182,12 +183,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         const normalizedTarget = formValues.username.toLowerCase().trim()
         const isEmailTarget = isEmail(normalizedTarget)
 
-        const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-        targetPrincipal = matchedPrincipals.find(
-          (p) =>
-            p.username.toLowerCase() === normalizedTarget ||
-            (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-        )
+        targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
 
         const targetEmail = isEmailTarget
           ? normalizedTarget
@@ -255,12 +251,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           const farm = await getFarm(fdm, principalId, b_id_farm)
           const normalizedTarget = formValues.username.toLowerCase().trim()
           const isEmailTarget = isEmail(normalizedTarget)
-          const matchedPrincipals = await lookupPrincipal(fdm, normalizedTarget)
-          const targetPrincipal = matchedPrincipals.find(
-            (p) =>
-              p.username.toLowerCase() === normalizedTarget ||
-              (isEmailTarget && p.email?.toLowerCase() === normalizedTarget),
-          )
+          const targetPrincipal = await identifyPrincipal(fdm, normalizedTarget)
           const targetEmail = isEmailTarget
             ? normalizedTarget
             : targetPrincipal?.type === "user"

@@ -1,15 +1,17 @@
+import { listOrganizationRolesOfUser } from "@nmi-agro/fdm-core"
 import { Plus } from "lucide-react"
 import { NavLink, useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationCard } from "~/components/blocks/organization/organization-card"
 import { PendingOrganizationInvitationCard } from "~/components/blocks/organization/pending-organization-invitation"
-import { Button } from "~/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { buttonVariants } from "~/components/ui/button"
+import { Card, CardDescription, CardTitle } from "~/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader } from "~/components/ui/empty"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import type { Route } from "./+types/organization._index"
@@ -32,32 +34,24 @@ export async function loader({ request }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
 
-    const organizationsRaw = await auth.api.listOrganizations({
-      headers: request.headers,
-    })
+    // The roles of the user in all organizations come from one read, instead of listing the
+    // members of every organization
+    const [organizationsRaw, organizationRoles, invitations] = await Promise.all([
+      auth.api.listOrganizations({ headers: request.headers }),
+      listOrganizationRolesOfUser(fdm, session.principal_id, session.principal_id),
+      auth.api.listUserInvitations({ headers: request.headers }),
+    ])
 
-    const organizations = await Promise.all(
-      organizationsRaw.map(async (org) => {
-        const members = await auth.api.listMembers({
-          headers: request.headers,
-          query: { organizationId: org.id },
-        })
-        const userRoles = members.members
-          .filter((member) => member.userId === session.principal_id)
-          .map((member) => member.role)
-        const orderedUserRoles = (["owner", "admin", "member"] as const).filter((r) =>
-          userRoles.includes(r),
-        )
-        return {
-          ...org,
-          userRoles: orderedUserRoles,
-          metadata: parseOrganizationMetadata(org),
-        }
-      }),
-    )
-
-    const invitations = await auth.api.listUserInvitations({
-      headers: request.headers,
+    const organizations = organizationsRaw.map((org) => {
+      const userRoles = organizationRoles.get(org.id) ?? []
+      const orderedUserRoles = (["owner", "admin", "member"] as const).filter((r) =>
+        userRoles.includes(r),
+      )
+      return {
+        ...org,
+        userRoles: orderedUserRoles,
+        metadata: parseOrganizationMetadata(org),
+      }
     })
 
     return { organizations, invitations }
@@ -70,7 +64,7 @@ export default function OrganizationsIndex() {
   const { organizations, invitations } = useLoaderData<typeof loader>()
 
   return (
-    <main>
+    <div>
       <FarmTitle
         title="Mijn organisaties"
         description="Organisaties stellen je in staat om met anderen samen te werken. Je kunt organisaties aanmaken of lid worden om samen gegevens te beheren."
@@ -84,16 +78,15 @@ export default function OrganizationsIndex() {
               ))}
 
               <Card className="hover:border-primary/50 hover:bg-muted/50 flex flex-col border-dashed transition-all">
-                <NavLink to="/organization/new" className="flex h-full flex-col">
-                  <CardHeader className="grow items-center justify-center text-center">
-                    <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
-                      <Plus className="h-6 w-6" />
-                    </div>
-                    <CardTitle>Nieuwe organisatie</CardTitle>
-                    <CardDescription>
-                      Voeg een extra organisatie toe aan je account.
-                    </CardDescription>
-                  </CardHeader>
+                <NavLink
+                  to="/organization/new"
+                  className="flex h-full flex-col items-center justify-center"
+                >
+                  <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+                    <Plus className="h-6 w-6" />
+                  </div>
+                  <CardTitle>Nieuwe organisatie</CardTitle>
+                  <CardDescription>Voeg een extra organisatie toe aan je account.</CardDescription>
                 </NavLink>
               </Card>
             </div>
@@ -119,9 +112,9 @@ export default function OrganizationsIndex() {
           <Empty>
             <EmptyHeader>Het lijkt erop dat je nog geen organisatie hebt.</EmptyHeader>
             <EmptyContent>
-              <Button asChild>
-                <NavLink to="/organization/new">Maak een organisatie</NavLink>
-              </Button>
+              <NavLink to="/organization/new" className={buttonVariants({})} data-slot="button">
+                Maak een organisatie
+              </NavLink>
               <p className="text-muted-foreground text-center text-sm">
                 of je kunt organisaties vragen om je uit te nodigen.
               </p>
@@ -129,7 +122,7 @@ export default function OrganizationsIndex() {
           </Empty>
         </div>
       )}
-    </main>
+    </div>
   )
 }
 

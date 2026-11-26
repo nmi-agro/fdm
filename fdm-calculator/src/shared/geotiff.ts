@@ -1,51 +1,5 @@
 import { fromArrayBuffer, fromUrl, type GeoTIFF } from "geotiff"
-
-/**
- * Simple semaphore to limit concurrent GeoTIFF raster read operations.
- * This prevents overwhelming the Node.js socket pool with too many concurrent
- * HTTP Range requests when Promise.all is used across many fields.
- */
-export class Semaphore {
-  private queue: (() => void)[] = []
-  private active = 0
-  constructor(private maxConcurrent: number) {}
-
-  acquire(signal?: AbortSignal): Promise<void> {
-    if (signal?.aborted) {
-      return Promise.reject(signal.reason)
-    }
-    if (this.active < this.maxConcurrent) {
-      this.active++
-      return Promise.resolve()
-    }
-    return new Promise<void>((resolve, reject) => {
-      const onRelease = () => {
-        // Slot transfers from the releasing caller — active stays the same.
-        signal?.removeEventListener("abort", onAbort)
-        resolve()
-      }
-      const onAbort = () => {
-        const idx = this.queue.indexOf(onRelease)
-        if (idx !== -1) {
-          this.queue.splice(idx, 1)
-        }
-        // No slot was ever granted, so active is not incremented.
-        reject(signal?.reason)
-      }
-      this.queue.push(onRelease)
-      signal?.addEventListener("abort", onAbort, { once: true })
-    })
-  }
-
-  release(): void {
-    const next = this.queue.shift()
-    if (next) {
-      next()
-    } else if (this.active > 0) {
-      this.active--
-    }
-  }
-}
+import { Semaphore } from "./semaphore"
 
 /**
  * In-memory LRU cache for resolved GeoTIFF objects.

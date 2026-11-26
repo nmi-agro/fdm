@@ -6,12 +6,12 @@ import type {
   Ticket as TicketT,
   AgentAvailabilityStatus,
 } from "@nmi-agro/fdm-helpdesk"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleDot } from "lucide-react"
 import { useEffect, useId } from "react"
 import { useNavigation, useSubmit } from "react-router"
-import { cn } from "@/app/lib/utils"
 import { Message } from "~/components/blocks/helpdesk/message"
 import { Spinner } from "~/components/ui/spinner"
 import type { HelpdeskUser } from "./types"
@@ -86,7 +86,7 @@ export function Ticket({
   }, [isViewed, submit])
 
   return (
-    <main className="space-y-6 p-6">
+    <div className="space-y-6 p-6">
       <header className="space-y-4">
         {/* 1. Meta line — muted, middot-separated */}
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -208,6 +208,6 @@ export function Ticket({
           />
         )}
       </div>
-    </main>
+    </div>
   )
 }

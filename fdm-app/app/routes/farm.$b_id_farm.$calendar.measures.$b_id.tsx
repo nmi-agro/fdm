@@ -13,6 +13,7 @@ import {
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
+import { cn } from "cn"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Plus, Trash2 } from "lucide-react"
@@ -21,6 +22,7 @@ import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
   data,
+  Link,
   type LoaderFunctionArgs,
   type MetaFunction,
   useFetcher,
@@ -41,6 +43,7 @@ import {
 } from "~/components/blocks/measures/formschema"
 import { ImpactSummary } from "~/components/blocks/measures/impact-summary"
 import { IndicatorAttention } from "~/components/blocks/measures/indicator-attention"
+import { MeasureDetailLink } from "~/components/blocks/measures/measure-detail-link"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import {
   AlertDialog,
@@ -73,7 +76,7 @@ import { fdm } from "~/lib/fdm.server"
 import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getBln3ExclusionMessage, getBln3ExclusionReason } from "~/lib/indicators"
-import { cn } from "~/lib/utils"
+import { getMeasureCataloguePath, getMeasureCode } from "~/lib/measures-catalogue"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 
@@ -464,7 +467,7 @@ function MeasureEditDialog({
 }) {
   return (
     <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
         </DialogHeader>
@@ -780,10 +783,16 @@ export default function MeasuresFieldDetail() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
-                        {m.m_id.replace("bln_", "")}
+                      <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                        {getMeasureCode(m.m_id)}
                       </span>
-                      <span className="truncate text-sm font-medium">{m.m_name}</span>
+                      <Link
+                        to={getMeasureCataloguePath(b_id_farm ?? "", calendar ?? "", m.m_id)}
+                        className="truncate text-sm font-medium hover:underline"
+                      >
+                        {m.m_name}
+                      </Link>
+                      <MeasureDetailLink m_id={m.m_id} m_name={m.m_name} icon="external" />
                     </div>
                     {m.m_summary && (
                       <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-relaxed">
@@ -835,18 +844,20 @@ export default function MeasuresFieldDetail() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive h-8 w-8"
-                            title="Verwijderen"
-                            aria-label={`${m.m_name} verwijderen`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialogTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-destructive h-8 w-8"
+                              title="Verwijderen"
+                              aria-label={`${m.m_name} verwijderen`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Maatregel verwijderen?</AlertDialogTitle>

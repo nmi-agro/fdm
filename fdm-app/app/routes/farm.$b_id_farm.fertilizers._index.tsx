@@ -6,6 +6,7 @@ import {
   getFertilizers,
 } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import type { HelpHandle } from "~/lib/manual/help-targets"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type Fertilizer } from "~/components/blocks/fertilizer/columns"
@@ -13,12 +14,14 @@ import { DataTable } from "~/components/blocks/fertilizer/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderFertilizer } from "~/components/blocks/header/fertilizer"
-import { SidebarInset } from "~/components/ui/sidebar"
+import { PageContainer } from "~/components/custom/page-container"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/farm.$b_id_farm.fertilizers._index"
+
+export const handle: HelpHandle = { help: "meststoffen" }
 
 export const meta: MetaFunction = () => {
   return [
@@ -123,7 +126,7 @@ export default function FarmFertilizersIndexPage({ params: _params }: Route.Comp
   const loaderData = useLoaderData<typeof loader>()
 
   return (
-    <SidebarInset>
+    <PageContainer>
       <Header action={undefined}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderFertilizer
@@ -132,7 +135,7 @@ export default function FarmFertilizersIndexPage({ params: _params }: Route.Comp
           fertilizerOptions={loaderData.fertilizers}
         />
       </Header>
-      <main>
+      <div>
         <FarmTitle title={"Meststoffen"} description={"Beheer de meststoffen van dit bedrijf"} />
         <FarmContent>
           <DataTable
@@ -141,7 +144,7 @@ export default function FarmFertilizersIndexPage({ params: _params }: Route.Comp
             canAddItem={loaderData.farmWritePermission}
           />
         </FarmContent>
-      </main>
-    </SidebarInset>
+      </div>
+    </PageContainer>
   )
 }

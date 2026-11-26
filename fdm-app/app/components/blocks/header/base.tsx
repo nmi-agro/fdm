@@ -1,14 +1,19 @@
+import type { HelpTargetId } from "~/lib/manual/help-targets"
 import { Breadcrumb, BreadcrumbList } from "@/app/components/ui/breadcrumb"
 import { Separator } from "@/app/components/ui/separator"
 import { SidebarTrigger } from "@/app/components/ui/sidebar"
+import { HelpLink } from "~/components/custom/help-link"
 import { HeaderAction, type HeaderActionProps } from "./action"
 
 export function Header({
   action,
+  help,
   children,
 }: {
   children: React.ReactNode
   action: HeaderActionProps | undefined
+  /** Manual page about this screen, for screens without a title block of their own. */
+  help?: HelpTargetId
 }) {
   return (
     <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-x-1.5 gap-y-2 border-b px-2 py-2 md:px-4 xl:flex-nowrap xl:py-0">
@@ -16,9 +21,11 @@ export function Header({
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-1 h-4 md:mr-2" />
       </div>
-      <Breadcrumb className="min-w-0 flex-1">
+      {/* Keeps room for the trail; a long action label moves to its own line on a phone */}
+      <Breadcrumb className="min-w-36 flex-1">
         <BreadcrumbList>{children}</BreadcrumbList>
       </Breadcrumb>
+      {help ? <HelpLink target={help} className="shrink-0" /> : null}
       {action ? (
         <div className="shrink-0">
           <HeaderAction label={action.label} to={action.to} disabled={action.disabled} />
