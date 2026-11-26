@@ -419,7 +419,11 @@ function determineSubTypeOmschrijving(
   }
 
   // Roodzwenkgras logic based on cultivation history
-  if (standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras") {
+  // (both the main crop row and the "volgteelt" row have "1e jaars" and "overjarig" sub-types)
+  if (
+    standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras" ||
+    standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras, volgteelt"
+  ) {
     const roodzwenkgrasCultivationCodes = standard.b_lu_catalogue_match
     const hasRoodzwenkgrasCultivationInPreviousYear = cultivations.some(
       (c) =>
