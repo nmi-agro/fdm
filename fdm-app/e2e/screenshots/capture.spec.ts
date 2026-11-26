@@ -43,8 +43,9 @@ if (mismatch.undefined.length > 0 || mismatch.unused.length > 0) {
   throw new Error(`Screenshot ids and capture definitions do not match:\n${lines.join("\n")}`)
 }
 
-// The run starts once; every capture freezes the browser clock at this moment so that the page
-// shows the same day and year as the server.
+// The run starts once; every capture sets the browser clock to this moment so that the page shows
+// the same day and year as the server. The clock keeps running from there: a frozen `Date.now()`
+// stalls throttled updates in the app, such as the legend range of the elevation map.
 const runStart = new Date()
 
 let demoFarm: DemoFarmIds | undefined
@@ -106,7 +107,7 @@ async function capture(page: Page, id: string, definition: CaptureDefinition): P
   if (definition.viewport) await page.setViewportSize(definition.viewport)
   await fixGreeting(page)
   if (definition.mock === "soil-reader") await mockSoilReader(page, getDemoFarm())
-  await page.clock.setFixedTime(runStart)
+  await page.clock.setSystemTime(runStart)
 
   const path = resolvePlaceholders(definition.route)
   await page.goto(path, { waitUntil: "networkidle" })
