@@ -419,6 +419,8 @@ export function NitrogenBalanceChart(
   // object every render, defeating memoization anyway.
   const { legend, chartData, chartConfig, supplyBar, removalBar } = buildChartDataAndLegend(props)
   const svgId = useId()
+  // One row for the supply and one for the removal and emissions
+  const rows = toBalanceRows(chartData, supplyBar.flat(), removalBar.flat())
 
   const barRadius = 5
   const barRadiusStart: [number, number, number, number] = [barRadius, 0, 0, barRadius]
@@ -475,7 +477,13 @@ export function NitrogenBalanceChart(
           radius={barRadius}
           stackId={stackId}
           fill={barStyle.color}
-          minPointSize={barStyle.minPointSize}
+          // Both rows share one stack, so every key gets a rectangle in both rows. Apply the minimum
+          // size only in the row that holds the key, or an empty 3 px bar shows up in the other row
+          minPointSize={
+            barStyle.minPointSize
+              ? (_value, index) => (rows[index]?.[dataKey] ? (barStyle.minPointSize ?? 0) : 0)
+              : undefined
+          }
           onMouseEnter={() => setBarOutlineFocus(dataKey)}
           onMouseLeave={() => {
             if (dataKey === barOutlineFocus) {
@@ -496,13 +504,7 @@ export function NitrogenBalanceChart(
         setBarOutlineFocus(undefined)
       }}
     >
-      <BarChart
-        accessibilityLayer
-        // One row for the supply and one for the removal and emissions
-        data={toBalanceRows(chartData, supplyBar.flat(), removalBar.flat())}
-        layout="vertical"
-        barCategoryGap={BALANCE_BAR_GAP}
-      >
+      <BarChart accessibilityLayer data={rows} layout="vertical" barCategoryGap={BALANCE_BAR_GAP}>
         <XAxis type="number" />
         <YAxis
           dataKey="name"
