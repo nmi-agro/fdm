@@ -34,7 +34,9 @@ const rvoAnimalCategoryTransitions: Readonly<
     { to: ["rvo_104"], l_sex: male },
     { to: ["rvo_112", "rvo_115", "rvo_116", "rvo_117", "rvo_122"], l_sex: femaleAndMale },
   ],
-  rvo_102: [{ to: ["rvo_100", "rvo_120"], l_sex: female }],
+  // A heifer calves and joins the cows, or is fattened with the red meat cattle (122 includes
+  // female animals fattened the same way)
+  rvo_102: [{ to: ["rvo_100", "rvo_120", "rvo_122"], l_sex: female }],
   // A dairy cow can become a suckler cow and back
   rvo_100: [{ to: ["rvo_120"], l_sex: female }],
   rvo_120: [{ to: ["rvo_100"], l_sex: female }],

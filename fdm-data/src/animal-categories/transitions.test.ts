@@ -54,6 +54,8 @@ describe("getAnimalCategoryTransitionSexes", () => {
     // A red deer kept for slaughter can still join the breeding stock
     expect(getAnimalCategoryTransitionSexes("rvo_973", "rvo_971")).toEqual(["female", "male"])
     expect(getAnimalCategoryTransitionSexes("rvo_974", "rvo_971")).toEqual(["female", "male"])
+    // A heifer can be fattened with the red meat cattle
+    expect(getAnimalCategoryTransitionSexes("rvo_102", "rvo_122")).toEqual(["female"])
     // A calf of the farm can be kept as a veal calf
     for (const veal of ["rvo_112", "rvo_115", "rvo_116", "rvo_117"]) {
       expect(getAnimalCategoryTransitionSexes("rvo_101", veal)).toEqual(["female", "male"])
