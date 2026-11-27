@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   getMcpClientGuides,
   getMcpEndpoint,
+  getMcpKeyEnvVar,
   getMcpServerName,
   MCP_KEY_PLACEHOLDER,
 } from "./mcp-clients"
@@ -29,6 +30,13 @@ describe("getMcpServerName", () => {
     expect(getMcpServerName("MINAS2")).toBe("minas2")
     expect(getMcpServerName(" My  App! ")).toBe("my-app")
     expect(getMcpServerName("  ")).toBe("fdm")
+  })
+})
+
+describe("getMcpKeyEnvVar", () => {
+  it("names the environment variable after the application", () => {
+    expect(getMcpKeyEnvVar(" My  App! ")).toBe("MY_APP_API_KEY")
+    expect(getMcpKeyEnvVar("  ")).toBe("FDM_API_KEY")
   })
 })
 
@@ -73,7 +81,7 @@ describe("getMcpClientGuides", () => {
     expect(snippets.length).toBeGreaterThan(0)
     for (const snippet of snippets) {
       expect(
-        snippet.includes(MCP_KEY_PLACEHOLDER) || snippet.includes("FDM_API_KEY"),
+        snippet.includes(MCP_KEY_PLACEHOLDER) || snippet.includes("MY_APP_API_KEY"),
         snippet,
       ).toBe(true)
     }
@@ -86,18 +94,18 @@ describe("getMcpClientGuides", () => {
     expect(commands.length).toBeGreaterThan(0)
     for (const command of commands) {
       expect(command, command).not.toContain(MCP_KEY_PLACEHOLDER)
-      expect(command, command).toContain("FDM_API_KEY")
+      expect(command, command).toContain("MY_APP_API_KEY")
     }
     // Single quotes, so the shell does not replace the variable with the key.
-    expect(JSON.stringify(guides)).toContain("--header 'X-API-Key: ${FDM_API_KEY}'")
+    expect(JSON.stringify(guides)).toContain("--header 'X-API-Key: ${MY_APP_API_KEY}'")
   })
 
   it("lets mcp-remote read the key from its environment instead of its arguments", () => {
     const other = guides.developer.find((guide) => guide.id === "other")
     const config = JSON.parse(other?.sections[0]?.code?.text ?? "{}")
     const server = config.mcpServers["my-app"]
-    expect(server.args).toContain("X-API-Key:${FDM_API_KEY}")
-    expect(server.env).toEqual({ FDM_API_KEY: MCP_KEY_PLACEHOLDER })
+    expect(server.args).toContain("X-API-Key:${MY_APP_API_KEY}")
+    expect(server.env).toEqual({ MY_APP_API_KEY: MCP_KEY_PLACEHOLDER })
   })
 
   it("offers a setup request for Claude Code and Codex that never asks for the key", () => {
@@ -107,7 +115,7 @@ describe("getMcpClientGuides", () => {
     expect(prompt).toContain(endpoint)
     expect(prompt).toContain("claude mcp add --transport http my-app ")
     expect(prompt).toContain("codex mcp add my-app ")
-    expect(prompt).toContain("FDM_API_KEY")
+    expect(prompt).toContain("MY_APP_API_KEY")
     expect(prompt).not.toContain(MCP_KEY_PLACEHOLDER)
   })
 

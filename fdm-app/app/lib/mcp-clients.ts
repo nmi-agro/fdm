@@ -54,9 +54,6 @@ export interface McpClientGuides {
   developer: McpClientGuide[]
 }
 
-/** Name of the environment variable that holds the API key in the snippets that read it from there. */
-export const MCP_KEY_ENV_VAR = "FDM_API_KEY"
-
 /**
  * Returns the configured origin of the MCP server, without a trailing slash.
  *
@@ -105,6 +102,17 @@ export function getMcpServerName(appName: string): string {
 }
 
 /**
+ * Turns the application name into the name of the environment variable that holds the API key in
+ * the snippets that read it from there: "My App" becomes "MY_APP_API_KEY".
+ *
+ * @param appName - Public name of the application.
+ * @returns The variable name, or `"FDM_API_KEY"` when nothing remains of the name.
+ */
+export function getMcpKeyEnvVar(appName: string): string {
+  return `${getMcpServerName(appName).replaceAll("-", "_").toUpperCase()}_API_KEY`
+}
+
+/**
  * Tells whether an address points to the user's own computer, which cloud-hosted assistants such
  * as claude.ai cannot reach.
  *
@@ -121,10 +129,11 @@ function isLocalAddress(endpoint: string): boolean {
  * be set wherever the program runs.
  *
  * @param program - The program that reads the variable, such as "Codex".
+ * @param envVar - Name of the variable, from {@link getMcpKeyEnvVar}.
  * @returns The note.
  */
-function envVarNote(program: string): string {
-  return `Het commando slaat alleen de naam van de variabele op. Zet \`${MCP_KEY_ENV_VAR}\` daarom vast in je omgeving, bijvoorbeeld in je shellprofiel, zodat ${program} de sleutel ook vindt als je het later of vanuit je editor start.`
+function envVarNote(program: string, envVar: string): string {
+  return `Het commando slaat alleen de naam van de variabele op. Zet \`${envVar}\` daarom vast in je omgeving, bijvoorbeeld in je shellprofiel, zodat ${program} de sleutel ook vindt als je het later of vanuit je editor start.`
 }
 
 /**
@@ -137,12 +146,14 @@ function buildSetupPrompt({
   appName,
   endpoint,
   name,
+  envVar,
   claudeCommand,
   codexCommand,
 }: {
   appName: string
   endpoint: string
   name: string
+  envVar: string
   claudeCommand: string
   codexCommand: string
 }): string {
@@ -151,9 +162,9 @@ function buildSetupPrompt({
     "",
     `- Adres: ${endpoint} (Streamable HTTP)`,
     `- Naam van de koppeling: ${name}`,
-    `- De API-sleutel staat in de omgevingsvariabele ${MCP_KEY_ENV_VAR}. Vraag me niet om de sleutel en zet hem niet letterlijk in een commando of bestand: verwijs naar de variabele.`,
+    `- De API-sleutel staat in de omgevingsvariabele ${envVar}. Vraag me niet om de sleutel en zet hem niet letterlijk in een commando of bestand: verwijs naar de variabele.`,
     "",
-    `1. Kijk of ${MCP_KEY_ENV_VAR} gezet is. Zo niet: leg uit hoe ik hem vast instel voor mijn besturingssysteem en shell, en stop dan.`,
+    `1. Kijk of ${envVar} gezet is. Zo niet: leg uit hoe ik hem vast instel voor mijn besturingssysteem en shell, en stop dan.`,
     "2. Voeg de koppeling toe:",
     `   - Claude Code: ${claudeCommand}`,
     `   - Codex: ${codexCommand}`,
@@ -179,11 +190,12 @@ export function getMcpClientGuides({
   endpoint: string
 }): McpClientGuides {
   const name = getMcpServerName(appName)
+  const envVar = getMcpKeyEnvVar(appName)
   const key = MCP_KEY_PLACEHOLDER
   // Single quotes keep the variable out of the shell, so the key itself is not stored in the
   // configuration or the shell history; Claude Code reads it when it starts.
-  const claudeCommand = `claude mcp add --transport http ${name} ${endpoint} --header '${MCP_KEY_HEADER}: \${${MCP_KEY_ENV_VAR}}'`
-  const codexCommand = `codex mcp add ${name} --url ${endpoint} --bearer-token-env-var ${MCP_KEY_ENV_VAR}`
+  const claudeCommand = `claude mcp add --transport http ${name} ${endpoint} --header '${MCP_KEY_HEADER}: \${${envVar}}'`
+  const codexCommand = `codex mcp add ${name} --url ${endpoint} --bearer-token-env-var ${envVar}`
   return {
     primary: {
       title: "claude.ai en de app Claude Desktop",
@@ -212,22 +224,29 @@ export function getMcpClientGuides({
         sections: [
           {
             title: "Claude Code",
-            intro: `Zet je sleutel in de omgevingsvariabele \`${MCP_KEY_ENV_VAR}\` en voer uit:`,
+            intro: `Zet je sleutel in de omgevingsvariabele \`${envVar}\` en voer uit:`,
             code: { language: "bash", text: claudeCommand },
-            note: envVarNote("Claude Code"),
+            note: envVarNote("Claude Code", envVar),
           },
           {
             title: "Codex (CLI of IDE)",
-            intro: `Zet je sleutel in de omgevingsvariabele \`${MCP_KEY_ENV_VAR}\` en voer uit:`,
+            intro: `Zet je sleutel in de omgevingsvariabele \`${envVar}\` en voer uit:`,
             code: { language: "bash", text: codexCommand },
-            note: envVarNote("Codex"),
+            note: envVarNote("Codex", envVar),
           },
           {
             title: "Of laat je assistent het instellen",
-            intro: `Zet je sleutel in \`${MCP_KEY_ENV_VAR}\`, kopieer deze opdracht en geef hem aan Claude Code of Codex:`,
+            intro: `Zet je sleutel in \`${envVar}\`, kopieer deze opdracht en geef hem aan Claude Code of Codex:`,
             code: {
               language: "text",
-              text: buildSetupPrompt({ appName, endpoint, name, claudeCommand, codexCommand }),
+              text: buildSetupPrompt({
+                appName,
+                endpoint,
+                name,
+                envVar,
+                claudeCommand,
+                codexCommand,
+              }),
             },
             note: "De opdracht bevat je sleutel niet. Plak je sleutel ook nooit in een gesprek: dan gaat hij naar de aanbieder van de assistent.",
           },
@@ -297,13 +316,8 @@ export function getMcpClientGuides({
                   mcpServers: {
                     [name]: {
                       command: "npx",
-                      args: [
-                        "mcp-remote",
-                        endpoint,
-                        "--header",
-                        `${MCP_KEY_HEADER}:\${${MCP_KEY_ENV_VAR}}`,
-                      ],
-                      env: { [MCP_KEY_ENV_VAR]: key },
+                      args: ["mcp-remote", endpoint, "--header", `${MCP_KEY_HEADER}:\${${envVar}}`],
+                      env: { [envVar]: key },
                     },
                   },
                 },
