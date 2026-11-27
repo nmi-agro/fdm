@@ -47,7 +47,8 @@ const allowedOrigins = (process.env.FDM_MCP_ALLOWED_ORIGINS ?? "")
   .map((origin) => origin.trim())
   .filter(Boolean)
 
-const posthogToken = process.env.POSTHOG_PROJECT_TOKEN ?? process.env.PUBLIC_POSTHOG_KEY
+// An empty value counts as unset, so a forwarded but empty new name doesn't hide the old one
+const posthogToken = process.env.POSTHOG_PROJECT_TOKEN || process.env.PUBLIC_POSTHOG_KEY
 // Analytics stay in the EU region unless a host is set
 const posthogHost =
   process.env.POSTHOG_HOST || process.env.PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com"

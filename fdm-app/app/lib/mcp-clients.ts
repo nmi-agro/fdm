@@ -106,10 +106,15 @@ export function getMcpServerName(appName: string): string {
  * the snippets that read it from there: "My App" becomes "MY_APP_API_KEY".
  *
  * @param appName - Public name of the application.
+ * A name that starts with a digit gets a leading underscore, because a shell variable name can't
+ * start with one: "123 Farm" becomes "_123_FARM_API_KEY".
+ *
+ * @param appName - Public name of the application.
  * @returns The variable name, or `"FDM_API_KEY"` when nothing remains of the name.
  */
 export function getMcpKeyEnvVar(appName: string): string {
-  return `${getMcpServerName(appName).replaceAll("-", "_").toUpperCase()}_API_KEY`
+  const name = getMcpServerName(appName).replaceAll("-", "_").toUpperCase()
+  return `${/^[0-9]/.test(name) ? "_" : ""}${name}_API_KEY`
 }
 
 /**

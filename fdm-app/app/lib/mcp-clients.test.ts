@@ -38,6 +38,11 @@ describe("getMcpKeyEnvVar", () => {
     expect(getMcpKeyEnvVar(" My  App! ")).toBe("MY_APP_API_KEY")
     expect(getMcpKeyEnvVar("  ")).toBe("FDM_API_KEY")
   })
+
+  it("makes a name that starts with a digit a valid shell variable name", () => {
+    expect(getMcpKeyEnvVar("123 Farm")).toBe("_123_FARM_API_KEY")
+    expect(getMcpKeyEnvVar("MINAS2")).toBe("MINAS2_API_KEY")
+  })
 })
 
 describe("getMcpClientGuides", () => {
