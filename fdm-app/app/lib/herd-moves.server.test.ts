@@ -17,6 +17,9 @@ describe("getHerdMoveTargets", () => {
     expect(ids(getHerdMoveTargets("rvo_100", ["female"], herds))).toEqual(["dairy", "dairy-2"])
     // A water buffalo cow only moves to another water buffalo herd, never to the dairy cows
     expect(ids(getHerdMoveTargets("rvo_991", ["female"], herds))).toEqual(["buffalo"])
+    // A young water buffalo bull can join the breeding bulls, a young cow the buffalo cows
+    expect(ids(getHerdMoveTargets("rvo_992", ["male"], herds))).toEqual(["bulls"])
+    expect(ids(getHerdMoveTargets("rvo_992", ["female"], herds))).toEqual(["buffalo"])
     expect(ids(getHerdMoveTargets("rvo_102", ["female"], herds))).toEqual([
       "dairy",
       "dairy-2",

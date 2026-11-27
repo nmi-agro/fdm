@@ -36,8 +36,11 @@ const rvoAnimalCategoryTransitions: Readonly<
   rvo_120: [{ to: ["rvo_100"], l_sex: female }],
   // Veal calves
   rvo_115: [{ to: ["rvo_116"], l_sex: femaleAndMale }],
-  // Water buffalo
-  rvo_992: [{ to: ["rvo_991"], l_sex: female }],
+  // Water buffalo: a young cow joins the water buffalo cows, a young bull the breeding bulls
+  rvo_992: [
+    { to: ["rvo_991"], l_sex: female },
+    { to: ["rvo_104"], l_sex: male },
+  ],
   // Sheep
   rvo_551: [{ to: ["rvo_552"], l_sex: femaleAndMale }],
   rvo_552: [{ to: ["rvo_550"], l_sex: femaleAndMale }],
