@@ -31,6 +31,17 @@ For each **major** version bump:
 3. If the migration is mechanical and safe (renamed APIs, config keys, codemods available, etc.), perform it directly in this PR: update code, config, and (if needed) generate/adjust Drizzle migrations following the schema-change workflow documented in the `fdm-schema` skill.
 4. If the upgrade requires a decision only a maintainer can make — an ambiguous breaking change, a product/UX trade-off, a security posture change, or a migration too risky to automate safely — **do not apply that specific upgrade**. Leave it at its current version and record it in the "Decisions Needed" section of the PR body (see template below) with your reasoning and a recommendation.
 
+## 3b. Read the changelogs of minor/patch bumps and adopt small wins
+
+For every patch/minor bump of a dependency that `fdm` uses directly (skip purely transitive or dev-tooling-only bumps unless something notable shows up), read its changelog between the current and the new version. Look in the installed package first (`node_modules/<pkg>/CHANGELOG.md`), then in the dependency's own GitHub repository (`CHANGELOG.md`, in-repo release notes, `.changeset/`), using the same access rules as in step 3. Do not guess when a changelog is unreachable: say in the PR which ones you could not read.
+
+Look for new, non-breaking features or fixes that could improve `fdm` (new APIs, performance or reliability improvements, deprecations that touch code in this repo). Then:
+
+- If the improvement is **straightforward and small** (a few lines in one or two files, no behavior or product decision, no new configuration or personal-data handling, no new dependency), implement it, with a test when the code is covered by tests, and add a short note in the PR under "Suggestions & Opportunities" saying it was applied.
+- Otherwise do **not** implement it; list it under "Suggestions & Opportunities" with the package, version and what it would improve.
+
+Commit rules for the whole run: the plain version bumps go in one commit (`chore: weekly dependency update (patch/minor)`). Every other change gets its **own commit**: each major upgrade with its migration, and each adopted improvement from this step. Name each commit after the dependency and the change, so a maintainer can revert one without the others.
+
 ## 4. Validate
 
 Before finishing, for every package you touched:
@@ -73,7 +84,7 @@ For each major upgrade that was intentionally _not_ applied:
 
 ## Suggestions & Opportunities
 
-Bullet list of new features/APIs unlocked by this week's updates that could be worth adopting (e.g. new Drizzle features, React Router APIs, performance improvements), or follow-up cleanup/deprecation work suggested by the changelogs you read. Keep this grounded in what you actually saw in the changelogs — do not speculate.
+Bullet list of new features/APIs unlocked by this week's updates (major, minor and patch) that could be worth adopting (e.g. new Drizzle features, React Router APIs, performance improvements), or follow-up cleanup/deprecation work suggested by the changelogs you read. Mark the ones you already implemented in their own commit (step 3b) as "applied", and name the changelogs you could not read. Keep this grounded in what you actually saw in the changelogs — do not speculate.
 
 ## Validation
 
