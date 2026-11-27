@@ -30,5 +30,5 @@
     "oxlint-tsgolint": "^7.0.2008",
     "turbo": "^2.11.13"
   },
-  "packageManager": "pnpm@12.8.1"
+  "packageManager": "pnpm@12.23.0"
 }

@@ -1,6 +1,6 @@
 # AGENTS.md — Agent Instructions for `nmi-agro/fdm`
 
-Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=26`, `pnpm@12.8.1` enforced). It is a public open-source repository; PRs target `development`, except `release/*` and `hotfix/*` branches, which target `main` (see [Branches, PRs and issues](#5-branches-prs-and-issues)).
+Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=26`, `pnpm@12.23.0` enforced). It is a public open-source repository; PRs target `development`, except `release/*` and `hotfix/*` branches, which target `main` (see [Branches, PRs and issues](#5-branches-prs-and-issues)).
 
 ## 0. Working agreements
 

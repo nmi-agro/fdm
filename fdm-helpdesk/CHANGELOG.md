@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- [#973](https://github.com/nmi-agro/fdm/pull/973) [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Require Node.js 26 or higher (`engines.node` is now `>=26.0.0`) and build for the `node26` target. Align `packageManager` with the rest of the monorepo (`pnpm@12.8.1`).
+- [#973](https://github.com/nmi-agro/fdm/pull/973) [`8ca24d1`](https://github.com/nmi-agro/fdm/commit/8ca24d1702ca08556173f8cd341dac837977120c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Require Node.js 26 or higher (`engines.node` is now `>=26.0.0`) and build for the `node26` target. Align `packageManager` with the rest of the monorepo (`pnpm@12.23.0`).
 
 ### Patch Changes
 
