@@ -225,7 +225,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_401",
     l_category: "401 - Fokzeugen incl. biggen tot ca. 25 kg",
     l_specie: "pig",
-    l_sex_options: female,
+    // Includes the piglets of the sows, of both sexes
+    l_sex_options: femaleAndMale,
     l_lsu: 0.5,
   },
   {

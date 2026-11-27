@@ -28,10 +28,11 @@ const rvoAnimalCategoryTransitions: Readonly<
   Record<string, readonly { to: readonly string[]; l_sex: readonly AnimalCategorySex[] }[]>
 > = {
   // Cattle: young stock grows up into a heifer, a breeding bull or a beef animal
+  // A calf of the farm can also be kept as a veal calf (from ca. 14 days)
   rvo_101: [
     { to: ["rvo_102"], l_sex: female },
     { to: ["rvo_104"], l_sex: male },
-    { to: ["rvo_122"], l_sex: femaleAndMale },
+    { to: ["rvo_112", "rvo_115", "rvo_116", "rvo_117", "rvo_122"], l_sex: femaleAndMale },
   ],
   rvo_102: [{ to: ["rvo_100", "rvo_120"], l_sex: female }],
   // A dairy cow can become a suckler cow and back
@@ -55,21 +56,25 @@ const rvoAnimalCategoryTransitions: Readonly<
     { to: ["rvo_600"], l_sex: male },
   ],
   rvo_602: [{ to: ["rvo_600"], l_sex: female }],
-  // Red deer: calves younger than 6 months are counted with the breeding hinds (971)
+  // Red deer: calves younger than 6 months are counted with the breeding hinds (971); a deer kept
+  // for slaughter can still join the breeding stock
   rvo_971: [{ to: ["rvo_973"], l_sex: femaleAndMale }],
-  rvo_973: [{ to: ["rvo_974"], l_sex: femaleAndMale }],
+  rvo_973: [{ to: ["rvo_974", "rvo_971"], l_sex: femaleAndMale }],
+  rvo_974: [{ to: ["rvo_971"], l_sex: femaleAndMale }],
   // Fallow deer: calves younger than 3 months are counted with the breeding hinds (981)
   rvo_981: [{ to: ["rvo_982"], l_sex: femaleAndMale }],
   // Pigs: weaned piglets grow into rearing or fattening pigs, rearing pigs into sows or boars.
-  // Piglets up to ca. 25 kg are counted with their sow (401); that category allows female animals
-  // only, so only female piglets can be moved on from it
+  // Piglets up to ca. 25 kg are counted with their sow (401) and move on from there
   rvo_407: [{ to: ["rvo_404", "rvo_411"], l_sex: femaleAndMale }],
   rvo_404: [
     { to: ["rvo_400", "rvo_401"], l_sex: female },
     { to: ["rvo_406"], l_sex: male },
   ],
   rvo_400: [{ to: ["rvo_401"], l_sex: female }],
-  rvo_401: [{ to: ["rvo_400", "rvo_404", "rvo_411"], l_sex: female }],
+  rvo_401: [
+    { to: ["rvo_400"], l_sex: female },
+    { to: ["rvo_404", "rvo_411"], l_sex: femaleAndMale },
+  ],
   // Rabbits: young rabbits are counted with the breeding does (900) until they are weaned
   rvo_900: [{ to: ["rvo_901"], l_sex: femaleAndMale }],
   // Poultry

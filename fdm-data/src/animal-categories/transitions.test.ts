@@ -24,7 +24,7 @@ describe("getAnimalCategoryTransitions", () => {
 
   it("has no moves for an unknown category or a category that is an end stage", () => {
     expect(getAnimalCategoryTransitions("unknown")).toEqual([])
-    expect(getAnimalCategoryTransitions("rvo_974")).toEqual([])
+    expect(getAnimalCategoryTransitions("rvo_982")).toEqual([])
     expect(getAnimalCategoryTransitions("rvo_991")).toEqual([])
   })
 })
@@ -48,6 +48,16 @@ describe("getAnimalCategoryTransitionSexes", () => {
     expect(getAnimalCategoryTransitionSexes("rvo_550", "rvo_552")).toEqual(["female", "male"])
     expect(getAnimalCategoryTransitionSexes("rvo_600", "rvo_601")).toEqual(["female", "male"])
     expect(getAnimalCategoryTransitionSexes("rvo_601", "rvo_600")).toEqual(["male"])
+    // Piglets of both sexes move on from their sow
+    expect(getAnimalCategoryTransitionSexes("rvo_401", "rvo_404")).toEqual(["female", "male"])
+    expect(getAnimalCategoryTransitionSexes("rvo_401", "rvo_400")).toEqual(["female"])
+    // A red deer kept for slaughter can still join the breeding stock
+    expect(getAnimalCategoryTransitionSexes("rvo_973", "rvo_971")).toEqual(["female", "male"])
+    expect(getAnimalCategoryTransitionSexes("rvo_974", "rvo_971")).toEqual(["female", "male"])
+    // A calf of the farm can be kept as a veal calf
+    for (const veal of ["rvo_112", "rvo_115", "rvo_116", "rvo_117"]) {
+      expect(getAnimalCategoryTransitionSexes("rvo_101", veal)).toEqual(["female", "male"])
+    }
   })
 
   it("returns null for a move no animal can make", () => {
