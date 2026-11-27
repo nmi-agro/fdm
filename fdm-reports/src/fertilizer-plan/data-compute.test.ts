@@ -25,6 +25,8 @@ const calculator = vi.hoisted(() => ({
   // The batched norm helpers; their grouping is tested in fdm-calculator
   calculateNormFillingsForFields: vi.fn(),
   calculateNormsForFields: vi.fn(),
+  // The norm input collector of the norm year; its contents are tested in fdm-calculator
+  createFunctionsForNorms: vi.fn(),
   getMainCultivation: vi.fn(),
   getNutrientAdvice: cached(vi.fn()),
   getOrganicMatterBalanceField: cached(vi.fn()),
@@ -122,6 +124,8 @@ function field(b_id: string, overrides: Record<string, unknown> = {}) {
     fertilizerApplications: [],
     cultivations: [],
     currentSoilData: [],
+    // The norm input as the calculator collects it (only the part the tests look at)
+    normInput: { field: { b_id } } as object | undefined,
     ...overrides,
   }
 }
@@ -156,7 +160,12 @@ describe("collectFertilizerPlanInput", () => {
     core.isDerogationGrantedForYear.mockResolvedValue(true)
     core.isOrganicCertificationValid.mockResolvedValue(false)
     core.getGrazingIntention.mockResolvedValue(true)
+    calculator.createFunctionsForNorms.mockReturnValue({
+      collectInputForNormsForFarm: vi.fn(async () => new Map([["f1", normInputF1]])),
+    })
   })
+
+  const normInputF1 = { year: 2025, field: { b_id: "f1" }, farm: { has_grazing_intention: true } }
 
   it("combines the farm data per field, with empty lists for fields without data", async () => {
     const result = await collectFertilizerPlanInput(fdm, "p1", "farm-1", 2025)
@@ -167,6 +176,7 @@ describe("collectFertilizerPlanInput", () => {
       cultivations: [mainCultivation],
       fertilizerApplications: [{ p_app_id: "a" }],
       currentSoilData: [{ parameter: "a_p_al" }],
+      normInput: normInputF1,
     })
     expect(result.fields[1]).toMatchObject({
       b_id: "f2",
@@ -174,6 +184,33 @@ describe("collectFertilizerPlanInput", () => {
       fertilizerApplications: [],
       currentSoilData: [],
     })
+    expect(result.fields[1]?.normInput).toBeUndefined()
+  })
+
+  it("collects the norm input with the collector of the norm year", async () => {
+    await collectFertilizerPlanInput(fdm, "p1", "farm-1", 2027)
+    expect(calculator.createFunctionsForNorms).toHaveBeenCalledWith("NL", "2027")
+    const { collectInputForNormsForFarm } = calculator.createFunctionsForNorms.mock.results[0]
+      ?.value as { collectInputForNormsForFarm: ReturnType<typeof vi.fn> }
+    expect(collectInputForNormsForFarm).toHaveBeenCalledWith(fdm, "p1", "farm-1")
+  })
+
+  it("uses the grazing intention of the plan in the norm input, so norms and fillings agree", async () => {
+    // The collector read a different value than the plan, e.g. because it changed in between
+    calculator.createFunctionsForNorms.mockReturnValue({
+      collectInputForNormsForFarm: vi.fn(
+        async () => new Map([["f1", { ...normInputF1, farm: { has_grazing_intention: false } }]]),
+      ),
+    })
+    const result = await collectFertilizerPlanInput(fdm, "p1", "farm-1", 2026)
+    expect(result.has_grazing_intention).toBe(true)
+    expect(result.fields[0]?.normInput).toMatchObject({ farm: { has_grazing_intention: true } })
+  })
+
+  it("collects no norm input for a year without norms", async () => {
+    const result = await collectFertilizerPlanInput(fdm, "p1", "farm-1", 2028)
+    expect(calculator.createFunctionsForNorms).not.toHaveBeenCalled()
+    expect(result.fields.every((f) => f.normInput === undefined)).toBe(true)
   })
 
   it("only checks the derogation for years that need it", async () => {
@@ -297,45 +334,53 @@ describe("computeFertilizerPlanData", () => {
     expect(f2?.soil.b_sampling_date).toBe("-")
     // Without a main cultivation there is no advice.
     expect(calculator.getNutrientAdvice).toHaveBeenCalledTimes(1)
-    // The norm input has no derogation without a derogation status.
-    const [normInput] = normInputs()
+    // The norms are calculated with the norm input that was collected for each field.
     expect(calculator.calculateNormsForFields).toHaveBeenCalledWith(
       fdm,
       "NL",
       "2026",
       expect.any(Array),
     )
-    expect(normInput.farm).not.toHaveProperty("is_derogatie_bedrijf")
-    expect(normInput.soilAnalysis).toEqual({ a_p_cc: 2.1, a_p_al: 40 })
+    expect(normInputs()).toEqual([withData.normInput, buffer.normInput])
     // The farm balance is weighted by area over all fields.
     expect(data.omBalance?.balance).toBeCloseTo((500 * 2) / 3)
     expect(data.totalAdvice.d_n_req).toBeGreaterThan(0)
     expect(data.config).toEqual({ name: "FDM" })
   })
 
-  it("passes the derogation status, and handles norms without a renure norm", async () => {
+  it("uses the collected norm input, and handles norms without a renure norm", async () => {
     calculator.calculateNormsForFields.mockImplementation(
       perInput(() => ({ values: normValues(false) })),
     )
     calculator.calculateNormFillingsForFields.mockImplementation(
       perInput(() => ({ values: fillingValues(false) })),
     )
+    // The 2025 norm input as collected by the calculator, with the derogation status
+    const normInput = { field: { b_id: "f1" }, farm: { is_derogatie_bedrijf: true } }
     const data = await computeFertilizerPlanData(
       fdm,
-      input(2025, [field("f1", { cultivations: [mainCultivation] })], true),
+      input(2025, [field("f1", { cultivations: [mainCultivation], normInput })], true),
       options,
     )
     expect(data.fields[0]?.norms.renure).toBeUndefined()
     expect(data.fields[0]?.normsFilling.renure).toBeUndefined()
-    const [normInput] = normInputs()
-    expect(normInput.farm.is_derogatie_bedrijf).toBe(true)
+    expect(normInputs()[0]).toBe(normInput)
+  })
+
+  it("adds an error row for a field without a collected norm input in a norm year", async () => {
+    const data = await computeFertilizerPlanData(
+      fdm,
+      input(2026, [field("f1", { cultivations: [mainCultivation], normInput: undefined })], null),
+      options,
+    )
+    expect(data.fields[0]?.mainCrop).toBe("Fout bij laden")
   })
 
   it("has no norms outside the norm years, and keeps the field when the advice fails", async () => {
     calculator.getNutrientAdvice.mockRejectedValue(new Error("NMI down"))
     const data = await computeFertilizerPlanData(
       fdm,
-      input(2027, [field("f1", { cultivations: [mainCultivation], b_area: null })], null),
+      input(2028, [field("f1", { cultivations: [mainCultivation], b_area: null })], null),
       options,
     )
     expect(calculator.calculateNormsForFields).not.toHaveBeenCalled()

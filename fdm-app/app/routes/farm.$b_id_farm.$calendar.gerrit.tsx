@@ -1,6 +1,7 @@
 import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { isNormsYear } from "@nmi-agro/fdm-calculator/browser"
 import {
   addFertilizerApplication,
   type Fertilizer,
@@ -278,7 +279,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return null
 }
 
-export default function GerritApp() {
+/**
+ * Mounts Gerrit anew for each farm and year, so a plan generated for one year is discarded when
+ * the user switches to another year and can never be accepted there.
+ */
+export default function GerritRoute() {
+  const { farm, calendar } = useLoaderData<typeof loader>()
+  return <GerritApp key={`${farm.b_id_farm}-${calendar}`} />
+}
+
+function GerritApp() {
   const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
     useLoaderData<typeof loader>()
   const navigation = useNavigation()
@@ -294,8 +304,7 @@ export default function GerritApp() {
     disabled: false,
   }
 
-  const supportedYears = ["2025", "2026"]
-  const isSupportedYear = supportedYears.includes(calendar)
+  const isSupportedYear = isNormsYear(calendar)
   // Gerrit is enabled by default; only an explicit `false` flag disables it. Until hydration has
   // finished, keep it enabled so the browser renders the same markup as the server, which has no
   // feature flags.
@@ -679,11 +688,11 @@ export default function GerritApp() {
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-8">
                 <Bot className="mx-auto mb-4 h-12 w-12 text-amber-600" />
                 <h2 className="mb-2 text-2xl font-bold text-amber-900">
-                  Gerrit is alleen beschikbaar voor 2025 en 2026
+                  Gerrit is alleen beschikbaar voor 2025 tot en met 2027
                 </h2>
                 <p className="mb-6 text-amber-800">
                   Het AI-bemestingsplan van Gerrit kan momenteel alleen worden gegenereerd voor 2025
-                  en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
+                  tot en met 2027. Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
                 <div className="flex justify-center gap-4">
                   <a
@@ -699,6 +708,13 @@ export default function GerritApp() {
                     data-slot="button"
                   >
                     Switch naar 2026
+                  </a>
+                  <a
+                    href={`/farm/${farm.b_id_farm}/2027/gerrit`}
+                    className={buttonVariants({ size: "lg" })}
+                    data-slot="button"
+                  >
+                    Switch naar 2027
                   </a>
                 </div>
               </div>

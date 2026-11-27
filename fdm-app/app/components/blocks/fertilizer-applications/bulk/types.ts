@@ -6,6 +6,7 @@ import type {
   NitrogenBalanceFieldInput,
   NitrogenBalanceFieldResultNumeric,
   NormFilling,
+  NormsYear,
   RegionKey,
 } from "@nmi-agro/fdm-calculator/browser"
 import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
@@ -138,7 +139,7 @@ export interface BulkPreviewInput {
   timeframe: { start: Date | null; end: Date | null }
   /** Input for the norm fillings, for years with norms. */
   norms?: {
-    year: "2025" | "2026"
+    year: NormsYear
     fields: Record<string, BulkPreviewFieldNorms>
   }
   /** Input for the nitrogen balance of the selected fields. */

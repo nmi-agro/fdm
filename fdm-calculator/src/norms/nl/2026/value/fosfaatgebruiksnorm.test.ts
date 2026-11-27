@@ -5,6 +5,7 @@ import { calculateNL2026FosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 describe("calculateNL2026FosfaatGebruiksNorm", () => {
   it("should return the correct norm for grasland", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -25,6 +26,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
 
   it("should return the correct norm for bouwland", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -45,6 +47,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
 
   it("should return 0 for buffer strips", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -65,6 +68,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
 
   it("should handle zero values for a_p_al and a_p_cc (regression test for falsy bug)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -85,6 +89,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
 
   it("should throw when soil analysis values are missing", async () => {
     const baseInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: { b_id: "1", b_centroid: [5.0, 52.0], b_bufferstrip: false },
       cultivations: [{ b_lu_catalogue: "nl_265" } as NL2026NormsInputForCultivation],
@@ -121,6 +126,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
     await expect(
       calculateNL2026FosfaatGebruiksNorm(
         {
+          year: 2026,
           farm: { has_grazing_intention: true },
           field: { b_id: "1", b_centroid: [5.0, 52.0], b_bufferstrip: false },
           cultivations: [{ b_lu_catalogue: "nl_265" } as NL2026NormsInputForCultivation],
@@ -479,6 +485,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
 
   it.each(matrix)("classifies phosphate class for %s", async (sample) => {
     const result = await calculateNL2026FosfaatGebruiksNorm({
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: { b_id: "1", b_centroid: [5.0, 52.0], b_bufferstrip: false },
       cultivations: [{ b_lu_catalogue: sample.b_lu_catalogue } as NL2026NormsInputForCultivation],

@@ -1,5 +1,6 @@
 import type { CachedCalculation, FdmType } from "@nmi-agro/fdm-core"
 import type { GebruiksnormResult, NormFilling } from "./nl/types"
+import type { NormsYear } from "./years"
 import { createFunctionsForFertilizerApplicationFilling, createFunctionsForNorms } from "./index"
 
 /**
@@ -77,7 +78,7 @@ async function calculateNormGroups<T>(
 export function calculateNormsForFields(
   fdm: FdmType,
   b_region: "NL",
-  year: "2025" | "2026",
+  year: NormsYear,
   inputs: readonly (object | undefined)[],
 ): Promise<(NormGroupResult<GebruiksnormResult> | undefined)[]> {
   const functions = createFunctionsForNorms(b_region, year)
@@ -115,7 +116,7 @@ export function calculateNormsForFields(
 export function calculateNormFillingsForFields(
   fdm: FdmType,
   b_region: "NL",
-  year: "2025" | "2026",
+  year: NormsYear,
   inputs: readonly (object | undefined)[],
 ): Promise<(NormGroupResult<NormFilling> | undefined)[]> {
   const functions = createFunctionsForFertilizerApplicationFilling(b_region, year)

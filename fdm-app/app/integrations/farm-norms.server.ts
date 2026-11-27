@@ -8,21 +8,23 @@ import {
   calculateNormsForFields,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
+  isNormsYear,
   NormNotApplicableError,
+  type NormsYear,
 } from "@nmi-agro/fdm-calculator"
 import type { FieldNormFillings, FieldNormValues } from "~/integrations/calculator"
 
 /** The calendar years for which legal application norms (gebruiksnormen) are available. */
-export type NormsCalendar = "2025" | "2026"
+export type NormsCalendar = NormsYear
 
 /**
  * Returns whether legal application norms are available for the given calendar.
  *
  * @param calendar - The calendar year, as used in the route.
- * @returns `true` for 2025 and 2026.
+ * @returns `true` for the years in `NORMS_YEARS` of fdm-calculator (2025 to 2027).
  */
 export function isNormsCalendar(calendar: string): calendar is NormsCalendar {
-  return calendar === "2025" || calendar === "2026"
+  return isNormsYear(calendar)
 }
 
 /** The norms and fillings of a single field, or the reason why they could not be calculated. */

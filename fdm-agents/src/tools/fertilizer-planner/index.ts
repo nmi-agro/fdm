@@ -22,6 +22,8 @@ import {
   createFunctionsForNorms,
   createUncachedFunctionsForFertilizerApplicationFilling,
   getNutrientAdvice,
+  isNormsYear,
+  type NormsYear,
   NUTRIENT_ADVICE_CONCURRENCY,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -131,6 +133,20 @@ function createFieldReader(
   }
 }
 
+/**
+ * Narrows a calendar year to a year with legal application norms.
+ *
+ * @param calendar - The calendar year, for example `"2027"`.
+ * @returns The calendar as a norms year.
+ * @throws When there are no norms for that year, instead of silently using another year.
+ */
+function toNormsYear(calendar: string): NormsYear {
+  if (!isNormsYear(calendar)) {
+    throw new Error(`Legal application norms are not available for calendar year ${calendar}`)
+  }
+  return calendar
+}
+
 /** The norm input of a field, or the error that prevented collecting it. */
 type NormInputResult = { input: object } | { error: unknown }
 
@@ -148,7 +164,7 @@ async function collectNormInputs(
   calendar: string,
   b_ids: readonly string[],
 ): Promise<Map<string, NormInputResult>> {
-  const normFunctions = createFunctionsForNorms("NL", calendar as any)
+  const normFunctions = createFunctionsForNorms("NL", toNormsYear(calendar))
   const farmInputs: Map<string, object> | null = b_id_farm
     ? await normFunctions.collectInputForNormsForFarm(fdm, principalId, b_id_farm).catch(() => null)
     : null
@@ -186,7 +202,7 @@ async function calculateNorms(
   const results = await calculateNormsForFields(
     fdm,
     "NL",
-    calendar as any,
+    toNormsYear(calendar),
     entries.map(([, result]) => ("input" in result ? result.input : undefined)),
   )
   return new Map(
@@ -560,7 +576,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
 
       const fillFuncs = createUncachedFunctionsForFertilizerApplicationFilling(
         "NL",
-        calendar as any,
+        toNormsYear(calendar),
       )
       const reader = createFieldReader(fdm, principalId, b_id_farm, timeframe)
       const errorResult = (b_id: string, e: unknown): SimulationFieldResult => ({
@@ -670,7 +686,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       >
       const farmFillingInputs =
         phosphateNormByField.size > 0
-          ? ((await createFunctionsForFertilizerApplicationFilling("NL", calendar as any)
+          ? ((await createFunctionsForFertilizerApplicationFilling("NL", toNormsYear(calendar))
               .collectInputForFertilizerApplicationFillingForFarm(
                 fdm,
                 principalId,

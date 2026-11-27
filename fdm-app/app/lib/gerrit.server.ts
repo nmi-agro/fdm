@@ -9,6 +9,7 @@ import {
   collectInputForOrganicMatterBalance,
   createFunctionsForFertilizerApplicationFilling,
   getNutrientAdvice,
+  isNormsYear,
   type NormFilling,
   type NutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
@@ -89,12 +90,11 @@ export async function computePlanMetrics(
   fertilizers: any[],
   nmiApiKey?: string,
 ) {
-  if (!["2025", "2026"].includes(calendar)) {
-    console.warn(
-      `[computePlanMetrics] Unsupported calendar value "${calendar}"; falling back to "2025".`,
-    )
+  // Never fall back to the norms of another year: those have other rules (e.g. derogation, Renure).
+  if (!isNormsYear(calendar)) {
+    throw new Error(`[computePlanMetrics] No legal application norms for calendar "${calendar}"`)
   }
-  const year = (["2025", "2026"].includes(calendar) ? calendar : "2025") as "2025" | "2026"
+  const year = calendar
   const fillingFuncs = createFunctionsForFertilizerApplicationFilling("NL", year)
   const fieldMetricsMap: Record<string, FieldMetrics> = {}
 
@@ -186,12 +186,12 @@ export async function computePlanMetrics(
             Promise.resolve(
               fillingFuncs.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
             ),
-            year === "2026"
+            "calculateFertilizerApplicationFillingForRenure" in fillingFuncs
               ? Promise.resolve(
-                  createFunctionsForFertilizerApplicationFilling(
-                    "NL",
-                    "2026",
-                  ).calculateFertilizerApplicationFillingForRenure(fdm, fillingInput),
+                  fillingFuncs.calculateFertilizerApplicationFillingForRenure(
+                    fdm,
+                    fillingInput as never,
+                  ),
                 )
               : Promise.resolve(undefined),
           ])

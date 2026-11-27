@@ -22,7 +22,7 @@ related:
   - bemesting
 ---
 
-Onder **Gebruiksruimte** zie je hoeveel je volgens de mestregels mag bemesten, en hoeveel je daarvan al hebt gebruikt. Dat zie je voor het hele bedrijf en per perceel. {{appName}} rekent met de regels van 2026, en voor 2025 nog met de regels van dat jaar.
+Onder **Gebruiksruimte** zie je hoeveel je volgens de mestregels mag bemesten, en hoeveel je daarvan al hebt gebruikt. Dat zie je voor het hele bedrijf en per perceel. {{appName}} rekent met de regels van 2026, en voor 2025 nog met de regels van dat jaar. Voor 2027 rekent {{appName}} voorlopig met de regels van 2026, tot RVO de tabellen voor 2027 publiceert.
 
 > De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.
 

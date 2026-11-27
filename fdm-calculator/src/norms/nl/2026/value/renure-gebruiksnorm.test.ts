@@ -5,6 +5,7 @@ import { calculateNL2026RenureGebruiksNorm } from "./renure-gebruiksnorm"
 describe("calculateNL2026RenureGebruiksNorm", () => {
   it("should return the default norm value", async () => {
     const input: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "field-1",
