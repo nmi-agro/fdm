@@ -2,8 +2,8 @@
  * The years for which the legal application norms (gebruiksnormen) and their fillings can be
  * calculated, oldest first.
  *
- * The norms of 2027 are provisional: they are a copy of the 2026 norms until the official
- * 2027 RVO tables are published.
+ * The norms of 2027 are provisional: they use the 2026 rules until the official 2027 RVO tables
+ * are published.
  */
 export const NORMS_YEARS = ["2025", "2026", "2027"] as const
 

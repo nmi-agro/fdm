@@ -1142,6 +1142,36 @@ describe("calculateNL2025StikstofGebruiksNorm - Korting Logic", () => {
       expect(result.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
     })
 
+    it("should NOT apply the discount for the potato control measure (nl_2025)", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: {
+          is_derogatie_bedrijf: false,
+          has_grazing_intention: false,
+        },
+        field: {
+          b_id: "1",
+          b_centroid: sandCentroid,
+        } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_265", // Grass
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 1, 15), // Feb 15
+          },
+          {
+            b_lu_catalogue: "nl_2025", // Akkerbouwgewas, Aardappel, bestrijdingsmaatregel
+            b_lu_start: new Date(2025, 1, 16),
+            b_lu_end: new Date(2025, 9, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Aardappel, bestrijdingsmaatregel")
+      expect(result.normSource).not.toContain("graslandvernietiging")
+    })
+
     it("should apply 65 discount on Clay for derogation farm (Consumption Potato, Feb 1 - May 31)", async () => {
       const mockInput: NL2025NormsInput = {
         farm: {
@@ -3235,5 +3265,41 @@ describe("NL2025 stikstof eenmalige vs. meermalige oogst", () => {
     )
     expect(result.normValue).toBe(275)
     expect(result.normSource).toEqual("Kruiden (bladgewas, meermalig oogsten).")
+  })
+})
+
+describe("NL2025 stikstof grass seed and green manure codes (RVO gewascodelijst)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("matches the grass seed and green manure codes to their own Tabel 2 rows", () => {
+    const rowsFor = (code: string) =>
+      StikstofData.nitrogenStandardsData
+        .filter((ns) => ns.b_lu_catalogue_match.includes(code))
+        .map((ns) => ns.cultivation_rvo_table2)
+    expect(rowsFor("nl_6782")).toEqual(["Akkerbouwgewassen, Rietzwenkgras"])
+    expect(rowsFor("nl_6783")).toEqual(["Akkerbouwgewassen, Rietzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6784")).toEqual(["Akkerbouwgewassen, Roodzwenkgras"])
+    expect(rowsFor("nl_6785")).toEqual(["Akkerbouwgewassen, Roodzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6788")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_6789")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_1025")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, overige
+    expect(rowsFor("nl_1026")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, droogbloemen
+    expect(rowsFor("nl_1949")).toEqual(["Akkerbouwgewassen, Luzerne"]) // Aardperen
+  })
+
+  it("uses the 'Roodzwenkgras, volgteelt' row for nl_6785, with its 1e jaars sub-type", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2025StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_6785",
+          b_lu_start: new Date(2025, 2, 1),
+          b_lu_end: null,
+        } as unknown as NL2025NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
   })
 })

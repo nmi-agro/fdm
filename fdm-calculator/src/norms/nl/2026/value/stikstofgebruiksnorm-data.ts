@@ -665,7 +665,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewassen, Rietzwenkgras",
-    b_lu_catalogue_match: ["nl_1915", "nl_3516", "nl_3807", "nl_6782", "nl_6783"],
+    b_lu_catalogue_match: ["nl_1915", "nl_3516", "nl_3807", "nl_6782"],
     type: "graszaad",
     is_winterteelt: true,
     is_vanggewas: true,
@@ -679,7 +679,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewassen, Rietzwenkgras, volgteelt",
-    b_lu_catalogue_match: ["nl_1915", "nl_3516", "nl_3807", "nl_6782", "nl_6783"],
+    b_lu_catalogue_match: ["nl_1915", "nl_3516", "nl_3807", "nl_6783"],
     type: "graszaad",
     is_winterteelt: true,
     is_vanggewas: true,
@@ -707,7 +707,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewassen, Veldbeemdgras, volgteelt",
-    b_lu_catalogue_match: ["nl_1916", "nl_3523", "nl_6746", "nl_6788", "nl_6789"],
+    b_lu_catalogue_match: ["nl_1916", "nl_3523", "nl_6746"],
     type: "graszaad",
     is_winterteelt: true,
     is_vanggewas: true,
@@ -721,7 +721,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewassen, Roodzwenkgras",
-    b_lu_catalogue_match: ["nl_1917", "nl_1918", "nl_3808", "nl_6784", "nl_6785"],
+    b_lu_catalogue_match: ["nl_1917", "nl_1918", "nl_3808", "nl_6784"],
     type: "graszaad",
     is_winterteelt: true,
     is_vanggewas: true,
@@ -750,7 +750,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewassen, Roodzwenkgras, volgteelt",
-    b_lu_catalogue_match: ["nl_1917", "nl_1918", "nl_3808", "nl_6784", "nl_6785"],
+    b_lu_catalogue_match: ["nl_1917", "nl_1918", "nl_3808", "nl_6785"],
     type: "graszaad",
     is_winterteelt: true,
     is_vanggewas: true,
@@ -1727,15 +1727,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Stengel/knol/wortelgewassen, overig",
-    b_lu_catalogue_match: [
-      "nl_2793",
-      "nl_2794",
-      "nl_1949",
-      "nl_2711",
-      "nl_2712",
-      "nl_3521",
-      "nl_6632",
-    ],
+    b_lu_catalogue_match: ["nl_2793", "nl_2794", "nl_2711", "nl_2712", "nl_3521", "nl_6632"],
     type: "stengel_knol_wortelgewas",
     is_winterteelt: true,
     is_vanggewas: false,
@@ -2061,8 +2053,6 @@ export const nitrogenStandardsData = [
       "nl_1013",
       "nl_1014",
       "nl_1015",
-      "nl_1025",
-      "nl_1026",
       "nl_1027",
       "nl_6795",
       "nl_6796",

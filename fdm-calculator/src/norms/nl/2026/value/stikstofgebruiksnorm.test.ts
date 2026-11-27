@@ -8,6 +8,7 @@ import * as StikstofData from "./stikstofgebruiksnorm-data"
 describe("calculateNL2026StikstofGebruiksNorm", () => {
   it("should return the correct norm for grasland (beweiden)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -30,6 +31,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for grasland (volledig maaien)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -52,6 +54,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return 0 for buffer strips", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -75,6 +78,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for potatoes", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -111,6 +115,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     ).toBe(false)
 
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -133,6 +138,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 0 korting if winterteelt is present in zand_nwc region (hoofdteelt 2026)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -157,6 +163,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 0 korting if Tijdelijk grasland is present in zand_nwc region", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -182,6 +189,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 0 korting if vanggewas is present (sown <= Oct 1st)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -212,6 +220,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 5 korting if vanggewas is present (sown Oct 2nd - Oct 14th)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -242,6 +251,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 10 korting if vanggewas is present (sown Oct 15th - Oct 31st)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -272,6 +282,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 20 korting if vanggewas is present (sown Nov 1st or later)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -302,6 +313,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should apply 20 korting if no winterteelt or vanggewas is present in zand_nwc region", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -332,6 +344,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should not apply korting if region is not sandy or loess, even without winterteelt/vanggewas", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -360,6 +373,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Gras voor industriële verwerking (eerste jaar)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -405,6 +419,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     "should select the Gras voor industriële verwerking norm by sowing date (%s)",
     async (_label, b_lu_start, expectedNorm, expectedSubType) => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: {
           b_id: "1",
@@ -430,6 +445,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Gras voor industriële verwerking (volgende jaren)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -459,6 +475,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Graszaad, Engels raaigras (1e jaars)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -481,6 +498,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Graszaad, Engels raaigras (overjarig)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -508,6 +526,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Akkerbouwgewassen, Roodzwenkgras (1e jaars)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -530,6 +549,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Akkerbouwgewassen, Roodzwenkgras (overjarig)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -557,6 +577,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Winterui (1e jaars)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -581,6 +602,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Winterui (2e jaars)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -605,6 +627,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Bladgewassen, Spinazie (1e teelt)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -627,6 +650,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Bladgewassen, Slasoorten (1e teelt)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -649,6 +673,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
   it("should return the correct norm for Bladgewassen, Andijvie eerste teelt volgteelt (1e teelt)", async () => {
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: {
         b_id: "1",
@@ -680,6 +705,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     it("should select the highest norm (longest period) for full-year temporary grassland", async () => {
       // Matches "van 1 jan tot minstens 15 okt" -> 310 (Klei)
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: kleiCentroid } as Field,
         cultivations: [
@@ -700,6 +726,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
       // Matches "van 1 jan tot minstens 15 mei" -> 110 (Klei)
       // Should NOT match "tot minstens 15 augustus"
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: kleiCentroid } as Field,
         cultivations: [
@@ -719,6 +746,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     it("should select the correct norm for a late sown crop (vanaf 15 oktober)", async () => {
       // Matches "vanaf 15 oktober" -> 0 (Klei)
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: kleiCentroid } as Field,
         cultivations: [
@@ -739,6 +767,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
       // Started in 2025, still present in 2026 until Aug 20.
       // Matches "van 1 jan tot minstens 15 aug" -> 250 (Klei)
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: kleiCentroid } as Field,
         cultivations: [
@@ -758,6 +787,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
     it("should select the correct norm for a summer crop (vanaf 15 april tot minstens 15 oktober)", async () => {
       // Matches "vanaf 15 april tot minstens 15 oktober" -> 310 (Klei)
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: kleiCentroid } as Field,
         cultivations: [
@@ -810,6 +840,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
         .mockReturnValue(mockData as any)
 
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: kleiCentroid } as Field,
         cultivations: [
@@ -837,6 +868,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
   describe("Grassland Renewal (Gras-na-Gras) - 50 kg N/ha", () => {
     it("should apply 50 discount on Sand (June 1 - Aug 31)", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -865,6 +897,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should not apply renewal korting on Clay (footnote 14 applies to sand and loess only)", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -893,6 +926,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should not apply renewal korting for invalid renewal date on Sand", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -924,6 +958,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
   describe("Conditional Winter Crops (Beet & Maize with undersowing)", () => {
     it("should calculate normValue and exact normSource for 2026 maize as hoofdteelt", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: clayCentroid } as Field,
         cultivations: [
@@ -943,6 +978,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should apply 0 korting if sugar beet was harvested on or after Nov 1 in preceding year", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: sandCentroid } as Field,
         cultivations: [
@@ -966,6 +1002,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should apply 20 korting if sugar beet was harvested before Nov 1 and no catch crop was grown", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: sandCentroid } as Field,
         cultivations: [
@@ -989,6 +1026,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should apply 0 korting if maize in preceding year had undersowing", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: sandCentroid } as Field,
         cultivations: [
@@ -1017,6 +1055,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should apply 20 korting if maize in preceding year had no undersowing and no catch crop", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: { b_id: "1", b_centroid: sandCentroid } as Field,
         cultivations: [
@@ -1042,6 +1081,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
   describe("Grassland Destruction (Gras-naar-Bouwland) - 65 kg N/ha", () => {
     it("should apply 65 discount on Sand (Maize, Feb 1 - May 10)", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -1070,6 +1110,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should NOT apply discount if previous crop was a Catch Crop (sown in Autumn)", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -1098,6 +1139,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should NOT apply discount for Seed Potatoes", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -1127,6 +1169,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should not apply destruction korting for invalid destruction date on Sand", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: {
           has_grazing_intention: false,
         },
@@ -1156,6 +1199,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
 
     it("should apply 65 discount on Sand (Consumption Potato, Feb 1 - May 10)", async () => {
       const mockInput: NL2026NormsInput = {
+        year: 2026,
         farm: { has_grazing_intention: false },
         field: {
           b_id: "1",
@@ -1202,6 +1246,7 @@ const setupGeoMock = (regionCode: number, nvCode: number) => {
 }
 
 const baseInput = (cultivations: NL2026NormsInputForCultivation[]): NL2026NormsInput => ({
+  year: 2026,
   farm: { has_grazing_intention: false },
   field: { b_id: "field-1", b_centroid: centroid } as Field,
   cultivations,
@@ -1901,6 +1946,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should accumulate norms for wintertarwe + non-vlinderbloemige groenbemester (compliant dates)", async () => {
     setupGeoMock(4, 1) // Sand, NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: sandCentroid } as Field,
       cultivations: [
@@ -1930,6 +1976,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should grant 0 norm for groenbemester if sown on or after 1 September (footnote 7a)", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -1957,6 +2004,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should grant 0 norm for groenbemester if destroyed before 1 February (footnote 7a)", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -1984,6 +2032,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should grant 50% groenbemester norm on sand after gras op bouwland (footnote 7a)", async () => {
     setupGeoMock(4, 1) // Sand, NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: sandCentroid } as Field,
       cultivations: [
@@ -2012,6 +2061,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should accumulate spinazie 1e teelt + spinazie volgteelt", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2039,6 +2089,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should accumulate graszaad hoofdteelt + graszaad volgteelt", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2066,6 +2117,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should grant 0 norm for groenbemester and tijdelijk grasland following maize (footnotes 2 & 6)", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2095,6 +2147,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should grant 0 norm with preceding crop explanation even if sown on or after 1 September", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2122,6 +2175,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should return norm 0 for groene braak (nl_6794) under Geen plaatsingsruimte", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2142,6 +2196,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should return norm 0 without throwing for nature codes nl_332 and nl_335", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput332: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2159,6 +2214,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
     expect(result332.normSource).toContain("Geen plaatsingsruimte")
 
     const mockInput335: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2179,6 +2235,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("resolves koolzaad subtype 'zomer' for nl_1923", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2198,6 +2255,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should grant 0 norm for groenbemester with footnote 7a when there is no preceding crop", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2260,6 +2318,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should filter out cultivations starting after the norm year", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2285,6 +2344,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should fallback to groene braak when cultivations array is empty", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [],
@@ -2299,6 +2359,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should set norm 0 with (heringezaaid) for multiple grass crops in the same year", async () => {
     setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
+      year: 2026,
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
       cultivations: [
@@ -2386,7 +2447,7 @@ describe("getNormsForCultivation - tijdelijk grasland periods (RVO Tabel 2)", ()
 
   const select = (start: Date | null, end: Date) => {
     const standard = getTijdelijkGrasland()
-    const result = getNormsForCultivation(standard, end, start)
+    const result = getNormsForCultivation(standard, 2026, end, start)
     return {
       klei: result?.norms.klei.standard,
       period: result?.periodDescription,
@@ -2844,13 +2905,64 @@ describe("NL2026 stikstof follow-up red fescue and grassland renewal", () => {
           b_lu_end: new Date(2026, 7, 1),
         } as NL2026NormsInputForCultivation,
         {
-          b_lu_catalogue: "nl_6784", // Roodzwenkgras, sown after the main crop
+          b_lu_catalogue: "nl_6785", // Roodzwenkgras, groenbemesting/vanggewas, after the main crop
           b_lu_start: new Date(2026, 7, 15),
           b_lu_end: null,
         } as unknown as NL2026NormsInputForCultivation,
       ]),
     )
     expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
+  })
+
+  it("matches the grass seed and green manure codes to their own Tabel 2 rows (RVO gewascodelijst)", () => {
+    const rowsFor = (code: string) =>
+      StikstofData.nitrogenStandardsData
+        .filter((ns) => ns.b_lu_catalogue_match.includes(code))
+        .map((ns) => ns.cultivation_rvo_table2)
+    expect(rowsFor("nl_6782")).toEqual(["Akkerbouwgewassen, Rietzwenkgras"])
+    expect(rowsFor("nl_6783")).toEqual(["Akkerbouwgewassen, Rietzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6784")).toEqual(["Akkerbouwgewassen, Roodzwenkgras"])
+    expect(rowsFor("nl_6785")).toEqual(["Akkerbouwgewassen, Roodzwenkgras, volgteelt"])
+    expect(rowsFor("nl_6788")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_6789")).toEqual(["Akkerbouwgewassen, Veldbeemdgras"])
+    expect(rowsFor("nl_1025")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, overige
+    expect(rowsFor("nl_1026")).toEqual(["Buitenbloemen, hoog"]) // Pioenroos, droogbloemen
+    expect(rowsFor("nl_1949")).toEqual(["Akkerbouwgewassen, Luzerne"]) // Aardperen
+  })
+
+  it("uses the 'Roodzwenkgras, volgteelt' row for nl_6785 also when it is the main crop", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_6785",
+          b_lu_start: new Date(2026, 2, 1),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normValue).toBe(35)
+    expect(result.normSource).toContain("Roodzwenkgras, volgteelt (1e jaars)")
+  })
+
+  it("uses the 'Roodzwenkgras' row for nl_6784 (graszaad) also when it follows the main crop", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_233", // Wintertarwe, main crop
+          b_lu_start: new Date(2025, 9, 15),
+          b_lu_end: new Date(2026, 7, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_6784", // Roodzwenkgras, graszaad
+          b_lu_start: new Date(2026, 7, 15),
+          b_lu_end: null,
+        } as unknown as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Roodzwenkgras (1e jaars)")
+    expect(result.normSource).not.toContain("Roodzwenkgras, volgteelt")
   })
 
   it("does not treat a nature crop as renewed grass replacing temporary grassland", async () => {
@@ -2918,5 +3030,94 @@ describe("NL2026 stikstof follow-up red fescue and grassland renewal", () => {
       ]),
     )
     expect(result.normSource).toContain("graslandvernieuwing")
+  })
+
+  it("does not let a nature area use the grassland allowance of grass sown later in the year", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const grass = {
+      b_lu_catalogue: "nl_265", // Grasland, from 1 May
+      b_lu_start: new Date(2026, 4, 1),
+      b_lu_end: null,
+    } as unknown as NL2026NormsInputForCultivation
+    const afterNature = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_335", // Natuurterrein until 30 April, not grass
+          b_lu_start: new Date(2026, 0, 1),
+          b_lu_end: new Date(2026, 3, 30),
+        } as NL2026NormsInputForCultivation,
+        grass,
+      ]),
+    )
+    const grassOnly = await calculateNL2026StikstofGebruiksNorm(baseInput([grass]))
+    expect(grassOnly.normValue).toBeGreaterThan(0)
+    expect(afterNature.normSource).not.toContain("heringezaaid")
+    expect(afterNature.normValue).toBeGreaterThanOrEqual(grassOnly.normValue)
+  })
+
+  it("lets a grass stand that earned no norm leave the grassland allowance to a later stand", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const secondStand = {
+      b_lu_catalogue: "nl_266", // Tijdelijk grasland, 20 April until after 15 October
+      b_lu_start: new Date(2026, 3, 20),
+      b_lu_end: new Date(2026, 9, 20),
+    } as NL2026NormsInputForCultivation
+    const afterFailedStand = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_266", // 1 January until 14 April: misses "tot minstens 15 april"
+          b_lu_start: new Date(2026, 0, 1),
+          b_lu_end: new Date(2026, 3, 14),
+        } as NL2026NormsInputForCultivation,
+        secondStand,
+      ]),
+    )
+    const secondStandOnly = await calculateNL2026StikstofGebruiksNorm(baseInput([secondStand]))
+    expect(secondStandOnly.normValue).toBeGreaterThan(0)
+    expect(afterFailedStand.normValue).toBe(secondStandOnly.normValue)
+    expect(afterFailedStand.normSource).not.toContain("heringezaaid")
+  })
+
+  it("still lets two grass stands that both earn a norm share one grassland allowance", async () => {
+    setupGeoMock(1, 0) // klei, not in an NV-gebied
+    const firstStand = {
+      b_lu_catalogue: "nl_266", // 1 January until 20 May: "tot minstens 15 mei"
+      b_lu_start: new Date(2026, 0, 1),
+      b_lu_end: new Date(2026, 4, 20),
+    } as NL2026NormsInputForCultivation
+    const twoStands = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        firstStand,
+        {
+          b_lu_catalogue: "nl_266", // re-sown on 1 June, until after 15 October
+          b_lu_start: new Date(2026, 5, 1),
+          b_lu_end: new Date(2026, 9, 20),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+    const firstStandOnly = await calculateNL2026StikstofGebruiksNorm(baseInput([firstStand]))
+    expect(firstStandOnly.normValue).toBeGreaterThan(0)
+    expect(twoStands.normValue).toBe(firstStandOnly.normValue)
+    expect(twoStands.normSource).toContain("heringezaaid")
+  })
+
+  it("does not apply the grassland destruction reduction to the potato control measure", async () => {
+    setupGeoMock(4, 0) // zand_nwc, not in an NV-gebied
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_265", // Grasland, destroyed on 15 February
+          b_lu_start: new Date(2026, 0, 1),
+          b_lu_end: new Date(2026, 1, 15),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_2025", // Akkerbouwgewas, Aardappel, bestrijdingsmaatregel
+          b_lu_start: new Date(2026, 1, 16),
+          b_lu_end: new Date(2026, 9, 1),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+    expect(result.normSource).toContain("Aardappel, bestrijdingsmaatregel")
+    expect(result.normSource).not.toContain("graslandvernietiging")
   })
 })

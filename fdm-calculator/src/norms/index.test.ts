@@ -1,4 +1,9 @@
-import { describe, expect, it } from "vitest"
+import type { CurrentSoilData, FdmType, Field } from "@nmi-agro/fdm-core"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import type {
+  NL2026FarmFdmCoreOperations,
+  NL2026SingleFdmCoreOperations,
+} from "./nl/2026/value/input"
 import { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./farm"
 import {
   createFunctionsForFertilizerApplicationFilling,
@@ -22,37 +27,17 @@ import { calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
 import { getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2026/filling/dierlijke-mest-gebruiksnorm-cache"
 import { calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2026/filling/fosfaatgebruiksnorm"
 import { getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2026/filling/fosfaatgebruiksnorm-cache"
-import { collectNL2026InputForFertilizerApplicationFilling } from "./nl/2026/filling/input"
+import * as NL2026FillingInput from "./nl/2026/filling/input"
+import { calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2026/filling/renure-gebruiksnorm"
+import { getNL2026FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2026/filling/renure-gebruiksnorm-cache"
 import {
   calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
   getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
 } from "./nl/2026/filling/stikstofgebruiksnorm-cache"
 import { getNL2026DierlijkeMestGebruiksNorm } from "./nl/2026/value/dierlijke-mest-gebruiksnorm"
 import { getNL2026FosfaatGebruiksNorm } from "./nl/2026/value/fosfaatgebruiksnorm"
-import { collectNL2026InputForNorms } from "./nl/2026/value/input"
+import { getNL2026RenureGebruiksNorm } from "./nl/2026/value/renure-gebruiksnorm"
 import { getNL2026StikstofGebruiksNorm } from "./nl/2026/value/stikstofgebruiksnorm"
-import { calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2027/filling/dierlijke-mest-gebruiksnorm"
-import { getNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2027/filling/dierlijke-mest-gebruiksnorm-cache"
-import { calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2027/filling/fosfaatgebruiksnorm"
-import { getNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2027/filling/fosfaatgebruiksnorm-cache"
-import {
-  collectNL2027InputForFertilizerApplicationFilling,
-  collectNL2027InputForFertilizerApplicationFillingForFarm,
-} from "./nl/2027/filling/input"
-import { calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2027/filling/renure-gebruiksnorm"
-import { getNL2027FertilizerApplicationFillingForRenureGebruiksNorm } from "./nl/2027/filling/renure-gebruiksnorm-cache"
-import {
-  calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-  getNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-} from "./nl/2027/filling/stikstofgebruiksnorm-cache"
-import { getNL2027DierlijkeMestGebruiksNorm } from "./nl/2027/value/dierlijke-mest-gebruiksnorm"
-import { getNL2027FosfaatGebruiksNorm } from "./nl/2027/value/fosfaatgebruiksnorm"
-import {
-  collectNL2027InputForNorms,
-  collectNL2027InputForNormsForFarm,
-} from "./nl/2027/value/input"
-import { getNL2027RenureGebruiksNorm } from "./nl/2027/value/renure-gebruiksnorm"
-import { getNL2027StikstofGebruiksNorm } from "./nl/2027/value/stikstofgebruiksnorm"
 import { isNormsYear, NORMS_YEARS } from "./years"
 
 describe("NORMS_YEARS and isNormsYear", () => {
@@ -69,62 +54,136 @@ describe("NORMS_YEARS and isNormsYear", () => {
   })
 })
 
-describe("2027 factories (provisional copy of 2026)", () => {
-  it("createFunctionsForNorms returns the 2027 functions, with the same shape as 2026", () => {
-    const functions = createFunctionsForNorms("NL", "2027")
-    expect(functions).toEqual({
-      collectInputForNorms: collectNL2027InputForNorms,
-      collectInputForNormsForFarm: collectNL2027InputForNormsForFarm,
-      calculateNormForNitrogen: getNL2027StikstofGebruiksNorm,
-      calculateNormForManure: getNL2027DierlijkeMestGebruiksNorm,
-      calculateNormForPhosphate: getNL2027FosfaatGebruiksNorm,
-      calculateNormForRenure: getNL2027RenureGebruiksNorm,
-      aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
+// 2026 and 2027 use the same functions (the rules introduced in 2026). Only the input collectors
+// differ: they are bound to the norm year.
+describe.each([
+  ["2026", 2026],
+  ["2027", 2027],
+] as const)("NL %s uses the functions of the rules introduced in 2026", (year, normYear) => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const mockFdm = {} as FdmType
+  const mockField = {
+    b_id: "field-1",
+    b_id_farm: "farm-1",
+    b_centroid: [5.0, 52.0],
+  } as unknown as Field
+
+  it("createFunctionsForNorms returns the 2026 norm functions", () => {
+    const functions = createFunctionsForNorms("NL", year)
+    expect(functions.calculateNormForNitrogen).toBe(getNL2026StikstofGebruiksNorm)
+    expect(functions.calculateNormForManure).toBe(getNL2026DierlijkeMestGebruiksNorm)
+    expect(functions.calculateNormForPhosphate).toBe(getNL2026FosfaatGebruiksNorm)
+    expect(functions.calculateNormForRenure).toBe(getNL2026RenureGebruiksNorm)
+    expect(functions.aggregateNormsToFarmLevel).toBe(aggregateNormsToFarmLevel)
+  })
+
+  it("collectInputForNorms collects the input of the norm year", async () => {
+    const getGrazingIntention = vi.fn(async () => true)
+    const getCultivations = vi.fn(async () => [])
+    const input = await createFunctionsForNorms("NL", year).collectInputForNorms(
+      mockFdm,
+      "principal-1",
+      "field-1",
+      {
+        getField: async () => mockField,
+        getCultivations,
+        getHarvests: async () => [],
+        getCurrentSoilData: async () => [] as unknown as CurrentSoilData,
+        getGrazingIntention,
+      } as unknown as NL2026SingleFdmCoreOperations,
+    )
+    expect(input.year).toBe(normYear)
+    expect(getGrazingIntention).toHaveBeenCalledWith(mockFdm, "principal-1", "farm-1", normYear)
+    expect(getCultivations).toHaveBeenCalledWith(mockFdm, "principal-1", "field-1", {
+      start: new Date(normYear - 1, 0, 1),
+      end: new Date(normYear, 11, 31, 23, 59, 59, 999),
     })
-    expect(Object.keys(functions).sort()).toEqual(
+  })
+
+  it("collectInputForNormsForFarm collects the input of the norm year", async () => {
+    const getGrazingIntention = vi.fn(async () => false)
+    const inputs = await createFunctionsForNorms("NL", year).collectInputForNormsForFarm(
+      mockFdm,
+      "principal-1",
+      "farm-1",
+      {
+        getFields: async () => [mockField],
+        getGrazingIntention,
+        getCultivationsForFarm: async () => new Map(),
+        getHarvestsForFarm: async () => new Map(),
+        getCurrentSoilDataForFarm: async () => new Map(),
+      } as unknown as NL2026FarmFdmCoreOperations,
+    )
+    expect(inputs.get("field-1")?.year).toBe(normYear)
+    expect(getGrazingIntention).toHaveBeenCalledWith(mockFdm, "principal-1", "farm-1", normYear)
+  })
+
+  it("createFunctionsForFertilizerApplicationFilling returns the 2026 filling functions", async () => {
+    const functions = createFunctionsForFertilizerApplicationFilling("NL", year)
+    expect(functions.calculateFertilizerApplicationFillingForNitrogen).toBe(
+      getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+    )
+    expect(functions.calculateFertilizerApplicationFillingForManure).toBe(
+      getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+    )
+    expect(functions.calculateFertilizerApplicationFillingForPhosphate).toBe(
+      getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+    )
+    expect(functions.calculateFertilizerApplicationFillingForRenure).toBe(
+      getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+    )
+    expect(functions.aggregateNormFillingsToFarmLevel).toBe(aggregateNormFillingsToFarmLevel)
+
+    const collectField = vi
+      .spyOn(NL2026FillingInput, "collectNL2026InputForFertilizerApplicationFilling")
+      .mockResolvedValue({} as never)
+    const collectFarm = vi
+      .spyOn(NL2026FillingInput, "collectNL2026InputForFertilizerApplicationFillingForFarm")
+      .mockResolvedValue(new Map())
+    const byField = new Map([["field-1", 75]])
+    await functions.collectInputForFertilizerApplicationFilling(mockFdm, "p", "field-1", 75)
+    await functions.collectInputForFertilizerApplicationFillingForFarm(
+      mockFdm,
+      "p",
+      "farm-1",
+      byField,
+    )
+    expect(collectField).toHaveBeenCalledWith(mockFdm, "p", "field-1", 75, normYear)
+    expect(collectFarm).toHaveBeenCalledWith(mockFdm, "p", "farm-1", byField, normYear)
+  })
+
+  it("createUncachedFunctionsForFertilizerApplicationFilling returns the 2026 filling functions", async () => {
+    const functions = createUncachedFunctionsForFertilizerApplicationFilling("NL", year)
+    expect(functions.calculateFertilizerApplicationFillingForNitrogen).toBe(
+      calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
+    )
+    expect(functions.calculateFertilizerApplicationFillingForManure).toBe(
+      calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
+    )
+    expect(functions.calculateFertilizerApplicationFillingForPhosphate).toBe(
+      calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+    )
+    expect(functions.calculateFertilizerApplicationFillingForRenure).toBe(
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+    )
+    expect(functions.aggregateNormFillingsToFarmLevel).toBe(aggregateNormFillingsToFarmLevel)
+
+    const collectField = vi
+      .spyOn(NL2026FillingInput, "collectNL2026InputForFertilizerApplicationFilling")
+      .mockResolvedValue({} as never)
+    await functions.collectInputForFertilizerApplicationFilling(mockFdm, "p", "field-1", 75)
+    expect(collectField).toHaveBeenCalledWith(mockFdm, "p", "field-1", 75, normYear)
+  })
+
+  it("has the same shape as 2026", () => {
+    expect(Object.keys(createFunctionsForNorms("NL", year)).sort()).toEqual(
       Object.keys(createFunctionsForNorms("NL", "2026")).sort(),
     )
-  })
-
-  it("createFunctionsForFertilizerApplicationFilling returns the 2027 functions, with the same shape as 2026", () => {
-    const functions = createFunctionsForFertilizerApplicationFilling("NL", "2027")
-    expect(functions).toEqual({
-      collectInputForFertilizerApplicationFilling:
-        collectNL2027InputForFertilizerApplicationFilling,
-      collectInputForFertilizerApplicationFillingForFarm:
-        collectNL2027InputForFertilizerApplicationFillingForFarm,
-      calculateFertilizerApplicationFillingForNitrogen:
-        getNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-      calculateFertilizerApplicationFillingForManure:
-        getNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-      calculateFertilizerApplicationFillingForPhosphate:
-        getNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm,
-      calculateFertilizerApplicationFillingForRenure:
-        getNL2027FertilizerApplicationFillingForRenureGebruiksNorm,
-      aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-    })
-    expect(Object.keys(functions).sort()).toEqual(
+    expect(Object.keys(createFunctionsForFertilizerApplicationFilling("NL", year)).sort()).toEqual(
       Object.keys(createFunctionsForFertilizerApplicationFilling("NL", "2026")).sort(),
-    )
-  })
-
-  it("createUncachedFunctionsForFertilizerApplicationFilling returns the 2027 functions, with the same shape as 2026", () => {
-    const functions = createUncachedFunctionsForFertilizerApplicationFilling("NL", "2027")
-    expect(functions).toEqual({
-      collectInputForFertilizerApplicationFilling:
-        collectNL2027InputForFertilizerApplicationFilling,
-      calculateFertilizerApplicationFillingForNitrogen:
-        calculateNL2027FertilizerApplicationFillingForStikstofGebruiksNorm,
-      calculateFertilizerApplicationFillingForManure:
-        calculateNL2027FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-      calculateFertilizerApplicationFillingForPhosphate:
-        calculateNL2027FertilizerApplicationFillingForFosfaatGebruiksNorm,
-      calculateFertilizerApplicationFillingForRenure:
-        calculateNL2027FertilizerApplicationFillingForRenureGebruiksNorm,
-      aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-    })
-    expect(Object.keys(functions).sort()).toEqual(
-      Object.keys(createUncachedFunctionsForFertilizerApplicationFilling("NL", "2026")).sort(),
     )
   })
 })
@@ -136,15 +195,6 @@ describe("createFunctionsForNorms", () => {
     expect(functions.calculateNormForNitrogen).toBe(getNL2025StikstofGebruiksNorm)
     expect(functions.calculateNormForManure).toBe(getNL2025DierlijkeMestGebruiksNorm)
     expect(functions.calculateNormForPhosphate).toBe(getNL2025FosfaatGebruiksNorm)
-    expect(functions.aggregateNormsToFarmLevel).toBe(aggregateNormsToFarmLevel)
-  })
-
-  it("should return the correct functions for NL region and year 2026", () => {
-    const functions = createFunctionsForNorms("NL", "2026")
-    expect(functions.collectInputForNorms).toBe(collectNL2026InputForNorms)
-    expect(functions.calculateNormForNitrogen).toBe(getNL2026StikstofGebruiksNorm)
-    expect(functions.calculateNormForManure).toBe(getNL2026DierlijkeMestGebruiksNorm)
-    expect(functions.calculateNormForPhosphate).toBe(getNL2026FosfaatGebruiksNorm)
     expect(functions.aggregateNormsToFarmLevel).toBe(aggregateNormsToFarmLevel)
   })
 
@@ -173,23 +223,6 @@ describe("createFunctionsForFertilizerApplicationFilling", () => {
     )
     expect(functions.calculateFertilizerApplicationFillingForPhosphate).toBe(
       getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
-    )
-    expect(functions.aggregateNormFillingsToFarmLevel).toBe(aggregateNormFillingsToFarmLevel)
-  })
-
-  it("should return the correct functions for NL region and year 2026", () => {
-    const functions = createFunctionsForFertilizerApplicationFilling("NL", "2026")
-    expect(functions.collectInputForFertilizerApplicationFilling).toBe(
-      collectNL2026InputForFertilizerApplicationFilling,
-    )
-    expect(functions.calculateFertilizerApplicationFillingForNitrogen).toBe(
-      getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
-    )
-    expect(functions.calculateFertilizerApplicationFillingForManure).toBe(
-      getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-    )
-    expect(functions.calculateFertilizerApplicationFillingForPhosphate).toBe(
-      getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
     )
     expect(functions.aggregateNormFillingsToFarmLevel).toBe(aggregateNormFillingsToFarmLevel)
   })
@@ -223,23 +256,6 @@ describe("createUncachedFunctionsForFertilizerApplicationFilling", () => {
     )
     expect(functions.calculateFertilizerApplicationFillingForPhosphate).toBe(
       calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
-    )
-    expect(functions.aggregateNormFillingsToFarmLevel).toBe(aggregateNormFillingsToFarmLevel)
-  })
-
-  it("should return the correct uncached functions for NL region and year 2026", () => {
-    const functions = createUncachedFunctionsForFertilizerApplicationFilling("NL", "2026")
-    expect(functions.collectInputForFertilizerApplicationFilling).toBe(
-      collectNL2026InputForFertilizerApplicationFilling,
-    )
-    expect(functions.calculateFertilizerApplicationFillingForNitrogen).toBe(
-      calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
-    )
-    expect(functions.calculateFertilizerApplicationFillingForManure).toBe(
-      calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-    )
-    expect(functions.calculateFertilizerApplicationFillingForPhosphate).toBe(
-      calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
     )
     expect(functions.aggregateNormFillingsToFarmLevel).toBe(aggregateNormFillingsToFarmLevel)
   })

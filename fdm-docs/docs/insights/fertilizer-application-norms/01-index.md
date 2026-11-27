@@ -19,6 +19,8 @@ The norm calculation system in `fdm-calculator` is designed to be extensible acr
 
 This structure enables the addition of new regional rule sets or the updating of existing ones as regulations evolve, without disrupting previous implementations.
 
+The logic of a rule lives in the earliest year it applies to. A later year with exactly the same rules uses the functions of that year instead of a copy: the functions read the norm year from their input (for example the main crop period and the reduction windows of that year), and the factories bind the input collectors to the requested year. A year gets its own functions only when a regulation or RVO table changes something, and then only for what changes. Each year keeps its own tests, so the results for that year stay covered when the shared functions change.
+
 ## Current Implementation: Netherlands 2025, 2026 and 2027
 
 The current implementation in `fdm-calculator` covers the Dutch nutrient management regulations for **2025**, **2026** and, provisionally, **2027**. The supported years are exported as `NORMS_YEARS`.
@@ -38,7 +40,7 @@ The current implementation in `fdm-calculator` covers the Dutch nutrient managem
 
 ### 2027 (provisional)
 
-- **[2027 overview](./nl/2027/01-index.md):** The same four norms, values and rules as 2026, until the official 2027 tables are published.
+- **[2027 overview](./nl/2027/01-index.md):** Uses the 2026 rules (the same four norms, values and rules), until the official 2027 tables are published.
 
 For detailed logic and specific parameters of these norms, refer to their respective pages.
 

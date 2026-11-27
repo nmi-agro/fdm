@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
-import type { NL2027NormsInput, NL2027NormsInputForCultivation } from "./types"
-import { calculateNL2027FosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
+import type { NL2026NormsInput, NL2026NormsInputForCultivation } from "../../2026/value/types"
+import { calculateNL2026FosfaatGebruiksNorm } from "../../2026/value/fosfaatgebruiksnorm"
 
-describe("calculateNL2027FosfaatGebruiksNorm", () => {
+// 2027 uses the rules introduced in 2026 (provisional), so these tests run the 2026 functions
+// with 2027 inputs.
+describe("2027, calculateNL2026FosfaatGebruiksNorm", () => {
   it("should return the correct norm for grasland", async () => {
-    const mockInput: NL2027NormsInput = {
+    const mockInput: NL2026NormsInput = {
+      year: 2027,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -14,17 +17,18 @@ describe("calculateNL2027FosfaatGebruiksNorm", () => {
       cultivations: [
         {
           b_lu_catalogue: "nl_265",
-        } as Partial<NL2027NormsInputForCultivation>,
-      ] as NL2027NormsInputForCultivation[],
+        } as Partial<NL2026NormsInputForCultivation>,
+      ] as NL2026NormsInputForCultivation[],
       soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
     }
-    const result = await calculateNL2027FosfaatGebruiksNorm(mockInput)
+    const result = await calculateNL2026FosfaatGebruiksNorm(mockInput)
     expect(result.normValue).toBe(120)
     expect(result.normSource).toContain("Grasland")
   })
 
   it("should return the correct norm for bouwland", async () => {
-    const mockInput: NL2027NormsInput = {
+    const mockInput: NL2026NormsInput = {
+      year: 2027,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -34,17 +38,18 @@ describe("calculateNL2027FosfaatGebruiksNorm", () => {
       cultivations: [
         {
           b_lu_catalogue: "nl_101",
-        } as Partial<NL2027NormsInputForCultivation>,
-      ] as NL2027NormsInputForCultivation[],
+        } as Partial<NL2026NormsInputForCultivation>,
+      ] as NL2026NormsInputForCultivation[],
       soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
     }
-    const result = await calculateNL2027FosfaatGebruiksNorm(mockInput)
+    const result = await calculateNL2026FosfaatGebruiksNorm(mockInput)
     expect(result.normValue).toBe(120)
     expect(result.normSource).toContain("Bouwland")
   })
 
   it("should return 0 for buffer strips", async () => {
-    const mockInput: NL2027NormsInput = {
+    const mockInput: NL2026NormsInput = {
+      year: 2027,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -54,17 +59,18 @@ describe("calculateNL2027FosfaatGebruiksNorm", () => {
       cultivations: [
         {
           b_lu_catalogue: "nl_101",
-        } as Partial<NL2027NormsInputForCultivation>,
-      ] as NL2027NormsInputForCultivation[],
+        } as Partial<NL2026NormsInputForCultivation>,
+      ] as NL2026NormsInputForCultivation[],
       soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
     }
-    const result = await calculateNL2027FosfaatGebruiksNorm(mockInput)
+    const result = await calculateNL2026FosfaatGebruiksNorm(mockInput)
     expect(result.normValue).toBe(0)
     expect(result.normSource).toBe("Bufferstrook: geen plaatsingsruimte")
   })
 
   it("should handle zero values for a_p_al and a_p_cc (regression test for falsy bug)", async () => {
-    const mockInput: NL2027NormsInput = {
+    const mockInput: NL2026NormsInput = {
+      year: 2027,
       farm: { has_grazing_intention: true },
       field: {
         b_id: "1",
@@ -74,43 +80,44 @@ describe("calculateNL2027FosfaatGebruiksNorm", () => {
       cultivations: [
         {
           b_lu_catalogue: "nl_265",
-        } as Partial<NL2027NormsInputForCultivation>,
-      ] as NL2027NormsInputForCultivation[],
+        } as Partial<NL2026NormsInputForCultivation>,
+      ] as NL2026NormsInputForCultivation[],
       soilAnalysis: { a_p_al: 0, a_p_cc: 0 },
     }
-    const result = await calculateNL2027FosfaatGebruiksNorm(mockInput)
+    const result = await calculateNL2026FosfaatGebruiksNorm(mockInput)
     expect(result).not.toBeNull()
     expect(result.normValue).toBeGreaterThan(0)
   })
 
   it("should throw when soil analysis values are missing", async () => {
-    const baseInput: NL2027NormsInput = {
+    const baseInput: NL2026NormsInput = {
+      year: 2027,
       farm: { has_grazing_intention: true },
       field: { b_id: "1", b_centroid: [5.0, 52.0], b_bufferstrip: false },
-      cultivations: [{ b_lu_catalogue: "nl_265" } as NL2027NormsInputForCultivation],
+      cultivations: [{ b_lu_catalogue: "nl_265" } as NL2026NormsInputForCultivation],
       soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
     }
 
     await expect(
-      calculateNL2027FosfaatGebruiksNorm({
+      calculateNL2026FosfaatGebruiksNorm({
         ...baseInput,
         soilAnalysis: { ...baseInput.soilAnalysis, a_p_al: null as unknown as number },
       }),
     ).rejects.toThrow("Missing soil analysis data for NL 2027 Fosfaatgebruiksnorm")
     await expect(
-      calculateNL2027FosfaatGebruiksNorm({
+      calculateNL2026FosfaatGebruiksNorm({
         ...baseInput,
         soilAnalysis: { ...baseInput.soilAnalysis, a_p_al: undefined as unknown as number },
       }),
     ).rejects.toThrow("Missing soil analysis data for NL 2027 Fosfaatgebruiksnorm")
     await expect(
-      calculateNL2027FosfaatGebruiksNorm({
+      calculateNL2026FosfaatGebruiksNorm({
         ...baseInput,
         soilAnalysis: { ...baseInput.soilAnalysis, a_p_cc: null as unknown as number },
       }),
     ).rejects.toThrow("Missing soil analysis data for NL 2027 Fosfaatgebruiksnorm")
     await expect(
-      calculateNL2027FosfaatGebruiksNorm({
+      calculateNL2026FosfaatGebruiksNorm({
         ...baseInput,
         soilAnalysis: { ...baseInput.soilAnalysis, a_p_cc: undefined as unknown as number },
       }),
@@ -119,11 +126,12 @@ describe("calculateNL2027FosfaatGebruiksNorm", () => {
 
   it("should throw when no fosfaat norms are available for the detected class", async () => {
     await expect(
-      calculateNL2027FosfaatGebruiksNorm(
+      calculateNL2026FosfaatGebruiksNorm(
         {
+          year: 2027,
           farm: { has_grazing_intention: true },
           field: { b_id: "1", b_centroid: [5.0, 52.0], b_bufferstrip: false },
-          cultivations: [{ b_lu_catalogue: "nl_265" } as NL2027NormsInputForCultivation],
+          cultivations: [{ b_lu_catalogue: "nl_265" } as NL2026NormsInputForCultivation],
           soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
         },
         {},
@@ -478,10 +486,11 @@ describe("calculateNL2027FosfaatGebruiksNorm", () => {
   ]
 
   it.each(matrix)("classifies phosphate class for %s", async (sample) => {
-    const result = await calculateNL2027FosfaatGebruiksNorm({
+    const result = await calculateNL2026FosfaatGebruiksNorm({
+      year: 2027,
       farm: { has_grazing_intention: true },
       field: { b_id: "1", b_centroid: [5.0, 52.0], b_bufferstrip: false },
-      cultivations: [{ b_lu_catalogue: sample.b_lu_catalogue } as NL2027NormsInputForCultivation],
+      cultivations: [{ b_lu_catalogue: sample.b_lu_catalogue } as NL2026NormsInputForCultivation],
       soilAnalysis: { a_p_al: sample.a_p_al, a_p_cc: sample.a_p_cc },
     })
 

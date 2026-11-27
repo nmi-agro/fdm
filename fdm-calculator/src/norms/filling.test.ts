@@ -99,7 +99,7 @@ describe("calculateFertilizerApplicationFillingsWithRegion", () => {
     },
   )
 
-  it("gives the same fillings for 2027 as for 2026 (provisional copy)", () => {
+  it("gives the same fillings for 2027 as for 2026 (2027 uses the 2026 rules)", () => {
     for (const b_region of ["zand_nwc", "klei", "veen", "loess"] as const) {
       const fillings2026 = calculateFertilizerApplicationFillingsWithRegion(
         "2026",

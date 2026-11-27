@@ -567,14 +567,14 @@ export const FarmNormsSchema = z
 
 /**
  * Calendar year of the usage norms; only the years with implemented norms are accepted. Without a
- * year the current calendar year is used (see {@link resolveNormsYear}).
+ * year the current calendar year is used; when that year has no norms, the request fails with 400.
  */
 export const NormsYearQuerySchema = z.object({
   year: z
     .enum(NORMS_YEARS)
     .optional()
     .describe(
-      "Calendar year. Defaults to the current calendar year. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: a copy of 2026 until the official 2027 tables are published.",
+      "Calendar year. Defaults to the current calendar year. Only 2025, 2026 and 2027 are currently supported for norms. The 2027 norms are provisional: they use the 2026 rules until the official 2027 tables are published.",
     ),
 })
 

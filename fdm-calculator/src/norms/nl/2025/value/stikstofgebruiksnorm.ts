@@ -419,7 +419,11 @@ function determineSubTypeOmschrijving(
   }
 
   // Roodzwenkgras logic based on cultivation history
-  if (standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras") {
+  // (both the main crop row and the "volgteelt" row have "1e jaars" and "overjarig" sub-types)
+  if (
+    standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras" ||
+    standard.cultivation_rvo_table2 === "Akkerbouwgewassen, Roodzwenkgras, volgteelt"
+  ) {
     const roodzwenkgrasCultivationCodes = standard.b_lu_catalogue_match
     const hasRoodzwenkgrasCultivationInPreviousYear = cultivations.some(
       (c) =>
@@ -557,8 +561,11 @@ function calculateKorting(
     )
     const isMaize = currStandard?.cultivation_rvo_table2.includes("mais")
     const isPotato = currStandard?.type === "aardappel"
+    // Only consumption and starch potatoes count: not seed potatoes, early harvest or the
+    // potato control measure (bestrijdingsmaatregel).
     const isExcludedPotato =
       currStandard?.cultivation_rvo_table2.includes("pootaardappelen") ||
+      currStandard?.cultivation_rvo_table2.includes("bestrijdingsmaatregel") ||
       currCult.b_lu_catalogue === "nl_2015" ||
       currCult.b_lu_catalogue === "nl_2016" ||
       currCult.b_lu_catalogue === "nl_1911" ||

@@ -7,11 +7,14 @@ import type {
   Field,
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { NL2027NormsFillingInput } from "./types"
+import type { NL2026NormsFillingInput } from "../../2026/filling/types"
 import {
-  collectNL2027InputForFertilizerApplicationFilling,
-  collectNL2027InputForFertilizerApplicationFillingForFarm,
-} from "./input"
+  collectNL2026InputForFertilizerApplicationFilling,
+  collectNL2026InputForFertilizerApplicationFillingForFarm,
+} from "../../2026/filling/input"
+
+// 2027 uses the rules introduced in 2026 (provisional), so these tests run the 2026 collectors
+// for the norm year 2027.
 
 // Mock the entire @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", () => ({
@@ -39,7 +42,7 @@ import {
   isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
 
-describe("collectNL2027InputForFertilizerApplicationFilling", () => {
+describe("2027, collectNL2026InputForFertilizerApplicationFilling", () => {
   const mockFdm = {} as FdmType
   const mockPrincipalId = "principal123"
   const mockFieldId = "field456"
@@ -99,11 +102,12 @@ describe("collectNL2027InputForFertilizerApplicationFilling", () => {
       } as Fertilizer,
     ]
 
-    const result = await collectNL2027InputForFertilizerApplicationFilling(
+    const result = await collectNL2026InputForFertilizerApplicationFilling(
       mockFdm,
       mockPrincipalId,
       mockFieldId,
       mockFosfaatgebruiksnorm,
+      2027,
     )
 
     // Assert that all fdm-core functions were called with the correct arguments
@@ -125,7 +129,7 @@ describe("collectNL2027InputForFertilizerApplicationFilling", () => {
     })
     expect(getFertilizers).toHaveBeenCalledWith(mockFdm, mockPrincipalId, "farm789")
 
-    // Assert the structure and content of the returned NL2027NormsFillingInput object
+    // Assert the structure and content of the returned NL2026NormsFillingInput object
     expect(result).toEqual({
       cultivations: expectedCultivations,
       applications: expectedApplications,
@@ -134,7 +138,7 @@ describe("collectNL2027InputForFertilizerApplicationFilling", () => {
       has_grazing_intention: true,
       fosfaatgebruiksnorm: mockFosfaatgebruiksnorm,
       b_centroid: expectedB_centroid,
-    } as NL2027NormsFillingInput)
+    } as NL2026NormsFillingInput)
   })
 
   it("should throw an error if the field is not found", async () => {
@@ -142,17 +146,18 @@ describe("collectNL2027InputForFertilizerApplicationFilling", () => {
     vi.mocked(getField).mockResolvedValue(null) // Simulate field not found
 
     await expect(
-      collectNL2027InputForFertilizerApplicationFilling(
+      collectNL2026InputForFertilizerApplicationFilling(
         mockFdm,
         mockPrincipalId,
         mockFieldId,
         mockFosfaatgebruiksnorm,
+        2027,
       ),
     ).rejects.toThrow(`Field with id ${mockFieldId} not found for principal ${mockPrincipalId}`)
   })
 })
 
-describe("collectNL2027InputForFertilizerApplicationFillingForFarm", () => {
+describe("2027, collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
   const mockFdm = {} as FdmType
   const mockPrincipalId = "principal123"
   const mockFarmId = "farm789"
@@ -186,11 +191,12 @@ describe("collectNL2027InputForFertilizerApplicationFillingForFarm", () => {
   it("should collect farm filling input correctly", async () => {
     const fosfaatgebruiksnormByField = new Map([[mockFieldId, 120]])
 
-    const result = await collectNL2027InputForFertilizerApplicationFillingForFarm(
+    const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
       fosfaatgebruiksnormByField,
+      2027,
     )
 
     expect(result).toBeInstanceOf(Map)
@@ -255,11 +261,12 @@ describe("collectNL2027InputForFertilizerApplicationFillingForFarm", () => {
       [mockFieldId2, 95],
     ])
 
-    const result = await collectNL2027InputForFertilizerApplicationFillingForFarm(
+    const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
       fosfaatgebruiksnormByField,
+      2027,
     )
 
     expect(result.size).toBe(2)
@@ -273,11 +280,12 @@ describe("collectNL2027InputForFertilizerApplicationFillingForFarm", () => {
 
     const fosfaatgebruiksnormByField = new Map([[mockFieldId, 60]])
 
-    const result = await collectNL2027InputForFertilizerApplicationFillingForFarm(
+    const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
       fosfaatgebruiksnormByField,
+      2027,
     )
 
     const fieldInput = result.get(mockFieldId)!
@@ -291,11 +299,12 @@ describe("collectNL2027InputForFertilizerApplicationFillingForFarm", () => {
   })
 
   it("should default fosfaatgebruiksnorm to zero when field norm is absent", async () => {
-    const result = await collectNL2027InputForFertilizerApplicationFillingForFarm(
+    const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
       mockFdm,
       mockPrincipalId,
       mockFarmId,
       new Map(),
+      2027,
     )
     expect(result.get(mockFieldId)?.fosfaatgebruiksnorm).toBe(0)
   })
