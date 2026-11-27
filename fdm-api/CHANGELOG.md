@@ -1,5 +1,19 @@
 # @nmi-agro/fdm-api
 
+## 0.5.0
+
+### Minor Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072) Thanks [@SvenVw](https://github.com/SvenVw)! - The norm endpoints (`/farms/{b_id_farm}/calculations/norms` and `/fields/{b_id}/calculations/norms`) accept `year=2027`. The 2027 norms are provisional: they use the 2026 rules until the official 2027 tables are published. Each year now gets the norm functions of that year from the calculator, instead of every year other than 2025 falling back to the 2026 functions.
+
+  Without `year`, the endpoints now use the current calendar year instead of always 2026. When the current year has no norms yet, they answer `400` with a message listing the supported years.
+
+### Patch Changes
+
+- Updated dependencies [[`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072), [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072)]:
+  - @nmi-agro/fdm-calculator@0.22.0
+  - @nmi-agro/fdm-reports@0.1.1
+
 ## 0.4.0
 
 ### Minor Changes

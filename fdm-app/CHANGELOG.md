@@ -1,5 +1,20 @@
 # Changelog fdm-app
 
+## 0.41.0
+
+### Minor Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072) Thanks [@SvenVw](https://github.com/SvenVw)! - Show the usage norms (gebruiksruimte) and use Gerrit for 2027. The 2027 norms are provisional: a copy of the 2026 norms until RVO publishes the 2027 tables. A field's norms for 2027 no longer fall back to the 2025 rules, and Gerrit no longer falls back to 2025 for an unsupported year.
+
+  A plan that Gerrit generated is discarded when you switch to another year or farm, so it can no longer be accepted for a year it was not made for. Before, accepting such a plan replaced the fertilizer applications of the new year with those of the plan.
+
+### Patch Changes
+
+- Updated dependencies [[`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072), [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072), [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072)]:
+  - @nmi-agro/fdm-agents@0.7.1
+  - @nmi-agro/fdm-calculator@0.22.0
+  - @nmi-agro/fdm-reports@0.1.1
+
 ## 0.40.0
 
 ### Minor Changes

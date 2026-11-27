@@ -1,5 +1,13 @@
 # @nmi-agro/fdm-mcp
 
+## 0.1.1
+
+### Patch Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`5b6d4bb`](https://github.com/nmi-agro/fdm/commit/5b6d4bb24257b4b67f132113f929f18cdbd110e5) Thanks [@SvenVw](https://github.com/SvenVw)! - The `get_fertilization_norms` tool accepts `year` 2027 (provisional norms, with the 2026 rules). Without `year` it uses the current calendar year instead of always 2026. The tool description and the server instructions now tell the model to pass the year the user asks about, to ask when the year is unclear, and to say which year the norms are for.
+- Updated dependencies [[`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072)]:
+  - @nmi-agro/fdm-api@0.5.0
+
 ## 0.1.0
 
 ### Minor Changes
