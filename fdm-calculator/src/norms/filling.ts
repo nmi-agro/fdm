@@ -2,6 +2,7 @@ import type { NL2025NormsFillingInput } from "./nl/2025/filling/types"
 import type { RegionKey } from "./nl/2025/value/types"
 import type { NL2026NormsFillingInput } from "./nl/2026/filling/types"
 import type { NormFilling } from "./nl/types"
+import type { NormsYear } from "./years"
 import { calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2025/filling/dierlijke-mest-gebruiksnorm"
 import { calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2025/filling/fosfaatgebruiksnorm"
 import { calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNormWithRegion } from "./nl/2025/filling/stikstofgebruiksnorm"
@@ -23,6 +24,8 @@ export type FertilizerApplicationFillings = {
 export type FertilizerApplicationFillingInputByYear = {
   "2025": NL2025NormsFillingInput
   "2026": NL2026NormsFillingInput
+  /** 2027 uses the 2026 rules (provisional). */
+  "2027": NL2026NormsFillingInput
 }
 
 /**
@@ -38,16 +41,18 @@ export type FertilizerApplicationFillingInputByYear = {
  * @param year - The year of the norms.
  * @param input - The filling input of the field, as collected by `collectInputForFertilizerApplicationFilling`.
  * @param b_region - The soil region of the field, as returned by `getRegion`.
- * @returns The filling per norm. `renure` is only present for 2026.
+ * @returns The filling per norm. `renure` is only present from 2026 on.
  * @throws When the input is not valid for the norms, for example an application with a fertilizer
  *   that is not in `input.fertilizers` or a manure without RVO code.
  */
-export function calculateFertilizerApplicationFillingsWithRegion<Y extends "2025" | "2026">(
+export function calculateFertilizerApplicationFillingsWithRegion<Y extends NormsYear>(
   year: Y,
   input: FertilizerApplicationFillingInputByYear[Y],
   b_region: RegionKey,
 ): FertilizerApplicationFillings {
-  if (year === "2026") {
+  // 2027 uses the 2026 rules (provisional). The filling rules do not depend on dates of the
+  // norm year; the input holds the applications and cultivations of that year.
+  if (year === "2026" || year === "2027") {
     const input2026 = input as NL2026NormsFillingInput
     return {
       nitrogen: calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNormWithRegion(

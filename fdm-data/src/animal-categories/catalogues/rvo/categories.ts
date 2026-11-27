@@ -3,7 +3,7 @@ import type {
   AnimalCategorySpecies,
   CatalogueAnimalCategories,
   CatalogueAnimalCategory,
-} from "../d"
+} from "../../d"
 
 interface RvoAnimalCategory {
   l_id_category: string
@@ -225,7 +225,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_401",
     l_category: "401 - Fokzeugen incl. biggen tot ca. 25 kg",
     l_specie: "pig",
-    l_sex_options: female,
+    // Includes the piglets of the sows, of both sexes
+    l_sex_options: femaleAndMale,
     l_lsu: 0.5,
   },
   {
@@ -323,7 +324,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_751",
     l_category: "751 - Fokteven (nertsen)",
     l_specie: "other",
-    l_sex_options: female,
+    // Includes the males and young that belong to the breeding females
+    l_sex_options: femaleAndMale,
     l_lsu: 0,
   },
   {

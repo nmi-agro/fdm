@@ -25,6 +25,7 @@ vi.mock("@nmi-agro/fdm-core", () => ({
 vi.mock("@nmi-agro/fdm-calculator", () => ({
   getNutrientAdvice: Object.assign(vi.fn(), { many: vi.fn() }),
   NUTRIENT_ADVICE_CONCURRENCY: 4,
+  isNormsYear: (year: unknown) => ["2025", "2026", "2027"].includes(year as string),
   calculateNormsForFields: vi.fn(),
   createFunctionsForNorms: vi.fn(),
   createFunctionsForFertilizerApplicationFilling: vi.fn(),
@@ -594,6 +595,33 @@ describe("tool execute functions", () => {
       expect(result.normsPerField[0].norms.animalManureN).toBe(170)
       expect(result.normsPerField[0].norms.workableN).toBe(230)
       expect(result.normsPerField[0].norms.phosphate).toBe(80)
+    })
+
+    it("uses the 2027 norms for calendar 2027", async () => {
+      const { calculateNormsForFields, createFunctionsForNorms } =
+        await import("@nmi-agro/fdm-calculator")
+      await getTool("getFarmLegalNorms").invoke(
+        { b_id_farm: "farm-1", b_ids: ["field-1"] },
+        makeConfigurable({ calendar: "2027" }),
+      )
+      expect(createFunctionsForNorms).toHaveBeenCalledWith("NL", "2027")
+      expect(calculateNormsForFields).toHaveBeenCalledWith(
+        expect.anything(),
+        "NL",
+        "2027",
+        expect.anything(),
+      )
+    })
+
+    it("fails with a clear error for a calendar year without norms", async () => {
+      const { createFunctionsForNorms } = await import("@nmi-agro/fdm-calculator")
+      await expect(
+        getTool("getFarmLegalNorms").invoke(
+          { b_id_farm: "farm-1", b_ids: ["field-1"] },
+          makeConfigurable({ calendar: "2028" }),
+        ),
+      ).rejects.toThrow("Legal application norms are not available for calendar year 2028")
+      expect(createFunctionsForNorms).not.toHaveBeenCalled()
     })
   })
 

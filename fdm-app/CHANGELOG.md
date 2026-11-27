@@ -1,5 +1,45 @@
 # Changelog fdm-app
 
+## 0.42.1
+
+### Patch Changes
+
+- [#993](https://github.com/nmi-agro/fdm/pull/993) [`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb) Thanks [@SvenVw](https://github.com/SvenVw)! - Only offer herds an animal can move to. The "Doelkoppel" list on the animal page and in "Dieren verplaatsen" on a herd card shows only herds of the same category or of a next life stage that the sex of the animals allows. The form says when animals of unknown sex get a sex by the move, and when there is no herd to move to. A rejected move shows a Dutch warning, and the "Melkvee" chapter of the manual explains the rules.
+
+- [#993](https://github.com/nmi-agro/fdm/pull/993) [`8aa28f4`](https://github.com/nmi-agro/fdm/commit/8aa28f4fee9019b8d1b0eff1ae1bc2fa56cfb014) Thanks [@SvenVw](https://github.com/SvenVw)! - Show the tabs under "Voor ontwikkelaars en lokale modellen" on the "AI-assistenten" page above their instructions instead of beside them, so the tab names and the code examples are readable again. The environment variable for the API key in the examples on that page and in the manual is now named after the application (for example `MY_APP_API_KEY`) instead of `FDM_API_KEY`; a name that starts with a digit gets a leading underscore, so it stays a valid shell variable name.
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb), [`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+  - @nmi-agro/fdm-data@0.26.0
+  - @nmi-agro/fdm-agents@0.7.2
+  - @nmi-agro/fdm-calculator@0.22.1
+  - @nmi-agro/fdm-reports@0.1.2
+  - @nmi-agro/fdm-rvo@0.7.1
+
+## 0.42.0
+
+### Minor Changes
+
+- [#995](https://github.com/nmi-agro/fdm/pull/995) [`ee0d090`](https://github.com/nmi-agro/fdm/commit/ee0d090c4d59719fbf67d92ad6d01eed9ac65617) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now herds can only have the grazing animal categories, so for example you can't add a herd of swine. Client requests to add herds of other categories are rejected with a 400.
+
+### Patch Changes
+
+- [#995](https://github.com/nmi-agro/fdm/pull/995) [`ee0d090`](https://github.com/nmi-agro/fdm/commit/ee0d090c4d59719fbf67d92ad6d01eed9ac65617) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the animal categories not being displayed properly on the herd category dropdown.
+
+## 0.41.0
+
+### Minor Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072) Thanks [@SvenVw](https://github.com/SvenVw)! - Show the usage norms (gebruiksruimte) and use Gerrit for 2027. The 2027 norms are provisional: a copy of the 2026 norms until RVO publishes the 2027 tables. A field's norms for 2027 no longer fall back to the 2025 rules, and Gerrit no longer falls back to 2025 for an unsupported year.
+
+  A plan that Gerrit generated is discarded when you switch to another year or farm, so it can no longer be accepted for a year it was not made for. Before, accepting such a plan replaced the fertilizer applications of the new year with those of the plan.
+
+### Patch Changes
+
+- Updated dependencies [[`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072), [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072), [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072)]:
+  - @nmi-agro/fdm-agents@0.7.1
+  - @nmi-agro/fdm-calculator@0.22.0
+  - @nmi-agro/fdm-reports@0.1.1
+
 ## 0.40.0
 
 ### Minor Changes

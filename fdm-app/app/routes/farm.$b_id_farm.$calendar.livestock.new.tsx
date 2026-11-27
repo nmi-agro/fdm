@@ -38,6 +38,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
 import { herdArrivalDefaultKey } from "~/lib/grazing-dates"
+import { filterGrazingCategories, isGrazingCategory } from "~/lib/livestock-categories"
 import { parseAnimalCount, parseHerdArrival } from "~/lib/livestock-events.server"
 import { serverNow } from "~/lib/server-now.server"
 
@@ -63,11 +64,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
 
-    const [farm, farms, categories] = await Promise.all([
+    const [farm, farms, allCategories] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
       getFarms(fdm, session.principal_id),
       getAnimalCategoriesForFarm(fdm, session.principal_id, b_id_farm),
     ])
+    const categories = filterGrazingCategories(allCategories)
 
     const farmWritePermission = await checkPermission(
       fdm,
@@ -130,6 +132,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     if (!l_id_category) {
       throw data("Diercategorie is verplicht.", { status: 400 })
+    }
+    const categories = await getAnimalCategoriesForFarm(fdm, session.principal_id, b_id_farm)
+    if (!isGrazingCategory(categories, l_id_category)) {
+      throw data("Kies een diercategorie voor weidegang.", { status: 400 })
     }
     // 1 to 5000, also when a request bypasses the input's limits
     const count = parseAnimalCount(formText(formData, "count"))

@@ -1,5 +1,5 @@
 import type { GebruiksnormResult, NormFilling } from "@nmi-agro/fdm-calculator"
-import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
+import { isNormsYear, NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getFarm,
@@ -174,10 +174,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     const asyncData = (async () => {
-      if (calendar !== "2025" && calendar !== "2026") {
+      if (!isNormsYear(calendar)) {
         return {
           fieldNormData: undefined,
-          errorMessage: "Gebruiksnormen zijn alleen beschikbaar voor 2025 en 2026.",
+          errorMessage: "Gebruiksnormen zijn alleen beschikbaar voor 2025 tot en met 2027.",
         }
       }
 

@@ -226,6 +226,49 @@ describe("getWorkingCoefficient", () => {
     expect(result.subTypeDescription).toBeUndefined()
   })
 
+  it("counts cattle filtrate after manure separation (code 11) as thin fraction: always 80%", () => {
+    for (const soilType of ["klei", "zand_nwc"] as RegionKey[]) {
+      for (const grazing of [true, false]) {
+        for (const onFarm of [true, false]) {
+          // 1 October on arable land: the period in which solid manure on clay gets 30%
+          const result = getWorkingCoefficient(
+            "11",
+            soilType,
+            grazing,
+            true,
+            new Date(2026, 9, 1),
+            onFarm,
+          )
+          expect(result.p_n_wcl).toBe(0.8)
+          expect(result.description).toBe("Dunne fractie na mestbewerking en gier")
+        }
+      }
+    }
+  })
+
+  it("counts cattle cake after manure separation (code 13) as solid manure of grazing animals, like code 10", () => {
+    const cases: [RegionKey, boolean, boolean, Date, boolean, number][] = [
+      ["klei", true, true, new Date(2026, 9, 1), true, 0.3], // arable clay, 1 Sep - 31 Jan
+      ["zand_nwc", true, false, new Date(2026, 4, 1), true, 0.45], // own farm, with grazing
+      ["zand_nwc", false, false, new Date(2026, 4, 1), true, 0.6], // own farm, without grazing
+      ["zand_nwc", true, false, new Date(2026, 4, 1), false, 0.4], // bought in
+    ]
+    for (const [soilType, grazing, isBouwland, date, onFarm, expected] of cases) {
+      const cake = getWorkingCoefficient("13", soilType, grazing, isBouwland, date, onFarm)
+      const solid = getWorkingCoefficient("10", soilType, grazing, isBouwland, date, onFarm)
+      expect(cake.p_n_wcl).toBe(expected)
+      expect(cake).toEqual(solid)
+    }
+  })
+
+  it("counts slurry of other animal species only as slurry (60%)", () => {
+    for (const code of ["30", "76", "81", "91", "92"]) {
+      const result = getWorkingCoefficient(code, "klei", false, true, new Date(2026, 9, 1), false)
+      expect(result.p_n_wcl).toBe(0.6)
+      expect(result.description).toBe("Drijfmest van overige diersoorten")
+    }
+  })
+
   // Drijfmest van graasdieren op het eigen bedrijf geproduceerd
   describe("Drijfmest van graasdieren op het eigen bedrijf geproduceerd (onFarmProduced: true)", () => {
     const p_type_rvo = "14" // Drijfmest rundvee

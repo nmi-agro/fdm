@@ -104,6 +104,7 @@ describe("collectNL2026InputForFertilizerApplicationFilling", () => {
       mockPrincipalId,
       mockFieldId,
       mockFosfaatgebruiksnorm,
+      2026,
     )
 
     // Assert that all fdm-core functions were called with the correct arguments
@@ -147,6 +148,7 @@ describe("collectNL2026InputForFertilizerApplicationFilling", () => {
         mockPrincipalId,
         mockFieldId,
         mockFosfaatgebruiksnorm,
+        2026,
       ),
     ).rejects.toThrow(`Field with id ${mockFieldId} not found for principal ${mockPrincipalId}`)
   })
@@ -191,6 +193,7 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
       mockPrincipalId,
       mockFarmId,
       fosfaatgebruiksnormByField,
+      2026,
     )
 
     expect(result).toBeInstanceOf(Map)
@@ -260,6 +263,7 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
       mockPrincipalId,
       mockFarmId,
       fosfaatgebruiksnormByField,
+      2026,
     )
 
     expect(result.size).toBe(2)
@@ -278,6 +282,7 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
       mockPrincipalId,
       mockFarmId,
       fosfaatgebruiksnormByField,
+      2026,
     )
 
     const fieldInput = result.get(mockFieldId)!
@@ -296,6 +301,7 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
       mockPrincipalId,
       mockFarmId,
       new Map(),
+      2026,
     )
     expect(result.get(mockFieldId)?.fosfaatgebruiksnorm).toBe(0)
   })

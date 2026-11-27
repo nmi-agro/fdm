@@ -59,9 +59,9 @@ export function AnimalCategoryCombobox({
       <ComboboxContent>
         <ComboboxEmpty>Geen diercategorie gevonden.</ComboboxEmpty>
         <ComboboxList>
-          {(item) => (
-            <ComboboxItem key={item.value} value={item.value}>
-              {item.label}
+          {(item: AnimalCategoryOption) => (
+            <ComboboxItem key={item.l_id_category} value={item.l_id_category}>
+              {categoryLabel(item)}
             </ComboboxItem>
           )}
         </ComboboxList>

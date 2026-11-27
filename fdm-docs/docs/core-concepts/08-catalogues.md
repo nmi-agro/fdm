@@ -19,7 +19,7 @@ The `fdm-data` package includes the following catalogues, which are stored in th
 - **`cultivationsCatalogue`**: A standardized list of crops, including their names, varieties, typical yields, nutrient content, and other agronomic properties. Each entry has a `b_lu_catalogue` as its primary key.
 - **`fertilizersCatalogue`**: A standardized list of common fertilizers, including their nutrient content, density, and application methods. Each entry has a `p_id_catalogue` as its primary key.
 - **`feedsCatalogue`**: A standardized list of feeds, with default dry matter, nitrogen and phosphate contents (the `nmi` source follows RVO Tabel 8). Each entry has an `f_id_catalogue` as its primary key.
-- **`animalCategoriesCatalogue`**: A standardized list of animal categories, with their species, allowed sexes and livestock units per animal (the `rvo` source follows the RVO categories). Each entry has an `l_id_category` as its primary key.
+- **`animalCategoriesCatalogue`**: A standardized list of animal categories, with their species, allowed sexes and livestock units per animal (the `rvo` source follows the RVO categories). Each entry has an `l_id_category` as its primary key. Which categories an animal can move to is not stored in this table. Every animal-category catalogue in `@nmi-agro/fdm-data` provides its own moves next to its list of categories (`getAnimalCategoryTransitionsCatalogue`): per category, the next life stages of the same species and the sexes that can reach them. `getAnimalCategoryTransitions` combines the moves of all catalogues, and fdm-core checks every move of an animal to a herd of another category against it.
 
 ## Farm-Specific Catalogue Selection
 

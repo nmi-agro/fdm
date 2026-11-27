@@ -17,6 +17,7 @@ import {
   type NitrogenBalanceFieldResultNumeric,
   type NitrogenBalanceNumeric,
   type NormFilling,
+  type NormsYear,
   type NutrientAdvice,
   type OrganicMatterBalanceFieldResultNumeric,
   type OrganicMatterBalanceNumeric,
@@ -80,65 +81,24 @@ export async function getFieldNormValues({
   fdm: FdmType
   principal_id: PrincipalId
   b_id: Field["b_id"]
-  calendar: "2025" | "2026"
+  calendar: NormsYear
 }): Promise<FieldNormValues> {
-  if (calendar === "2026") {
-    const functionsForNorms = createFunctionsForNorms("NL", "2026")
-    const normsInput = await functionsForNorms.collectInputForNorms(fdm, principal_id, b_id)
-    const [manure, phosphate, nitrogen, renure] = await Promise.all([
-      (
-        functionsForNorms.calculateNormForManure as (
-          fdm: FdmType,
-          input: typeof normsInput,
-        ) => Promise<GebruiksnormResult>
-      )(fdm, normsInput),
-      (
-        functionsForNorms.calculateNormForPhosphate as (
-          fdm: FdmType,
-          input: typeof normsInput,
-        ) => Promise<GebruiksnormResult>
-      )(fdm, normsInput),
-      (
-        functionsForNorms.calculateNormForNitrogen as (
-          fdm: FdmType,
-          input: typeof normsInput,
-        ) => Promise<GebruiksnormResult>
-      )(fdm, normsInput),
-      (
-        functionsForNorms.calculateNormForRenure as (
-          fdm: FdmType,
-          input: typeof normsInput,
-        ) => Promise<GebruiksnormResult>
-      )(fdm, normsInput),
-    ])
-
-    return { manure, phosphate, nitrogen, renure }
-  }
-
-  const functionsForNorms = createFunctionsForNorms("NL", "2025")
-  const normsInput = await functionsForNorms.collectInputForNorms(fdm, principal_id, b_id)
-  const [manure, phosphate, nitrogen] = await Promise.all([
-    (
-      functionsForNorms.calculateNormForManure as (
-        fdm: FdmType,
-        input: typeof normsInput,
-      ) => Promise<GebruiksnormResult>
-    )(fdm, normsInput),
-    (
-      functionsForNorms.calculateNormForPhosphate as (
-        fdm: FdmType,
-        input: typeof normsInput,
-      ) => Promise<GebruiksnormResult>
-    )(fdm, normsInput),
-    (
-      functionsForNorms.calculateNormForNitrogen as (
-        fdm: FdmType,
-        input: typeof normsInput,
-      ) => Promise<GebruiksnormResult>
-    )(fdm, normsInput),
+  // The norm functions of a year take the input of that same year; the union of all years
+  // can't express that, so each function is called through this common signature.
+  type NormFunction = (fdm: FdmType, input: object) => Promise<GebruiksnormResult>
+  const functionsForNorms = createFunctionsForNorms("NL", calendar)
+  const normsInput: object = await functionsForNorms.collectInputForNorms(fdm, principal_id, b_id)
+  const calculate = (fn: unknown) => (fn as NormFunction)(fdm, normsInput)
+  const [manure, phosphate, nitrogen, renure] = await Promise.all([
+    calculate(functionsForNorms.calculateNormForManure),
+    calculate(functionsForNorms.calculateNormForPhosphate),
+    calculate(functionsForNorms.calculateNormForNitrogen),
+    "calculateNormForRenure" in functionsForNorms
+      ? calculate(functionsForNorms.calculateNormForRenure)
+      : undefined,
   ])
 
-  return { manure, phosphate, nitrogen }
+  return renure ? { manure, phosphate, nitrogen, renure } : { manure, phosphate, nitrogen }
 }
 
 async function getFieldNormFillings({
@@ -151,41 +111,30 @@ async function getFieldNormFillings({
   fdm: FdmType
   principal_id: PrincipalId
   b_id: Field["b_id"]
-  calendar: "2025" | "2026"
+  calendar: NormsYear
   phosphateNorm: number
 }): Promise<FieldNormFillings> {
-  if (calendar === "2026") {
-    const functionsForFilling = createFunctionsForFertilizerApplicationFilling("NL", "2026")
-    const fillingInput = await functionsForFilling.collectInputForFertilizerApplicationFilling(
+  // See getFieldNormValues: each filling function is called through a common signature.
+  type FillingFunction = (fdm: FdmType, input: object) => Promise<NormFilling>
+  const functionsForFilling = createFunctionsForFertilizerApplicationFilling("NL", calendar)
+  const fillingInput: object =
+    await functionsForFilling.collectInputForFertilizerApplicationFilling(
       fdm,
       principal_id,
       b_id,
       phosphateNorm,
     )
-    const [manure, phosphate, nitrogen, renure] = await Promise.all([
-      functionsForFilling.calculateFertilizerApplicationFillingForManure(fdm, fillingInput),
-      functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
-      functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(fdm, fillingInput),
-      functionsForFilling.calculateFertilizerApplicationFillingForRenure(fdm, fillingInput),
-    ])
-
-    return { manure, phosphate, nitrogen, renure }
-  }
-
-  const functionsForFilling = createFunctionsForFertilizerApplicationFilling("NL", "2025")
-  const fillingInput = await functionsForFilling.collectInputForFertilizerApplicationFilling(
-    fdm,
-    principal_id,
-    b_id,
-    phosphateNorm,
-  )
-  const [manure, phosphate, nitrogen] = await Promise.all([
-    functionsForFilling.calculateFertilizerApplicationFillingForManure(fdm, fillingInput),
-    functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
-    functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(fdm, fillingInput),
+  const calculate = (fn: unknown) => (fn as FillingFunction)(fdm, fillingInput)
+  const [manure, phosphate, nitrogen, renure] = await Promise.all([
+    calculate(functionsForFilling.calculateFertilizerApplicationFillingForManure),
+    calculate(functionsForFilling.calculateFertilizerApplicationFillingForPhosphate),
+    calculate(functionsForFilling.calculateFertilizerApplicationFillingForNitrogen),
+    "calculateFertilizerApplicationFillingForRenure" in functionsForFilling
+      ? calculate(functionsForFilling.calculateFertilizerApplicationFillingForRenure)
+      : undefined,
   ])
 
-  return { manure, phosphate, nitrogen }
+  return renure ? { manure, phosphate, nitrogen, renure } : { manure, phosphate, nitrogen }
 }
 
 // Get nitrogen balance for a field
@@ -431,7 +380,7 @@ export async function getNorms({
   fdm: FdmType
   principal_id: PrincipalId
   b_id: Field["b_id"]
-  calendar: "2025" | "2026"
+  calendar: NormsYear
 }) {
   const value = await getFieldNormValues({
     fdm,

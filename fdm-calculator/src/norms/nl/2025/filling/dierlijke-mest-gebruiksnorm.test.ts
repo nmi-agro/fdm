@@ -68,6 +68,22 @@ describe("calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNor
     ])
   })
 
+  it("treats a nitrogen content of 0 as unknown and uses Table 11, like the nitrogen filling", () => {
+    const fillingWith = (p_n_rt: number) =>
+      calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
+        applications: [mockApplications[1]], // 20000 kg of RVO code 12
+        fertilizers: [{ p_id: "2", p_id_catalogue: "2", p_type_rvo: "12", p_n_rt }],
+        cultivations: [],
+        has_organic_certification: false,
+        has_grazing_intention: false,
+        fosfaatgebruiksnorm: 0,
+        b_centroid: [0, 0],
+      } as unknown as NL2025NormsFillingInput).normFilling
+
+    expect(fillingWith(0)).toBe(80) // Table 11: 4 kg N per ton
+    expect(fillingWith(5)).toBe(100) // a measured content overrides Table 11
+  })
+
   it("should calculate the norm filling for multiple applications", () => {
     const result = calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
       applications: mockApplications,

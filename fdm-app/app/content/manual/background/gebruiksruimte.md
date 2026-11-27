@@ -28,6 +28,8 @@ De gebruiksruimte is hoeveel stikstof en fosfaat je volgens de Meststoffenwet op
 
 Deze pagina beschrijft de regels voor 2026. {{appName}} rekent ook 2025 nog uit; wat er toen anders was, lees je in [Verschillen in 2025](#2025).
 
+Voor 2027 zijn nog geen nieuwe tabellen van RVO gepubliceerd. {{appName}} rekent 2027 daarom voorlopig met dezelfde regels en normen als 2026. Zodra RVO de tabellen voor 2027 publiceert, passen we de berekening aan.
+
 > De gebruiksnormen in {{appName}} zijn indicatief en alleen bedoeld ter informatie. Raadpleeg voor de definitieve normen en je verantwoording altijd de officiële publicaties van RVO en je adviseur.
 
 ## Welke normen zijn er? {#normen}

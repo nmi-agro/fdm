@@ -371,6 +371,8 @@ export type {
   AnimalCategoryCatalogue,
   HerdCensus,
 } from "./animal.types"
+export { checkAnimalCategoryMove, getAnimalSexForCategory } from "./animal-category"
+export type { AnimalCategoryMove, AnimalSex } from "./animal-category"
 export {
   addBarn,
   addHousing,

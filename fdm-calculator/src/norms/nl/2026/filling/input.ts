@@ -11,10 +11,22 @@ import {
   getGrazingIntention,
   isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
+import type { NL2026NormsYear } from "../value/types"
 import type { NL2026NormsFillingInput } from "./types"
 
 /**
- * Collects all necessary input data from fdm-core functions for the NL 2026 norms filling calculations.
+ * Returns the timeframe of a norm year, from 1 January until the end of 31 December.
+ *
+ * @param year - The norm year.
+ * @returns The timeframe to collect the cultivations and applications with.
+ */
+function getNormYearTimeframe(year: NL2026NormsYear): Timeframe {
+  return { start: new Date(year, 0, 1), end: new Date(year, 11, 31, 23, 59, 59, 999) }
+}
+
+/**
+ * Collects all necessary input data from fdm-core functions for the NL norms filling calculations
+ * of a norm year that uses the rules introduced in 2026.
  * This function standardizes the data collection process, ensuring all calculation functions
  * receive a unified input object (NL2026NormsFillingInput).
  *
@@ -22,6 +34,7 @@ import type { NL2026NormsFillingInput } from "./types"
  * @param {string} principal_id - The ID of the principal (user or organization) performing the calculation.
  * @param {string} b_id - The ID of the field for which the norms are being calculated.
  * @param {number} fosfaatgebruiksnorm - The phosphate usage norm in kg/ha for the current calculation.
+ * @param year - The norm year.
  * @returns {Promise<NL2026NormsFillingInput>} A promise that resolves to a standardized input object
  *   containing cultivations, fertilizer applications, fertilizers, organic certification status,
  *   grazing intention status, the phosphate usage norm, and the field's centroid.
@@ -32,13 +45,10 @@ export async function collectNL2026InputForFertilizerApplicationFilling(
   principal_id: PrincipalId,
   b_id: string,
   fosfaatgebruiksnorm: number,
+  year: NL2026NormsYear,
 ): Promise<NL2026NormsFillingInput> {
-  // Define the calendar year for the norms calculation.
-  const year = 2026
-  // Define the timeframe for data collection for the current year.
-  const startOfYear = new Date(year, 0, 1) // January 1st of the specified year
-  const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999) // December 31st of the specified year, including December 31st
-  const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
+  // The timeframe for data collection of the norm year.
+  const timeframeYear = getNormYearTimeframe(year)
 
   // 1. Retrieve field details using the field ID.
   // This is crucial for obtaining the farm ID and the field's geographical centroid.
@@ -65,10 +75,10 @@ export async function collectNL2026InputForFertilizerApplicationFilling(
 
   // 4. Retrieve all cultivations associated with the field within the defined cultivation timeframe.
   // This data is used to determine land use (e.g., bouwland/grasland).
-  const cultivations = await getCultivations(fdm, principal_id, b_id, timeframe2026)
+  const cultivations = await getCultivations(fdm, principal_id, b_id, timeframeYear)
 
   // 5. Retrieve all fertilizer applications for the farm within the current year's timeframe.
-  const applications = await getFertilizerApplications(fdm, principal_id, b_id, timeframe2026)
+  const applications = await getFertilizerApplications(fdm, principal_id, b_id, timeframeYear)
   // 6. Retrieve details of all fertilizers used on the farm.
   const fertilizers = await getFertilizers(fdm, principal_id, b_id_farm)
 
@@ -85,7 +95,8 @@ export async function collectNL2026InputForFertilizerApplicationFilling(
 }
 
 /**
- * Collects all necessary input data for the NL 2026 norms filling for every field on a farm.
+ * Collects all necessary input data for the NL norms filling of a norm year that uses the rules
+ * introduced in 2026, for every field on a farm.
  *
  * Farm-level data (`getGrazingIntention`, `isOrganicCertificationValid`, `getFertilizers`) is
  * fetched once. Per-field data (`getCultivations`, `getFertilizerApplications`) is fetched in
@@ -95,6 +106,7 @@ export async function collectNL2026InputForFertilizerApplicationFilling(
  * @param principal_id - The ID of the principal performing the calculation.
  * @param b_id_farm - The ID of the farm for which to collect data.
  * @param fosfaatgebruiksnormByField - A Map from field ID to the phosphate usage norm (kg/ha) for that field.
+ * @param year - The norm year.
  * @returns A promise that resolves to a `Map<b_id, NL2026NormsFillingInput>` keyed by field ID.
  */
 export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
@@ -102,11 +114,9 @@ export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
   principal_id: PrincipalId,
   b_id_farm: string,
   fosfaatgebruiksnormByField: Map<string, number>,
+  year: NL2026NormsYear,
 ): Promise<Map<string, NL2026NormsFillingInput>> {
-  const year = 2026
-  const startOfYear = new Date(year, 0, 1)
-  const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999)
-  const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
+  const timeframeYear = getNormYearTimeframe(year)
 
   const [
     farmFields,
@@ -120,8 +130,8 @@ export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
     getGrazingIntention(fdm, principal_id, b_id_farm, year),
     isOrganicCertificationValid(fdm, principal_id, b_id_farm, new Date(year, 4, 15)),
     getFertilizers(fdm, principal_id, b_id_farm),
-    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
-    getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframeYear),
+    getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframeYear),
   ])
 
   const result = new Map<string, NL2026NormsFillingInput>()
