@@ -1750,6 +1750,22 @@ describe("Animal Domain", () => {
       ).rejects.toMatchObject(cause("Animal of sex male cannot move from category rvo_101"))
     })
 
+    it("should move the animals of a herd and leave those that only arrive later", async () => {
+      const heiferHerd = await herdOf("rvo_102")
+      const now = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd, {
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      const later = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd, {
+        l_arriving_date: new Date("2025-09-01"),
+      })
+
+      expect(
+        await reassignHerdAnimals(fdm, principal_id, heiferHerd, l_id_herd, new Date("2025-06-01")),
+      ).toEqual([now])
+      const history = await getAnimalAssignmentHistory(fdm, principal_id, later)
+      expect(history.map((row) => row.l_id_herd)).toEqual([heiferHerd])
+    })
+
     it("should still correct the dates of a history recorded before these rules", async () => {
       // A history the rules no longer allow (rvo_100 -> rvo_101), written directly
       const calfHerd = await herdOf("rvo_101")

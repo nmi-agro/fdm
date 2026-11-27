@@ -1877,6 +1877,8 @@ export async function reassignHerdAnimals(
         .where(
           and(
             eq(schema.animalAssigning.l_id_herd, source_l_id_herd),
+            // Animals that only join the herd later stay in it; they are not in it yet
+            lte(schema.animalAssigning.l_assigning_start, l_reassign_date),
             or(
               isNull(schema.animalAssigning.l_assigning_end),
               gt(schema.animalAssigning.l_assigning_end, l_reassign_date),
