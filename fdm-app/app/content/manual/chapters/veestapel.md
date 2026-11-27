@@ -73,6 +73,12 @@ Klik op een dier om de details te openen. Daar:
 - leg je vast dat het dier het bedrijf verlaat, met datum en reden, met **Afvoer vastleggen**. De datum vul je zelf in; er staat niets vooraf ingevuld, en de knop werkt pas als je een datum hebt gekozen. Een afvoer in de toekomst houdt het dier tot die datum in zijn koppel, en de pagina toont dan wanneer het vertrek gepland is;
 - zie je de beweidingshistorie van het dier en in welke koppels het heeft gelopen.
 
+### Een dier verplaatsen {#verplaatsen}
+
+Een dier volgt zijn levensloop. Je verplaatst het naar een andere koppel van dezelfde diercategorie, of naar de volgende levensfase van dezelfde diersoort: jongvee wordt een pink, en een pink gaat na het afkalven naar de melkkoeien. Terug naar een jongere leeftijdsgroep of naar een andere diersoort kan niet; een waterbuffel wordt dus nooit een melkkoe. Soms hangt de volgende fase af van het geslacht: een vaarskalf gaat naar het vrouwelijk jongvee, een stierkalf naar de fokstieren.
+
+Bij **Doelkoppel** zie je daarom alleen de koppels waar het dier naartoe kan. Is het geslacht nog onbekend en kan maar één geslacht naar de gekozen koppel, dan krijgt het dier dat geslacht; dat staat onder de keuze. Hetzelfde geldt voor **Dieren verplaatsen naar andere koppel** op een koppelkaart: daar zie je alleen de koppels waar alle dieren van de koppel naartoe kunnen.
+
 ### Levensnummer en werknummer {#levensnummer}
 
 Het werknummer is een deel van het levensnummer op het oormerk: de 4 cijfers voor het laatste cijfer. In NL 1234567 8901 2 is het werknummer dus 8901. Vul je bij een rund een Nederlands levensnummer in, dan vult {{appName}} het werknummer zelf in. Je kunt het daarna nog aanpassen. Een dier zonder levensnummer krijgt een werknummer vanaf 10001, en dat nummer vervangt {{appName}} zodra je het levensnummer invult.
@@ -81,7 +87,7 @@ Het werknummer is een deel van het levensnummer op het oormerk: de 4 cijfers voo
 
 Een werknummer en een levensnummer horen op je bedrijf bij één dier tegelijk. Is een dier afgevoerd, dan kan een ander dier het nummer weer krijgen.
 
-De diercategorie van de koppel bepaalt welk geslacht een dier mag hebben. Een dier in de koppel melk- en kalfkoeien is bijvoorbeeld altijd vrouwelijk.
+De diercategorie van de koppel bepaalt welk geslacht een dier mag hebben. Een dier in de koppel melk- en kalfkoeien is bijvoorbeeld altijd vrouwelijk. Voeg je een dier zonder geslacht toe aan zo'n koppel, dan krijgt het dat geslacht vanzelf.
 
 ## GVE en veebezetting {#gve}
 

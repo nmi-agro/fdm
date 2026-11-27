@@ -410,8 +410,8 @@ describe("Milk Domain", () => {
     // Reassign to a different, already-existing herd (closes the assignment
     // in l_id_herd and opens a new one in the target herd)
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
 
@@ -446,7 +446,7 @@ describe("Milk Domain", () => {
 
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Droogstand",
-      l_id_category: "rvo_101",
+      l_id_category: "rvo_100",
     })
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
 

@@ -29,7 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import {
   Select,
@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { sexLabel } from "~/lib/animal-sex"
 import { farmTodayKey } from "~/lib/grazing-dates"
 
 export interface HerdCardProps {
@@ -50,6 +51,8 @@ export interface HerdCardProps {
     l_category: string | null
     l_lsu: number | null
     count: number
+    /** The herds all animals of this herd can move to, and the sex animals of unknown sex get. */
+    moveTargets: Array<{ l_id_herd: string; l_sex_after: string | null }>
   }
   allHerds: Array<{ l_id_herd: string; l_herd_name: string | null }>
   status: {
@@ -87,6 +90,12 @@ export function HerdCard({
   const [isReassignOpen, setIsReassignOpen] = useState(false)
   const [targetHerdId, setTargetHerdId] = useState("")
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  // Only the herds every animal of this herd can move to
+  const targetHerds = herd.moveTargets.map((target) => ({
+    ...target,
+    l_herd_name: allHerds.find((h) => h.l_id_herd === target.l_id_herd)?.l_herd_name ?? "Koppel",
+  }))
+  const sexAfterMove = targetHerds.find((t) => t.l_id_herd === targetHerdId)?.l_sex_after
 
   const submitCountChange = (newCount: number, l_arriving_date?: string) => {
     if (newCount === herd.count) return
@@ -406,26 +415,34 @@ export function HerdCard({
                 <FieldLabel htmlFor="target-herd-select">Doelkoppel</FieldLabel>
                 <Select
                   value={targetHerdId}
-                  items={allHerds
-                    .filter((h) => h.l_id_herd !== herd.l_id_herd)
-                    .map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
+                  items={targetHerds.map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
                   onValueChange={(v) => {
                     if (v !== null) setTargetHerdId(v)
                   }}
+                  disabled={targetHerds.length === 0}
                 >
                   <SelectTrigger id="target-herd-select">
                     <SelectValue placeholder="Kies een koppel" />
                   </SelectTrigger>
                   <SelectContent>
-                    {allHerds
-                      .filter((h) => h.l_id_herd !== herd.l_id_herd)
-                      .map((h) => (
-                        <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
-                          {h.l_herd_name}
-                        </SelectItem>
-                      ))}
+                    {targetHerds.map((h) => (
+                      <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
+                        {h.l_herd_name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {targetHerds.length === 0 ? (
+                  <FieldDescription key="no-targets">
+                    Er is geen koppel waar al deze dieren naartoe kunnen. Dieren gaan alleen naar
+                    een koppel van dezelfde diercategorie of van een volgende levensfase van
+                    dezelfde diersoort.
+                  </FieldDescription>
+                ) : sexAfterMove ? (
+                  <FieldDescription key="sex-after">
+                    Dieren met een onbekend geslacht worden {sexLabel(sexAfterMove)}.
+                  </FieldDescription>
+                ) : null}
               </Field>
             </div>
             <DialogFooter>

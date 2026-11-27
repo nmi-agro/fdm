@@ -1,3 +1,4 @@
+import { getAnimalCategoryTransitionSexes } from "@nmi-agro/fdm-data"
 import { and, eq } from "drizzle-orm"
 import type { FdmType } from "./fdm.types"
 import * as schema from "./db/schema"
@@ -105,4 +106,88 @@ export function assertAnimalMatchesCategory(
   if (l_sex && !category.l_sex_options.includes(l_sex)) {
     throw new Error(`Animal sex ${l_sex} is not allowed for category ${category.l_id_category}`)
   }
+}
+
+/** The sex of an animal, when known. */
+export type AnimalSex = NonNullable<schema.animalsTypeSelect["l_sex"]>
+
+/**
+ * Whether an animal can move from one animal category to another, and its sex after the move.
+ * When the move is not possible, `reason` says why: no animal can make it (`category`), or not an
+ * animal of this sex (`sex`).
+ */
+export type AnimalCategoryMove =
+  | { allowed: true; l_sex: AnimalSex | null }
+  | { allowed: false; reason: "category" | "sex" }
+
+/**
+ * Checks whether an animal can move from one animal category to another, for example by moving it
+ * to a herd of another category. An animal follows its life: it moves to an older age group or
+ * production stage of the same species, never back, and the next category can depend on its sex
+ * (a calf becomes a heifer or a breeding bull). Moving to another herd of the same category is
+ * always possible. The moves come from `getAnimalCategoryTransitions` in `@nmi-agro/fdm-data`.
+ *
+ * An animal of unknown sex can make a move when an animal of either sex can. When only one sex
+ * can make it, that is the sex of the animal after the move.
+ *
+ * @param from_l_id_category - Identifier of the category the animal is in.
+ * @param to - The category the animal moves to.
+ * @param l_sex - Sex of the animal, or `null` when unknown.
+ * @returns Whether the move is possible, with the sex of the animal after it.
+ */
+export function checkAnimalCategoryMove(
+  from_l_id_category: string,
+  to: Pick<AnimalCategory, "l_id_category" | "l_sex_options">,
+  l_sex: AnimalSex | null,
+): AnimalCategoryMove {
+  const sexes = getAnimalCategoryTransitionSexes(from_l_id_category, to.l_id_category)
+  const possible: AnimalSex[] = (sexes ?? []).filter((sex) => to.l_sex_options.includes(sex))
+  if (possible.length === 0) {
+    return { allowed: false, reason: "category" }
+  }
+  if (l_sex) {
+    return possible.includes(l_sex) ? { allowed: true, l_sex } : { allowed: false, reason: "sex" }
+  }
+  return { allowed: true, l_sex: possible.length === 1 ? possible[0] : null }
+}
+
+/**
+ * Checks that an animal can move from one animal category to another; see
+ * {@link checkAnimalCategoryMove}.
+ *
+ * @returns The sex of the animal after the move.
+ * @throws When the animal can't make the move.
+ */
+export function assertAnimalCategoryMove(
+  from_l_id_category: string,
+  to: Pick<AnimalCategory, "l_id_category" | "l_sex_options">,
+  l_sex: AnimalSex | null,
+): AnimalSex | null {
+  const move = checkAnimalCategoryMove(from_l_id_category, to, l_sex)
+  if (!move.allowed) {
+    throw new Error(
+      move.reason === "sex"
+        ? `Animal of sex ${l_sex} cannot move from category ${from_l_id_category} to category ${to.l_id_category}`
+        : `Animal cannot move from category ${from_l_id_category} to category ${to.l_id_category}`,
+    )
+  }
+  return move.l_sex
+}
+
+/**
+ * Returns the sex of an animal in an animal category: its own sex when known, otherwise the only
+ * sex the category allows (an animal in a herd of dairy cows is female).
+ *
+ * @param category - The animal category.
+ * @param l_sex - Sex of the animal, or `null` when unknown.
+ * @returns The sex of the animal, or `null` when it is unknown and the category allows both.
+ */
+export function getAnimalSexForCategory(
+  category: Pick<AnimalCategory, "l_sex_options">,
+  l_sex: AnimalSex | null,
+): AnimalSex | null {
+  if (l_sex) {
+    return l_sex
+  }
+  return category.l_sex_options.length === 1 ? category.l_sex_options[0] : null
 }

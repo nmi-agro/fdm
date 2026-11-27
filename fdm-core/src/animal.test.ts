@@ -138,8 +138,8 @@ describe("Animal Domain", () => {
     })
 
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
 
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
@@ -150,8 +150,8 @@ describe("Animal Domain", () => {
     // A second, distinct herd sharing the same category is allowed and is a
     // separate destination - the caller always names the herd explicitly.
     const secondHerdSameCategory = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee 2",
-      l_id_category: "rvo_101",
+      l_herd_name: "Zoogkoeien 2",
+      l_id_category: "rvo_120",
     })
     expect(secondHerdSameCategory).not.toBe(targetHerdId)
 
@@ -164,16 +164,16 @@ describe("Animal Domain", () => {
   })
 
   it("should move an animal on a past date to the chosen herd of another category via assignAnimalToHerd", async () => {
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const heiferHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Pinken",
+      l_id_category: "rvo_102",
     })
     // A second dairy herd: the caller chooses which one the heifer joins
     const secondDairyHerd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien 2",
       l_id_category: "rvo_100",
     })
-    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, youngstockHerd, {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd, {
       l_sex: "female",
       l_arriving_date: new Date("2025-01-01"),
     })
@@ -189,7 +189,7 @@ describe("Animal Domain", () => {
     const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
     expect(history).toHaveLength(2)
     expect(history.filter((row) => row.l_assigning_end === null)).toHaveLength(1)
-    const closed = history.find((row) => row.l_id_herd === youngstockHerd)
+    const closed = history.find((row) => row.l_id_herd === heiferHerd)
     expect(closed?.l_assigning_end).toEqual(calvingDate)
     expect(history.find((row) => row.l_id_herd === secondDairyHerd)?.l_assigning_start).toEqual(
       calvingDate,
@@ -202,13 +202,13 @@ describe("Animal Domain", () => {
       l_arriving_date: new Date("2025-01-01"),
     })
     const laterHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Pinken",
-      l_id_category: "rvo_102",
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
       l_start: new Date("2025-04-01"),
     })
     const endedHerd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Oude koppel",
-      l_id_category: "rvo_102",
+      l_id_category: "rvo_120",
       l_end: new Date("2025-02-01"),
     })
 
@@ -254,9 +254,9 @@ describe("Animal Domain", () => {
       l_sex: "female",
       l_arriving_date: new Date("2025-01-01"),
     })
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
     const pigHerd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Varkens",
@@ -269,7 +269,7 @@ describe("Animal Domain", () => {
     ).rejects.toMatchObject({ cause: { message: expect.stringContaining("already belongs") } })
     // Before the current assignment started
     await expect(
-      assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, new Date("2024-12-01")),
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, new Date("2024-12-01")),
     ).rejects.toMatchObject({
       cause: { message: expect.stringContaining("before the current herd assignment") },
     })
@@ -390,11 +390,11 @@ describe("Animal Domain", () => {
     expect(assignment.start).toEqual(new Date("2025-03-05"))
 
     // Not past a later move to another herd
-    const youngstock = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
-    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstock, new Date("2025-04-01"))
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, new Date("2025-04-01"))
     await expect(
       updateAnimal(fdm, principal_id, l_id_animal, { l_birth_date: new Date("2025-05-01") }),
     ).rejects.toMatchObject({
@@ -605,8 +605,8 @@ describe("Animal Domain", () => {
 
   it("should reassign every active animal in a herd together", async () => {
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
     const animalIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 2)
     const reassignmentDate = new Date(Date.now() + 60_000)
@@ -659,29 +659,27 @@ describe("Animal Domain", () => {
     })
 
     // Moving the animal keeps its departure: the new assignment ends on the departure date
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
     const moveDate = new Date("2025-03-01")
-    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, moveDate)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, moveDate)
     const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
     expect(history).toHaveLength(2)
     expect(history.find((row) => row.l_id_herd === l_id_herd)?.l_assigning_end).toEqual(moveDate)
-    expect(history.find((row) => row.l_id_herd === youngstockHerd)?.l_assigning_end).toEqual(
-      departure,
-    )
+    expect(history.find((row) => row.l_id_herd === sucklerHerd)?.l_assigning_end).toEqual(departure)
 
     // Moving the departure moves the end of the assignment along; clearing it reopens it
     const laterDeparture = new Date(departure.getTime() + 86_400_000)
     await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: laterDeparture })
     let current = (await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)).find(
-      (row) => row.l_id_herd === youngstockHerd,
+      (row) => row.l_id_herd === sucklerHerd,
     )
     expect(current?.l_assigning_end).toEqual(laterDeparture)
     await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: null })
     current = (await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)).find(
-      (row) => row.l_id_herd === youngstockHerd,
+      (row) => row.l_id_herd === sucklerHerd,
     )
     expect(current?.l_assigning_end).toBeNull()
   })
@@ -802,11 +800,11 @@ describe("Animal Domain", () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_arriving_date: new Date("2025-01-01"),
     })
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
-    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, new Date("2025-03-01"))
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, new Date("2025-03-01"))
 
     // The end must come after the start
     await expect(
@@ -824,15 +822,15 @@ describe("Animal Domain", () => {
     })
     // Moving only the start into a period when the herd did not run yet is rejected
     const laterHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Pinken",
-      l_id_category: "rvo_101",
+      l_herd_name: "Zoogkoeien later",
+      l_id_category: "rvo_120",
       l_start: new Date("2025-02-15"),
     })
     await updateAnimalAssigning(
       fdm,
       principal_id,
       l_id_animal,
-      youngstockHerd,
+      sucklerHerd,
       new Date("2025-03-01"),
       { l_id_herd: laterHerd },
     )
@@ -851,11 +849,11 @@ describe("Animal Domain", () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_arriving_date: new Date("2025-01-01"),
     })
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
-    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, new Date("2025-03-01"))
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, new Date("2025-03-01"))
 
     await expect(
       updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-02-01") }),
@@ -865,7 +863,7 @@ describe("Animal Domain", () => {
     // A departure after the move closes the last assignment
     await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-04-01") })
     const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
-    expect(history.find((row) => row.l_id_herd === youngstockHerd)?.l_assigning_end).toEqual(
+    expect(history.find((row) => row.l_id_herd === sucklerHerd)?.l_assigning_end).toEqual(
       new Date("2025-04-01"),
     )
   })
@@ -875,12 +873,12 @@ describe("Animal Domain", () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_arriving_date: arrival,
     })
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
     // The move starts at the same moment as the arrival
-    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, arrival)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, arrival)
 
     await expect(
       updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2024-12-01") }),
@@ -893,14 +891,14 @@ describe("Animal Domain", () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_arriving_date: new Date("2025-01-01"),
     })
-    const youngstockHerd = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+    const sucklerHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
     // A move and a departure on the same day: both assignments end on March 1
     const moveDate = new Date("2025-03-01")
-    await assignAnimalToHerd(fdm, principal_id, l_id_animal, youngstockHerd, moveDate)
-    await removeAnimalsFromHerd(fdm, principal_id, youngstockHerd, 1, {
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, sucklerHerd, moveDate)
+    await removeAnimalsFromHerd(fdm, principal_id, sucklerHerd, 1, {
       l_leaving_date: moveDate,
       l_leaving_method: "sold",
     })
@@ -908,7 +906,7 @@ describe("Animal Domain", () => {
     await updateAnimal(fdm, principal_id, l_id_animal, { l_leaving_date: new Date("2025-04-01") })
     const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
     expect(history.find((row) => row.l_id_herd === l_id_herd)?.l_assigning_end).toEqual(moveDate)
-    expect(history.find((row) => row.l_id_herd === youngstockHerd)?.l_assigning_end).toEqual(
+    expect(history.find((row) => row.l_id_herd === sucklerHerd)?.l_assigning_end).toEqual(
       new Date("2025-04-01"),
     )
   })
@@ -1344,8 +1342,8 @@ describe("Animal Domain", () => {
     )
 
     const otherHerdId = await addHerd(fdm, principal_id, b_id_farm, {
-      l_herd_name: "Jongvee",
-      l_id_category: "rvo_101",
+      l_herd_name: "Zoogkoeien",
+      l_id_category: "rvo_120",
     })
 
     await expect(
@@ -1598,6 +1596,149 @@ describe("Animal Domain", () => {
 
       await updateAnimal(fdm, principal_id, l_id_animal, { l_id_eartag: "" })
       expect((await getAnimal(fdm, principal_id, l_id_animal)).l_id_eartag).toBeNull()
+    })
+  })
+
+  describe("category moves", () => {
+    const herdOf = (l_id_category: string, l_herd_name = l_id_category) =>
+      addHerd(fdm, principal_id, b_id_farm, { l_herd_name, l_id_category })
+    const cause = (message: string) => ({ cause: { message: expect.stringContaining(message) } })
+
+    it("should only move an animal to a category it can become", async () => {
+      const stagHerd = await herdOf("rvo_973")
+      const olderStagHerd = await herdOf("rvo_974")
+      const fallowDeerHerd = await herdOf("rvo_981")
+      const buffaloHerd = await herdOf("rvo_991")
+      const heiferHerd = await herdOf("rvo_102")
+
+      // A red deer stag grows older, but never younger and never into a fallow deer
+      const stag = await addAnimal(fdm, principal_id, b_id_farm, stagHerd, { l_specie: "other" })
+      await assignAnimalToHerd(fdm, principal_id, stag, olderStagHerd)
+      await expect(assignAnimalToHerd(fdm, principal_id, stag, stagHerd)).rejects.toMatchObject(
+        cause("cannot move from category rvo_974 to category rvo_973"),
+      )
+      await expect(
+        assignAnimalToHerd(fdm, principal_id, stag, fallowDeerHerd),
+      ).rejects.toMatchObject(cause("cannot move from category rvo_974 to category rvo_981"))
+
+      // A water buffalo never becomes a dairy cow
+      const buffalo = await addAnimal(fdm, principal_id, b_id_farm, buffaloHerd)
+      await expect(assignAnimalToHerd(fdm, principal_id, buffalo, l_id_herd)).rejects.toMatchObject(
+        cause("cannot move from category rvo_991 to category rvo_100"),
+      )
+
+      // A heifer calves and joins the dairy cows
+      const heifer = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd)
+      await assignAnimalToHerd(fdm, principal_id, heifer, l_id_herd)
+      expect((await getAnimal(fdm, principal_id, heifer)).l_id_category).toBe("rvo_100")
+    })
+
+    it("should only make a move that depends on the sex for an animal of that sex", async () => {
+      const calfHerd = await herdOf("rvo_101")
+      const heiferHerd = await herdOf("rvo_102")
+      const bullHerd = await herdOf("rvo_104")
+
+      const bullCalf = await addAnimal(fdm, principal_id, b_id_farm, calfHerd, { l_sex: "male" })
+      await expect(
+        assignAnimalToHerd(fdm, principal_id, bullCalf, heiferHerd),
+      ).rejects.toThrowError("Exception for assignAnimalToHerd")
+      await assignAnimalToHerd(fdm, principal_id, bullCalf, bullHerd)
+
+      const heiferCalf = await addAnimal(fdm, principal_id, b_id_farm, calfHerd, {
+        l_sex: "female",
+      })
+      await expect(
+        assignAnimalToHerd(fdm, principal_id, heiferCalf, bullHerd),
+      ).rejects.toThrowError("Exception for assignAnimalToHerd")
+      await assignAnimalToHerd(fdm, principal_id, heiferCalf, heiferHerd)
+    })
+
+    it("should give an animal of unknown sex the only sex its category or move allows", async () => {
+      // On arrival in a category for one sex
+      const cow = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd)
+      expect((await getAnimal(fdm, principal_id, cow)).l_sex).toBe("female")
+      const [placeholder] = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 1)
+      expect((await getAnimal(fdm, principal_id, placeholder)).l_sex).toBe("female")
+      const { l_id_animals: calves } = await createHerdWithAnimals(
+        fdm,
+        principal_id,
+        b_id_farm,
+        { l_herd_name: "Kalveren", l_id_category: "rvo_101" },
+        3,
+      )
+      for (const calf of calves) {
+        expect((await getAnimal(fdm, principal_id, calf)).l_sex).toBeNull()
+      }
+
+      // On a move that one sex only can make
+      await assignAnimalToHerd(fdm, principal_id, calves[0], await herdOf("rvo_102"))
+      await assignAnimalToHerd(fdm, principal_id, calves[1], await herdOf("rvo_104"))
+      await assignAnimalToHerd(fdm, principal_id, calves[2], await herdOf("rvo_122"))
+      expect((await getAnimal(fdm, principal_id, calves[0])).l_sex).toBe("female")
+      expect((await getAnimal(fdm, principal_id, calves[1])).l_sex).toBe("male")
+      expect((await getAnimal(fdm, principal_id, calves[2])).l_sex).toBeNull()
+    })
+
+    it("should move all animals of a herd or none", async () => {
+      const calfHerd = await herdOf("rvo_101")
+      const heiferHerd = await herdOf("rvo_102")
+      const bullCalf = await addAnimal(fdm, principal_id, b_id_farm, calfHerd, { l_sex: "male" })
+      const calf = await addAnimal(fdm, principal_id, b_id_farm, calfHerd)
+
+      await expect(
+        reassignHerdAnimals(fdm, principal_id, calfHerd, heiferHerd),
+      ).rejects.toThrowError("Exception for reassignHerdAnimals")
+      expect((await getAnimal(fdm, principal_id, calf)).l_id_herd).toBe(calfHerd)
+
+      await assignAnimalToHerd(fdm, principal_id, bullCalf, await herdOf("rvo_104"))
+      expect(await reassignHerdAnimals(fdm, principal_id, calfHerd, heiferHerd)).toEqual([calf])
+      const moved = await getAnimal(fdm, principal_id, calf)
+      expect(moved.l_id_herd).toBe(heiferHerd)
+      expect(moved.l_sex).toBe("female")
+    })
+
+    it("should check a move in the past against the later move", async () => {
+      const heiferHerd = await herdOf("rvo_102")
+      const sucklerHerd = await herdOf("rvo_120")
+      const calfHerd = await herdOf("rvo_101")
+      const heifer = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd, {
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      await assignAnimalToHerd(fdm, principal_id, heifer, l_id_herd, new Date("2025-06-01"))
+
+      // A young stock herd in between can't be followed by the dairy cows
+      await expect(
+        assignAnimalToHerd(fdm, principal_id, heifer, calfHerd, new Date("2025-03-01")),
+      ).rejects.toMatchObject(cause("cannot move from category rvo_102 to category rvo_101"))
+      // A suckler herd in between can: rvo_102 -> rvo_120 -> rvo_100
+      await assignAnimalToHerd(fdm, principal_id, heifer, sucklerHerd, new Date("2025-03-01"))
+      const history = await getAnimalAssignmentHistory(fdm, principal_id, heifer)
+      expect(history.map((row) => row.l_id_category).sort()).toEqual([
+        "rvo_100",
+        "rvo_102",
+        "rvo_120",
+      ])
+    })
+
+    it("should check a corrected assignment against the assignments around it", async () => {
+      const heiferHerd = await herdOf("rvo_102")
+      const heifer = await addAnimal(fdm, principal_id, b_id_farm, heiferHerd, {
+        l_arriving_date: new Date("2025-01-01"),
+      })
+      const calvingDate = new Date("2025-06-01")
+      await assignAnimalToHerd(fdm, principal_id, heifer, l_id_herd, calvingDate)
+
+      await expect(
+        updateAnimalAssigning(fdm, principal_id, heifer, l_id_herd, calvingDate, {
+          l_id_herd: await herdOf("rvo_101"),
+        }),
+      ).rejects.toMatchObject(cause("cannot move from category rvo_102 to category rvo_101"))
+
+      const sucklerHerd = await herdOf("rvo_120")
+      await updateAnimalAssigning(fdm, principal_id, heifer, l_id_herd, calvingDate, {
+        l_id_herd: sucklerHerd,
+      })
+      expect((await getAnimal(fdm, principal_id, heifer)).l_id_herd).toBe(sucklerHerd)
     })
   })
 })

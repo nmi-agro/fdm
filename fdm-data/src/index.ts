@@ -22,6 +22,11 @@ export type {
   CatalogueAnimalCategoryName,
 } from "./animal-categories/d"
 export { hashAnimalCategory } from "./animal-categories/hash"
+export {
+  getAnimalCategoryTransitions,
+  getAnimalCategoryTransitionSexes,
+} from "./animal-categories/transitions"
+export type { AnimalCategoryTransition } from "./animal-categories/transitions"
 export { parseCattleEartag } from "./animal-identification/cattle-eartag"
 export type { CattleEartagResult } from "./animal-identification/cattle-eartag"
 export { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "./cultivations"

@@ -22,7 +22,15 @@ import type {
 } from "./animal.types"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
-import { assertAnimalMatchesCategory, getAnimalCategory, getHerdCategory } from "./animal-category"
+import {
+  type AnimalCategory,
+  type AnimalSex,
+  assertAnimalCategoryMove,
+  assertAnimalMatchesCategory,
+  getAnimalCategory,
+  getAnimalSexForCategory,
+  getHerdCategory,
+} from "./animal-category"
 import { checkPermission } from "./authorization"
 import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import * as schema from "./db/schema"
@@ -124,6 +132,8 @@ function notDepartedBy(date: Date): SQL {
  * automatically from 10001 upwards. Work number and life number must not be in use by another
  * animal that is still on the farm.
  *
+ * An animal of unknown sex added to a herd whose category allows one sex only gets that sex.
+ *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal adding the animal.
  * @param b_id_farm - Identifier of the farm.
@@ -198,8 +208,9 @@ export async function addAnimal(
 
       const category = await getHerdCategory(tx, l_id_herd)
       const l_specie = properties?.l_specie ?? category.l_specie
-      const l_sex = properties?.l_sex ?? null
-      assertAnimalMatchesCategory(category, l_specie, l_sex)
+      assertAnimalMatchesCategory(category, l_specie, properties?.l_sex ?? null)
+      // An animal of unknown sex in a category for one sex has that sex
+      const l_sex = getAnimalSexForCategory(category, properties?.l_sex ?? null)
 
       const l_id_animal = createId()
       const eartag = properties?.l_id_eartag
@@ -927,6 +938,7 @@ export async function removeAnimal(
  * Adds `count` new animals to a herd with shared default attributes.
  * Pure add — does not remove or reassign any existing animals. Use
  * {@link leaveHerd} or an explicit individual departure when animals leave.
+ * The new animals have an unknown sex, unless the category of the herd allows one sex only.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal executing the bulk add.
@@ -978,7 +990,12 @@ export async function addAnimalsToHerd(
         b_id_farm,
         l_arriving_date,
         firstWorknumber,
-        { l_breed: defaults?.l_breed, l_arriving_method: defaults?.l_arriving_method, l_specie },
+        {
+          l_breed: defaults?.l_breed,
+          l_arriving_method: defaults?.l_arriving_method,
+          l_specie,
+          l_sex: getAnimalSexForCategory(category, null),
+        },
       )
 
       if (animalIds.length > 0) {
@@ -1221,6 +1238,7 @@ function buildAnimalRows(
   defaults?: {
     l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
+    l_sex?: schema.animalsTypeInsert["l_sex"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
   },
 ): Array<{
@@ -1241,6 +1259,7 @@ function buildAnimalRows(
         l_id_worknumber: String(firstWorknumber + i),
         l_specie: defaults?.l_specie ?? "cattle",
         l_breed: defaults?.l_breed ?? null,
+        l_sex: defaults?.l_sex ?? null,
       },
       arrivingRow: {
         l_id_animal,
@@ -1445,13 +1464,76 @@ export async function removeAnimals(
 }
 
 /**
+ * Returns a lookup of the animal category of a herd that reads each herd only once.
+ */
+function herdCategoryLookup(tx: FdmType): (l_id_herd: string) => Promise<AnimalCategory> {
+  const categories = new Map<string, AnimalCategory>()
+  return async (l_id_herd) => {
+    let category = categories.get(l_id_herd)
+    if (!category) {
+      category = await getHerdCategory(tx, l_id_herd)
+      categories.set(l_id_herd, category)
+    }
+    return category
+  }
+}
+
+/**
+ * Returns the assignment an animal is in after a moment: the first assignment that starts on or
+ * after it. An empty assignment (two moves on the same day) covers no time and is skipped.
+ */
+function assignmentAfter<T extends { l_assigning_start: Date; l_assigning_end: Date | null }>(
+  assignments: T[],
+  moment: Date | null,
+): T | undefined {
+  if (!moment) {
+    return undefined
+  }
+  return assignments
+    .filter(
+      (row) =>
+        row.l_assigning_start >= moment &&
+        (row.l_assigning_end === null || row.l_assigning_end > row.l_assigning_start),
+    )
+    .sort((a, b) => a.l_assigning_start.getTime() - b.l_assigning_start.getTime())[0]
+}
+
+/**
+ * Checks the category moves around an assignment of an animal to a herd: from the herd it is in
+ * before (if any) into this herd, and from this herd into the herd it is in after (if any). Without
+ * a herd before, the animal arrives in this herd.
+ *
+ * @returns The sex of the animal after these moves: set when it was unknown and only one sex can
+ *   make them.
+ * @throws When the animal can't make one of the moves.
+ */
+async function assertAssignmentMoves(
+  categoryOf: (l_id_herd: string) => Promise<AnimalCategory>,
+  herds: { before?: string; herd: string; after?: string },
+  l_sex: AnimalSex | null,
+): Promise<AnimalSex | null> {
+  const category = await categoryOf(herds.herd)
+  let sex = herds.before
+    ? assertAnimalCategoryMove((await categoryOf(herds.before)).l_id_category, category, l_sex)
+    : getAnimalSexForCategory(category, l_sex)
+  if (herds.after) {
+    sex = assertAnimalCategoryMove(category.l_id_category, await categoryOf(herds.after), sex)
+  }
+  return sex
+}
+
+/**
  * Moves an animal to another herd: closes the animal's current herd assignment (if any) at
  * `l_assigning_start` and opens a new one in the target herd, so the history of the animal is
  * kept. The caller chooses the herd, also when the farm has several herds of the same category.
  *
  * An animal has no category of its own; it takes the category of its herd. Moving it to a herd of
  * another category, for example a heifer that calves and joins the dairy cows, changes its
- * category. The animal must fit the category of the target herd.
+ * category. The animal must fit the category of the target herd, and must be able to move from the
+ * category of its current herd to it (see `checkAnimalCategoryMove`): to an older age group or
+ * production stage of the same species, depending on its sex. For a move in the past, it must also
+ * be able to move on to the herd it moved to later. When the sex of the animal is unknown and only
+ * one sex can make the move, the animal gets that sex.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal moving the animal.
@@ -1460,7 +1542,7 @@ export async function removeAnimals(
  * @param l_assigning_start - Moment of the move. Defaults to now; a date in the past records a
  *   move that already happened.
  * @throws When the animal does not exist or has left the farm by then, is already in the target
- *   herd, or does not fit its category; when the target herd belongs to another farm, has not
+ *   herd, or does not fit its category or can't move to it; when the target herd belongs to another farm, has not
  *   started yet or has already ended on that date; or when the date is before the animal's current
  *   herd assignment.
  */
@@ -1546,8 +1628,28 @@ export async function assignAnimalToHerd(
         throw new Error(`Herd ${target_l_id_herd} does not belong to the animal's farm`)
       }
 
-      const category = await getHerdCategory(tx, target_l_id_herd)
+      const categoryOf = herdCategoryLookup(tx)
+      const category = await categoryOf(target_l_id_herd)
       assertAnimalMatchesCategory(category, animal.l_specie, animal.l_sex)
+      // The animal moves on from its current herd, and for a move in the past also on into the
+      // herd it moved to later
+      const l_sex = await assertAssignmentMoves(
+        categoryOf,
+        {
+          before: current?.l_id_herd,
+          herd: target_l_id_herd,
+          after: current
+            ? assignmentAfter(assignments, current.l_assigning_end)?.l_id_herd
+            : undefined,
+        },
+        animal.l_sex,
+      )
+      if (l_sex && l_sex !== animal.l_sex) {
+        await tx
+          .update(schema.animals)
+          .set({ l_sex, updated: new Date() })
+          .where(eq(schema.animals.l_id_animal, l_id_animal))
+      }
 
       if (current) {
         await tx
@@ -1706,6 +1808,10 @@ export async function leaveHerd(
  * Each source assignment is closed and a new target assignment is opened at
  * the same timestamp, preserving the full assignment history.
  *
+ * Every animal must be able to move from the category of the source herd to the category of the
+ * target herd, as in {@link assignAnimalToHerd}; otherwise no animal moves. Animals of unknown sex
+ * get the sex of a move that only one sex can make.
+ *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal performing the reassignment.
  * @param source_l_id_herd - Herd whose active animals move.
@@ -1804,7 +1910,8 @@ export async function reassignHerdAnimals(
         throw new Error("Reassignment date cannot be before an active animal assignment")
       }
 
-      const targetCategory = await getHerdCategory(tx, target_l_id_herd)
+      const categoryOf = herdCategoryLookup(tx)
+      const targetCategory = await categoryOf(target_l_id_herd)
       for (const animal of activeAssignments) {
         assertAnimalMatchesCategory(targetCategory, animal.l_specie, animal.l_sex)
       }
@@ -1812,6 +1919,38 @@ export async function reassignHerdAnimals(
       const animalIds = activeAssignments.map((row) => row.l_id_animal)
       if (animalIds.length === 0) {
         return []
+      }
+
+      // Every animal must be able to move from the source herd into the target herd, and on into
+      // the herd it moves to later, if any; otherwise none of them moves
+      const laterAssignments = await tx
+        .select({
+          l_id_animal: schema.animalAssigning.l_id_animal,
+          l_id_herd: schema.animalAssigning.l_id_herd,
+          l_assigning_start: schema.animalAssigning.l_assigning_start,
+          l_assigning_end: schema.animalAssigning.l_assigning_end,
+        })
+        .from(schema.animalAssigning)
+        .where(
+          and(
+            inArray(schema.animalAssigning.l_id_animal, animalIds),
+            gt(schema.animalAssigning.l_assigning_start, l_reassign_date),
+          ),
+        )
+      const sexChanges = new Map<AnimalSex, string[]>()
+      for (const animal of activeAssignments) {
+        const after = assignmentAfter(
+          laterAssignments.filter((row) => row.l_id_animal === animal.l_id_animal),
+          animal.l_assigning_end,
+        )
+        const l_sex = await assertAssignmentMoves(
+          categoryOf,
+          { before: source_l_id_herd, herd: target_l_id_herd, after: after?.l_id_herd },
+          animal.l_sex,
+        )
+        if (l_sex && l_sex !== animal.l_sex) {
+          sexChanges.set(l_sex, [...(sexChanges.get(l_sex) ?? []), animal.l_id_animal])
+        }
       }
 
       const now = new Date()
@@ -1839,6 +1978,13 @@ export async function reassignHerdAnimals(
         })),
       )
 
+      for (const [l_sex, l_id_animals] of sexChanges) {
+        await tx
+          .update(schema.animals)
+          .set({ l_sex, updated: now })
+          .where(inArray(schema.animals.l_id_animal, l_id_animals))
+      }
+
       return animalIds
     })
   } catch (err) {
@@ -1856,6 +2002,11 @@ export async function reassignHerdAnimals(
  * dates), not for day-to-day reassignment — use {@link assignAnimalToHerd}
  * for that, which preserves history by closing and opening records instead
  * of mutating one in place.
+ *
+ * When the herd or start of the assignment changes, the corrected history must still be possible:
+ * the animal must be able to move from the herd before the assignment into its herd, and on into
+ * the herd after it (see `checkAnimalCategoryMove`). An animal of unknown sex gets the sex of a move
+ * that only one sex can make.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal correcting the assignment.
@@ -1974,7 +2125,7 @@ export async function updateAnimalAssigning(
         }
       }
 
-      if (properties.l_id_herd) {
+      if (properties.l_id_herd || properties.l_assigning_start) {
         const animal = await tx
           .select({
             l_specie: schema.animals.l_specie,
@@ -1988,8 +2139,32 @@ export async function updateAnimalAssigning(
           throw new Error("Animal does not exist")
         }
 
-        const category = await getHerdCategory(tx, properties.l_id_herd)
-        assertAnimalMatchesCategory(category, animal[0].l_specie, animal[0].l_sex)
+        const categoryOf = herdCategoryLookup(tx)
+        if (properties.l_id_herd) {
+          assertAnimalMatchesCategory(
+            await categoryOf(properties.l_id_herd),
+            animal[0].l_specie,
+            animal[0].l_sex,
+          )
+        }
+        // The corrected history must still be one the animal can live through: from the herd it
+        // is in before the corrected assignment, into its herd, and on into the herd after it
+        const others = assignments
+          .filter((row) => !isRecord(row) && !isEmpty(row))
+          .sort((a, b) => a.l_assigning_start.getTime() - b.l_assigning_start.getTime())
+        const before = others.filter((row) => row.l_assigning_start < nextStart).at(-1)
+        const after = others.find((row) => row.l_assigning_start >= nextStart)
+        const l_sex = await assertAssignmentMoves(
+          categoryOf,
+          { before: before?.l_id_herd, herd: nextHerd, after: after?.l_id_herd },
+          animal[0].l_sex,
+        )
+        if (l_sex && l_sex !== animal[0].l_sex) {
+          await tx
+            .update(schema.animals)
+            .set({ l_sex, updated: new Date() })
+            .where(eq(schema.animals.l_id_animal, l_id_animal))
+        }
       }
 
       const result = await tx
@@ -2081,6 +2256,7 @@ export async function removeAnimalAssigning(
  * Creates a new herd on a farm together with `count` new animals sharing the
  * same default attributes, in a single transaction. Convenience wrapper
  * combining herd creation with {@link addAnimalsToHerd}'s bulk-insert logic.
+ * The new animals have an unknown sex, unless the category allows one sex only.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal creating the herd and animals.
@@ -2139,6 +2315,7 @@ export async function createHerdWithAnimals(
           l_breed: animalProperties?.l_breed,
           l_arriving_method: animalProperties?.l_arriving_method,
           l_specie,
+          l_sex: getAnimalSexForCategory(category, null),
         },
       )
 
