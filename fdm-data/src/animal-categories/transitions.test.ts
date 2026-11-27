@@ -42,6 +42,12 @@ describe("getAnimalCategoryTransitionSexes", () => {
     // Young water buffalo: a cow joins the water buffalo cows, a bull the breeding bulls
     expect(getAnimalCategoryTransitionSexes("rvo_992", "rvo_991")).toEqual(["female"])
     expect(getAnimalCategoryTransitionSexes("rvo_992", "rvo_104")).toEqual(["male"])
+    // The young that a category includes move on: deer calves, lambs and goat kids
+    expect(getAnimalCategoryTransitionSexes("rvo_971", "rvo_973")).toEqual(["female", "male"])
+    expect(getAnimalCategoryTransitionSexes("rvo_981", "rvo_982")).toEqual(["female", "male"])
+    expect(getAnimalCategoryTransitionSexes("rvo_550", "rvo_552")).toEqual(["female", "male"])
+    expect(getAnimalCategoryTransitionSexes("rvo_600", "rvo_601")).toEqual(["female", "male"])
+    expect(getAnimalCategoryTransitionSexes("rvo_601", "rvo_600")).toEqual(["male"])
   })
 
   it("returns null for a move no animal can make", () => {
