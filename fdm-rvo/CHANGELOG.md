@@ -1,5 +1,12 @@
 # @nmi-agro/fdm-rvo
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+
 ## 0.7.0
 
 ### Minor Changes

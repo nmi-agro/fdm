@@ -1,5 +1,11 @@
 export const nonBouwlandCodes = ["nl_265", "nl_266", "nl_331", "nl_332", "nl_335"]
 
+/**
+ * Grassland codes: the non-arable codes without nature areas (`nl_335`). Only these can replace a
+ * grass stand when grassland is renewed (heringezaaid).
+ */
+export const graslandCodes = ["nl_265", "nl_266", "nl_331", "nl_332"]
+
 export const graanCodes = [
   "nl_233",
   "nl_382",

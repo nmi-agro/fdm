@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-mcp",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "description": "Model Context Protocol (MCP) server for the Farm Data Model, for AI assistants",
   "bin": {
@@ -39,11 +39,11 @@
     "@modelcontextprotocol/server": "^2.4.0",
     "@nmi-agro/fdm-api": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
-    "@posthog/mcp": "^1.6.0",
+    "@posthog/mcp": "1.6.0",
     "@sentry/node": "^11.14.0",
     "@sentry/profiling-node": "^11.14.0",
     "hono": "^4.13.19",
-    "posthog-node": "^6.0.4",
+    "posthog-node": "6.0.4",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -15,13 +15,20 @@ export { getAnimalCategoriesCatalogue } from "./animal-categories"
 export type {
   AnimalCategorySex,
   AnimalCategorySpecies,
+  AnimalCategoryTransition,
   CatalogueAnimalCategorySource,
   CatalogueAnimalCategories,
   CatalogueAnimalCategory,
   CatalogueAnimalCategoryItem,
   CatalogueAnimalCategoryName,
+  CatalogueAnimalCategoryTransitions,
 } from "./animal-categories/d"
 export { hashAnimalCategory } from "./animal-categories/hash"
+export {
+  getAnimalCategoryTransitions,
+  getAnimalCategoryTransitionsCatalogue,
+  getAnimalCategoryTransitionSexes,
+} from "./animal-categories/transitions"
 export { parseCattleEartag } from "./animal-identification/cattle-eartag"
 export type { CattleEartagResult } from "./animal-identification/cattle-eartag"
 export { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "./cultivations"

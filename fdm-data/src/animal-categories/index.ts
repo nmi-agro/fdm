@@ -1,5 +1,5 @@
 import type { CatalogueAnimalCategories, CatalogueAnimalCategorySource } from "./d"
-import { getCatalogueRvo } from "./catalogues/rvo"
+import { getCatalogueRvo } from "./catalogues/rvo/categories"
 
 /**
  * Retrieves an animal-category catalogue.

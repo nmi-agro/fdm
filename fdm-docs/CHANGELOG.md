@@ -1,5 +1,11 @@
 # fdm-docs
 
+## 0.15.1
+
+### Patch Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072) Thanks [@SvenVw](https://github.com/SvenVw)! - Document the provisional 2027 Dutch legal application norms and the `year=2027` option of the norm endpoints.
+
 ## 0.15.0
 
 ### Minor Changes

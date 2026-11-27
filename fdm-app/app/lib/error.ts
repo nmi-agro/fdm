@@ -442,6 +442,24 @@ export async function handleActionError(error: unknown) {
     return dataWithWarning(null, "De diersoort komt niet overeen met de categorie van de koppel.")
   }
 
+  // Validation: a move to a category the animal can't become (checked before the general case,
+  // whose text it contains)
+  if (containsErrorMessage(error, "Animal of sex") && containsErrorMessage(error, "cannot move")) {
+    console.warn("Animal sex cannot make this category move:", error)
+    return dataWithWarning(
+      null,
+      "Een dier van dit geslacht kan niet naar de diercategorie van deze koppel.",
+    )
+  }
+
+  if (containsErrorMessage(error, "cannot move from category")) {
+    console.warn("Animal category move not possible:", error)
+    return dataWithWarning(
+      null,
+      "Een dier kan niet naar de diercategorie van deze koppel. Een dier gaat alleen naar een koppel van dezelfde diercategorie of van een volgende levensfase van dezelfde diersoort.",
+    )
+  }
+
   if (containsErrorMessage(error, "has not started yet") && containsErrorMessage(error, "Herd")) {
     console.warn("Herd not started on the date of the move:", error)
     return dataWithWarning(null, "Deze koppel is op die datum nog niet begonnen.")

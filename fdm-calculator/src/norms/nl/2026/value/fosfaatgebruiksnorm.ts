@@ -135,10 +135,12 @@ export async function calculateNL2026FosfaatGebruiksNorm(
   const a_p_al = input.soilAnalysis.a_p_al
 
   if (a_p_al === null || a_p_al === undefined || a_p_cc === null || a_p_cc === undefined) {
-    throw new NormNotApplicableError("Missing soil analysis data for NL 2026 Fosfaatgebruiksnorm")
+    throw new NormNotApplicableError(
+      `Missing soil analysis data for NL ${input.year} Fosfaatgebruiksnorm`,
+    )
   }
 
-  const b_lu_catalogue = findHoofdteelt(cultivations, 2026, false, true).b_lu_catalogue
+  const b_lu_catalogue = findHoofdteelt(cultivations, input.year, false, true).b_lu_catalogue
   const is_grasland = isCultivationGrasland(b_lu_catalogue)
 
   // Determine the phosphate class based on soil analysis values and land type.

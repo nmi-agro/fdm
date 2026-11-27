@@ -1,5 +1,24 @@
 # @nmi-agro/fdm-reports
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+  - @nmi-agro/fdm-calculator@0.22.1
+
+## 0.1.1
+
+### Patch Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072) Thanks [@SvenVw](https://github.com/SvenVw)! - The fertilizer plan includes the legal application norms for 2027 (provisional, the same rules as 2026).
+
+  The norms in the fertilizer plan now use the norm input that the calculator collects for the plan year. That input also holds the cultivations of the previous year, so the previous-year rules (catch crop and winter crop) see the previous season, and the harvests, so crops with a norm for multiple harvests ("meermalige oogst") are no longer calculated as harvested once. The norms and the fillings of a plan use the same grazing intention.
+
+- Updated dependencies [[`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072)]:
+  - @nmi-agro/fdm-calculator@0.22.0
+
 ## 0.1.0
 
 ### Minor Changes

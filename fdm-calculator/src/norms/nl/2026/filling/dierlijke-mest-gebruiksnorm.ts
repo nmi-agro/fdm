@@ -28,8 +28,14 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
 
   let cumulativeRenureN = new Decimal(0)
 
+  // The Renure excess above 80 kg N/ha is attributed to the applications in date order, so the
+  // applications are processed oldest first. The result keeps the order of the input.
+  const applicationsByDate = [...applications].sort(
+    (a, b) => new Date(a.p_app_date).getTime() - new Date(b.p_app_date).getTime(),
+  )
+
   // Use reduce to iterate over applications and calculate the total norm filling.
-  const { totalFilling, applicationFilling } = applications.reduce(
+  const { totalFilling, applicationFilling: applicationFillingByDate } = applicationsByDate.reduce(
     (acc, application) => {
       // Retrieve the fertilizer for the current application.
       const fertilizer = fertilizersMap.get(application.p_id_catalogue)
@@ -58,14 +64,20 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
       if (rvoTypeProperties.p_type_nitratesdirective) {
         const amount = new Decimal(application.p_app_amount ?? 0)
         // Determine the nitrogen content, using specific values if available, otherwise fallback to default.
-        const p_n_rt = new Decimal(fertilizer.p_n_rt ?? rvoTypeProperties.p_n_rt ?? 0)
+        // A nitrogen content of 0 means unknown, as in the nitrogen filling: use Table 11 then.
+        const p_n_rt = new Decimal(
+          fertilizer.p_n_rt ? fertilizer.p_n_rt : (rvoTypeProperties.p_n_rt ?? 0),
+        )
         // Calculate the norm filling for this application.
         normFilling = amount.times(p_n_rt).dividedBy(1000)
       } else if (rvoTypeProperties.p_type_renure) {
         // Renure products (codes 130-134): nitrogen up to 80 kg N/ha is excluded from animal manure norm.
         // Any cumulative Renure nitrogen above 80 kg N/ha spills over into animal manure norm filling.
         const amount = new Decimal(application.p_app_amount ?? 0)
-        const p_n_rt = new Decimal(fertilizer.p_n_rt ?? rvoTypeProperties.p_n_rt ?? 0)
+        // A nitrogen content of 0 means unknown, as in the nitrogen filling: use Table 11 then.
+        const p_n_rt = new Decimal(
+          fertilizer.p_n_rt ? fertilizer.p_n_rt : (rvoTypeProperties.p_n_rt ?? 0),
+        )
         const appRenureN = amount.times(p_n_rt).dividedBy(1000)
 
         const beforeN = cumulativeRenureN
@@ -96,6 +108,15 @@ export function calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebru
       }[],
     },
   )
+
+  const fillingById = new Map(
+    applicationFillingByDate.map((filling) => [filling.p_app_id, filling]),
+  )
+  const applicationFilling = applications.map((application) => {
+    const filling = fillingById.get(application.p_app_id)
+    if (!filling) throw new Error(`No filling calculated for application ${application.p_app_id}`)
+    return filling
+  })
 
   // Return the total norm filling and the breakdown per application.
   return {

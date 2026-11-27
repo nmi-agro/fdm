@@ -1099,10 +1099,52 @@ describe("Calculations — edge cases", () => {
     expect(getOrganicMatterBalanceField).not.toHaveBeenCalled()
   })
 
-  it("farm norms use the 2026 rules when no year is given", async () => {
+  describe("without a year", () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it("farm and field norms use the current calendar year", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] })
+      vi.setSystemTime(new Date(2027, 5, 15))
+      const { services } = normServices("resolve")
+      const app = makeApp(services)
+
+      const farmRes = await app.request("/farms/farm-1/calculations/norms", { headers })
+      expect(farmRes.status).toBe(200)
+      expect((await farmRes.json()).year).toBe(2027)
+      expect(services.createFunctionsForNorms).toHaveBeenLastCalledWith("NL", "2027")
+
+      const fieldRes = await app.request("/fields/field-1/calculations/norms", { headers })
+      expect(fieldRes.status).toBe(200)
+      expect((await fieldRes.json()).year).toBe(2027)
+      expect(services.createFunctionsForNorms).toHaveBeenLastCalledWith("NL", "2027")
+    })
+
+    it("farm and field norms return 400 when the current year has no norms", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] })
+      vi.setSystemTime(new Date(2030, 5, 15))
+      const { services } = normServices("resolve")
+      const app = makeApp(services)
+      for (const path of [
+        "/farms/farm-1/calculations/norms",
+        "/fields/field-1/calculations/norms",
+      ]) {
+        const res = await app.request(path, { headers })
+        expect(res.status).toBe(400)
+        expect(res.headers.get("content-type")).toContain("application/problem+json")
+        const body = await res.json()
+        expect(body.type).toMatch(/\/problems\/validation-failed$/)
+        expect(body.detail).toContain("2030")
+      }
+      expect(services.createFunctionsForNorms).not.toHaveBeenCalled()
+    })
+  })
+
+  it("farm norms use the 2026 rules for year=2026", async () => {
     const { services } = normServices("resolve")
     const app = makeApp(services)
-    const res = await app.request("/farms/farm-1/calculations/norms", { headers })
+    const res = await app.request("/farms/farm-1/calculations/norms?year=2026", { headers })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       b_id_farm: "farm-1",
@@ -1119,6 +1161,20 @@ describe("Calculations — edge cases", () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ b_id: "field-1", year: 2026, ...mockFarmNorms })
     expect(services.createFunctionsForNorms).toHaveBeenCalledWith("NL", "2026")
+  })
+
+  it("farm and field norms use the 2027 rules for year=2027", async () => {
+    const { services } = normServices("resolve")
+    const app = makeApp(services)
+    const farmRes = await app.request("/farms/farm-1/calculations/norms?year=2027", { headers })
+    expect(farmRes.status).toBe(200)
+    expect((await farmRes.json()).year).toBe(2027)
+    expect(services.createFunctionsForNorms).toHaveBeenLastCalledWith("NL", "2027")
+
+    const fieldRes = await app.request("/fields/field-1/calculations/norms?year=2027", { headers })
+    expect(fieldRes.status).toBe(200)
+    expect(await fieldRes.json()).toEqual({ b_id: "field-1", year: 2027, ...mockFarmNorms })
+    expect(services.createFunctionsForNorms).toHaveBeenLastCalledWith("NL", "2027")
   })
 
   it("field norms return 404 when the field does not exist", async () => {

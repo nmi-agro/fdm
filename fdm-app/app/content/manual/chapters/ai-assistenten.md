@@ -86,41 +86,41 @@ Gebruik je Claude Team of Enterprise? Dan kan alleen de beheerder van je organis
 
 ### Claude Code {#claude-code}
 
-Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en voer uit:
+Zet je sleutel in de omgevingsvariabele `{{mcpKeyEnvVar}}` en voer uit:
 
 ```bash
-claude mcp add --transport http {{mcpServerName}} {{mcpUrl}}/mcp --header 'X-API-Key: ${FDM_API_KEY}'
+claude mcp add --transport http {{mcpServerName}} {{mcpUrl}}/mcp --header 'X-API-Key: ${{{mcpKeyEnvVar}}}'
 ```
 
-Het commando slaat alleen de naam van de variabele op, niet de sleutel. Zet `FDM_API_KEY` daarom vast in je omgeving, bijvoorbeeld in je shellprofiel, zodat Claude Code de sleutel ook vindt als je het later of vanuit je editor start.
+Het commando slaat alleen de naam van de variabele op, niet de sleutel. Zet `{{mcpKeyEnvVar}}` daarom vast in je omgeving, bijvoorbeeld in je shellprofiel, zodat Claude Code de sleutel ook vindt als je het later of vanuit je editor start.
 
 ## OpenAI {#openai}
 
 ### Codex (CLI of IDE)
 
-Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en voer uit:
+Zet je sleutel in de omgevingsvariabele `{{mcpKeyEnvVar}}` en voer uit:
 
 ```bash
-codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var FDM_API_KEY
+codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var {{mcpKeyEnvVar}}
 ```
 
-Ook dit commando slaat alleen de naam van de variabele op. Zet `FDM_API_KEY` vast in je omgeving, zodat Codex de sleutel ook vindt als je het later of vanuit je editor start.
+Ook dit commando slaat alleen de naam van de variabele op. Zet `{{mcpKeyEnvVar}}` vast in je omgeving, zodat Codex de sleutel ook vindt als je het later of vanuit je editor start.
 
 ### Laat Claude Code of Codex het instellen {#zelf-instellen}
 
-Zet je sleutel in de omgevingsvariabele `FDM_API_KEY` en geef je assistent deze opdracht. De opdracht bevat je sleutel niet. Plak je sleutel ook nooit in een gesprek: dan gaat hij naar de aanbieder van de assistent.
+Zet je sleutel in de omgevingsvariabele `{{mcpKeyEnvVar}}` en geef je assistent deze opdracht. De opdracht bevat je sleutel niet. Plak je sleutel ook nooit in een gesprek: dan gaat hij naar de aanbieder van de assistent.
 
 ```text
 Stel de MCP-koppeling met {{appName}} voor me in.
 
 - Adres: {{mcpUrl}}/mcp (Streamable HTTP)
 - Naam van de koppeling: {{mcpServerName}}
-- De API-sleutel staat in de omgevingsvariabele FDM_API_KEY. Vraag me niet om de sleutel en zet hem niet letterlijk in een commando of bestand: verwijs naar de variabele.
+- De API-sleutel staat in de omgevingsvariabele {{mcpKeyEnvVar}}. Vraag me niet om de sleutel en zet hem niet letterlijk in een commando of bestand: verwijs naar de variabele.
 
-1. Kijk of FDM_API_KEY gezet is. Zo niet: leg uit hoe ik hem vast instel voor mijn besturingssysteem en shell, en stop dan.
+1. Kijk of {{mcpKeyEnvVar}} gezet is. Zo niet: leg uit hoe ik hem vast instel voor mijn besturingssysteem en shell, en stop dan.
 2. Voeg de koppeling toe:
-   - Claude Code: claude mcp add --transport http {{mcpServerName}} {{mcpUrl}}/mcp --header 'X-API-Key: ${FDM_API_KEY}'
-   - Codex: codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var FDM_API_KEY
+   - Claude Code: claude mcp add --transport http {{mcpServerName}} {{mcpUrl}}/mcp --header 'X-API-Key: ${{{mcpKeyEnvVar}}}'
+   - Codex: codex mcp add {{mcpServerName}} --url {{mcpUrl}}/mcp --bearer-token-env-var {{mcpKeyEnvVar}}
 3. Kijk met "claude mcp list" of "codex mcp list" of de koppeling werkt. Bij foutmelding 401 is de sleutel verkeerd of ingetrokken.
 4. Zeg dat ik een nieuwe sessie moet starten, zodat de hulpmiddelen geladen worden.
 ```
@@ -163,8 +163,8 @@ Gebruik `mcp-remote` als tussenstap. Zet dit in het configuratiebestand van je p
   "mcpServers": {
     "{{mcpServerName}}": {
       "command": "npx",
-      "args": ["mcp-remote", "{{mcpUrl}}/mcp", "--header", "X-API-Key:${FDM_API_KEY}"],
-      "env": { "FDM_API_KEY": "<sleutel>" }
+      "args": ["mcp-remote", "{{mcpUrl}}/mcp", "--header", "X-API-Key:${{{mcpKeyEnvVar}}}"],
+      "env": { "{{mcpKeyEnvVar}}": "<sleutel>" }
     }
   }
 }

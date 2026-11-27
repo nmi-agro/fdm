@@ -1,5 +1,22 @@
 # @nmi-agro/fdm-agents
 
+## 0.7.2
+
+### Patch Changes
+
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb), [`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+  - @nmi-agro/fdm-data@0.26.0
+  - @nmi-agro/fdm-calculator@0.22.1
+
+## 0.7.1
+
+### Patch Changes
+
+- [#988](https://github.com/nmi-agro/fdm/pull/988) [`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072) Thanks [@SvenVw](https://github.com/SvenVw)! - The fertilizer planner tools support calendar year 2027 and fail with a clear error for a year without legal application norms, instead of passing an unchecked year to the calculator. The 2027 norms are provisional: a copy of the 2026 norms until the official 2027 tables are published.
+- Updated dependencies [[`33b59b0`](https://github.com/nmi-agro/fdm/commit/33b59b0c7e3b61cc061fe69eb9f5369be0e8d072)]:
+  - @nmi-agro/fdm-calculator@0.22.0
+
 ## 0.7.0
 
 ### Minor Changes

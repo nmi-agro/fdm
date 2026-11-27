@@ -47,7 +47,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "~/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -63,6 +63,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import { sexLabel } from "~/lib/animal-sex"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -70,6 +71,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { formText } from "~/lib/form"
 import { endOfFarmDay, farmTodayKey } from "~/lib/grazing-dates"
+import { getHerdMoveTargets } from "~/lib/herd-moves.server"
 import { serverNow } from "~/lib/server-now.server"
 
 export const handle: HelpHandle = { help: "veestapel-dieren" }
@@ -248,6 +250,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         l_id_category: h.l_id_category,
         l_category: h.l_category,
       })),
+      // Only the herds this animal can move to: the same category or a next life stage
+      moveTargets: getHerdMoveTargets(
+        animal.l_id_category ?? null,
+        [animal.l_sex],
+        // An animal in no herd can join any herd of its own species
+        herds.filter((h) => h.l_id_herd !== animal.l_id_herd && h.l_specie === animal.l_specie),
+      ).map((target) => ({
+        ...target,
+        l_herd_name: herds.find((h) => h.l_id_herd === target.l_id_herd)?.l_herd_name ?? "Koppel",
+      })),
       // Dutch labels of the leaving methods, for the departure form and the status
       leavingMethods: leavingMethodOptions.map((o) => ({ value: o.value, label: o.label })),
       farmWritePermission,
@@ -361,6 +373,7 @@ export default function AnimalDetailPage() {
     grazingHistory,
     grazingSummary,
     herds,
+    moveTargets,
     leavingMethods,
     farmWritePermission,
   } = useLoaderData<typeof loader>()
@@ -397,6 +410,7 @@ export default function AnimalDetailPage() {
   )
 
   const currentHerd = herds.find((h) => h.l_id_herd === animal.l_id_herd)
+  const sexAfterMove = moveTargets.find((t) => t.l_id_herd === targetHerdId)?.l_sex_after
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -802,26 +816,37 @@ export default function AnimalDetailPage() {
                           <FieldLabel htmlFor="move-herd">Doelkoppel</FieldLabel>
                           <Select
                             value={targetHerdId}
-                            items={herds
-                              .filter((h) => h.l_id_herd !== animal.l_id_herd)
-                              .map((h) => ({ value: h.l_id_herd, label: h.l_herd_name }))}
+                            items={moveTargets.map((h) => ({
+                              value: h.l_id_herd,
+                              label: h.l_herd_name,
+                            }))}
                             onValueChange={(v) => {
                               if (v !== null) setTargetHerdId(v)
                             }}
+                            disabled={moveTargets.length === 0}
                           >
                             <SelectTrigger id="move-herd">
                               <SelectValue placeholder="Kies nieuwe koppel" />
                             </SelectTrigger>
                             <SelectContent>
-                              {herds
-                                .filter((h) => h.l_id_herd !== animal.l_id_herd)
-                                .map((h) => (
-                                  <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
-                                    {h.l_herd_name}
-                                  </SelectItem>
-                                ))}
+                              {moveTargets.map((h) => (
+                                <SelectItem key={h.l_id_herd} value={h.l_id_herd}>
+                                  {h.l_herd_name}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
+                          {moveTargets.length === 0 ? (
+                            <FieldDescription key="no-targets">
+                              Er is geen koppel waar dit dier naartoe kan. Een dier gaat alleen naar
+                              een koppel van dezelfde diercategorie of van een volgende levensfase
+                              van dezelfde diersoort.
+                            </FieldDescription>
+                          ) : sexAfterMove ? (
+                            <FieldDescription key={`sex-after-${sexAfterMove}`}>
+                              Het geslacht van dit dier wordt {sexLabel(sexAfterMove)}.
+                            </FieldDescription>
+                          ) : null}
                         </Field>
                       </CardContent>
                       <CardFooter className="border-t">

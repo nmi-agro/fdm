@@ -51,13 +51,23 @@ describe("PostHog MCP analytics", () => {
       { config: { analytics: { posthog } } },
     )
     const client = await connect(app)
+    const conversationId = "018f0d7a-3b4c-7def-8abc-0123456789ab"
 
     const { tools } = await client.listTools()
     expect(tools.map((tool) => tool.name)).toContain("get_more_tools")
+    const getFarmTool = tools.find((tool) => tool.name === "get_farm")
+    expect(getFarmTool?.inputSchema).toHaveProperty("properties.context")
+    expect(getFarmTool?.inputSchema).toHaveProperty("properties.llm_model")
+    expect(getFarmTool?.inputSchema).toHaveProperty("properties.conversation_id")
 
     const ok = await client.callTool({
       name: "get_farm",
-      arguments: { b_id_farm: "farm-1", context: "Look up the farm of the user" },
+      arguments: {
+        b_id_farm: "farm-1",
+        context: "Look up the farm of the user",
+        llm_model: "test-model",
+        conversation_id: conversationId,
+      },
     })
     expect(ok.isError).toBeFalsy()
     expect(getFarm).toHaveBeenCalledWith(expect.anything(), "user-1", "farm-1")
@@ -87,6 +97,13 @@ describe("PostHog MCP analytics", () => {
     expect(toolCalls.map((event) => event.properties.$mcp_tool_name)).toEqual(
       expect.arrayContaining(["get_farm", "get_field"]),
     )
+    expect(
+      toolCalls.find((event) => event.properties.$mcp_tool_name === "get_farm")?.properties,
+    ).toMatchObject({
+      $mcp_llm_model: "test-model",
+      $mcp_llm_model_source: "self_reported",
+      $mcp_conversation_id: conversationId,
+    })
   })
 
   it("sends no analytics without a PostHog client", async () => {

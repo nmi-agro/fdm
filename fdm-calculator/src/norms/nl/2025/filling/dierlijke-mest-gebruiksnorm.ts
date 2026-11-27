@@ -56,7 +56,10 @@ export function calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebru
       if (rvoTypeProperties.p_type_nitratesdirective) {
         const amount = new Decimal(application.p_app_amount ?? 0)
         // Determine the nitrogen content, using specific values if available, otherwise fallback to default.
-        const p_n_rt = new Decimal(fertilizer.p_n_rt ?? rvoTypeProperties.p_n_rt ?? 0)
+        // A nitrogen content of 0 means unknown, as in the nitrogen filling: use Table 11 then.
+        const p_n_rt = new Decimal(
+          fertilizer.p_n_rt ? fertilizer.p_n_rt : (rvoTypeProperties.p_n_rt ?? 0),
+        )
         // Calculate the norm filling for this application.
         normFilling = amount.times(p_n_rt).dividedBy(1000)
       }
