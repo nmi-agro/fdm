@@ -15,6 +15,8 @@ Before making changes, read `AGENTS.md` and the relevant skills under `.claude/s
 
 ## 2. Apply safe updates directly
 
+Only consider versions that satisfy the repository's release-age window (`minimumReleaseAge` in `pnpm-workspace.yaml`, currently 1440 minutes). Ignore anything newer: do not bump to it, do not list it as an update, do not read or cite its changelog, and do not work around the window (no `--ignore-minimum-release-age`, no shortening of `minimumReleaseAge`, no new `minimumReleaseAgeExclude` entries). Packages already in `minimumReleaseAgeExclude` follow that list. Prefer `pnpm update` over hand-picking versions, because pnpm applies the window itself; if `pnpm outdated` shows a newer version than pnpm will install, treat the installed one as the target.
+
 - For all patch/minor bumps: update the version in `pnpm-workspace.yaml`'s `catalog` (for catalog-managed deps) or the package's own `package.json` (for deps not in the catalog), then run `pnpm install`.
 - These should not require code changes beyond the version bump itself, but still run the validation in step 4 and revert/pin back any bump that breaks the build or tests instead of leaving the repo broken.
 
@@ -30,6 +32,17 @@ For each **major** version bump:
 2. Identify breaking changes actually relevant to how `fdm` uses it — pay particular attention to: Drizzle ORM/drizzle-kit (schema and migration generation), better-auth (plugin/adapter APIs, used in `fdm-core/src/authentication.ts`), React Router v8 (loaders/actions/routing in `fdm-app`), Vitest/Tailwind/build tooling config, and any TypeScript major-version breaking changes.
 3. If the migration is mechanical and safe (renamed APIs, config keys, codemods available, etc.), perform it directly in this PR: update code, config, and (if needed) generate/adjust Drizzle migrations following the schema-change workflow documented in the `fdm-schema` skill.
 4. If the upgrade requires a decision only a maintainer can make — an ambiguous breaking change, a product/UX trade-off, a security posture change, or a migration too risky to automate safely — **do not apply that specific upgrade**. Leave it at its current version and record it in the "Decisions Needed" section of the PR body (see template below) with your reasoning and a recommendation.
+
+## 3b. Read the changelogs of minor/patch bumps and adopt small wins
+
+For every patch/minor bump of a dependency that `fdm` uses directly (skip purely transitive or dev-tooling-only bumps unless something notable shows up), read its changelog between the current and the new version you actually install (not newer, still-maturing releases). Look in the installed package first (`node_modules/<pkg>/CHANGELOG.md`), then in the dependency's own GitHub repository (`CHANGELOG.md`, in-repo release notes, `.changeset/`), using the same access rules as in step 3. Do not guess when a changelog is unreachable: say in the PR which ones you could not read.
+
+Look for new, non-breaking features or fixes that could improve `fdm` (new APIs, performance or reliability improvements, deprecations that touch code in this repo). Then:
+
+- If the improvement is **straightforward and small** (a few lines in one or two files, no behavior or product decision, no new configuration or personal-data handling, no new dependency), implement it, with a test when the code is covered by tests, and add a short note in the PR under "Suggestions & Opportunities" saying it was applied.
+- Otherwise do **not** implement it; list it under "Suggestions & Opportunities" with the package, version and what it would improve.
+
+Commit rules for the whole run: the plain version bumps go in one commit (`chore: weekly dependency update (patch/minor)`). Every other change gets its **own commit**: each major upgrade with its migration, and each adopted improvement from this step. Name each commit after the dependency and the change, so a maintainer can revert one without the others.
 
 ## 4. Validate
 
@@ -73,7 +86,7 @@ For each major upgrade that was intentionally _not_ applied:
 
 ## Suggestions & Opportunities
 
-Bullet list of new features/APIs unlocked by this week's updates that could be worth adopting (e.g. new Drizzle features, React Router APIs, performance improvements), or follow-up cleanup/deprecation work suggested by the changelogs you read. Keep this grounded in what you actually saw in the changelogs — do not speculate.
+Bullet list of new features/APIs unlocked by this week's updates (major, minor and patch) that could be worth adopting (e.g. new Drizzle features, React Router APIs, performance improvements), or follow-up cleanup/deprecation work suggested by the changelogs you read. Mark the ones you already implemented in their own commit (step 3b) as "applied", and name the changelogs you could not read. Keep this grounded in what you actually saw in the changelogs — do not speculate.
 
 ## Validation
 

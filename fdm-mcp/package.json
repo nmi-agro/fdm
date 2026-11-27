@@ -34,16 +34,16 @@
     "watch": "dotenvx run --quiet -- vitest"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.9",
+    "@hono/node-server": "^2.1.11",
     "@modelcontextprotocol/hono": "^2.0.2",
     "@modelcontextprotocol/server": "^2.4.0",
     "@nmi-agro/fdm-api": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
-    "@posthog/mcp": "1.6.0",
-    "@sentry/node": "^11.14.0",
-    "@sentry/profiling-node": "^11.14.0",
-    "hono": "^4.13.19",
-    "posthog-node": "6.0.4",
+    "@posthog/mcp": "^1.8.1",
+    "@sentry/node": "^11.18.0",
+    "@sentry/profiling-node": "^11.18.0",
+    "hono": "^4.13.22",
+    "posthog-node": "^6.1.0",
     "zod": "catalog:"
   },
   "devDependencies": {
