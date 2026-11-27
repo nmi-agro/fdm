@@ -324,7 +324,8 @@ const rvoAnimalCategories: readonly RvoAnimalCategory[] = [
     l_id_category: "rvo_751",
     l_category: "751 - Fokteven (nertsen)",
     l_specie: "other",
-    l_sex_options: female,
+    // Includes the males and young that belong to the breeding females
+    l_sex_options: femaleAndMale,
     l_lsu: 0,
   },
   {
