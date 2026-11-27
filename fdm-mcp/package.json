@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Model Context Protocol (MCP) server for the Farm Data Model, for AI assistants",
   "bin": {

@@ -1,5 +1,20 @@
 # Changelog fdm-app
 
+## 0.42.1
+
+### Patch Changes
+
+- [#993](https://github.com/nmi-agro/fdm/pull/993) [`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb) Thanks [@SvenVw](https://github.com/SvenVw)! - Only offer herds an animal can move to. The "Doelkoppel" list on the animal page and in "Dieren verplaatsen" on a herd card shows only herds of the same category or of a next life stage that the sex of the animals allows. The form says when animals of unknown sex get a sex by the move, and when there is no herd to move to. A rejected move shows a Dutch warning, and the "Melkvee" chapter of the manual explains the rules.
+
+- [#993](https://github.com/nmi-agro/fdm/pull/993) [`8aa28f4`](https://github.com/nmi-agro/fdm/commit/8aa28f4fee9019b8d1b0eff1ae1bc2fa56cfb014) Thanks [@SvenVw](https://github.com/SvenVw)! - Show the tabs under "Voor ontwikkelaars en lokale modellen" on the "AI-assistenten" page above their instructions instead of beside them, so the tab names and the code examples are readable again. The environment variable for the API key in the examples on that page and in the manual is now named after the application (for example `MY_APP_API_KEY`) instead of `FDM_API_KEY`; a name that starts with a digit gets a leading underscore, so it stays a valid shell variable name.
+- Updated dependencies [[`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb), [`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb)]:
+  - @nmi-agro/fdm-core@0.41.0
+  - @nmi-agro/fdm-data@0.26.0
+  - @nmi-agro/fdm-agents@0.7.2
+  - @nmi-agro/fdm-calculator@0.22.1
+  - @nmi-agro/fdm-reports@0.1.2
+  - @nmi-agro/fdm-rvo@0.7.1
+
 ## 0.42.0
 
 ### Minor Changes

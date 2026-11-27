@@ -1,5 +1,13 @@
 # fdm-data
 
+## 0.26.0
+
+### Minor Changes
+
+- [#993](https://github.com/nmi-agro/fdm/pull/993) [`54cc506`](https://github.com/nmi-agro/fdm/commit/54cc506cc94c368b7d79510ea3a6753a83cbc0fb) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the moves an animal can make between animal categories. Every animal-category catalogue provides its moves next to its list of categories (the RVO catalogue in `catalogues/rvo/`), returned by `getAnimalCategoryTransitionsCatalogue`. `getAnimalCategoryTransitions` combines the moves of all catalogues and lists, per category, the next life stages of the same species and the sexes that can reach them, and `getAnimalCategoryTransitionSexes` returns the sexes for which a move from one category to another is possible. New types: `AnimalCategoryTransition` and `CatalogueAnimalCategoryTransitions`. A move to the same category is always possible; a move back to a younger age group or to another species is not. The exception is a category that includes the young of its animals (such as 600 with newborn kids, 971 with red deer calves or 401 with piglets): those young can move on to their own category, also when its age group is younger than that of the mothers.
+
+  Categories 401 (Fokzeugen incl. biggen tot ca. 25 kg) and 751 (Fokteven, nertsen) now allow both sexes, because they include the piglets of the sows and the males and young of the mink.
+
 ## 0.25.0
 
 ### Minor Changes
